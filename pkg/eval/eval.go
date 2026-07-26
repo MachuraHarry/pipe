@@ -2,6 +2,7 @@ package eval
 
 import (
 	"fmt"
+	"math"
 	"os"
 	"strings"
 
@@ -267,7 +268,9 @@ func evalIntegerInfix(operator string, left, right *object.Integer) object.Objec
 			return newError("Modulo durch Null")
 		}
 		return &object.Integer{Value: l % r}
-	case "<":
+		case "**":
+			return &object.Integer{Value: int64(math.Pow(float64(l), float64(r)))}
+		case "<":
 		return object.NativeBoolToBoolean(l < r)
 	case ">":
 		return object.NativeBoolToBoolean(l > r)
@@ -298,7 +301,9 @@ func evalFloatInfix(operator string, left, right *object.Float) object.Object {
 			return newError("Division durch Null")
 		}
 		return &object.Float{Value: l / r}
-	case "%":
+		case "**":
+			return &object.Float{Value: math.Pow(l, r)}
+		case "%":
 		return newError("Modulo nicht für Float definiert")
 	case "<":
 		return object.NativeBoolToBoolean(l < r)

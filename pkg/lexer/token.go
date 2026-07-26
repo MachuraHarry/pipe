@@ -31,6 +31,12 @@ const (
 	BANG     // !
 	AND      // &&
 	OR       // ||
+	PLUSEQ   // +=
+	MINUSEQ  // -=
+	STAREQ   // *=
+	SLASHEQ  // /=
+	PERCENTEQ // %=
+	POWER    // **
 	DOTDOT   // .. (slice range)
 
 	// Pipeline
@@ -113,6 +119,12 @@ var tokenNames = map[TokenType]string{
 	BANG:      "!",
 	AND:       "&&",
 	OR:        "||",
+	PLUSEQ:    "+=",
+	MINUSEQ:   "-=",
+	STAREQ:    "*=",
+	SLASHEQ:   "/=",
+	PERCENTEQ: "%=",
+	POWER:     "**",
 	DOTDOT:    "..",
 	PIPE:      "|",
 	ARROW:     ">",

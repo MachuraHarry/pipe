@@ -24,6 +24,7 @@ const (
 	PrecedenceCompare
 	PrecedenceSum
 	PrecedenceProduct
+	PrecedencePower
 	PrecedenceConcat
 	PrecedencePrefix
 	PrecedenceCall
@@ -45,6 +46,7 @@ var precedences = map[lexer.TokenType]int{
 	lexer.STAR:   PrecedenceProduct,
 	lexer.SLASH:  PrecedenceProduct,
 	lexer.PERCENT: PrecedenceProduct,
+	lexer.POWER:  PrecedencePower,
 	lexer.CONCAT: PrecedenceConcat,
 	lexer.DOT:    PrecedenceDot,
 	lexer.LBRACKET: PrecedenceCall,
@@ -93,6 +95,7 @@ func New(l *lexer.Lexer) *Parser {
 		lexer.STAR:    p.parseInfixExpression,
 		lexer.SLASH:   p.parseInfixExpression,
 		lexer.PERCENT: p.parseInfixExpression,
+		lexer.POWER:   p.parseInfixExpression,
 		lexer.EQ:      p.parseInfixExpression,
 		lexer.NOT_EQ:  p.parseInfixExpression,
 		lexer.LT:      p.parseInfixExpression,
@@ -206,6 +209,10 @@ func (p *Parser) parseExpressionOrVarStatement() ast.Statement {
 	if p.curTokenIs(lexer.IDENT) && p.peekTokenIs(lexer.COLON) {
 		return p.parseVarStatement()
 	}
+	// Compound assignment: x += expr
+	if p.curTokenIs(lexer.IDENT) && isCompoundAssign(p.peekToken.Type) {
+		return p.parseCompoundAssign()
+	}
 
 	stmt := &ast.ExpressionStatement{}
 	stmt.Expression = p.parseExpression(PrecedenceLowest)
@@ -243,6 +250,40 @@ func (p *Parser) parseExpressionOrVarStatement() ast.Statement {
 		p.nextToken()
 	}
 
+	return stmt
+}
+
+func isCompoundAssign(t lexer.TokenType) bool {
+	switch t {
+	case lexer.PLUSEQ, lexer.MINUSEQ, lexer.STAREQ, lexer.SLASHEQ, lexer.PERCENTEQ:
+		return true
+	}
+	return false
+}
+
+func (p *Parser) parseCompoundAssign() ast.Statement {
+	stmt := &ast.VarStatement{}
+	stmt.Name = &ast.Identifier{Value: p.curToken.Literal}
+
+	opToken := p.peekToken
+	op := ""
+	switch opToken.Type {
+	case lexer.PLUSEQ: op = "+"
+	case lexer.MINUSEQ: op = "-"
+	case lexer.STAREQ: op = "*"
+	case lexer.SLASHEQ: op = "/"
+	case lexer.PERCENTEQ: op = "%"
+	}
+
+	p.nextToken() // skip to +=
+	p.nextToken() // skip to value
+
+	rightExpr := p.parseExpression(PrecedenceLowest)
+	stmt.Value = &ast.InfixExpression{
+		Operator: op,
+		Left:     stmt.Name,
+		Right:    rightExpr,
+	}
 	return stmt
 }
 

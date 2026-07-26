@@ -170,6 +170,9 @@ func (l *Lexer) scanToken() Token {
 		if l.peekChar() == '+' {
 			l.readChar()
 			tok = Token{Type: CONCAT, Literal: "++", Line: l.line, Col: l.col - 1}
+		} else if l.peekChar() == '=' {
+			l.readChar()
+			tok = Token{Type: PLUSEQ, Literal: "+=", Line: l.line, Col: l.col - 1}
 		} else {
 			tok = Token{Type: PLUS, Literal: "+", Line: l.line, Col: l.col}
 		}
@@ -178,29 +181,50 @@ func (l *Lexer) scanToken() Token {
 		if l.peekChar() == '>' {
 			l.readChar()
 			tok = Token{Type: MATCH, Literal: "->", Line: l.line, Col: l.col - 1}
-	} else if l.peekChar() == '-' {
-		for l.ch != '\n' && l.ch != 0 {
+		} else if l.peekChar() == '-' {
+			for l.ch != '\n' && l.ch != 0 {
+				l.readChar()
+			}
+			if l.ch == '\n' {
+				l.readLine()
+			}
+			if l.ch == 0 {
+				return l.emitPendingDedents()
+			}
+			return l.NextToken()
+		} else if l.peekChar() == '=' {
 			l.readChar()
-		}
-		if l.ch == '\n' {
-			l.readLine()
-		}
-		if l.ch == 0 {
-			return l.emitPendingDedents()
-		}
-		return l.NextToken()
+			tok = Token{Type: MINUSEQ, Literal: "-=", Line: l.line, Col: l.col - 1}
 		} else {
 			tok = Token{Type: MINUS, Literal: "-", Line: l.line, Col: l.col}
 		}
 
 	case '*':
-		tok = Token{Type: STAR, Literal: "*", Line: l.line, Col: l.col}
+		if l.peekChar() == '=' {
+			l.readChar()
+			tok = Token{Type: STAREQ, Literal: "*=", Line: l.line, Col: l.col - 1}
+		} else if l.peekChar() == '*' {
+			l.readChar()
+			tok = Token{Type: POWER, Literal: "**", Line: l.line, Col: l.col - 1}
+		} else {
+			tok = Token{Type: STAR, Literal: "*", Line: l.line, Col: l.col}
+		}
 
 	case '/':
-		tok = Token{Type: SLASH, Literal: "/", Line: l.line, Col: l.col}
+		if l.peekChar() == '=' {
+			l.readChar()
+			tok = Token{Type: SLASHEQ, Literal: "/=", Line: l.line, Col: l.col - 1}
+		} else {
+			tok = Token{Type: SLASH, Literal: "/", Line: l.line, Col: l.col}
+		}
 
 	case '%':
-		tok = Token{Type: PERCENT, Literal: "%", Line: l.line, Col: l.col}
+		if l.peekChar() == '=' {
+			l.readChar()
+			tok = Token{Type: PERCENTEQ, Literal: "%=", Line: l.line, Col: l.col - 1}
+		} else {
+			tok = Token{Type: PERCENT, Literal: "%", Line: l.line, Col: l.col}
+		}
 
 	case '=':
 		if l.peekChar() == '=' {
@@ -300,6 +324,9 @@ func (l *Lexer) scanToken() Token {
 	case '"':
 		tok = l.readString()
 
+	case '`':
+		tok = l.readBacktickString()
+
 	default:
 		if isLetter(l.ch) {
 			literal := l.readIdentifier()
@@ -329,6 +356,27 @@ func (l *Lexer) readLine() {
 	l.line++
 	l.col = 0
 	l.atLineStart = true
+}
+
+func (l *Lexer) readBacktickString() Token {
+	startCol := l.col
+	l.readChar() // skip opening backtick
+
+	var buf strings.Builder
+	for l.ch != '`' && l.ch != 0 {
+		buf.WriteByte(l.ch)
+		if l.ch == '\n' {
+			l.line++
+			l.col = 0
+		}
+		l.readChar()
+	}
+
+	if l.ch == 0 {
+		return Token{Type: ILLEGAL, Literal: "unterminated backtick string", Line: l.line, Col: startCol}
+	}
+
+	return Token{Type: STRING, Literal: buf.String(), Line: l.line, Col: startCol}
 }
 
 func (l *Lexer) readString() Token {

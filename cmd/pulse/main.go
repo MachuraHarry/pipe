@@ -24,8 +24,10 @@ func main() {
 		quietVM  bool
 		showAST  bool
 		filePath string
+		scriptArgs []string
 	)
 
+	foundFile := false
 	for _, arg := range os.Args[1:] {
 		switch arg {
 		case "-vm":
@@ -38,8 +40,11 @@ func main() {
 			printHelp()
 			return
 		default:
-			if !strings.HasPrefix(arg, "-") {
+			if !strings.HasPrefix(arg, "-") && !foundFile {
 				filePath = arg
+				foundFile = true
+			} else if foundFile {
+				scriptArgs = append(scriptArgs, arg)
 			}
 		}
 	}
@@ -75,7 +80,7 @@ func main() {
 	if useVM {
 		runVM(program, quietVM)
 	} else {
-		runEval(program)
+		runEval(program, scriptArgs)
 	}
 }
 
@@ -99,8 +104,16 @@ Beispiele:
   pulse -ast examples/pipeline.pulse`)
 }
 
-func runEval(program *ast.Program) {
+func runEval(program *ast.Program, scriptArgs []string) {
 	env := object.NewEnvironment()
+
+	// Set global args variable
+	argObjs := make([]object.Object, len(scriptArgs))
+	for i, a := range scriptArgs {
+		argObjs[i] = &object.String{Value: a}
+	}
+	env.Set("args", &object.List{Elements: argObjs})
+
 	result := eval.Eval(program, env)
 	if result != nil && result.Type() == object.ERROR {
 		fmt.Fprintf(os.Stderr, "Laufzeit-Fehler: %s\n", result.Inspect())

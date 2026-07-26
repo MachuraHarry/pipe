@@ -195,6 +195,7 @@ func ValuesEqual(a, b Object) bool {
 var Builtins = []BuiltinInfo{
 	// IO / File System
 	{"print", bPrint},
+	{"input", bInput},
 	{"read_file", bReadFile},
 	{"write_file", bWriteFile},
 	{"append_file", bAppendFile},
@@ -267,6 +268,7 @@ var Builtins = []BuiltinInfo{
 	{"set", bSet},
 
 	// Type checks
+	{"type_of", bTypeOf},
 	{"is_num", bIsNum},
 	{"is_str", bIsStr},
 	{"is_list", bIsList},
@@ -299,6 +301,17 @@ func bPrint(args ...Object) Object {
 	}
 	fmt.Println()
 	return NILOBJ
+}
+
+func bInput(args ...Object) Object {
+	if len(args) > 0 {
+		if prompt, ok := args[0].(*String); ok {
+			fmt.Print(prompt.Value)
+		}
+	}
+	var line string
+	fmt.Scanln(&line)
+	return &String{Value: line}
 }
 
 func bReadFile(args ...Object) Object {
@@ -1058,6 +1071,13 @@ func bSet(args ...Object) Object {
 }
 
 // ---- Type checks ----
+
+func bTypeOf(args ...Object) Object {
+	if len(args) != 1 {
+		return err("type_of erwartet 1 Argument")
+	}
+	return &String{Value: string(args[0].Type())}
+}
 
 func bIsNum(args ...Object) Object {
 	if len(args) != 1 {

@@ -290,6 +290,13 @@ type ContinueStatement struct{}
 func (cs *ContinueStatement) statementNode()       {}
 func (cs *ContinueStatement) TokenLiteral() string { return "continue" }
 
+type ReturnStatement struct {
+	Value Expression
+}
+
+func (rs *ReturnStatement) statementNode()       {}
+func (rs *ReturnStatement) TokenLiteral() string { return "return" }
+
 type ImportStatement struct {
 	Path string
 }

@@ -28,6 +28,9 @@ const (
 	LTE      // <=
 	GTE      // >=
 	CONCAT   // ++ (string concat)
+	BANG     // !
+	AND      // &&
+	OR       // ||
 	DOTDOT   // .. (slice range)
 
 	// Pipeline
@@ -61,6 +64,7 @@ const (
 	BREAK    // break
 	CONTINUE // continue
 	IMPORT   // import
+	RETURN   // return
 	TRY      // try
 	CATCH    // catch
 	TRUE     // true
@@ -78,6 +82,7 @@ var keywords = map[string]TokenType{
 	"break":    BREAK,
 	"continue": CONTINUE,
 	"import":   IMPORT,
+	"return":   RETURN,
 	"try":      TRY,
 	"catch":    CATCH,
 	"true":     TRUE,
@@ -105,6 +110,9 @@ var tokenNames = map[TokenType]string{
 	LTE:       "<=",
 	GTE:       ">=",
 	CONCAT:    "++",
+	BANG:      "!",
+	AND:       "&&",
+	OR:        "||",
 	DOTDOT:    "..",
 	PIPE:      "|",
 	ARROW:     ">",
@@ -130,6 +138,7 @@ var tokenNames = map[TokenType]string{
 	BREAK:     "break",
 	CONTINUE:  "continue",
 	IMPORT:    "import",
+	RETURN:    "return",
 	TRY:       "try",
 	CATCH:     "catch",
 	TRUE:      "true",

@@ -17,6 +17,8 @@ type (
 const (
 	_ int = iota
 	PrecedenceLowest
+	PrecedenceOr
+	PrecedenceAnd
 	PrecedencePipeline
 	PrecedenceEquals
 	PrecedenceCompare
@@ -29,6 +31,8 @@ const (
 )
 
 var precedences = map[lexer.TokenType]int{
+	lexer.OR:     PrecedenceOr,
+	lexer.AND:    PrecedenceAnd,
 	lexer.ARROW:  PrecedencePipeline,
 	lexer.EQ:     PrecedenceEquals,
 	lexer.NOT_EQ: PrecedenceEquals,
@@ -71,6 +75,7 @@ func New(l *lexer.Lexer) *Parser {
 		lexer.FALSE:    p.parseBooleanLiteral,
 		lexer.NIL:      p.parseNilLiteral,
 		lexer.MINUS:    p.parsePrefixExpression,
+		lexer.BANG:     p.parsePrefixExpression,
 		lexer.LPAREN:   p.parseGroupedExpression,
 		lexer.LBRACKET: p.parseListLiteral,
 		lexer.LBRACE:   p.parseMapLiteral,
@@ -96,6 +101,8 @@ func New(l *lexer.Lexer) *Parser {
 		lexer.LTE:     p.parseInfixExpression,
 		lexer.GTE:     p.parseInfixExpression,
 		lexer.CONCAT:  p.parseInfixExpression,
+		lexer.AND:     p.parseInfixExpression,
+		lexer.OR:      p.parseInfixExpression,
 		lexer.DOT:     p.parseDotExpression,
 		lexer.LPAREN:  p.parseCallExpression,
 		lexer.LBRACKET: p.parseIndexOrSlice,
@@ -182,6 +189,8 @@ func (p *Parser) parseStatement() ast.Statement {
 		return &ast.ContinueStatement{}
 	case lexer.IMPORT:
 		return p.parseImportStatement()
+	case lexer.RETURN:
+		return p.parseReturnStatement()
 	case lexer.NEWLINE:
 		return nil
 	case lexer.DEDENT:
@@ -337,6 +346,14 @@ func (p *Parser) parseExpr(precedence int, allowSpaceCalls bool) ast.Expression 
 
 	// TryExpression: don't continue (self-contained)
 	if _, ok := leftExp.(*ast.TryExpression); ok {
+		return leftExp
+	}
+
+	// IfExpression, WhileExpression: don't continue (self-contained blocks)
+	if _, ok := leftExp.(*ast.IfExpression); ok {
+		return leftExp
+	}
+	if _, ok := leftExp.(*ast.WhileExpression); ok {
 		return leftExp
 	}
 
@@ -735,6 +752,11 @@ func (p *Parser) parseForExpression() ast.Expression {
 	expr.Body = p.parseBlock()
 	p.closeBlock()
 	return expr
+}
+
+func (p *Parser) parseReturnStatement() ast.Statement {
+	p.nextToken() // skip 'return'
+	return &ast.ReturnStatement{Value: p.parseExpression(PrecedenceLowest)}
 }
 
 func (p *Parser) parseImportStatement() ast.Statement {

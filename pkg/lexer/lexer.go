@@ -215,7 +215,7 @@ func (l *Lexer) scanToken() Token {
 			l.readChar()
 			tok = Token{Type: NOT_EQ, Literal: "!=", Line: l.line, Col: l.col - 1}
 		} else {
-			tok = Token{Type: ILLEGAL, Literal: "!", Line: l.line, Col: l.col}
+			tok = Token{Type: BANG, Literal: "!", Line: l.line, Col: l.col}
 		}
 
 	case '<':
@@ -234,8 +234,21 @@ func (l *Lexer) scanToken() Token {
 			tok = Token{Type: ARROW, Literal: ">", Line: l.line, Col: l.col}
 		}
 
+	case '&':
+		if l.peekChar() == '&' {
+			l.readChar()
+			tok = Token{Type: AND, Literal: "&&", Line: l.line, Col: l.col - 1}
+		} else {
+			tok = Token{Type: ILLEGAL, Literal: "&", Line: l.line, Col: l.col}
+		}
+
 	case '|':
-		tok = Token{Type: PIPE, Literal: "|", Line: l.line, Col: l.col}
+		if l.peekChar() == '|' {
+			l.readChar()
+			tok = Token{Type: OR, Literal: "||", Line: l.line, Col: l.col - 1}
+		} else {
+			tok = Token{Type: PIPE, Literal: "|", Line: l.line, Col: l.col}
+		}
 
 	case '(':
 		l.parenDepth++

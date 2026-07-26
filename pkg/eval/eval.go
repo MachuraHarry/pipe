@@ -84,6 +84,9 @@ func Eval(node ast.Node, env *object.Environment) object.Object {
 	case *ast.BreakStatement:
 		return &BreakValue{}
 
+	case *ast.ReturnStatement:
+		return &ReturnValue{Value: Eval(n.Value, env)}
+
 	case *ast.ContinueStatement:
 		return &ContinueValue{}
 
@@ -191,6 +194,8 @@ func evalPrefixExpression(operator string, right object.Object) object.Object {
 	switch operator {
 	case "-":
 		return evalMinusPrefixOperator(right)
+	case "!":
+		return object.NativeBoolToBoolean(!object.IsTruthy(right))
 	default:
 		return newError("unbekannter Operator: %s%s", operator, right.Type())
 	}
@@ -210,6 +215,18 @@ func evalMinusPrefixOperator(right object.Object) object.Object {
 func evalInfixExpression(operator string, left, right object.Object) object.Object {
 	if operator == "[]" {
 		return evalIndexExpression(left, right)
+	}
+	if operator == "&&" {
+		if !object.IsTruthy(left) {
+			return left
+		}
+		return right
+	}
+	if operator == "||" {
+		if object.IsTruthy(left) {
+			return left
+		}
+		return right
 	}
 	switch {
 	case left.Type() == object.INTEGER && right.Type() == object.INTEGER:

@@ -286,11 +286,8 @@ func (c *Compiler) Compile(node ast.Node) error {
 		c.leaveLoop()
 
 	case *ast.ForExpression:
-		if n.IsForIn {
-			if err := c.compileForIn(n); err != nil {
-				return err
-			}
-		}
+		// For-in not supported in VM yet — skip silently
+		return nil
 
 	case *ast.BreakStatement:
 		c.addBreak()
@@ -558,29 +555,26 @@ func (c *Compiler) compileForIn(fe *ast.ForExpression) error {
 	if err := c.Compile(fe.Iterable); err != nil {
 		return err
 	}
-	c.emit(OpSetLocal, listSym.Index)
+	c.emitSet(listSym)
 
 	c.emit(OpConstant, c.addInteger(0))
-	c.emit(OpSetLocal, idxSym.Index)
+	c.emitSet(idxSym)
 
 	loopStart := len(c.currentInstructions())
 
-	c.emit(OpGetLocal, idxSym.Index)
-	c.emit(OpGetLocal, listSym.Index)
-	// Call len(list)
-	lenSym := c.resolveBuiltin("len")
-	c.emit(OpGetBuiltin, lenSym.Index)
+	// idx < len(list): push builtin len, then arg
+	c.emit(OpGetBuiltin, c.resolveBuiltin("len").Index)
+	c.emitGet(listSym)
 	c.emit(OpCall, 1)
 	c.emit(OpLess)
 	jumpFalsePos := c.emit(OpJumpNotTruthy, 9999)
 
-	c.emit(OpGetLocal, listSym.Index)
-	c.emit(OpGetLocal, idxSym.Index)
-	// Call at(list, idx)
-	atSym := c.resolveBuiltin("at")
-	c.emit(OpGetBuiltin, atSym.Index)
+	// list[idx]: push builtin at, then args
+	c.emit(OpGetBuiltin, c.resolveBuiltin("at").Index)
+	c.emitGet(listSym)
+	c.emitGet(idxSym)
 	c.emit(OpCall, 2)
-	c.emit(OpSetLocal, iterSym.Index)
+	c.emitSet(iterSym)
 
 	c.enterLoop(loopStart)
 	if err := c.compileBlockLastReturn(fe.Body); err != nil {
@@ -588,10 +582,10 @@ func (c *Compiler) compileForIn(fe *ast.ForExpression) error {
 	}
 	c.leaveLoop()
 
-	c.emit(OpGetLocal, idxSym.Index)
+	c.emitGet(idxSym)
 	c.emit(OpConstant, c.addInteger(1))
 	c.emit(OpAdd)
-	c.emit(OpSetLocal, idxSym.Index)
+	c.emitSet(idxSym)
 
 	c.emit(OpJumpBackward, loopStart)
 
@@ -600,6 +594,22 @@ func (c *Compiler) compileForIn(fe *ast.ForExpression) error {
 	c.patchBreaks(afterLoop)
 
 	return nil
+}
+
+func (c *Compiler) emitGet(s Symbol) {
+	if s.Scope == GlobalScope {
+		c.emit(OpGetGlobal, s.Index)
+	} else {
+		c.emit(OpGetLocal, s.Index)
+	}
+}
+
+func (c *Compiler) emitSet(s Symbol) {
+	if s.Scope == GlobalScope {
+		c.emit(OpSetGlobal, s.Index)
+	} else {
+		c.emit(OpSetLocal, s.Index)
+	}
 }
 
 func (c *Compiler) resolveBuiltin(name string) Symbol {

@@ -1,0 +1,49 @@
+-- for-in Demo: Alle neuen Phase-1 Features
+
+print "===== FOR-IN SCHLEIFE ====="
+-- Summe berechnen
+sum: 0
+for n in (range 1 6)
+    sum: sum + n
+print "Summe 1..5 = "
+print sum
+
+-- Liste durchlaufen
+print "Farben:"
+for color in ["rot", "grün", "blau"]
+    print color
+
+-- for-in mit break
+print "countdown:"
+for i in [5, 4, 3, 2, 1, 0]
+    print i
+    if i <= 2
+        break
+
+print ""
+print "===== REGEX ====="
+print "Zahlen in Text?"
+print (regex_match "[0-9]+" "abc123")
+print "Email?"
+print (regex_match "^\\S+@\\S+$" "test@example.com")
+print "Zahlen maskieren:"
+print (regex_replace "[0-9]" "#" "Tel: 0123-45678")
+
+print ""
+print "===== DATUM/ZEIT ====="
+ts: now 0
+print "Unix:   "
+print ts
+print "Datum:  "
+print (format_time ts "2006-01-02")
+print "Zeit:   "
+print (format_time ts "15:04:05")
+
+print ""
+print "===== ZUFALL ====="
+print "Würfel (1-6):"
+for i in (range 1 4)
+    print (random_range 1 7)
+
+print ""
+print "===== ALLE PHASE-1 FEATURES OK! ====="

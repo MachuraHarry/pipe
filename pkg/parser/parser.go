@@ -695,14 +695,37 @@ func (p *Parser) parseForExpression() ast.Expression {
 	expr := &ast.ForExpression{}
 	p.nextToken() // skip 'for'
 
-	// Parse init (variable def or expression)
+	// Check for for-in: for IDENT in expr
+	if p.curTokenIs(lexer.IDENT) {
+		// Save the iterator name
+		iterName := p.curToken.Literal
+		if p.peekTokenIs(lexer.IDENT) {
+			// Check if the next token is 'in' (which is an IDENT)
+			p.nextToken()
+			if p.curToken.Literal == "in" {
+				// for-in loop
+				expr.IsForIn = true
+				expr.Iterator = &ast.Identifier{Value: iterName}
+				p.nextToken() // move to iterable expression
+				expr.Iterable = p.parseExpression(PrecedenceLowest)
+
+				if p.peekTokenIs(lexer.NEWLINE) {
+					p.nextToken()
+				}
+				p.nextToken()
+				expr.Body = p.parseBlock()
+				p.closeBlock()
+				return expr
+			}
+		}
+	}
+
+	// Simple for: just parse body
 	if p.peekTokenIs(lexer.NEWLINE) {
 		return nil
 	}
 	p.nextToken()
 
-	// Simple for: for var in start..end  or  for init; cond; update
-	// We support the simple form for now
 	expr.Body = p.parseBlock()
 	p.closeBlock()
 	return expr

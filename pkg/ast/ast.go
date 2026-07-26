@@ -270,6 +270,10 @@ type ForExpression struct {
 	Condition Expression
 	Update    Expression
 	Body      *BlockStatement
+	// For-in variant:
+	Iterator  *Identifier   // loop variable name
+	Iterable  Expression    // list/map to iterate over
+	IsForIn   bool
 }
 
 func (fe *ForExpression) expressionNode()      {}

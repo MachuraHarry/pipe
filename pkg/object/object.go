@@ -5,10 +5,12 @@ import (
 	"fmt"
 	"io"
 	"math"
+	"math/rand"
 	"net"
 	"net/http"
 	"os"
 	"path/filepath"
+	"regexp"
 	"sort"
 	"strconv"
 	"strings"
@@ -273,6 +275,18 @@ var Builtins = []BuiltinInfo{
 	// Conversion
 	{"to_str", bToStr},
 	{"to_num", bToNum},
+
+	// Regex
+	{"regex_match", bRegexMatch},
+	{"regex_replace", bRegexReplace},
+
+	// Date/Time
+	{"now", bNow},
+	{"format_time", bFormatTime},
+
+	// Random
+	{"random", bRandom},
+	{"random_range", bRandomRange},
 }
 
 // ---- IO ----
@@ -1452,6 +1466,94 @@ func bTcpClose(args ...Object) Object {
 		return err("tcp_close: ungültiger Typ")
 	}
 	return NILOBJ
+}
+
+// ---- Regex ----
+
+func bRegexMatch(args ...Object) Object {
+	if len(args) != 2 {
+		return err("regex_match erwartet 2 Argumente (Pattern, Text)")
+	}
+	pat, ok := args[0].(*String)
+	txt, ok2 := args[1].(*String)
+	if !ok || !ok2 {
+		return err("regex_match: Pattern und Text müssen Strings sein")
+	}
+	matched, e := regexp.MatchString(pat.Value, txt.Value)
+	if e != nil {
+		return err("regex_match: " + e.Error())
+	}
+	if matched {
+		return TRUE
+	}
+	return FALSE
+}
+
+func bRegexReplace(args ...Object) Object {
+	if len(args) != 3 {
+		return err("regex_replace erwartet 3 Argumente (Pattern, Ersatz, Text)")
+	}
+	pat, ok := args[0].(*String)
+	repl, ok2 := args[1].(*String)
+	txt, ok3 := args[2].(*String)
+	if !ok || !ok2 || !ok3 {
+		return err("regex_replace: Alle Argumente müssen Strings sein")
+	}
+	re, e := regexp.Compile(pat.Value)
+	if e != nil {
+		return err("regex_replace: " + e.Error())
+	}
+	return &String{Value: re.ReplaceAllString(txt.Value, repl.Value)}
+}
+
+// ---- Date/Time ----
+
+func bNow(args ...Object) Object {
+	_ = args
+	ts := time.Now().Unix()
+	return &Integer{Value: ts}
+}
+
+func bFormatTime(args ...Object) Object {
+	if len(args) < 1 || len(args) > 2 {
+		return err("format_time erwartet 1-2 Argumente (Timestamp, Format?)")
+	}
+	ts, ok := ToInt(args[0])
+	if !ok {
+		return err("format_time: Timestamp muss Zahl sein")
+	}
+	layout := "2006-01-02 15:04:05"
+	if len(args) >= 2 {
+		s, ok := args[1].(*String)
+		if !ok {
+			return err("format_time: Format muss String sein")
+		}
+		layout = s.Value
+	}
+	t := time.Unix(ts, 0)
+	return &String{Value: t.Format(layout)}
+}
+
+// ---- Random ----
+
+func bRandom(args ...Object) Object {
+	_ = args
+	return &Float{Value: rand.Float64()}
+}
+
+func bRandomRange(args ...Object) Object {
+	if len(args) != 2 {
+		return err("random_range erwartet 2 Argumente (Min, Max)")
+	}
+	min, ok1 := ToInt(args[0])
+	max, ok2 := ToInt(args[1])
+	if !ok1 || !ok2 {
+		return err("random_range: Min und Max müssen Zahlen sein")
+	}
+	if min >= max {
+		return err("random_range: Min muss kleiner als Max sein")
+	}
+	return &Integer{Value: min + rand.Int63n(max-min)}
 }
 
 // ---- Helpers ----

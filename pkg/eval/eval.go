@@ -521,7 +521,43 @@ func evalWhileExpression(we *ast.WhileExpression, env *object.Environment) objec
 }
 
 func evalForExpression(fe *ast.ForExpression, env *object.Environment) object.Object {
+	if fe.IsForIn {
+		return evalForInExpression(fe, env)
+	}
 	return newError("for-Schleifen noch nicht vollständig implementiert")
+}
+
+func evalForInExpression(fe *ast.ForExpression, env *object.Environment) object.Object {
+	iterable := Eval(fe.Iterable, env)
+	if isError(iterable) {
+		return iterable
+	}
+
+	list, ok := iterable.(*object.List)
+	if !ok {
+		return newError("for-in erwartet eine List, nicht %s", iterable.Type())
+	}
+
+	iterName := fe.Iterator.Value
+	for _, elem := range list.Elements {
+		env.Set(iterName, elem)
+
+		result := Eval(fe.Body, env)
+		if result == nil {
+			continue
+		}
+		switch result.Type() {
+		case "BREAK":
+			return object.NILOBJ
+		case "CONTINUE":
+			continue
+		case "RETURN":
+			return result
+		case object.ERROR:
+			return result
+		}
+	}
+	return object.NILOBJ
 }
 
 func evalImportStatement(is *ast.ImportStatement, env *object.Environment) object.Object {

@@ -100,7 +100,7 @@ fn done cmd_id
             save todos
             print ("✅ #" ++ (to_str cmd_id) ++ " erledigt: " ++ (get t "title"))
             found: true
-    if found == false
+    if !found
         print ("❌ Kein Todo #" ++ (to_str cmd_id))
 
 fn undone cmd_id
@@ -112,7 +112,7 @@ fn undone cmd_id
             save todos
             print ("🔄 #" ++ (to_str cmd_id) ++ " wieder offen")
             found: true
-    if found == false
+    if !found
         print ("❌ Kein Todo #" ++ (to_str cmd_id))
 
 fn delete cmd_id

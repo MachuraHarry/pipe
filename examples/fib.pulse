@@ -1,0 +1,9 @@
+-- Fibonacci in Pulse
+
+fn fib n
+    match n
+        | 0  -> 0
+        | 1  -> 1
+        | _  -> fib(n - 1) + fib(n - 2)
+
+print (fib 10)

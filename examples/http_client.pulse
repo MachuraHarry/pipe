@@ -1,0 +1,28 @@
+-- HTTP-Client: REST-API aufrufen
+
+print "=== HTTP GET ==="
+resp: http_get "https://httpbin.org/get"
+print "Status:"
+print (get resp "status")
+
+print ""
+print "=== JSON parsen ==="
+data: http_get_json "https://httpbin.org/json"
+print "Antwort:"
+print data
+
+print ""
+print "=== JSON erstellen ==="
+payload: {name: "Pulse", type: "script"}
+json: to_json payload
+print "JSON:"
+print json
+
+print ""
+print "=== HTTP POST ==="
+post_resp: http_post "https://httpbin.org/post" json
+print "POST Status:"
+print (get post_resp "status")
+print "Antwort (Body):"
+post_body: get post_resp "body"
+print (at post_body 0)

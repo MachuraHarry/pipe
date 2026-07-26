@@ -1,0 +1,28 @@
+-- TCP Echo-Server und Client
+
+fn run_server
+    print "Echo-Server auf :9999..."
+    ln: tcp_listen "0.0.0.0" 9999
+    conn: tcp_accept ln
+    msg: tcp_read conn
+    print "Empfangen:"
+    print msg
+    tcp_write conn ("ECHO: " ++ msg)
+    tcp_close conn
+    tcp_close ln
+
+fn run_client message
+    print "Verbinde zu :9999..."
+    conn: tcp_connect "127.0.0.1" 9999
+    tcp_write conn message
+    reply: tcp_read conn
+    print "Antwort:"
+    print reply
+    tcp_close conn
+
+print "=== TCP Echo-Demo ==="
+print "Starte Server im Hintergrund..."
+print "(kein Hintergrund-Support — starte manuell)"
+print ""
+print "Befehl für Server:"
+print "  pulse -e 'tcp_listen' 0.0.0.0 9999"

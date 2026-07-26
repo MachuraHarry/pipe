@@ -1,0 +1,4 @@
+-- Hallo Welt in Pulse
+
+greeting: "Hallo Welt"
+print greeting

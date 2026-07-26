@@ -1,0 +1,22 @@
+-- GitHub API Client
+
+fn github_user username
+    url: "https://api.github.com/users/" ++ username
+    print "Fetching: "
+    print url
+    resp: http_get_json url
+    print ""
+    print "=== GitHub User: "
+    print username
+    print " ==="
+    print "Name:     "
+    print (get resp "name")
+    print "Bio:      "
+    print (get resp "bio")
+    print "Repos:    "
+    print (get resp "public_repos")
+    print "Followers:"
+    print (get resp "followers")
+    print ""
+
+github_user "torvalds"

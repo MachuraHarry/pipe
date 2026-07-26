@@ -1,0 +1,29 @@
+-- Caesar-Verschlüsselung
+
+fn shift_char ch offset
+    code: at "abcdefghijklmnopqrstuvwxyz" 0
+    idx: find_char "abcdefghijklmnopqrstuvwxyz" ch 0
+    new_idx: (idx + offset) % 26
+    at "abcdefghijklmnopqrstuvwxyz" new_idx
+
+fn find_char alphabet ch pos
+    if pos >= (len alphabet)
+        pos -- nicht gefunden
+    else if (at alphabet pos) == ch
+        pos
+    else
+        find_char alphabet ch (pos + 1)
+
+fn caesar text offset
+    caesar_helper text offset 0 ""
+
+fn caesar_helper text offset pos result
+    if pos >= (len text)
+        result
+    else
+        c: at text pos
+        shifted: shift_char c offset
+        caesar_helper text offset (pos + 1) (result ++ shifted)
+
+print "Caesar('hallo', 3):"
+print (caesar "hallo" 3)

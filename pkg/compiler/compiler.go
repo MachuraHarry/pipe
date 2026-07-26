@@ -1,0 +1,544 @@
+package compiler
+
+import (
+	"fmt"
+	"strconv"
+
+	"github.com/harry/pulse/pkg/ast"
+	"github.com/harry/pulse/pkg/object"
+)
+
+type SymbolScope int
+
+const (
+	GlobalScope SymbolScope = iota
+	LocalScope
+	BuiltinScope
+)
+
+type Symbol struct {
+	Name  string
+	Scope SymbolScope
+	Index int
+}
+
+type SymbolTable struct {
+	store          map[string]Symbol
+	numDefinitions int
+	Outer          *SymbolTable
+}
+
+func NewSymbolTable() *SymbolTable {
+	return &SymbolTable{store: make(map[string]Symbol)}
+}
+
+func NewEnclosedSymbolTable(outer *SymbolTable) *SymbolTable {
+	s := NewSymbolTable()
+	s.Outer = outer
+	return s
+}
+
+func (s *SymbolTable) Define(name string) Symbol {
+	sym := Symbol{Name: name, Index: s.numDefinitions}
+	if s.Outer == nil {
+		sym.Scope = GlobalScope
+	} else {
+		sym.Scope = LocalScope
+	}
+	s.store[name] = sym
+	s.numDefinitions++
+	return sym
+}
+
+func (s *SymbolTable) Resolve(name string) (Symbol, bool) {
+	sym, ok := s.store[name]
+	if !ok && s.Outer != nil {
+		return s.Outer.Resolve(name)
+	}
+	return sym, ok
+}
+
+func (s *SymbolTable) DefineBuiltin(index int, name string) Symbol {
+	sym := Symbol{Name: name, Index: index, Scope: BuiltinScope}
+	s.store[name] = sym
+	return sym
+}
+
+type Compiler struct {
+	constants   []object.Object
+	symbolTable *SymbolTable
+	scopes      []CompilationScope
+	scopeIndex  int
+}
+
+type CompilationScope struct {
+	instructions Instructions
+}
+
+type Bytecode struct {
+	Instructions Instructions
+	Constants    []object.Object
+}
+
+func New() *Compiler {
+	mainScope := CompilationScope{
+		instructions: Instructions{},
+	}
+
+	symbolTable := NewSymbolTable()
+	for i, b := range object.Builtins {
+		symbolTable.DefineBuiltin(i, b.Name)
+	}
+
+	return &Compiler{
+		constants:   []object.Object{},
+		symbolTable: symbolTable,
+		scopes:      []CompilationScope{mainScope},
+		scopeIndex:  0,
+	}
+}
+
+func (c *Compiler) currentScope() *CompilationScope {
+	return &c.scopes[c.scopeIndex]
+}
+
+func (c *Compiler) currentInstructions() Instructions {
+	return c.currentScope().instructions
+}
+
+func (c *Compiler) Bytecode() *Bytecode {
+	return &Bytecode{
+		Instructions: c.currentInstructions(),
+		Constants:    c.constants,
+	}
+}
+
+func (c *Compiler) emit(op Opcode, operands ...int) int {
+	ins := Make(op, operands...)
+	pos := len(c.currentScope().instructions)
+	c.currentScope().instructions = append(c.currentScope().instructions, ins...)
+	return pos
+}
+
+func (c *Compiler) addConstant(obj object.Object) int {
+	c.constants = append(c.constants, obj)
+	return len(c.constants) - 1
+}
+
+func (c *Compiler) addString(s string) int {
+	return c.addConstant(&object.String{Value: s})
+}
+
+func (c *Compiler) addInteger(v int64) int {
+	return c.addConstant(&object.Integer{Value: v})
+}
+
+func (c *Compiler) addFloat(v float64) int {
+	return c.addConstant(&object.Float{Value: v})
+}
+
+func (c *Compiler) Compile(node ast.Node) error {
+	switch n := node.(type) {
+	case *ast.Program:
+		return c.compileStatements(n.Statements, true)
+
+	case *ast.BlockStatement:
+		return c.compileStatements(n.Statements, true)
+
+	case *ast.ExpressionStatement:
+		if err := c.Compile(n.Expression); err != nil {
+			return err
+		}
+		c.emit(OpPop)
+
+	case *ast.VarStatement:
+		symbol := c.symbolTable.Define(n.Name.Value)
+		if err := c.Compile(n.Value); err != nil {
+			return err
+		}
+		if symbol.Scope == GlobalScope {
+			c.emit(OpSetGlobal, symbol.Index)
+		} else {
+			c.emit(OpSetLocal, symbol.Index)
+		}
+
+	case *ast.IntegerLiteral:
+		idx := c.addInteger(n.Value)
+		c.emit(OpConstant, idx)
+
+	case *ast.FloatLiteral:
+		idx := c.addFloat(n.Value)
+		c.emit(OpConstant, idx)
+
+	case *ast.StringLiteral:
+		idx := c.addString(n.Value)
+		c.emit(OpConstant, idx)
+
+	case *ast.BooleanLiteral:
+		if n.Value {
+			c.emit(OpTrue)
+		} else {
+			c.emit(OpFalse)
+		}
+
+	case *ast.NilLiteral:
+		c.emit(OpNil)
+
+	case *ast.Identifier:
+		symbol, ok := c.symbolTable.Resolve(n.Value)
+		if !ok {
+			return fmt.Errorf("undefinierte Variable: %s", n.Value)
+		}
+		c.loadSymbol(symbol)
+
+	case *ast.PrefixExpression:
+		if err := c.Compile(n.Right); err != nil {
+			return err
+		}
+		if n.Operator == "-" {
+			c.emit(OpMinus)
+		} else {
+			return fmt.Errorf("unbekannter Präfix: %s", n.Operator)
+		}
+
+	case *ast.InfixExpression:
+		if err := c.Compile(n.Left); err != nil {
+			return err
+		}
+		if err := c.Compile(n.Right); err != nil {
+			return err
+		}
+		switch n.Operator {
+		case "+":
+			c.emit(OpAdd)
+		case "-":
+			c.emit(OpSub)
+		case "*":
+			c.emit(OpMul)
+		case "/":
+			c.emit(OpDiv)
+		case "%":
+			c.emit(OpMod)
+		case "==":
+			c.emit(OpEqual)
+		case "!=":
+			c.emit(OpNotEqual)
+		case ">":
+			c.emit(OpGreater)
+		case "<":
+			c.emit(OpLess)
+		case ">=":
+			c.emit(OpGte)
+		case "<=":
+			c.emit(OpLte)
+		case "++":
+			c.emit(OpConcat)
+		default:
+			return fmt.Errorf("unbekannter Operator: %s", n.Operator)
+		}
+
+	case *ast.IfExpression:
+		if err := c.Compile(n.Condition); err != nil {
+			return err
+		}
+		jumpNotTruthyPos := c.emit(OpJumpNotTruthy, 9999)
+		if err := c.compileBlockLastReturn(n.Consequence); err != nil {
+			return err
+		}
+
+		if n.Alternative != nil {
+			jumpPos := c.emit(OpJump, 9999)
+			afterConsequence := len(c.currentInstructions())
+			c.patchJump(jumpNotTruthyPos, afterConsequence)
+			if err := c.compileBlockLastReturn(n.Alternative); err != nil {
+				return err
+			}
+			afterAlternative := len(c.currentInstructions())
+			c.patchJump(jumpPos, afterAlternative)
+		} else {
+			afterConsequence := len(c.currentInstructions())
+			c.patchJump(jumpNotTruthyPos, afterConsequence)
+		}
+
+	case *ast.MatchExpression:
+		if err := c.compileMatch(n); err != nil {
+			return err
+		}
+
+	case *ast.FnStatement:
+		fnSymbol := c.symbolTable.Define(n.Name.Value)
+
+		c.enterScope()
+		for _, p := range n.Parameters {
+			c.symbolTable.Define(p.Value)
+		}
+
+		if err := c.compileFnBody(n.Body); err != nil {
+			return err
+		}
+
+		compiledFn := c.leaveScope()
+
+		idx := c.addConstant(&object.CompiledFunction{Instructions: compiledFn.Instructions})
+		c.emit(OpClosure, idx, compiledFn.NumLocals)
+
+		if fnSymbol.Scope == GlobalScope {
+			c.emit(OpSetGlobal, fnSymbol.Index)
+		} else {
+			c.emit(OpSetLocal, fnSymbol.Index)
+		}
+
+	case *ast.CallExpression:
+		if err := c.Compile(n.Function); err != nil {
+			return err
+		}
+		for _, arg := range n.Arguments {
+			if err := c.Compile(arg); err != nil {
+				return err
+			}
+		}
+		c.emit(OpCall, len(n.Arguments))
+
+	case *ast.PipelineExpression:
+		if err := c.compilePipeline(n); err != nil {
+			return err
+		}
+
+	case *ast.ListLiteral:
+		for _, elem := range n.Elements {
+			if err := c.Compile(elem); err != nil {
+				return err
+			}
+		}
+		c.emit(OpList, len(n.Elements))
+
+	case *ast.MapLiteral:
+		keys := make([]string, 0, len(n.Pairs))
+		for k := range n.Pairs {
+			keys = append(keys, k)
+		}
+		for _, k := range keys {
+			if err := c.Compile(n.Pairs[k]); err != nil {
+				return err
+			}
+		}
+		c.emit(OpMap, len(n.Pairs))
+		for _, k := range keys {
+			ki := c.addString(k)
+			c.emit(OpConstant, ki)
+		}
+
+	case *ast.DotExpression:
+		if err := c.Compile(n.Left); err != nil {
+			return err
+		}
+		idx := c.addString(n.Field)
+		c.emit(OpDot, idx)
+	}
+
+	return nil
+}
+
+func (c *Compiler) compileStatements(stmts []ast.Statement, popLast bool) error {
+	for i, stmt := range stmts {
+		if i == len(stmts)-1 && !popLast {
+			if es, ok := stmt.(*ast.ExpressionStatement); ok {
+				return c.Compile(es.Expression)
+			}
+		}
+		if err := c.Compile(stmt); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (c *Compiler) compileBlockLastReturn(block *ast.BlockStatement) error {
+	return c.compileStatements(block.Statements, false)
+}
+
+func (c *Compiler) compileFnBody(body *ast.BlockStatement) error {
+	if err := c.compileBlockLastReturn(body); err != nil {
+		return err
+	}
+	if !c.lastIsReturn() {
+		c.emit(OpReturnValue)
+	}
+	return nil
+}
+
+func (c *Compiler) compileMatch(me *ast.MatchExpression) error {
+	if err := c.Compile(me.Value); err != nil {
+		return err
+	}
+
+	if len(me.Cases) == 0 {
+		c.emit(OpPop)
+		c.emit(OpNil)
+		return nil
+	}
+
+	jumpsToEnd := []int{}
+
+	for _, cs := range me.Cases {
+		if ident, ok := cs.Pattern.(*ast.Identifier); ok && ident.Value == "_" {
+			c.emit(OpPop) // pop match value
+			if err := c.Compile(cs.Body); err != nil {
+				return err
+			}
+			jumpsToEnd = append(jumpsToEnd, c.emit(OpJump, 9999))
+			break
+		}
+
+		c.emit(OpDup)
+		if err := c.Compile(cs.Pattern); err != nil {
+			return err
+		}
+		c.emit(OpEqual)
+		jumpNotMatchPos := c.emit(OpJumpNotTruthy, 9999)
+
+		c.emit(OpPop) // pop dup of match value
+
+		if err := c.Compile(cs.Body); err != nil {
+			return err
+		}
+		jumpsToEnd = append(jumpsToEnd, c.emit(OpJump, 9999))
+
+		afterBody := len(c.currentInstructions())
+		c.patchJump(jumpNotMatchPos, afterBody)
+	}
+
+	// Default: pop match value, push nil
+	c.emit(OpPop)
+	c.emit(OpNil)
+
+	afterMatch := len(c.currentInstructions())
+	for _, jmp := range jumpsToEnd {
+		c.patchJump(jmp, afterMatch)
+	}
+
+	return nil
+}
+
+func (c *Compiler) compilePipeline(pe *ast.PipelineExpression) error {
+	// Push function reference first, then args, then call
+	switch right := pe.Right.(type) {
+	case *ast.Identifier:
+		sym, ok := c.symbolTable.Resolve(right.Value)
+		if !ok {
+			return fmt.Errorf("undefinierte Funktion: %s", right.Value)
+		}
+		c.loadSymbol(sym)
+		if err := c.Compile(pe.Left); err != nil {
+			return err
+		}
+		c.emit(OpCall, 1)
+
+	case *ast.CallExpression:
+		// func(arg1, ..., piped_value)
+		if err := c.Compile(right.Function); err != nil {
+			return err
+		}
+		for _, arg := range right.Arguments {
+			if err := c.Compile(arg); err != nil {
+				return err
+			}
+		}
+		if err := c.Compile(pe.Left); err != nil {
+			return err
+		}
+		c.emit(OpCall, len(right.Arguments)+1)
+
+	default:
+		// Compile right as function expression, then left as arg
+		if err := c.Compile(pe.Right); err != nil {
+			return err
+		}
+		if err := c.Compile(pe.Left); err != nil {
+			return err
+		}
+		c.emit(OpCall, 1)
+	}
+
+	return nil
+}
+
+func (c *Compiler) loadSymbol(s Symbol) {
+	switch s.Scope {
+	case GlobalScope:
+		c.emit(OpGetGlobal, s.Index)
+	case LocalScope:
+		c.emit(OpGetLocal, s.Index)
+	case BuiltinScope:
+		c.emit(OpGetBuiltin, s.Index)
+	}
+}
+
+func (c *Compiler) patchJump(pos int, target int) {
+	ins := c.currentScope().instructions
+	ins[pos+1] = byte(target >> 8)
+	ins[pos+2] = byte(target)
+}
+
+func (c *Compiler) lastIsReturn() bool {
+	ins := c.currentScope().instructions
+	if len(ins) < 1 {
+		return false
+	}
+	last := Opcode(ins[len(ins)-1])
+	return last == OpReturn || last == OpReturnValue
+}
+
+func (c *Compiler) enterScope() {
+	scope := CompilationScope{instructions: Instructions{}}
+	c.scopes = append(c.scopes, scope)
+	c.scopeIndex++
+	c.symbolTable = NewEnclosedSymbolTable(c.symbolTable)
+}
+
+type CompiledScope struct {
+	Instructions Instructions
+	NumLocals    int
+}
+
+func (c *Compiler) leaveScope() CompiledScope {
+	scope := c.scopes[c.scopeIndex]
+	nl := c.symbolTable.numDefinitions
+	c.scopes = c.scopes[:c.scopeIndex]
+	c.scopeIndex--
+	c.symbolTable = c.symbolTable.Outer
+	return CompiledScope{Instructions: scope.instructions, NumLocals: nl}
+}
+
+// Pretty-print instructions for debugging
+func (ins Instructions) String() string {
+	var out string
+	i := 0
+	for i < len(ins) {
+		op := Opcode(ins[i])
+		switch op {
+		case OpClosure:
+			out += fmt.Sprintf("%04d %-14s %d %d\n", i, op, ReadUint16(ins, i+1), ReadUint16(ins, i+3))
+			i += 5
+		case OpConstant, OpGetGlobal, OpSetGlobal, OpGetLocal, OpSetLocal,
+			OpGetBuiltin, OpDot:
+			out += fmt.Sprintf("%04d %-14s %d\n", i, op, ReadUint16(ins, i+1))
+			i += 3
+		case OpCall, OpList, OpMap:
+			out += fmt.Sprintf("%04d %-14s %d\n", i, op, ReadUint16(ins, i+1))
+			i += 3
+		case OpJump, OpJumpNotTruthy:
+			out += fmt.Sprintf("%04d %-14s %d\n", i, op, ReadUint16(ins, i+1))
+			i += 3
+		default:
+			out += fmt.Sprintf("%04d %s\n", i, op)
+			i++
+		}
+	}
+	return out
+}
+
+func ParseFloat(s string) float64 {
+	f, _ := strconv.ParseFloat(s, 64)
+	return f
+}

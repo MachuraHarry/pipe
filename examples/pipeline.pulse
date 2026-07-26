@@ -1,0 +1,19 @@
+-- Pipeline-Demonstration mit vertikaler Pipeline
+
+fn add a b
+    a + b
+
+fn double x
+    x * 2
+
+fn is_positive x
+    x > 0
+
+42
+    > double    -- vertikale Pipeline: double(42)
+    > add 10    -- add(double(42), 10)
+    > print     -- print(94)
+
+100
+    > is_positive
+    > print     -- print(true)

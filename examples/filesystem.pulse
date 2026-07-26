@@ -1,0 +1,69 @@
+-- Dateisystem-Demo: Alle Operationen
+
+fn has_pulse f
+    contains f "pulse_"
+
+print "=== Datei erstellen und schreiben ==="
+write_file "/tmp/pulse_demo.txt" "Hallo Welt\nDies ist Zeile 2"
+print (read_file "/tmp/pulse_demo.txt")
+
+print ""
+print "=== Datei-Info ==="
+print "Existiert:  "
+print (file_exists "/tmp/pulse_demo.txt")
+print "Typ:        "
+print (file_type "/tmp/pulse_demo.txt")
+print "Größe:      "
+print (file_size "/tmp/pulse_demo.txt")
+
+print ""
+print "=== Zeilenweise ==="
+lines: read_lines "/tmp/pulse_demo.txt"
+print "Zeilen: "
+print (len lines)
+
+print ""
+print "=== Anhängen ==="
+append_file "/tmp/pulse_demo.txt" "\nAngehängte Zeile"
+print (read_file "/tmp/pulse_demo.txt")
+
+print ""
+print "=== Kopieren + Umbenennen ==="
+file_copy "/tmp/pulse_demo.txt" "/tmp/pulse_copy.txt"
+file_move "/tmp/pulse_copy.txt" "/tmp/pulse_final.txt"
+
+print ""
+print "=== Verzeichnisliste ==="
+files: list_dir "/tmp"
+matching: filter files has_pulse
+print "Pulse-Dateien in /tmp:"
+print matching
+
+print ""
+print "=== Pfad-Operationen ==="
+p: "/home/user/docs/report.txt"
+print "Pfad:       "
+print p
+print "Dateiname:  "
+print (path_base p)
+print "Verzeichnis:"
+print (path_dir p)
+print "Endung:     "
+print (path_ext p)
+print "Join:       "
+print (path_join "/tmp" "sub" "file.txt")
+
+print ""
+print "=== Verzeichnis anlegen ==="
+make_dir "/tmp/pulse_testdir"
+print "Existiert:  "
+print (file_exists "/tmp/pulse_testdir")
+print "Typ:        "
+print (file_type "/tmp/pulse_testdir")
+
+print ""
+print "=== Aufräumen ==="
+file_delete "/tmp/pulse_demo.txt"
+file_delete "/tmp/pulse_final.txt"
+remove_dir "/tmp/pulse_testdir"
+print "Fertig."

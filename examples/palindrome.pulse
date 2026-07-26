@@ -1,0 +1,22 @@
+-- Palindrome-Checker
+
+fn reverse_str s
+    reverse_helper s (len s - 1)
+
+fn reverse_helper s i
+    if i < 0
+        ""
+    else
+        (at s i) ++ (reverse_helper s (i - 1))
+
+fn is_palindrome s
+    s == (reverse_str s)
+
+print "racecar:"
+print (is_palindrome "racecar")
+
+print "hello:"
+print (is_palindrome "hello")
+
+print "anna:"
+print (is_palindrome "anna")

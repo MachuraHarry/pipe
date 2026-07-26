@@ -1,0 +1,19 @@
+-- Text-Statistik: Wort-Analyse
+
+fn analyze text
+    words: split text " "
+    print "Text: "
+    print text
+    print ""
+    print "Anzahl Wörter: "
+    print (len words)
+    print ""
+    print "In GROSS: "
+    print (upper text)
+    print ""
+    print "Enthält 'Welt'?"
+    print (contains text "Welt")
+    print "Enthält 'Mars'?"
+    print (contains text "Mars")
+
+analyze "Hallo Welt von Pulse"

@@ -1,0 +1,19 @@
+-- Temperatur-Umrechner
+
+fn celsius_to_fahrenheit c
+    c * 9 / 5 + 32
+
+fn fahrenheit_to_celsius f
+    (f - 32) * 5 / 9
+
+print "0°C in Fahrenheit:"
+print (celsius_to_fahrenheit 0)
+
+print "100°C in Fahrenheit:"
+print (celsius_to_fahrenheit 100)
+
+print "32°F in Celsius:"
+print (fahrenheit_to_celsius 32)
+
+print "212°F in Celsius:"
+print (fahrenheit_to_celsius 212)

@@ -1,0 +1,51 @@
+-- Pulse v0.4: Neue Features Demo
+
+print "===== WHILE-SCHLEIFEN ====="
+i: 0
+while i < 5
+    print i
+    i: i + 1
+print "---"
+k: 0
+while true
+    k: k + 1
+    print k
+    break
+print "<- Break funktioniert"
+
+print ""
+print "===== LIST-SLICING ====="
+nums: [10, 20, 30, 40, 50]
+print "Original: "
+print nums
+print "[0..3]:   "
+print (nums[0..3])
+print "[2..4]:   "
+print (nums[2..4])
+print "[3]:      "
+print (nums[3])
+
+print ""
+print "===== ANONYME FUNKTIONEN ====="
+double: fn x
+    x * 2
+print "double 5 = "
+print (double 5)
+
+greet: fn name
+    "Hallo " ++ name
+print (greet "Welt")
+
+print ""
+print "===== IMPORT ====="
+write_file "/tmp/math.pulse" "fn square x\n    x * x\n\nfn cube x\n    x * square x"
+import "/tmp/math.pulse"
+print "square 7 = "
+print (square 7)
+print "cube 3 = "
+print (cube 3)
+file_delete "/tmp/math.pulse"
+print "(library aufgeräumt)"
+
+print ""
+print "===== ALLES FUNKTIONIERT! ====="

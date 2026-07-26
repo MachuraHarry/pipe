@@ -1,0 +1,22 @@
+-- Einfacher Taschenrechner
+
+fn calc a op b
+    match op
+        | "+" -> a + b
+        | "-" -> a - b
+        | "*" -> a * b
+        | "/" -> a / b
+        | "%" -> a % b
+        | _   -> 0
+
+print "Rechner:"
+print "10 + 5  = "
+print (calc 10 "+" 5)
+print "10 - 5  = "
+print (calc 10 "-" 5)
+print "10 * 5  = "
+print (calc 10 "*" 5)
+print "10 / 5  = "
+print (calc 10 "/" 5)
+print "10 % 3  = "
+print (calc 10 "%" 3)

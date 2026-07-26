@@ -1,0 +1,16 @@
+-- FizzBuzz in Pulse
+
+fn fizzbuzz n
+    if n % 15 == 0
+        "FizzBuzz"
+    else if n % 3 == 0
+        "Fizz"
+    else if n % 5 == 0
+        "Buzz"
+    else
+        n
+
+print (fizzbuzz 1)
+print (fizzbuzz 3)
+print (fizzbuzz 5)
+print (fizzbuzz 15)

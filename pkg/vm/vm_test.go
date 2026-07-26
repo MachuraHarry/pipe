@@ -1,0 +1,168 @@
+package vm
+
+import (
+	"testing"
+
+	"github.com/harry/pulse/pkg/compiler"
+	"github.com/harry/pulse/pkg/lexer"
+	"github.com/harry/pulse/pkg/parser"
+)
+
+func parseAndCompile(t *testing.T, input string) *compiler.Bytecode {
+	t.Helper()
+	l := lexer.New(input)
+	p := parser.New(l)
+	program := p.ParseProgram()
+	if len(p.Errors()) > 0 {
+		t.Fatalf("parse errors: %v", p.Errors())
+	}
+	c := compiler.New()
+	if err := c.Compile(program); err != nil {
+		t.Fatalf("compile error: %s", err)
+	}
+	return c.Bytecode()
+}
+
+func runVM(t *testing.T, bc *compiler.Bytecode) string {
+	t.Helper()
+	vm := New(bc)
+	if err := vm.Run(); err != nil {
+		t.Fatalf("vm error: %s", err)
+	}
+	return vm.LastPoppedStackElem().Inspect()
+}
+
+func TestLiteralInteger(t *testing.T) {
+	bc := parseAndCompile(t, "42")
+	result := runVM(t, bc)
+	if result != "42" {
+		t.Errorf("expected 42, got %s", result)
+	}
+}
+
+func TestLiteralString(t *testing.T) {
+	bc := parseAndCompile(t, `"hello"`)
+	result := runVM(t, bc)
+	if result != "hello" {
+		t.Errorf("expected hello, got %s", result)
+	}
+}
+
+func TestArithmetic(t *testing.T) {
+	tests := []struct {
+		input    string
+		expected string
+	}{
+		{"1 + 2", "3"},
+		{"10 - 3", "7"},
+		{"4 * 5", "20"},
+		{"20 / 4", "5"},
+		{"7 % 3", "1"},
+		{"2 + 3 * 4", "14"},
+		{"(2 + 3) * 4", "20"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.input, func(t *testing.T) {
+			bc := parseAndCompile(t, tt.input)
+			result := runVM(t, bc)
+			if result != tt.expected {
+				t.Errorf("%s: expected %s, got %s", tt.input, tt.expected, result)
+			}
+		})
+	}
+}
+
+func TestComparison(t *testing.T) {
+	tests := []struct {
+		input    string
+		expected string
+	}{
+		{"1 == 1", "true"},
+		{"1 != 2", "true"},
+		{"1 < 2", "true"},
+		{"2 > 1", "true"},
+		{"2 <= 2", "true"},
+		{"2 >= 2", "true"},
+		{"1 == 2", "false"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.input, func(t *testing.T) {
+			bc := parseAndCompile(t, tt.input)
+			result := runVM(t, bc)
+			if result != tt.expected {
+				t.Errorf("%s: expected %s, got %s", tt.input, tt.expected, result)
+			}
+		})
+	}
+}
+
+func TestStringConcat(t *testing.T) {
+	bc := parseAndCompile(t, `"hello " ++ "world"`)
+	result := runVM(t, bc)
+	if result != "hello world" {
+		t.Errorf("expected 'hello world', got %s", result)
+	}
+}
+
+func TestVariable(t *testing.T) {
+	input := "x: 42\nx"
+	bc := parseAndCompile(t, input)
+	result := runVM(t, bc)
+	if result != "42" {
+		t.Errorf("expected 42, got %s", result)
+	}
+}
+
+func TestIfExpression(t *testing.T) {
+	input := "if true\n    42\nelse\n    10"
+	bc := parseAndCompile(t, input)
+	result := runVM(t, bc)
+	if result != "42" {
+		t.Errorf("expected 42, got %s", result)
+	}
+}
+
+func TestIfElseExpression(t *testing.T) {
+	input := "if false\n    42\nelse\n    10"
+	bc := parseAndCompile(t, input)
+	result := runVM(t, bc)
+	if result != "10" {
+		t.Errorf("expected 10, got %s", result)
+	}
+}
+
+func TestMatchExpression(t *testing.T) {
+	input := "match 2\n    | 0 -> \"null\"\n    | 1 -> \"eins\"\n    | _ -> \"sonst\""
+	bc := parseAndCompile(t, input)
+	result := runVM(t, bc)
+	if result != "sonst" {
+		t.Errorf("expected sonst, got %s", result)
+	}
+}
+
+func TestFunction(t *testing.T) {
+	input := "fn double x\n    x * 2\n\ndouble 21"
+	bc := parseAndCompile(t, input)
+	result := runVM(t, bc)
+	if result != "42" {
+		t.Errorf("expected 42, got %s", result)
+	}
+}
+
+func TestRecursiveFunction(t *testing.T) {
+	input := "fn fact n\n    match n\n        | 0 -> 1\n        | _ -> n * fact(n - 1)\n\nfact 5"
+	bc := parseAndCompile(t, input)
+	result := runVM(t, bc)
+	if result != "120" {
+		t.Errorf("expected 120, got %s", result)
+	}
+}
+
+func TestPipeline(t *testing.T) {
+	input := "fn double x\n    x * 2\n\n42\n    > double"
+	bc := parseAndCompile(t, input)
+	result := runVM(t, bc)
+	if result != "84" {
+		t.Errorf("expected 84, got %s", result)
+	}
+}

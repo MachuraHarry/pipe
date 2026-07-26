@@ -1,0 +1,18 @@
+-- Primzahlen finden
+
+fn is_prime n
+    is_prime_helper n 2
+
+fn is_prime_helper n d
+    if d * d > n
+        true
+    else if n % d == 0
+        false
+    else
+        is_prime_helper n (d + 1)
+
+fn primes up_to
+    filter (range 2 (up_to + 1)) is_prime
+
+print "Primzahlen bis 30:"
+print (primes 30)

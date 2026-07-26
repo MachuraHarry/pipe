@@ -1,0 +1,16 @@
+-- Zahlenraten mit Binärsuche
+
+fn guess_number target low high tries
+    mid: (low + high) / 2
+    if mid == target
+        print "Gefunden: "
+        print mid
+        print "in Versuchen: "
+        print tries
+    else if target < mid
+        guess_number target low (mid - 1) (tries + 1)
+    else
+        guess_number target (mid + 1) high (tries + 1)
+
+print "Suche 42 zwischen 1 und 100..."
+guess_number 42 1 100 1

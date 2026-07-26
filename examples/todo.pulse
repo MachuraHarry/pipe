@@ -1,0 +1,195 @@
+-- ============================================================
+-- PULSE TODO v1.0
+-- ============================================================
+-- Nutzung in der Pulse-REPL:
+--   $ ./bin/pulse
+--   >>> import "examples/todo.pulse"
+--   >>> add "Milch holen"
+--   >>> add "Steuer machen"
+--   >>> list
+--   >>> done 1
+--   >>> search "steuer"
+--   >>> stats
+-- ============================================================
+
+datei: "todos.json"
+
+-- ─── Daten ─────────────────────────────────────────────────
+
+fn load dummy
+    if file_exists datei
+        daten: parse_json (read_file datei)
+        get daten "todos"
+    else
+        []
+
+fn save todos
+    json: to_json {todos: todos}
+    write_file datei json
+
+fn new_id todos
+    if (len todos) == 0
+        1
+    else
+        max: 0
+        for t in todos
+            tid: get t "id"
+            if tid > max
+                max: tid
+        max + 1
+
+fn icon done
+    if done
+        "✅"
+    else
+        "⬜"
+
+fn progress_bar pct
+    if pct >= 90
+        "██████████"
+    else if pct >= 70
+        "███████░░░"
+    else if pct >= 50
+        "█████░░░░░"
+    else if pct >= 25
+        "███░░░░░░░"
+    else if pct > 0
+        "██░░░░░░░░"
+    else
+        "░░░░░░░░░░"
+
+-- ─── Kommandos ──────────────────────────────────────────���──
+
+fn add title
+    if title == ""
+        print "❌ Bitte Titel angeben: add \"Einkaufen\""
+    else
+        todos: load 0
+        nid: new_id todos
+        neu: {id: nid, title: title, done: false, created: (now 0)}
+        push todos neu
+        save todos
+        print ("✅ #" ++ (to_str nid) ++ " → " ++ title)
+
+fn list
+    todos: load 0
+    if (len todos) == 0
+        print "📋 Keine Todos."
+    else
+        print ""
+        print "═══ TODOS ═══"
+        offen: 0
+        done_n: 0
+        for t in todos
+            d: get t "done"
+            print ("  " ++ (icon d) ++ " [" ++ (to_str (get t "id")) ++ "] " ++ (get t "title"))
+            if d
+                done_n: done_n + 1
+            else
+                offen: offen + 1
+        print ""
+        print ("  ⬜ " ++ (to_str offen) ++ " offen  ✅ " ++ (to_str done_n) ++ " erledigt")
+        print ""
+
+fn done cmd_id
+    todos: load 0
+    found: false
+    for t in todos
+        if (get t "id") == cmd_id
+            set t "done" true
+            save todos
+            print ("✅ #" ++ (to_str cmd_id) ++ " erledigt: " ++ (get t "title"))
+            found: true
+    if found == false
+        print ("❌ Kein Todo #" ++ (to_str cmd_id))
+
+fn undone cmd_id
+    todos: load 0
+    found: false
+    for t in todos
+        if (get t "id") == cmd_id
+            set t "done" false
+            save todos
+            print ("🔄 #" ++ (to_str cmd_id) ++ " wieder offen")
+            found: true
+    if found == false
+        print ("❌ Kein Todo #" ++ (to_str cmd_id))
+
+fn delete cmd_id
+    todos: load 0
+    neu: []
+    found: false
+    for t in todos
+        if (get t "id") != cmd_id
+            push neu t
+        else
+            found: true
+    if found
+        save neu
+        print ("🗑️  #" ++ (to_str cmd_id) ++ " gelöscht")
+    else
+        print ("❌ Kein Todo #" ++ (to_str cmd_id))
+
+fn search query
+    if query == ""
+        print "🔍 Bitte Suchbegriff: search \"wort\""
+    else
+        todos: load 0
+        n: 0
+        for t in todos
+            if contains (lower (get t "title")) (lower query)
+                d: get t "done"
+                print ("  " ++ (icon d) ++ " [" ++ (to_str (get t "id")) ++ "] " ++ (get t "title"))
+                n: n + 1
+        if n == 0
+            print ("🔍 Keine Treffer für '" ++ query ++ "'")
+        else
+            print ("🔍 " ++ (to_str n) ++ " Treffer")
+
+fn stats
+    todos: load 0
+    total: len todos
+    offen: 0
+    done_n: 0
+    for t in todos
+        if get t "done"
+            done_n: done_n + 1
+        else
+            offen: offen + 1
+    print ""
+    print "═══ STATISTIK ═══"
+    print ("  📦 Total:   " ++ (to_str total))
+    print ("  ⬜ Offen:    " ++ (to_str offen))
+    print ("  ✅ Erledigt: " ++ (to_str done_n))
+    if total > 0
+        pct: (done_n * 100) / total
+        print ("  📊 " ++ (to_str pct) ++ "% " ++ (progress_bar pct))
+    print ""
+
+fn clear
+    save []
+    print "🗑️  Alle gelöscht."
+
+fn help
+    print ""
+    print "═══ PULSE TODO ═══"
+    print "  add \"Text\"     Neues Todo"
+    print "  list            Anzeigen"
+    print "  done <ID>       Erledigen"
+    print "  undone <ID>     Wieder öffnen"
+    print "  delete <ID>     Löschen"
+    print "  search \"Begriff\" Suchen"
+    print "  stats           Statistik"
+    print "  clear           Alle löschen"
+    print ""
+
+-- ─── Start ─────────────────────────────────────────────────
+
+print ""
+print "╔══════════════════════════════╗"
+print "║    📋 PULSE TODO v1.0       ║"
+print "╚══════════════════════════════╝"
+print ""
+print "Todos: " ++ (to_str (len (load 0)))
+print "Befehle: add, list, done, delete, search, stats, clear, help"
+print ""

@@ -166,6 +166,10 @@ func (vm *VM) Run() error {
 			target := compiler.ReadUint16(ins, frame.ip)
 			frame.ip = int(target)
 
+		case compiler.OpJumpBackward:
+			target := compiler.ReadUint16(ins, frame.ip)
+			frame.ip = int(target)
+
 		case compiler.OpJumpNotTruthy:
 			target := compiler.ReadUint16(ins, frame.ip)
 			frame.ip += 2

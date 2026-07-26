@@ -69,6 +69,12 @@ type Compiler struct {
 	symbolTable *SymbolTable
 	scopes      []CompilationScope
 	scopeIndex  int
+	loopStack   []LoopContext
+}
+
+type LoopContext struct {
+	continueTarget int // position to jump to on continue (condition check)
+	breakPatches   []int // positions of break jump instructions to patch
 }
 
 type CompilationScope struct {
@@ -152,7 +158,10 @@ func (c *Compiler) Compile(node ast.Node) error {
 		c.emit(OpPop)
 
 	case *ast.VarStatement:
-		symbol := c.symbolTable.Define(n.Name.Value)
+		symbol, exists := c.symbolTable.Resolve(n.Name.Value)
+		if !exists {
+			symbol = c.symbolTable.Define(n.Name.Value)
+		}
 		if err := c.Compile(n.Value); err != nil {
 			return err
 		}
@@ -259,6 +268,35 @@ func (c *Compiler) Compile(node ast.Node) error {
 			afterConsequence := len(c.currentInstructions())
 			c.patchJump(jumpNotTruthyPos, afterConsequence)
 		}
+
+	case *ast.WhileExpression:
+		conditionPos := len(c.currentInstructions())
+		if err := c.Compile(n.Condition); err != nil {
+			return err
+		}
+		jumpFalsePos := c.emit(OpJumpNotTruthy, 9999)
+		c.enterLoop(conditionPos)
+		if err := c.compileBlockLastReturn(n.Body); err != nil {
+			return err
+		}
+		c.emit(OpJumpBackward, conditionPos)
+		afterLoop := len(c.currentInstructions())
+		c.patchJump(jumpFalsePos, afterLoop)
+		c.patchBreaks(afterLoop)
+		c.leaveLoop()
+
+	case *ast.ForExpression:
+		if n.IsForIn {
+			if err := c.compileForIn(n); err != nil {
+				return err
+			}
+		}
+
+	case *ast.BreakStatement:
+		c.addBreak()
+
+	case *ast.ContinueStatement:
+		c.emitContinue()
 
 	case *ast.MatchExpression:
 		if err := c.compileMatch(n); err != nil {
@@ -474,6 +512,105 @@ func (c *Compiler) loadSymbol(s Symbol) {
 	}
 }
 
+func (c *Compiler) enterLoop(continueTarget int) {
+	c.loopStack = append(c.loopStack, LoopContext{
+		continueTarget: continueTarget,
+		breakPatches:   []int{},
+	})
+}
+
+func (c *Compiler) leaveLoop() {
+	c.loopStack = c.loopStack[:len(c.loopStack)-1]
+}
+
+func (c *Compiler) addBreak() {
+	if len(c.loopStack) == 0 {
+		return
+	}
+	loop := &c.loopStack[len(c.loopStack)-1]
+	loop.breakPatches = append(loop.breakPatches, c.emit(OpJump, 9999))
+}
+
+func (c *Compiler) patchBreaks(afterLoop int) {
+	if len(c.loopStack) == 0 {
+		return
+	}
+	loop := &c.loopStack[len(c.loopStack)-1]
+	for _, pos := range loop.breakPatches {
+		c.patchJump(pos, afterLoop)
+	}
+	loop.breakPatches = nil
+}
+
+func (c *Compiler) emitContinue() {
+	if len(c.loopStack) == 0 {
+		return
+	}
+	loop := &c.loopStack[len(c.loopStack)-1]
+	c.emit(OpJumpBackward, loop.continueTarget)
+}
+
+func (c *Compiler) compileForIn(fe *ast.ForExpression) error {
+	iterSym := c.symbolTable.Define(fe.Iterator.Value)
+	listSym := c.symbolTable.Define("__list__")
+	idxSym := c.symbolTable.Define("__idx__")
+
+	if err := c.Compile(fe.Iterable); err != nil {
+		return err
+	}
+	c.emit(OpSetLocal, listSym.Index)
+
+	c.emit(OpConstant, c.addInteger(0))
+	c.emit(OpSetLocal, idxSym.Index)
+
+	loopStart := len(c.currentInstructions())
+
+	c.emit(OpGetLocal, idxSym.Index)
+	c.emit(OpGetLocal, listSym.Index)
+	// Call len(list)
+	lenSym := c.resolveBuiltin("len")
+	c.emit(OpGetBuiltin, lenSym.Index)
+	c.emit(OpCall, 1)
+	c.emit(OpLess)
+	jumpFalsePos := c.emit(OpJumpNotTruthy, 9999)
+
+	c.emit(OpGetLocal, listSym.Index)
+	c.emit(OpGetLocal, idxSym.Index)
+	// Call at(list, idx)
+	atSym := c.resolveBuiltin("at")
+	c.emit(OpGetBuiltin, atSym.Index)
+	c.emit(OpCall, 2)
+	c.emit(OpSetLocal, iterSym.Index)
+
+	c.enterLoop(loopStart)
+	if err := c.compileBlockLastReturn(fe.Body); err != nil {
+		return err
+	}
+	c.leaveLoop()
+
+	c.emit(OpGetLocal, idxSym.Index)
+	c.emit(OpConstant, c.addInteger(1))
+	c.emit(OpAdd)
+	c.emit(OpSetLocal, idxSym.Index)
+
+	c.emit(OpJumpBackward, loopStart)
+
+	afterLoop := len(c.currentInstructions())
+	c.patchJump(jumpFalsePos, afterLoop)
+	c.patchBreaks(afterLoop)
+
+	return nil
+}
+
+func (c *Compiler) resolveBuiltin(name string) Symbol {
+	for i, bi := range object.Builtins {
+		if bi.Name == name {
+			return Symbol{Name: name, Scope: BuiltinScope, Index: i}
+		}
+	}
+	return Symbol{}
+}
+
 func (c *Compiler) patchJump(pos int, target int) {
 	ins := c.currentScope().instructions
 	ins[pos+1] = byte(target >> 8)
@@ -527,7 +664,7 @@ func (ins Instructions) String() string {
 		case OpCall, OpList, OpMap:
 			out += fmt.Sprintf("%04d %-14s %d\n", i, op, ReadUint16(ins, i+1))
 			i += 3
-		case OpJump, OpJumpNotTruthy:
+		case OpJump, OpJumpNotTruthy, OpJumpBackward:
 			out += fmt.Sprintf("%04d %-14s %d\n", i, op, ReadUint16(ins, i+1))
 			i += 3
 		default:

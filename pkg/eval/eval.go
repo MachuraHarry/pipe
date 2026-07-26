@@ -3,12 +3,19 @@ package eval
 import (
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/harry/pulse/pkg/ast"
 	"github.com/harry/pulse/pkg/lexer"
 	"github.com/harry/pulse/pkg/object"
 	"github.com/harry/pulse/pkg/parser"
 )
+
+var callStack []string
+
+func pushCall(name string)  { callStack = append(callStack, name) }
+func popCall()              { if len(callStack) > 0 { callStack = callStack[:len(callStack)-1] } }
+func stackTrace() string    { return "  in " + strings.Join(callStack, "\n  in ") }
 
 func Eval(node ast.Node, env *object.Environment) object.Object {
 	switch n := node.(type) {
@@ -123,6 +130,9 @@ func Eval(node ast.Node, env *object.Environment) object.Object {
 
 	case *ast.DotExpression:
 		return evalDotExpression(n, env)
+
+	case *ast.TryExpression:
+		return evalTryExpression(n, env)
 
 	case *ast.SliceExpression:
 		return evalSliceExpression(n, env)
@@ -348,6 +358,7 @@ func evalMatchExpression(me *ast.MatchExpression, env *object.Environment) objec
 
 func evalFnStatement(fn *ast.FnStatement, env *object.Environment) object.Object {
 	fnObj := &object.Function{
+		Name:       fn.Name.Value,
 		Parameters: fn.Parameters,
 		Body:       fn.Body,
 		Env:        env,
@@ -359,9 +370,18 @@ func evalFnStatement(fn *ast.FnStatement, env *object.Environment) object.Object
 func applyFunction(fn object.Object, args []object.Object) object.Object {
 	switch f := fn.(type) {
 	case *object.Function:
+		pushCall("fn(" + fnName(f) + ")")
 		extendedEnv := extendFunctionEnv(f, args)
 		evaluated := Eval(f.Body, extendedEnv)
-		return unwrapReturnValue(evaluated)
+		trace := stackTrace()
+		popCall()
+		result := unwrapReturnValue(evaluated)
+		if result != nil && result.Type() == object.ERROR {
+			if !strings.Contains(result.Inspect(), "  in ") {
+				return newError("%s\n%s", result.Inspect(), trace)
+			}
+		}
+		return result
 
 	case *Builtin:
 		return f.Fn(args...)
@@ -369,6 +389,13 @@ func applyFunction(fn object.Object, args []object.Object) object.Object {
 	default:
 		return newError("keine Funktion: %s", fn.Type())
 	}
+}
+
+func fnName(f *object.Function) string {
+	if f.Name != "" {
+		return f.Name
+	}
+	return "lambda"
 }
 
 func extendFunctionEnv(fn *object.Function, args []object.Object) *object.Environment {
@@ -485,8 +512,20 @@ func valuesEqual(a, b object.Object) bool {
 	}
 }
 
+func evalTryExpression(te *ast.TryExpression, env *object.Environment) object.Object {
+	result := Eval(te.TryBlock, env)
+	if result != nil && result.Type() == object.ERROR {
+		if te.CatchParam != nil {
+			env.Set(te.CatchParam.Value, result)
+		}
+		return Eval(te.CatchBlock, env)
+	}
+	return result
+}
+
 func evalFnLiteral(fl *ast.FnLiteral, env *object.Environment) object.Object {
 	return &object.Function{
+		Name:       "lambda",
 		Parameters: fl.Parameters,
 		Body:       fl.Body,
 		Env:        env,

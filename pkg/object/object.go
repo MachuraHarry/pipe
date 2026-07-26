@@ -66,6 +66,7 @@ func (n *NilObject) Type() ObjectType { return NIL }
 func (n *NilObject) Inspect() string  { return "nil" }
 
 type Function struct {
+	Name       string
 	Parameters []*ast.Identifier
 	Body       *ast.BlockStatement
 	Env        *Environment

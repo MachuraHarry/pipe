@@ -61,6 +61,8 @@ const (
 	BREAK    // break
 	CONTINUE // continue
 	IMPORT   // import
+	TRY      // try
+	CATCH    // catch
 	TRUE     // true
 	FALSE    // false
 	NIL      // nil
@@ -76,6 +78,8 @@ var keywords = map[string]TokenType{
 	"break":    BREAK,
 	"continue": CONTINUE,
 	"import":   IMPORT,
+	"try":      TRY,
+	"catch":    CATCH,
 	"true":     TRUE,
 	"false":    FALSE,
 	"nil":      NIL,
@@ -126,6 +130,8 @@ var tokenNames = map[TokenType]string{
 	BREAK:     "break",
 	CONTINUE:  "continue",
 	IMPORT:    "import",
+	TRY:       "try",
+	CATCH:     "catch",
 	TRUE:      "true",
 	FALSE:     "false",
 	NIL:       "nil",

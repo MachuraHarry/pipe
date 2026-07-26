@@ -79,6 +79,7 @@ func New(l *lexer.Lexer) *Parser {
 		lexer.WHILE:    p.parseWhileExpression,
 		lexer.FOR:      p.parseForExpression,
 		lexer.FN:       p.parseFnLiteral,
+		lexer.TRY:      p.parseTryExpression,
 	}
 
 	p.infixParseFns = map[lexer.TokenType]infixParseFn{
@@ -331,6 +332,11 @@ func (p *Parser) parseExpr(precedence int, allowSpaceCalls bool) ast.Expression 
 
 	// FnLiteral: don't continue parsing (it's self-contained with its own block)
 	if _, ok := leftExp.(*ast.FnLiteral); ok {
+		return leftExp
+	}
+
+	// TryExpression: don't continue (self-contained)
+	if _, ok := leftExp.(*ast.TryExpression); ok {
 		return leftExp
 	}
 
@@ -787,7 +793,36 @@ func (p *Parser) parseIndexOrSlice(left ast.Expression) ast.Expression {
 	return &ast.InfixExpression{Operator: "[]", Left: left, Right: startExp}
 }
 
-// ---- String utilities ----
+func (p *Parser) parseTryExpression() ast.Expression {
+	expr := &ast.TryExpression{}
+
+	p.nextToken() // skip 'try'
+	if p.peekTokenIs(lexer.NEWLINE) {
+		p.nextToken()
+	}
+	p.nextToken()
+	expr.TryBlock = p.parseBlock()
+	p.closeBlock()
+
+	// Expect 'catch' keyword
+	if !p.peekTokenIs(lexer.CATCH) {
+		p.error("try ohne catch")
+		return nil
+	}
+	p.nextToken() // consume 'catch'
+	p.nextToken() // move to catch param name
+	if p.curTokenIs(lexer.IDENT) {
+		expr.CatchParam = &ast.Identifier{Value: p.curToken.Literal}
+	}
+	if p.peekTokenIs(lexer.NEWLINE) {
+		p.nextToken()
+	}
+	p.nextToken()
+	expr.CatchBlock = p.parseBlock()
+	p.closeBlock()
+
+	return expr
+}
 
 func QuoteString(s string) string {
 	var buf strings.Builder

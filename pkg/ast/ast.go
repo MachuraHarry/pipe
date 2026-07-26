@@ -308,10 +308,20 @@ func (fl *FnLiteral) String() string       { return "fn(...)" }
 
 type SliceExpression struct {
 	List   Expression
-	Start  Expression // nil means from beginning
-	End    Expression // nil means to end
+	Start  Expression
+	End    Expression
 }
 
 func (se *SliceExpression) expressionNode()      {}
 func (se *SliceExpression) TokenLiteral() string { return "slice" }
 func (se *SliceExpression) String() string       { return "slice" }
+
+type TryExpression struct {
+	TryBlock    *BlockStatement
+	CatchParam  *Identifier
+	CatchBlock  *BlockStatement
+}
+
+func (te *TryExpression) expressionNode()      {}
+func (te *TryExpression) TokenLiteral() string { return "try" }
+func (te *TryExpression) String() string       { return "try ... catch" }

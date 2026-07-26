@@ -26,6 +26,7 @@ const (
 	OpMinus
 	OpJump
 	OpJumpNotTruthy
+	OpJumpBackward
 	OpGetGlobal
 	OpSetGlobal
 	OpGetLocal
@@ -63,6 +64,7 @@ var opcodeNames = map[Opcode]string{
 	OpMinus:         "OpMinus",
 	OpJump:          "OpJump",
 	OpJumpNotTruthy: "OpJumpNotTruthy",
+	OpJumpBackward:  "OpJumpBackward",
 	OpGetGlobal:     "OpGetGlobal",
 	OpSetGlobal:     "OpSetGlobal",
 	OpGetLocal:      "OpGetLocal",

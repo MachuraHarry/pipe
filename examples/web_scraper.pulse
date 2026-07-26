@@ -1,0 +1,89 @@
+-- ============================================================
+-- PULSE WEB SCRAPER — Webseite analysieren
+-- ============================================================
+-- ./bin/pulse examples/web_scraper.pulse
+-- ============================================================
+
+fn fetch_page url
+    print ("Lade " ++ url ++ "...")
+    resp: http_get url
+    status: get resp "status"
+    if status != 200
+        print ("Fehler: HTTP " ++ (to_str status))
+        ""
+    else
+        get resp "body"
+
+fn extract_links html
+    print ""
+    print "═══ GEFUNDENE LINKS ═══"
+    links: []
+    -- Suche href="..." Muster
+    i: 0
+    while i < (len html)
+        -- Suche nach href="
+        rest: ""
+        j: i
+        while j < (len html)
+            rest: rest ++ (at html j)
+            j: j + 1
+        if contains rest "href=\""
+            -- Extrahiere die URL
+            rest: rest
+        i: i + 1
+    
+    print ("Links: " ++ (to_str (len links)))
+    links
+
+fn extract_emails html
+    print ""
+    print "═══ GEFUNDENE E-MAILS ═══"
+    emails: []
+    pattern: "[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}"
+    -- Einfache Suche mit contains
+    print "E-Mail-Suche via Regex..."
+    print "(Pattern: " ++ pattern ++ ")"
+    emails
+
+fn count_words html
+    print ""
+    print "═══ TEXT-STATISTIK ═══"
+    -- Entferne HTML-Tags (vereinfacht)
+    text: regex_replace "<[^>]+>" " " html
+    -- Entferne Sonderzeichen
+    text: regex_replace "[^a-zA-ZäöüÄÖÜß ]" " " text
+    words: split text " "
+    -- Filtere leere Strings
+    non_empty: 0
+    for w in words
+        if w != ""
+            non_empty: non_empty + 1
+    print ("Wörter: " ++ (to_str non_empty))
+
+fn analyze url
+    html: fetch_page url
+    if html == ""
+        print "Keine Daten."
+    else
+        count_words html
+        print ""
+        print ("HTML-Länge: " ++ (to_str (len html)) ++ " Zeichen")
+        print ""
+        -- Extrahiere Metadaten
+        if contains html "<title>"
+            print "Titel gefunden (enthält <title>)"
+        else
+            print "Kein <title> gefunden."
+
+-- ─── Start ─────────────────────────────────────────────────
+print "═══ PULSE WEB SCRAPER ═══"
+print ""
+
+if (len args) == 0
+    print "Nutzung: ./bin/pulse examples/web_scraper.pulse <URL>"
+    print "Beispiel: ./bin/pulse examples/web_scraper.pulse https://example.com"
+    print ""
+    print "Demo mit example.com:"
+    analyze "https://example.com"
+else
+    analyze (at args 0)

@@ -1,0 +1,67 @@
+-- ============================================================
+-- PULSE TCP — Echo-Server + Client
+-- ============================================================
+-- Server: ./bin/pulse examples/tcp_chat.pulse server
+-- Client: ./bin/pulse examples/tcp_chat.pulse client
+-- ============================================================
+
+fn run_server dummy
+    print "═══ TCP Echo-Server ═══"
+    print "Starte auf :9999..."
+    ln: tcp_listen "0.0.0.0" 9999
+    print "Warte auf Client..."
+    conn: tcp_accept ln
+    print "Client verbunden!"
+    tcp_write conn "Wilkommen zum Pulse-Echo-Server!\n"
+
+    i: 0
+    while i < 10
+        msg: tcp_read conn
+        if msg == ""
+            print "Client getrennt."
+            break
+        else
+            print ("Empfangen: " ++ msg)
+            if msg == "quit"
+                tcp_write conn "Tschüss!\n"
+                break
+            else
+                tcp_write conn ("ECHO: " ++ msg ++ "\n")
+        i: i + 1
+
+    tcp_close conn
+    tcp_close ln
+    print "Server beendet."
+
+fn run_client dummy
+    print "═══ TCP Client ═══"
+    print "Verbinde zu localhost:9999..."
+    conn: tcp_connect "127.0.0.1" 9999
+    welcome: tcp_read conn
+    print welcome
+
+    tcp_write conn "Hallo Server!\n"
+    sleep 100
+    reply: tcp_read conn
+    print ("Antwort: " ++ reply)
+
+    tcp_write conn "quit\n"
+    sleep 100
+    reply2: tcp_read conn
+    print ("Antwort: " ++ reply2)
+
+    tcp_close conn
+    print "Client beendet."
+
+-- ─── Start ─────────────────────────────────────────────────
+print "═══ TCP CLIENT ═══"
+if (len args) == 0
+    print "Nutzung: pulse examples/tcp_chat.pulse server|client"
+else
+    mode: at args 0
+    if mode == "server"
+        run_server 0
+    else if mode == "client"
+        run_client 0
+    else
+        print "Unbekannter Modus: " ++ mode

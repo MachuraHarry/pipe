@@ -1,6 +1,7 @@
 package object
 
 import (
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -9,6 +10,7 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"regexp"
 	"sort"
@@ -196,6 +198,7 @@ var Builtins = []BuiltinInfo{
 	// IO / File System
 	{"print", bPrint},
 	{"input", bInput},
+	{"exec", bExec},
 	{"read_file", bReadFile},
 	{"write_file", bWriteFile},
 	{"append_file", bAppendFile},
@@ -278,6 +281,10 @@ var Builtins = []BuiltinInfo{
 	// Conversion
 	{"to_str", bToStr},
 	{"to_num", bToNum},
+
+	// Encoding
+	{"base64_encode", bBase64Encode},
+	{"base64_decode", bBase64Decode},
 
 	// Regex
 	{"regex_match", bRegexMatch},
@@ -366,6 +373,29 @@ func bSleep(args ...Object) Object {
 	}
 	time.Sleep(time.Duration(ms) * time.Millisecond)
 	return NILOBJ
+}
+
+func bExec(args ...Object) Object {
+	if len(args) != 1 {
+		return err("exec erwartet 1 Argument (Befehl)")
+	}
+	cmd, ok := args[0].(*String)
+	if !ok {
+		return err("exec: Befehl muss ein String sein")
+	}
+	out, e := exec.Command("sh", "-c", cmd.Value).CombinedOutput()
+	if e != nil {
+		return &Map{Pairs: map[string]Object{
+			"output": &String{Value: string(out)},
+			"error":  &String{Value: e.Error()},
+			"status": &Integer{Value: 1},
+		}}
+	}
+	return &Map{Pairs: map[string]Object{
+		"output": &String{Value: string(out)},
+		"error":  &String{Value: ""},
+		"status": &Integer{Value: 0},
+	}}
 }
 
 // ---- File System ----
@@ -1578,6 +1608,34 @@ func bRandomRange(args ...Object) Object {
 }
 
 // ---- Helpers ----
+
+// ---- Encoding ----
+
+func bBase64Encode(args ...Object) Object {
+	if len(args) != 1 {
+		return err("base64_encode erwartet 1 Argument")
+	}
+	s, ok := args[0].(*String)
+	if !ok {
+		return err("base64_encode erwartet einen String")
+	}
+	return &String{Value: base64.StdEncoding.EncodeToString([]byte(s.Value))}
+}
+
+func bBase64Decode(args ...Object) Object {
+	if len(args) != 1 {
+		return err("base64_decode erwartet 1 Argument")
+	}
+	s, ok := args[0].(*String)
+	if !ok {
+		return err("base64_decode erwartet einen String")
+	}
+	b, e := base64.StdEncoding.DecodeString(s.Value)
+	if e != nil {
+		return err("base64_decode: " + e.Error())
+	}
+	return &String{Value: string(b)}
+}
 
 func strArg(args []Object, name string) (*String, bool) {
 	if len(args) != 1 {

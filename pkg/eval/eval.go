@@ -13,6 +13,7 @@ import (
 )
 
 var callStack []string
+var importCache = make(map[string]struct{})
 
 func pushCall(name string)  { callStack = append(callStack, name) }
 func popCall()              { if len(callStack) > 0 { callStack = callStack[:len(callStack)-1] } }
@@ -622,6 +623,12 @@ func evalForInExpression(fe *ast.ForExpression, env *object.Environment) object.
 }
 
 func evalImportStatement(is *ast.ImportStatement, env *object.Environment) object.Object {
+	// Import cache: skip if already imported
+	if _, ok := importCache[is.Path]; ok {
+		return object.NILOBJ
+	}
+	importCache[is.Path] = struct{}{}
+
 	data, err := os.ReadFile(is.Path)
 	if err != nil {
 		return newError("import fehlgeschlagen: %s", err)

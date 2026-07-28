@@ -8,34 +8,32 @@
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 :root {
-  --bg: #0a0a0f;
-  --bg2: #111118;
-  --bg3: #1a1a24;
-  --fg: #e0e0e8;
-  --fg2: #9898a8;
-  --accent: #7c5cfc;
-  --accent2: #5ce0fc;
-  --green: #3ce096;
-  --orange: #fc8c3c;
-  --red: #fc5c7c;
-  --border: #22222e;
-  --radius: 8px;
+  --bg: #0a0a0f; --bg2: #111118; --bg3: #1a1a24;
+  --fg: #e0e0e8; --fg2: #9898a8;
+  --accent: #7c5cfc; --accent2: #5ce0fc;
+  --green: #3ce096; --orange: #fc8c3c; --red: #fc5c7c;
+  --border: #22222e; --radius: 8px;
   --mono: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', 'Consolas', monospace;
   --sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
 }
 
 html { scroll-behavior: smooth; }
 body { background: var(--bg); color: var(--fg); font-family: var(--sans); line-height: 1.6; }
-
 .container { max-width: 1100px; margin: 0 auto; padding: 0 24px; }
 
 /* Nav */
 nav { position: sticky; top: 0; z-index: 100; background: var(--bg); border-bottom: 1px solid var(--border); padding: 14px 0; backdrop-filter: blur(12px); }
 nav .container { display: flex; justify-content: space-between; align-items: center; }
 nav .logo { font-weight: 800; font-size: 1.3rem; color: var(--accent); text-decoration: none; letter-spacing: -0.5px; }
-nav .logo span { color: var(--fg); }
-nav a { color: var(--fg2); text-decoration: none; margin-left: 24px; font-size: 0.9rem; transition: color 0.2s; }
+nav .nav-links { display: flex; align-items: center; gap: 20px; }
+nav a { color: var(--fg2); text-decoration: none; font-size: 0.9rem; transition: color 0.2s; }
 nav a:hover { color: var(--fg); }
+
+/* Lang switch */
+.lang-switch { display: flex; background: var(--bg3); border: 1px solid var(--border); border-radius: 20px; overflow: hidden; }
+.lang-switch button { background: none; border: none; color: var(--fg2); padding: 5px 12px; font-size: 0.78rem; cursor: pointer; font-family: var(--sans); font-weight: 600; transition: all 0.2s; }
+.lang-switch button.active { background: var(--accent); color: #fff; }
+.lang-switch button:hover:not(.active) { color: var(--fg); }
 
 /* Hero */
 .hero { padding: 100px 0 80px; text-align: center; }
@@ -43,7 +41,7 @@ nav a:hover { color: var(--fg); }
 .hero h1 { font-size: clamp(2.2rem, 6vw, 3.8rem); font-weight: 800; letter-spacing: -1px; line-height: 1.15; margin-bottom: 16px; }
 .hero h1 span { background: linear-gradient(135deg, var(--accent), var(--accent2)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
 .hero p { font-size: 1.15rem; color: var(--fg2); max-width: 650px; margin: 0 auto 40px; }
-.hero .cta { display: inline-flex; gap: 12px; }
+.hero .cta { display: inline-flex; gap: 12px; flex-wrap: wrap; justify-content: center; }
 .hero .cta a { padding: 12px 32px; border-radius: var(--radius); font-weight: 600; font-size: 0.95rem; text-decoration: none; transition: all 0.2s; }
 .cta-primary { background: var(--accent); color: #fff; }
 .cta-primary:hover { background: #8e72fc; transform: translateY(-1px); box-shadow: 0 8px 32px rgba(124,92,252,0.3); }
@@ -51,59 +49,53 @@ nav a:hover { color: var(--fg); }
 .cta-secondary:hover { border-color: var(--accent); }
 
 /* Code Window */
-.code-window { background: var(--bg2); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; margin: 60px 0; box-shadow: 0 0 0 1px rgba(124,92,252,0.06), 0 24px 80px rgba(0,0,0,0.4); }
+.code-window { background: var(--bg2); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; margin: 60px 0; box-shadow: 0 24px 80px rgba(0,0,0,0.4); }
 .code-window .bar { background: var(--bg3); padding: 12px 16px; display: flex; gap: 8px; align-items: center; border-bottom: 1px solid var(--border); }
 .code-window .bar .dot { width: 10px; height: 10px; border-radius: 50%; }
-.dot-r { background: var(--red); }
-.dot-y { background: var(--orange); }
-.dot-g { background: var(--green); }
+.dot-r { background: var(--red); } .dot-y { background: var(--orange); } .dot-g { background: var(--green); }
 .code-window .bar .title { color: var(--fg2); font-size: 0.78rem; margin-left: 8px; }
 .code-window .compare { display: grid; grid-template-columns: 1fr 48px 1fr; align-items: center; }
 .code-window .compare pre { padding: 20px 24px; font-family: var(--mono); font-size: 0.82rem; line-height: 1.7; overflow-x: auto; margin: 0; }
 .code-window .compare .divider { text-align: center; font-size: 1.4rem; color: var(--fg2); }
 .code-window .compare .left { color: var(--fg2); }
 .code-window .compare .right { color: var(--fg); }
-.code-window .compare .right .kw { color: var(--accent); }
-.code-window .compare .right .fn { color: var(--accent2); }
-.code-window .compare .right .str { color: var(--green); }
-.code-window .compare .right .pipe { color: var(--orange); }
-.code-window .compare .right .num { color: var(--accent2); }
-.code-window .compare .right .cmt { color: #555; }
+.code-window .right .kw { color: var(--accent); } .code-window .right .fn { color: var(--accent2); }
+.code-window .right .str { color: var(--green); } .code-window .right .pipe { color: var(--orange); }
+.code-window .right .num { color: var(--accent2); } .code-window .right .cmt { color: #555; }
 
-/* Section */
+/* Sections */
 section { padding: 80px 0; }
 section h2 { font-size: 2rem; font-weight: 700; margin-bottom: 12px; letter-spacing: -0.5px; }
 section h3 { font-size: 1.5rem; font-weight: 700; margin-bottom: 8px; }
 section .subtitle { color: var(--fg2); font-size: 1rem; margin-bottom: 48px; }
 
-/* Grid */
+/* Grids */
 .grid-2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; }
 .grid-3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; }
 .grid-4 { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; }
 
-/* Card */
+/* Cards */
 .card { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 24px; transition: border-color 0.2s; }
 .card:hover { border-color: var(--accent); }
 .card .icon { font-size: 1.6rem; margin-bottom: 12px; }
 .card h4 { font-size: 1rem; font-weight: 700; margin-bottom: 6px; }
 .card p { color: var(--fg2); font-size: 0.88rem; }
 
-/* Feature highlight */
-.feature-highlight { padding: 80px 0; }
+/* Feature list */
 .feature-highlight .item { display: flex; gap: 24px; padding: 20px 0; border-bottom: 1px solid var(--border); align-items: flex-start; }
 .feature-highlight .item:last-child { border: none; }
 .feature-highlight .num { font-size: 2rem; font-weight: 800; color: var(--accent); min-width: 48px; line-height: 1; }
 .feature-highlight h4 { font-size: 1.1rem; margin-bottom: 4px; }
 .feature-highlight p { color: var(--fg2); font-size: 0.9rem; }
 
-/* Table */
+/* Tables */
 .table-wrap { overflow-x: auto; }
 table { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
 th { text-align: left; padding: 12px 16px; color: var(--fg2); font-weight: 600; border-bottom: 2px solid var(--border); font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.5px; }
 td { padding: 10px 16px; border-bottom: 1px solid var(--border); }
 td:first-child { color: var(--accent2); font-family: var(--mono); font-size: 0.82rem; }
 
-/* Code inline */
+/* Code blocks */
 code { background: var(--bg3); padding: 2px 6px; border-radius: 4px; font-family: var(--mono); font-size: 0.85em; color: var(--accent2); }
 pre.inline { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px 24px; overflow-x: auto; font-family: var(--mono); font-size: 0.82rem; line-height: 1.7; }
 
@@ -111,12 +103,21 @@ pre.inline { background: var(--bg2); border: 1px solid var(--border); border-rad
 footer { border-top: 1px solid var(--border); padding: 40px 0; text-align: center; color: var(--fg2); font-size: 0.85rem; }
 footer a { color: var(--accent); text-decoration: none; }
 
-/* Responsive */
+/* Lang visibility */
+[data-lang] { display: none; }
+[data-lang].active { display: inline; }
+span[data-lang].active, p[data-lang].active, h1[data-lang].active, h2[data-lang].active,
+h3[data-lang].active, h4[data-lang].active, a[data-lang].active, th[data-lang].active,
+td[data-lang].active, li[data-lang].active, div[data-lang].active { display: block; }
+h1[data-lang].active, h2[data-lang].active, h3[data-lang].active, h4[data-lang].active,
+p[data-lang].active, div[data-lang].active { display: block; }
+span[data-lang].active { display: inline; }
+a[data-lang].active { display: inline-block; }
+
 @media (max-width: 768px) {
   .code-window .compare { grid-template-columns: 1fr; }
   .code-window .compare .divider { display: none; }
   .hero { padding: 60px 0; }
-  nav a { margin-left: 14px; font-size: 0.82rem; }
 }
 </style>
 </head>
@@ -125,11 +126,15 @@ footer a { color: var(--accent); text-decoration: none; }
 <nav>
   <div class="container">
     <a href="#" class="logo">Pipe<span>.lang</span></a>
-    <div>
-      <a href="#what">What</a>
-      <a href="#features">Features</a>
-      <a href="#builtins">Builtins</a>
-      <a href="https://github.com/harry/pipe">GitHub</a>
+    <div class="nav-links">
+      <a href="#what"><span data-lang="en" class="active">What</span><span data-lang="de">Was</span></a>
+      <a href="#features"><span data-lang="en" class="active">Features</span><span data-lang="de">Features</span></a>
+      <a href="#builtins"><span data-lang="en" class="active">Builtins</span><span data-lang="de">Builtins</span></a>
+      <a href="https://github.com/harry/pipe"><span data-lang="en" class="active">GitHub</span><span data-lang="de">GitHub</span></a>
+      <div class="lang-switch">
+        <button id="btn-en" class="active" onclick="setLang('en')">EN</button>
+        <button id="btn-de" onclick="setLang('de')">DE</button>
+      </div>
     </div>
   </div>
 </nav>
@@ -139,12 +144,13 @@ footer a { color: var(--accent); text-decoration: none; }
 <!-- Hero -->
 <section class="hero">
   <div class="container">
-    <div class="badge">v0.5.0 — Semantic Pipeline Runtime</div>
-    <h1>A language where<br><span>AI is a primitive</span></h1>
-    <p>Pipe is a pipeline-based runtime where <code>summarize</code>, <code>translate</code>, and <code>classify</code> live on the same level as <code>+</code>, <code>sort</code>, and <code>len</code>. One binary, zero dependencies.</p>
+    <div class="badge">v0.5.0 — <span data-lang="en" class="active">Semantic Pipeline Runtime</span><span data-lang="de">Semantic Pipeline Runtime</span></div>
+    <h1><span data-lang="en" class="active">A language where<br><span>AI is a primitive</span></span><span data-lang="de">Eine Sprache in der<br><span>KI ein Sprachbestandteil ist</span></span></h1>
+    <p data-lang="en" class="active">Pipe is a pipeline-based runtime where <code>summarize</code>, <code>translate</code>, and <code>classify</code> live on the same level as <code>+</code>, <code>sort</code>, and <code>len</code>. One binary, zero dependencies.</p>
+    <p data-lang="de">Pipe ist eine Pipeline-basierte Runtime in der <code>summarize</code>, <code>translate</code> und <code>classify</code> auf derselben Ebene stehen wie <code>+</code>, <code>sort</code> und <code>len</code>. Eine Binary, null Abhängigkeiten.</p>
     <div class="cta">
-      <a href="#start" class="cta-primary">Get Started</a>
-      <a href="https://github.com/harry/pipe" class="cta-secondary">View on GitHub</a>
+      <a href="#start" class="cta-primary"><span data-lang="en" class="active">Get Started</span><span data-lang="de">Loslegen</span></a>
+      <a href="https://github.com/harry/pipe" class="cta-secondary"><span data-lang="en" class="active">View on GitHub</span><span data-lang="de">Auf GitHub ansehen</span></a>
     </div>
   </div>
 </section>
@@ -154,7 +160,7 @@ footer a { color: var(--accent); text-decoration: none; }
   <div class="code-window">
     <div class="bar">
       <div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div>
-      <div class="title">Python → Pipe comparison</div>
+      <div class="title"><span data-lang="en" class="active">Python → Pipe comparison</span><span data-lang="de">Python → Pipe Vergleich</span></div>
     </div>
     <div class="compare">
       <pre class="left"># Python: KI is a library call
@@ -181,11 +187,11 @@ summary = summarize(text)
 german = translate(summary, "de")
 print(german)</pre>
       <div class="divider">→</div>
-      <pre class="right"><span class="cmt">-- Pipe: KI is part of the data flow</span>
+      <pre class="right"><span class="cmt">-- Pipe: KI ist Teil des Datenflusses</span>
 <span class="fn">read_file</span> <span class="str">"news.txt"</span>
-    <span class="pipe">&gt;</span> <span class="fn">summarize</span>       <span class="cmt">-- LLM call</span>
-    <span class="pipe">&gt;</span> <span class="fn">translate</span> <span class="str">"de"</span>  <span class="cmt">-- LLM call</span>
-    <span class="pipe">&gt;</span> <span class="fn">print</span>           <span class="cmt">-- output</span></pre>
+    <span class="pipe">&gt;</span> <span class="fn">summarize</span>       <span class="cmt">-- LLM-Call</span>
+    <span class="pipe">&gt;</span> <span class="fn">translate</span> <span class="str">"de"</span>  <span class="cmt">-- LLM-Call</span>
+    <span class="pipe">&gt;</span> <span class="fn">print</span>           <span class="cmt">-- Ausgabe</span></pre>
     </div>
   </div>
 </div>
@@ -193,38 +199,52 @@ print(german)</pre>
 <!-- What -->
 <section id="what">
   <div class="container">
-    <h2>The Semantic Pipeline Runtime</h2>
-    <p class="subtitle">Pipe is not another scripting language. It's a runtime where semantics and computation share the same abstraction level.</p>
+    <h2 data-lang="en" class="active">The Semantic Pipeline Runtime</h2>
+    <h2 data-lang="de">Die Semantic Pipeline Runtime</h2>
+    <p class="subtitle" data-lang="en" class="active">Pipe is not another scripting language. It's a runtime where semantics and computation share the same abstraction level.</p>
+    <p class="subtitle" data-lang="de">Pipe ist keine weitere Skriptsprache. Es ist eine Runtime in der Semantik und Berechnung auf derselben Abstraktionsebene leben.</p>
     <div class="grid-3">
       <div class="card">
         <div class="icon">🔗</div>
-        <h4>Pipeline-Native</h4>
-        <p>Data flows top to bottom through transformation stages. Every stage receives output from the previous — no nesting, no boilerplate.</p>
+        <h4 data-lang="en" class="active">Pipeline-Native</h4>
+        <h4 data-lang="de">Pipeline-Nativ</h4>
+        <p data-lang="en" class="active">Data flows top to bottom through transformation stages. Every stage receives output from the previous — no nesting, no boilerplate.</p>
+        <p data-lang="de">Daten fließen von oben nach unten durch Transformationsstufen. Jede Stufe erhält die Ausgabe der vorherigen — keine Verschachtelung, kein Boilerplate.</p>
       </div>
       <div class="card">
         <div class="icon">🧠</div>
-        <h4>AI as Primitive</h4>
-        <p>25 built-in AI operations: <code>summarize</code>, <code>translate</code>, <code>classify</code>, <code>extract</code>, <code>ask</code>, <code>ai_stream</code>, <code>ai_batch</code>, <code>ai_with_tools</code>, <code>embed</code>, and more.</p>
+        <h4 data-lang="en" class="active">AI as Primitive</h4>
+        <h4 data-lang="de">KI als Sprachbestandteil</h4>
+        <p data-lang="en" class="active">25 built-in AI operations: <code>summarize</code>, <code>translate</code>, <code>classify</code>, <code>extract</code>, <code>ask</code>, <code>ai_stream</code>, <code>ai_batch</code>, <code>ai_with_tools</code>, <code>embed</code>, and more.</p>
+        <p data-lang="de">25 eingebaute KI-Operationen: <code>summarize</code>, <code>translate</code>, <code>classify</code>, <code>extract</code>, <code>ask</code>, <code>ai_stream</code>, <code>ai_batch</code>, <code>ai_with_tools</code>, <code>embed</code> und mehr.</p>
       </div>
       <div class="card">
         <div class="icon">📦</div>
-        <h4>Single Binary</h4>
-        <p>One ~10 MB statically linked binary. No venv, no pip, no npm, no Docker. Compile once, deploy anywhere.</p>
+        <h4 data-lang="en" class="active">Single Binary</h4>
+        <h4 data-lang="de">Einzelne Binary</h4>
+        <p data-lang="en" class="active">One ~10 MB statically linked binary. No venv, no pip, no npm, no Docker. Compile once, deploy anywhere.</p>
+        <p data-lang="de">Eine ~10 MB statisch gelinkte Binary. Kein venv, kein pip, kein npm, kein Docker. Einmal kompilieren, überall deployen.</p>
       </div>
       <div class="card">
         <div class="icon">⚡</div>
-        <h4>Bytecode VM</h4>
-        <p>Tree-walker for development, bytecode VM for production — same code, ~7× faster. Automatic bytecode caching.</p>
+        <h4 data-lang="en" class="active">Bytecode VM</h4>
+        <h4 data-lang="de">Bytecode-VM</h4>
+        <p data-lang="en" class="active">Tree-walker for development, bytecode VM for production — same code, ~7× faster. Automatic bytecode caching.</p>
+        <p data-lang="de">Tree-Walker für Entwicklung, Bytecode-VM für Produktion — derselbe Code, ~7× schneller. Automatisches Bytecode-Caching.</p>
       </div>
       <div class="card">
         <div class="icon">🔌</div>
-        <h4>Multi-Provider</h4>
-        <p>OpenAI, Anthropic (Claude), DeepSeek. Switch with one line: <code>ai_provider "deepseek"</code>. One API, any backend.</p>
+        <h4 data-lang="en" class="active">Multi-Provider</h4>
+        <h4 data-lang="de">Multi-Provider</h4>
+        <p data-lang="en" class="active">OpenAI, Anthropic (Claude), DeepSeek. Switch with one line: <code>ai_provider "deepseek"</code>. One API, any backend.</p>
+        <p data-lang="de">OpenAI, Anthropic (Claude), DeepSeek. Wechsel mit einer Zeile: <code>ai_provider "deepseek"</code>. Eine API, jedes Backend.</p>
       </div>
       <div class="card">
         <div class="icon">🛠️</div>
-        <h4>Tool Calling</h4>
-        <p>Register Pipe functions as LLM tools. The model decides when to call them — your code executes, the model responds.</p>
+        <h4 data-lang="en" class="active">Tool Calling</h4>
+        <h4 data-lang="de">Tool-Calling</h4>
+        <p data-lang="en" class="active">Register Pipe functions as LLM tools. The model decides when to call them — your code executes, the model responds.</p>
+        <p data-lang="de">Registriere Pipe-Funktionen als LLM-Tools. Das Modell entscheidet, wann es sie aufruft — dein Code führt aus, das Modell antwortet.</p>
       </div>
     </div>
   </div>
@@ -233,42 +253,54 @@ print(german)</pre>
 <!-- Features Detail -->
 <section id="features" style="background: var(--bg2);">
   <div class="container">
-    <h2>Why Pipe is different</h2>
-    <p class="subtitle">Not incremental improvement. A category shift.</p>
+    <h2 data-lang="en" class="active">Why Pipe is different</h2>
+    <h2 data-lang="de">Warum Pipe anders ist</h2>
+    <p class="subtitle" data-lang="en" class="active">Not incremental improvement. A category shift.</p>
+    <p class="subtitle" data-lang="de">Keine inkrementelle Verbesserung. Ein Kategorie-Sprung.</p>
     <div class="feature-highlight">
       <div class="item">
         <div class="num">01</div>
         <div>
-          <h4>AI operations are language primitives — not library calls</h4>
-          <p>In Python you import openai and call <code>chat.completions.create()</code>. In Pipe you write <code>&gt; summarize</code>. The language doesn't know the difference between an AI call and a sort operation — and that's the point.</p>
+          <h4 data-lang="en" class="active">AI operations are language primitives — not library calls</h4>
+          <h4 data-lang="de">KI-Operationen sind Sprachbestandteile — keine Library-Aufrufe</h4>
+          <p data-lang="en" class="active">In Python you import openai and call <code>chat.completions.create()</code>. In Pipe you write <code>&gt; summarize</code>. The language doesn't distinguish between an AI call and a sort operation — and that's the point.</p>
+          <p data-lang="de">In Python importierst du openai und rufst <code>chat.completions.create()</code> auf. In Pipe schreibst du <code>&gt; summarize</code>. Die Sprache unterscheidet nicht zwischen einem KI-Call und einer Sortier-Operation — und genau darum geht es.</p>
         </div>
       </div>
       <div class="item">
         <div class="num">02</div>
         <div>
-          <h4>Parallel AI with native concurrency</h4>
-          <p><code>ai_batch</code> processes hundreds of texts in parallel using Go goroutines under the hood. Rate limiting built-in. No async/await, no Promise.all — just data flowing.</p>
+          <h4 data-lang="en" class="active">Parallel AI with native concurrency</h4>
+          <h4 data-lang="de">Parallele KI mit nativer Nebenläufigkeit</h4>
+          <p data-lang="en" class="active"><code>ai_batch</code> processes hundreds of texts in parallel using Go goroutines. Rate limiting built-in. No async/await, no Promise.all — just data flowing.</p>
+          <p data-lang="de"><code>ai_batch</code> verarbeitet hunderte Texte parallel mit Go-Goroutines. Rate-Limiting eingebaut. Kein async/await, kein Promise.all — nur fließende Daten.</p>
         </div>
       </div>
       <div class="item">
         <div class="num">03</div>
         <div>
-          <h4>Streaming responses in real time</h4>
-          <p><code>ai_stream</code> delivers tokens as they arrive — like watching ChatGPT think. Live output, full text returned for pipeline continuation.</p>
+          <h4 data-lang="en" class="active">Streaming responses in real time</h4>
+          <h4 data-lang="de">Streaming-Antworten in Echtzeit</h4>
+          <p data-lang="en" class="active"><code>ai_stream</code> delivers tokens as they arrive — like watching ChatGPT think. Live output, full text returned for pipeline continuation.</p>
+          <p data-lang="de"><code>ai_stream</code> liefert Tokens sobald sie ankommen — als würdest du ChatGPT beim Denken zusehen. Live-Ausgabe, vollständiger Text für Pipeline-Weiterverarbeitung.</p>
         </div>
       </div>
       <div class="item">
         <div class="num">04</div>
         <div>
-          <h4>LLM-controlled tool execution</h4>
-          <p>Define a Pipe function. Register it with <code>ai_tool</code>. The model autonomously decides when to invoke it, passes arguments, receives results, and continues the conversation. Multi-round agentic loop built in.</p>
+          <h4 data-lang="en" class="active">LLM-controlled tool execution</h4>
+          <h4 data-lang="de">LLM-gesteuerte Tool-Ausführung</h4>
+          <p data-lang="en" class="active">Define a Pipe function. Register it with <code>ai_tool</code>. The model autonomously decides when to invoke it, passes arguments, receives results, and continues.</p>
+          <p data-lang="de">Definiere eine Pipe-Funktion. Registriere sie mit <code>ai_tool</code>. Das Modell entscheidet autonom, wann es sie aufruft, übergibt Argumente, erhält Ergebnisse und macht weiter.</p>
         </div>
       </div>
       <div class="item">
         <div class="num">05</div>
         <div>
-          <h4>RAG-ready with native embeddings</h4>
-          <p><code>embed</code> converts text to vectors. <code>nearest</code> finds semantically similar documents. <code>cosine_sim</code> compares meaning. Build retrieval-augmented generation pipelines in 10 lines.</p>
+          <h4 data-lang="en" class="active">RAG-ready with native embeddings</h4>
+          <h4 data-lang="de">RAG-bereit mit nativen Embeddings</h4>
+          <p data-lang="en" class="active"><code>embed</code> converts text to vectors. <code>nearest</code> finds semantically similar documents. <code>cosine_sim</code> compares meaning. Build retrieval-augmented generation in 10 lines.</p>
+          <p data-lang="de"><code>embed</code> wandelt Text in Vektoren um. <code>nearest</code> findet semantisch ähnliche Dokumente. <code>cosine_sim</code> vergleicht Bedeutung. Baue Retrieval-Augmented Generation in 10 Zeilen.</p>
         </div>
       </div>
     </div>
@@ -278,53 +310,55 @@ print(german)</pre>
 <!-- Builtins -->
 <section id="builtins">
   <div class="container">
-    <h2>25 AI Builtins</h2>
-    <p class="subtitle">Every AI operation is a first-class language citizen.</p>
+    <h2 data-lang="en" class="active">25 AI Builtins</h2>
+    <h2 data-lang="de">25 KI-Builtins</h2>
+    <p class="subtitle" data-lang="en" class="active">Every AI operation is a first-class language citizen.</p>
+    <p class="subtitle" data-lang="de">Jede KI-Operation ist ein First-Class-Sprachbestandteil.</p>
     <div class="grid-2">
       <div class="card">
-        <h4>🧠 Understanding</h4>
+        <h4>🧠 <span data-lang="en" class="active">Understanding</span><span data-lang="de">Verstehen</span></h4>
         <div class="table-wrap" style="margin-top:12px">
-        <table><tr><th>Builtin</th><th>Description</th></tr>
-        <tr><td>summarize</td><td>Summarize text</td></tr>
-        <tr><td>translate</td><td>Translate to any language</td></tr>
-        <tr><td>classify</td><td>Classify into categories</td></tr>
-        <tr><td>extract</td><td>Extract structured JSON data</td></tr>
-        <tr><td>ask</td><td>Answer a question</td></tr>
-        <tr><td>generate</td><td>Generate free-form text</td></tr>
+        <table><tr><th data-lang="en" class="active">Builtin</th><th data-lang="de">Builtin</th><th data-lang="en" class="active">Description</th><th data-lang="de">Beschreibung</th></tr>
+        <tr><td>summarize</td><td data-lang="en" class="active">Summarize text</td><td data-lang="de">Text zusammenfassen</td></tr>
+        <tr><td>translate</td><td data-lang="en" class="active">Translate to any language</td><td data-lang="de">In beliebige Sprache übersetzen</td></tr>
+        <tr><td>classify</td><td data-lang="en" class="active">Classify into categories</td><td data-lang="de">In Kategorien einordnen</td></tr>
+        <tr><td>extract</td><td data-lang="en" class="active">Extract structured JSON</td><td data-lang="de">Strukturierte JSON-Daten extrahieren</td></tr>
+        <tr><td>ask</td><td data-lang="en" class="active">Answer a question</td><td data-lang="de">Frage beantworten</td></tr>
+        <tr><td>generate</td><td data-lang="en" class="active">Generate free-form text</td><td data-lang="de">Freitext generieren</td></tr>
         </table></div>
       </div>
       <div class="card">
-        <h4>⚡ Speed & Control</h4>
+        <h4>⚡ <span data-lang="en" class="active">Speed & Control</span><span data-lang="de">Geschwindigkeit & Kontrolle</span></h4>
         <div class="table-wrap" style="margin-top:12px">
-        <table><tr><th>Builtin</th><th>Description</th></tr>
-        <tr><td>ai_stream</td><td>Real-time token streaming</td></tr>
-        <tr><td>ai_batch</td><td>Auto-parallel processing</td></tr>
-        <tr><td>ai_parallel</td><td>Controlled concurrency</td></tr>
-        <tr><td>ai_rate_limit</td><td>Rate limit API calls</td></tr>
-        <tr><td>ai_chat</td><td>Low-level chat completion</td></tr>
-        <tr><td>ai_chat_json</td><td>Chat → parsed JSON</td></tr>
+        <table><tr><th data-lang="en" class="active">Builtin</th><th data-lang="de">Builtin</th><th data-lang="en" class="active">Description</th><th data-lang="de">Beschreibung</th></tr>
+        <tr><td>ai_stream</td><td data-lang="en" class="active">Real-time token streaming</td><td data-lang="de">Echtzeit-Token-Streaming</td></tr>
+        <tr><td>ai_batch</td><td data-lang="en" class="active">Auto-parallel processing</td><td data-lang="de">Automatisch-parallele Verarbeitung</td></tr>
+        <tr><td>ai_parallel</td><td data-lang="en" class="active">Controlled concurrency</td><td data-lang="de">Konfigurierbare Parallelität</td></tr>
+        <tr><td>ai_rate_limit</td><td data-lang="en" class="active">Rate limit API calls</td><td data-lang="de">API-Calls drosseln</td></tr>
+        <tr><td>ai_chat</td><td data-lang="en" class="active">Low-level chat completion</td><td data-lang="de">Low-Level Chat</td></tr>
+        <tr><td>ai_chat_json</td><td data-lang="en" class="active">Chat → parsed JSON</td><td data-lang="de">Chat → geparstes JSON</td></tr>
         </table></div>
       </div>
       <div class="card">
-        <h4>🔍 Search & Semantics</h4>
+        <h4>🔍 <span data-lang="en" class="active">Search & Semantics</span><span data-lang="de">Suche & Semantik</span></h4>
         <div class="table-wrap" style="margin-top:12px">
-        <table><tr><th>Builtin</th><th>Description</th></tr>
-        <tr><td>embed</td><td>Text → vector embedding</td></tr>
-        <tr><td>embed_batch</td><td>Batch embeddings</td></tr>
-        <tr><td>cosine_sim</td><td>Semantic similarity</td></tr>
-        <tr><td>dot_product</td><td>Vector dot product</td></tr>
-        <tr><td>nearest</td><td>Top-K nearest documents</td></tr>
+        <table><tr><th data-lang="en" class="active">Builtin</th><th data-lang="de">Builtin</th><th data-lang="en" class="active">Description</th><th data-lang="de">Beschreibung</th></tr>
+        <tr><td>embed</td><td data-lang="en" class="active">Text → vector embedding</td><td data-lang="de">Text → Vektor-Embedding</td></tr>
+        <tr><td>embed_batch</td><td data-lang="en" class="active">Batch embeddings</td><td data-lang="de">Batch-Embeddings</td></tr>
+        <tr><td>cosine_sim</td><td data-lang="en" class="active">Semantic similarity</td><td data-lang="de">Semantische Ähnlichkeit</td></tr>
+        <tr><td>dot_product</td><td data-lang="en" class="active">Vector dot product</td><td data-lang="de">Skalarprodukt</td></tr>
+        <tr><td>nearest</td><td data-lang="en" class="active">Top-K nearest documents</td><td data-lang="de">Top-K ähnlichste Dokumente</td></tr>
         </table></div>
       </div>
       <div class="card">
-        <h4>🤖 Agency & Tools</h4>
+        <h4>🤖 <span data-lang="en" class="active">Agency & Tools</span><span data-lang="de">Agenten & Werkzeuge</span></h4>
         <div class="table-wrap" style="margin-top:12px">
-        <table><tr><th>Builtin</th><th>Description</th></tr>
-        <tr><td>ai_tool</td><td>Register function as tool</td></tr>
-        <tr><td>ai_with_tools</td><td>Chat with tool access</td></tr>
-        <tr><td>ai_provider</td><td>Select AI backend</td></tr>
-        <tr><td>ai_model</td><td>Choose model</td></tr>
-        <tr><td>ai_timeout</td><td>Set request timeout</td></tr>
+        <table><tr><th data-lang="en" class="active">Builtin</th><th data-lang="de">Builtin</th><th data-lang="en" class="active">Description</th><th data-lang="de">Beschreibung</th></tr>
+        <tr><td>ai_tool</td><td data-lang="en" class="active">Register function as tool</td><td data-lang="de">Funktion als Tool registrieren</td></tr>
+        <tr><td>ai_with_tools</td><td data-lang="en" class="active">Chat with tool access</td><td data-lang="de">Chat mit Tool-Zugriff</td></tr>
+        <tr><td>ai_provider</td><td data-lang="en" class="active">Select AI backend</td><td data-lang="de">KI-Backend wählen</td></tr>
+        <tr><td>ai_model</td><td data-lang="en" class="active">Choose model</td><td data-lang="de">Modell wählen</td></tr>
+        <tr><td>ai_timeout</td><td data-lang="en" class="active">Set request timeout</td><td data-lang="de">Timeout setzen</td></tr>
         </table></div>
       </div>
     </div>
@@ -334,12 +368,13 @@ print(german)</pre>
 <!-- Examples -->
 <section style="background: var(--bg2);">
   <div class="container">
-    <h2>See it in action</h2>
-    <p class="subtitle">Real pipelines. Real AI. Real output.</p>
-
+    <h2 data-lang="en" class="active">See it in action</h2>
+    <h2 data-lang="de">In Aktion sehen</h2>
+    <p class="subtitle" data-lang="en" class="active">Real pipelines. Real AI. Real output.</p>
+    <p class="subtitle" data-lang="de">Echte Pipelines. Echte KI. Echte Ergebnisse.</p>
     <div class="grid-2" style="gap:24px">
       <div class="card">
-        <h4>Log Analysis → Incident Report</h4>
+        <h4><span data-lang="en" class="active">Log Analysis → Incident Report</span><span data-lang="de">Log-Analyse → Incident-Report</span></h4>
         <pre class="inline" style="margin-top:12px; font-size:0.8rem"><span style="color:var(--accent2)">read_file</span> <span style="color:var(--green)">"errors.log"</span>
     &gt; <span style="color:var(--accent2)">split</span> <span style="color:var(--green)">"\n"</span>
     &gt; <span style="color:var(--accent2)">classify</span> [<span style="color:var(--green)">"critical","warning","info"</span>]
@@ -348,7 +383,7 @@ print(german)</pre>
     &gt; <span style="color:var(--accent2)">save</span> <span style="color:var(--green)">"report.txt"</span></pre>
       </div>
       <div class="card">
-        <h4>Multi-Step RAG Pipeline</h4>
+        <h4><span data-lang="en" class="active">Multi-Step RAG Pipeline</span><span data-lang="de">Mehrstufige RAG-Pipeline</span></h4>
         <pre class="inline" style="margin-top:12px; font-size:0.8rem"><span style="color:var(--accent2)">docs</span>: <span style="color:var(--accent2)">read_lines</span> <span style="color:var(--green)">"knowledge.txt"</span>
 <span style="color:var(--accent2)">vectors</span>: <span style="color:var(--accent2)">embed_batch</span> docs
 <span style="color:var(--accent2)">q</span>: <span style="color:var(--accent2)">embed</span> <span style="color:var(--green)">"How does the VM work?"</span>
@@ -358,7 +393,7 @@ print(german)</pre>
     &gt; <span style="color:var(--accent2)">print</span></pre>
       </div>
       <div class="card">
-        <h4>Parallel Batch Processing</h4>
+        <h4><span data-lang="en" class="active">Parallel Batch Processing</span><span data-lang="de">Parallele Batch-Verarbeitung</span></h4>
         <pre class="inline" style="margin-top:12px; font-size:0.8rem"><span style="color:var(--accent2)">texts</span>: <span style="color:var(--accent2)">read_lines</span> <span style="color:var(--green)">"articles.txt"</span>
 <span style="color:var(--accent2)">ai_rate_limit</span> 10
 <span style="color:var(--accent2)">ai_batch</span> <span style="color:var(--green)">"Summarize in one sentence."</span> texts
@@ -367,7 +402,7 @@ print(german)</pre>
     &gt; <span style="color:var(--accent2)">save</span> <span style="color:var(--green)">"digest.txt"</span></pre>
       </div>
       <div class="card">
-        <h4>AI Agent with Tools</h4>
+        <h4><span data-lang="en" class="active">AI Agent with Tools</span><span data-lang="de">KI-Agent mit Tools</span></h4>
         <pre class="inline" style="margin-top:12px; font-size:0.8rem"><span style="color:var(--accent)">fn</span> <span style="color:var(--accent2)">get_weather</span> city
     <span style="color:var(--accent)">match</span> city
         | <span style="color:var(--green)">"Berlin"</span> -&gt; <span style="color:var(--green)">"22°C, sunny"</span>
@@ -388,27 +423,31 @@ print(german)</pre>
 <!-- Quick Start -->
 <section id="start">
   <div class="container">
-    <h2>Get Started</h2>
-    <p class="subtitle">Three commands to your first AI pipeline.</p>
-    <pre class="inline"><span style="color:var(--fg2)"># 1. Clone and build</span>
+    <h2 data-lang="en" class="active">Get Started</h2>
+    <h2 data-lang="de">Loslegen</h2>
+    <p class="subtitle" data-lang="en" class="active">Three commands to your first AI pipeline.</p>
+    <p class="subtitle" data-lang="de">Drei Befehle zu deiner ersten KI-Pipeline.</p>
+    <pre class="inline"><span style="color:var(--fg2)"><span data-lang="en" class="active"># 1. Clone and build</span><span data-lang="de"># 1. Klonen und bauen</span></span>
 git clone https://github.com/harry/pipe && cd pipe && make build
 
-<span style="color:var(--fg2)"># 2. Set your API key (OpenAI, Anthropic, or DeepSeek)</span>
+<span style="color:var(--fg2)"><span data-lang="en" class="active"># 2. Set your API key (OpenAI, Anthropic, or DeepSeek)</span><span data-lang="de"># 2. API-Key setzen (OpenAI, Anthropic oder DeepSeek)</span></span>
 export DEEPSEEK_API_KEY="sk-..."
 
-<span style="color:var(--fg2)"># 3. Run your first pipeline</span>
+<span style="color:var(--fg2)"><span data-lang="en" class="active"># 3. Run your first pipeline</span><span data-lang="de"># 3. Erste Pipeline ausführen</span></span>
 ./bin/pipe -c 'ai_provider "deepseek"
-ask "What makes Pipe different from other languages?" &gt; print'</pre>
+ask "What makes Pipe different?" &gt; print'</pre>
 
     <div class="grid-2" style="margin-top:32px">
       <div class="card">
-        <h4>Run with Bytecode VM</h4>
-        <p>~7× faster execution for production.</p>
+        <h4><span data-lang="en" class="active">Run with Bytecode VM</span><span data-lang="de">Mit Bytecode-VM ausführen</span></h4>
+        <p data-lang="en" class="active">~7× faster execution for production.</p>
+        <p data-lang="de">~7× schnellere Ausführung für Produktion.</p>
         <pre class="inline" style="margin-top:12px; font-size:0.8rem">./bin/pipe -vm -q script.pipe</pre>
       </div>
       <div class="card">
-        <h4>Self-Extracting Binary</h4>
-        <p>Ship your pipeline as a standalone executable.</p>
+        <h4><span data-lang="en" class="active">Self-Extracting Binary</span><span data-lang="de">Self-Extracting Binary</span></h4>
+        <p data-lang="en" class="active">Ship your pipeline as a standalone executable.</p>
+        <p data-lang="de">Deine Pipeline als eigenständiges Programm ausliefern.</p>
         <pre class="inline" style="margin-top:12px; font-size:0.8rem">./bin/pipe -build script.pipe -o mytool<br>./mytool</pre>
       </div>
     </div>
@@ -419,10 +458,30 @@ ask "What makes Pipe different from other languages?" &gt; print'</pre>
 
 <footer>
   <div class="container">
-    <p>Pipe — Semantic Pipeline Runtime. Built with Go. 10 MB binary. Zero dependencies.</p>
+    <p data-lang="en" class="active">Pipe — Semantic Pipeline Runtime. Built with Go. 10 MB binary. Zero dependencies.</p>
+    <p data-lang="de">Pipe — Semantic Pipeline Runtime. Gebaut mit Go. 10 MB Binary. Null Abhängigkeiten.</p>
     <p style="margin-top:8px"><a href="https://github.com/harry/pipe">GitHub</a> &middot; MIT License &middot; v0.5.0</p>
   </div>
 </footer>
+
+<script>
+function setLang(lang) {
+  document.querySelectorAll('[data-lang]').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('[data-lang="' + lang + '"]').forEach(el => el.classList.add('active'));
+  document.getElementById('btn-en').classList.toggle('active', lang === 'en');
+  document.getElementById('btn-de').classList.toggle('active', lang === 'de');
+  document.documentElement.lang = lang;
+  localStorage.setItem('pipe-lang', lang);
+}
+
+(function() {
+  var stored = localStorage.getItem('pipe-lang');
+  if (!stored) {
+    stored = navigator.language.startsWith('de') ? 'de' : 'en';
+  }
+  setLang(stored);
+})();
+</script>
 
 </body>
 </html>

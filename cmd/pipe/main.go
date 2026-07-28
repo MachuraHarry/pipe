@@ -38,6 +38,7 @@ func main() {
 		doBench    bool
 		doTest     bool
 		doBuild    bool
+		doGet      bool
 		sandbox    bool
 		allowAI    bool
 		timeoutSec int
@@ -63,6 +64,8 @@ func main() {
 			doTest = true
 		case "-build":
 			doBuild = true
+		case "-get":
+			doGet = true
 		case "-h", "--help":
 			printHelp()
 			return
@@ -110,6 +113,23 @@ func main() {
 			os.Exit(1)
 		}
 		fmt.Printf("Built %s -> %s\n", filePath, outPath)
+		return
+	}
+
+	if doGet {
+		if filePath == "" {
+			fmt.Fprintln(os.Stderr, "pipe: -get requires a URL or module name")
+			fmt.Fprintln(os.Stderr, "  Example: pipe -get https://raw.githubusercontent.com/.../module.pipe")
+			fmt.Fprintln(os.Stderr, "  Example: pipe -get log-analyzer")
+			os.Exit(1)
+		}
+		modDir := object.ModuleCacheDir()
+		_, _, err := object.ResolveImport(filePath)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "pipe get: %s\n", err)
+			os.Exit(1)
+		}
+		fmt.Printf("Installed to %s\n", modDir)
 		return
 	}
 

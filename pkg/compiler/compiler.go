@@ -933,11 +933,11 @@ func (c *Compiler) compileImport(is *ast.ImportStatement) error {
 }
 
 func resolveImport(path string) (*ast.Program, error) {
-	data, err := readImportFile(path)
+	_, content, err := object.ResolveImport(path)
 	if err != nil {
 		return nil, err
 	}
-	l := lexer.New(data)
+	l := lexer.New(content)
 	p := parser.New(l)
 	program := p.ParseProgram()
 	if len(p.Errors()) > 0 {

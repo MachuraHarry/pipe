@@ -796,7 +796,7 @@ func (ctx *EvalContext) resolveImportPath(path string) (string, error) {
 }
 
 func (ctx *EvalContext) evalImportStatement(is *ast.ImportStatement, env *object.Environment) object.Object {
-	resolvedPath, err := ctx.resolveImportPath(is.Path)
+	resolvedPath, content, err := object.ResolveImport(is.Path)
 	if err != nil {
 		return ctx.newError("%s", err)
 	}
@@ -812,12 +812,7 @@ func (ctx *EvalContext) evalImportStatement(is *ast.ImportStatement, env *object
 	// Use cached parse result or parse fresh
 	program, ok := ctx.importCache[resolvedPath]
 	if !ok {
-		data, err := os.ReadFile(resolvedPath)
-		if err != nil {
-			return ctx.newError("import failed: %s", err)
-		}
-
-		l := lexer.New(string(data))
+		l := lexer.New(content)
 		p := parser.New(l)
 		program = p.ParseProgram()
 		if len(p.Errors()) > 0 {

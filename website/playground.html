@@ -33,27 +33,25 @@ a{color:#7c5cfc;text-decoration:none}
 <div class="container">
   <div class="toolbar">
     <button onclick="run()" id="runBtn" disabled>▶ Run</button>
-    <select onchange="loadExample(this.value)">
+    <select id="examples" onchange="loadExample()">
       <option value="">— Examples —</option>
-      <option value="print (2 + 2)">2 + 2</option>
-      <option value='print "Hello from the Browser!"'>Hello World</option>
-      <option value="for i in (range 1 6)\n    print i">Loop 1-5</option>
-      <option value="fn fib n\n    match n\n        | 0 -> 0\n        | 1 -> 1\n        | _ -> fib(n-1) + fib(n-2)\n\nprint (fib 10)">Fibonacci</option>
-      <option value="fn greet name\n    &quot;Hallo &quot; ++ name\n\nprint (greet &quot;Welt&quot;)">Function</option>
-      <option value="print (len [1,2,3])">Length</option>
-      <option value="x: 10\ny: 20\nprint (x + y)">Variables</option>
-      <option value="if 5 > 3\n    print &quot;yes&quot;\nelse\n    print &quot;no&quot;">If/Else</option>
-      <option value="match 2\n    | 1 -> &quot;one&quot;\n    | 2 -> &quot;two&quot;\n    | _ -> &quot;other&quot;">Match</option>
-      <option value="zahlen: [1,2,3]\npush zahlen 4\nprint zahlen">Lists</option>
-      <option value="person: {name: &quot;Anna&quot;}\nprint (get person &quot;name&quot;)">Maps</option>
+      <option value="0">2 + 2</option>
+      <option value="1">Hello World</option>
+      <option value="2">Loop 1-5</option>
+      <option value="3">Fibonacci</option>
+      <option value="4">Function</option>
+      <option value="5">Pipeline</option>
+      <option value="6">Variables</option>
+      <option value="7">If/Else</option>
+      <option value="8">Match</option>
+      <option value="9">Lists</option>
+      <option value="10">Maps</option>
     </select>
     <span style="color:#555;font-size:0.75rem" id="status">Loading WASM...</span>
   </div>
 
   <textarea id="editor" placeholder="Write Pipe code here..." spellcheck="false">print "Hello from Pipe Playground!"
-print (2 + 2)
-for i in (range 1 4)
-    print i</textarea>
+print (2 + 2)</textarea>
 
   <div class="output empty" id="output">Output appears here after you click Run.</div>
 </div>
@@ -69,6 +67,20 @@ for i in (range 1 4)
 const go = new Go();
 let ready = false;
 
+const examples = [
+  "print (2 + 2)",
+  'print "Hello from the Browser!"',
+  "for i in (range 1 6)\n    print i",
+  "fn fib n\n    match n\n        | 0 -> 0\n        | 1 -> 1\n        | _ -> fib(n - 1) + fib(n - 2)\n\nprint (fib 10)",
+  'fn greet name\n    "Hallo " ++ name\n\nprint (greet "Welt")',
+  "print (len [1, 2, 3])",
+  "x: 10\ny: 20\nprint (x + y)",
+  "if 5 > 3\n    print \"yes\"\nelse\n    print \"no\"",
+  "match 2\n    | 1 -> print \"one\"\n    | 2 -> print \"two\"\n    | _ -> print \"other\"",
+  "zahlen: [1, 2, 3]\npush zahlen 4\nprint zahlen",
+  'person: {name: "Anna"}\nprint (get person "name")'
+];
+
 WebAssembly.instantiateStreaming(fetch("pipe.wasm"), go.importObject).then(result => {
   go.run(result.instance);
   ready = true;
@@ -76,7 +88,7 @@ WebAssembly.instantiateStreaming(fetch("pipe.wasm"), go.importObject).then(resul
   document.getElementById("status").textContent = "Ready";
   document.getElementById("status").style.color = "#3ce096";
 }).catch(err => {
-  document.getElementById("status").textContent = "WASM load failed";
+  document.getElementById("status").textContent = "WASM load failed: " + err;
   document.getElementById("status").style.color = "#fc5c7c";
   console.error(err);
 });
@@ -92,16 +104,17 @@ function run() {
     const result = pipeRun(code);
     out.textContent = result || "(no output)";
     if (result && result.includes("Error:")) out.className = "output error";
-    if (!result) out.className = "output empty";
+    if (!result || result.trim() === "") out.className = "output empty";
   } catch (e) {
     out.textContent = "Runtime error: " + e;
     out.className = "output error";
   }
 }
 
-function loadExample(code) {
-  if (!code) return;
-  document.getElementById("editor").value = code.replace(/\\n/g, '\n');
+function loadExample() {
+  const idx = parseInt(document.getElementById("examples").value);
+  if (isNaN(idx)) return;
+  document.getElementById("editor").value = examples[idx];
 }
 
 document.addEventListener("keydown", e => {

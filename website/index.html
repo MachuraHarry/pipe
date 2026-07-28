@@ -261,17 +261,10 @@ async function runPlayground() {
   var btn = document.getElementById("play-btn");
   var bar = document.getElementById("play-bar");
   var out = document.getElementById("play-out");
-
   if (btn.disabled) return;
 
   var key = document.getElementById("play-key").value.trim();
   var provider = document.getElementById("play-provider").value;
-  
-  // Debug: show key status
-  console.log("Key:", key ? key.substring(0,5)+"..." : "(empty)");
-  console.log("Provider:", provider);
-  
-  if (key) pipeSetKey(provider, key);
 
   btn.classList.add("running");
   btn.textContent = "⏳ Running...";
@@ -284,7 +277,7 @@ async function runPlayground() {
 
   var start = Date.now();
   var code = document.getElementById("play-editor").value;
-  var result = runPipe(code);
+  var result = runPipe(code, provider, key);
   var elapsed = ((Date.now() - start) / 1000).toFixed(1);
   var isError = result && (result.includes("Error:") || result.includes("Parse error"));
 
@@ -293,9 +286,7 @@ async function runPlayground() {
   bar.className = "play-bar" + (isError ? " error" : " success");
   bar.innerHTML = '<span>' + (isError ? '✗' : '✓') + '</span><span>' + (isError ? 'Error' : 'Done in ' + elapsed + 's') + '</span>';
   bar.style.color = isError ? "var(--red)" : "var(--green)";
-  
-  // Prepend debug info
-  out.textContent = "[Browser: key len=" + key.length + ", provider=" + provider + "]\n\n" + (result || "(no output)");
+  out.textContent = result || "(no output)";
   if (isError) out.className = "play-output error";
   else out.className = "play-output";
 }
@@ -304,10 +295,9 @@ function testAI() {
   var key = document.getElementById("play-key").value.trim();
   var provider = document.getElementById("play-provider").value;
   if (!key) { document.getElementById("play-out").textContent = "Bitte API-Key eingeben"; return; }
-  pipeSetKey(provider, key);
   var out = document.getElementById("play-out");
-  out.textContent = "Testing AI call...";
-  var result = runPipe('ask "Sag nur: ok"');
+  out.textContent = "Testing...";
+  var result = runPipe('ask "Sag nur: ok"', provider, key);
   out.textContent = result;
 }
 </script>

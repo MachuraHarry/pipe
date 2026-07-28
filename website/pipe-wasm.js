@@ -1,35 +1,30 @@
-// Pipe WASM loader — inline, no worker
+// Pipe WASM loader
 let pipeReady = false;
 const pipeGo = new Go();
 
 WebAssembly.instantiateStreaming(fetch("pipe.wasm"), pipeGo.importObject).then(r => {
   pipeGo.run(r.instance);
   pipeReady = true;
-  
   const bar = document.getElementById("play-bar");
   if (bar) {
-    bar.innerHTML = '<span style="color:#3ce096">✓</span><span>WASM ready — type code and click Run</span>';
+    bar.innerHTML = '<span style="color:#3ce096">✓</span><span>WASM ready</span>';
     bar.style.color = "#9898a8";
   }
-  const btn = document.getElementById("play-btn");
-  if (btn) btn.disabled = false;
-  const testBtn = document.getElementById("test-ai-btn");
-  if (testBtn) testBtn.disabled = false;
+  document.querySelectorAll("#play-btn, #test-ai-btn").forEach(el => { if(el) el.disabled = false; });
 }).catch(e => {
   const bar = document.getElementById("play-bar");
   if (bar) {
-    bar.innerHTML = '<span style="color:#fc5c7c">✗</span><span>WASM failed: ' + e.message + '</span>';
+    bar.innerHTML = '<span style="color:#fc5c7c">✗</span><span>WASM failed</span>';
     bar.style.color = "#fc5c7c";
   }
 });
 
-function runPipe(code) {
+function runPipe(code, provider, key) {
   if (!pipeReady) return "[WASM not loaded]";
   try {
-    var result = pipeRun(code);
-    if (!result || result === "") return "[pipeRun returned empty]";
-    return result;
+    var result = pipeRun(code, provider || "", key || "");
+    return result || "(no output)";
   } catch(e) {
-    return "[JS Error: " + e.message + "]";
+    return "[Error: " + e.message + "]";
   }
 }

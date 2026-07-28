@@ -3,7 +3,6 @@
 package main
 
 import (
-	"strconv"
 	"strings"
 	"syscall/js"
 
@@ -15,8 +14,6 @@ import (
 )
 
 var outputBuf strings.Builder
-var apiKey string
-var apiProvider string
 
 func init() {
 	object.PrintHook = func(args ...object.Object) {
@@ -28,31 +25,18 @@ func init() {
 		}
 		outputBuf.WriteByte('\n')
 	}
-
 	ai.SetTimeout(15)
-}
-
-func pipeSetKey(this js.Value, args []js.Value) interface{} {
-	provider := args[0].String()
-	key := args[1].String()
-	apiProvider = provider
-	apiKey = key
-	ai.SetProvider(provider)
-	ai.ActiveConfig.APIKey = key
-	return nil
 }
 
 func pipeRun(this js.Value, args []js.Value) interface{} {
 	code := args[0].String()
-	outputBuf.Reset()
 
-	// Debug: show key status
-	outputBuf.WriteString("[WASM] Provider: " + ai.ActiveConfig.Provider)
-	outputBuf.WriteString(", Key: " + strconv.Itoa(len(ai.ActiveConfig.APIKey)) + " chars\n\n")
-
-	if apiProvider != "" {
-		code = "ai_provider \"" + apiProvider + "\"\n" + code
+	if len(args) >= 3 && args[2].String() != "" {
+		ai.SetProvider(args[1].String())
+		ai.ActiveConfig.APIKey = args[2].String()
 	}
+
+	outputBuf.Reset()
 
 	l := lexer.New(code)
 	p := parser.New(l)
@@ -79,7 +63,6 @@ func pipeRun(this js.Value, args []js.Value) interface{} {
 
 func main() {
 	js.Global().Set("pipeRun", js.FuncOf(pipeRun))
-	js.Global().Set("pipeSetKey", js.FuncOf(pipeSetKey))
 	js.Global().Set("pipeVersion", js.ValueOf("v0.5.0"))
 	select {}
 }

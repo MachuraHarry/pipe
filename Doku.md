@@ -265,6 +265,27 @@ print (betrag (-5))    -- 5
 print (betrag 5)       -- 5
 ```
 
+#### defer
+
+`defer` plant eine Aktion für das Ende des aktuellen Blocks ein —
+nützlich für Ressourcen-Freigabe (wie in Go):
+
+```pulse
+fn verarbeite_datei pfad
+    print ("Öffne " ++ pfad)
+    defer print ("Schließe " ++ pfad)  -- Wird am Ende ausgeführt
+    print ("Verarbeite " ++ pfad)
+
+verarbeite_datei "daten.txt"
+-- Ausgabe:
+--   Öffne daten.txt
+--   Verarbeite daten.txt
+--   Schließe daten.txt    ← defer!
+```
+
+Defer-Ausdrücke werden in **umgekehrter Reihenfolge (LIFO)** ausgeführt
+und funktionieren auch auf Top-Level (am Programm-Ende).
+
 ### 2.6 Funktionen
 
 #### Definition
@@ -345,6 +366,28 @@ Die Pipeline ist das zentrale Sprach-Feature von Pulse.
 
 Jede eingerückte `>`-Zeile nimmt das Ergebnis der vorherigen Zeile
 und übergibt es als **erstes Argument** an die angegebene Funktion.
+
+#### `_` Platzhalter für Argument-Position
+
+Mit `_` kann der Pipeline-Wert an einer anderen Position eingefügt werden:
+
+```pulse
+fn subtrahiere a b
+    a - b
+
+-- Standard: subtrahiere(10, 3) = 7
+10
+    > subtrahiere 3
+    > print
+
+-- Mit Platzhalter: subtrahiere(3, 10) = -7
+10
+    > subtrahiere 3 _
+    > print
+```
+
+`_` wird durch den Pipeline-Wert ersetzt. Ohne `_` wird der Wert
+als erstes Argument eingefügt.
 
 #### Pipeline mit Zusatzargumenten
 

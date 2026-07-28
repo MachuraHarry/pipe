@@ -456,8 +456,58 @@ func (ctx *EvalContext) applyFunction(fn object.Object, args []object.Object) ob
 			}
 		}
 		fnCtx.pushCall("fn(" + fnName(f) + ")")
+		name := fnName(f)
+
+		// Tail call optimization: if body ends with recursive call to self, loop
+		isTailRecursive := false
+		var tailCallExpr *ast.CallExpression
+		if len(f.Body.Statements) > 0 {
+			if last, ok := f.Body.Statements[len(f.Body.Statements)-1].(*ast.ExpressionStatement); ok {
+				if ce, ok := last.Expression.(*ast.CallExpression); ok {
+					if ident, ok := ce.Function.(*ast.Identifier); ok {
+						if ident.Value == name {
+							isTailRecursive = true
+							tailCallExpr = ce
+						}
+					}
+				}
+			}
+		}
+
 		extendedEnv := extendFunctionEnv(f, args)
-		evaluated := fnCtx.Eval(f.Body, extendedEnv)
+		var evaluated object.Object
+
+		if isTailRecursive && tailCallExpr != nil {
+			for {
+				// Evaluate all statements except the last (which is the recursive call)
+				for i := 0; i < len(f.Body.Statements)-1; i++ {
+					result := fnCtx.Eval(f.Body.Statements[i], extendedEnv)
+					if result != nil && (result.Type() == object.ERROR || result.Type() == "RETURN") {
+						evaluated = result
+						break
+					}
+				}
+				if evaluated != nil {
+					break
+				}
+
+				// Evaluate tail call args in current env
+				callArgs := fnCtx.evalExpressions(tailCallExpr.Arguments, extendedEnv)
+				if len(callArgs) == 1 && isError(callArgs[0]) {
+					evaluated = callArgs[0]
+					break
+				}
+
+				// Update parameters with new args (reuse the same env)
+				for i, param := range f.Parameters {
+					extendedEnv.Set(param.Value, callArgs[i])
+				}
+				// Continue loop
+			}
+		} else {
+			evaluated = fnCtx.Eval(f.Body, extendedEnv)
+		}
+
 		trace := fnCtx.stackTrace()
 		fnCtx.popCall()
 		result := unwrapReturnValue(evaluated)
@@ -498,6 +548,21 @@ func unwrapReturnValue(obj object.Object) object.Object {
 		return returnValue.Value
 	}
 	return obj
+}
+
+type TailCall struct {
+	Target *object.Function
+	Args   []object.Object
+}
+
+func (tc *TailCall) Type() object.ObjectType { return "TAILCALL" }
+func (tc *TailCall) Inspect() string         { return "tailcall" }
+
+func (tc *TailCall) SameFunction(f *object.Function) bool {
+	if tc.Target == nil || f == nil {
+		return false
+	}
+	return tc.Target == f
 }
 
 func (ctx *EvalContext) evalPipeline(pe *ast.PipelineExpression, left object.Object, env *object.Environment) object.Object {

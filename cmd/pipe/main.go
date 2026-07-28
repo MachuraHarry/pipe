@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/harry/pipe/pkg/ast"
+	"github.com/harry/pipe/pkg/cache"
 	"github.com/harry/pipe/pkg/compiler"
 	"github.com/harry/pipe/pkg/eval"
 	"github.com/harry/pipe/pkg/formatter"
@@ -109,7 +110,7 @@ func main() {
 	}
 
 	if useVM {
-		runVM(program, quietVM)
+		runVM(program, quietVM, filePath)
 	} else {
 		runEval(program, scriptArgs, filePath)
 	}
@@ -157,7 +158,7 @@ func runEval(program *ast.Program, scriptArgs []string, filePath string) {
 	}
 }
 
-func runVM(program *ast.Program, quiet bool) {
+func runVM(program *ast.Program, quiet bool, filePath string) {
 	comp := compiler.New()
 	if err := comp.Compile(program); err != nil {
 		fmt.Fprintf(os.Stderr, "Compiler-Fehler: %s\n", err)
@@ -165,6 +166,42 @@ func runVM(program *ast.Program, quiet bool) {
 	}
 
 	bc := comp.Bytecode()
+
+	// Write cache if file path known
+	if filePath != "" {
+		if err := cache.WriteCache(filePath+"c", bc); err == nil {
+			_ = err
+		}
+	}
+
+	if !quiet {
+		fmt.Fprintln(os.Stderr, "--- Bytecode ---")
+		fmt.Fprint(os.Stderr, bc.Instructions.String())
+	}
+
+	start := time.Now()
+	machine := vm.New(bc)
+	if err := machine.Run(); err != nil {
+		fmt.Fprintf(os.Stderr, "VM-Fehler: %s\n", err)
+		os.Exit(1)
+	}
+	elapsed := time.Since(start)
+
+	if !quiet {
+		fmt.Fprintf(os.Stderr, "--- VM: %v ---\n", elapsed)
+	}
+}
+
+func runVMWithCache(filePath string, quiet bool) {
+	bc, fromCache, err := cache.LoadOrCompile(filePath)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "pipe: %s\n", err)
+		os.Exit(1)
+	}
+
+	if fromCache {
+		fmt.Fprintln(os.Stderr, "  [cached]")
+	}
 
 	if !quiet {
 		fmt.Fprintln(os.Stderr, "--- Bytecode ---")

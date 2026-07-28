@@ -1,9 +1,13 @@
 package formatter
 
 import (
-	"bytes"
+	"fmt"
 	"os"
 	"strings"
+
+	"github.com/harry/pipe/pkg/ast"
+	"github.com/harry/pipe/pkg/lexer"
+	"github.com/harry/pipe/pkg/parser"
 )
 
 func Format(path string) error {
@@ -12,37 +16,382 @@ func Format(path string) error {
 		return err
 	}
 	result := FormatSource(string(data))
+	if result == string(data) {
+		return nil
+	}
 	return os.WriteFile(path, []byte(result), 0644)
 }
 
 func FormatSource(src string) string {
-	lines := strings.Split(src, "\n")
-	var out bytes.Buffer
+	l := lexer.New(src)
+	p := parser.New(l)
+	program := p.ParseProgram()
+	if len(p.Errors()) > 0 {
+		return fallbackFormat(src)
+	}
+	return formatProgram(program)
+}
 
+func fallbackFormat(src string) string {
+	lines := strings.Split(src, "\n")
+	var out strings.Builder
 	for _, line := range lines {
 		trimmed := strings.TrimRight(line, " \t\r")
 		if trimmed == "" {
 			out.WriteByte('\n')
 			continue
 		}
-
-		currentIndent := countLeadingSpaces(trimmed)
+		idx := countLeadingSpaces(trimmed)
 		content := strings.TrimLeft(trimmed, " \t")
-		normIndent := (currentIndent / 4) * 4
-
-		for i := 0; i < normIndent; i++ {
+		norm := (idx / 4) * 4
+		for i := 0; i < norm; i++ {
 			out.WriteByte(' ')
 		}
-		content = normalizeSpacing(content)
-		out.WriteString(content)
+		out.WriteString(strings.TrimSpace(content))
 		out.WriteByte('\n')
 	}
-
 	result := out.String()
 	if !strings.HasSuffix(result, "\n") {
 		result += "\n"
 	}
 	return result
+}
+
+func formatProgram(program *ast.Program) string {
+	var out strings.Builder
+	var lastWasDef bool
+
+	for i, stmt := range program.Statements {
+		if i > 0 && lastWasDef {
+			out.WriteByte('\n')
+		}
+		formatStatement(&out, stmt, 0)
+		lastWasDef = isDefinition(stmt)
+
+		if i < len(program.Statements)-1 && lastWasDef {
+			out.WriteByte('\n')
+		}
+	}
+	if out.Len() == 0 || out.String()[out.Len()-1] != '\n' {
+		out.WriteByte('\n')
+	}
+	return out.String()
+}
+
+func isDefinition(stmt ast.Statement) bool {
+	switch stmt.(type) {
+	case *ast.FnStatement, *ast.ExportStatement, *ast.EnumStatement:
+		return true
+	}
+	return false
+}
+
+func formatStatement(out *strings.Builder, stmt ast.Statement, depth int) {
+	indent := strings.Repeat("    ", depth)
+
+	switch s := stmt.(type) {
+	case *ast.ExpressionStatement:
+		formatExpr(out, s.Expression, depth, 0)
+		if !strings.HasSuffix(out.String(), "\n") {
+			out.WriteByte('\n')
+		}
+
+	case *ast.VarStatement:
+		out.WriteString(indent)
+		out.WriteString(s.Name.Value)
+		out.WriteString(": ")
+		formatExpr(out, s.Value, 0, 0)
+		out.WriteByte('\n')
+
+	case *ast.FnStatement:
+		out.WriteString(indent)
+		out.WriteString("fn ")
+		out.WriteString(s.Name.Value)
+		for _, p := range s.Parameters {
+			out.WriteByte(' ')
+			out.WriteString(p.Value)
+		}
+		out.WriteByte('\n')
+		formatBlock(out, s.Body, depth+1)
+		if s.Body == nil || len(s.Body.Statements) == 0 {
+			out.WriteByte('\n')
+		}
+
+	case *ast.ExportStatement:
+		out.WriteString(indent)
+		out.WriteString("export fn ")
+		out.WriteString(s.FnName)
+		out.WriteByte('\n')
+		if s.Fn != nil {
+			formatBlock(out, s.Fn.Body, depth+1)
+		}
+
+	case *ast.EnumStatement:
+		out.WriteString(indent)
+		out.WriteString("enum ")
+		out.WriteString(s.Name)
+		out.WriteString(": ")
+		for i, v := range s.Values {
+			if i > 0 {
+				out.WriteString(", ")
+			}
+			out.WriteString(v)
+		}
+		out.WriteByte('\n')
+
+	case *ast.ImportStatement:
+		out.WriteString(indent)
+		out.WriteString("import ")
+		out.WriteString(parser.QuoteString(s.Path))
+		out.WriteByte('\n')
+
+	case *ast.ReturnStatement:
+		out.WriteString(indent)
+		out.WriteString("return ")
+		formatExpr(out, s.Value, 0, 0)
+		out.WriteByte('\n')
+
+	case *ast.DeferStatement:
+		out.WriteString(indent)
+		out.WriteString("defer ")
+		formatExpr(out, s.Expression, 0, 0)
+		out.WriteByte('\n')
+
+	case *ast.BreakStatement:
+		out.WriteString(indent)
+		out.WriteString("break\n")
+
+	case *ast.ContinueStatement:
+		out.WriteString(indent)
+		out.WriteString("continue\n")
+	}
+}
+
+func formatBlock(out *strings.Builder, block *ast.BlockStatement, depth int) {
+	if block == nil {
+		return
+	}
+	for _, stmt := range block.Statements {
+		formatStatement(out, stmt, depth)
+	}
+}
+
+func formatExpr(out *strings.Builder, expr ast.Expression, depth int, prec int) {
+	if expr == nil {
+		return
+	}
+
+	switch e := expr.(type) {
+	case *ast.IntegerLiteral:
+		out.WriteString(fmt.Sprintf("%d", e.Value))
+	case *ast.FloatLiteral:
+		out.WriteString(fmt.Sprintf("%g", e.Value))
+	case *ast.StringLiteral:
+		out.WriteString(parser.QuoteString(e.Value))
+	case *ast.BooleanLiteral:
+		if e.Value {
+			out.WriteString("true")
+		} else {
+			out.WriteString("false")
+		}
+	case *ast.NilLiteral:
+		out.WriteString("nil")
+	case *ast.Identifier:
+		out.WriteString(e.Value)
+
+	case *ast.PrefixExpression:
+		out.WriteString(e.Operator)
+		formatExpr(out, e.Right, depth, 30)
+
+	case *ast.InfixExpression:
+		formatExpr(out, e.Left, depth, precOf(e.Operator))
+		out.WriteByte(' ')
+		out.WriteString(e.Operator)
+		out.WriteByte(' ')
+		formatExpr(out, e.Right, depth, precOf(e.Operator))
+
+	case *ast.CallExpression:
+		formatExpr(out, e.Function, depth, 0)
+		if len(e.Arguments) == 0 {
+			out.WriteString("()")
+		} else {
+			out.WriteString(" (")
+			for i, arg := range e.Arguments {
+				if i > 0 {
+					out.WriteString(", ")
+				}
+				formatExpr(out, arg, depth, 0)
+			}
+			out.WriteByte(')')
+		}
+
+	case *ast.PipelineExpression:
+		out.WriteByte('\n')
+		formatPipeline(out, expr, depth+1)
+
+	case *ast.IfExpression:
+		out.WriteString("if ")
+		formatExpr(out, e.Condition, depth, 0)
+		out.WriteByte('\n')
+		formatBlock(out, e.Consequence, depth+1)
+		if e.Alternative != nil {
+			indent := strings.Repeat("    ", depth)
+			out.WriteString(indent)
+			out.WriteString("else\n")
+			formatBlock(out, e.Alternative, depth+1)
+		}
+
+	case *ast.WhileExpression:
+		out.WriteString("while ")
+		formatExpr(out, e.Condition, depth, 0)
+		out.WriteByte('\n')
+		formatBlock(out, e.Body, depth+1)
+
+	case *ast.ForExpression:
+		if e.IsForIn {
+			out.WriteString("for ")
+			out.WriteString(e.Iterator.Value)
+			out.WriteString(" in (")
+			formatExpr(out, e.Iterable, depth, 0)
+			out.WriteString(")\n")
+			formatBlock(out, e.Body, depth+1)
+		}
+
+	case *ast.MatchExpression:
+		out.WriteString("match ")
+		formatExpr(out, e.Value, depth, 0)
+		out.WriteByte('\n')
+		for _, c := range e.Cases {
+			indent := strings.Repeat("    ", depth+1)
+			out.WriteString(indent)
+			out.WriteString("| ")
+			formatExpr(out, c.Pattern, depth, 0)
+			out.WriteString(" -> ")
+			formatExpr(out, c.Body, depth, 0)
+			out.WriteByte('\n')
+		}
+
+	case *ast.FnLiteral:
+		out.WriteString("fn ")
+		for _, p := range e.Parameters {
+			out.WriteString(p.Value)
+			out.WriteByte(' ')
+		}
+		out.WriteByte('\n')
+		formatBlock(out, e.Body, depth+1)
+
+	case *ast.ListLiteral:
+		out.WriteByte('[')
+		for i, elem := range e.Elements {
+			if i > 0 {
+				out.WriteString(", ")
+			}
+			formatExpr(out, elem, depth, 0)
+		}
+		out.WriteByte(']')
+
+	case *ast.MapLiteral:
+		out.WriteByte('{')
+		i := 0
+		for k, v := range e.Pairs {
+			if i > 0 {
+				out.WriteString(", ")
+			}
+			out.WriteString(k)
+			out.WriteString(": ")
+			formatExpr(out, v, depth, 0)
+			i++
+		}
+		out.WriteByte('}')
+
+	case *ast.DotExpression:
+		formatExpr(out, e.Left, depth, precOf("."))
+		out.WriteByte('.')
+		out.WriteString(e.Field)
+
+	case *ast.SliceExpression:
+		formatExpr(out, e.List, depth, 0)
+		out.WriteByte('[')
+		if e.Start != nil {
+			formatExpr(out, e.Start, depth, 0)
+		}
+		out.WriteString("..")
+		if e.End != nil {
+			formatExpr(out, e.End, depth, 0)
+		}
+		out.WriteByte(']')
+
+	case *ast.TryExpression:
+		out.WriteString("try\n")
+		formatBlock(out, e.TryBlock, depth+1)
+		indent := strings.Repeat("    ", depth)
+		out.WriteString(indent)
+		out.WriteString("catch")
+		if e.CatchParam != nil {
+			out.WriteByte(' ')
+			out.WriteString(e.CatchParam.Value)
+		}
+		out.WriteByte('\n')
+		formatBlock(out, e.CatchBlock, depth+1)
+	}
+}
+
+func formatPipeline(out *strings.Builder, expr ast.Expression, depth int) {
+	pe, ok := expr.(*ast.PipelineExpression)
+	if !ok {
+		formatExpr(out, expr, depth, 0)
+		return
+	}
+	indent := strings.Repeat("    ", depth)
+
+	// Print the initial value first
+	if leftPE, isLeftPE := pe.Left.(*ast.PipelineExpression); isLeftPE {
+		formatPipeline(out, leftPE, depth)
+	} else {
+		formatExpr(out, pe.Left, depth-1, 0)
+		out.WriteByte('\n')
+	}
+
+	// Print this stage
+	out.WriteString(indent)
+	out.WriteString("> ")
+	if call, ok := pe.Right.(*ast.CallExpression); ok {
+		formatExpr(out, call.Function, depth, 0)
+		for _, arg := range call.Arguments {
+			out.WriteByte(' ')
+			formatExpr(out, arg, depth, 0)
+		}
+	} else {
+		formatExpr(out, pe.Right, depth, 0)
+	}
+	out.WriteByte('\n')
+}
+
+func precOf(op string) int {
+	switch op {
+	case "||":
+		return 1
+	case "&&":
+		return 2
+	case ">":
+		return 3
+	case "==", "!=":
+		return 4
+	case "<", "<=", ">=":
+		return 5
+	case "+", "-":
+		return 6
+	case "*", "/", "%":
+		return 7
+	case "**":
+		return 8
+	case "++":
+		return 4
+	case ".":
+		return 10
+	default:
+		return 0
+	}
 }
 
 func countLeadingSpaces(s string) int {
@@ -57,10 +406,4 @@ func countLeadingSpaces(s string) int {
 		}
 	}
 	return count
-}
-
-func normalizeSpacing(s string) string {
-	s = strings.ReplaceAll(s, " ,", ",")
-	s = strings.ReplaceAll(s, ", ", ", ")
-	return strings.TrimSpace(s)
 }

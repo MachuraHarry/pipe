@@ -2,10 +2,14 @@ package compiler
 
 import (
 	"fmt"
+	"os"
 	"strconv"
+	"strings"
 
 	"github.com/harry/pipe/pkg/ast"
+	"github.com/harry/pipe/pkg/lexer"
 	"github.com/harry/pipe/pkg/object"
+	"github.com/harry/pipe/pkg/parser"
 )
 
 type SymbolScope int
@@ -91,6 +95,7 @@ type LoopContext struct {
 
 type CompilationScope struct {
 	instructions Instructions
+	deferred     []Instructions
 }
 
 type CompiledScope struct {
@@ -131,8 +136,15 @@ func (c *Compiler) currentInstructions() Instructions {
 }
 
 func (c *Compiler) Bytecode() *Bytecode {
+	scope := c.currentScope()
+	// Emit top-level deferred expressions before returning bytecode
+	for i := len(scope.deferred) - 1; i >= 0; i-- {
+		scope.instructions = append(scope.instructions, scope.deferred[i]...)
+	}
+	scope.deferred = nil
+
 	return &Bytecode{
-		Instructions: c.currentInstructions(),
+		Instructions: scope.instructions,
 		Constants:    c.constants,
 	}
 }
@@ -511,6 +523,27 @@ func (c *Compiler) Compile(node ast.Node) error {
 		if err := c.compileTryExpression(n); err != nil {
 			return err
 		}
+
+	case *ast.EnumStatement:
+		for i, name := range n.Values {
+			sym := c.symbolTable.Define(name)
+			c.emit(OpConstant, c.addInteger(int64(i)))
+			if sym.Scope == GlobalScope {
+				c.emit(OpSetGlobal, sym.Index)
+			} else {
+				c.emit(OpSetLocal, sym.Index)
+			}
+		}
+
+	case *ast.ImportStatement:
+		if err := c.compileImport(n); err != nil {
+			return err
+		}
+
+	case *ast.DeferStatement:
+		if err := c.compileDefer(n); err != nil {
+			return err
+		}
 	}
 
 	return nil
@@ -816,8 +849,88 @@ func (c *Compiler) lastIsReturn() bool {
 	return last == OpReturn || last == OpReturnValue
 }
 
+func (c *Compiler) compileDefer(de *ast.DeferStatement) error {
+	prevLen := len(c.currentScope().instructions)
+	c.currentScope().instructions = c.currentScope().instructions[:prevLen]
+
+	if err := c.Compile(de.Expression); err != nil {
+		return err
+	}
+
+	deferCode := make(Instructions, len(c.currentScope().instructions)-prevLen)
+	copy(deferCode, c.currentScope().instructions[prevLen:])
+	c.currentScope().instructions = c.currentScope().instructions[:prevLen]
+
+	c.currentScope().deferred = append(c.currentScope().deferred, deferCode)
+	return nil
+}
+
+func (c *Compiler) compileImport(is *ast.ImportStatement) error {
+	program, err := resolveImport(is.Path)
+	if err != nil {
+		return fmt.Errorf("import %s: %w", is.Path, err)
+	}
+
+	for _, stmt := range program.Statements {
+		switch s := stmt.(type) {
+		case *ast.FnStatement:
+			if err := c.Compile(s); err != nil {
+				return fmt.Errorf("import %s: %w", is.Path, err)
+			}
+		case *ast.VarStatement:
+			if err := c.Compile(s); err != nil {
+				return fmt.Errorf("import %s: %w", is.Path, err)
+			}
+		case *ast.EnumStatement:
+			if err := c.Compile(s); err != nil {
+				return fmt.Errorf("import %s: %w", is.Path, err)
+			}
+		case *ast.ExportStatement:
+			if err := c.Compile(s.Fn); err != nil {
+				return fmt.Errorf("import %s: %w", is.Path, err)
+			}
+		case *ast.ExpressionStatement:
+			// skip standalone expressions in imports
+		}
+	}
+	return nil
+}
+
+func resolveImport(path string) (*ast.Program, error) {
+	data, err := readImportFile(path)
+	if err != nil {
+		return nil, err
+	}
+	l := lexer.New(data)
+	p := parser.New(l)
+	program := p.ParseProgram()
+	if len(p.Errors()) > 0 {
+		return nil, fmt.Errorf("parse errors: %v", p.Errors())
+	}
+	return program, nil
+}
+
+func readImportFile(path string) (string, error) {
+	if data, err := os.ReadFile(path); err == nil {
+		return string(data), nil
+	}
+	cwd, _ := os.Getwd()
+	if data, err := os.ReadFile(cwd + "/" + path); err == nil {
+		return string(data), nil
+	}
+	pipePath := os.Getenv("PIPE_PATH")
+	if pipePath != "" {
+		for _, dir := range strings.Split(pipePath, ":") {
+			if data, err := os.ReadFile(dir + "/" + path); err == nil {
+				return string(data), nil
+			}
+		}
+	}
+	return "", fmt.Errorf("file not found: %s", path)
+}
+
 func (c *Compiler) enterScope() {
-	scope := CompilationScope{instructions: Instructions{}}
+	scope := CompilationScope{instructions: Instructions{}, deferred: nil}
 	c.scopes = append(c.scopes, scope)
 	c.scopeIndex++
 	c.symbolTable = NewEnclosedSymbolTable(c.symbolTable)
@@ -825,6 +938,12 @@ func (c *Compiler) enterScope() {
 
 func (c *Compiler) leaveScope() CompiledScope {
 	scope := c.scopes[c.scopeIndex]
+
+	// Emit all deferred expressions in LIFO order
+	for i := len(scope.deferred) - 1; i >= 0; i-- {
+		scope.instructions = append(scope.instructions, scope.deferred[i]...)
+	}
+
 	nl := c.symbolTable.numDefinitions
 	free := c.symbolTable.FreeSymbols
 	c.scopes = c.scopes[:c.scopeIndex]

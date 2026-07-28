@@ -356,6 +356,13 @@ var Builtins = []BuiltinInfo{
 	{"ai_parallel", bAiParallel},
 	{"ai_batch", bAiBatch},
 	{"ai_rate_limit", bAiRateLimit},
+
+	// AI — Embeddings
+	{"embed", bEmbed},
+	{"embed_batch", bEmbedBatch},
+	{"cosine_sim", bCosineSim},
+	{"dot_product", bDotProduct},
+	{"nearest", bNearest},
 }
 
 // ---- IO ----
@@ -2249,4 +2256,138 @@ func bAiBatch(args ...Object) Object {
 		}
 	}
 	return &List{Elements: elems}
+}
+
+func bEmbed(args ...Object) Object {
+	if len(args) < 1 {
+		return err("embed expects 1 argument (text)")
+	}
+	t, ok := args[0].(*String)
+	if !ok {
+		return err("embed: argument must be a string")
+	}
+
+	vec, vecErr := ai.Embed(t.Value)
+	if vecErr != nil {
+		return err("embed: " + vecErr.Error())
+	}
+
+	elems := make([]Object, len(vec))
+	for i, v := range vec {
+		elems[i] = &Float{Value: v}
+	}
+	return &List{Elements: elems}
+}
+
+func bEmbedBatch(args ...Object) Object {
+	if len(args) < 1 {
+		return err("embed_batch expects 1 argument (list of texts)")
+	}
+	items, ok := args[0].(*List)
+	if !ok {
+		return err("embed_batch: argument must be a list of strings")
+	}
+
+	texts := make([]string, len(items.Elements))
+	for i, elem := range items.Elements {
+		s, okElem := elem.(*String)
+		if !okElem {
+			s = &String{Value: elem.Inspect()}
+		}
+		texts[i] = s.Value
+	}
+
+	vectors, errs := ai.EmbedBatch(texts, 4)
+
+	elems := make([]Object, len(vectors))
+	for i := range vectors {
+		if errs[i] != nil {
+			elems[i] = err("embed_batch[" + fmt.Sprintf("%d", i) + "]: " + errs[i].Error())
+		} else {
+			vecElems := make([]Object, len(vectors[i]))
+			for j, v := range vectors[i] {
+				vecElems[j] = &Float{Value: v}
+			}
+			elems[i] = &List{Elements: vecElems}
+		}
+	}
+	return &List{Elements: elems}
+}
+
+func bCosineSim(args ...Object) Object {
+	if len(args) < 2 {
+		return err("cosine_sim expects 2 arguments (vector_a, vector_b)")
+	}
+	vecA, okA := args[0].(*List)
+	vecB, okB := args[1].(*List)
+	if !okA || !okB {
+		return err("cosine_sim: arguments must be lists of numbers")
+	}
+
+	a := listToFloats(vecA)
+	b := listToFloats(vecB)
+
+	return &Float{Value: ai.CosineSimilarity(a, b)}
+}
+
+func bDotProduct(args ...Object) Object {
+	if len(args) < 2 {
+		return err("dot_product expects 2 arguments (vector_a, vector_b)")
+	}
+	vecA, okA := args[0].(*List)
+	vecB, okB := args[1].(*List)
+	if !okA || !okB {
+		return err("dot_product: arguments must be lists of numbers")
+	}
+
+	a := listToFloats(vecA)
+	b := listToFloats(vecB)
+
+	return &Float{Value: ai.DotProduct(a, b)}
+}
+
+func bNearest(args ...Object) Object {
+	if len(args) < 3 {
+		return err("nearest expects 3 arguments (query_vec, doc_vecs, k)")
+	}
+	query, okQ := args[0].(*List)
+	docs, okD := args[1].(*List)
+	if !okQ || !okD {
+		return err("nearest: first two arguments must be lists")
+	}
+	k, okK := ToInt(args[2])
+	if !okK {
+		return err("nearest: third argument must be a number (k)")
+	}
+
+	q := listToFloats(query)
+
+	docVectors := make([][]float64, len(docs.Elements))
+	for i, elem := range docs.Elements {
+		docList, ok := elem.(*List)
+		if !ok {
+			return err("nearest: document vectors must be lists of numbers")
+		}
+		docVectors[i] = listToFloats(docList)
+	}
+
+	indices := ai.Nearest(q, docVectors, int(k))
+
+	elems := make([]Object, len(indices))
+	for i, idx := range indices {
+		elems[i] = &Integer{Value: int64(idx)}
+	}
+	return &List{Elements: elems}
+}
+
+func listToFloats(list *List) []float64 {
+	floats := make([]float64, len(list.Elements))
+	for i, elem := range list.Elements {
+		if f, ok := elem.(*Float); ok {
+			floats[i] = f.Value
+		} else if n, ok := elem.(*Integer); ok {
+			floats[i] = float64(n.Value)
+		}
+	}
+	return floats
 }

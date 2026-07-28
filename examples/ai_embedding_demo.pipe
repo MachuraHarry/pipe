@@ -1,0 +1,47 @@
+-- Embedding + Semantische Suche Demo
+ai_provider "deepseek"
+
+print "═══ EMBEDDINGS & VEKTORSUCHE ═══"
+print ""
+
+-- Wissensdatenbank (Texte kurz halten für single-line list)
+dokumente: ["Bytecode-Compiler übersetzt AST in 47 Opcodes.", "Pipeline-Syntax: Daten fließen von oben nach unten.", "Pipe hat 81 Builtins für IO und HTTP.", "Lexer nutzt INDENT/DEDENT-Tokens.", "HTTP GET mit http_get, liefert Status und Body.", "Die VM führt Bytecode 7x schneller aus als Tree-Walker."]
+
+print "─── 1. Dokumente einbetten ───"
+ts: now 0
+print ("Embedding " ++ (to_str (len dokumente)) ++ " Dokumente...")
+
+vektoren: embed_batch dokumente
+
+d: (now 0) - ts
+print ("Dauer: " ++ (to_str d) ++ "s")
+print ""
+
+-- Semantische Suche
+print "─── 2. Semantische Suche ───"
+frage: "Wie schnell ist die VM?"
+print ("Frage: " ++ frage)
+
+frage_vec: embed frage
+top3: nearest frage_vec vektoren 3
+
+print "Top 3 relevante Dokumente:"
+for idx in top3
+    print ("  [" ++ (to_str idx) ++ "] " ++ (at dokumente idx))
+print ""
+
+-- Kosinus-Ähnlichkeit
+print "─── 3. Kosinus-Ähnlichkeit ───"
+v1: embed "Programmieren macht Spass"
+v2: embed "Coding ist kreativ"
+v3: embed "Der Kuehlschrank ist leer"
+
+sim12: cosine_sim v1 v2
+sim13: cosine_sim v1 v3
+
+print ("Programmieren vs Coding:   " ++ (to_str sim12))
+print ("Programmieren vs Kuehlschrank: " ++ (to_str sim13))
+print "(Hoeher = aehnlicher. Semantik erkannt!)"
+
+print ""
+print "═══ DONE ═══"

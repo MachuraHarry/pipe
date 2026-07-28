@@ -28,7 +28,7 @@ func init() {
 		outputBuf.WriteByte('\n')
 	}
 
-	object.Sandbox.Enabled = false
+	ai.SetTimeout(15)
 }
 
 func pipeSetKey(this js.Value, args []js.Value) interface{} {

@@ -20,11 +20,13 @@ body{background:var(--bg);color:var(--fg);font-family:var(--sans);line-height:1.
 /* Nav */
 nav{position:fixed;top:0;z-index:100;width:100%;background:rgba(7,7,12,0.85);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);padding:12px 0;transition:all .3s}
 nav .container{display:flex;justify-content:space-between;align-items:center}
-nav .logo{font-weight:800;font-size:1.2rem;color:var(--accent);text-decoration:none;letter-spacing:-0.5px}
+nav .logo{font-weight:800;font-size:1.2rem;color:var(--accent);text-decoration:none;letter-spacing:-0.5px;display:flex;align-items:center}
+nav .logo img{height:32px;margin-right:6px}
 nav .logo span{color:var(--fg)}
 nav .nav-links{display:flex;align-items:center;gap:18px}
 nav a{color:var(--fg2);text-decoration:none;font-size:0.82rem;transition:color .2s}
 nav a:hover{color:var(--fg)}
+.hamburger{display:none;background:none;border:none;color:var(--fg);font-size:1.4rem;cursor:pointer;padding:4px 8px}
 .lang-switch{display:flex;background:var(--bg3);border:1px solid var(--border);border-radius:20px;overflow:hidden}
 .lang-switch button{background:none;border:none;color:var(--fg2);padding:4px 10px;font-size:0.72rem;cursor:pointer;font-weight:600;transition:all .2s}
 .lang-switch button.active{background:var(--accent);color:#fff}
@@ -151,6 +153,15 @@ span[data-lang].active{display:inline}a[data-lang].active{display:inline-block}
   .footer-grid{grid-template-columns:1fr 1fr;gap:24px}
   section{padding:50px 0}
   .play-editor{font-size:0.75rem;min-height:100px}
+  .hamburger{display:block}
+  nav .nav-links{display:none;position:absolute;top:100%;left:0;right:0;background:rgba(7,7,12,0.98);border-bottom:1px solid var(--border);flex-direction:column;padding:16px 20px;gap:12px;backdrop-filter:blur(12px)}
+  nav .nav-links.open{display:flex}
+  nav a{font-size:0.9rem;padding:8px 0}
+}
+
+@media(max-width:480px){
+  nav .logo img{height:24px}
+  nav .logo{font-size:1rem}
 }
 </style>
 </head>
@@ -158,10 +169,11 @@ span[data-lang].active{display:inline}a[data-lang].active{display:inline-block}
 
 <nav>
   <div class="container">
-    <a href="#" class="logo"><img src="logo.svg" alt="Pipe" style="height:24px;vertical-align:middle;margin-right:4px">Pipe<span>.lang</span></a>
-    <div class="nav-links">
-      <a href="#features"><span data-lang="en" class="active">Features</span><span data-lang="de">Features</span></a>
-      <a href="#play"><span data-lang="en" class="active">Try</span><span data-lang="de">Testen</span></a>
+    <a href="#" class="logo"><img src="logo.svg" alt="Pipe">Pipe<span>.lang</span></a>
+    <button class="hamburger" onclick="document.getElementById('nav-menu').classList.toggle('open')" aria-label="Menu">☰</button>
+    <div class="nav-links" id="nav-menu">
+      <a href="#features" onclick="closeMenu()"><span data-lang="en" class="active">Features</span><span data-lang="de">Features</span></a>
+      <a href="#play" onclick="closeMenu()"><span data-lang="en" class="active">Try</span><span data-lang="de">Testen</span></a>
       <a href="docs.html"><span data-lang="en" class="active">Docs</span><span data-lang="de">Doku</span></a>
       <a href="playground.html"><span data-lang="en" class="active">Playground</span><span data-lang="de">Playground</span></a>
       <a href="https://github.com/MachuraHarry/pipe">GitHub</a>
@@ -368,6 +380,8 @@ async function runPlayground(){
   bar.style.color=isErr?"var(--red)":"var(--green)";
   out.textContent=result||"(no output)";if(isErr)out.className="play-output error";else out.className="play-output";
 }
+
+function closeMenu(){document.getElementById('nav-menu').classList.remove('open');}
 
 // Scroll reveal
 var observer=new IntersectionObserver(e=>{e.forEach(e=>{if(e.isIntersecting)e.target.classList.add('visible')})},{threshold:0.1});

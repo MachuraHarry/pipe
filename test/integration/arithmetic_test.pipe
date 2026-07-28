@@ -1,0 +1,3 @@
+-- Pipe Integrationstest: Arithmetik
+-- Ergebnis muss "11" sein
+5 + 6

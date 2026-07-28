@@ -228,6 +228,8 @@ func (c *Compiler) Compile(node ast.Node) error {
 			c.emit(OpDiv)
 		case "%":
 			c.emit(OpMod)
+		case "**":
+			c.emit(OpPow)
 		case "==":
 			c.emit(OpEqual)
 		case "!=":
@@ -286,8 +288,10 @@ func (c *Compiler) Compile(node ast.Node) error {
 		c.leaveLoop()
 
 	case *ast.ForExpression:
-		// For-in not supported in VM yet — skip silently
-		return nil
+		if n.IsForIn {
+			return c.compileForIn(n)
+		}
+		return fmt.Errorf("for-Schleifen noch nicht vollst\u00e4ndig implementiert (nur for-in)")
 
 	case *ast.BreakStatement:
 		c.addBreak()

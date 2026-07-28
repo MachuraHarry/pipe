@@ -1,0 +1,5 @@
+-- Pipe Integrationstest: Funktionen
+fn double x
+    x * 2
+
+double 21

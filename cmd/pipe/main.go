@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -22,11 +23,13 @@ const version = "v0.5.0"
 
 func main() {
 	var (
-		useVM    bool
-		quietVM  bool
-		showAST  bool
-		doFmt    bool
-		filePath string
+		useVM     bool
+		quietVM   bool
+		showAST   bool
+		doFmt     bool
+		doBench   bool
+		doTest    bool
+		filePath  string
 		scriptArgs []string
 	)
 
@@ -41,7 +44,10 @@ func main() {
 			showAST = true
 		case "-fmt":
 			doFmt = true
-			// -fmt handled below
+		case "-bench":
+			doBench = true
+		case "-test":
+			doTest = true
 		case "-h", "--help":
 			printHelp()
 			return
@@ -53,6 +59,16 @@ func main() {
 				scriptArgs = append(scriptArgs, arg)
 			}
 		}
+	}
+
+	if doBench {
+		runBenchmark()
+		return
+	}
+
+	if doTest {
+		runTests(useVM)
+		return
 	}
 
 	if filePath == "" {
@@ -69,14 +85,9 @@ func main() {
 		return
 	}
 
-	if showAST {
-		_ = showAST
-		// handled below
-	}
-
 	data, err := os.ReadFile(filePath)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "pipe: %s\n", err)
+		fmt.Fprintf(os.Stderr, "pipe: %s: %s\n", filePath, err)
 		os.Exit(1)
 	}
 
@@ -115,13 +126,18 @@ Flags:
   -vm           Bytecode-VM statt Tree-Walker verwenden
   -q            Im VM-Modus: Bytecode-Ausgabe unterdrücken
   -ast          Nur AST ausgeben, nicht ausführen
+  -fmt          Datei formatieren (Einrückung, Whitespace)
+  -test         Alle *.pipe und *_test.pipe im aktuellen Verzeichnis testen
+  -bench        Benchmarks ausführen (Tree-Walker vs VM)
   -h, --help    Diese Hilfe anzeigen
 
 Beispiele:
   pipe examples/hello.pipe
   pipe -vm examples/fib.pipe
   pipe -vm -q examples/fizzbuzz.pipe
-  pipe -ast examples/pipeline.pipe`)
+  pipe -ast examples/pipeline.pipe
+  pipe -test
+  pipe -bench`)
 }
 
 func runEval(program *ast.Program, scriptArgs []string, filePath string) {
@@ -165,6 +181,136 @@ func runVM(program *ast.Program, quiet bool) {
 
 	if !quiet {
 		fmt.Fprintf(os.Stderr, "--- VM: %v ---\n", elapsed)
+	}
+}
+
+func parseFile(path string) (*ast.Program, error) {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return nil, err
+	}
+	l := lexer.New(string(data))
+	p := parser.New(l)
+	program := p.ParseProgram()
+	if len(p.Errors()) > 0 {
+		return nil, fmt.Errorf("%s: %v", path, p.Errors())
+	}
+	return program, nil
+}
+
+func runTests(useVM bool) {
+	matches, _ := filepath.Glob("*_test.pipe")
+	if len(matches) == 0 {
+		matches, _ = filepath.Glob("*.test.pipe")
+	}
+	if len(matches) == 0 {
+		fmt.Fprintln(os.Stderr, "Keine Test-Dateien gefunden (*_test.pipe oder *.test.pipe)")
+		os.Exit(1)
+	}
+
+	passed := 0
+	failed := 0
+	for _, path := range matches {
+		program, err := parseFile(path)
+		if err != nil {
+			fmt.Printf("FAIL %s (parse error: %s)\n", path, err)
+			failed++
+			continue
+		}
+
+		if useVM {
+			err = runTestVM(program)
+		} else {
+			err = runTestEval(program, path)
+		}
+
+		if err != nil {
+			fmt.Printf("FAIL %s (%s)\n", path, err)
+			failed++
+		} else {
+			fmt.Printf("PASS %s\n", path)
+			passed++
+		}
+	}
+
+	fmt.Printf("\n%d passed, %d failed, %d total\n", passed, failed, passed+failed)
+	if failed > 0 {
+		os.Exit(1)
+	}
+}
+
+func runTestEval(program *ast.Program, path string) error {
+	ctx := eval.NewEvalContext(path)
+	env := object.NewEnvironment()
+	result := ctx.Eval(program, env)
+	if result != nil && result.Type() == object.ERROR {
+		return fmt.Errorf("%s", result.Inspect())
+	}
+	return nil
+}
+
+func runTestVM(program *ast.Program) error {
+	comp := compiler.New()
+	if err := comp.Compile(program); err != nil {
+		return err
+	}
+	bc := comp.Bytecode()
+	machine := vm.New(bc)
+	return machine.Run()
+}
+
+func runBenchmark() {
+	fmt.Println("Pipe Benchmark: Tree-Walker vs Bytecode-VM")
+	fmt.Println(strings.Repeat("-", 50))
+
+	benchmarks := []struct {
+		name string
+		code string
+	}{
+		{"fib(20)", "fn fib n\n    match n\n        | 0 -> 0\n        | 1 -> 1\n        | _ -> fib(n - 1) + fib(n - 2)\n\nfib 20"},
+		{"fizzbuzz 1-100", "fn fizz n\n    if n % 15 == 0\n        \"FizzBuzz\"\n    else if n % 3 == 0\n        \"Fizz\"\n    else if n % 5 == 0\n        \"Buzz\"\n    else\n        n\n\nx: 0\nwhile x < 100\n    x: x + 1\n    fizz x"},
+		{"list sum 10000", "s: 0\ni: 0\nwhile i < 10000\n    s: s + i\n    i: i + 1\ns"},
+	}
+
+	for _, bm := range benchmarks {
+		fmt.Printf("\n%s:\n", bm.name)
+
+		// Parse once
+		l := lexer.New(bm.code)
+		p := parser.New(l)
+		program := p.ParseProgram()
+		if len(p.Errors()) > 0 {
+			fmt.Printf("  Parse error: %v\n", p.Errors())
+			continue
+		}
+
+		// Tree-Walker
+		evalStart := time.Now()
+		for i := 0; i < 5; i++ {
+			ctx := eval.NewEvalContext("<bench>")
+			env := object.NewEnvironment()
+			ctx.Eval(program, env)
+		}
+		evalTime := time.Since(evalStart) / 5
+		fmt.Printf("  Tree-Walker: %v\n", evalTime)
+
+		// VM
+		comp := compiler.New()
+		if err := comp.Compile(program); err != nil {
+			fmt.Printf("  Compile error: %s\n", err)
+			continue
+		}
+		bc := comp.Bytecode()
+		vmStart := time.Now()
+		for i := 0; i < 5; i++ {
+			vm.New(bc).Run()
+		}
+		vmTime := time.Since(vmStart) / 5
+		fmt.Printf("  VM:          %v\n", vmTime)
+
+		if evalTime > 0 {
+			fmt.Printf("  Speedup:     %.1fx\n", float64(evalTime)/float64(vmTime))
+		}
 	}
 }
 
@@ -240,7 +386,6 @@ func startREPL(useVM bool) {
 				if err != nil || num < 1 || num > len(history) {
 					fmt.Fprintf(os.Stderr, "  Ungültige Nummer. 1-%d\n", len(history))
 				} else {
-					// Replay the command by appending it as input
 					replayCmd := history[num-1]
 					fmt.Printf("  → %s\n", replayCmd)
 					lines = append(lines, replayCmd)
@@ -258,7 +403,6 @@ func startREPL(useVM bool) {
 
 		if trimmed == "" {
 			if len(lines) > 0 {
-				// Store multi-line input in history
 				cmd := strings.Join(lines, "; ")
 				history = append(history, cmd)
 				if len(history) > 100 {
@@ -273,23 +417,20 @@ func startREPL(useVM bool) {
 
 		lines = append(lines, line)
 
-		// Auto-execute single-line inputs
 		if !needBlank && len(lines) == 1 {
 			if isMultiLineStart(trimmed) {
 				needBlank = true
 				continue
 			}
-			if tryParse(strings.Join(lines, "\n")) {
-				history = append(history, trimmed)
-				if len(history) > 100 {
-					history = history[1:]
-				}
-				executeREPL(lines, env, useVM)
-				lines = nil
-				needBlank = false
-			} else {
-				needBlank = true
+			// Try to execute as single-line — parse only once
+			executeREPL(lines, env, useVM)
+			history = append(history, trimmed)
+			if len(history) > 100 {
+				history = history[1:]
 			}
+			lines = nil
+			// If execution failed due to parse error, don't multi-line
+			// If it was valid, we're done
 		}
 	}
 }
@@ -297,7 +438,6 @@ func startREPL(useVM bool) {
 func isMultiLineStart(line string) bool {
 	trimmed := strings.TrimSpace(line)
 	if strings.HasPrefix(trimmed, "fn ") {
-		// fn at the start of a line is always multi-line
 		return true
 	}
 	if strings.HasPrefix(trimmed, "if ") {
@@ -306,9 +446,16 @@ func isMultiLineStart(line string) bool {
 	if strings.HasPrefix(trimmed, "match ") {
 		return true
 	}
-	// Variable def with trailing colon: name:
-	if strings.HasSuffix(trimmed, ":") && !strings.Contains(trimmed, " ") {
-		// e.g., "name:" at end of line = multi-line value
+	if strings.HasPrefix(trimmed, "while ") {
+		return true
+	}
+	if strings.HasPrefix(trimmed, "for ") {
+		return true
+	}
+	if strings.HasPrefix(trimmed, "try") && len(trimmed) <= 3 {
+		return true
+	}
+	if strings.HasPrefix(trimmed, "defer ") {
 		return true
 	}
 	return false
@@ -375,8 +522,6 @@ func replRunVM(program *ast.Program) {
 		}
 	}
 }
-
-// ---- AST Printer (für -ast Flag) ----
 
 func ASTString(node ast.Node) string {
 	var out strings.Builder

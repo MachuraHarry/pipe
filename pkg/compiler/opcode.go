@@ -16,6 +16,7 @@ const (
 	OpMul
 	OpDiv
 	OpMod
+	OpPow
 	OpEqual
 	OpNotEqual
 	OpGreater
@@ -54,6 +55,7 @@ var opcodeNames = map[Opcode]string{
 	OpMul:           "OpMul",
 	OpDiv:           "OpDiv",
 	OpMod:           "OpMod",
+	OpPow:           "OpPow",
 	OpEqual:         "OpEqual",
 	OpNotEqual:      "OpNotEqual",
 	OpGreater:       "OpGreater",

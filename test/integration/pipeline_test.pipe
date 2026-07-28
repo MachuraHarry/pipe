@@ -1,0 +1,6 @@
+-- Pipe Integrationstest: Pipeline
+fn add a b
+    a + b
+
+42
+    > add 8

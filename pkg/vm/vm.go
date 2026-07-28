@@ -2,6 +2,7 @@ package vm
 
 import (
 	"fmt"
+	"math"
 
 	"github.com/harry/pipe/pkg/compiler"
 	"github.com/harry/pipe/pkg/object"
@@ -128,7 +129,7 @@ func (vm *VM) Run() error {
 				vm.push(vm.stack[vm.sp-1])
 			}
 
-		case compiler.OpAdd, compiler.OpSub, compiler.OpMul, compiler.OpDiv, compiler.OpMod:
+		case compiler.OpAdd, compiler.OpSub, compiler.OpMul, compiler.OpDiv, compiler.OpMod, compiler.OpPow:
 			right := vm.pop()
 			left := vm.pop()
 			result := vm.binaryOp(op, left, right)
@@ -356,6 +357,8 @@ func (vm *VM) binaryOp(op compiler.Opcode, left, right object.Object) object.Obj
 		return vm.binaryFloatOp(op, &object.Float{Value: float64(left.(*object.Integer).Value)}, right.(*object.Float))
 	case left.Type() == object.FLOAT && right.Type() == object.INTEGER:
 		return vm.binaryFloatOp(op, left.(*object.Float), &object.Float{Value: float64(right.(*object.Integer).Value)})
+	case left.Type() == object.STRING && op == compiler.OpAdd:
+		return &object.String{Value: left.(*object.String).Value + right.Inspect()}
 	default:
 		return &object.Error{Message: fmt.Sprintf("Typ-Fehler: %s %s %s", left.Type(), op, right.Type())}
 	}
@@ -380,6 +383,8 @@ func (vm *VM) binaryIntOp(op compiler.Opcode, left, right *object.Integer) objec
 			return &object.Error{Message: "Modulo durch Null"}
 		}
 		return &object.Integer{Value: l % r}
+	case compiler.OpPow:
+		return &object.Integer{Value: intPow(l, r)}
 	}
 	return &object.Error{Message: "unbekannter Operator"}
 }
@@ -398,6 +403,8 @@ func (vm *VM) binaryFloatOp(op compiler.Opcode, left, right *object.Float) objec
 			return &object.Error{Message: "Division durch Null"}
 		}
 		return &object.Float{Value: l / r}
+	case compiler.OpPow:
+		return &object.Float{Value: math.Pow(l, r)}
 	}
 	return &object.Error{Message: "unbekannter Operator"}
 }
@@ -464,4 +471,13 @@ func (vm *VM) compareStringOp(op compiler.Opcode, left, right *object.String) ob
 		return object.NativeBoolToBoolean(left.Value != right.Value)
 	}
 	return &object.Error{Message: fmt.Sprintf("Typ-Fehler: %s %s %s", left.Type(), op, right.Type())}
+}
+
+func intPow(base, exp int64) int64 {
+	result := int64(1)
+	for exp > 0 {
+		result *= base
+		exp--
+	}
+	return result
 }

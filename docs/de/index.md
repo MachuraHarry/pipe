@@ -23,6 +23,7 @@ Willkommen zur vollständigen Dokumentation der Skriptsprache **Pipe**.
 17. [Migration von anderen Sprachen](17-migration-von.md) — Python, Lua, Bash, JavaScript
 18. [Roadmap](18-roadmap.md) — Zukunft der Sprache
 19. [KI-Builtins](19-ki-builtins.md) — KI-Funktionen für LLM-Integration
+20. [GitHub Action](20-github-action.md) — Pipe in CI/CD-Pipelines nutzen
 
 ## Anhang
 

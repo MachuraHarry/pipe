@@ -23,6 +23,7 @@ Welcome to the complete documentation for the **Pipe** scripting language.
 17. [Migration from Other Languages](17-migration-from.md) — Python, Lua, Bash, JavaScript
 18. [Roadmap](18-roadmap.md) — The future of the language
 19. [AI Builtins](19-ai-builtins.md) — AI functions for LLM integration
+20. [GitHub Action](20-github-action.md) — Run Pipe in CI/CD pipelines
 
 ## Appendix
 

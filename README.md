@@ -45,6 +45,21 @@ export DEEPSEEK_API_KEY="sk-..."
 ./bin/pipe -vm -q -c 'ai_provider "deepseek"; ask "What makes Pipe different?" > print'
 ```
 
+## GitHub Action
+
+Run Pipe directly in CI/CD — no installation needed:
+
+```yaml
+- uses: MachuraHarry/pipe/.github/actions/pipe-action@master
+  with:
+    script: |
+      print "Hello from CI/CD!"
+      log: exec "git log --oneline -20"
+      print (get log "output")
+```
+
+[→ GitHub Action Documentation](docs/en/20-github-action.md)
+
 ## Execution Modes
 
 | Mode | Command | Speed |

@@ -34,8 +34,8 @@ Klammerausdrücken.
     > print           -- Ausgabe: 94
 ```
 
-Pulse kombiniert die **Lesbarkeit von Python** (Einrückung statt Klammern)
-mit der **Pipeline-Philosophie der Unix-Shell** und der **Embedded-Fähigkeit von Lua**
+Pulse kombiniert die **Lesbarkeit von Python** (Einrückung statt Klammern) mit der **Pipeline-Philosophie der Unix-Shell** und der **Portabilität einer Go-Binary** (10 MB, null Abhängigkeiten).
+mit der **Pipeline-Philosophie der Unix-Shell** und der **Portabilität einer Go-Binary**
 (kompakt, keine externen Abhängigkeiten).
 
 ---
@@ -329,6 +329,10 @@ print (add5 10)            -- 15
 ### 2.7 Pipeline
 
 Die Pipeline ist das zentrale Sprach-Feature von Pulse.
+
+> **Wichtig:** `>` wird im Ausdruckskontext als **Vergleichsoperator** behandelt
+> (`a > b` = „a größer als b"). Nur in der **vertikalen Form mit Einrückung**
+> fungiert `>` als Pipeline-Operator. Siehe Abschnitt unten.
 
 #### Vertikale Pipeline (empfohlen)
 
@@ -810,7 +814,7 @@ im Vordergrund steht.
 
 | Merkmal | Pulse | Lua |
 |---------|-------|-----|
-| **Embedded-Fähigkeit** | ✅ (Go-Host) | ✅ (C-Host) |
+| **Portabilität** | ✅ (10 MB Binary) | ✅ (300 KB Binary) |
 | **Pipeline** | ✅ First-Class | ❌ |
 | **HTTP eingebaut** | ✅ | ❌ (externes luasocket) |
 | **JSON eingebaut** | ✅ | ❌ (extern) |

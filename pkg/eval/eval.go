@@ -86,6 +86,10 @@ func Eval(node ast.Node, env *object.Environment) object.Object {
 	case *ast.BreakStatement:
 		return &BreakValue{}
 
+	case *ast.DeferStatement:
+		// Collect for later execution
+		return &DeferredExpr{Expr: n.Expression, Env: env}
+
 	case *ast.ReturnStatement:
 		return &ReturnValue{Value: Eval(n.Value, env)}
 
@@ -149,38 +153,72 @@ func Eval(node ast.Node, env *object.Environment) object.Object {
 
 func evalProgram(stmts []ast.Statement, env *object.Environment) object.Object {
 	var result object.Object
+	var defers []*DeferredExpr
 
 	for _, stmt := range stmts {
 		result = Eval(stmt, env)
-		if isError(result) {
-			return result
-		}
-	}
-
-	return result
-}
-
-func evalBlockStatement(block *ast.BlockStatement, env *object.Environment) object.Object {
-	var result object.Object
-
-	for _, stmt := range block.Statements {
-		result = Eval(stmt, env)
 		if result != nil {
-			switch result.Type() {
-			case object.ERROR:
-				return result
-			case "RETURN":
-				return result
-			case "BREAK":
-				return result
-			case "CONTINUE":
+			if d, ok := result.(*DeferredExpr); ok {
+				defers = append(defers, d)
+				continue
+			}
+			if isError(result) {
+				runDefers(defers)
 				return result
 			}
 		}
 	}
 
+	runDefers(defers)
 	return result
 }
+
+func evalBlockStatement(block *ast.BlockStatement, env *object.Environment) object.Object {
+	var result object.Object
+	var defers []*DeferredExpr
+
+	for _, stmt := range block.Statements {
+		result = Eval(stmt, env)
+		if result != nil {
+			// Collect deferred expressions
+			if d, ok := result.(*DeferredExpr); ok {
+				defers = append(defers, d)
+				continue
+			}
+			switch result.Type() {
+			case object.ERROR:
+				runDefers(defers)
+				return result
+			case "RETURN":
+				runDefers(defers)
+				return result
+			case "BREAK":
+				runDefers(defers)
+				return result
+			case "CONTINUE":
+				runDefers(defers)
+				return result
+			}
+		}
+	}
+
+	runDefers(defers)
+	return result
+}
+
+func runDefers(defers []*DeferredExpr) {
+	for i := len(defers) - 1; i >= 0; i-- {
+		Eval(defers[i].Expr, defers[i].Env)
+	}
+}
+
+type DeferredExpr struct {
+	Expr ast.Expression
+	Env  *object.Environment
+}
+
+func (d *DeferredExpr) Type() object.ObjectType { return "DEFER" }
+func (d *DeferredExpr) Inspect() string         { return "deferred" }
 
 func evalIdentifier(node *ast.Identifier, env *object.Environment) object.Object {
 	if val, ok := env.Get(node.Value); ok {
@@ -448,6 +486,10 @@ func evalPipeline(pe *ast.PipelineExpression, left object.Object, env *object.En
 		args := evalExpressions(callExpr.Arguments, env)
 		if len(args) == 1 && isError(args[0]) {
 			return args[0]
+		}
+		// If parser already inserted piped value (via _ placeholder), don't add again
+		if callExpr.PipedArg {
+			return applyFunction(fn, args)
 		}
 		allArgs := append([]object.Object{left}, args...)
 		return applyFunction(fn, allArgs)

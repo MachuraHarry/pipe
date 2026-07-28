@@ -70,6 +70,7 @@ const (
 	BREAK    // break
 	CONTINUE // continue
 	IMPORT   // import
+	DEFER    // defer
 	RETURN   // return
 	TRY      // try
 	CATCH    // catch
@@ -88,6 +89,7 @@ var keywords = map[string]TokenType{
 	"break":    BREAK,
 	"continue": CONTINUE,
 	"import":   IMPORT,
+	"defer":    DEFER,
 	"return":   RETURN,
 	"try":      TRY,
 	"catch":    CATCH,
@@ -150,6 +152,7 @@ var tokenNames = map[TokenType]string{
 	BREAK:     "break",
 	CONTINUE:  "continue",
 	IMPORT:    "import",
+	DEFER:     "defer",
 	RETURN:    "return",
 	TRY:       "try",
 	CATCH:     "catch",

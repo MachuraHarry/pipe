@@ -192,6 +192,7 @@ func (pe *PipelineExpression) String() string {
 type CallExpression struct {
 	Function  Expression
 	Arguments []Expression
+	PipedArg  bool // true if piped value was already inserted as arg
 }
 
 func (ce *CallExpression) expressionNode()      {}
@@ -303,6 +304,13 @@ type ImportStatement struct {
 
 func (is *ImportStatement) statementNode()       {}
 func (is *ImportStatement) TokenLiteral() string { return "import" }
+
+type DeferStatement struct {
+	Expression Expression
+}
+
+func (ds *DeferStatement) statementNode()       {}
+func (ds *DeferStatement) TokenLiteral() string { return "defer" }
 
 type FnLiteral struct {
 	Parameters []*Identifier

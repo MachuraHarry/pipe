@@ -58,8 +58,9 @@ type Parser struct {
 	peekToken lexer.Token
 	errors    []string
 
-	prefixParseFns map[lexer.TokenType]prefixParseFn
-	infixParseFns  map[lexer.TokenType]infixParseFn
+	prefixParseFns  map[lexer.TokenType]prefixParseFn
+	infixParseFns   map[lexer.TokenType]infixParseFn
+	blockDepth      int // tracks nesting of expression blocks
 }
 
 func New(l *lexer.Lexer) *Parser {
@@ -194,6 +195,8 @@ func (p *Parser) parseStatement() ast.Statement {
 		return p.parseImportStatement()
 	case lexer.RETURN:
 		return p.parseReturnStatement()
+	case lexer.DEFER:
+		return p.parseDeferStatement()
 	case lexer.NEWLINE:
 		return nil
 	case lexer.DEDENT:
@@ -229,7 +232,7 @@ func (p *Parser) parseExpressionOrVarStatement() ast.Statement {
 						right := p.parseExpression(PrecedenceCall)
 						stmt.Expression = &ast.PipelineExpression{
 							Left:  stmt.Expression,
-							Right: right,
+							Right: p.insertPipelinePlaceholder(right, stmt.Expression),
 						}
 					} else if p.peekTokenIs(lexer.PIPE) {
 						p.nextToken()
@@ -352,6 +355,12 @@ func (p *Parser) parseBlock() *ast.BlockStatement {
 		if stmt != nil {
 			block.Statements = append(block.Statements, stmt)
 		}
+		p.nextToken()
+	}
+
+	// Consume nested DEDENTs from inner blocks (if/while inside this block)
+	for p.blockDepth > 0 && p.curTokenIs(lexer.DEDENT) {
+		p.blockDepth--
 		p.nextToken()
 	}
 
@@ -680,9 +689,25 @@ func (p *Parser) parsePipelineExpression(left ast.Expression) ast.Expression {
 
 	precedence := p.curPrecedence()
 	p.nextToken()
-	expr.Right = p.parseExpression(precedence)
+	right := p.parseExpression(precedence)
+	expr.Right = p.insertPipelinePlaceholder(right, left)
 
 	return expr
+}
+
+func (p *Parser) insertPipelinePlaceholder(right ast.Expression, pipedValue ast.Expression) ast.Expression {
+	callExpr, ok := right.(*ast.CallExpression)
+	if !ok {
+		return right
+	}
+	for i, arg := range callExpr.Arguments {
+		if ident, ok := arg.(*ast.Identifier); ok && ident.Value == "_" {
+			callExpr.Arguments[i] = pipedValue
+			callExpr.PipedArg = true
+			return callExpr
+		}
+	}
+	return right
 }
 
 func isSimpleLiteral(t lexer.TokenType) bool {
@@ -798,6 +823,11 @@ func (p *Parser) parseForExpression() ast.Expression {
 func (p *Parser) parseReturnStatement() ast.Statement {
 	p.nextToken() // skip 'return'
 	return &ast.ReturnStatement{Value: p.parseExpression(PrecedenceLowest)}
+}
+
+func (p *Parser) parseDeferStatement() ast.Statement {
+	p.nextToken() // skip 'defer'
+	return &ast.DeferStatement{Expression: p.parseExpression(PrecedenceLowest)}
 }
 
 func (p *Parser) parseImportStatement() ast.Statement {

@@ -1,9 +1,5 @@
 name: 'Pipe (SPR)'
 description: 'Run Pipe scripts in CI/CD — Semantic Pipeline Runtime with built-in AI'
-author: 'MachuraHarry'
-branding:
-  icon: 'terminal'
-  color: 'purple'
 
 inputs:
   script:
@@ -20,16 +16,9 @@ inputs:
 runs:
   using: 'composite'
   steps:
-    - name: Run Pipe
-      shell: bash
+    - shell: bash
+      run: bash "$GITHUB_ACTION_PATH/run.sh"
       env:
+        PIPE_SCRIPT: ${{ inputs.script }}
         PIPE_FLAGS: ${{ inputs.flags }}
         PIPE_PROVIDER: ${{ inputs.provider }}
-      run: |
-        [ -n "$PIPE_PROVIDER" ] && echo "ai_provider \"$PIPE_PROVIDER\"" > /tmp/script.pipe || echo -n > /tmp/script.pipe
-        cat >> /tmp/script.pipe <<'SCRIPTEOF'
-${{ inputs.script }}
-SCRIPTEOF
-        echo "=== Pipe Script ===" && cat /tmp/script.pipe && echo "===================="
-        curl -fsSL https://github.com/MachuraHarry/pipe/releases/latest/download/pipe-linux-amd64.tar.gz -o pipe.tar.gz && tar -xzf pipe.tar.gz && chmod +x pipe
-        ./pipe $PIPE_FLAGS /tmp/script.pipe

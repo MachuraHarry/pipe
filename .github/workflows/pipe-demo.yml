@@ -8,53 +8,13 @@ on:
       - '.github/workflows/pipe-demo.yml'
 
 jobs:
-  demo-basic:
-    name: Basic Pipe Script
+  basic:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Run Pipe
-        uses: ./.github/actions/pipe-action
+      - uses: ./.github/actions/pipe-action
         with:
           script: |
             print "Hello from GitHub Actions!"
-            print "Pipe (SPR) is running in CI/CD."
-            print "2 + 2 = "
+            print "Pipe (SPR) running in CI/CD."
             print (2 + 2)
-
-  demo-ai:
-    name: AI-Powered Release Notes
-    runs-on: ubuntu-latest
-    if: false  # Enable when you have an API key secret configured
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 50
-      - name: Generate Release Notes
-        uses: ./.github/actions/pipe-action
-        with:
-          provider: 'deepseek'
-          script: |
-            log: exec "git log --oneline -20"
-            log_text: get log "output"
-
-            print "Recent commits:"
-            print log_text
-            print ""
-
-            print "AI-generated release notes:"
-            summarize log_text > print
-
-  demo-sandbox:
-    name: Sandbox Mode
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: Run Safe Script
-        uses: ./.github/actions/pipe-action
-        with:
-          flags: '--sandbox -vm -q'
-          script: |
-            print "Sandbox mode active."
-            print "exec, tcp, http, and AI calls are blocked."
-            print "Safe for untrusted scripts."

@@ -124,6 +124,8 @@ func httpPostJSON(url, apiKey string, reqBody interface{}, timeout time.Duration
 		return nil, fmt.Errorf("create request: %w", err)
 	}
 	httpReq.Header.Set("Content-Type", "application/json")
+	httpReq.Header.Set("js.fetch:mode", "cors")
+	httpReq.Header.Set("js.fetch:credentials", "omit")
 	if apiKey != "" {
 		httpReq.Header.Set("Authorization", "Bearer "+apiKey)
 	}
@@ -163,6 +165,8 @@ func httpPostStream(url, apiKey string, reqBody interface{}, timeout time.Durati
 	}
 	httpReq.Header.Set("Content-Type", "application/json")
 	httpReq.Header.Set("Accept", "text/event-stream")
+	httpReq.Header.Set("js.fetch:mode", "cors")
+	httpReq.Header.Set("js.fetch:credentials", "omit")
 	if apiKey != "" {
 		httpReq.Header.Set("Authorization", "Bearer "+apiKey)
 	}

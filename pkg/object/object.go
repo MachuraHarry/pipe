@@ -348,6 +348,9 @@ var Builtins = []BuiltinInfo{
 	{"extract", bExtract},
 	{"generate", bGenerate},
 	{"ask", bAsk},
+
+	// AI — Streaming
+	{"ai_stream", bAiStream},
 }
 
 // ---- IO ----
@@ -2106,4 +2109,38 @@ func bAsk(args ...Object) Object {
 		return err("ask: " + respErr.Error())
 	}
 	return &String{Value: resp.Content}
+}
+
+func bAiStream(args ...Object) Object {
+	if len(args) < 2 {
+		return err("ai_stream expects at least 2 arguments (system_prompt, user_prompt)")
+	}
+	sp, ok := args[0].(*String)
+	if !ok {
+		return err("ai_stream: first argument must be a string (system prompt)")
+	}
+	up, ok := args[1].(*String)
+	if !ok {
+		return err("ai_stream: second argument must be a string (user prompt)")
+	}
+
+	req := ai.ChatRequest{
+		Messages: []ai.Message{
+			{Role: "system", Content: sp.Value},
+			{Role: "user", Content: up.Value},
+		},
+	}
+
+	var fullText strings.Builder
+	streamErr := ai.Stream(req, func(token string) error {
+		fmt.Print(token)
+		fullText.WriteString(token)
+		return nil
+	})
+	fmt.Println()
+
+	if streamErr != nil {
+		return err("ai_stream: " + streamErr.Error())
+	}
+	return &String{Value: fullText.String()}
 }

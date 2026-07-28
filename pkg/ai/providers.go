@@ -1,8 +1,14 @@
 package ai
 
 import (
+	"bufio"
+	"bytes"
+	"encoding/json"
 	"fmt"
+	"io"
+	"net/http"
 	"os"
+	"strings"
 	"time"
 )
 
@@ -154,24 +160,154 @@ func anthropicChat(cfg Config, req ChatRequest) (ChatResponse, error) {
 	return ChatResponse{Content: text}, nil
 }
 
-func httpPostJSONStream(url, apiKey string, reqBody interface{}, timeout time.Duration, callback func(string)) error {
-	respCh, errCh := make(chan string), make(chan error)
+// ---- Streaming Implementations ----
 
-	go func() {
-		defer close(respCh)
-		defer close(errCh)
-		err := httpPostStream(url, apiKey, reqBody, timeout, callback)
-		if err != nil {
-			errCh <- err
+func openAIStream(cfg Config, req ChatRequest, onToken StreamCallback) error {
+	apiKey := getKey("OPENAI_API_KEY")
+	if apiKey == "" {
+		return fmt.Errorf("OPENAI_API_KEY not set")
+	}
+
+	type oaiMsg struct {
+		Role    string `json:"role"`
+		Content string `json:"content"`
+	}
+	messages := make([]oaiMsg, len(req.Messages))
+	for i, m := range req.Messages {
+		messages[i] = oaiMsg{Role: m.Role, Content: m.Content}
+	}
+
+	body := map[string]interface{}{
+		"model":    cfg.Model,
+		"messages": messages,
+		"stream":   true,
+	}
+
+	return httpPostStream(cfg.APIHost+"/v1/chat/completions", apiKey, body, cfg.Timeout, onToken)
+}
+
+func deepSeekStream(cfg Config, req ChatRequest, onToken StreamCallback) error {
+	apiKey := getKey("DEEPSEEK_API_KEY")
+	if apiKey == "" {
+		return fmt.Errorf("DEEPSEEK_API_KEY not set")
+	}
+
+	type oaiMsg struct {
+		Role    string `json:"role"`
+		Content string `json:"content"`
+	}
+	messages := make([]oaiMsg, len(req.Messages))
+	for i, m := range req.Messages {
+		messages[i] = oaiMsg{Role: m.Role, Content: m.Content}
+	}
+
+	body := map[string]interface{}{
+		"model":    cfg.Model,
+		"messages": messages,
+		"stream":   true,
+	}
+
+	return httpPostStream(cfg.APIHost+"/v1/chat/completions", apiKey, body, cfg.Timeout, onToken)
+}
+
+func anthropicStream(cfg Config, req ChatRequest, onToken StreamCallback) error {
+	apiKey := getKey("ANTHROPIC_API_KEY")
+	if apiKey == "" {
+		return fmt.Errorf("ANTHROPIC_API_KEY not set")
+	}
+
+	tokens := req.MaxTokens
+	if tokens == 0 {
+		tokens = 4096
+	}
+
+	type antMsg struct {
+		Role    string `json:"role"`
+		Content string `json:"content"`
+	}
+
+	systemPrompt := ""
+	var messages []antMsg
+	for _, m := range req.Messages {
+		if m.Role == "system" {
+			systemPrompt = m.Content
+		} else {
+			messages = append(messages, antMsg{Role: m.Role, Content: m.Content})
 		}
-	}()
+	}
 
-	select {
-	case err := <-errCh:
-		return err
-	case <-time.After(timeout):
-		return fmt.Errorf("stream timeout after %v", timeout)
-	case <-respCh:
-		return nil
+	body := map[string]interface{}{
+		"model":      cfg.Model,
+		"max_tokens": tokens,
+		"messages":   messages,
+		"stream":     true,
+	}
+	if systemPrompt != "" {
+		body["system"] = systemPrompt
+	}
+
+	return httpPostStreamAnthropic(cfg.APIHost+"/v1/messages", apiKey, body, cfg.Timeout, onToken)
+}
+
+func httpPostStreamAnthropic(url, apiKey string, reqBody interface{}, timeout time.Duration, callback StreamCallback) error {
+	body, err := json.Marshal(reqBody)
+	if err != nil {
+		return fmt.Errorf("marshal request: %w", err)
+	}
+
+	httpReq, err := http.NewRequest("POST", url, bytes.NewReader(body))
+	if err != nil {
+		return fmt.Errorf("create request: %w", err)
+	}
+	httpReq.Header.Set("Content-Type", "application/json")
+	httpReq.Header.Set("Accept", "text/event-stream")
+	httpReq.Header.Set("x-api-key", apiKey)
+	httpReq.Header.Set("anthropic-version", "2023-06-01")
+
+	client := &http.Client{Timeout: timeout}
+	resp, err := client.Do(httpReq)
+	if err != nil {
+		return fmt.Errorf("http request: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode >= 400 {
+		respBody, _ := io.ReadAll(resp.Body)
+		return fmt.Errorf("API error %d: %s", resp.StatusCode, string(respBody))
+	}
+
+	reader := bufio.NewReader(resp.Body)
+	for {
+		line, err := reader.ReadString('\n')
+		if err != nil {
+			if err == io.EOF {
+				return nil
+			}
+			return fmt.Errorf("read stream: %w", err)
+		}
+		line = strings.TrimSpace(line)
+		if line == "" || !strings.HasPrefix(line, "data: ") {
+			continue
+		}
+		jsonStr := strings.TrimPrefix(line, "data: ")
+
+		var event map[string]interface{}
+		if err := json.Unmarshal([]byte(jsonStr), &event); err != nil {
+			continue
+		}
+
+		eventType, _ := event["type"].(string)
+		if eventType == "content_block_delta" {
+			delta, ok := event["delta"].(map[string]interface{})
+			if !ok {
+				continue
+			}
+			text, ok := delta["text"].(string)
+			if ok && text != "" {
+				if err := callback(text); err != nil {
+					return err
+				}
+			}
+		}
 	}
 }

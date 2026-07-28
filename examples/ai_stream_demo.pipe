@@ -1,0 +1,24 @@
+-- Streaming-Demo: ai_stream in Echtzeit
+ai_provider "deepseek"
+
+print "╔══════════════════════════════════════╗"
+print "║   PIPE AI STREAMING DEMO           ║"
+print "╚══════════════════════════════════════╝"
+print ""
+print "Jede Antwort erscheint Token für Token in Echtzeit."
+print ""
+
+print "─── 1. Gedicht-Generator ───"
+ai_stream "Du bist ein Dichter." "Schreibe ein kurzes Gedicht über Programmieren."
+print ""
+
+print "─── 2. Live-Übersetzung ───"
+print "EN → DE (streaming):"
+ai_stream "Du bist ein Übersetzer. Übersetze präzise." "Artificial intelligence is reshaping how we interact with computers, making them more intuitive and powerful than ever before."
+print ""
+
+print "─── 3. Code auf Anfrage ───"
+ai_stream "Du bist ein Senior Developer. Antworte nur mit Code, keine Erklärungen." "Schreibe eine Python-Funktion die prüft ob ein String ein Palindrom ist."
+print ""
+
+print "═══ STREAMING DEMO ABGESCHLOSSEN ═══"

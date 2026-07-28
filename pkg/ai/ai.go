@@ -82,6 +82,23 @@ func Chat(req ChatRequest) (ChatResponse, error) {
 	}
 }
 
+// StreamCallback receives each token as it arrives from the model.
+// Return an error to abort the stream early.
+type StreamCallback func(token string) error
+
+func Stream(req ChatRequest, onToken StreamCallback) error {
+	switch ActiveConfig.Provider {
+	case "openai":
+		return openAIStream(ActiveConfig, req, onToken)
+	case "anthropic":
+		return anthropicStream(ActiveConfig, req, onToken)
+	case "deepseek":
+		return deepSeekStream(ActiveConfig, req, onToken)
+	default:
+		return fmt.Errorf("unknown AI provider: %s", ActiveConfig.Provider)
+	}
+}
+
 func httpPostJSON(url, apiKey string, reqBody interface{}, timeout time.Duration) (map[string]interface{}, error) {
 	body, err := json.Marshal(reqBody)
 	if err != nil {
@@ -120,7 +137,7 @@ func httpPostJSON(url, apiKey string, reqBody interface{}, timeout time.Duration
 	return result, nil
 }
 
-func httpPostStream(url, apiKey string, reqBody interface{}, timeout time.Duration, callback func(string)) error {
+func httpPostStream(url, apiKey string, reqBody interface{}, timeout time.Duration, callback StreamCallback) error {
 	body, err := json.Marshal(reqBody)
 	if err != nil {
 		return fmt.Errorf("marshal request: %w", err)
@@ -186,7 +203,9 @@ func httpPostStream(url, apiKey string, reqBody interface{}, timeout time.Durati
 			continue
 		}
 		contentBuf.WriteString(content)
-		callback(content)
+		if err := callback(content); err != nil {
+			return err
+		}
 	}
 	return nil
 }

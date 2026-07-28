@@ -14,7 +14,7 @@ func TestSetProvider(t *testing.T) {
 	}{
 		{"openai", "openai", "gpt-4o-mini", "https://api.openai.com"},
 		{"anthropic", "anthropic", "claude-3-5-sonnet-20241022", "https://api.anthropic.com"},
-		{"deepseek", "deepseek", "deepseek-chat", "https://api.deepseek.com"},
+		{"deepseek", "deepseek", "deepseek-v4-pro", "https://api.deepseek.com"},
 	}
 
 	for _, tt := range tests {

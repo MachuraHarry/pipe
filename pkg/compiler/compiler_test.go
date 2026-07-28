@@ -31,14 +31,19 @@ func hasOp(t *testing.T, bc *Bytecode, op Opcode) bool {
 		if o == op {
 			return true
 		}
+		i++
 		switch o {
 		case OpConstant, OpGetGlobal, OpSetGlobal, OpGetLocal, OpSetLocal,
 			OpGetBuiltin, OpDot, OpClosure:
-			i += 3
-		case OpCall, OpList, OpMap, OpJump, OpJumpNotTruthy, OpJumpBackward:
-			i += 3
-		default:
-			i++
+			i += 2
+		case OpCall, OpList:
+			i += 2
+		case OpJump, OpJumpNotTruthy, OpJumpBackward:
+			i += 2
+		case OpMap:
+			numPairs := int(ReadUint16(ins, i))
+			i += 2
+			i += numPairs * 2 // skip raw key index bytes
 		}
 	}
 	return false
@@ -53,14 +58,19 @@ func countOps(t *testing.T, bc *Bytecode, op Opcode) int {
 		if o == op {
 			count++
 		}
+		i++
 		switch o {
 		case OpConstant, OpGetGlobal, OpSetGlobal, OpGetLocal, OpSetLocal,
 			OpGetBuiltin, OpDot, OpClosure:
-			i += 3
-		case OpCall, OpList, OpMap, OpJump, OpJumpNotTruthy, OpJumpBackward:
-			i += 3
-		default:
-			i++
+			i += 2
+		case OpCall, OpList:
+			i += 2
+		case OpJump, OpJumpNotTruthy, OpJumpBackward:
+			i += 2
+		case OpMap:
+			numPairs := int(ReadUint16(ins, i))
+			i += 2
+			i += numPairs * 2
 		}
 	}
 	return count

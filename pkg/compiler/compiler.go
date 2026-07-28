@@ -126,6 +126,11 @@ func (c *Compiler) emit(op Opcode, operands ...int) int {
 	return pos
 }
 
+func (c *Compiler) emitUint16(v uint16) {
+	ins := encodeUint16(v)
+	c.currentScope().instructions = append(c.currentScope().instructions, ins...)
+}
+
 func (c *Compiler) addConstant(obj object.Object) int {
 	c.constants = append(c.constants, obj)
 	return len(c.constants) - 1
@@ -395,7 +400,7 @@ func (c *Compiler) Compile(node ast.Node) error {
 		c.emit(OpMap, len(n.Pairs))
 		for _, k := range keys {
 			ki := c.addString(k)
-			c.emit(OpConstant, ki)
+			c.emitUint16(uint16(ki))
 		}
 
 	case *ast.DotExpression:
@@ -706,9 +711,18 @@ func (ins Instructions) String() string {
 			OpGetBuiltin, OpDot:
 			out += fmt.Sprintf("%04d %-14s %d\n", i, op, ReadUint16(ins, i+1))
 			i += 3
-		case OpCall, OpList, OpMap:
+		case OpCall, OpList:
 			out += fmt.Sprintf("%04d %-14s %d\n", i, op, ReadUint16(ins, i+1))
 			i += 3
+		case OpMap:
+			numPairs := int(ReadUint16(ins, i+1))
+			out += fmt.Sprintf("%04d %-14s %d pairs\n", i, op, numPairs)
+			i += 3
+			for j := 0; j < numPairs; j++ {
+				ki := ReadUint16(ins, i)
+				out += fmt.Sprintf("%04d   key=%d\n", i, ki)
+				i += 2
+			}
 		case OpJump, OpJumpNotTruthy, OpJumpBackward:
 			out += fmt.Sprintf("%04d %-14s %d\n", i, op, ReadUint16(ins, i+1))
 			i += 3

@@ -1,6 +1,7 @@
 package vm
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/harry/pipe/pkg/compiler"
@@ -209,5 +210,17 @@ func TestPrefixNot(t *testing.T) {
 				t.Errorf("%s: expected %s, got %s", tt.input, tt.expected, result)
 			}
 		})
+	}
+}
+
+func TestMapLiteral(t *testing.T) {
+	input := "m: {a: 1, b: 2}\nm"
+	bc := parseAndCompile(t, input)
+	result := runVM(t, bc)
+	if result == "nil" || result == "" {
+		t.Errorf("expected map output, got %s", result)
+	}
+	if !(strings.Contains(result, "a: 1") || strings.Contains(result, "b: 2")) {
+		t.Errorf("expected map-like output, got %s", result)
 	}
 }

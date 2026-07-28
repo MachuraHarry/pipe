@@ -446,6 +446,9 @@ func bSleep(args ...Object) Object {
 }
 
 func bExec(args ...Object) Object {
+	if Sandbox.Enabled && !Sandbox.AllowExec {
+		return sandboxBlock("exec")
+	}
 	if len(args) != 1 {
 		return err("exec expects 1 argument (command)")
 	}
@@ -523,6 +526,9 @@ func bFileExists(args ...Object) Object {
 }
 
 func bFileDelete(args ...Object) Object {
+	if Sandbox.Enabled && !Sandbox.AllowFS {
+		return sandboxBlock("file_delete (filesystem write)")
+	}
 	if len(args) != 1 {
 		return err("file_delete expects 1 argument (path)")
 	}
@@ -651,6 +657,9 @@ func bMakeDir(args ...Object) Object {
 }
 
 func bRemoveDir(args ...Object) Object {
+	if Sandbox.Enabled && !Sandbox.AllowFS {
+		return sandboxBlock("remove_dir (filesystem write)")
+	}
 	if len(args) != 1 {
 		return err("remove_dir expects 1 argument (path)")
 	}
@@ -1344,6 +1353,9 @@ func (tl *TcpListener) Inspect() string  { return fmt.Sprintf("tcp-listener:%d",
 // ---- Network ----
 
 func bHttpGet(args ...Object) Object {
+	if Sandbox.Enabled && !Sandbox.AllowNet {
+		return sandboxBlock("http_get (network)")
+	}
 	if len(args) != 1 {
 		return err("http_get expects 1 argument (URL)")
 	}
@@ -1893,6 +1905,9 @@ func bAiTimeout(args ...Object) Object {
 }
 
 func bAiChat(args ...Object) Object {
+	if Sandbox.Enabled && !Sandbox.AllowAI {
+		return sandboxBlock("ai_chat (AI calls)")
+	}
 	if len(args) < 2 {
 		return err("ai_chat expects at least 2 arguments (system_prompt, user_prompt)")
 	}
@@ -2538,4 +2553,26 @@ func bAiWithTools(args ...Object) Object {
 	}
 
 	return &String{Value: result}
+}
+
+// ---- Sandbox ----
+
+type SandboxConfig struct {
+	Enabled   bool
+	AllowAI   bool
+	AllowExec bool
+	AllowNet  bool
+	AllowFS   bool
+}
+
+var Sandbox = SandboxConfig{}
+
+func SetSandbox(enabled bool)              { Sandbox.Enabled = enabled }
+func SetSandboxAllowAI(allowed bool)       { Sandbox.AllowAI = allowed }
+func SetSandboxAllowExec(allowed bool)     { Sandbox.AllowExec = allowed }
+func SetSandboxAllowNet(allowed bool)      { Sandbox.AllowNet = allowed }
+func SetSandboxAllowFS(allowed bool)       { Sandbox.AllowFS = allowed }
+
+func sandboxBlock(feature string) *Error {
+	return &Error{Message: "SANDBOX: " + feature + " is disabled in sandbox mode"}
 }

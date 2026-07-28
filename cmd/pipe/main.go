@@ -38,6 +38,9 @@ func main() {
 		doBench    bool
 		doTest     bool
 		doBuild    bool
+		sandbox    bool
+		allowAI    bool
+		timeoutSec int
 		buildOut   string
 		filePath   string
 		scriptArgs []string
@@ -63,7 +66,20 @@ func main() {
 		case "-h", "--help":
 			printHelp()
 			return
+		case "--sandbox":
+			sandbox = true
+		case "--allow-ai":
+			allowAI = true
+		case "--timeout":
+			timeoutSec = -1 // marker to read next arg
 		default:
+			if timeoutSec == -1 {
+				// --timeout <seconds>
+				if n, err := strconv.Atoi(arg); err == nil && n > 0 {
+					timeoutSec = n
+					continue
+				}
+			}
 			if doBuild && !strings.HasPrefix(arg, "-") {
 				if filePath == "" {
 					filePath = arg
@@ -142,6 +158,13 @@ func main() {
 	if showAST {
 		fmt.Println(ASTString(program))
 		return
+	}
+
+	if sandbox {
+		object.SetSandbox(true)
+	}
+	if allowAI {
+		object.SetSandboxAllowAI(true)
 	}
 
 	if useVM {

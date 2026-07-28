@@ -114,9 +114,6 @@ func extractEmbedding(result map[string]interface{}) ([]float64, error) {
 }
 
 func getProviderKey() string {
-	if ActiveConfig.APIKey != "" {
-		return ActiveConfig.APIKey
-	}
 	switch ActiveConfig.Provider {
 	case "openai":
 		return getKey("OPENAI_API_KEY")

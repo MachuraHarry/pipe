@@ -46,23 +46,9 @@ a{color:#7c5cfc;text-decoration:none}
       <option value="8">Match</option>
       <option value="9">Lists</option>
       <option value="10">Maps</option>
-      <option value="11">🤖 AI: Ask</option>
-      <option value="12">🤖 AI: Summarize</option>
     </select>
     <span style="color:#555;font-size:0.75rem" id="status">Loading WASM...</span>
   </div>
-
-  <div class="key-bar">
-    <select id="provider" style="background:#1a1a24;color:#e0e0e8;border:1px solid #333;border-radius:6px;padding:6px 10px;font-size:0.78rem">
-      <option value="deepseek">DeepSeek</option>
-      <option value="openai">OpenAI</option>
-      <option value="anthropic">Anthropic</option>
-    </select>
-    <input id="apikey" type="password" placeholder="sk-... (your API key)" style="flex:1;background:#1a1a24;color:#e0e0e8;border:1px solid #333;border-radius:6px;padding:6px 10px;font-size:0.78rem;font-family:monospace">
-    <span style="color:#fc8c3c;font-size:0.68rem">⚠ Use only test keys — requests go directly to the API from your browser.</span>
-  </div>
-
-  <style>
     .key-bar { display:flex;gap:8px;align-items:center;padding:8px 0 }
   </style>
 
@@ -92,9 +78,7 @@ const examples = [
   "if 5 > 3\n    print \"yes\"\nelse\n    print \"no\"",
   "match 2\n    | 1 -> print \"one\"\n    | 2 -> print \"two\"\n    | _ -> print \"other\"",
   "zahlen: [1,2,3]\npush zahlen 4\nprint zahlen",
-  'person: {name: "Anna"}\nprint (get person "name")',
-  'r: ask "Was ist die Hauptstadt von Frankreich? Antworte nur mit dem Stadtnamen."\nprint r',
-  'r: summarize "Pipe ist eine Semantic Pipeline Runtime, die in Go geschrieben ist und als einzelne Binary ausgeliefert wird."\nprint r'
+  'person: {name: "Anna"}\nprint (get person "name")'
 ];
 
 function run() {

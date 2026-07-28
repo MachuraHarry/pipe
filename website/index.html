@@ -199,13 +199,7 @@ a[data-lang].active { display: inline-block; }
         <span class="play-label">pipe playground</span>
       </div>
       <div class="play-top-right">
-        <select id="play-provider" class="play-select">
-          <option value="deepseek">DeepSeek</option>
-          <option value="openai">OpenAI</option>
-        </select>
-        <input id="play-key" type="password" placeholder="sk-... (API key)" class="play-key-input">
         <button id="play-btn" class="play-run-btn" disabled onclick="runPlayground()">▶ Run</button>
-        <button id="test-ai-btn" class="play-run-btn" disabled onclick="testAI()" style="background:var(--green);font-size:0.7rem;padding:6px 10px">Test AI</button>
       </div>
     </div>
     <textarea id="play-editor" class="play-editor" placeholder="Write Pipe code..." spellcheck="false">print "Hello!"
@@ -217,8 +211,6 @@ print (2 + 2)</textarea>
     </div>
     <div class="play-output" id="play-out"></div>
   </div>
-  <p style="text-align:center;margin-top:10px;font-size:0.68rem;color:var(--orange)">⚠ Use only test API keys — requests go directly from your browser to the API.</p>
-</div>
 </section>
 
 <style>
@@ -263,9 +255,6 @@ async function runPlayground() {
   var out = document.getElementById("play-out");
   if (btn.disabled) return;
 
-  var key = document.getElementById("play-key").value.trim();
-  var provider = document.getElementById("play-provider").value;
-
   btn.classList.add("running");
   btn.textContent = "⏳ Running...";
   bar.className = "play-bar";
@@ -277,7 +266,7 @@ async function runPlayground() {
 
   var start = Date.now();
   var code = document.getElementById("play-editor").value;
-  var result = runPipe(code, provider, key);
+  var result = runPipe(code);
   var elapsed = ((Date.now() - start) / 1000).toFixed(1);
   var isError = result && (result.includes("Error:") || result.includes("Parse error"));
 
@@ -289,16 +278,6 @@ async function runPlayground() {
   out.textContent = result || "(no output)";
   if (isError) out.className = "play-output error";
   else out.className = "play-output";
-}
-
-function testAI() {
-  var key = document.getElementById("play-key").value.trim();
-  var provider = document.getElementById("play-provider").value;
-  if (!key) { document.getElementById("play-out").textContent = "Bitte API-Key eingeben"; return; }
-  var out = document.getElementById("play-out");
-  out.textContent = "Testing...";
-  var result = runPipe('ask "Sag nur: ok"', provider, key);
-  out.textContent = result;
 }
 </script>
 

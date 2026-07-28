@@ -13,9 +13,6 @@ import (
 )
 
 func getKey(envVar string) string {
-	if ActiveConfig.APIKey != "" {
-		return ActiveConfig.APIKey
-	}
 	return os.Getenv(envVar)
 }
 

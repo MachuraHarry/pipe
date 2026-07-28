@@ -6,7 +6,6 @@ import (
 	"strings"
 	"syscall/js"
 
-	"github.com/harry/pipe/pkg/ai"
 	"github.com/harry/pipe/pkg/eval"
 	"github.com/harry/pipe/pkg/lexer"
 	"github.com/harry/pipe/pkg/object"
@@ -18,24 +17,15 @@ var outputBuf strings.Builder
 func init() {
 	object.PrintHook = func(args ...object.Object) {
 		for i, arg := range args {
-			if i > 0 {
-				outputBuf.WriteByte(' ')
-			}
+			if i > 0 { outputBuf.WriteByte(' ') }
 			outputBuf.WriteString(arg.Inspect())
 		}
 		outputBuf.WriteByte('\n')
 	}
-	ai.SetTimeout(15)
 }
 
 func pipeRun(this js.Value, args []js.Value) interface{} {
 	code := args[0].String()
-
-	if len(args) >= 3 && args[2].String() != "" {
-		ai.SetProvider(args[1].String())
-		ai.ActiveConfig.APIKey = args[2].String()
-	}
-
 	outputBuf.Reset()
 
 	l := lexer.New(code)
@@ -44,20 +34,16 @@ func pipeRun(this js.Value, args []js.Value) interface{} {
 
 	if errs := p.Errors(); len(errs) > 0 {
 		result := "Parse errors:\n"
-		for _, e := range errs {
-			result += "  " + e + "\n"
-		}
+		for _, e := range errs { result += "  " + e + "\n" }
 		return result
 	}
 
 	env := object.NewEnvironment()
 	ctx := eval.NewEvalContext("<playground>")
 	result := ctx.Eval(program, env)
-
 	if result != nil && result.Type() == object.ERROR {
 		outputBuf.WriteString("Error: " + result.Inspect() + "\n")
 	}
-
 	return outputBuf.String()
 }
 

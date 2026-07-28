@@ -24,9 +24,12 @@ inputs:
 runs:
   using: 'composite'
   steps:
-    - name: Write Script
+    - name: Write Script File
       shell: bash
-      run: python3 -c "import sys; open('/tmp/pipe-script','w').write(sys.argv[1])" '${{ inputs.script }}'
+      run: |
+        cat > /tmp/pipe-script <<'PIPEHEREDOC'
+${{ inputs.script }}
+PIPEHEREDOC
 
     - name: Download Pipe
       shell: bash
@@ -57,11 +60,11 @@ runs:
     - name: Run Pipe
       shell: bash
       env:
-        PROVIDER: ${{ inputs.provider }}
-        FLAGS: ${{ inputs.flags }}
+        PIPE_PROVIDER: ${{ inputs.provider }}
+        PIPE_FLAGS: ${{ inputs.flags }}
       run: |
-        [ -n "$PROVIDER" ] && sed -i "1i ai_provider \"$PROVIDER\"" /tmp/pipe-script || true
+        [ -n "$PIPE_PROVIDER" ] && sed -i "1i ai_provider \"$PIPE_PROVIDER\"" /tmp/pipe-script || true
         echo "=== Pipe Script ==="
         cat /tmp/pipe-script
         echo "===================="
-        pipe $FLAGS /tmp/pipe-script
+        pipe $PIPE_FLAGS /tmp/pipe-script

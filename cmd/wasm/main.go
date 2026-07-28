@@ -3,6 +3,7 @@
 package main
 
 import (
+	"fmt"
 	"strings"
 	"syscall/js"
 
@@ -41,20 +42,13 @@ func pipeSetKey(this js.Value, args []js.Value) interface{} {
 	return nil
 }
 
-func providerToEnv(p string) string {
-	switch p {
-	case "openai":
-		return "OPENAI_API_KEY"
-	case "anthropic":
-		return "ANTHROPIC_API_KEY"
-	default:
-		return "DEEPSEEK_API_KEY"
-	}
-}
-
 func pipeRun(this js.Value, args []js.Value) interface{} {
 	code := args[0].String()
 	outputBuf.Reset()
+
+	// Debug: show key status
+	outputBuf.WriteString("[WASM] Provider: " + ai.ActiveConfig.Provider)
+	outputBuf.WriteString(", Key: " + fmt.Sprintf("%d chars", len(ai.ActiveConfig.APIKey)) + "\n\n")
 
 	if apiProvider != "" {
 		code = "ai_provider \"" + apiProvider + "\"\n" + code

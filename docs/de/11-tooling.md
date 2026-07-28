@@ -1,0 +1,253 @@
+# 11. Tooling
+
+## 11.1 CLI-Flags
+
+Die Pipe-Binary (`bin/pipe`) akzeptiert folgende Flags:
+
+```bash
+./bin/pipe [flags] [datei.pipe] [args...]
+```
+
+| Flag | Beschreibung |
+|------|-------------|
+| `-h`, `--help` | Hilfe anzeigen |
+| `-vm` | Bytecode-VM statt Tree-Walker verwenden |
+| `-q` | VM-Modus: Bytecode-Ausgabe unterdrücken (quiet) |
+| `-ast` | Nur AST ausgeben, nicht ausführen |
+| `-fmt` | Datei formatieren (Einrückung, Whitespace) |
+| `-test` | Alle `*_test.pipe` / `*.test.pipe` Dateien im aktuellen Verzeichnis ausführen |
+| `-bench` | Benchmarks: Tree-Walker vs VM vergleichen |
+| `-build` | Standalone Binary aus .pipe-Datei erzeugen |
+
+### Verwendung
+
+```bash
+# Tree-Walker (Standard)
+./bin/pipe datei.pipe
+
+# Bytecode-VM (schneller)
+./bin/pipe -vm datei.pipe
+
+# VM ohne Bytecode-Ausgabe
+./bin/pipe -vm -q datei.pipe
+
+# AST anzeigen (Debugging)
+./bin/pipe -ast datei.pipe
+
+# Datei formatieren
+./bin/pipe -fmt datei.pipe
+
+# Tests ausführen
+./bin/pipe -test
+
+# Benchmarks
+./bin/pipe -bench
+
+# Standalone Binary bauen
+./bin/pipe -build mein_skript.pipe -o mein_programm
+
+# Mit CLI-Argumenten
+./bin/pipe datei.pipe arg1 arg2 arg3
+```
+
+## 11.2 REPL (Interaktiver Modus)
+
+Starte `./bin/pipe` ohne Dateinamen:
+
+```
+$ ./bin/pipe
+Pipe v0.5.0 — REPL
+>>> 1 + 2
+3
+>>> fn verdopple x
+...     x * 2
+...
+>>> print (verdopple 21)
+42
+>>> :quit
+```
+
+### REPL-Befehle
+
+| Befehl | Kurzform | Beschreibung |
+|--------|----------|-------------|
+| `:quit` | `:q` | REPL beenden |
+| `:help` | `:h` | Hilfe anzeigen |
+| `:clear` | `:c` | Aktuelle Eingabe zurücksetzen |
+| `:vm` | — | VM-Modus umschalten (Tree-Walker ↔ VM) |
+| `:history` | — | Letzte 100 Befehle anzeigen |
+| `:!N` | — | Befehl N aus der History wiederholen (z.B. `:!3`) |
+| `Strg+D` | — | Beenden (EOF) |
+| Leerzeile | — | Mehrzeiligen Block abschließen und ausführen |
+
+### Mehrzeiliger Modus
+
+Nach Eingabe folgender Keywords erscheint `...` statt `>>>`:
+
+`fn`, `if`, `match`, `while`, `for`, `try`, `defer`, `export`, `enum`
+
+Eine **Leerzeile** schließt den Block ab und führt ihn aus:
+
+```
+>>> fn addiere a b
+...     a + b
+...
+>>> print (addiere 3 4)
+7
+```
+
+### VM-Modus in der REPL
+
+`:vm` schaltet zwischen Tree-Walker und VM um:
+
+```
+>>> 1 + 2
+3
+>>> :vm
+  VM-Modus: ein
+>>> 1 + 2
+3
+```
+
+## 11.3 Formatter (`-fmt`)
+
+Der Formatter normalisiert Whitespace und Einrückung:
+
+```bash
+./bin/pipe -fmt datei.pipe
+```
+
+**Was der Formatter macht:**
+- Einrückung auf 4-Leerzeichen-Blöcke normalisieren
+- Leerzeichen nach `:` in Variablen-Definitionen
+- Leerzeilen zwischen Funktions-/Enum-Definitionen
+- Inline-Spacing für Operatoren
+- Abschließende Newline garantieren
+
+**Formatierungs-Beispiele:**
+
+```pipe
+-- Vorher (unformatiert):
+fn add a b
+    a+b
+x:42
+
+-- Nachher (formatiert):
+fn add a b
+    a + b
+
+x: 42
+```
+
+Der Formatter parst die Datei und schreibt die AST-Struktur formatiert zurück.
+Falls der Parse fehlschlägt, wird eine reine Whitespace-Normalisierung durchgeführt.
+
+## 11.4 Test-Runner (`-test`)
+
+Pipe hat einen eingebauten Test-Runner:
+
+```bash
+./bin/pipe -test
+```
+
+Der Test-Runner:
+1. Findet alle `*_test.pipe` und `*.test.pipe` Dateien im aktuellen Verzeichnis
+2. Parst jede Datei
+3. Führt sie aus
+4. Zeigt PASS/FAIL mit Zählung
+
+```pipe
+-- test_math.pipe
+fn test_addition
+    assert (1 + 2) == 3
+
+fn test_multiplikation
+    assert (2 * 3) == 6
+
+fn test_vergleich
+    assert (5 > 3)
+    assert (2 < 10)
+```
+
+## 11.5 Benchmark (`-bench`)
+
+```bash
+./bin/pipe -bench
+```
+
+Führt drei vordefinierte Benchmarks aus und vergleicht Tree-Walker vs VM:
+
+1. **Fibonacci(20)** — Rekursive Berechnung (5 Iterationen)
+2. **FizzBuzz 1-100** — FizzBuzz über 100 Zahlen (5 Iterationen)
+3. **List Sum 10000** — Summe einer Liste mit 10.000 Elementen (5 Iterationen)
+
+Ausgabe zeigt Laufzeiten und Speedup-Faktor der VM.
+
+## 11.6 AST-Ausgabe (`-ast`)
+
+Zeigt den AST (Abstract Syntax Tree) einer Datei als formatierten Baum:
+
+```bash
+./bin/pipe -ast datei.pipe
+```
+
+Nützlich für:
+- Debugging des Parsers
+- Verstehen der Sprachstruktur
+- Entwicklung von Tools
+
+## 11.7 Self-Extracting Binary (`-build`)
+
+```bash
+./bin/pipe -build mein_skript.pipe
+./mein_skript                  -- Direkt ausführbar!
+```
+
+`-build` erzeugt eine **eigenständige Binary**:
+1. Kopiert die `pipe`-Binary
+2. Hängt `PIPEBUILD`-Marker + Quellcode an
+3. Setzt Ausführungsrechte
+
+Beim Start erkennt die Binary den eingebetteten Code und führt ihn aus —
+**kein separater Interpreter nötig**.
+
+```bash
+./bin/pipe -build server.pipe -o mein-server
+./mein-server 8080            -- Führt server.pipe aus
+```
+
+## 11.8 Bytecode-Cache (`.pipec`)
+
+Im VM-Modus erzeugt Pipe automatisch einen **Bytecode-Cache**:
+
+```
+datei.pipe   →  datei.pipec  (Bytecode-Cache)
+```
+
+Der Cache enthält den kompilierten Bytecode und einen **SHA-256-Hash**
+des Quelltextes. Bei Änderungen wird der Cache automatisch invalidiert.
+
+**Cache-Format (binär):**
+```
+Magic:  "PIPEBC" (6 bytes)
+Version: 1 byte
+Source-Hash: 16 bytes (SHA-256)
+Constants-Section
+Instructions-Section
+```
+
+## 11.9 Alle Beispiele ausführen
+
+```bash
+for f in examples/*.pipe; do echo "=== $f ===" && ./bin/pipe "$f"; done
+```
+
+## 11.10 Tests ausführen (Go-Tests)
+
+```bash
+make test
+# oder:
+go test ./pkg/...
+```
+
+Führt alle 134+ Unit-Tests aus (Lexer, Parser, Eval, Compiler, VM, Cache, Formatter).

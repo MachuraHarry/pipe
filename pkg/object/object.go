@@ -19,6 +19,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/harry/pipe/pkg/ai"
 	"github.com/harry/pipe/pkg/ast"
 )
 
@@ -330,6 +331,23 @@ var Builtins = []BuiltinInfo{
 	// Random
 	{"random", bRandom},
 	{"random_range", bRandomRange},
+
+	// AI — Configuration
+	{"ai_provider", bAiProvider},
+	{"ai_model", bAiModel},
+	{"ai_timeout", bAiTimeout},
+
+	// AI — Low-level Chat
+	{"ai_chat", bAiChat},
+	{"ai_chat_json", bAiChatJSON},
+
+	// AI — High-level Convenience
+	{"summarize", bSummarize},
+	{"translate", bTranslate},
+	{"classify", bClassify},
+	{"extract", bExtract},
+	{"generate", bGenerate},
+	{"ask", bAsk},
 }
 
 // ---- IO ----
@@ -356,11 +374,11 @@ func bInput(args ...Object) Object {
 
 func bReadFile(args ...Object) Object {
 	if len(args) != 1 {
-		return err("read_file erwartet 1 Argument (Pfad)")
+		return err("read_file expects 1 argument (path)")
 	}
 	s, ok := args[0].(*String)
 	if !ok {
-		return err("read_file erwartet einen String als Pfad")
+		return err("read_file expects a string as path")
 	}
 	data, e := os.ReadFile(s.Value)
 	if e != nil {
@@ -371,12 +389,12 @@ func bReadFile(args ...Object) Object {
 
 func bWriteFile(args ...Object) Object {
 	if len(args) != 2 {
-		return err("write_file erwartet 2 Argumente (Pfad, Inhalt)")
+		return err("write_file expects 2 arguments (path, content)")
 	}
 	p, ok := args[0].(*String)
 	c, ok2 := args[1].(*String)
 	if !ok || !ok2 {
-		return err("write_file: Pfad und Inhalt müssen Strings sein")
+		return err("write_file: path und content must be strings")
 	}
 	if e := os.WriteFile(p.Value, []byte(c.Value), 0644); e != nil {
 		return err("write_file: " + e.Error())
@@ -386,11 +404,11 @@ func bWriteFile(args ...Object) Object {
 
 func bEnv(args ...Object) Object {
 	if len(args) != 1 {
-		return err("env erwartet 1 Argument (Name)")
+		return err("env expects 1 argument (Name)")
 	}
 	name, ok := args[0].(*String)
 	if !ok {
-		return err("env: Name muss String sein")
+		return err("env: Name must be a string")
 	}
 	val := os.Getenv(name.Value)
 	return &String{Value: val}
@@ -398,11 +416,11 @@ func bEnv(args ...Object) Object {
 
 func bSleep(args ...Object) Object {
 	if len(args) != 1 {
-		return err("sleep erwartet 1 Argument (Millisekunden)")
+		return err("sleep expects 1 argument (milliseconds)")
 	}
 	ms, ok := ToInt(args[0])
 	if !ok {
-		return err("sleep: Millisekunden müssen Zahl sein")
+		return err("sleep: milliseconds must be a number")
 	}
 	time.Sleep(time.Duration(ms) * time.Millisecond)
 	return NILOBJ
@@ -410,11 +428,11 @@ func bSleep(args ...Object) Object {
 
 func bExec(args ...Object) Object {
 	if len(args) != 1 {
-		return err("exec erwartet 1 Argument (Befehl)")
+		return err("exec expects 1 argument (command)")
 	}
 	cmd, ok := args[0].(*String)
 	if !ok {
-		return err("exec: Befehl muss ein String sein")
+		return err("exec: command must be a string")
 	}
 	out, e := exec.Command("sh", "-c", cmd.Value).CombinedOutput()
 	if e != nil {
@@ -435,12 +453,12 @@ func bExec(args ...Object) Object {
 
 func bAppendFile(args ...Object) Object {
 	if len(args) != 2 {
-		return err("append_file erwartet 2 Argumente (Pfad, Inhalt)")
+		return err("append_file expects 2 arguments (path, content)")
 	}
 	p, ok := args[0].(*String)
 	c, ok2 := args[1].(*String)
 	if !ok || !ok2 {
-		return err("append_file: Pfad und Inhalt müssen Strings sein")
+		return err("append_file: path und content must be strings")
 	}
 	f, e := os.OpenFile(p.Value, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if e != nil {
@@ -455,11 +473,11 @@ func bAppendFile(args ...Object) Object {
 
 func bReadLines(args ...Object) Object {
 	if len(args) != 1 {
-		return err("read_lines erwartet 1 Argument (Pfad)")
+		return err("read_lines expects 1 argument (path)")
 	}
 	p, ok := args[0].(*String)
 	if !ok {
-		return err("read_lines: Pfad muss String sein")
+		return err("read_lines: path must be a string")
 	}
 	data, e := os.ReadFile(p.Value)
 	if e != nil {
@@ -475,11 +493,11 @@ func bReadLines(args ...Object) Object {
 
 func bFileExists(args ...Object) Object {
 	if len(args) != 1 {
-		return err("file_exists erwartet 1 Argument (Pfad)")
+		return err("file_exists expects 1 argument (path)")
 	}
 	p, ok := args[0].(*String)
 	if !ok {
-		return err("file_exists: Pfad muss String sein")
+		return err("file_exists: path must be a string")
 	}
 	_, e := os.Stat(p.Value)
 	return NativeBoolToBoolean(e == nil)
@@ -487,11 +505,11 @@ func bFileExists(args ...Object) Object {
 
 func bFileDelete(args ...Object) Object {
 	if len(args) != 1 {
-		return err("file_delete erwartet 1 Argument (Pfad)")
+		return err("file_delete expects 1 argument (path)")
 	}
 	p, ok := args[0].(*String)
 	if !ok {
-		return err("file_delete: Pfad muss String sein")
+		return err("file_delete: path must be a string")
 	}
 	if e := os.Remove(p.Value); e != nil {
 		return err("file_delete: " + e.Error())
@@ -501,12 +519,12 @@ func bFileDelete(args ...Object) Object {
 
 func bFileMove(args ...Object) Object {
 	if len(args) != 2 {
-		return err("file_move erwartet 2 Argumente (Quelle, Ziel)")
+		return err("file_move expects 2 arguments (source, destination)")
 	}
 	src, ok := args[0].(*String)
 	dst, ok2 := args[1].(*String)
 	if !ok || !ok2 {
-		return err("file_move: Pfade müssen Strings sein")
+		return err("file_move: paths must be strings")
 	}
 	if e := os.Rename(src.Value, dst.Value); e != nil {
 		return err("file_move: " + e.Error())
@@ -516,12 +534,12 @@ func bFileMove(args ...Object) Object {
 
 func bFileCopy(args ...Object) Object {
 	if len(args) != 2 {
-		return err("file_copy erwartet 2 Argumente (Quelle, Ziel)")
+		return err("file_copy expects 2 arguments (source, destination)")
 	}
 	src, ok := args[0].(*String)
 	dst, ok2 := args[1].(*String)
 	if !ok || !ok2 {
-		return err("file_copy: Pfade müssen Strings sein")
+		return err("file_copy: paths must be strings")
 	}
 	srcFile, e := os.Open(src.Value)
 	if e != nil {
@@ -541,11 +559,11 @@ func bFileCopy(args ...Object) Object {
 
 func bFileSize(args ...Object) Object {
 	if len(args) != 1 {
-		return err("file_size erwartet 1 Argument (Pfad)")
+		return err("file_size expects 1 argument (path)")
 	}
 	p, ok := args[0].(*String)
 	if !ok {
-		return err("file_size: Pfad muss String sein")
+		return err("file_size: path must be a string")
 	}
 	info, e := os.Stat(p.Value)
 	if e != nil {
@@ -556,11 +574,11 @@ func bFileSize(args ...Object) Object {
 
 func bFileType(args ...Object) Object {
 	if len(args) != 1 {
-		return err("file_type erwartet 1 Argument (Pfad)")
+		return err("file_type expects 1 argument (path)")
 	}
 	p, ok := args[0].(*String)
 	if !ok {
-		return err("file_type: Pfad muss String sein")
+		return err("file_type: path must be a string")
 	}
 	info, e := os.Stat(p.Value)
 	if e != nil {
@@ -577,7 +595,7 @@ func bListDir(args ...Object) Object {
 	if len(args) >= 1 {
 		p, ok := args[0].(*String)
 		if !ok {
-			return err("list_dir: Pfad muss String sein")
+			return err("list_dir: path must be a string")
 		}
 		path = p.Value
 	}
@@ -601,11 +619,11 @@ func bListDir(args ...Object) Object {
 
 func bMakeDir(args ...Object) Object {
 	if len(args) != 1 {
-		return err("make_dir erwartet 1 Argument (Pfad)")
+		return err("make_dir expects 1 argument (path)")
 	}
 	p, ok := args[0].(*String)
 	if !ok {
-		return err("make_dir: Pfad muss String sein")
+		return err("make_dir: path must be a string")
 	}
 	if e := os.MkdirAll(p.Value, 0755); e != nil {
 		return err("make_dir: " + e.Error())
@@ -615,11 +633,11 @@ func bMakeDir(args ...Object) Object {
 
 func bRemoveDir(args ...Object) Object {
 	if len(args) != 1 {
-		return err("remove_dir erwartet 1 Argument (Pfad)")
+		return err("remove_dir expects 1 argument (path)")
 	}
 	p, ok := args[0].(*String)
 	if !ok {
-		return err("remove_dir: Pfad muss String sein")
+		return err("remove_dir: path must be a string")
 	}
 	if e := os.RemoveAll(p.Value); e != nil {
 		return err("remove_dir: " + e.Error())
@@ -632,7 +650,7 @@ func bPathJoin(args ...Object) Object {
 	for i, a := range args {
 		s, ok := a.(*String)
 		if !ok {
-			return err("path_join: alle Argumente müssen Strings sein")
+			return err("path_join: alle Argumente must be strings")
 		}
 		parts[i] = s.Value
 	}
@@ -641,33 +659,33 @@ func bPathJoin(args ...Object) Object {
 
 func bPathBase(args ...Object) Object {
 	if len(args) != 1 {
-		return err("path_base erwartet 1 Argument")
+		return err("path_base expects 1 argument")
 	}
 	s, ok := args[0].(*String)
 	if !ok {
-		return err("path_base erwartet einen String")
+		return err("path_base expects a string")
 	}
 	return &String{Value: filepath.Base(s.Value)}
 }
 
 func bPathDir(args ...Object) Object {
 	if len(args) != 1 {
-		return err("path_dir erwartet 1 Argument")
+		return err("path_dir expects 1 argument")
 	}
 	s, ok := args[0].(*String)
 	if !ok {
-		return err("path_dir erwartet einen String")
+		return err("path_dir expects a string")
 	}
 	return &String{Value: filepath.Dir(s.Value)}
 }
 
 func bPathExt(args ...Object) Object {
 	if len(args) != 1 {
-		return err("path_ext erwartet 1 Argument")
+		return err("path_ext expects 1 argument")
 	}
 	s, ok := args[0].(*String)
 	if !ok {
-		return err("path_ext erwartet einen String")
+		return err("path_ext expects a string")
 	}
 	return &String{Value: filepath.Ext(s.Value)}
 }
@@ -678,31 +696,31 @@ func bUpper(args ...Object) Object {
 	if s, ok := strArg(args, "upper"); ok {
 		return &String{Value: strings.ToUpper(s.Value)}
 	}
-	return err("upper erwartet einen String")
+	return err("upper expects a string")
 }
 
 func bLower(args ...Object) Object {
 	if s, ok := strArg(args, "lower"); ok {
 		return &String{Value: strings.ToLower(s.Value)}
 	}
-	return err("lower erwartet einen String")
+	return err("lower expects a string")
 }
 
 func bTrim(args ...Object) Object {
 	if s, ok := strArg(args, "trim"); ok {
 		return &String{Value: strings.TrimSpace(s.Value)}
 	}
-	return err("trim erwartet einen String")
+	return err("trim expects a string")
 }
 
 func bSplit(args ...Object) Object {
 	if len(args) != 2 {
-		return err("split erwartet 2 Argumente")
+		return err("split expects 2 arguments")
 	}
 	s, ok := args[0].(*String)
 	d, ok2 := args[1].(*String)
 	if !ok || !ok2 {
-		return err("split: beide Argumente müssen Strings sein")
+		return err("split: beide Argumente must be strings")
 	}
 	parts := strings.Split(s.Value, d.Value)
 	elems := make([]Object, len(parts))
@@ -714,12 +732,12 @@ func bSplit(args ...Object) Object {
 
 func bJoin(args ...Object) Object {
 	if len(args) != 2 {
-		return err("join erwartet 2 Argumente")
+		return err("join expects 2 arguments")
 	}
 	l, ok := args[0].(*List)
 	d, ok2 := args[1].(*String)
 	if !ok || !ok2 {
-		return err("join: List und String erwartet")
+		return err("join: list and string expected")
 	}
 	parts := make([]string, len(l.Elements))
 	for i, e := range l.Elements {
@@ -730,14 +748,14 @@ func bJoin(args ...Object) Object {
 
 func bContains(args ...Object) Object {
 	if len(args) != 2 {
-		return err("contains erwartet 2 Argumente")
+		return err("contains expects 2 arguments")
 	}
 	switch c := args[0].(type) {
 	case *String:
 		if sub, ok := args[1].(*String); ok {
 			return NativeBoolToBoolean(strings.Contains(c.Value, sub.Value))
 		}
-		return err("contains: Substring muss String sein")
+		return err("contains: Substring must be a string")
 	case *List:
 		for _, e := range c.Elements {
 			if ValuesEqual(e, args[1]) {
@@ -746,14 +764,14 @@ func bContains(args ...Object) Object {
 		}
 		return FALSE
 	}
-	return err("contains erwartet String oder List")
+	return err("contains expects string or list")
 }
 
 // ---- List ----
 
 func bLen(args ...Object) Object {
 	if len(args) != 1 {
-		return err("len erwartet 1 Argument")
+		return err("len expects 1 argument")
 	}
 	switch a := args[0].(type) {
 	case *String:
@@ -763,16 +781,16 @@ func bLen(args ...Object) Object {
 	case *Map:
 		return &Integer{Value: int64(len(a.Pairs))}
 	}
-	return err("len nicht unterstützt")
+	return err("len not supported")
 }
 
 func bPush(args ...Object) Object {
 	if len(args) < 2 {
-		return err("push erwartet mindestens 2 Argumente")
+		return err("push expects at least 2 arguments")
 	}
 	l, ok := args[0].(*List)
 	if !ok {
-		return err("push: erstes Argument muss List sein")
+		return err("push: erstes Argument must be a list")
 	}
 	l.Elements = append(l.Elements, args[1:]...)
 	return l
@@ -780,7 +798,7 @@ func bPush(args ...Object) Object {
 
 func bPop(args ...Object) Object {
 	if len(args) != 1 {
-		return err("pop erwartet 1 Argument")
+		return err("pop expects 1 argument")
 	}
 	l, ok := args[0].(*List)
 	if !ok || len(l.Elements) == 0 {
@@ -793,11 +811,11 @@ func bPop(args ...Object) Object {
 
 func bAt(args ...Object) Object {
 	if len(args) != 2 {
-		return err("at erwartet 2 Argumente")
+		return err("at expects 2 arguments")
 	}
 	idx, ok := ToInt(args[1])
 	if !ok {
-		return err("at: Index muss Zahl sein")
+		return err("at: Index must be a number")
 	}
 	switch c := args[0].(type) {
 	case *List:
@@ -811,24 +829,24 @@ func bAt(args ...Object) Object {
 		}
 		return &String{Value: string(c.Value[idx])}
 	}
-	return err("at erwartet List oder String")
+	return err("at expects list or string")
 }
 
 func bSliceList(args ...Object) Object {
 	if len(args) != 3 {
-		return err("slice_list erwartet 3 Argumente (list, start, end)")
+		return err("slice_list expects 3 arguments (list, start, end)")
 	}
 	container, ok := args[0].(*List)
 	if !ok {
-		return err("slice_list: erstes Argument muss List sein")
+		return err("slice_list: erstes Argument must be a list")
 	}
 	start, ok := ToInt(args[1])
 	if !ok {
-		return err("slice_list: start muss Zahl sein")
+		return err("slice_list: start must be a number")
 	}
 	end, ok := ToInt(args[2])
 	if !ok {
-		return err("slice_list: end muss Zahl sein")
+		return err("slice_list: end must be a number")
 	}
 	total := int64(len(container.Elements))
 	if start < 0 {
@@ -849,11 +867,11 @@ func bSliceList(args ...Object) Object {
 
 func bSort(args ...Object) Object {
 	if len(args) != 1 {
-		return err("sort erwartet 1 Argument")
+		return err("sort expects 1 argument")
 	}
 	l, ok := args[0].(*List)
 	if !ok {
-		return err("sort erwartet List")
+		return err("sort expects list")
 	}
 	sorted := make([]Object, len(l.Elements))
 	copy(sorted, l.Elements)
@@ -879,11 +897,11 @@ func bSort(args ...Object) Object {
 
 func bMap(args ...Object) Object {
 	if len(args) != 2 {
-		return err("map erwartet 2 Argumente")
+		return err("map expects 2 arguments")
 	}
 	l, ok := args[0].(*List)
 	if !ok {
-		return err("map: erstes Argument muss List sein")
+		return err("map: erstes Argument must be a list")
 	}
 	result := make([]Object, len(l.Elements))
 	for i, e := range l.Elements {
@@ -894,11 +912,11 @@ func bMap(args ...Object) Object {
 
 func bFilter(args ...Object) Object {
 	if len(args) != 2 {
-		return err("filter erwartet 2 Argumente")
+		return err("filter expects 2 arguments")
 	}
 	l, ok := args[0].(*List)
 	if !ok {
-		return err("filter: erstes Argument muss List sein")
+		return err("filter: erstes Argument must be a list")
 	}
 	var result []Object
 	for _, e := range l.Elements {
@@ -912,11 +930,11 @@ func bFilter(args ...Object) Object {
 
 func bReduce(args ...Object) Object {
 	if len(args) != 3 {
-		return err("reduce erwartet 3 Argumente")
+		return err("reduce expects 3 arguments")
 	}
 	l, ok := args[0].(*List)
 	if !ok {
-		return err("reduce: erstes Argument muss List sein")
+		return err("reduce: erstes Argument must be a list")
 	}
 	acc := args[2]
 	for _, e := range l.Elements {
@@ -927,11 +945,11 @@ func bReduce(args ...Object) Object {
 
 func bEach(args ...Object) Object {
 	if len(args) != 2 {
-		return err("each erwartet 2 Argumente")
+		return err("each expects 2 arguments")
 	}
 	l, ok := args[0].(*List)
 	if !ok {
-		return err("each: erstes Argument muss List sein")
+		return err("each: erstes Argument must be a list")
 	}
 	for _, e := range l.Elements {
 		callOne(args[1], e)
@@ -946,7 +964,7 @@ func callOne(fn, arg Object) Object {
 	if callUserFn != nil {
 		return callUserFn(fn, arg)
 	}
-	return err("map/filter/each: Funktion nicht aufrufbar (nur builtins im VM-Modus)")
+	return err("map/filter/each: function not callable (only builtins in VM mode)")
 }
 
 func callTwo(fn, a, b Object) Object {
@@ -956,7 +974,7 @@ func callTwo(fn, a, b Object) Object {
 	if callUserFn != nil {
 		return callUserFn(fn, a, b)
 	}
-	return err("reduce: Funktion nicht aufrufbar")
+	return err("reduce: function not callable")
 }
 
 var callUserFn func(fn Object, args ...Object) Object
@@ -967,7 +985,7 @@ func SetCallUserFn(f func(fn Object, args ...Object) Object) {
 
 func bRange(args ...Object) Object {
 	if len(args) < 1 || len(args) > 3 {
-		return err("range erwartet 1-3 Argumente")
+		return err("range expects 1-3 arguments")
 	}
 	var start, end, step int64
 	step = 1
@@ -976,7 +994,7 @@ func bRange(args ...Object) Object {
 	case 1:
 		n, ok := ToInt(args[0])
 		if !ok {
-			return err("range: Argument muss Zahl sein")
+			return err("range: Argument must be a number")
 		}
 		start = 0
 		end = n
@@ -984,7 +1002,7 @@ func bRange(args ...Object) Object {
 		s, ok1 := ToInt(args[0])
 		e, ok2 := ToInt(args[1])
 		if !ok1 || !ok2 {
-			return err("range: Argumente müssen Zahlen sein")
+			return err("range: Argumente must be numbers")
 		}
 		start = s
 		end = e
@@ -993,7 +1011,7 @@ func bRange(args ...Object) Object {
 		e, ok2 := ToInt(args[1])
 		st, ok3 := ToInt(args[2])
 		if !ok1 || !ok2 || !ok3 {
-			return err("range: Argumente müssen Zahlen sein")
+			return err("range: Argumente must be numbers")
 		}
 		start = s
 		end = e
@@ -1011,7 +1029,7 @@ func bRange(args ...Object) Object {
 
 func bAbs(args ...Object) Object {
 	if len(args) != 1 {
-		return err("abs erwartet 1 Argument")
+		return err("abs expects 1 argument")
 	}
 	switch v := args[0].(type) {
 	case *Integer:
@@ -1022,16 +1040,16 @@ func bAbs(args ...Object) Object {
 	case *Float:
 		return &Float{Value: math.Abs(v.Value)}
 	}
-	return err("abs erwartet eine Zahl")
+	return err("abs expects a number")
 }
 
 func bMin(args ...Object) Object {
 	if len(args) < 2 {
-		return err("min erwartet mindestens 2 Argumente")
+		return err("min expects at least 2 arguments")
 	}
 	f, ok := ToFloat(args[0])
 	if !ok {
-		return err("min: Argumente müssen Zahlen sein")
+		return err("min: Argumente must be numbers")
 	}
 	allInt := true
 	for _, a := range args {
@@ -1040,7 +1058,7 @@ func bMin(args ...Object) Object {
 		}
 		af, ok := ToFloat(a)
 		if !ok {
-			return err("min: Argumente müssen Zahlen sein")
+			return err("min: Argumente must be numbers")
 		}
 		if af < f {
 			f = af
@@ -1054,11 +1072,11 @@ func bMin(args ...Object) Object {
 
 func bMax(args ...Object) Object {
 	if len(args) < 2 {
-		return err("max erwartet mindestens 2 Argumente")
+		return err("max expects at least 2 arguments")
 	}
 	f, ok := ToFloat(args[0])
 	if !ok {
-		return err("max: Argumente müssen Zahlen sein")
+		return err("max: Argumente must be numbers")
 	}
 	allInt := true
 	for _, a := range args {
@@ -1067,7 +1085,7 @@ func bMax(args ...Object) Object {
 		}
 		af, ok := ToFloat(a)
 		if !ok {
-			return err("max: Argumente müssen Zahlen sein")
+			return err("max: Argumente must be numbers")
 		}
 		if af > f {
 			f = af
@@ -1081,33 +1099,33 @@ func bMax(args ...Object) Object {
 
 func bPow(args ...Object) Object {
 	if len(args) != 2 {
-		return err("pow erwartet 2 Argumente")
+		return err("pow expects 2 arguments")
 	}
 	b, ok1 := ToFloat(args[0])
 	e, ok2 := ToFloat(args[1])
 	if !ok1 || !ok2 {
-		return err("pow: Argumente müssen Zahlen sein")
+		return err("pow: Argumente must be numbers")
 	}
 	return &Float{Value: math.Pow(b, e)}
 }
 
 func bSqrt(args ...Object) Object {
 	if len(args) != 1 {
-		return err("sqrt erwartet 1 Argument")
+		return err("sqrt expects 1 argument")
 	}
 	v, ok := ToFloat(args[0])
 	if !ok {
-		return err("sqrt erwartet eine Zahl")
+		return err("sqrt expects a number")
 	}
 	if v < 0 {
-		return err("sqrt: negative Zahl")
+		return err("sqrt: negative number")
 	}
 	return &Float{Value: math.Sqrt(v)}
 }
 
 func bRound(args ...Object) Object {
 	if len(args) != 1 {
-		return err("round erwartet 1 Argument")
+		return err("round expects 1 argument")
 	}
 	switch v := args[0].(type) {
 	case *Integer:
@@ -1115,18 +1133,18 @@ func bRound(args ...Object) Object {
 	case *Float:
 		return &Integer{Value: int64(math.Round(v.Value))}
 	}
-	return err("round erwartet eine Zahl")
+	return err("round expects a number")
 }
 
 // ---- Map ----
 
 func bKeys(args ...Object) Object {
 	if len(args) != 1 {
-		return err("keys erwartet 1 Argument")
+		return err("keys expects 1 argument")
 	}
 	m, ok := args[0].(*Map)
 	if !ok {
-		return err("keys erwartet eine Map")
+		return err("keys expects a map")
 	}
 	keys := make([]Object, 0, len(m.Pairs))
 	for k := range m.Pairs {
@@ -1137,11 +1155,11 @@ func bKeys(args ...Object) Object {
 
 func bValues(args ...Object) Object {
 	if len(args) != 1 {
-		return err("values erwartet 1 Argument")
+		return err("values expects 1 argument")
 	}
 	m, ok := args[0].(*Map)
 	if !ok {
-		return err("values erwartet eine Map")
+		return err("values expects a map")
 	}
 	vals := make([]Object, 0, len(m.Pairs))
 	for _, v := range m.Pairs {
@@ -1152,13 +1170,13 @@ func bValues(args ...Object) Object {
 
 func bGet(args ...Object) Object {
 	if len(args) != 2 {
-		return err("get erwartet 2 Argumente (Map/List, Key/Index)")
+		return err("get expects 2 arguments (Map/List, Key/Index)")
 	}
 	switch container := args[0].(type) {
 	case *Map:
 		key, ok := args[1].(*String)
 		if !ok {
-			return err("get: Map-Key muss ein String sein")
+			return err("get: Map-Key must be a string")
 		}
 		val, exists := container.Pairs[key.Value]
 		if !exists {
@@ -1168,27 +1186,27 @@ func bGet(args ...Object) Object {
 	case *List:
 		idx, ok := ToInt(args[1])
 		if !ok {
-			return err("get: Listen-Index muss eine Zahl sein")
+			return err("get: Listen-Index must be a number")
 		}
 		if idx < 0 || idx >= int64(len(container.Elements)) {
 			return NILOBJ
 		}
 		return container.Elements[idx]
 	}
-	return err("get erwartet eine Map oder List")
+	return err("get expects a map or list")
 }
 
 func bSet(args ...Object) Object {
 	if len(args) != 3 {
-		return err("set erwartet 3 Argumente (Map, Key, Value)")
+		return err("set expects 3 arguments (Map, Key, Value)")
 	}
 	m, ok := args[0].(*Map)
 	if !ok {
-		return err("set: erstes Argument muss eine Map sein")
+		return err("set: first argument must be a map")
 	}
 	key, ok := args[1].(*String)
 	if !ok {
-		return err("set: Key muss ein String sein")
+		return err("set: Key must be a string")
 	}
 	m.Pairs[key.Value] = args[2]
 	return m
@@ -1198,14 +1216,14 @@ func bSet(args ...Object) Object {
 
 func bTypeOf(args ...Object) Object {
 	if len(args) != 1 {
-		return err("type_of erwartet 1 Argument")
+		return err("type_of expects 1 argument")
 	}
 	return &String{Value: string(args[0].Type())}
 }
 
 func bIsNum(args ...Object) Object {
 	if len(args) != 1 {
-		return err("is_num erwartet 1 Argument")
+		return err("is_num expects 1 argument")
 	}
 	_, i := args[0].(*Integer)
 	_, f := args[0].(*Float)
@@ -1214,7 +1232,7 @@ func bIsNum(args ...Object) Object {
 
 func bIsStr(args ...Object) Object {
 	if len(args) != 1 {
-		return err("is_str erwartet 1 Argument")
+		return err("is_str expects 1 argument")
 	}
 	_, ok := args[0].(*String)
 	return NativeBoolToBoolean(ok)
@@ -1222,7 +1240,7 @@ func bIsStr(args ...Object) Object {
 
 func bIsList(args ...Object) Object {
 	if len(args) != 1 {
-		return err("is_list erwartet 1 Argument")
+		return err("is_list expects 1 argument")
 	}
 	_, ok := args[0].(*List)
 	return NativeBoolToBoolean(ok)
@@ -1230,7 +1248,7 @@ func bIsList(args ...Object) Object {
 
 func bIsMap(args ...Object) Object {
 	if len(args) != 1 {
-		return err("is_map erwartet 1 Argument")
+		return err("is_map expects 1 argument")
 	}
 	_, ok := args[0].(*Map)
 	return NativeBoolToBoolean(ok)
@@ -1238,7 +1256,7 @@ func bIsMap(args ...Object) Object {
 
 func bIsNil(args ...Object) Object {
 	if len(args) != 1 {
-		return err("is_nil erwartet 1 Argument")
+		return err("is_nil expects 1 argument")
 	}
 	return NativeBoolToBoolean(args[0] == NILOBJ)
 }
@@ -1247,14 +1265,14 @@ func bIsNil(args ...Object) Object {
 
 func bToStr(args ...Object) Object {
 	if len(args) != 1 {
-		return err("to_str erwartet 1 Argument")
+		return err("to_str expects 1 argument")
 	}
 	return &String{Value: args[0].Inspect()}
 }
 
 func bToNum(args ...Object) Object {
 	if len(args) != 1 {
-		return err("to_num erwartet 1 Argument")
+		return err("to_num expects 1 argument")
 	}
 	switch v := args[0].(type) {
 	case *Integer:
@@ -1264,7 +1282,7 @@ func bToNum(args ...Object) Object {
 	case *String:
 		f, e := strconv.ParseFloat(v.Value, 64)
 		if e != nil {
-			return err("to_num: '" + v.Value + "' ist keine Zahl")
+			return err("to_num: '" + v.Value + "' is not a number")
 		}
 		if f == float64(int64(f)) && !strings.Contains(v.Value, ".") {
 			return &Integer{Value: int64(f)}
@@ -1276,7 +1294,7 @@ func bToNum(args ...Object) Object {
 		}
 		return &Integer{Value: 0}
 	}
-	return err("to_num nicht möglich")
+	return err("to_num not possible")
 }
 
 // ---- Connection type for TCP ----
@@ -1308,11 +1326,11 @@ func (tl *TcpListener) Inspect() string  { return fmt.Sprintf("tcp-listener:%d",
 
 func bHttpGet(args ...Object) Object {
 	if len(args) != 1 {
-		return err("http_get erwartet 1 Argument (URL)")
+		return err("http_get expects 1 argument (URL)")
 	}
 	url, ok := args[0].(*String)
 	if !ok {
-		return err("http_get: URL muss ein String sein")
+		return err("http_get: URL must be a string")
 	}
 	client := &http.Client{Timeout: 10 * time.Second}
 	resp, e := client.Get(url.Value)
@@ -1332,11 +1350,11 @@ func bHttpGet(args ...Object) Object {
 
 func bHttpPost(args ...Object) Object {
 	if len(args) < 1 || len(args) > 2 {
-		return err("http_post erwartet 1-2 Argumente (URL, Body?)")
+		return err("http_post expects 1-2 arguments (URL, Body?)")
 	}
 	url, ok := args[0].(*String)
 	if !ok {
-		return err("http_post: URL muss ein String sein")
+		return err("http_post: URL must be a string")
 	}
 	var bodyStr string
 	if len(args) >= 2 {
@@ -1378,18 +1396,18 @@ func bHttpGetJSON(args ...Object) Object {
 
 func bParseJSON(args ...Object) Object {
 	if len(args) != 1 {
-		return err("parse_json erwartet 1 Argument")
+		return err("parse_json expects 1 argument")
 	}
 	s, ok := args[0].(*String)
 	if !ok {
-		return err("parse_json erwartet einen String")
+		return err("parse_json expects a string")
 	}
 	return jsonToObject(s.Value)
 }
 
 func bToJSON(args ...Object) Object {
 	if len(args) != 1 {
-		return err("to_json erwartet 1 Argument")
+		return err("to_json expects 1 argument")
 	}
 	j, e := json.Marshal(objectToJSON(args[0]))
 	if e != nil {
@@ -1467,15 +1485,15 @@ func objectToJSON(obj Object) interface{} {
 
 func bTcpListen(args ...Object) Object {
 	if len(args) != 2 {
-		return err("tcp_listen erwartet 2 Argumente (Host, Port)")
+		return err("tcp_listen expects 2 arguments (Host, Port)")
 	}
 	host, ok := args[0].(*String)
 	if !ok {
-		return err("tcp_listen: Host muss String sein")
+		return err("tcp_listen: Host must be a string")
 	}
 	port, ok := ToInt(args[1])
 	if !ok {
-		return err("tcp_listen: Port muss Zahl sein")
+		return err("tcp_listen: Port must be a number")
 	}
 	addr := fmt.Sprintf("%s:%d", host.Value, port)
 	ln, e := net.Listen("tcp", addr)
@@ -1492,15 +1510,15 @@ func bTcpListen(args ...Object) Object {
 
 func bTcpConnect(args ...Object) Object {
 	if len(args) != 2 {
-		return err("tcp_connect erwartet 2 Argumente (Host, Port)")
+		return err("tcp_connect expects 2 arguments (Host, Port)")
 	}
 	host, ok := args[0].(*String)
 	if !ok {
-		return err("tcp_connect: Host muss String sein")
+		return err("tcp_connect: Host must be a string")
 	}
 	port, ok := ToInt(args[1])
 	if !ok {
-		return err("tcp_connect: Port muss Zahl sein")
+		return err("tcp_connect: Port must be a number")
 	}
 	addr := fmt.Sprintf("%s:%d", host.Value, port)
 	c, e := net.Dial("tcp", addr)
@@ -1517,17 +1535,17 @@ func bTcpConnect(args ...Object) Object {
 
 func bTcpAccept(args ...Object) Object {
 	if len(args) != 1 {
-		return err("tcp_accept erwartet 1 Argument (Listener)")
+		return err("tcp_accept expects 1 argument (Listener)")
 	}
 	ln, ok := args[0].(*TcpListener)
 	if !ok {
-		return err("tcp_accept erwartet einen TCP-Listener")
+		return err("tcp_accept expects a TCP listener")
 	}
 	connMu.Lock()
 	listener, exists := listeners[ln.Handle]
 	connMu.Unlock()
 	if !exists {
-		return err("tcp_accept: Listener existiert nicht")
+		return err("tcp_accept: listener does not exist")
 	}
 	c, e := listener.Accept()
 	if e != nil {
@@ -1543,17 +1561,17 @@ func bTcpAccept(args ...Object) Object {
 
 func bTcpRead(args ...Object) Object {
 	if len(args) != 1 {
-		return err("tcp_read erwartet 1 Argument (Verbindung)")
+		return err("tcp_read expects 1 argument (connection)")
 	}
 	conn, ok := args[0].(*TcpConn)
 	if !ok {
-		return err("tcp_read erwartet eine TCP-Verbindung")
+		return err("tcp_read expects a TCP connection")
 	}
 	connMu.Lock()
 	c, exists := connStore[conn.Handle]
 	connMu.Unlock()
 	if !exists {
-		return err("tcp_read: Verbindung existiert nicht")
+		return err("tcp_read: connection does not exist")
 	}
 	buf := make([]byte, 4096)
 	n, e := c.Read(buf)
@@ -1565,21 +1583,21 @@ func bTcpRead(args ...Object) Object {
 
 func bTcpWrite(args ...Object) Object {
 	if len(args) != 2 {
-		return err("tcp_write erwartet 2 Argumente (Verbindung, Daten)")
+		return err("tcp_write expects 2 arguments (connection, data)")
 	}
 	conn, ok := args[0].(*TcpConn)
 	if !ok {
-		return err("tcp_write erwartet eine TCP-Verbindung")
+		return err("tcp_write expects a TCP connection")
 	}
 	data, ok := args[1].(*String)
 	if !ok {
-		return err("tcp_write: Daten müssen String sein")
+		return err("tcp_write: data must be a string")
 	}
 	connMu.Lock()
 	c, exists := connStore[conn.Handle]
 	connMu.Unlock()
 	if !exists {
-		return err("tcp_write: Verbindung existiert nicht")
+		return err("tcp_write: connection does not exist")
 	}
 	_, e := c.Write([]byte(data.Value))
 	if e != nil {
@@ -1590,7 +1608,7 @@ func bTcpWrite(args ...Object) Object {
 
 func bTcpClose(args ...Object) Object {
 	if len(args) != 1 {
-		return err("tcp_close erwartet 1 Argument")
+		return err("tcp_close expects 1 argument")
 	}
 	switch v := args[0].(type) {
 	case *TcpConn:
@@ -1608,7 +1626,7 @@ func bTcpClose(args ...Object) Object {
 		}
 		connMu.Unlock()
 	default:
-		return err("tcp_close: ungültiger Typ")
+		return err("tcp_close: invalid type")
 	}
 	return NILOBJ
 }
@@ -1617,12 +1635,12 @@ func bTcpClose(args ...Object) Object {
 
 func bRegexMatch(args ...Object) Object {
 	if len(args) != 2 {
-		return err("regex_match erwartet 2 Argumente (Pattern, Text)")
+		return err("regex_match expects 2 arguments (Pattern, Text)")
 	}
 	pat, ok := args[0].(*String)
 	txt, ok2 := args[1].(*String)
 	if !ok || !ok2 {
-		return err("regex_match: Pattern und Text müssen Strings sein")
+		return err("regex_match: Pattern und Text must be strings")
 	}
 	matched, e := regexp.MatchString(pat.Value, txt.Value)
 	if e != nil {
@@ -1636,13 +1654,13 @@ func bRegexMatch(args ...Object) Object {
 
 func bRegexReplace(args ...Object) Object {
 	if len(args) != 3 {
-		return err("regex_replace erwartet 3 Argumente (Pattern, Ersatz, Text)")
+		return err("regex_replace expects 3 arguments (Pattern, replacement, Text)")
 	}
 	pat, ok := args[0].(*String)
 	repl, ok2 := args[1].(*String)
 	txt, ok3 := args[2].(*String)
 	if !ok || !ok2 || !ok3 {
-		return err("regex_replace: Alle Argumente müssen Strings sein")
+		return err("regex_replace: Alle Argumente must be strings")
 	}
 	re, e := regexp.Compile(pat.Value)
 	if e != nil {
@@ -1661,17 +1679,17 @@ func bNow(args ...Object) Object {
 
 func bFormatTime(args ...Object) Object {
 	if len(args) < 1 || len(args) > 2 {
-		return err("format_time erwartet 1-2 Argumente (Timestamp, Format?)")
+		return err("format_time expects 1-2 arguments (Timestamp, Format?)")
 	}
 	ts, ok := ToInt(args[0])
 	if !ok {
-		return err("format_time: Timestamp muss Zahl sein")
+		return err("format_time: Timestamp must be a number")
 	}
 	layout := "2006-01-02 15:04:05"
 	if len(args) >= 2 {
 		s, ok := args[1].(*String)
 		if !ok {
-			return err("format_time: Format muss String sein")
+			return err("format_time: Format must be a string")
 		}
 		layout = s.Value
 	}
@@ -1688,15 +1706,15 @@ func bRandom(args ...Object) Object {
 
 func bRandomRange(args ...Object) Object {
 	if len(args) != 2 {
-		return err("random_range erwartet 2 Argumente (Min, Max)")
+		return err("random_range expects 2 arguments (Min, Max)")
 	}
 	min, ok1 := ToInt(args[0])
 	max, ok2 := ToInt(args[1])
 	if !ok1 || !ok2 {
-		return err("random_range: Min und Max müssen Zahlen sein")
+		return err("random_range: Min und Max must be numbers")
 	}
 	if min >= max {
-		return err("random_range: Min muss kleiner als Max sein")
+		return err("random_range: min must be less than max")
 	}
 	return &Integer{Value: min + rand.Int63n(max-min)}
 }
@@ -1707,14 +1725,14 @@ func bRandomRange(args ...Object) Object {
 
 func bOk(args ...Object) Object {
 	if len(args) != 1 {
-		return err("Ok erwartet 1 Argument")
+		return err("Ok expects 1 argument")
 	}
 	return &Result{Ok: true, Val: args[0]}
 }
 
 func bErr(args ...Object) Object {
 	if len(args) != 1 {
-		return err("Err erwartet 1 Argument (Fehlermeldung)")
+		return err("Err expects 1 argument (error message)")
 	}
 	msg, ok := args[0].(*String)
 	if !ok {
@@ -1725,7 +1743,7 @@ func bErr(args ...Object) Object {
 
 func bIsOk(args ...Object) Object {
 	if len(args) != 1 {
-		return err("is_ok erwartet 1 Argument")
+		return err("is_ok expects 1 argument")
 	}
 	r, ok := args[0].(*Result)
 	if !ok {
@@ -1736,7 +1754,7 @@ func bIsOk(args ...Object) Object {
 
 func bIsErr(args ...Object) Object {
 	if len(args) != 1 {
-		return err("is_err erwartet 1 Argument")
+		return err("is_err expects 1 argument")
 	}
 	r, ok := args[0].(*Result)
 	if !ok {
@@ -1747,21 +1765,21 @@ func bIsErr(args ...Object) Object {
 
 func bUnwrap(args ...Object) Object {
 	if len(args) != 1 {
-		return err("unwrap erwartet 1 Argument")
+		return err("unwrap expects 1 argument")
 	}
 	r, ok := args[0].(*Result)
 	if !ok {
-		return err("unwrap erwartet ein Result")
+		return err("unwrap expects a result")
 	}
 	if !r.Ok {
-		return err("unwrap auf Err: " + r.Err)
+		return err("unwrap on Err: " + r.Err)
 	}
 	return r.Val
 }
 
 func bUnwrapOr(args ...Object) Object {
 	if len(args) != 2 {
-		return err("unwrap_or erwartet 2 Argumente (Result, Default)")
+		return err("unwrap_or expects 2 arguments (Result, Default)")
 	}
 	r, ok := args[0].(*Result)
 	if !ok {
@@ -1777,22 +1795,22 @@ func bUnwrapOr(args ...Object) Object {
 
 func bBase64Encode(args ...Object) Object {
 	if len(args) != 1 {
-		return err("base64_encode erwartet 1 Argument")
+		return err("base64_encode expects 1 argument")
 	}
 	s, ok := args[0].(*String)
 	if !ok {
-		return err("base64_encode erwartet einen String")
+		return err("base64_encode expects a string")
 	}
 	return &String{Value: base64.StdEncoding.EncodeToString([]byte(s.Value))}
 }
 
 func bBase64Decode(args ...Object) Object {
 	if len(args) != 1 {
-		return err("base64_decode erwartet 1 Argument")
+		return err("base64_decode expects 1 argument")
 	}
 	s, ok := args[0].(*String)
 	if !ok {
-		return err("base64_decode erwartet einen String")
+		return err("base64_decode expects a string")
 	}
 	b, e := base64.StdEncoding.DecodeString(s.Value)
 	if e != nil {
@@ -1815,4 +1833,277 @@ func err(msg string) *Error {
 
 func FormatMsg(format string, a ...interface{}) string {
 	return fmt.Sprintf(format, a...)
+}
+
+// ---- AI Builtins ----
+
+func bAiProvider(args ...Object) Object {
+	if len(args) != 1 {
+		return err("ai_provider expects 1 argument (name)")
+	}
+	s, ok := args[0].(*String)
+	if !ok {
+		return err("ai_provider: argument must be a string")
+	}
+	ai.SetProvider(s.Value)
+	return &String{Value: "provider set to " + s.Value}
+}
+
+func bAiModel(args ...Object) Object {
+	if len(args) != 1 {
+		return err("ai_model expects 1 argument (model name)")
+	}
+	s, ok := args[0].(*String)
+	if !ok {
+		return err("ai_model: argument must be a string")
+	}
+	ai.SetModel(s.Value)
+	return &String{Value: "model set to " + s.Value}
+}
+
+func bAiTimeout(args ...Object) Object {
+	if len(args) < 1 {
+		return err("ai_timeout expects 1 argument (seconds)")
+	}
+	v, ok := ToInt(args[0])
+	if !ok {
+		return err("ai_timeout: argument must be a number")
+	}
+	ai.SetTimeout(int(v))
+	return NILOBJ
+}
+
+func bAiChat(args ...Object) Object {
+	if len(args) < 2 {
+		return err("ai_chat expects at least 2 arguments (system_prompt, user_prompt)")
+	}
+	sp, ok := args[0].(*String)
+	if !ok {
+		return err("ai_chat: first argument must be a string (system prompt)")
+	}
+	up, ok := args[1].(*String)
+	if !ok {
+		return err("ai_chat: second argument must be a string (user prompt)")
+	}
+
+	req := ai.ChatRequest{
+		Messages: []ai.Message{
+			{Role: "system", Content: sp.Value},
+			{Role: "user", Content: up.Value},
+		},
+	}
+
+	resp, respErr := ai.Chat(req)
+	if respErr != nil {
+		return err("ai_chat: " + respErr.Error())
+	}
+	return &String{Value: resp.Content}
+}
+
+func bAiChatJSON(args ...Object) Object {
+	if len(args) < 2 {
+		return err("ai_chat_json expects at least 2 arguments (system_prompt, user_prompt)")
+	}
+	sp, ok := args[0].(*String)
+	if !ok {
+		return err("ai_chat_json: first argument must be a string")
+	}
+	up, ok := args[1].(*String)
+	if !ok {
+		return err("ai_chat_json: second argument must be a string")
+	}
+
+	sysPrompt := sp.Value + "\nYou must respond with valid JSON only. No markdown, no explanation."
+
+	req := ai.ChatRequest{
+		Messages: []ai.Message{
+			{Role: "system", Content: sysPrompt},
+			{Role: "user", Content: up.Value},
+		},
+	}
+
+	resp, respErr := ai.Chat(req)
+	if respErr != nil {
+		return err("ai_chat_json: " + respErr.Error())
+	}
+
+	var parsed interface{}
+	if jsonErr := json.Unmarshal([]byte(resp.Content), &parsed); jsonErr != nil {
+		return err("ai_chat_json: invalid JSON response: " + resp.Content)
+	}
+	return convertJSON(parsed)
+}
+
+func bSummarize(args ...Object) Object {
+	if len(args) < 1 {
+		return err("summarize expects at least 1 argument (text)")
+	}
+	t, ok := args[0].(*String)
+	if !ok {
+		return err("summarize: argument must be a string")
+	}
+
+	sysPrompt := "You are a precise summarizer. Summarize the given text concisely in 2-3 sentences. Respond only with the summary."
+
+	req := ai.ChatRequest{
+		Messages: []ai.Message{
+			{Role: "system", Content: sysPrompt},
+			{Role: "user", Content: "Summarize this:\n\n" + t.Value},
+		},
+	}
+
+	resp, respErr := ai.Chat(req)
+	if respErr != nil {
+		return err("summarize: " + respErr.Error())
+	}
+	return &String{Value: resp.Content}
+}
+
+func bTranslate(args ...Object) Object {
+	if len(args) < 2 {
+		return err("translate expects 2 arguments (text, target_language)")
+	}
+	t, ok := args[0].(*String)
+	if !ok {
+		return err("translate: first argument must be a string (text)")
+	}
+	lang, ok := args[1].(*String)
+	if !ok {
+		return err("translate: second argument must be a string (target language)")
+	}
+
+	sysPrompt := "You are a translator. Translate the given text to " + lang.Value + ". Respond only with the translated text."
+
+	req := ai.ChatRequest{
+		Messages: []ai.Message{
+			{Role: "system", Content: sysPrompt},
+			{Role: "user", Content: t.Value},
+		},
+	}
+
+	resp, respErr := ai.Chat(req)
+	if respErr != nil {
+		return err("translate: " + respErr.Error())
+	}
+	return &String{Value: resp.Content}
+}
+
+func bClassify(args ...Object) Object {
+	if len(args) < 2 {
+		return err("classify expects 2 arguments (text, categories)")
+	}
+	t, ok := args[0].(*String)
+	if !ok {
+		return err("classify: first argument must be a string (text)")
+	}
+
+	var categories string
+	switch a := args[1].(type) {
+	case *String:
+		categories = a.Value
+	case *List:
+		parts := make([]string, len(a.Elements))
+		for i, e := range a.Elements {
+			parts[i] = e.Inspect()
+		}
+		categories = strings.Join(parts, ", ")
+	default:
+		return err("classify: second argument must be a string or list of categories")
+	}
+
+	sysPrompt := "Classify the given text into EXACTLY ONE of the following categories. Respond with only the category name.\nCategories: " + categories
+
+	req := ai.ChatRequest{
+		Messages: []ai.Message{
+			{Role: "system", Content: sysPrompt},
+			{Role: "user", Content: t.Value},
+		},
+	}
+
+	resp, respErr := ai.Chat(req)
+	if respErr != nil {
+		return err("classify: " + respErr.Error())
+	}
+	return &String{Value: strings.TrimSpace(resp.Content)}
+}
+
+func bExtract(args ...Object) Object {
+	if len(args) < 2 {
+		return err("extract expects 2 arguments (text, schema)")
+	}
+	t, ok := args[0].(*String)
+	if !ok {
+		return err("extract: first argument must be a string (text)")
+	}
+	schema, ok := args[1].(*String)
+	if !ok {
+		return err("extract: second argument must be a string (schema description)")
+	}
+
+	sysPrompt := "Extract the requested information from the text. Respond ONLY with valid JSON. No markdown, no explanation.\nSchema: " + schema.Value
+
+	req := ai.ChatRequest{
+		Messages: []ai.Message{
+			{Role: "system", Content: sysPrompt},
+			{Role: "user", Content: t.Value},
+		},
+	}
+
+	resp, respErr := ai.Chat(req)
+	if respErr != nil {
+		return err("extract: " + respErr.Error())
+	}
+
+	var parsed interface{}
+	if jsonErr := json.Unmarshal([]byte(resp.Content), &parsed); jsonErr != nil {
+		return err("extract: invalid JSON response: " + resp.Content)
+	}
+	return convertJSON(parsed)
+}
+
+func bGenerate(args ...Object) Object {
+	if len(args) < 1 {
+		return err("generate expects at least 1 argument (prompt)")
+	}
+	p, ok := args[0].(*String)
+	if !ok {
+		return err("generate: argument must be a string")
+	}
+
+	req := ai.ChatRequest{
+		Messages: []ai.Message{
+			{Role: "user", Content: p.Value},
+		},
+	}
+
+	resp, respErr := ai.Chat(req)
+	if respErr != nil {
+		return err("generate: " + respErr.Error())
+	}
+	return &String{Value: resp.Content}
+}
+
+func bAsk(args ...Object) Object {
+	if len(args) < 1 {
+		return err("ask expects at least 1 argument (question)")
+	}
+	q, ok := args[0].(*String)
+	if !ok {
+		return err("ask: argument must be a string")
+	}
+
+	sysPrompt := "You are a helpful assistant. Answer the question concisely and accurately."
+
+	req := ai.ChatRequest{
+		Messages: []ai.Message{
+			{Role: "system", Content: sysPrompt},
+			{Role: "user", Content: q.Value},
+		},
+	}
+
+	resp, respErr := ai.Chat(req)
+	if respErr != nil {
+		return err("ask: " + respErr.Error())
+	}
+	return &String{Value: resp.Content}
 }

@@ -1,0 +1,255 @@
+# Roadmap
+
+This document outlines the past, present, and future of the Pipe language. The roadmap is organized into phases, with completed features marked accordingly.
+
+## Current Version: v0.5.0
+
+Pipe is currently at version **v0.5.0**, which includes the foundational language features, dual execution models, a comprehensive standard library, and developer tooling.
+
+---
+
+## Completed Features (v0.1 – v0.5)
+
+### v0.1 — Foundation
+
+- [x] Lexer with 52 token types and INDENT/DEDENT mechanism
+- [x] Parser with recursive descent + Pratt parsing (13 precedence levels)
+- [x] AST with 27 node types (12 statements, 15 expressions)
+- [x] Tree-walking interpreter
+- [x] Basic data types: Integer, Float, String, Boolean, Nil
+- [x] Variables, functions, closures
+- [x] Control flow: if/else, while, for-in, match
+- [x] Error handling: try/catch
+- [x] Lists and Maps
+- [x] Pipeline operator (`>`)
+- [x] Comments and string literals
+
+### v0.2 — Standard Library
+
+- [x] I/O: print, input, read_file, write_file, append_file, read_lines
+- [x] File system: file_exists, file_delete, file_move, file_copy, file_size, file_type
+- [x] Directory: list_dir, make_dir, remove_dir
+- [x] Path utilities: path_join, path_base, path_dir, path_ext
+- [x] String functions: upper, lower, trim, split, join, contains
+- [x] List functions: len, push, pop, at, sort, range
+- [x] Higher-order: map, filter, reduce, each
+- [x] Map functions: get, set, keys, values
+- [x] Type checks: type_of, is_num, is_str, is_list, is_map, is_nil
+- [x] Conversion: to_str, to_num
+- [x] System: exec, env, sleep
+- [x] Math: abs, min, max, pow, sqrt, round
+
+### v0.3 — Networking & Advanced Types
+
+- [x] HTTP client: http_get, http_post, http_get_json
+- [x] JSON: parse_json, to_json
+- [x] TCP: tcp_listen, tcp_connect, tcp_accept, tcp_read, tcp_write, tcp_close
+- [x] Regex: regex_match, regex_replace
+- [x] Date/Time: now, format_time
+- [x] Random: random, random_range
+- [x] Encoding: base64_encode, base64_decode
+- [x] Result type: Ok, Err, is_ok, is_err, unwrap, unwrap_or
+- [x] Compound assignment: +=, -=, *=, /=, %=
+- [x] Enum: enum keyword
+- [x] Import/export system with PIPE_PATH
+
+### v0.4 — Bytecode VM
+
+- [x] Compiler: AST → Bytecode transformation
+- [x] 47 opcodes covering all language features
+- [x] Stack-based VM with 2048-slot stack and 1024 frame depth
+- [x] Symbol table with 4 scope types (Global, Local, Free, Builtin)
+- [x] Closure compilation with free variable capture
+- [x] Short-circuit compilation for `&&` and `||`
+- [x] Loop patching for break/continue
+- [x] `.pipec` bytecode cache format (SHA-256 validated)
+- [x] `-vm` CLI flag
+
+### v0.5 — Tooling & Polish
+
+- [x] Pipe formatter: `pipe fmt`
+- [x] Self-extracting binary builder: `pipe build`
+- [x] VSCode extension with syntax highlighting and auto-indentation
+- [x] 19 example programs in `examples/`
+- [x] Comprehensive documentation (18 chapters + appendix)
+- [x] REPL with history, `:vm` toggle, and multi-line input
+- [x] Dual execution (tree-walker default, VM with `-vm` flag)
+- [x] Tail-call optimization in tree-walker
+- [x] Break/continue in loops
+- [x] Dot expression for map field access
+
+---
+
+## Phase 1: Quick Wins (v0.5.1) ✅
+
+> **Status: Completed**
+
+- [x] `defer` keyword for deferred execution (LIFO order)
+- [x] `_` placeholder in pipeline call arguments
+- [x] Documentation fixes and improvements
+- [x] DEDENT nesting fix for nested blocks (if/while inside other blocks)
+
+---
+
+## Phase 2: Structure (v0.6)
+
+### Improved Module System
+- [ ] Directory-based imports (`import "mylib/"` loads `mylib/init.pipe`)
+- [ ] Relative imports (`import "./utils.pipe"`)
+- [ ] Circular import detection and error reporting
+- [ ] `PIPE_PATH` environment variable documentation and improvements
+
+### Formatter Enhancements (`pipe fmt`)
+- [ ] `--check` flag (exit non-zero if formatting needed)
+- [ ] `--write` flag (overwrite files in-place)
+- [ ] Directory processing (`pipe fmt ./src/` for all `.pipe` files)
+- [ ] Whitespace-only mode for unparseable files
+
+### REPL Improvements
+- [ ] Persistent history across sessions (save to `~/.pipe_history`)
+- [ ] Tab completion for builtin function names
+- [ ] Multi-line editing improvements
+- [ ] Colored output for errors and values
+- [ ] `:load` command to load source files into REPL session
+
+### Better Error Messages
+- [ ] Source code snippets in error output (show the offending line)
+- [ ] Error code system (e.g., `E001: undefined variable`)
+- [ ] Suggestions for common mistakes (e.g., `=` instead of `:` for assignment)
+- [ ] Warning for unused variables
+
+### Enhanced Pattern Matching
+- [ ] Binding patterns (`| x: Some(x) -> ...`)
+- [ ] Guard clauses (`| x if x > 0 -> ...`)
+- [ ] List destructuring patterns (`| [a, b, ...rest] -> ...`)
+- [ ] Map destructuring patterns (`| {name: n, age: a} -> ...`)
+
+---
+
+## Phase 3: Maturity (v0.7+)
+
+### Concurrency
+- [ ] Lightweight coroutines/green threads
+- [ ] Channel-based communication (similar to Go channels)
+- [ ] `spawn` keyword for launching concurrent tasks
+- [ ] `await` for waiting on task completion
+- [ ] Mutex/semaphore primitives
+
+### Type System
+- [ ] Optional type annotations (`x: int = 42`)
+- [ ] Basic type checking at compile time
+- [ ] Union types (`int | string`)
+- [ ] Type inference for local variables
+- [ ] `fn` return type annotations
+
+### Package Registry
+- [ ] Central package index (similar to PyPI or npm)
+- [ ] `pipe install <package>` command
+- [ ] Package manifest format (`package.pipe` or `pipe.json`)
+- [ ] Semantic versioning support
+- [ ] `pipe publish` for package authors
+
+### Bytecode Optimizations
+- [ ] Constant folding at compile time
+- [ ] Dead code elimination
+- [ ] Inlining of small functions
+- [ ] Peephole optimization pass
+- [ ] Bytecode serialization to/from `.pipec`
+
+### Web Playground
+- [ ] Browser-based Pipe editor (compiled to WASM)
+- [ ] Interactive examples and tutorials
+- [ ] Code sharing via URLs
+- [ ] Syntax-highlighted editor with live execution
+
+### VSCode 2.0 Extension
+- [ ] Debugger support with breakpoints
+- [ ] Variable inspection and watch expressions
+- [ ] REPL terminal integration
+- [ ] Code snippets for common patterns
+- [ ] Project-level configuration (`.vscode/pipe.json`)
+
+### Language Server Protocol (LSP)
+- [ ] Go-to-definition for functions and variables
+- [ ] Find all references
+- [ ] Hover information with type and documentation
+- [ ] Inline diagnostics (parse errors, warnings)
+- [ ] Code completion suggestions
+- [ ] Rename symbol refactoring
+- [ ] Workspace symbol search
+
+### Test Framework
+- [ ] `test` keyword or `test` builtin function
+- [ ] Assertion helpers: `assert_eq`, `assert_true`, etc.
+- [ ] Test runner CLI (`pipe test`)
+- [ ] Test file discovery (`*_test.pipe`)
+- [ ] Setup/teardown hooks
+
+### Documentation Generator
+- [ ] Extract docstrings from source code
+- [ ] Generate API documentation in Markdown
+- [ ] Cross-reference links between documented symbols
+- [ ] `pipe doc` command
+
+### Additional Features
+- [ ] Set data structure (unique, unordered collection)
+- [ ] File system watchers (`watch_dir`, `watch_file`)
+- [ ] Process management (start, kill, wait for subprocesses)
+- [ ] Regular expression capture groups in `regex_match`
+- [ ] Binary data support (byte arrays)
+- [ ] Cryptographic functions (hash, encrypt, decrypt)
+- [ ] Environment variable file loading (`.env` support)
+- [ ] Signal handling (SIGINT, SIGTERM)
+- [ ] Interactive prompt library (readline-style)
+- [ ] Internationalization (i18n) support
+- [ ] Plugin system for extending the runtime with Go or WASM modules
+
+---
+
+## Feature Status Matrix
+
+| Feature | Status | Version | Notes |
+|---------|--------|---------|-------|
+| Lexer (52 tokens) | ✅ Done | v0.1 | Includes INDENT/DEDENT |
+| Parser (Pratt + RD) | ✅ Done | v0.1 | 13 precedence levels |
+| AST (27 nodes) | ✅ Done | v0.1 | 12 stmts, 15 exprs |
+| Tree-Walker | ✅ Done | v0.1 | Default execution mode |
+| Variables & Functions | ✅ Done | v0.1 | Closures supported |
+| Control Flow | ✅ Done | v0.1 | if/while/for/match/try |
+| Lists & Maps | ✅ Done | v0.1 | Dot access, slicing |
+| Pipelines | ✅ Done | v0.1 | Horizontal + vertical |
+| Standard Library | ✅ Done | v0.2 | 86 builtins |
+| HTTP Client | ✅ Done | v0.3 | GET, POST, JSON |
+| TCP Networking | ✅ Done | v0.3 | Server + client |
+| Regex | ✅ Done | v0.3 | Match + replace |
+| Date/Time | ✅ Done | v0.3 | now, format_time |
+| Compound Assignment | ✅ Done | v0.3 | +=, -=, *=, /=, %= |
+| Enum | ✅ Done | v0.3 | Named values |
+| Import/Export | ✅ Done | v0.3 | Module system |
+| Result Type | ✅ Done | v0.3 | Ok/Err pattern |
+| Bytecode VM | ✅ Done | v0.4 | 47 opcodes |
+| `.pipec` Cache | ✅ Done | v0.4 | SHA-256 validated |
+| Formatter | ✅ Done | v0.5 | `pipe fmt` |
+| Build System | ✅ Done | v0.5 | Self-extracting bins |
+| VSCode Extension | ✅ Done | v0.5 | Syntax + auto-indent |
+| Documentation | ✅ Done | v0.5 | 18 chapters |
+| REPL | ✅ Done | v0.5 | History, :vm toggle |
+| TCO | ✅ Done | v0.5 | Tree-walker only |
+| Defer | ✅ Done | v0.5.1 | LIFO cleanup |
+| `_` Placeholder | ✅ Done | v0.5.1 | Pipeline args |
+| Improved Module Sys | 🔜 Planned | v0.6 | Dirs, relative, circular |
+| Formatter Enhance | 🔜 Planned | v0.6 | --check, dirs |
+| REPL Improvements | 🔜 Planned | v0.6 | History, completion |
+| Better Errors | 🔜 Planned | v0.6 | Snippets, codes |
+| Pattern Matching+ | 🔜 Planned | v0.6 | Guards, destructuring |
+| Concurrency | 🔮 Future | v0.7+ | Coroutines, channels |
+| Type Annotations | 🔮 Future | v0.7+ | Optional typing |
+| Package Registry | 🔮 Future | v0.7+ | `pipe install` |
+| Bytecode Opts | 🔮 Future | v0.7+ | Fold, inline, peephole |
+| Sets | 🔮 Future | v0.7+ | Unique collections |
+| Web Playground | 🔮 Future | v0.7+ | WASM-based |
+| VSCode 2.0 | 🔮 Future | v0.7+ | Debugger, snippets |
+| LSP | 🔮 Future | v0.7+ | Full language server |
+| Test Framework | 🔮 Future | v0.7+ | `pipe test` |
+| Doc Generator | 🔮 Future | v0.7+ | `pipe doc` |
+| Plugins | 🔮 Future | v0.8+ | Go/WASM extensions |

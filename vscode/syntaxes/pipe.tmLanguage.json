@@ -132,7 +132,11 @@
         },
         {
           "name": "support.function.builtin.system.pipe",
-          "match": "\\b(exec|env|sleep|now|format_time|random|random_range|base64_encode|base64_decode|type_of|is_num|is_str|is_list|is_map|is_nil|to_str|to_num|regex_match|regex_replace)\\b"
+          "match": "\\b(exec|env|sleep|now|format_time|random|random_range|base64_encode|base64_decode|type_of|is_num|is_str|is_list|is_map|is_nil|to_str|to_num|regex_match|regex_replace|Ok|Err|is_ok|is_err|unwrap|unwrap_or)\\b"
+        },
+        {
+          "name": "support.function.builtin.ai.pipe",
+          "match": "\\b(ai_provider|ai_model|ai_timeout|ai_chat|ai_chat_json|summarize|translate|classify|extract|generate|ask)\\b"
         }
       ]
     },

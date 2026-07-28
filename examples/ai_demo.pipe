@@ -1,0 +1,179 @@
+-- ============================================================
+-- PIPE AI DEMO — KI-Funktionen in Pipe
+-- ============================================================
+-- Voraussetzungen:
+--   export DEEPSEEK_API_KEY="sk-..."
+--
+-- Ausführung:
+--   ./bin/pipe -vm -q examples/ai_demo.pipe
+-- ============================================================
+
+ai_provider "deepseek"
+
+fn demo_setup _
+    print "╔══════════════════════════════════════╗"
+    print "║     PIPE AI — KI-Demo              ║"
+    print "╚══════════════════════════════════════╝"
+    print ""
+    print "Provider: DeepSeek (deepseek-v4-pro)"
+    print ""
+
+-- Helfer: Timestamp + AI-Call-Bestätigung
+fn ai_start label
+    t: now 0
+    print (label ++ "...")
+    t
+
+fn ai_done label start
+    dauer: (now 0) - start
+    print (label ++ " ✓ (" ++ (to_str dauer) ++ "s)")
+    print ""
+
+fn demo_ask _
+    ts: ai_start "► ask (Frage stellen)"
+    print ""
+    print "Antwort:"
+    ask "Was ist eine Pipeline in der Programmierung? Antworte in 2 Sätzen."
+        > print
+    ai_done "► ask" ts
+
+fn demo_summarize _
+    ts: ai_start "► summarize (Text zusammenfassen)"
+    text: `Pipe ist eine einrückungsbasierte, pipeline-orientierte Skriptsprache,
+implementiert in Go. Sie wird als einzelne, statisch gelinkte Binary
+ausgeliefert und benötigt keine externen Abhängigkeiten.
+Die Kernphilosophie: Daten fließen sichtbar von oben nach unten durch
+eine Kette von Transformationen. Statt verschachtelter Funktionsaufrufe
+schreibt man den Datenfluss linear aus.`
+    print "Text: " ++ (to_str (len text)) ++ " Zeichen"
+    print ""
+    summarize text
+        > print
+    ai_done "► summarize" ts
+
+fn demo_translate _
+    ts: ai_start "► translate (Übersetzen)"
+    text: "Pipe combines the readability of Python with the pipeline philosophy of Unix shells."
+    print "Original: " ++ text
+    print ""
+    translate text "de"
+        > print
+    ai_done "► translate" ts
+
+fn demo_classify _
+    ts: ai_start "► classify (Klassifizieren)"
+
+    fn check text
+        print "  " ++ text ++ " → "
+        kategorien: ["spam", "important", "newsletter", "personal", "urgent"]
+        classify text kategorien
+            > print
+
+    check "Meeting tomorrow at 10am in the conference room"
+    check "CONGRATULATIONS! You won a free iPhone! Click here now!!!"
+    check "Your monthly bank statement is ready for review"
+    check "Hi, want to grab coffee this afternoon?"
+    ai_done "► classify" ts
+
+fn demo_extract _
+    ts: ai_start "► extract (Daten extrahieren)"
+    print "Text: John Smith, 15. März 1985, Berlin, TechCorp"
+    print ""
+    try
+        result: extract "John Smith, born March 15 1985 in Berlin, works as Software Developer at TechCorp. Email: john@example.com." "{name, birth_date, birth_place, job, company, email}"
+        print "Name:    " ++ (get result "name")
+        print "Job:     " ++ (get result "job")
+        print "Company: " ++ (get result "company")
+        print "Email:   " ++ (get result "email")
+    catch e
+        print ("Fehler: " ++ e)
+    ai_done "► extract" ts
+
+fn demo_pipeline_chain _
+    ts: ai_start "► Pipeline-Chain (EN → DE → summarize)"
+    print ""
+
+    fn s text
+        summarize text
+
+    "Artificial intelligence is transforming how we build software."
+        > translate "de"
+        > s
+        > print
+
+    ai_done "► Pipeline-Chain" ts
+
+fn demo_lowlevel _
+    ts: ai_start "► ai_chat_json (Low-Level Chat → JSON)"
+
+    system: "You are a JSON API. Always respond with valid JSON."
+    user: "Create a JSON object with keys 'language', 'paradigm', 'strength' describing Pipe."
+
+    try
+        result: (ai_chat_json system user)
+        print "Language:  " ++ (get result "language")
+        print "Paradigm:  " ++ (get result "paradigm")
+        print "Strength:  " ++ (get result "strength")
+    catch e
+        print ("Low-level Fehler: " ++ e)
+    ai_done "► ai_chat_json" ts
+
+fn demo_generate _
+    ts: ai_start "► generate (Freitext-Generierung)"
+    print ""
+    generate "Schreibe einen kurzen, lustigen Witz über Programmierer. Nur den Witz, keine Erklärung."
+        > print
+    ai_done "► generate" ts
+
+-- ─── Alle AI Builtins ───────────────────────────────────────
+fn show_all_builtins _
+    print "─── Alle AI-Builtins ───"
+    print ""
+    print "  Konfiguration:"
+    print "    ai_provider \"name\"        -- openai|anthropic|deepseek"
+    print "    ai_model \"name\"            -- Modell setzen"
+    print "    ai_timeout sekunden          -- Timeout (Standard: 60s)"
+    print ""
+    print "  High-Level:"
+    print "    summarize text               -- Text zusammenfassen"
+    print "    translate text sprache        -- Übersetzen"
+    print "    classify text kategorien      -- Klassifizieren"
+    print "    extract text schema           -- Daten extrahieren (JSON)"
+    print "    generate prompt               -- Freitext generieren"
+    print "    ask frage                     -- Frage beantworten"
+    print ""
+    print "  Low-Level:"
+    print "    ai_chat system user           -- Direkter Chat"
+    print "    ai_chat_json system user      -- Chat → JSON"
+    print ""
+
+-- ─── Start ─────────────────────────────────────────────────
+demo_setup 0
+show_all_builtins 0
+
+-- Demos nacheinander ausführen (try/catch falls kein API-Key)
+try
+    demo_ask 0
+    demo_summarize 0
+    demo_translate 0
+    demo_classify 0
+    demo_extract 0
+    demo_pipeline_chain 0
+    demo_lowlevel 0
+    demo_generate 0
+
+    print ""
+    print "═══ ALLE KI-DEMOS ERFOLGREICH ═══"
+
+catch e
+    print "═══ KEIN API-KEY oder API-FEHLER ═══"
+    print ""
+    print ("Fehler: " ++ e)
+    print ""
+    print "Bitte setze deinen API-Key:"
+    print "  export DEEPSEEK_API_KEY=\"sk-...\""
+    print "  export OPENAI_API_KEY=\"sk-...\""
+    print "  export ANTHROPIC_API_KEY=\"sk-ant-...\""
+    print ""
+    print "Und führe das Demo erneut aus:"
+    print "  ./bin/pipe -vm -q examples/ai_demo.pipe"

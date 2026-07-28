@@ -540,6 +540,11 @@ func (c *Compiler) Compile(node ast.Node) error {
 			return err
 		}
 
+	case *ast.ExportStatement:
+		if err := c.Compile(n.Fn); err != nil {
+			return err
+		}
+
 	case *ast.DeferStatement:
 		if err := c.compileDefer(n); err != nil {
 			return err

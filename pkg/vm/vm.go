@@ -154,12 +154,7 @@ func (vm *VM) Run() error {
 		case compiler.OpConcat:
 			right := vm.pop()
 			left := vm.pop()
-			ls, ok := left.(*object.String)
-			rs, ok2 := right.(*object.String)
-			if !ok || !ok2 {
-				return fmt.Errorf("Type error: ++ requires two strings")
-			}
-			vm.push(&object.String{Value: ls.Value + rs.Value})
+			vm.push(&object.String{Value: left.Inspect() + right.Inspect()})
 
 		case compiler.OpMinus:
 			val := vm.pop()
@@ -602,12 +597,7 @@ func (vm *VM) executeFrame() object.Object {
 		case compiler.OpConcat:
 			right := vm.pop()
 			left := vm.pop()
-			ls, ok := left.(*object.String)
-			rs, ok2 := right.(*object.String)
-			if !ok || !ok2 {
-				return &object.Error{Message: "Type error: ++ requires two strings"}
-			}
-			vm.push(&object.String{Value: ls.Value + rs.Value})
+			vm.push(&object.String{Value: left.Inspect() + right.Inspect()})
 
 		case compiler.OpJump:
 			target := compiler.ReadUint16(ins, frame.ip)

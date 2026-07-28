@@ -157,7 +157,7 @@ func (vm *VM) Run() error {
 			ls, ok := left.(*object.String)
 			rs, ok2 := right.(*object.String)
 			if !ok || !ok2 {
-				return fmt.Errorf("Typ-Fehler: ++ benoetigt zwei Strings")
+				return fmt.Errorf("Type error: ++ requires two strings")
 			}
 			vm.push(&object.String{Value: ls.Value + rs.Value})
 
@@ -169,7 +169,7 @@ func (vm *VM) Run() error {
 			case *object.Float:
 				vm.push(&object.Float{Value: -v.Value})
 			default:
-				return fmt.Errorf("Typ-Fehler: -%s", val.Type())
+				return fmt.Errorf("Type error: -%s", val.Type())
 			}
 
 		case compiler.OpNot:
@@ -215,7 +215,7 @@ func (vm *VM) Run() error {
 			idx := compiler.ReadUint16(ins, frame.ip)
 			frame.ip += 2
 			if int(idx) >= len(object.Builtins) {
-				return fmt.Errorf("unbekannte Builtin-Funktion: %d", idx)
+				return fmt.Errorf("unknown builtin function: %d", idx)
 			}
 			vm.push(&object.BuiltinInfo{
 				Name: object.Builtins[idx].Name,
@@ -266,7 +266,7 @@ func (vm *VM) Run() error {
 			frame.ip += 2
 			fn, ok := vm.constants[idx].(*object.CompiledFunction)
 			if !ok {
-				return fmt.Errorf("keine CompiledFunction an Index %d", idx)
+				return fmt.Errorf("not a CompiledFunction at index %d", idx)
 			}
 			free := make([]object.Object, numFree)
 			for i := numFree - 1; i >= 0; i-- {
@@ -318,14 +318,14 @@ func (vm *VM) Run() error {
 					vm.push(object.NILOBJ)
 				}
 			default:
-				return fmt.Errorf(". nur auf Map: %s", obj.Type())
+				return fmt.Errorf(". only on map: %s", obj.Type())
 			}
 
 		case compiler.OpHalt:
 			return nil
 
 		default:
-			return fmt.Errorf("unbekannter Opcode: %d", op)
+			return fmt.Errorf("unknown opcode: %d", op)
 		}
 	}
 
@@ -391,7 +391,7 @@ func (vm *VM) binaryOp(op compiler.Opcode, left, right object.Object) object.Obj
 	case left.Type() == object.STRING && op == compiler.OpAdd:
 		return &object.String{Value: left.(*object.String).Value + right.Inspect()}
 	default:
-		return &object.Error{Message: fmt.Sprintf("Typ-Fehler: %s %s %s", left.Type(), op, right.Type())}
+		return &object.Error{Message: fmt.Sprintf("Type error: %s %s %s", left.Type(), op, right.Type())}
 	}
 }
 
@@ -406,18 +406,18 @@ func (vm *VM) binaryIntOp(op compiler.Opcode, left, right *object.Integer) objec
 		return &object.Integer{Value: l * r}
 	case compiler.OpDiv:
 		if r == 0 {
-			return &object.Error{Message: "ERROR: Division durch Null"}
+			return &object.Error{Message: "ERROR: division by zero"}
 		}
 		return &object.Integer{Value: l / r}
 	case compiler.OpMod:
 		if r == 0 {
-			return &object.Error{Message: "ERROR: Modulo durch Null"}
+			return &object.Error{Message: "ERROR: modulo by zero"}
 		}
 		return &object.Integer{Value: l % r}
 	case compiler.OpPow:
 		return &object.Integer{Value: int64(math.Pow(float64(l), float64(r)))}
 	}
-	return &object.Error{Message: fmt.Sprintf("unbekannter int op %d", op)}
+	return &object.Error{Message: fmt.Sprintf("unknown int op %d", op)}
 }
 
 func (vm *VM) binaryFloatOp(op compiler.Opcode, left, right *object.Float) object.Object {
@@ -431,18 +431,18 @@ func (vm *VM) binaryFloatOp(op compiler.Opcode, left, right *object.Float) objec
 		return &object.Float{Value: l * r}
 	case compiler.OpDiv:
 		if r == 0 {
-			return &object.Error{Message: "ERROR: Division durch Null"}
+			return &object.Error{Message: "ERROR: division by zero"}
 		}
 		return &object.Float{Value: l / r}
 	case compiler.OpMod:
 		if r == 0 {
-			return &object.Error{Message: "ERROR: Modulo durch Null"}
+			return &object.Error{Message: "ERROR: modulo by zero"}
 		}
 		return &object.Float{Value: float64(int64(l) % int64(r))}
 	case compiler.OpPow:
 		return &object.Float{Value: math.Pow(l, r)}
 	}
-	return &object.Error{Message: fmt.Sprintf("unbekannter float op %d", op)}
+	return &object.Error{Message: fmt.Sprintf("unknown float op %d", op)}
 }
 
 func (vm *VM) compareOp(op compiler.Opcode, left, right object.Object) object.Object {
@@ -462,7 +462,7 @@ func (vm *VM) compareOp(op compiler.Opcode, left, right object.Object) object.Ob
 	case left.Type() == object.STRING && right.Type() == object.STRING:
 		return vm.compareStringOp(op, left.(*object.String).Value, right.(*object.String).Value)
 	}
-	return &object.Error{Message: fmt.Sprintf("Typ-Fehler: vergleiche %s %s", left.Type(), right.Type())}
+	return &object.Error{Message: fmt.Sprintf("Type error: comparing %s %s", left.Type(), right.Type())}
 }
 
 func (vm *VM) compareIntOp(op compiler.Opcode, l, r int64) object.Object {
@@ -579,7 +579,7 @@ func (vm *VM) executeFrame() object.Object {
 			case *object.Float:
 				vm.push(&object.Float{Value: -v.Value})
 			default:
-				return &object.Error{Message: fmt.Sprintf("Typ-Fehler: -%s", val.Type())}
+				return &object.Error{Message: fmt.Sprintf("Type error: -%s", val.Type())}
 			}
 
 		case compiler.OpNot:
@@ -605,7 +605,7 @@ func (vm *VM) executeFrame() object.Object {
 			ls, ok := left.(*object.String)
 			rs, ok2 := right.(*object.String)
 			if !ok || !ok2 {
-				return &object.Error{Message: "Typ-Fehler: ++ benoetigt zwei Strings"}
+				return &object.Error{Message: "Type error: ++ requires two strings"}
 			}
 			vm.push(&object.String{Value: ls.Value + rs.Value})
 
@@ -648,7 +648,7 @@ func (vm *VM) executeFrame() object.Object {
 			idx := int(compiler.ReadUint16(ins, frame.ip))
 			frame.ip += 2
 			if idx < 0 || idx >= len(object.Builtins) {
-				return &object.Error{Message: fmt.Sprintf("unbekanntes builtin: %d", idx)}
+				return &object.Error{Message: fmt.Sprintf("unknown builtin: %d", idx)}
 			}
 			vm.push(&object.BuiltinInfo{
 				Name: object.Builtins[idx].Name,
@@ -680,7 +680,7 @@ func (vm *VM) executeFrame() object.Object {
 			frame.ip += 2
 			fn, ok := vm.constants[idx].(*object.CompiledFunction)
 			if !ok {
-				return &object.Error{Message: fmt.Sprintf("keine CompiledFunction an Index %d", idx)}
+				return &object.Error{Message: fmt.Sprintf("not a CompiledFunction at index %d", idx)}
 			}
 			free := make([]object.Object, numFree)
 			for i := numFree - 1; i >= 0; i-- {
@@ -714,7 +714,7 @@ func (vm *VM) executeFrame() object.Object {
 					vm.push(object.NILOBJ)
 				}
 			default:
-				return &object.Error{Message: fmt.Sprintf(". nur auf Map: %s", obj.Type())}
+				return &object.Error{Message: fmt.Sprintf(". only on map: %s", obj.Type())}
 			}
 
 		case compiler.OpReturn:
@@ -731,7 +731,7 @@ func (vm *VM) executeFrame() object.Object {
 			return returnVal
 
 		default:
-			return &object.Error{Message: fmt.Sprintf("unbekannter Opcode in user fn: %d", op)}
+			return &object.Error{Message: fmt.Sprintf("unknown opcode in user fn: %d", op)}
 		}
 	}
 	return object.NILOBJ

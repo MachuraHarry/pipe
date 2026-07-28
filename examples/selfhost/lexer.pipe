@@ -343,4 +343,4 @@ e8: [{type: "LBRACKET", literal: "["}, {type: "INT", literal: "1"}, {type: "COMM
 test_lexer "List" "[1, 2]" e8
 
 print ""
-print "=== Alle Tests bestanden ==="
+print "=== All tests passed ==="

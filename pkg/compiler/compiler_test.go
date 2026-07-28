@@ -187,7 +187,7 @@ func TestCompileIfExpression(t *testing.T) {
 }
 
 func TestCompileMatchExpression(t *testing.T) {
-	input := "match 1\n    | 0 -> \"null\"\n    | 1 -> \"eins\"\n    | _ -> \"sonst\""
+	input := "match 1\n    | 0 -> \"null\"\n    | 1 -> \"one\"\n    | _ -> \"other\""
 	bc := parseAndCompile(t, input)
 	if !hasOp(t, bc, OpDup) {
 		t.Error("expected OpDup for match value")

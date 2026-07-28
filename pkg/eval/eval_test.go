@@ -176,11 +176,11 @@ else
 }
 
 func TestEvalMatchExpression(t *testing.T) {
-	input := "match 2\n    | 0 -> \"null\"\n    | 1 -> \"eins\"\n    | _ -> \"sonst\""
-	expectValue(t, input, "sonst")
+	input := "match 2\n    | 0 -> \"null\"\n    | 1 -> \"one\"\n    | _ -> \"other\""
+	expectValue(t, input, "other")
 
-	input2 := "match 1\n    | 0 -> \"null\"\n    | 1 -> \"eins\"\n    | _ -> \"sonst\""
-	expectValue(t, input2, "eins")
+	input2 := "match 1\n    | 0 -> \"null\"\n    | 1 -> \"one\"\n    | _ -> \"other\""
+	expectValue(t, input2, "one")
 }
 
 func TestEvalFunctions(t *testing.T) {

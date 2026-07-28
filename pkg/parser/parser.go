@@ -150,7 +150,7 @@ func (p *Parser) expectPeek(t lexer.TokenType) bool {
 
 func (p *Parser) peekError(t lexer.TokenType) {
 	p.errors = append(p.errors, fmt.Sprintf(
-		"line %d col %d: erwarte %s, habe %s (%q)",
+		"line %d col %d: expected %s, got %s (%q)",
 		p.peekToken.Line, p.peekToken.Col,
 		lexer.TokenName(t), lexer.TokenName(p.peekToken.Type), p.peekToken.Literal,
 	))
@@ -158,7 +158,7 @@ func (p *Parser) peekError(t lexer.TokenType) {
 
 func (p *Parser) noPrefixParseFnError(t lexer.TokenType) {
 	p.errors = append(p.errors,
-		fmt.Sprintf("line %d col %d: kein Präfix-Parser für %s (%q)",
+		fmt.Sprintf("line %d col %d: no prefix parser for %s (%q)",
 			p.curToken.Line, p.curToken.Col, lexer.TokenName(t), p.curToken.Literal))
 }
 
@@ -312,7 +312,7 @@ func (p *Parser) parseFnStatement() *ast.FnStatement {
 	p.nextToken()
 
 	if !p.curTokenIs(lexer.IDENT) {
-		p.error("erwarte Funktionsname nach 'fn'")
+		p.error("expected function name after 'fn'")
 		return nil
 	}
 	stmt.Name = &ast.Identifier{Value: p.curToken.Literal}
@@ -487,7 +487,7 @@ func (p *Parser) parseIntegerLiteral() ast.Expression {
 	lit := &ast.IntegerLiteral{}
 	value, err := strconv.ParseInt(p.curToken.Literal, 10, 64)
 	if err != nil {
-		p.error(fmt.Sprintf("ungültige Zahl: %s", p.curToken.Literal))
+		p.error(fmt.Sprintf("invalid number: %s", p.curToken.Literal))
 		return nil
 	}
 	lit.Value = value
@@ -498,7 +498,7 @@ func (p *Parser) parseFloatLiteral() ast.Expression {
 	lit := &ast.FloatLiteral{}
 	value, err := strconv.ParseFloat(p.curToken.Literal, 64)
 	if err != nil {
-		p.error(fmt.Sprintf("ungültige Zahl: %s", p.curToken.Literal))
+		p.error(fmt.Sprintf("invalid number: %s", p.curToken.Literal))
 		return nil
 	}
 	lit.Value = value
@@ -616,7 +616,7 @@ func (p *Parser) parseMapLiteral() ast.Expression {
 
 	for !p.curTokenIs(lexer.RBRACE) && !p.curTokenIs(lexer.EOF) {
 		if !p.curTokenIs(lexer.IDENT) {
-			p.error("erwarte Schlüssel in Map")
+			p.error("expected key in map")
 			return nil
 		}
 		key := p.curToken.Literal
@@ -725,7 +725,7 @@ func isSimpleLiteral(t lexer.TokenType) bool {
 func (p *Parser) parseDotExpression(left ast.Expression) ast.Expression {
 	p.nextToken()
 	if !p.curTokenIs(lexer.IDENT) {
-		p.error("erwarte Feldname nach '.'")
+		p.error("expected field name after '.'")
 		return nil
 	}
 	return &ast.DotExpression{
@@ -837,7 +837,7 @@ func (p *Parser) parseDeferStatement() ast.Statement {
 func (p *Parser) parseExportStatement() ast.Statement {
 	p.nextToken() // skip 'export'
 	if !p.curTokenIs(lexer.FN) {
-		p.error("export erwartet 'fn'")
+		p.error("export expects 'fn'")
 		return nil
 	}
 	fnStmt := p.parseFnStatement()
@@ -852,7 +852,7 @@ func (p *Parser) parseEnumStatement() ast.Statement {
 
 	p.nextToken() // skip 'enum'
 	if !p.curTokenIs(lexer.IDENT) {
-		p.error("enum erwartet einen Namen")
+		p.error("enum expects a name")
 		return nil
 	}
 	stmt.Name = p.curToken.Literal
@@ -877,7 +877,7 @@ func (p *Parser) parseEnumStatement() ast.Statement {
 func (p *Parser) parseImportStatement() ast.Statement {
 	p.nextToken() // skip 'import'
 	if !p.curTokenIs(lexer.STRING) {
-		p.error("import erwartet einen String-Pfad")
+		p.error("import expects a string path")
 		return nil
 	}
 	stmt := &ast.ImportStatement{Path: p.curToken.Literal}
@@ -954,7 +954,7 @@ func (p *Parser) parseTryExpression() ast.Expression {
 
 	// Expect 'catch' keyword
 	if !p.peekTokenIs(lexer.CATCH) {
-		p.error("try ohne catch")
+		p.error("try without catch")
 		return nil
 	}
 	p.nextToken() // consume 'catch'

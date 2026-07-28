@@ -58,7 +58,7 @@ fn count_words html
     for w in words
         if w != ""
             non_empty: non_empty + 1
-    print ("Wörter: " ++ (to_str non_empty))
+    print ("Words: " ++ (to_str non_empty))
 
 fn analyze url
     html: fetch_page url
@@ -67,11 +67,11 @@ fn analyze url
     else
         count_words html
         print ""
-        print ("HTML-Länge: " ++ (to_str (len html)) ++ " Zeichen")
+        print ("HTML length: " ++ (to_str (len html)) ++ " chars")
         print ""
         -- Extrahiere Metadaten
         if contains html "<title>"
-            print "Titel gefunden (enthält <title>)"
+            print "Title found (contains <title>)"
         else
             print "Kein <title> gefunden."
 

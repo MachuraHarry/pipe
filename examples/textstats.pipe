@@ -5,15 +5,15 @@ fn analyze text
     print "Text: "
     print text
     print ""
-    print "Anzahl Wörter: "
+    print "Word count: "
     print (len words)
     print ""
     print "In GROSS: "
     print (upper text)
     print ""
-    print "Enthält 'Welt'?"
+    print "Contains 'world'?"
     print (contains text "Welt")
-    print "Enthält 'Mars'?"
+    print "Contains 'Mars'?"
     print (contains text "Mars")
 
 analyze "Hallo Welt von Pipe"

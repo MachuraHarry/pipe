@@ -147,7 +147,7 @@ func TestFunctionDefMultiParam(t *testing.T) {
 }
 
 func TestIfExpression(t *testing.T) {
-	input := "if x > 10\n    print \"groß\"\nelse\n    print \"klein\"\n"
+	input := "if x > 10\n    print \"big\"\nelse\n    print \"small\"\n"
 	program := parseProgram(t, input)
 
 	expr, ok := program.Statements[0].(*ast.ExpressionStatement).Expression.(*ast.IfExpression)

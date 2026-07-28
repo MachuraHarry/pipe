@@ -1,4 +1,4 @@
--- Caesar-Verschlüsselung
+-- Caesar cipher
 
 fn shift_char ch offset
     code: at "abcdefghijklmnopqrstuvwxyz" 0

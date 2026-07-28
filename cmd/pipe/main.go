@@ -82,7 +82,7 @@ func main() {
 
 	if doBuild {
 		if filePath == "" {
-			fmt.Fprintln(os.Stderr, "pipe: -build benötigt eine .pipe Datei")
+			fmt.Fprintln(os.Stderr, "pipe: -build requires a .pipe file")
 			os.Exit(1)
 		}
 		outPath := buildOut
@@ -132,7 +132,7 @@ func main() {
 	program := p.ParseProgram()
 
 	if len(p.Errors()) > 0 {
-		fmt.Fprintln(os.Stderr, "Parse-Fehler:")
+		fmt.Fprintln(os.Stderr, "Parse errors:")
 		for _, err := range p.Errors() {
 			fmt.Fprintf(os.Stderr, "  %s\n", err)
 		}
@@ -152,30 +152,30 @@ func main() {
 }
 
 func printHelp() {
-	fmt.Println(`Pipe ` + version + ` — Minimalistische Pipeline-Skriptsprache
+	fmt.Println(`Pipe ` + version + ` — Minimalistic pipeline scripting language
 
-Verwendung:
-  pipe [flags] <datei.pipe>    Datei ausführen
-  pipe                          REPL starten
+Usage:
+  pipe [flags] <file.pipe>    Execute file
+  pipe                         Start REPL
 
 Flags:
-  -vm           Bytecode-VM statt Tree-Walker verwenden
-  -q            Im VM-Modus: Bytecode-Ausgabe unterdrücken
-  -ast          Nur AST ausgeben, nicht ausführen
-  -fmt          Datei formatieren (Einrückung, Whitespace)
-  -test         Alle *.pipe und *_test.pipe im aktuellen Verzeichnis testen
-  -bench        Benchmarks ausführen (Tree-Walker vs VM)
-  -h, --help    Diese Hilfe anzeigen
+  -vm           Use bytecode VM instead of tree-walker
+  -q            VM mode: suppress bytecode output
+  -ast          Only print AST, don't execute
+  -fmt          Format file (indentation, whitespace)
+  -test         Test all *.pipe and *_test.pipe in current directory
+  -bench        Run benchmarks (tree-walker vs VM)
+  -h, --help    Show this help
 
-Beispiele:
+Examples:
   pipe examples/hello.pipe
   pipe -vm examples/fib.pipe
   pipe -vm -q examples/fizzbuzz.pipe
   pipe -ast examples/pipeline.pipe
   pipe -test
   pipe -bench
-  pipe -build mein.pipe     # Kompiliert zu standalone Binary
-  pipe -build mein.pipe mein_prog  # Mit Ausgabename`)
+  pipe -build my.pipe         # Compiles to standalone binary
+  pipe -build my.pipe my_prog  # With output name`)
 }
 
 func runEval(program *ast.Program, scriptArgs []string, filePath string) {
@@ -190,7 +190,7 @@ func runEval(program *ast.Program, scriptArgs []string, filePath string) {
 	ctx := eval.NewEvalContext(filePath)
 	result := ctx.Eval(program, env)
 	if result != nil && result.Type() == object.ERROR {
-		fmt.Fprintf(os.Stderr, "Laufzeit-Fehler: %s\n", result.Inspect())
+		fmt.Fprintf(os.Stderr, "Runtime error: %s\n", result.Inspect())
 		os.Exit(1)
 	}
 }
@@ -198,7 +198,7 @@ func runEval(program *ast.Program, scriptArgs []string, filePath string) {
 func runVM(program *ast.Program, quiet bool, filePath string) {
 	comp := compiler.New()
 	if err := comp.Compile(program); err != nil {
-		fmt.Fprintf(os.Stderr, "Compiler-Fehler: %s\n", err)
+		fmt.Fprintf(os.Stderr, "Compiler error: %s\n", err)
 		os.Exit(1)
 	}
 
@@ -219,7 +219,7 @@ func runVM(program *ast.Program, quiet bool, filePath string) {
 	start := time.Now()
 	machine := vm.New(bc)
 	if err := machine.Run(); err != nil {
-		fmt.Fprintf(os.Stderr, "VM-Fehler: %s\n", err)
+		fmt.Fprintf(os.Stderr, "VM error: %s\n", err)
 		os.Exit(1)
 	}
 	elapsed := time.Since(start)
@@ -248,7 +248,7 @@ func runVMWithCache(filePath string, quiet bool) {
 	start := time.Now()
 	machine := vm.New(bc)
 	if err := machine.Run(); err != nil {
-		fmt.Fprintf(os.Stderr, "VM-Fehler: %s\n", err)
+		fmt.Fprintf(os.Stderr, "VM error: %s\n", err)
 		os.Exit(1)
 	}
 	elapsed := time.Since(start)
@@ -278,7 +278,7 @@ func runTests(useVM bool) {
 		matches, _ = filepath.Glob("*.test.pipe")
 	}
 	if len(matches) == 0 {
-		fmt.Fprintln(os.Stderr, "Keine Test-Dateien gefunden (*_test.pipe oder *.test.pipe)")
+		fmt.Fprintln(os.Stderr, "No test files found (*_test.pipe or *.test.pipe)")
 		os.Exit(1)
 	}
 
@@ -392,9 +392,9 @@ func runBenchmark() {
 
 func startREPL(useVM bool) {
 	fmt.Printf("Pipe %s — REPL\n", version)
-	fmt.Println("Gib Pipe-Code ein. :quit oder Strg+D zum Beenden.")
-	fmt.Println("Leerzeile zum Abschließen von mehrzeiligen Blöcken.")
-	fmt.Println(":history — letzte Befehle | :!N — Befehl N wiederholen")
+	fmt.Println("Enter Pipe code. :quit or Ctrl+D to exit.")
+	fmt.Println("Blank line to complete multi-line blocks.")
+	fmt.Println(":history — last commands | :!N — repeat command N")
 	fmt.Println()
 
 	scanner := bufio.NewScanner(os.Stdin)
@@ -424,13 +424,13 @@ func startREPL(useVM bool) {
 			case ":quit", ":q":
 				return
 			case ":help", ":h":
-				fmt.Println("  :quit, :q   — Beenden")
-				fmt.Println("  :help, :h   — Hilfe")
-				fmt.Println("  :clear, :c  — Eingabe zurücksetzen")
-				fmt.Println("  :vm          — VM-Modus umschalten")
-				fmt.Println("  :history     — Letzte Befehle anzeigen")
-				fmt.Println("  :!N          — Befehl N wiederholen (z.B. :!3)")
-				fmt.Println("  Strg+D       — Beenden")
+				fmt.Println("  :quit, :q   — Exit")
+				fmt.Println("  :help, :h   — Help")
+				fmt.Println("  :clear, :c  — Reset input")
+				fmt.Println("  :vm          — Toggle VM mode")
+				fmt.Println("  :history     — Show last commands")
+				fmt.Println("  :!N          — Repeat command N (e.g. :!3)")
+				fmt.Println("  Ctrl+D       — Exit")
 				continue
 			case ":clear", ":c":
 				lines = nil
@@ -439,14 +439,14 @@ func startREPL(useVM bool) {
 			case ":vm":
 				useVM = !useVM
 				if useVM {
-					fmt.Println("  VM-Modus: ein")
+					fmt.Println("  VM mode: on")
 				} else {
-					fmt.Println("  VM-Modus: aus")
+					fmt.Println("  VM mode: off")
 				}
 				continue
 			case ":history":
 				if len(history) == 0 {
-					fmt.Println("  (keine History)")
+					fmt.Println("  (no history)")
 				} else {
 					for i, cmd := range history {
 						fmt.Printf("  %d: %s\n", i+1, cmd)
@@ -458,7 +458,7 @@ func startREPL(useVM bool) {
 				numStr := strings.TrimPrefix(trimmed, ":!")
 				num, err := strconv.Atoi(numStr)
 				if err != nil || num < 1 || num > len(history) {
-					fmt.Fprintf(os.Stderr, "  Ungültige Nummer. 1-%d\n", len(history))
+					fmt.Fprintf(os.Stderr, "  Invalid number. 1-%d\n", len(history))
 				} else {
 					replayCmd := history[num-1]
 					fmt.Printf("  → %s\n", replayCmd)
@@ -555,7 +555,7 @@ func executeREPL(lines []string, env *object.Environment, useVM bool) {
 	program := p.ParseProgram()
 
 	if len(p.Errors()) > 0 {
-		fmt.Fprintln(os.Stderr, "Parse-Fehler:")
+		fmt.Fprintln(os.Stderr, "Parse errors:")
 		for _, err := range p.Errors() {
 			fmt.Fprintf(os.Stderr, "  %s\n", err)
 		}
@@ -574,7 +574,7 @@ func replRunEval(program *ast.Program, env *object.Environment) {
 	result := ctx.Eval(program, env)
 	if result != nil {
 		if result.Type() == object.ERROR {
-			fmt.Fprintf(os.Stderr, "Fehler: %s\n", result.Inspect())
+			fmt.Fprintf(os.Stderr, "Error: %s\n", result.Inspect())
 		} else if result.Type() != object.NIL {
 			if result.Type() != object.FUNCTION && result.Type() != object.COMPILED_FUNCTION {
 				fmt.Println(result.Inspect())
@@ -586,13 +586,13 @@ func replRunEval(program *ast.Program, env *object.Environment) {
 func replRunVM(program *ast.Program) {
 	comp := compiler.New()
 	if err := comp.Compile(program); err != nil {
-		fmt.Fprintf(os.Stderr, "Compiler-Fehler: %s\n", err)
+		fmt.Fprintf(os.Stderr, "Compiler error: %s\n", err)
 		return
 	}
 	bc := comp.Bytecode()
 	machine := vm.New(bc)
 	if err := machine.Run(); err != nil {
-		fmt.Fprintf(os.Stderr, "VM-Fehler: %s\n", err)
+		fmt.Fprintf(os.Stderr, "VM error: %s\n", err)
 		return
 	}
 	result := machine.LastPoppedStackElem()
@@ -722,7 +722,7 @@ func runEmbedded(src []byte) {
 	p := parser.New(l)
 	program := p.ParseProgram()
 	if len(p.Errors()) > 0 {
-		fmt.Fprintln(os.Stderr, "Parse-Fehler in embedded binary:")
+		fmt.Fprintln(os.Stderr, "Parse errors in embedded binary:")
 		for _, err := range p.Errors() {
 			fmt.Fprintf(os.Stderr, "  %s\n", err)
 		}
@@ -731,14 +731,14 @@ func runEmbedded(src []byte) {
 
 	comp := compiler.New()
 	if err := comp.Compile(program); err != nil {
-		fmt.Fprintf(os.Stderr, "Compiler-Fehler: %s\n", err)
+		fmt.Fprintf(os.Stderr, "Compiler error: %s\n", err)
 		os.Exit(1)
 	}
 
 	bc := comp.Bytecode()
 	machine := vm.New(bc)
 	if err := machine.Run(); err != nil {
-		fmt.Fprintf(os.Stderr, "Fehler: %s\n", err)
+		fmt.Fprintf(os.Stderr, "Error: %s\n", err)
 		os.Exit(1)
 	}
 }

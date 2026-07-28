@@ -1,11 +1,11 @@
 -- Wetter-API Client (mock — echte API braucht Key)
 
 fn fetch_weather city
-    -- Nutze httpbin für Demo; echte API wäre:
+    -- Use httpbin for demo; real API would be:
     -- api_key: env "WEATHER_API_KEY"
     -- url: "https://api.openweathermap.org/data/2.5/weather?q=" ++ city
     url: "https://httpbin.org/get?city=" ++ city
-    print "Rufe Wetter ab für: "
+    print "Fetching weather for: "
     print city
     print "URL: "
     print url

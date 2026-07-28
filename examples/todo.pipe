@@ -126,7 +126,7 @@ fn delete cmd_id
             found: true
     if found
         save neu
-        print ("🗑️  #" ++ (to_str cmd_id) ++ " gelöscht")
+        print ("🗑️  #" ++ (to_str cmd_id) ++ " deleted")
     else
         print ("❌ Kein Todo #" ++ (to_str cmd_id))
 
@@ -142,7 +142,7 @@ fn search query
                 print ("  " ++ (icon d) ++ " [" ++ (to_str (get t "id")) ++ "] " ++ (get t "title"))
                 n: n + 1
         if n == 0
-            print ("🔍 Keine Treffer für '" ++ query ++ "'")
+            print ("🔍 No matches for '" ++ query ++ "'")
         else
             print ("🔍 " ++ (to_str n) ++ " Treffer")
 
@@ -168,19 +168,19 @@ fn stats
 
 fn clear
     save []
-    print "🗑️  Alle gelöscht."
+    print "🗑️  All deleted."
 
 fn help
     print ""
     print "═══ PIPE TODO ═══"
     print "  add \"Text\"     Neues Todo"
     print "  list            Anzeigen"
-    print "  done <ID>       Erledigen"
-    print "  undone <ID>     Wieder öffnen"
-    print "  delete <ID>     Löschen"
-    print "  search \"Begriff\" Suchen"
-    print "  stats           Statistik"
-    print "  clear           Alle löschen"
+    print "  done <ID>       Mark done"
+    print "  undone <ID>     Reopen"
+    print "  delete <ID>     Delete"
+    print "  search \"term\" Search"
+    print "  stats           Statistics"
+    print "  clear           Delete all"
     print ""
 
 -- ─── Start ─────────────────────────────────────────────────
@@ -191,5 +191,5 @@ print "║    📋 PIPE TODO v1.0       ║"
 print "╚══════════════════════════════╝"
 print ""
 print "Todos: " ++ (to_str (len (load 0)))
-print "Befehle: add, list, done, delete, search, stats, clear, help"
+print "Commands: add, list, done, delete, search, stats, clear, help"
 print ""

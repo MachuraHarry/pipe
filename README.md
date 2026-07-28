@@ -1,274 +1,223 @@
-# Pipe — Eine minimalistische, pipeline-basierte Skriptsprache
+# Pipe — Semantic Pipeline Runtime
 
-Pipe ist eine einrückungsbasierte Skriptsprache mit Pipeline-Syntax.  
-Die gesamte Grammatik passt auf eine Seite — inspiriert von Lua's Minimalismus.
+[![CI](https://github.com/harry/pipe/actions/workflows/ci.yml/badge.svg)](https://github.com/harry/pipe/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-purple.svg)](LICENSE)
+[![Version](https://img.shields.io/badge/version-0.5.0-blue.svg)](https://github.com/harry/pipe/releases)
 
-## Schnellstart
+> A language where AI operations are primitives — not library calls.
+> Pipe compiles to a single 10 MB binary. Zero dependencies.
 
-```bash
-# Bauen
-make build
+## What is Pipe?
 
-# REPL starten
-make repl
+Pipe is a **pipeline-based runtime** where `summarize`, `translate`, and `classify` live on the same syntactic level as `+`, `sort`, and `len`.
 
-# Datei ausführen (Tree-Walker)
-./bin/pipe beispiele/hello.pipe
+**Python (30 lines):**
 
-# Datei ausführen (VM, schnell)
-./bin/pipe -vm beispiele/fib.pipe
-
-# VM ohne Bytecode-Ausgabe + Cache
-./bin/pipe -vm -q beispiele/pipeline.pipe
-
-# AST ausgeben
-./bin/pipe -ast beispiele/fib.pipe
-
-# Datei formatieren
-./bin/pipe -fmt beispiele/hello.pipe
-
-# Tests ausführen
-./bin/pipe -test
-
-# Benchmarks
-./bin/pipe -bench
-
-# Alle Beispiele ausführen
-for f in examples/*.pipe; do echo "=== $f ===" && ./bin/pipe "$f"; done
+```python
+import openai
+client = openai.OpenAI()
+def summarize(text):
+    r = client.chat.completions.create(model="gpt-4o", messages=[{"role":"user","content":text}])
+    return r.choices[0].message.content
+def translate(text, lang):
+    r = client.chat.completions.create(model="gpt-4o",
+        messages=[{"role":"system","content":f"Translate to {lang}"},{"role":"user","content":text}])
+    return r.choices[0].message.content
+text = open("news.txt").read()
+print(translate(summarize(text), "de"))
 ```
 
-## Sprachüberblick
+**Pipe (5 lines):**
 
-### Kommentare
-
-```
--- Einzeilige Kommentare mit doppeltem Bindestrich
-```
-
-### Variablen
-
-```
-name: "Welt"
-x: 42
-aktiv: true
-```
-
-### Funktionen
-
-```
-fn greet name
-    "Hallo " ++ name
-
-fn add a b
-    a + b
-
-fn fib n
-    match n
-        | 0  -> 0
-        | 1  -> 1
-        | _  -> fib(n - 1) + fib(n - 2)
-```
-
-Der letzte Ausdruck im Funktionskörper ist der Rückgabewert. Kein `return`-Keyword.
-
-### Pipeline
-
-```
--- Horizontal
-fib 10 > print
-
--- Vertikal
-42
-    > double
-    > add 10
+```pipe
+read_file "news.txt"
+    > summarize       -- LLM call
+    > translate "de"  -- LLM call
     > print
 ```
 
-Bedeutet: `print(add(double(42), 10))`. Leserichtung = Datenfluss.
-
-### Bedingungen
-
-```
-if x > 10
-    "groß"
-else if x > 5
-    "mittel"
-else
-    "klein"
-```
-
-### Pattern Matching
-
-```
-match wert
-    | 0      -> "null"
-    | 1..5   -> "klein"
-    | _      -> "sonst"
-```
-
-### Funktionsaufrufe
-
-```
-print "Hallo"           -- space between function and argument
-print (1 + 2)           -- parens for expressions
-fib (n - 1)             -- parens for complex args
-```
-
-## Datentypen
-
-| Typ | Literal | Beispiel |
-|-----|---------|----------|
-| `nil` | `nil` | Abwesenheit |
-| `bool` | `true`, `false` | Wahrheitswerte |
-| `num` | `42`, `3.14` | 64-Bit Gleitkomma |
-| `str` | `"Hallo"` | Unicode-Strings |
-| `list` | `[1, 2, 3]` | Dynamische Liste |
-| `map` | `{a: 1, b: 2}` | Assoziative Map |
-| `fn` | `fn x: ...` | First-Class Funktion |
-
-## Operatoren
-
-| Operator | Beschreibung |
-|----------|-------------|
-| `+ - * / %` | Arithmetik |
-| `== != < > <= >=` | Vergleiche |
-| `++` | String-Verkettung |
-| `>` | Pipeline |
-| `\|` `->` | Match-Case |
-
-## Eingebaute Funktionen (34 Builtins)
-
-### IO
-| Funktion | Beschreibung |
-|----------|-------------|
-| `print ...` | Werte ausgeben |
-| `read_file pfad` | Datei lesen |
-| `write_file pfad inhalt` | Datei schreiben |
-
-### Strings
-| Funktion | Beschreibung |
-|----------|-------------|
-| `upper s` | Großbuchstaben |
-| `lower s` | Kleinbuchstaben |
-| `trim s` | Leerzeichen entfernen |
-| `split s t` | An Trennzeichen teilen |
-| `join list t` | Mit Trennzeichen verbinden |
-| `contains s sub` | Enthalten-Prüfung |
-
-### Listen
-| Funktion | Beschreibung |
-|----------|-------------|
-| `len list` | Länge |
-| `push list x...` | Elemente anhängen |
-| `pop list` | Letztes Element entfernen |
-| `at list i` | Element an Index |
-| `sort list` | Sortieren |
-| `range n` / `range a b` | Zahlenbereich |
-| `map list fn` | Transformieren (Tree-Walker) |
-| `filter list fn` | Filtern (Tree-Walker) |
-| `reduce list fn init` | Falten (Tree-Walker) |
-| `each list fn` | Für jedes Element (Tree-Walker) |
-
-### Math
-| Funktion | Beschreibung |
-|----------|-------------|
-| `abs n` | Absolutwert |
-| `min a b ...` | Minimum |
-| `max a b ...` | Maximum |
-| `pow b e` | Potenz |
-| `sqrt n` | Quadratwurzel |
-| `round n` | Runden |
-
-### Map
-| Funktion | Beschreibung |
-|----------|-------------|
-| `keys map` | Schlüssel als Liste |
-| `values map` | Werte als Liste |
-
-### Type-Checks
-| Funktion | Beschreibung |
-|----------|-------------|
-| `is_num x` | Ist Zahl? |
-| `is_str x` | Ist String? |
-| `is_list x` | Ist Liste? |
-| `is_map x` | Ist Map? |
-| `is_nil x` | Ist nil? |
-
-### Konvertierung
-| Funktion | Beschreibung |
-|----------|-------------|
-| `to_str x` | Zu String |
-| `to_num x` | Zu Zahl |
-
-## Beispiele
-
-```
-examples/hello.pipe     — Hallo Welt
-examples/fib.pipe       — Fibonacci-Zahlen  
-examples/fizzbuzz.pipe  — FizzBuzz
-examples/pipeline.pipe  — Pipeline-Ketten
-```
-
-## Entwicklungsstand
-
-- [x] M0: Projekt-Setup
-- [x] M1: Lexer (Einrückungs-Tracking, 15 Tests)
-- [x] M2+M3: Parser (Pratt-Parsing + Block-Strukturen, 20 Tests)
-- [x] M4: AST + CLI
-- [x] M5: Tree-Walk Interpreter (38 Tests)
-- [x] M6: Datenstrukturen (Listen, Maps)
-- [x] M7: Pipeline-Semantik (horizontal + vertikal)
-- [x] M8: Bytecode-Compiler + Stack-VM (31 Tests, **, !, &&, ||)
-- [x] M9: Standardbibliothek (80+ Builtins: FS, HTTP, JSON, TCP, Regex)
-- [x] M10: REPL + CLI-Tooling (REPL, -test, -bench, -fmt, -ast)
-- [x] v0.5: while, break, continue, for-in, slice, import, anonyme Fns
-- [x] v0.5: defer, compound-assign, return, try/catch, enum, export
-- [x] v0.5: Tail Call Optimization, Bytecode-Cache (.pipec)
-
-## REPL
+## Quick Start
 
 ```bash
-make repl        # oder: ./bin/pipe
+git clone https://github.com/harry/pipe && cd pipe && make build
+export DEEPSEEK_API_KEY="sk-..."
+./bin/pipe -vm -q -c 'ai_provider "deepseek"; ask "What makes Pipe different?" > print'
 ```
 
+## Execution Modes
+
+| Mode | Command | Speed |
+|------|---------|-------|
+| Tree-Walker | `./bin/pipe script.pipe` | Baseline |
+| Bytecode VM | `./bin/pipe -vm -q script.pipe` | ~7× faster |
+
+## 25 AI Builtins
+
+### Understanding
+`summarize`, `translate`, `classify`, `extract`, `ask`, `generate`
+
+### Speed & Control
+`ai_stream`, `ai_batch`, `ai_parallel`, `ai_rate_limit`, `ai_chat`, `ai_chat_json`
+
+### Search & Semantics
+`embed`, `embed_batch`, `cosine_sim`, `dot_product`, `nearest`
+
+### Agency & Tools
+`ai_tool`, `ai_with_tools`, `ai_provider`, `ai_model`, `ai_timeout`
+
+### Configuration
+`ai_provider`, `ai_model`, `ai_timeout`
+
+## Features
+
+- **AI as Primitive** — 25 built-in AI operations, no libraries needed
+- **Pipeline-Native** — Data flows top-to-bottom through transformations
+- **Single Binary** — One ~10 MB file, statically linked, no venv/pip/npm
+- **Bytecode VM** — Compile to bytecode, execute ~7× faster with automatic caching
+- **Multi-Provider** — OpenAI, Anthropic (Claude), DeepSeek — switch with one line
+- **Tool Calling** — Register Pipe functions as LLM tools, model decides when to call them
+- **Streaming** — Real-time token output via `ai_stream`
+- **Parallel AI** — `ai_batch` processes hundreds of texts concurrently with rate limiting
+- **Embeddings** — Native vector operations: embed, cosine_sim, nearest, RAG-ready
+- **Self-Extracting Binary** — Ship your pipeline as a standalone executable
+- **81 Standard Builtins** — HTTP, JSON, TCP, Regex, File I/O, and more
+- **Zero Dependencies** — No externals, pure Go standard library
+
+## Examples
+
+### Log Analysis → Incident Report
+```pipe
+read_file "server.log"
+    > classify -- output: "error", "warning", "info"
+    > summarize
+    > translate "de"
+    > write_file "incident_de.md"
 ```
->>> fn double x
-...     x * 2
-...
->>> double 21 > print
-42
->>> :vm          # VM-Modus umschalten
->>> 1 + 2
-3
->>> :quit
+
+### RAG Pipeline
+```pipe
+read_file "docs/"
+    > embed_batch
+    > store in docs_index
+
+ask "What is the refund policy?"
+    > embed
+    > nearest docs_index
+    > ask
+    > print
 ```
 
-Befehle: `:quit`, `:help`, `:clear`, `:vm`
+### AI Agent with Tools
+```pipe
+func get_weather(city) {
+    fetch "https://api.weather.com/" + city
+        > json_parse
+        > get "current"
+}
 
-## Tests (130 total)
-
-```bash
-go test ./...
-# ok  pkg/cache      0.007s  (2 tests)
-# ok  pkg/compiler   0.011s  (29 tests)
-# ok  pkg/eval       0.685s  (39 tests)
-# ok  pkg/formatter  0.005s  (7 tests)
-# ok  pkg/lexer       0.006s  (15 tests)
-# ok  pkg/parser      0.006s  (20 tests)
-# ok  pkg/vm          0.027s  (18 tests)
+ai_tool "get_weather" get_weather "Get current weather for a city"
+ai_with_tools "What is the weather in Berlin?"
+    > print
 ```
 
-## Projektstruktur
+## Why Pipe?
+
+| Feature | Pipe | Python | Bash |
+|---------|------|--------|------|
+| AI Primitives | Built-in | Libraries required | N/A |
+| Single Binary | ✓ | ✗ | ✗ |
+| Pipeline Syntax | Native | Manual | Pipes |
+| JSON Support | Built-in | `json` module | `jq` |
+| HTTP Client | Built-in | `requests` | `curl` |
+| Error Handling | `?>` operator | `try/except` | `||` |
+| Binary Size | ~10 MB | ~40 MB+ venv | Varies |
+| Dependencies | Zero | pip + venv | System tools |
+
+## Architecture
+
+```
+Source (.pipe) → Lexer → Parser → AST → [ Tree-Walker | Compiler + VM ]
+                                          ↓
+                              Builtins (81 stdlib + 25 AI)
+```
+
+- 52 token types, 27 AST node types, 47 opcodes
+- ~6,500 LoC Go, 134+ tests, 23 example programs
+
+## Documentation
+
+[→ Full documentation (English)](/docs/en/index.md)
+[→ Vollständige Dokumentation (Deutsch)](/docs/de/index.md)
+
+## Project Structure
 
 ```
 pipe/
-├── cmd/pipe/main.go       # CLI
-├── pkg/lexer/              # Lexer (15 Tests)
-├── pkg/parser/             # Parser (20 Tests)  
-├── pkg/ast/                # AST-Definitionen
-├── pkg/object/             # Laufzeit-Werte
-├── pkg/eval/               # Tree-Walk Evaluator
-├── examples/               # Beispiel-Dateien
+├── cmd/pipe/main.go           # Entry point
+├── pkg/
+│   ├── ai/                    # AI provider integrations
+│   │   ├── ai.go
+│   │   ├── ai_test.go
+│   │   ├── embeddings.go
+│   │   ├── providers.go
+│   │   └── tools.go
+│   ├── ast/                   # AST node definitions
+│   │   └── ast.go
+│   ├── build/                 # Self-extracting binary builder
+│   │   └── build.go
+│   ├── cache/                 # Bytecode cache
+│   │   ├── cache.go
+│   │   └── cache_test.go
+│   ├── compiler/              # Compiler to bytecode
+│   │   ├── compiler.go
+│   │   ├── compiler_test.go
+│   │   └── opcode.go
+│   ├── eval/                  # Tree-walk interpreter
+│   │   ├── builtins.go
+│   │   ├── eval.go
+│   │   └── eval_test.go
+│   ├── formatter/             # Code formatter
+│   │   ├── formatter.go
+│   │   └── formatter_test.go
+│   ├── lexer/                 # Lexer and tokens
+│   │   ├── lexer.go
+│   │   ├── lexer_test.go
+│   │   └── token.go
+│   ├── object/                # Runtime objects
+│   │   ├── ai_builtins_test.go
+│   │   ├── environment.go
+│   │   └── object.go
+│   ├── parser/                # Parser
+│   │   ├── parser.go
+│   │   └── parser_test.go
+│   └── vm/                    # Bytecode VM
+│       ├── vm.go
+│       └── vm_test.go
+├── examples/                  # 23 example programs
+│   ├── ai_demo.pipe
+│   ├── ai_embedding_demo.pipe
+│   ├── ai_parallel_demo.pipe
+│   ├── ai_stream_demo.pipe
+│   ├── ai_tool_demo.pipe
+│   ├── selfhost/              # Self-hosting lexer/parser
+│   └── ...
+├── test/integration/          # Integration tests
+├── vscode/                    # VSCode extension
+│   ├── package.json
+│   └── syntaxes/pipe.tmLanguage.json
+├── docs/                      # Documentation (DE + EN)
+│   ├── en/                    # English docs (20 chapters)
+│   └── de/                    # German docs (20 chapters)
+├── website/                   # Project website
 ├── Makefile
-└── Plan.md                 # Vollständiger Entwicklungsplan
+├── go.mod
+└── LICENSE
 ```
+
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md).
+
+## License
+
+MIT — see [LICENSE](LICENSE).

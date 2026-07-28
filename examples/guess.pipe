@@ -1,4 +1,4 @@
--- Zahlenraten mit Binärsuche
+-- Number guessing with binary search
 
 fn guess_number target low high tries
     mid: (low + high) / 2

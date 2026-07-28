@@ -28,11 +28,11 @@ func init() {
 
 func bMap(args ...object.Object) object.Object {
 	if len(args) != 2 {
-		return newErr("map erwartet 2 Argumente (Liste, Funktion)")
+		return newErr("map expects 2 arguments (list, function)")
 	}
 	list, ok := args[0].(*object.List)
 	if !ok {
-		return newErr("map: erstes Argument muss eine List sein")
+		return newErr("map: first argument must be a list")
 	}
 	fn := args[1]
 	result := make([]object.Object, len(list.Elements))
@@ -47,11 +47,11 @@ func bMap(args ...object.Object) object.Object {
 
 func bFilter(args ...object.Object) object.Object {
 	if len(args) != 2 {
-		return newErr("filter erwartet 2 Argumente (Liste, Funktion)")
+		return newErr("filter expects 2 arguments (list, function)")
 	}
 	list, ok := args[0].(*object.List)
 	if !ok {
-		return newErr("filter: erstes Argument muss eine List sein")
+		return newErr("filter: first argument must be a list")
 	}
 	fn := args[1]
 	var result []object.Object
@@ -69,11 +69,11 @@ func bFilter(args ...object.Object) object.Object {
 
 func bReduce(args ...object.Object) object.Object {
 	if len(args) != 3 {
-		return newErr("reduce erwartet 3 Argumente (Liste, Funktion, Startwert)")
+		return newErr("reduce expects 3 arguments (list, function, initial value)")
 	}
 	list, ok := args[0].(*object.List)
 	if !ok {
-		return newErr("reduce: erstes Argument muss eine List sein")
+		return newErr("reduce: first argument must be a list")
 	}
 	fn := args[1]
 	acc := args[2]
@@ -88,11 +88,11 @@ func bReduce(args ...object.Object) object.Object {
 
 func bEach(args ...object.Object) object.Object {
 	if len(args) != 2 {
-		return newErr("each erwartet 2 Argumente (Liste, Funktion)")
+		return newErr("each expects 2 arguments (list, function)")
 	}
 	list, ok := args[0].(*object.List)
 	if !ok {
-		return newErr("each: erstes Argument muss eine List sein")
+		return newErr("each: first argument must be a list")
 	}
 	fn := args[1]
 	for _, elem := range list.Elements {
@@ -103,7 +103,7 @@ func bEach(args ...object.Object) object.Object {
 
 func bGo(args ...object.Object) object.Object {
 	if len(args) < 1 {
-		return newErr("go erwartet mindestens 1 Argument (Funktion)")
+		return newErr("go expects at least 1 argument (function)")
 	}
 	fn := args[0]
 	fnArgs := args[1:]
@@ -123,7 +123,7 @@ func bGo(args ...object.Object) object.Object {
 	case *Builtin:
 		go f.Fn(fnArgs...)
 	default:
-		return newErr("go: erstes Argument muss eine Funktion sein")
+		return newErr("go: first argument must be a function")
 	}
 	return object.NILOBJ
 }
@@ -136,7 +136,7 @@ func applyFn(fn object.Object, args []object.Object) object.Object {
 	case *Builtin:
 		return f.Fn(args...)
 	}
-	return newErr("nicht aufrufbar")
+	return newErr("not callable")
 }
 
 func getEvalCtx(f *object.Function) *EvalContext {

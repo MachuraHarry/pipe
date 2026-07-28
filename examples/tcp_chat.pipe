@@ -23,7 +23,7 @@ fn run_server dummy
         else
             print ("Empfangen: " ++ msg)
             if msg == "quit"
-                tcp_write conn "Tschüss!\n"
+                tcp_write conn "Goodbye!\n"
                 break
             else
                 tcp_write conn ("ECHO: " ++ msg ++ "\n")

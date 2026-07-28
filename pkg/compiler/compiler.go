@@ -219,7 +219,7 @@ func (c *Compiler) Compile(node ast.Node) error {
 	case *ast.Identifier:
 		symbol, ok := c.symbolTable.Resolve(n.Value)
 		if !ok {
-			return fmt.Errorf("undefinierte Variable: %s", n.Value)
+			return fmt.Errorf("undefined variable: %s", n.Value)
 		}
 		c.loadSymbol(symbol)
 
@@ -232,7 +232,7 @@ func (c *Compiler) Compile(node ast.Node) error {
 		} else if n.Operator == "!" {
 			c.emit(OpNot)
 		} else {
-			return fmt.Errorf("unbekannter Präfix: %s", n.Operator)
+			return fmt.Errorf("unknown prefix: %s", n.Operator)
 		}
 
 	case *ast.InfixExpression:
@@ -308,7 +308,7 @@ func (c *Compiler) Compile(node ast.Node) error {
 			}
 			c.emit(OpCall, 2)
 		default:
-			return fmt.Errorf("unbekannter Operator: %s", n.Operator)
+			return fmt.Errorf("unknown operator: %s", n.Operator)
 		}
 
 	case *ast.IfExpression:
@@ -358,7 +358,7 @@ func (c *Compiler) Compile(node ast.Node) error {
 		if n.IsForIn {
 			return c.compileForIn(n)
 		}
-		return fmt.Errorf("for-Schleifen noch nicht vollst\u00e4ndig implementiert (nur for-in)")
+		return fmt.Errorf("for loops not yet fully implemented (only for-in)")
 
 	case *ast.BreakStatement:
 		c.addBreak()
@@ -638,7 +638,7 @@ func (c *Compiler) compilePipeline(pe *ast.PipelineExpression) error {
 	case *ast.Identifier:
 		sym, ok := c.symbolTable.Resolve(right.Value)
 		if !ok {
-			return fmt.Errorf("undefinierte Funktion: %s", right.Value)
+			return fmt.Errorf("undefined function: %s", right.Value)
 		}
 		c.loadSymbol(sym)
 		if err := c.Compile(pe.Left); err != nil {

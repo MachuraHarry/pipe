@@ -45,7 +45,7 @@ print (square 7)
 print "cube 3 = "
 print (cube 3)
 file_delete "/tmp/math.pipe"
-print "(library aufgeräumt)"
+print "(library cleaned up)"
 
 print ""
 print "===== ALLES FUNKTIONIERT! ====="

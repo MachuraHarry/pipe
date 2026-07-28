@@ -69,7 +69,7 @@ func TestVariableDef(t *testing.T) {
 }
 
 func TestIfElse(t *testing.T) {
-	input := "if x > 10\n    print \"groß\"\nelse\n    print \"klein\""
+	input := "if x > 10\n    print \"big\"\nelse\n    print \"small\""
 	tokens := New(input).TokenizeAll()
 
 	assertTokens(t, tokens, []TokenType{

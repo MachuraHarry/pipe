@@ -1,4 +1,4 @@
--- Dateisystem-Demo: Alle Operationen
+-- Dateisystem-Demo: All operations
 
 fn has_pipe f
     contains f "pipe_"
@@ -13,7 +13,7 @@ print "Existiert:  "
 print (file_exists "/tmp/pipe_demo.txt")
 print "Typ:        "
 print (file_type "/tmp/pipe_demo.txt")
-print "Größe:      "
+print "Size:       "
 print (file_size "/tmp/pipe_demo.txt")
 
 print ""
@@ -23,8 +23,8 @@ print "Zeilen: "
 print (len lines)
 
 print ""
-print "=== Anhängen ==="
-append_file "/tmp/pipe_demo.txt" "\nAngehängte Zeile"
+print "=== Append ==="
+append_file "/tmp/pipe_demo.txt" "\nAppended line"
 print (read_file "/tmp/pipe_demo.txt")
 
 print ""
@@ -62,7 +62,7 @@ print "Typ:        "
 print (file_type "/tmp/pipe_testdir")
 
 print ""
-print "=== Aufräumen ==="
+print "=== Cleanup ==="
 file_delete "/tmp/pipe_demo.txt"
 file_delete "/tmp/pipe_final.txt"
 remove_dir "/tmp/pipe_testdir"

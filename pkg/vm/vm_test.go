@@ -133,11 +133,11 @@ func TestIfElseExpression(t *testing.T) {
 }
 
 func TestMatchExpression(t *testing.T) {
-	input := "match 2\n    | 0 -> \"null\"\n    | 1 -> \"eins\"\n    | _ -> \"sonst\""
+	input := "match 2\n    | 0 -> \"null\"\n    | 1 -> \"one\"\n    | _ -> \"other\""
 	bc := parseAndCompile(t, input)
 	result := runVM(t, bc)
-	if result != "sonst" {
-		t.Errorf("expected sonst, got %s", result)
+	if result != "other" {
+		t.Errorf("expected other, got %s", result)
 	}
 }
 

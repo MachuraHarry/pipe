@@ -259,42 +259,37 @@ document.getElementById("play-editor").addEventListener("keydown", function(e) {
 async function runPlayground() {
   var btn = document.getElementById("play-btn");
   var bar = document.getElementById("play-bar");
-  var icon = document.getElementById("play-bar-icon");
-  var text = document.getElementById("play-bar-text");
-  var time = document.getElementById("play-bar-time");
   var out = document.getElementById("play-out");
 
   if (btn.disabled) return;
 
+  var key = document.getElementById("play-key").value.trim();
+  var provider = document.getElementById("play-provider").value;
+  if (key) pipeSetKey(provider, key);
+
   btn.classList.add("running");
   btn.textContent = "⏳ Running...";
   bar.className = "play-bar";
-  icon.innerHTML = '<span class="spinner"></span>';
-  text.textContent = "Executing Pipe code...";
-  time.style.display = "none";
+  bar.innerHTML = '<span class="spinner"></span><span>Executing Pipe code...</span>';
+  bar.style.color = "#fc8c3c";
   out.textContent = "";
 
-  var start = Date.now();
-  try {
-    var result = await runPipe(document.getElementById("play-editor").value);
+  setTimeout(function() {
+    var start = Date.now();
+    var code = document.getElementById("play-editor").value;
+    var result = runPipe(code);
     var elapsed = ((Date.now() - start) / 1000).toFixed(1);
     var isError = result && result.includes("Error:");
 
     btn.classList.remove("running");
     btn.textContent = "▶ Run";
     bar.className = "play-bar" + (isError ? " error" : " success");
-    icon.innerHTML = isError ? "✗" : "✓";
-    text.textContent = isError ? "Error" : ("Done in " + elapsed + "s");
+    bar.innerHTML = '<span>' + (isError ? '✗' : '✓') + '</span><span>' + (isError ? 'Error' : 'Done in ' + elapsed + 's') + '</span>';
+    bar.style.color = isError ? "var(--red)" : "var(--green)";
     out.textContent = result || "(no output)";
     if (isError) out.className = "play-output error";
     else out.className = "play-output";
-  } catch(e) {
-    btn.classList.remove("running");
-    btn.textContent = "▶ Run";
-    bar.className = "play-bar error";
-    icon.innerHTML = "✗";
-    text.textContent = "WASM error: " + e.message;
-  }
+  }, 50);
 }
 </script>
 

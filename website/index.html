@@ -205,6 +205,7 @@ a[data-lang].active { display: inline-block; }
         </select>
         <input id="play-key" type="password" placeholder="sk-... (API key)" class="play-key-input">
         <button id="play-btn" class="play-run-btn" disabled onclick="runPlayground()">▶ Run</button>
+        <button class="play-run-btn" disabled onclick="testAI()" style="background:var(--green);font-size:0.7rem;padding:6px 10px">Test AI</button>
       </div>
     </div>
     <textarea id="play-editor" class="play-editor" placeholder="Write Pipe code..." spellcheck="false">print "Hello!"
@@ -265,6 +266,11 @@ async function runPlayground() {
 
   var key = document.getElementById("play-key").value.trim();
   var provider = document.getElementById("play-provider").value;
+  
+  // Debug: show key status
+  console.log("Key:", key ? key.substring(0,5)+"..." : "(empty)");
+  console.log("Provider:", provider);
+  
   if (key) pipeSetKey(provider, key);
 
   btn.classList.add("running");
@@ -274,7 +280,6 @@ async function runPlayground() {
   bar.style.color = "#fc8c3c";
   out.textContent = "";
 
-  // Kurze Pause damit DOM rendert, dann synchron ausführen
   await new Promise(r => setTimeout(r, 30));
 
   var start = Date.now();
@@ -288,9 +293,22 @@ async function runPlayground() {
   bar.className = "play-bar" + (isError ? " error" : " success");
   bar.innerHTML = '<span>' + (isError ? '✗' : '✓') + '</span><span>' + (isError ? 'Error' : 'Done in ' + elapsed + 's') + '</span>';
   bar.style.color = isError ? "var(--red)" : "var(--green)";
-  out.textContent = result || "(no output)";
+  
+  // Prepend debug info
+  out.textContent = "[Browser: key len=" + key.length + ", provider=" + provider + "]\n\n" + (result || "(no output)");
   if (isError) out.className = "play-output error";
   else out.className = "play-output";
+}
+
+function testAI() {
+  var key = document.getElementById("play-key").value.trim();
+  var provider = document.getElementById("play-provider").value;
+  if (!key) { document.getElementById("play-out").textContent = "Bitte API-Key eingeben"; return; }
+  pipeSetKey(provider, key);
+  var out = document.getElementById("play-out");
+  out.textContent = "Testing AI call...";
+  var result = runPipe('ask "Sag nur: ok"');
+  out.textContent = result;
 }
 </script>
 

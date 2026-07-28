@@ -3,6 +3,7 @@
 package main
 
 import (
+	"os"
 	"strings"
 	"syscall/js"
 
@@ -13,6 +14,8 @@ import (
 )
 
 var outputBuf strings.Builder
+var apiKey string
+var apiProvider string
 
 func init() {
 	object.PrintHook = func(args ...object.Object) {
@@ -25,13 +28,38 @@ func init() {
 		outputBuf.WriteByte('\n')
 	}
 
-	object.Sandbox.Enabled = true
-	object.Sandbox.AllowAI = true
+	object.Sandbox.Enabled = false
+}
+
+func pipeSetKey(this js.Value, args []js.Value) interface{} {
+	provider := args[0].String()
+	key := args[1].String()
+	apiProvider = provider
+	apiKey = key
+	if key != "" {
+		os.Setenv(providerToEnv(provider), key)
+	}
+	return nil
+}
+
+func providerToEnv(p string) string {
+	switch p {
+	case "openai":
+		return "OPENAI_API_KEY"
+	case "anthropic":
+		return "ANTHROPIC_API_KEY"
+	default:
+		return "DEEPSEEK_API_KEY"
+	}
 }
 
 func pipeRun(this js.Value, args []js.Value) interface{} {
 	code := args[0].String()
 	outputBuf.Reset()
+
+	if apiProvider != "" {
+		code = "ai_provider \"" + apiProvider + "\"\n" + code
+	}
 
 	l := lexer.New(code)
 	p := parser.New(l)
@@ -58,6 +86,7 @@ func pipeRun(this js.Value, args []js.Value) interface{} {
 
 func main() {
 	js.Global().Set("pipeRun", js.FuncOf(pipeRun))
+	js.Global().Set("pipeSetKey", js.FuncOf(pipeSetKey))
 	js.Global().Set("pipeVersion", js.ValueOf("v0.5.0"))
 	select {}
 }

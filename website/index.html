@@ -201,11 +201,17 @@ a[data-lang].active { display: inline-block; }
     <textarea id="play-editor" placeholder="Write Pipe code...">print "Hello!"
 print (2 + 2)</textarea>
     <div class="play-right">
-      <button id="play-btn" onclick="document.getElementById('play-out').textContent=runPipe(document.getElementById('play-editor').value)" disabled>▶ Run</button>
+      <select id="play-provider" style="background:#1a1a24;color:#e0e0e8;border:1px solid #333;border-radius:6px;padding:4px 8px;font-size:0.7rem;width:100%">
+        <option value="deepseek">DeepSeek</option>
+        <option value="openai">OpenAI</option>
+      </select>
+      <input id="play-key" type="password" placeholder="API key (optional)" style="background:#1a1a24;color:#e0e0e8;border:1px solid #333;border-radius:6px;padding:4px 8px;font-size:0.65rem;font-family:monospace;width:100%">
+      <button id="play-btn" onclick="var k=document.getElementById('play-key').value.trim();if(k)pipeSetKey(document.getElementById('play-provider').value,k);document.getElementById('play-out').textContent=runPipe(document.getElementById('play-editor').value)" disabled>▶ Run</button>
       <div class="play-output" id="play-out"></div>
       <div class="play-status" id="play-status">Loading...</div>
     </div>
   </div>
+  <p style="text-align:center;margin-top:6px;font-size:0.65rem;color:#fc8c3c">⚠ Use only test API keys — requests go directly from your browser.</p>
 </div>
 
 <!-- Code Comparison -->

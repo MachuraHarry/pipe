@@ -45,6 +45,9 @@ func NewEnclosedSymbolTable(outer *SymbolTable) *SymbolTable {
 }
 
 func (s *SymbolTable) Define(name string) Symbol {
+	if existing, ok := s.store[name]; ok {
+		return existing
+	}
 	sym := Symbol{Name: name, Index: s.numDefinitions}
 	if s.Outer == nil {
 		sym.Scope = GlobalScope
@@ -181,7 +184,9 @@ func (c *Compiler) addFloat(v float64) int {
 func (c *Compiler) Compile(node ast.Node) error {
 	switch n := node.(type) {
 	case *ast.Program:
-		return c.compileStatements(n.Statements, true)
+		// Two-pass: compile definitions first, then expressions
+		c.defineTopLevelSymbols(n.Statements)
+		return c.compileProgram(n.Statements)
 
 	case *ast.BlockStatement:
 		return c.compileStatements(n.Statements, true)
@@ -551,6 +556,32 @@ func (c *Compiler) Compile(node ast.Node) error {
 		}
 	}
 
+	return nil
+}
+
+func (c *Compiler) compileProgram(stmts []ast.Statement) error {
+	// Pass 1: compile all definitions (closures + globals)
+	for _, stmt := range stmts {
+		switch stmt.(type) {
+		case *ast.FnStatement, *ast.VarStatement, *ast.EnumStatement,
+			*ast.ExportStatement, *ast.ImportStatement:
+			if err := c.Compile(stmt); err != nil {
+				return err
+			}
+		}
+	}
+
+	// Pass 2: compile all expressions (definitions already compiled)
+	for _, stmt := range stmts {
+		switch stmt.(type) {
+		case *ast.FnStatement, *ast.VarStatement, *ast.EnumStatement,
+			*ast.ExportStatement, *ast.ImportStatement:
+			continue
+		}
+		if err := c.Compile(stmt); err != nil {
+			return err
+		}
+	}
 	return nil
 }
 
@@ -932,6 +963,28 @@ func readImportFile(path string) (string, error) {
 		}
 	}
 	return "", fmt.Errorf("file not found: %s", path)
+}
+
+func (c *Compiler) defineTopLevelSymbols(stmts []ast.Statement) {
+	for _, stmt := range stmts {
+		switch s := stmt.(type) {
+		case *ast.FnStatement:
+			c.symbolTable.Define(s.Name.Value)
+		case *ast.VarStatement:
+			c.symbolTable.Define(s.Name.Value)
+		case *ast.EnumStatement:
+			for _, name := range s.Values {
+				c.symbolTable.Define(name)
+			}
+		case *ast.ExportStatement:
+			c.symbolTable.Define(s.Fn.Name.Value)
+		case *ast.ImportStatement:
+			program, err := resolveImport(s.Path)
+			if err == nil {
+				c.defineTopLevelSymbols(program.Statements)
+			}
+		}
+	}
 }
 
 func (c *Compiler) enterScope() {

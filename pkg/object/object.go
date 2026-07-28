@@ -32,6 +32,7 @@ const (
 	NIL                         = "NIL"
 	FUNCTION                    = "FUNCTION"
 	COMPILED_FUNCTION           = "COMPILED_FUNCTION"
+	CLOSURE                     = "CLOSURE"
 	LIST                        = "LIST"
 	MAP                         = "MAP"
 	ERROR                       = "ERROR"
@@ -136,10 +137,18 @@ func (bi *BuiltinInfo) Inspect() string  { return "builtin: " + bi.Name }
 type CompiledFunction struct {
 	Instructions interface{}
 	NumLocals    int
+	NumFree      int
+}
+
+type Closure struct {
+	Fn   *CompiledFunction
+	Free []Object
 }
 
 func (cf *CompiledFunction) Type() ObjectType { return COMPILED_FUNCTION }
 func (cf *CompiledFunction) Inspect() string  { return "compiled function" }
+func (c *Closure) Type() ObjectType           { return CLOSURE }
+func (c *Closure) Inspect() string            { return "closure" }
 
 var (
 	TRUE   = &Boolean{Value: true}
@@ -262,6 +271,7 @@ var Builtins = []BuiltinInfo{
 	{"push", bPush},
 	{"pop", bPop},
 	{"at", bAt},
+	{"slice_list", bSliceList},
 	{"sort", bSort},
 	{"range", bRange},
 
@@ -804,6 +814,39 @@ func bAt(args ...Object) Object {
 	return err("at erwartet List oder String")
 }
 
+func bSliceList(args ...Object) Object {
+	if len(args) != 3 {
+		return err("slice_list erwartet 3 Argumente (list, start, end)")
+	}
+	container, ok := args[0].(*List)
+	if !ok {
+		return err("slice_list: erstes Argument muss List sein")
+	}
+	start, ok := ToInt(args[1])
+	if !ok {
+		return err("slice_list: start muss Zahl sein")
+	}
+	end, ok := ToInt(args[2])
+	if !ok {
+		return err("slice_list: end muss Zahl sein")
+	}
+	total := int64(len(container.Elements))
+	if start < 0 {
+		start = 0
+	}
+	if end > total {
+		end = total
+	}
+	if start >= end {
+		return &List{Elements: []Object{}}
+	}
+	result := make([]Object, end-start)
+	for i := start; i < end; i++ {
+		result[i-start] = container.Elements[i]
+	}
+	return &List{Elements: result}
+}
+
 func bSort(args ...Object) Object {
 	if len(args) != 1 {
 		return err("sort erwartet 1 Argument")
@@ -900,6 +943,9 @@ func callOne(fn, arg Object) Object {
 	if bi, ok := fn.(*BuiltinInfo); ok {
 		return bi.Fn(arg)
 	}
+	if callUserFn != nil {
+		return callUserFn(fn, arg)
+	}
 	return err("map/filter/each: Funktion nicht aufrufbar (nur builtins im VM-Modus)")
 }
 
@@ -907,7 +953,16 @@ func callTwo(fn, a, b Object) Object {
 	if bi, ok := fn.(*BuiltinInfo); ok {
 		return bi.Fn(a, b)
 	}
+	if callUserFn != nil {
+		return callUserFn(fn, a, b)
+	}
 	return err("reduce: Funktion nicht aufrufbar")
+}
+
+var callUserFn func(fn Object, args ...Object) Object
+
+func SetCallUserFn(f func(fn Object, args ...Object) Object) {
+	callUserFn = f
 }
 
 func bRange(args ...Object) Object {

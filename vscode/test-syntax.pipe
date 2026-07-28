@@ -1,0 +1,282 @@
+-- ============================================================
+-- Pipe SYNTAX HIGHLIGHTING — Ausführbarer Test
+-- Starten: ../bin/pipe test-syntax.pipe
+-- ============================================================
+
+-- ─── Strings ─────────────────────────────────────────────
+print "=== Strings ==="
+a: "Einfacher String"
+b: "Hallo Welt"
+print a
+print ("Hallo " ++ "Welt")
+print ("Antwort: " ++ (to_str 42))
+
+-- ─── Variablen ───────────────────────────────────────────
+print ""
+print "=== Variablen ==="
+name: "Anna"
+alter: 28
+aktiv: true
+nichts: nil
+pi: 3.14
+print name
+print alter
+print aktiv
+print nichts
+print pi
+
+-- Compound
+x: 10
+x += 5
+x -= 3
+x *= 2
+x /= 4
+x %= 3
+print x
+
+-- ─── Keywords ────────────────────────────────────────────
+print ""
+print "=== if/else if/else ==="
+punkte: 85
+if punkte >= 90
+    print "Sehr gut"
+else if punkte >= 75
+    print "Gut"
+else
+    print "Nicht so gut"
+
+-- ─── Match ───────────────────────────────────────────────
+print ""
+print "=== match ==="
+fn bewertung note
+    match note
+        | 1  -> "Eins"
+        | 2  -> "Zwei"
+        | _  -> "Andere"
+
+print (bewertung 1)
+print (bewertung 2)
+print (bewertung 5)
+
+-- ─── Match als Fibonacci ─────────────────────────────────
+fn fib n
+    match n
+        | 0  -> 0
+        | 1  -> 1
+        | _  -> fib(n - 1) + fib(n - 2)
+
+print (fib 10)
+
+-- ─── while ───────────────────────────────────────────────
+print ""
+print "=== while ==="
+i: 0
+while i < 5
+    print i
+    i: i + 1
+
+i: 0
+while true
+    i: i + 1
+    if i >= 3
+        break
+    print i
+
+-- ─── for-in ──────────────────────────────────────────────
+print ""
+print "=== for-in ==="
+for farbe in ["rot", "gruen", "blau"]
+    print farbe
+
+sum: 0
+for n in (range 1 6)
+    sum: sum + n
+print sum
+
+-- ─── Funktionen ──────────────────────────────────────────
+print ""
+print "=== Funktionen ==="
+
+fn verdopple x
+    x * 2
+
+fn addiere a b
+    a + b
+
+fn factorial n
+    if n <= 1
+        return 1
+    n * factorial(n - 1)
+
+print (verdopple 21)
+print (addiere 3 4)
+print (factorial 5)
+
+-- ─── Closures ────────────────────────────────────────────
+fn make_adder n
+    fn adder x
+        x + n
+
+add5: make_adder 5
+print (add5 10)
+
+-- ─── Anonyme Funktion ────────────────────────────────────
+quadrat: fn x
+    x * x
+print (quadrat 7)
+
+-- ─── Pipeline ───────────────────────────────────────────
+print ""
+print "=== Pipeline ==="
+
+fn double x
+    x * 2
+fn add_ten x
+    x + 10
+
+42
+    > double
+    > add_ten
+    > print
+
+-- ─── Datenstrukturen ────────────────────────────────────
+print ""
+print "=== Listen ==="
+zahlen: [10, 20, 30, 40, 50]
+print (len zahlen)
+print (at zahlen 0)
+print (zahlen[0..3])
+push zahlen 60
+print (pop zahlen)
+
+unsorted: [3, 1, 2, 5, 4]
+print (sort unsorted)
+
+-- ─── Maps ────────────────────────────────────────────────
+print ""
+print "=== Maps ==="
+person: {name: "Max", alter: 30, aktiv: true}
+print (get person "name")
+print (get person "alter")
+set person "alter" 31
+print (get person "alter")
+print (keys person)
+print (values person)
+
+-- ─── filter + map ────────────────────────────────────────
+print ""
+print "=== filter + map ==="
+fn is_even n
+    n % 2 == 0
+fn double_val x
+    x * 2
+
+nums: [1, 2, 3, 4, 5, 6, 7, 8]
+evens: filter nums is_even
+doubled: map evens double_val
+print evens
+print doubled
+
+-- ─── Operatoren ──────────────────────────────────────────
+print ""
+print "=== Operatoren ==="
+print (10 + 5)
+print (20 - 7)
+print (4 * 3)
+print (15 / 3)
+print (10 % 3)
+print (2 ** 10)
+print (10 == 10)
+print (10 != 5)
+print (10 < 20)
+print (20 > 10)
+print (10 <= 10)
+print (20 >= 10)
+print (!false)
+print (true && true)
+print (true || false)
+
+-- ─── Builtins ────────────────────────────────────────────
+print ""
+print "=== Builtins ==="
+
+-- Mathe
+print (abs (-10))
+print (min 3 7 1)
+print (max 10 20 5)
+print (pow 2 8)
+print (sqrt 16)
+print (round 3.7)
+
+-- Strings
+print (upper "hallo")
+print (lower "HALLO")
+print (trim "  text  ")
+worte: split "a,b,c" ","
+print worte
+print (join worte "-")
+print (contains "hallo welt" "welt")
+
+-- Typ-Prüfung
+print (type_of 42)
+print (is_num 42)
+print (is_str "hi")
+test_list: [1, 2]
+print (is_list test_list)
+test_map: {a: 1}
+print (is_map test_map)
+print (is_nil nil)
+print (to_str 42)
+print (to_num "42")
+
+-- Dateisystem
+write_file "/tmp/pipe_test.txt" "Hallo Welt"
+content: read_file "/tmp/pipe_test.txt"
+print content
+print (file_exists "/tmp/pipe_test.txt")
+print (file_size "/tmp/pipe_test.txt")
+
+-- Pfade
+print (path_join "tmp" "sub" "file.txt")
+print (path_base "/home/user/test.txt")
+print (path_dir "/home/user/test.txt")
+print (path_ext "/home/user/test.txt")
+
+-- HTTP (Mock)
+resp: http_get "https://httpbin.org/get"
+print (get resp "status")
+
+-- JSON
+obj: {name: "Pipe", version: 1}
+json_str: to_json obj
+print json_str
+parsed: parse_json json_str
+print (get parsed "name")
+
+-- Regex
+print (regex_match "[0-9]+" "abc123")
+print (regex_replace "[0-9]" "#" "Tel: 0123-456")
+
+-- Zufall
+print (random 0)
+print (random_range 1 7)
+
+-- Base64
+enc: base64_encode "hello"
+print enc
+print (base64_decode enc)
+
+-- Aufraeumen
+file_delete "/tmp/pipe_test.txt"
+
+-- ─── try/catch (am Ende, da Tree-Walker danach beendet) ──
+print ""
+print "=== try/catch ==="
+try
+    bad: 10 / 0
+catch fehler
+    print "Error caught OK"
+
+-- ─── Fertig ──────────────────────────────────────────────
+print ""
+print "=== ALLE TESTS BESTANDEN ==="

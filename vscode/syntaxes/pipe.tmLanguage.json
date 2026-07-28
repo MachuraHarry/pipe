@@ -1,0 +1,216 @@
+{
+  "name": "Pipe",
+  "scopeName": "source.pipe",
+  "patterns": [
+    { "include": "#comments" },
+    { "include": "#strings" },
+    { "include": "#function-definition" },
+    { "include": "#keywords" },
+    { "include": "#constants" },
+    { "include": "#builtins" },
+    { "include": "#variable-assignment" },
+    { "include": "#numbers" },
+    { "include": "#pipeline" },
+    { "include": "#match-pattern" },
+    { "include": "#operators" }
+  ],
+  "repository": {
+    "comments": {
+      "patterns": [
+        {
+          "name": "comment.line.double-dash.pipe",
+          "match": "--.*$"
+        }
+      ]
+    },
+    "strings": {
+      "patterns": [
+        {
+          "name": "string.quoted.double.pipe",
+          "begin": "\"",
+          "end": "\"",
+          "patterns": [
+            {
+              "name": "constant.character.escape.pipe",
+              "match": "\\\\."
+            }
+          ]
+        },
+        {
+          "name": "string.quoted.other.backtick.pipe",
+          "begin": "`",
+          "end": "`"
+        }
+      ]
+    },
+    "function-definition": {
+      "patterns": [
+        {
+          "name": "meta.function.pipe",
+          "begin": "\\b(fn)\\b\\s+",
+          "beginCaptures": {
+            "1": { "name": "storage.type.function.pipe" }
+          },
+          "end": "$",
+          "patterns": [
+            {
+              "name": "entity.name.function.pipe",
+              "match": "\\b[A-Za-z_][A-Za-z0-9_]*\\b"
+            },
+            {
+              "include": "#comments"
+            }
+          ]
+        }
+      ]
+    },
+    "keywords": {
+      "patterns": [
+        {
+          "name": "keyword.control.conditional.pipe",
+          "match": "\\b(if|else\\s+if)\\b"
+        },
+        {
+          "name": "keyword.control.pipe",
+          "match": "\\b(else|match|while|for|in|try|catch|return|break|continue|defer|import)\\b"
+        }
+      ]
+    },
+    "constants": {
+      "patterns": [
+        {
+          "name": "constant.language.boolean.pipe",
+          "match": "\\b(true|false)\\b"
+        },
+        {
+          "name": "constant.language.nil.pipe",
+          "match": "\\b(nil)\\b"
+        },
+        {
+          "name": "constant.language.wildcard.pipe",
+          "match": "(?<=\\|)\\s*(_)(?=\\s*->)"
+        }
+      ]
+    },
+    "builtins": {
+      "patterns": [
+        {
+          "name": "support.function.builtin.io.pipe",
+          "match": "\\b(print|input)\\b"
+        },
+        {
+          "name": "support.function.builtin.file.pipe",
+          "match": "\\b(read_file|write_file|append_file|read_lines|file_exists|file_delete|file_move|file_copy|file_size|file_type|list_dir|make_dir|remove_dir)\\b"
+        },
+        {
+          "name": "support.function.builtin.path.pipe",
+          "match": "\\b(path_join|path_base|path_dir|path_ext)\\b"
+        },
+        {
+          "name": "support.function.builtin.string.pipe",
+          "match": "\\b(upper|lower|trim|split|join|contains)\\b"
+        },
+        {
+          "name": "support.function.builtin.list.pipe",
+          "match": "\\b(len|push|pop|at|sort|range|map|filter|reduce)\\b"
+        },
+        {
+          "name": "support.function.builtin.map.pipe",
+          "match": "\\b(get|set|keys|values)\\b"
+        },
+        {
+          "name": "support.function.builtin.math.pipe",
+          "match": "\\b(abs|min|max|pow|sqrt|round)\\b"
+        },
+        {
+          "name": "support.function.builtin.http.pipe",
+          "match": "\\b(http_get|http_post|http_get_json|parse_json|to_json)\\b"
+        },
+        {
+          "name": "support.function.builtin.tcp.pipe",
+          "match": "\\b(tcp_listen|tcp_connect|tcp_accept|tcp_read|tcp_write|tcp_close)\\b"
+        },
+        {
+          "name": "support.function.builtin.system.pipe",
+          "match": "\\b(exec|env|sleep|now|format_time|random|random_range|base64_encode|base64_decode|type_of|is_num|is_str|is_list|is_map|is_nil|to_str|to_num|regex_match|regex_replace)\\b"
+        }
+      ]
+    },
+    "variable-assignment": {
+      "patterns": [
+        {
+          "name": "meta.assignment.compound.pipe",
+          "match": "\\b([A-Za-z_][A-Za-z0-9_]*)\\s*(\\+=|-=|\\*=|/=|%=)",
+          "captures": {
+            "1": { "name": "variable.other.pipe" },
+            "2": { "name": "keyword.operator.assignment.compound.pipe" }
+          }
+        },
+        {
+          "name": "meta.assignment.pipe",
+          "match": "\\b([A-Za-z_][A-Za-z0-9_]*)\\s*(:)(?![:=])",
+          "captures": {
+            "1": { "name": "variable.other.pipe" },
+            "2": { "name": "keyword.operator.assignment.pipe" }
+          }
+        }
+      ]
+    },
+    "numbers": {
+      "patterns": [
+        {
+          "name": "constant.numeric.float.pipe",
+          "match": "\\b\\d+\\.\\d+\\b"
+        },
+        {
+          "name": "constant.numeric.integer.pipe",
+          "match": "\\b\\d+\\b"
+        }
+      ]
+    },
+    "pipeline": {
+      "patterns": [
+        {
+          "name": "keyword.operator.pipeline.pipe",
+          "match": "^\\s+(>)(?!\\s*=)"
+        }
+      ]
+    },
+    "match-pattern": {
+      "patterns": [
+        {
+          "name": "keyword.operator.arrow.pipe",
+          "match": "->"
+        },
+        {
+          "name": "keyword.operator.pattern.pipe",
+          "match": "\\|(?!\\|)"
+        }
+      ]
+    },
+    "operators": {
+      "patterns": [
+        {
+          "name": "keyword.operator.arithmetic.pipe",
+          "match": "\\*\\*|\\*|/|%|\\+|-(?!-)"
+        },
+        {
+          "name": "keyword.operator.comparison.pipe",
+          "match": "==|!=|<=|>=|<|>"
+        },
+        {
+          "name": "keyword.operator.logical.pipe",
+          "match": "\\bnot\\b|!|&&|\\|\\|"
+        },
+        {
+          "name": "keyword.operator.concat.pipe",
+          "match": "\\+\\+"
+        },
+        {
+          "name": "keyword.operator.range.pipe",
+          "match": "\\.\\."
+        }
+      ]
+    }
+  }
+}

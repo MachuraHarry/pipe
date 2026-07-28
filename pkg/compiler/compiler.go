@@ -14,6 +14,7 @@ const (
 	GlobalScope SymbolScope = iota
 	LocalScope
 	BuiltinScope
+	FreeScope
 )
 
 type Symbol struct {
@@ -26,6 +27,7 @@ type SymbolTable struct {
 	store          map[string]Symbol
 	numDefinitions int
 	Outer          *SymbolTable
+	FreeSymbols    []Symbol
 }
 
 func NewSymbolTable() *SymbolTable {
@@ -53,7 +55,17 @@ func (s *SymbolTable) Define(name string) Symbol {
 func (s *SymbolTable) Resolve(name string) (Symbol, bool) {
 	sym, ok := s.store[name]
 	if !ok && s.Outer != nil {
-		return s.Outer.Resolve(name)
+		outerSym, outerOk := s.Outer.Resolve(name)
+		if !outerOk {
+			return Symbol{}, false
+		}
+		if outerSym.Scope == GlobalScope || outerSym.Scope == BuiltinScope {
+			return outerSym, true
+		}
+		free := Symbol{Name: name, Scope: FreeScope, Index: len(s.FreeSymbols)}
+		s.store[name] = free
+		s.FreeSymbols = append(s.FreeSymbols, outerSym)
+		return free, true
 	}
 	return sym, ok
 }
@@ -79,6 +91,12 @@ type LoopContext struct {
 
 type CompilationScope struct {
 	instructions Instructions
+}
+
+type CompiledScope struct {
+	Instructions Instructions
+	NumLocals    int
+	FreeSymbols  []Symbol
 }
 
 type Bytecode struct {
@@ -280,6 +298,15 @@ func (c *Compiler) Compile(node ast.Node) error {
 			c.emit(OpLte)
 		case "++":
 			c.emit(OpConcat)
+		case "[]":
+			c.emit(OpGetBuiltin, c.resolveBuiltin("at").Index)
+			if err := c.Compile(n.Left); err != nil {
+				return err
+			}
+			if err := c.Compile(n.Right); err != nil {
+				return err
+			}
+			c.emit(OpCall, 2)
 		default:
 			return fmt.Errorf("unbekannter Operator: %s", n.Operator)
 		}
@@ -366,14 +393,72 @@ func (c *Compiler) Compile(node ast.Node) error {
 
 		compiledFn := c.leaveScope()
 
-		idx := c.addConstant(&object.CompiledFunction{Instructions: compiledFn.Instructions})
-		c.emit(OpClosure, idx, compiledFn.NumLocals)
+		idx := c.addConstant(&object.CompiledFunction{
+			Instructions: compiledFn.Instructions,
+			NumLocals:    compiledFn.NumLocals,
+			NumFree:      len(compiledFn.FreeSymbols),
+		})
+
+		for _, freeSym := range compiledFn.FreeSymbols {
+			c.loadSymbol(freeSym)
+		}
+
+		c.emit(OpClosure, idx, len(compiledFn.FreeSymbols))
 
 		if fnSymbol.Scope == GlobalScope {
 			c.emit(OpSetGlobal, fnSymbol.Index)
 		} else {
 			c.emit(OpSetLocal, fnSymbol.Index)
 		}
+
+	case *ast.FnLiteral:
+		c.enterScope()
+		for _, p := range n.Parameters {
+			c.symbolTable.Define(p.Value)
+		}
+
+		if err := c.compileFnBody(n.Body); err != nil {
+			return err
+		}
+
+		compiledFn := c.leaveScope()
+
+		idx := c.addConstant(&object.CompiledFunction{
+			Instructions: compiledFn.Instructions,
+			NumLocals:    compiledFn.NumLocals,
+			NumFree:      len(compiledFn.FreeSymbols),
+		})
+
+		for _, freeSym := range compiledFn.FreeSymbols {
+			c.loadSymbol(freeSym)
+		}
+
+		c.emit(OpClosure, idx, len(compiledFn.FreeSymbols))
+
+	case *ast.SliceExpression:
+		c.emit(OpGetBuiltin, c.resolveBuiltin("slice_list").Index)
+		if err := c.Compile(n.List); err != nil {
+			return err
+		}
+		if n.Start != nil {
+			if err := c.Compile(n.Start); err != nil {
+				return err
+			}
+		} else {
+			c.emit(OpConstant, c.addInteger(0))
+		}
+		if n.End != nil {
+			if err := c.Compile(n.End); err != nil {
+				return err
+			}
+		} else {
+			c.emit(OpGetBuiltin, c.resolveBuiltin("len").Index)
+			if err := c.Compile(n.List); err != nil {
+				return err
+			}
+			c.emit(OpCall, 1)
+		}
+		c.emit(OpCall, 3)
 
 	case *ast.CallExpression:
 		if err := c.Compile(n.Function); err != nil {
@@ -421,6 +506,11 @@ func (c *Compiler) Compile(node ast.Node) error {
 		}
 		idx := c.addString(n.Field)
 		c.emit(OpDot, idx)
+
+	case *ast.TryExpression:
+		if err := c.compileTryExpression(n); err != nil {
+			return err
+		}
 	}
 
 	return nil
@@ -507,6 +597,41 @@ func (c *Compiler) compileMatch(me *ast.MatchExpression) error {
 	return nil
 }
 
+func (c *Compiler) compileTryExpression(te *ast.TryExpression) error {
+	catchSym := c.symbolTable.Define(te.CatchParam.Value)
+
+	if err := c.compileStatements(te.TryBlock.Statements, false); err != nil {
+		return err
+	}
+
+	c.emit(OpCheckError)
+
+	skipCatchPos := c.emit(OpJumpNotTruthy, 9999)
+
+	if catchSym.Scope == GlobalScope {
+		c.emit(OpSetGlobal, catchSym.Index)
+	} else {
+		c.emit(OpSetLocal, catchSym.Index)
+	}
+	c.emit(OpPop)
+
+	for _, stmt := range te.CatchBlock.Statements {
+		if err := c.Compile(stmt); err != nil {
+			return err
+		}
+	}
+
+	endPos := c.emit(OpJump, 9999)
+
+	afterCatch := len(c.currentInstructions())
+	c.patchJump(skipCatchPos, afterCatch)
+	c.emit(OpPop)
+
+	c.patchJump(endPos, len(c.currentInstructions()))
+
+	return nil
+}
+
 func (c *Compiler) compilePipeline(pe *ast.PipelineExpression) error {
 	// Push function reference first, then args, then call
 	switch right := pe.Right.(type) {
@@ -558,6 +683,8 @@ func (c *Compiler) loadSymbol(s Symbol) {
 		c.emit(OpGetLocal, s.Index)
 	case BuiltinScope:
 		c.emit(OpGetBuiltin, s.Index)
+	case FreeScope:
+		c.emit(OpGetFree, s.Index)
 	}
 }
 
@@ -614,7 +741,8 @@ func (c *Compiler) compileForIn(fe *ast.ForExpression) error {
 
 	loopStart := len(c.currentInstructions())
 
-	// idx < len(list): push builtin len, then arg
+	// idx < len(list): push idx, then builtin len, then list
+	c.emitGet(idxSym)
 	c.emit(OpGetBuiltin, c.resolveBuiltin("len").Index)
 	c.emitGet(listSym)
 	c.emit(OpCall, 1)
@@ -695,18 +823,14 @@ func (c *Compiler) enterScope() {
 	c.symbolTable = NewEnclosedSymbolTable(c.symbolTable)
 }
 
-type CompiledScope struct {
-	Instructions Instructions
-	NumLocals    int
-}
-
 func (c *Compiler) leaveScope() CompiledScope {
 	scope := c.scopes[c.scopeIndex]
 	nl := c.symbolTable.numDefinitions
+	free := c.symbolTable.FreeSymbols
 	c.scopes = c.scopes[:c.scopeIndex]
 	c.scopeIndex--
 	c.symbolTable = c.symbolTable.Outer
-	return CompiledScope{Instructions: scope.instructions, NumLocals: nl}
+	return CompiledScope{Instructions: scope.instructions, NumLocals: nl, FreeSymbols: free}
 }
 
 // Pretty-print instructions for debugging
@@ -720,7 +844,7 @@ func (ins Instructions) String() string {
 			out += fmt.Sprintf("%04d %-14s %d %d\n", i, op, ReadUint16(ins, i+1), ReadUint16(ins, i+3))
 			i += 5
 		case OpConstant, OpGetGlobal, OpSetGlobal, OpGetLocal, OpSetLocal,
-			OpGetBuiltin, OpDot:
+			OpGetBuiltin, OpDot, OpGetFree:
 			out += fmt.Sprintf("%04d %-14s %d\n", i, op, ReadUint16(ins, i+1))
 			i += 3
 		case OpCall, OpList:

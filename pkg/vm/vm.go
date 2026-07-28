@@ -8,22 +8,13 @@ import (
 	"github.com/harry/pipe/pkg/object"
 )
 
-const MaxFrames = 1024
-const StackSize = 4096
-
-type VM struct {
-	constants    []object.Object
-	globals      []object.Object
-	stack        []object.Object
-	sp           int
-	frames       []*Frame
-	frameIndex   int
-	instructions compiler.Instructions
-	ip           int
-}
+const (
+	StackSize = 2048
+	MaxFrames = 1024
+)
 
 type Frame struct {
-	closure      *object.CompiledFunction
+	closure      *object.Closure
 	ip           int
 	basePointer  int
 	savedSp      int
@@ -38,8 +29,12 @@ func New(bc *compiler.Bytecode) *VM {
 	mainFn := &object.CompiledFunction{
 		Instructions: bc.Instructions,
 	}
+	mainClosure := &object.Closure{
+		Fn:   mainFn,
+		Free: []object.Object{},
+	}
 	mainFrame := &Frame{
-		closure:      mainFn,
+		closure:      mainClosure,
 		ip:           0,
 		basePointer:  0,
 		instructions: bc.Instructions,
@@ -47,7 +42,7 @@ func New(bc *compiler.Bytecode) *VM {
 
 	frames[0] = mainFrame
 
-	return &VM{
+	vm := &VM{
 		constants:  bc.Constants,
 		globals:    globals,
 		stack:      stack,
@@ -55,6 +50,19 @@ func New(bc *compiler.Bytecode) *VM {
 		frames:     frames,
 		frameIndex: 0,
 	}
+
+	object.SetCallUserFn(vm.callUserFunction)
+
+	return vm
+}
+
+type VM struct {
+	constants  []object.Object
+	globals    []object.Object
+	stack      []object.Object
+	sp         int
+	frames     []*Frame
+	frameIndex int
 }
 
 func (vm *VM) currentFrame() *Frame {
@@ -149,7 +157,7 @@ func (vm *VM) Run() error {
 			ls, ok := left.(*object.String)
 			rs, ok2 := right.(*object.String)
 			if !ok || !ok2 {
-				return fmt.Errorf("Typ-Fehler: ++ benötigt zwei Strings")
+				return fmt.Errorf("Typ-Fehler: ++ benoetigt zwei Strings")
 			}
 			vm.push(&object.String{Value: ls.Value + rs.Value})
 
@@ -172,34 +180,26 @@ func (vm *VM) Run() error {
 			target := compiler.ReadUint16(ins, frame.ip)
 			frame.ip = int(target)
 
+		case compiler.OpJumpNotTruthy:
+			target := compiler.ReadUint16(ins, frame.ip)
+			frame.ip += 2
+			if !object.IsTruthy(vm.pop()) {
+				frame.ip = int(target)
+			}
+
 		case compiler.OpJumpBackward:
 			target := compiler.ReadUint16(ins, frame.ip)
 			frame.ip = int(target)
 
-		case compiler.OpJumpNotTruthy:
-			target := compiler.ReadUint16(ins, frame.ip)
-			frame.ip += 2
-			condition := vm.pop()
-			if !object.IsTruthy(condition) {
-				frame.ip = int(target)
-			}
-
 		case compiler.OpGetGlobal:
 			idx := compiler.ReadUint16(ins, frame.ip)
 			frame.ip += 2
-			if int(idx) >= len(vm.globals) || vm.globals[idx] == nil {
-				return fmt.Errorf("undefinierte Variable an Index %d", idx)
-			}
 			vm.push(vm.globals[idx])
 
 		case compiler.OpSetGlobal:
 			idx := compiler.ReadUint16(ins, frame.ip)
 			frame.ip += 2
-			v := vm.pop()
-			for int(idx) >= len(vm.globals) {
-				vm.globals = append(vm.globals, nil)
-			}
-			vm.globals[idx] = v
+			vm.globals[idx] = vm.peek()
 
 		case compiler.OpGetLocal:
 			idx := compiler.ReadUint16(ins, frame.ip)
@@ -209,8 +209,7 @@ func (vm *VM) Run() error {
 		case compiler.OpSetLocal:
 			idx := compiler.ReadUint16(ins, frame.ip)
 			frame.ip += 2
-			v := vm.peek()
-			vm.stack[frame.basePointer+int(idx)] = v
+			vm.stack[frame.basePointer+int(idx)] = vm.peek()
 
 		case compiler.OpGetBuiltin:
 			idx := compiler.ReadUint16(ins, frame.ip)
@@ -218,11 +217,23 @@ func (vm *VM) Run() error {
 			if int(idx) >= len(object.Builtins) {
 				return fmt.Errorf("unbekannte Builtin-Funktion: %d", idx)
 			}
-			bi := &object.BuiltinInfo{
+			vm.push(&object.BuiltinInfo{
 				Name: object.Builtins[idx].Name,
 				Fn:   object.Builtins[idx].Fn,
+			})
+
+		case compiler.OpGetFree:
+			idx := compiler.ReadUint16(ins, frame.ip)
+			frame.ip += 2
+			vm.push(frame.closure.Free[int(idx)])
+
+		case compiler.OpCheckError:
+			val := vm.peek()
+			if _, isErr := val.(*object.Error); isErr {
+				vm.push(object.TRUE)
+			} else {
+				vm.push(object.FALSE)
 			}
-			vm.push(bi)
 
 		case compiler.OpCall:
 			numArgs := int(compiler.ReadUint16(ins, frame.ip))
@@ -251,14 +262,21 @@ func (vm *VM) Run() error {
 		case compiler.OpClosure:
 			idx := compiler.ReadUint16(ins, frame.ip)
 			frame.ip += 2
-			numLocals := int(compiler.ReadUint16(ins, frame.ip))
+			numFree := int(compiler.ReadUint16(ins, frame.ip))
 			frame.ip += 2
 			fn, ok := vm.constants[idx].(*object.CompiledFunction)
 			if !ok {
 				return fmt.Errorf("keine CompiledFunction an Index %d", idx)
 			}
-			fn.NumLocals = numLocals
-			vm.push(fn)
+			free := make([]object.Object, numFree)
+			for i := numFree - 1; i >= 0; i-- {
+				free[i] = vm.pop()
+			}
+			closure := &object.Closure{
+				Fn:   fn,
+				Free: free,
+			}
+			vm.push(closure)
 
 		case compiler.OpList:
 			numElems := int(compiler.ReadUint16(ins, frame.ip))
@@ -297,10 +315,10 @@ func (vm *VM) Run() error {
 				if val, ok := m.Pairs[field]; ok {
 					vm.push(val)
 				} else {
-					return fmt.Errorf("Feld '%s' nicht gefunden", field)
+					vm.push(object.NILOBJ)
 				}
 			default:
-				return fmt.Errorf("Punkt-Zugriff nur auf Maps möglich")
+				return fmt.Errorf(". nur auf Map: %s", obj.Type())
 			}
 
 		case compiler.OpHalt:
@@ -318,8 +336,8 @@ func (vm *VM) callFunction(numArgs int) {
 	callee := vm.stack[vm.sp-1-numArgs]
 
 	switch fn := callee.(type) {
-	case *object.CompiledFunction:
-		inst, ok := fn.Instructions.(compiler.Instructions)
+	case *object.Closure:
+		inst, ok := fn.Fn.Instructions.(compiler.Instructions)
 		if !ok {
 			panic("invalid compiled function instructions")
 		}
@@ -341,7 +359,7 @@ func (vm *VM) callFunction(numArgs int) {
 		}
 		vm.frames[vm.frameIndex] = frame
 
-		localsNeeded := basePtr + fn.NumLocals
+		localsNeeded := basePtr + fn.Fn.NumLocals
 		if vm.sp < localsNeeded {
 			vm.sp = localsNeeded
 		}
@@ -388,18 +406,18 @@ func (vm *VM) binaryIntOp(op compiler.Opcode, left, right *object.Integer) objec
 		return &object.Integer{Value: l * r}
 	case compiler.OpDiv:
 		if r == 0 {
-			return &object.Error{Message: "Division durch Null"}
+			return &object.Error{Message: "ERROR: Division durch Null"}
 		}
 		return &object.Integer{Value: l / r}
 	case compiler.OpMod:
 		if r == 0 {
-			return &object.Error{Message: "Modulo durch Null"}
+			return &object.Error{Message: "ERROR: Modulo durch Null"}
 		}
 		return &object.Integer{Value: l % r}
 	case compiler.OpPow:
-		return &object.Integer{Value: intPow(l, r)}
+		return &object.Integer{Value: int64(math.Pow(float64(l), float64(r)))}
 	}
-	return &object.Error{Message: "unbekannter Operator"}
+	return &object.Error{Message: fmt.Sprintf("unbekannter int op %d", op)}
 }
 
 func (vm *VM) binaryFloatOp(op compiler.Opcode, left, right *object.Float) object.Object {
@@ -413,33 +431,41 @@ func (vm *VM) binaryFloatOp(op compiler.Opcode, left, right *object.Float) objec
 		return &object.Float{Value: l * r}
 	case compiler.OpDiv:
 		if r == 0 {
-			return &object.Error{Message: "Division durch Null"}
+			return &object.Error{Message: "ERROR: Division durch Null"}
 		}
 		return &object.Float{Value: l / r}
+	case compiler.OpMod:
+		if r == 0 {
+			return &object.Error{Message: "ERROR: Modulo durch Null"}
+		}
+		return &object.Float{Value: float64(int64(l) % int64(r))}
 	case compiler.OpPow:
 		return &object.Float{Value: math.Pow(l, r)}
 	}
-	return &object.Error{Message: "unbekannter Operator"}
+	return &object.Error{Message: fmt.Sprintf("unbekannter float op %d", op)}
 }
 
 func (vm *VM) compareOp(op compiler.Opcode, left, right object.Object) object.Object {
 	switch {
 	case left.Type() == object.INTEGER && right.Type() == object.INTEGER:
-		return vm.compareIntOp(op, left.(*object.Integer), right.(*object.Integer))
+		return vm.compareIntOp(op, left.(*object.Integer).Value, right.(*object.Integer).Value)
 	case left.Type() == object.FLOAT && right.Type() == object.FLOAT:
-		return vm.compareFloatOp(op, left.(*object.Float), right.(*object.Float))
+		return vm.compareFloatOp(op, left.(*object.Float).Value, right.(*object.Float).Value)
+	case left.Type() == object.INTEGER && right.Type() == object.FLOAT:
+		return vm.compareFloatOp(op, float64(left.(*object.Integer).Value), right.(*object.Float).Value)
+	case left.Type() == object.FLOAT && right.Type() == object.INTEGER:
+		return vm.compareFloatOp(op, left.(*object.Float).Value, float64(right.(*object.Integer).Value))
+	case left.Type() == object.BOOLEAN && right.Type() == object.BOOLEAN:
+		a := object.NativeBoolToBoolean(left == object.TRUE)
+		b := object.NativeBoolToBoolean(right == object.TRUE)
+		return vm.compareBoolOp(op, a == object.TRUE, b == object.TRUE)
 	case left.Type() == object.STRING && right.Type() == object.STRING:
-		return vm.compareStringOp(op, left.(*object.String), right.(*object.String))
-	case op == compiler.OpEqual:
-		return object.NativeBoolToBoolean(false)
-	case op == compiler.OpNotEqual:
-		return object.NativeBoolToBoolean(true)
+		return vm.compareStringOp(op, left.(*object.String).Value, right.(*object.String).Value)
 	}
-	return &object.Error{Message: fmt.Sprintf("Typ-Fehler: %s %s %s", left.Type(), op, right.Type())}
+	return &object.Error{Message: fmt.Sprintf("Typ-Fehler: vergleiche %s %s", left.Type(), right.Type())}
 }
 
-func (vm *VM) compareIntOp(op compiler.Opcode, left, right *object.Integer) object.Object {
-	l, r := left.Value, right.Value
+func (vm *VM) compareIntOp(op compiler.Opcode, l, r int64) object.Object {
 	switch op {
 	case compiler.OpEqual:
 		return object.NativeBoolToBoolean(l == r)
@@ -457,8 +483,7 @@ func (vm *VM) compareIntOp(op compiler.Opcode, left, right *object.Integer) obje
 	return object.FALSE
 }
 
-func (vm *VM) compareFloatOp(op compiler.Opcode, left, right *object.Float) object.Object {
-	l, r := left.Value, right.Value
+func (vm *VM) compareFloatOp(op compiler.Opcode, l, r float64) object.Object {
 	switch op {
 	case compiler.OpEqual:
 		return object.NativeBoolToBoolean(l == r)
@@ -476,29 +501,238 @@ func (vm *VM) compareFloatOp(op compiler.Opcode, left, right *object.Float) obje
 	return object.FALSE
 }
 
-func (vm *VM) compareStringOp(op compiler.Opcode, left, right *object.String) object.Object {
+func (vm *VM) compareBoolOp(op compiler.Opcode, l, r bool) object.Object {
 	switch op {
 	case compiler.OpEqual:
-		return object.NativeBoolToBoolean(left.Value == right.Value)
+		return object.NativeBoolToBoolean(l == r)
 	case compiler.OpNotEqual:
-		return object.NativeBoolToBoolean(left.Value != right.Value)
-	case compiler.OpLess:
-		return object.NativeBoolToBoolean(left.Value < right.Value)
-	case compiler.OpGreater:
-		return object.NativeBoolToBoolean(left.Value > right.Value)
-	case compiler.OpLte:
-		return object.NativeBoolToBoolean(left.Value <= right.Value)
-	case compiler.OpGte:
-		return object.NativeBoolToBoolean(left.Value >= right.Value)
+		return object.NativeBoolToBoolean(l != r)
 	}
-	return &object.Error{Message: fmt.Sprintf("Typ-Fehler: %s %s %s", left.Type(), op, right.Type())}
+	return object.FALSE
 }
 
-func intPow(base, exp int64) int64 {
-	result := int64(1)
-	for exp > 0 {
-		result *= base
-		exp--
+func (vm *VM) compareStringOp(op compiler.Opcode, l, r string) object.Object {
+	switch op {
+	case compiler.OpEqual:
+		return object.NativeBoolToBoolean(l == r)
+	case compiler.OpNotEqual:
+		return object.NativeBoolToBoolean(l != r)
 	}
+	return object.FALSE
+}
+
+func (vm *VM) callUserFunction(fn object.Object, args ...object.Object) object.Object {
+	savedFrameIdx := vm.frameIndex
+	savedSp := vm.sp
+
+	vm.push(fn)
+	for _, arg := range args {
+		vm.push(arg)
+	}
+	vm.callFunction(len(args))
+
+	result := vm.executeFrame()
+
+	vm.frameIndex = savedFrameIdx
+	vm.sp = savedSp
 	return result
+}
+
+func (vm *VM) executeFrame() object.Object {
+	for {
+		frame := vm.currentFrame()
+		ins := frame.instructions
+
+		if frame.ip >= len(ins) {
+			break
+		}
+
+		op := compiler.Opcode(ins[frame.ip])
+		frame.ip++
+
+		switch op {
+		case compiler.OpConstant:
+			idx := compiler.ReadUint16(ins, frame.ip)
+			frame.ip += 2
+			vm.push(vm.constants[idx])
+
+		case compiler.OpTrue:
+			vm.push(object.TRUE)
+		case compiler.OpFalse:
+			vm.push(object.FALSE)
+		case compiler.OpNil:
+			vm.push(object.NILOBJ)
+
+		case compiler.OpPop:
+			vm.pop()
+
+		case compiler.OpDup:
+			if vm.sp > 0 {
+				vm.push(vm.stack[vm.sp-1])
+			}
+
+		case compiler.OpMinus:
+			val := vm.pop()
+			switch v := val.(type) {
+			case *object.Integer:
+				vm.push(&object.Integer{Value: -v.Value})
+			case *object.Float:
+				vm.push(&object.Float{Value: -v.Value})
+			default:
+				return &object.Error{Message: fmt.Sprintf("Typ-Fehler: -%s", val.Type())}
+			}
+
+		case compiler.OpNot:
+			val := vm.pop()
+			vm.push(object.NativeBoolToBoolean(!object.IsTruthy(val)))
+
+		case compiler.OpAdd, compiler.OpSub, compiler.OpMul, compiler.OpDiv, compiler.OpMod, compiler.OpPow:
+			right := vm.pop()
+			left := vm.pop()
+			result := vm.binaryOp(op, left, right)
+			vm.push(result)
+
+		case compiler.OpEqual, compiler.OpNotEqual, compiler.OpGreater, compiler.OpLess,
+			compiler.OpGte, compiler.OpLte:
+			right := vm.pop()
+			left := vm.pop()
+			result := vm.compareOp(op, left, right)
+			vm.push(result)
+
+		case compiler.OpConcat:
+			right := vm.pop()
+			left := vm.pop()
+			ls, ok := left.(*object.String)
+			rs, ok2 := right.(*object.String)
+			if !ok || !ok2 {
+				return &object.Error{Message: "Typ-Fehler: ++ benoetigt zwei Strings"}
+			}
+			vm.push(&object.String{Value: ls.Value + rs.Value})
+
+		case compiler.OpJump:
+			target := compiler.ReadUint16(ins, frame.ip)
+			frame.ip = int(target)
+
+		case compiler.OpJumpNotTruthy:
+			target := compiler.ReadUint16(ins, frame.ip)
+			frame.ip += 2
+			if !object.IsTruthy(vm.pop()) {
+				frame.ip = int(target)
+			}
+
+		case compiler.OpJumpBackward:
+			target := compiler.ReadUint16(ins, frame.ip)
+			frame.ip = int(target)
+
+		case compiler.OpGetGlobal:
+			idx := compiler.ReadUint16(ins, frame.ip)
+			frame.ip += 2
+			vm.push(vm.globals[idx])
+
+		case compiler.OpSetGlobal:
+			idx := compiler.ReadUint16(ins, frame.ip)
+			frame.ip += 2
+			vm.globals[idx] = vm.peek()
+
+		case compiler.OpGetLocal:
+			idx := compiler.ReadUint16(ins, frame.ip)
+			frame.ip += 2
+			vm.push(vm.stack[frame.basePointer+int(idx)])
+
+		case compiler.OpSetLocal:
+			idx := compiler.ReadUint16(ins, frame.ip)
+			frame.ip += 2
+			vm.stack[frame.basePointer+int(idx)] = vm.peek()
+
+		case compiler.OpGetBuiltin:
+			idx := int(compiler.ReadUint16(ins, frame.ip))
+			frame.ip += 2
+			if idx < 0 || idx >= len(object.Builtins) {
+				return &object.Error{Message: fmt.Sprintf("unbekanntes builtin: %d", idx)}
+			}
+			vm.push(&object.BuiltinInfo{
+				Name: object.Builtins[idx].Name,
+				Fn:   object.Builtins[idx].Fn,
+			})
+
+		case compiler.OpGetFree:
+			idx := compiler.ReadUint16(ins, frame.ip)
+			frame.ip += 2
+			vm.push(frame.closure.Free[int(idx)])
+
+		case compiler.OpCheckError:
+			val := vm.peek()
+			if _, isErr := val.(*object.Error); isErr {
+				vm.push(object.TRUE)
+			} else {
+				vm.push(object.FALSE)
+			}
+
+		case compiler.OpCall:
+			numArgs := int(compiler.ReadUint16(ins, frame.ip))
+			frame.ip += 2
+			vm.callFunction(numArgs)
+
+		case compiler.OpClosure:
+			idx := compiler.ReadUint16(ins, frame.ip)
+			frame.ip += 2
+			numFree := int(compiler.ReadUint16(ins, frame.ip))
+			frame.ip += 2
+			fn, ok := vm.constants[idx].(*object.CompiledFunction)
+			if !ok {
+				return &object.Error{Message: fmt.Sprintf("keine CompiledFunction an Index %d", idx)}
+			}
+			free := make([]object.Object, numFree)
+			for i := numFree - 1; i >= 0; i-- {
+				free[i] = vm.pop()
+			}
+			closure := &object.Closure{
+				Fn:   fn,
+				Free: free,
+			}
+			vm.push(closure)
+
+		case compiler.OpList:
+			numElems := int(compiler.ReadUint16(ins, frame.ip))
+			frame.ip += 2
+			elems := make([]object.Object, numElems)
+			for i := numElems - 1; i >= 0; i-- {
+				elems[i] = vm.pop()
+			}
+			vm.push(&object.List{Elements: elems})
+
+		case compiler.OpDot:
+			idx := compiler.ReadUint16(ins, frame.ip)
+			frame.ip += 2
+			field := vm.constants[idx].(*object.String).Value
+			obj := vm.pop()
+			switch m := obj.(type) {
+			case *object.Map:
+				if val, ok := m.Pairs[field]; ok {
+					vm.push(val)
+				} else {
+					vm.push(object.NILOBJ)
+				}
+			default:
+				return &object.Error{Message: fmt.Sprintf(". nur auf Map: %s", obj.Type())}
+			}
+
+		case compiler.OpReturn:
+			frame := vm.currentFrame()
+			vm.sp = frame.savedSp
+			vm.frameIndex--
+			return object.NILOBJ
+
+		case compiler.OpReturnValue:
+			frame := vm.currentFrame()
+			returnVal := vm.pop()
+			vm.sp = frame.savedSp
+			vm.frameIndex--
+			return returnVal
+
+		default:
+			return &object.Error{Message: fmt.Sprintf("unbekannter Opcode in user fn: %d", op)}
+		}
+	}
+	return object.NILOBJ
 }

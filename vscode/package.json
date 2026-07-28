@@ -1,0 +1,34 @@
+{
+  "name": "pipe-syntax",
+  "displayName": "Pipe Language Support",
+  "description": "Syntax Highlighting & Language Support for the Pipe scripting language (.pipe files)",
+  "version": "0.1.0",
+  "publisher": "pipe-lang",
+  "engines": {
+    "vscode": "^1.80.0"
+  },
+  "categories": [
+    "Programming Languages"
+  ],
+  "contributes": {
+    "languages": [
+      {
+        "id": "pipe",
+        "aliases": ["Pipe", "pipe"],
+        "extensions": [".pipe"],
+        "configuration": "./language-configuration.json",
+        "icon": {
+          "light": "./icons/pipe-icon.svg",
+          "dark": "./icons/pipe-icon.svg"
+        }
+      }
+    ],
+    "grammars": [
+      {
+        "language": "pipe",
+        "scopeName": "source.pipe",
+        "path": "./syntaxes/pipe.tmLanguage.json"
+      }
+    ]
+  }
+}

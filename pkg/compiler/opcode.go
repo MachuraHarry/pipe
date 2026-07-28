@@ -42,6 +42,8 @@ const (
 	OpMap
 	OpDot
 	OpHalt
+	OpGetFree
+	OpCheckError
 )
 
 var opcodeNames = map[Opcode]string{
@@ -82,6 +84,8 @@ var opcodeNames = map[Opcode]string{
 	OpMap:           "OpMap",
 	OpDot:           "OpDot",
 	OpHalt:          "OpHalt",
+	OpGetFree:       "OpGetFree",
+	OpCheckError:    "OpCheckError",
 }
 
 func (o Opcode) String() string {

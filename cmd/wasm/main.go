@@ -3,10 +3,10 @@
 package main
 
 import (
-	"os"
 	"strings"
 	"syscall/js"
 
+	"github.com/harry/pipe/pkg/ai"
 	"github.com/harry/pipe/pkg/eval"
 	"github.com/harry/pipe/pkg/lexer"
 	"github.com/harry/pipe/pkg/object"
@@ -36,9 +36,8 @@ func pipeSetKey(this js.Value, args []js.Value) interface{} {
 	key := args[1].String()
 	apiProvider = provider
 	apiKey = key
-	if key != "" {
-		os.Setenv(providerToEnv(provider), key)
-	}
+	ai.SetProvider(provider)
+	ai.ActiveConfig.APIKey = key
 	return nil
 }
 

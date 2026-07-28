@@ -100,15 +100,6 @@ code { background: var(--bg3); padding: 2px 6px; border-radius: 4px; font-family
 pre.inline { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px 24px; overflow-x: auto; font-family: var(--mono); font-size: 0.82rem; line-height: 1.7; }
 
 /* Mini Playground */
-.play-mini { display: flex; gap: 12px; background: var(--bg2); border: 1px solid var(--border); border-radius: 12px; padding: 16px; align-items: stretch; max-width: 800px; margin: 0 auto; }
-.play-mini textarea { flex: 1; background: var(--bg); color: var(--fg); border: 1px solid var(--border); border-radius: 8px; padding: 12px; font-family: var(--mono); font-size: 0.82rem; resize: vertical; min-height: 80px; }
-.play-mini textarea:focus { outline: none; border-color: var(--accent); }
-.play-right { display: flex; flex-direction: column; gap: 8px; min-width: 140px; }
-.play-right button { background: var(--accent); color: #fff; border: none; border-radius: 8px; padding: 10px 20px; font-weight: 600; cursor: pointer; transition: all .2s; }
-.play-right button:hover { background: #8e72fc; }
-.play-right button:disabled { opacity: 0.4; cursor: not-allowed; }
-.play-output { background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 10px; font-family: var(--mono); font-size: 0.78rem; color: var(--green); min-height: 40px; white-space: pre-wrap; flex: 1; }
-.play-status { font-size: 0.7rem; color: var(--fg2); text-align: center; }
 footer { border-top: 1px solid var(--border); padding: 40px 0; text-align: center; color: var(--fg2); font-size: 0.85rem; }
 footer a { color: var(--accent); text-decoration: none; }
 
@@ -192,27 +183,61 @@ a[data-lang].active { display: inline-block; }
 </section>
 
 <!-- Mini Playground -->
-<div style="text-align:center;padding:0 0 20px">
-  <h3 data-lang="en" class="active">Try Pipe right here ↓</h3>
-  <h3 data-lang="de">Probier Pipe direkt hier ↓</h3>
-</div>
-<div class="container" style="margin:0 auto 40px">
-  <div class="play-mini">
-    <textarea id="play-editor" placeholder="Write Pipe code...">print "Hello!"
-print (2 + 2)</textarea>
-    <div class="play-right">
-      <select id="play-provider" style="background:#1a1a24;color:#e0e0e8;border:1px solid #333;border-radius:6px;padding:4px 8px;font-size:0.7rem;width:100%">
-        <option value="deepseek">DeepSeek</option>
-        <option value="openai">OpenAI</option>
-      </select>
-      <input id="play-key" type="password" placeholder="API key (optional)" style="background:#1a1a24;color:#e0e0e8;border:1px solid #333;border-radius:6px;padding:4px 8px;font-size:0.65rem;font-family:monospace;width:100%">
-      <button id="play-btn" onclick="var k=document.getElementById('play-key').value.trim();if(k)pipeSetKey(document.getElementById('play-provider').value,k);document.getElementById('play-out').textContent=runPipe(document.getElementById('play-editor').value)" disabled>▶ Run</button>
-      <div class="play-output" id="play-out"></div>
-      <div class="play-status" id="play-status">Loading...</div>
+<section style="background:var(--bg2);padding:40px 0">
+<div class="container">
+  <h3 data-lang="en" class="active" style="text-align:center;margin-bottom:8px">Try Pipe right here ↓</h3>
+  <h3 data-lang="de" style="text-align:center;margin-bottom:8px">Probier Pipe direkt hier ↓</h3>
+  <p style="text-align:center;color:var(--fg2);font-size:0.85rem;margin-bottom:20px" data-lang="en" class="active">Type Pipe code, click Run. Works instantly — no install.</p>
+  <p style="text-align:center;color:var(--fg2);font-size:0.85rem;margin-bottom:20px" data-lang="de">Pipe-Code eintippen, auf Run klicken. Funktioniert sofort — keine Installation.</p>
+
+  <div class="play-card">
+    <div class="play-top">
+      <div class="play-top-left">
+        <span class="play-dot" style="background:#fc5c7c"></span>
+        <span class="play-dot" style="background:#fc8c3c"></span>
+        <span class="play-dot" style="background:#3ce096"></span>
+        <span class="play-label">pipe playground</span>
+      </div>
+      <div class="play-top-right">
+        <select id="play-provider" class="play-select">
+          <option value="deepseek">DeepSeek</option>
+          <option value="openai">OpenAI</option>
+        </select>
+        <input id="play-key" type="password" placeholder="sk-... (API key)" class="play-key-input">
+        <button id="play-btn" class="play-run-btn" disabled
+          onclick="var k=document.getElementById('play-key').value.trim();if(k)pipeSetKey(document.getElementById('play-provider').value,k);document.getElementById('play-out').textContent=runPipe(document.getElementById('play-editor').value)">
+          ▶ Run
+        </button>
+      </div>
     </div>
+    <textarea id="play-editor" class="play-editor" placeholder="Write Pipe code..." spellcheck="false">print "Hello!"
+print (2 + 2)</textarea>
+    <div class="play-output" id="play-out"><span id="play-status" style="color:#fc8c3c">Loading WASM runtime...</span></div>
   </div>
-  <p style="text-align:center;margin-top:6px;font-size:0.65rem;color:#fc8c3c">⚠ Use only test API keys — requests go directly from your browser.</p>
+  <p style="text-align:center;margin-top:10px;font-size:0.68rem;color:var(--orange)">⚠ Use only test API keys — requests go directly from your browser to the API.</p>
 </div>
+</section>
+
+<style>
+.play-card { background:var(--bg); border:1px solid var(--border); border-radius:12px; overflow:hidden; box-shadow:0 8px 32px rgba(0,0,0,0.3); }
+.play-top { display:flex; justify-content:space-between; align-items:center; padding:10px 16px; background:var(--bg3); border-bottom:1px solid var(--border); flex-wrap:wrap; gap:8px; }
+.play-dot { display:inline-block; width:10px; height:10px; border-radius:50%; margin-right:4px; }
+.play-label { color:var(--fg2); font-size:0.72rem; margin-left:4px; }
+.play-select { background:var(--bg); color:var(--fg); border:1px solid var(--border); border-radius:6px; padding:5px 8px; font-size:0.72rem; }
+.play-key-input { background:var(--bg); color:var(--fg); border:1px solid var(--border); border-radius:6px; padding:5px 8px; font-size:0.7rem; font-family:var(--mono); width:140px; }
+.play-key-input:focus { outline:none; border-color:var(--accent); }
+.play-run-btn { background:var(--accent); color:#fff; border:none; border-radius:6px; padding:6px 16px; font-weight:600; font-size:0.8rem; cursor:pointer; }
+.play-run-btn:hover { background:#8e72fc; }
+.play-run-btn:disabled { opacity:0.4; cursor:not-allowed; }
+.play-editor { width:100%; min-height:120px; background:var(--bg); color:#5ce0fc; border:none; padding:16px; font-family:var(--mono); font-size:0.85rem; resize:vertical; outline:none; }
+.play-output { padding:14px 16px; font-family:var(--mono); font-size:0.82rem; color:var(--green); min-height:40px; white-space:pre-wrap; border-top:1px solid var(--border); }
+@media (max-width:768px) {
+  .play-top-right { width:100%; display:flex; gap:6px; }
+  .play-key-input { flex:1; width:auto; }
+  .play-editor { font-size:0.75rem; min-height:100px; }
+  .play-run-btn { width:100%; }
+}
+</style>
 
 <!-- Code Comparison -->
 <div class="container">

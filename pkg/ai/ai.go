@@ -37,6 +37,7 @@ type Config struct {
 	Model    string
 	Timeout  time.Duration
 	APIHost  string
+	APIKey   string
 }
 
 var DefaultConfig = Config{

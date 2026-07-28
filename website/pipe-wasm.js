@@ -5,16 +5,16 @@ let pipeReady = false;
 WebAssembly.instantiateStreaming(fetch("pipe.wasm"), pipeGo.importObject).then(r => {
   pipeGo.run(r.instance);
   pipeReady = true;
-  document.querySelectorAll(".play-status").forEach(el => {
-    el.textContent = "Ready";
-    el.style.color = "#3ce096";
+  document.querySelectorAll(".play-status, #play-status").forEach(el => {
+    el.textContent = "Ready — type code and click Run";
+    el.style.color = "#9898a8";
   });
   document.querySelectorAll("#play-btn, #runBtn").forEach(el => {
     el.disabled = false;
   });
 }).catch(e => {
-  document.querySelectorAll(".play-status").forEach(el => {
-    el.textContent = "WASM failed";
+  document.querySelectorAll(".play-status, #play-status").forEach(el => {
+    el.textContent = "WASM failed: " + e.message;
     el.style.color = "#fc5c7c";
   });
 });

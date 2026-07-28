@@ -44,6 +44,7 @@ is missing, the request fails with an error.
 | `ai_provider` | Set provider | `ai_provider name` |
 | `ai_model` | Set model | `ai_model name` |
 | `ai_timeout` | Set timeout | `ai_timeout seconds` |
+| `ai_host` | Set host URL | `ai_host url` |
 | `ai_chat` | Low-level chat | `ai_chat system prompt` |
 | `ai_chat_json` | Chat → JSON | `ai_chat_json system prompt` |
 | `ai_stream` | Live streaming | `ai_stream system prompt` |
@@ -564,12 +565,43 @@ catch e
 | Provider | API Endpoint | Default Model | Environment Variable |
 |----------|-------------|---------------|---------------------|
 | OpenAI | `https://api.openai.com/v1/chat/completions` | `gpt-4o-mini` | `OPENAI_API_KEY` |
-| Anthropic | `https://api.anthropic.com/v1/messages` | `claude-3-haiku-20240307` | `ANTHROPIC_API_KEY` |
-| DeepSeek | `https://api.deepseek.com/v1/chat/completions` | `deepseek-chat` | `DEEPSEEK_API_KEY` |
+| Anthropic | `https://api.anthropic.com/v1/messages` | `claude-3-5-sonnet-20241022` | `ANTHROPIC_API_KEY` |
+| DeepSeek | `https://api.deepseek.com/v1/chat/completions` | `deepseek-v4-pro` | `DEEPSEEK_API_KEY` |
+| **Ollama** | `http://localhost:11434/v1/chat/completions` | `llama3.1:8b` | **No key needed!** |
 
-The OpenAI-compatible API interface allows connecting additional compatible
-services via the `OPENAI_API_KEY` environment variable and `OPENAI_API_BASE`
-for custom endpoints.
+### Ollama — Local AI Without the Cloud
+
+Ollama is a **local LLM server** that runs on your own machine.
+Pipe communicates via the OpenAI-compatible API on `localhost:11434`.
+
+```bash
+# Install Ollama
+curl -fsSL https://ollama.com/install.sh | sh
+
+# Pull a model
+ollama pull llama3.2:3b
+```
+
+```pipe
+ai_provider "ollama"
+ai_model "llama3.2:3b"
+
+ask "What is a pipeline?" > print
+```
+
+**Benefits:**
+- No API keys, no registration
+- No data leaves your system (GDPR/compliance)
+- Works completely offline
+- Free, unlimited usage
+- All 25 AI builtins work with Ollama
+
+**Remote Ollama** (e.g., on a local network):
+```pipe
+ai_provider "ollama"
+ai_host "http://192.168.1.50:11434"
+ai_model "qwen2.5-coder:7b"
+```
 
 ---
 

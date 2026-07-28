@@ -44,6 +44,7 @@ schlägt die Anfrage mit einem Fehler fehl.
 | `ai_provider` | Provider setzen | `ai_provider name` |
 | `ai_model` | Modell setzen | `ai_model name` |
 | `ai_timeout` | Timeout setzen | `ai_timeout sekunden` |
+| `ai_host` | Host-URL setzen | `ai_host url` |
 | `ai_chat` | Low-Level Chat | `ai_chat system prompt` |
 | `ai_chat_json` | Chat → JSON | `ai_chat_json system prompt` |
 | `ai_stream` | Live-Streaming | `ai_stream system prompt` |
@@ -583,12 +584,43 @@ catch e
 | Provider | API-Endpunkt | Standardmodell | Umgebungsvariable |
 |----------|-------------|----------------|-------------------|
 | OpenAI | `https://api.openai.com/v1/chat/completions` | `gpt-4o-mini` | `OPENAI_API_KEY` |
-| Anthropic | `https://api.anthropic.com/v1/messages` | `claude-3-haiku-20240307` | `ANTHROPIC_API_KEY` |
-| DeepSeek | `https://api.deepseek.com/v1/chat/completions` | `deepseek-chat` | `DEEPSEEK_API_KEY` |
+| Anthropic | `https://api.anthropic.com/v1/messages` | `claude-3-5-sonnet-20241022` | `ANTHROPIC_API_KEY` |
+| DeepSeek | `https://api.deepseek.com/v1/chat/completions` | `deepseek-v4-pro` | `DEEPSEEK_API_KEY` |
+| **Ollama** | `http://localhost:11434/v1/chat/completions` | `llama3.1:8b` | **Kein Key nötig!** |
 
-Die OpenAI-kompatible API-Schnittstelle ermöglicht die Anbindung weiterer
-kompatibler Dienste über die Umgebungsvariable `OPENAI_API_KEY` und
-`OPENAI_API_BASE` für benutzerdefinierte Endpunkte.
+### Ollama — Lokale KI ohne Cloud
+
+Ollama ist ein **lokaler LLM-Server**, der auf deinem eigenen Rechner läuft.
+Pipe kommuniziert über die OpenAI-kompatible API auf `localhost:11434`.
+
+```bash
+# Ollama installieren
+curl -fsSL https://ollama.com/install.sh | sh
+
+# Modell laden
+ollama pull llama3.2:3b
+```
+
+```pipe
+ai_provider "ollama"
+ai_model "llama3.2:3b"
+
+ask "Was ist eine Pipeline?" > print
+```
+
+**Vorteile:**
+- Keine API-Keys, keine Registrierung
+- Keine Daten verlassen dein System (DSGVO/Compliance)
+- Funktioniert komplett offline
+- Kostenlos, unbegrenzte Nutzung
+- Alle 25 KI-Builtins funktionieren mit Ollama
+
+**Remote Ollama** (z.B. im Firmennetzwerk):
+```pipe
+ai_provider "ollama"
+ai_host "http://192.168.1.50:11434"
+ai_model "qwen2.5-coder:7b"
+```
 
 ---
 

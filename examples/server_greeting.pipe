@@ -1,0 +1,66 @@
+-- ═══════════════════════════════════════════════════════
+-- AI GREETING SERVER
+-- Jeder Besucher bekommt einen einzigartigen KI-Gruß
+-- ═══════════════════════════════════════════════════════
+ai_provider "deepseek"
+
+print "╔══════════════════════════════════════╗"
+print "║  AI GREETING SERVER                ║"
+print "║  Port 8080 — Strg+C zum Beenden    ║"
+print "╚══════════════════════════════════════╝"
+print ""
+
+counter: 0
+
+fn http_response body
+    "HTTP/1.1 200 OK\r\nContent-Type: text/html; charset=utf-8\r\nConnection: close\r\n\r\n" ++ body
+
+fn handle_request dummy
+    counter: counter + 1
+    num: counter
+
+    print ("Besucher #" ++ (to_str num) ++ " — generiere Begrüßung...")
+
+    -- Jedes Mal eine andere, kreative KI-Begrüßung
+    greeting: generate "Generiere eine KURZE, kreative, freundliche Begrüßung für den Besucher einer Tech-Website. Variiere jedes Mal — mal lustig, mal motivierend, mal poetisch, mal technisch. Max 2 Sätze. Antworte NUR mit der Begrüßung, kein HTML."
+
+    -- HTML-Seite zusammenbauen
+    html: "<!DOCTYPE html><html><head><title>Pipe AI Server</title>"
+    html: html ++ "<meta charset='utf-8'>"
+    html: html ++ "<meta name='viewport' content='width=device-width,initial-scale=1'>"
+    html: html ++ "<style>"
+    html: html ++ "body{background:#0a0a0f;color:#e0e0e8;font-family:system-ui,sans-serif;"
+    html: html ++ "display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0}"
+    html: html ++ ".card{text-align:center;max-width:600px;padding:40px}"
+    html: html ++ "h1{background:linear-gradient(135deg,#7c5cfc,#5ce0fc);-webkit-background-clip:text;-webkit-text-fill-color:transparent;font-size:2.5rem}"
+    html: html ++ "p{font-size:1.2rem;color:#9898a8;margin:20px 0;line-height:1.6}"
+    html: html ++ ".counter{font-size:0.8rem;color:#555;margin-top:40px}"
+    html: html ++ "</style></head><body><div class='card'>"
+    html: html ++ "<h1>Pipe (SPR)</h1>"
+    html: html ++ "<p>" ++ greeting ++ "</p>"
+    html: html ++ "<p class='counter'>Besucher #" ++ (to_str num) ++ " | Powered by AI</p>"
+    html: html ++ "</div></body></html>"
+
+    html
+
+fn server_loop ln dummy
+    try
+        conn: tcp_accept ln
+        request: tcp_read conn
+
+        -- Generiere die KI-Antwort
+        response: handle_request 0
+
+        tcp_write conn (http_response response)
+        tcp_close conn
+
+        -- Nächsten Request verarbeiten
+        server_loop ln 0
+    catch e
+        print ("Server-Fehler: " ++ e)
+
+-- Server starten
+print "Starte Server auf http://localhost:8080"
+print ""
+ln: tcp_listen "0.0.0.0" 8080
+server_loop ln 0

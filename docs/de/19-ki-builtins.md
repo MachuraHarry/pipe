@@ -55,6 +55,8 @@ schlägt die Anfrage mit einem Fehler fehl.
 | `cosine_sim` | Kosinus-Ähnlichkeit | `cosine_sim a b` |
 | `dot_product` | Skalarprodukt | `dot_product a b` |
 | `nearest` | Top-K ähnlichste | `nearest query docs k` |
+| `ai_tool` | Tool registrieren | `ai_tool name desc schema fn` |
+| `ai_with_tools` | Chat mit Tools | `ai_with_tools system user` |
 | `summarize` | Text zusammenfassen | `summarize text` |
 | `translate` | Text übersetzen | `translate text zielsprache` |
 | `classify` | Text klassifizieren | `classify text kategorien` |
@@ -432,7 +434,85 @@ ask prompt > print
 
 ---
 
-## 19.8 Pipeline mit KI
+## 19.8 Tool-Calling (Function Calling)
+
+Tool-Calling erlaubt dem LLM, Pipe-Funktionen als **Werkzeuge** aufzurufen.
+Statt nur zu antworten, kann die KI aktiv handeln — APIs aufrufen, Berechnungen
+ausführen, Daten abfragen.
+
+### ai_tool
+
+```
+ai_tool name description parameters_schema function
+```
+
+Registriert eine Pipe-Funktion als Tool für das LLM. Das `parameters_schema`
+ist eine Map, die die erwarteten Parameter beschreibt.
+
+```pipe
+-- Wetter-Tool definieren
+fn get_wetter stadt
+    match stadt
+        | "Berlin" -> "22°C, sonnig"
+        | "London" -> "15°C, regnerisch"
+        | _ -> "Keine Daten"
+
+-- Tool registrieren
+schema: {stadt: "Name der Stadt"}
+ai_tool "get_wetter" "Holt das Wetter für eine Stadt" schema get_wetter
+```
+
+### ai_with_tools
+
+```
+ai_with_tools system_prompt user_prompt
+```
+
+Führt einen Chat mit Zugriff auf alle registrierten Tools durch.
+Der LLM entscheidet selbstständig, ob und wann er Tools aufruft.
+
+```pipe
+ergebnis: ai_with_tools
+    "Du bist ein Wetter-Assistent. Nutze get_wetter."
+    "Wie ist das Wetter in Berlin und London?"
+
+print ergebnis
+```
+
+### Ablauf (intern)
+
+```
+1. User: "Wetter in Berlin?"
+2. LLM → Tool Call: get_wetter("Berlin")
+3. Pipe führt get_wetter aus → "22°C, sonnig"
+4. Ergebnis wird an LLM zurückgesendet
+5. LLM → Antwort: "In Berlin sind es 22°C und sonnig."
+```
+
+Dieser Loop wiederholt sich bis zu 5 Runden, bis der LLM eine finale
+Antwort ohne weitere Tool-Calls gibt.
+
+### Wetter-Assistent (vollständig)
+
+```pipe
+fn get_wetter stadt
+    match stadt
+        | "Berlin" -> "22°C, sonnig"
+        | "London" -> "15°C, regnerisch"
+        | "Paris" -> "25°C, klar"
+        | _ -> stadt ++ ": Keine Daten"
+
+schema: {stadt: "Name der Stadt"}
+ai_tool "get_wetter" "Wetter für eine Stadt abrufen" schema get_wetter
+
+ai_with_tools "Du bist ein Wetter-Experte."
+    "Wie ist das Wetter in Berlin, London und Paris?"
+    > print
+```
+
+---
+
+## 19.9 Pipeline mit KI
 
 KI-Operationen lassen sich nahtlos in Pipe-Pipelines integrieren:
 
@@ -460,7 +540,7 @@ ergebnisse: map dokumente fn(doc)
 
 ---
 
-## 19.9 Fehlerbehandlung
+## 19.10 Fehlerbehandlung
 
 KI-Operationen können fehlschlagen — etwa bei fehlendem API-Key,
 Netzwerkproblemen oder Timeout. Mit `try`/`catch` lassen sich
@@ -498,7 +578,7 @@ catch e
 
 ---
 
-## 19.10 Provider-Details
+## 19.11 Provider-Details
 
 | Provider | API-Endpunkt | Standardmodell | Umgebungsvariable |
 |----------|-------------|----------------|-------------------|
@@ -512,7 +592,7 @@ kompatibler Dienste über die Umgebungsvariable `OPENAI_API_KEY` und
 
 ---
 
-## 19.11 Beispiel: Vollständiger Workflow
+## 19.12 Beispiel: Vollständiger Workflow
 
 Dieser Workflow demonstriert alle KI-Builtins in einer praktischen Anwendung:
 

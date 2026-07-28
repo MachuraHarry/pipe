@@ -55,6 +55,8 @@ is missing, the request fails with an error.
 | `cosine_sim` | Cosine similarity | `cosine_sim a b` |
 | `dot_product` | Dot product | `dot_product a b` |
 | `nearest` | Top-K nearest | `nearest query docs k` |
+| `ai_tool` | Register tool | `ai_tool name desc schema fn` |
+| `ai_with_tools` | Chat with tools | `ai_with_tools system user` |
 | `summarize` | Summarize text | `summarize text` |
 | `translate` | Translate text | `translate text target_language` |
 | `classify` | Classify text | `classify text categories` |
@@ -414,7 +416,84 @@ ask prompt > print
 
 ---
 
-## 19.8 Pipeline with AI
+## 19.8 Tool Calling (Function Calling)
+
+Tool Calling lets the LLM invoke Pipe functions as **tools**. Instead of just
+responding, the AI can take action — call APIs, run calculations, fetch data.
+
+### ai_tool
+
+```
+ai_tool name description parameters_schema function
+```
+
+Registers a Pipe function as a tool for the LLM. `parameters_schema` is a map
+describing the expected parameters.
+
+```pipe
+-- Define a weather tool
+fn get_weather city
+    match city
+        | "Berlin" -> "22°C, sunny"
+        | "London" -> "15°C, rainy"
+        | _ -> "No data"
+
+-- Register the tool
+schema: {city: "Name of the city"}
+ai_tool "get_weather" "Get current weather for a city" schema get_weather
+```
+
+### ai_with_tools
+
+```
+ai_with_tools system_prompt user_prompt
+```
+
+Runs a chat with access to all registered tools. The LLM autonomously decides
+if and when to call tools.
+
+```pipe
+result: ai_with_tools
+    "You are a weather assistant. Use get_weather."
+    "What's the weather in Berlin and London?"
+
+print result
+```
+
+### Execution Flow (internal)
+
+```
+1. User: "Weather in Berlin?"
+2. LLM → Tool Call: get_weather("Berlin")
+3. Pipe executes get_weather → "22°C, sunny"
+4. Result sent back to LLM
+5. LLM → Response: "It's 22°C and sunny in Berlin."
+```
+
+This loop repeats up to 5 rounds until the LLM gives a final answer
+without further tool calls.
+
+### Weather Assistant (complete)
+
+```pipe
+fn get_weather city
+    match city
+        | "Berlin" -> "22°C, sunny"
+        | "London" -> "15°C, rainy"
+        | "Paris" -> "25°C, clear"
+        | _ -> city ++ ": No data"
+
+schema: {city: "Name of the city"}
+ai_tool "get_weather" "Get weather for a city" schema get_weather
+
+ai_with_tools "You are a weather expert."
+    "What's the weather in Berlin, London, and Paris?"
+    > print
+```
+
+---
+
+## 19.9 Pipeline with AI
 
 AI operations integrate seamlessly into Pipe pipelines:
 
@@ -442,7 +521,7 @@ results: map documents fn(doc)
 
 ---
 
-## 19.9 Error Handling
+## 19.10 Error Handling
 
 AI operations can fail — for example due to missing API keys,
 network issues, or timeouts. These errors can be caught with
@@ -480,7 +559,7 @@ catch e
 
 ---
 
-## 19.10 Provider Details
+## 19.11 Provider Details
 
 | Provider | API Endpoint | Default Model | Environment Variable |
 |----------|-------------|---------------|---------------------|
@@ -494,7 +573,7 @@ for custom endpoints.
 
 ---
 
-## 19.11 Example: Complete Workflow
+## 19.12 Example: Complete Workflow
 
 This workflow demonstrates all AI builtins in a practical application:
 

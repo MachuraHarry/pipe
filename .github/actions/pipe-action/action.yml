@@ -1,0 +1,75 @@
+name: 'Pipe (SPR)'
+description: 'Run Pipe scripts in CI/CD — Semantic Pipeline Runtime with built-in AI'
+author: 'MachuraHarry'
+branding:
+  icon: 'terminal'
+  color: 'purple'
+
+inputs:
+  script:
+    description: 'Pipe script to execute'
+    required: true
+  version:
+    description: 'Pipe version (default: latest)'
+    required: false
+    default: 'latest'
+  flags:
+    description: 'Additional flags (-vm, -q, --sandbox)'
+    required: false
+    default: '-vm -q'
+  provider:
+    description: 'AI provider (openai, anthropic, deepseek, ollama)'
+    required: false
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Download Pipe Binary
+      shell: bash
+      env:
+        VERSION: ${{ inputs.version }}
+      run: |
+        set -e
+        OS=$(uname -s | tr '[:upper:]' '[:lower:]')
+        ARCH=$(uname -m)
+        [ "$ARCH" = "x86_64" ] && ARCH="amd64"
+        [ "$ARCH" = "aarch64" ] && ARCH="arm64"
+
+        if [ "$VERSION" = "latest" ]; then
+          DOWNLOAD="https://github.com/MachuraHarry/pipe/releases/latest/download/pipe-${OS}-${ARCH}.tar.gz"
+        else
+          DOWNLOAD="https://github.com/MachuraHarry/pipe/releases/download/${VERSION}/pipe-${OS}-${ARCH}.tar.gz"
+        fi
+
+        if curl -fsSL "$DOWNLOAD" -o pipe.tar.gz 2>/dev/null; then
+          tar -xzf pipe.tar.gz
+          rm pipe.tar.gz
+        else
+          echo "::group::Building Pipe from source"
+          TMP=$(mktemp -d)
+          git clone --depth 1 https://github.com/MachuraHarry/pipe "$TMP" 2>/dev/null
+          cd "$TMP" && go build -o pipe ./cmd/pipe && mv pipe "$GITHUB_WORKSPACE/"
+          cd "$GITHUB_WORKSPACE" && rm -rf "$TMP"
+          echo "::endgroup::"
+        fi
+        chmod +x pipe
+        echo "$GITHUB_WORKSPACE" >> "$GITHUB_PATH"
+
+    - name: Execute Pipe
+      shell: bash
+      env:
+        PROVIDER: ${{ inputs.provider }}
+        FLAGS: ${{ inputs.flags }}
+        OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY || '' }}
+        ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY || '' }}
+        DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY || '' }}
+      run: |
+        if [ -n "$PROVIDER" ]; then
+          echo "ai_provider \"$PROVIDER\"" > /tmp/script.pipe
+        fi
+        cat >> /tmp/script.pipe << 'PIPE_SCRIPT'
+${{ inputs.script }}
+PIPE_SCRIPT
+
+        echo "=== Pipe Script ===" && cat /tmp/script.pipe && echo "===================="
+        pipe $FLAGS /tmp/script.pipe

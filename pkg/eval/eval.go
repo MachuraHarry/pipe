@@ -34,9 +34,13 @@ func NewEvalContext(sourceFile string) *EvalContext {
 	return ctx
 }
 
-func (ctx *EvalContext) pushCall(name string)  { ctx.callStack = append(ctx.callStack, name) }
-func (ctx *EvalContext) popCall()              { if len(ctx.callStack) > 0 { ctx.callStack = ctx.callStack[:len(ctx.callStack)-1] } }
-func (ctx *EvalContext) stackTrace() string    { return "  in " + strings.Join(ctx.callStack, "\n  in ") }
+func (ctx *EvalContext) pushCall(name string) { ctx.callStack = append(ctx.callStack, name) }
+func (ctx *EvalContext) popCall() {
+	if len(ctx.callStack) > 0 {
+		ctx.callStack = ctx.callStack[:len(ctx.callStack)-1]
+	}
+}
+func (ctx *EvalContext) stackTrace() string { return "  in " + strings.Join(ctx.callStack, "\n  in ") }
 
 func (ctx *EvalContext) Eval(node ast.Node, env *object.Environment) object.Object {
 	switch n := node.(type) {

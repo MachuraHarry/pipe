@@ -85,7 +85,7 @@ type Compiler struct {
 }
 
 type LoopContext struct {
-	continueTarget int // position to jump to on continue (condition check)
+	continueTarget int   // position to jump to on continue (condition check)
 	breakPatches   []int // positions of break jump instructions to patch
 }
 
@@ -256,7 +256,7 @@ func (c *Compiler) Compile(node ast.Node) error {
 			}
 			c.emit(OpDup)
 			jumpEnd := c.emit(OpJumpNotTruthy, 9999) // if falsy, skip to eval right
-			jumpEnd2 := c.emit(OpJump, 9999)           // if truthy, skip right entirely
+			jumpEnd2 := c.emit(OpJump, 9999)         // if truthy, skip right entirely
 			c.patchJump(jumpEnd, len(c.currentInstructions()))
 			c.emit(OpPop)
 			if err := c.Compile(n.Right); err != nil {

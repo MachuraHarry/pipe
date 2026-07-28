@@ -32,23 +32,23 @@ const (
 )
 
 var precedences = map[lexer.TokenType]int{
-	lexer.OR:     PrecedenceOr,
-	lexer.AND:    PrecedenceAnd,
-	lexer.ARROW:  PrecedencePipeline,
-	lexer.EQ:     PrecedenceEquals,
-	lexer.NOT_EQ: PrecedenceEquals,
-	lexer.LT:     PrecedenceCompare,
-	lexer.GT:     PrecedenceCompare,
-	lexer.LTE:    PrecedenceCompare,
-	lexer.GTE:    PrecedenceCompare,
-	lexer.PLUS:   PrecedenceSum,
-	lexer.MINUS:  PrecedenceSum,
-	lexer.STAR:   PrecedenceProduct,
-	lexer.SLASH:  PrecedenceProduct,
-	lexer.PERCENT: PrecedenceProduct,
-	lexer.POWER:  PrecedencePower,
-	lexer.CONCAT: PrecedenceConcat,
-	lexer.DOT:    PrecedenceDot,
+	lexer.OR:       PrecedenceOr,
+	lexer.AND:      PrecedenceAnd,
+	lexer.ARROW:    PrecedencePipeline,
+	lexer.EQ:       PrecedenceEquals,
+	lexer.NOT_EQ:   PrecedenceEquals,
+	lexer.LT:       PrecedenceCompare,
+	lexer.GT:       PrecedenceCompare,
+	lexer.LTE:      PrecedenceCompare,
+	lexer.GTE:      PrecedenceCompare,
+	lexer.PLUS:     PrecedenceSum,
+	lexer.MINUS:    PrecedenceSum,
+	lexer.STAR:     PrecedenceProduct,
+	lexer.SLASH:    PrecedenceProduct,
+	lexer.PERCENT:  PrecedenceProduct,
+	lexer.POWER:    PrecedencePower,
+	lexer.CONCAT:   PrecedenceConcat,
+	lexer.DOT:      PrecedenceDot,
 	lexer.LBRACKET: PrecedenceCall,
 }
 
@@ -58,9 +58,9 @@ type Parser struct {
 	peekToken lexer.Token
 	errors    []string
 
-	prefixParseFns  map[lexer.TokenType]prefixParseFn
-	infixParseFns   map[lexer.TokenType]infixParseFn
-	blockDepth      int // tracks nesting of expression blocks
+	prefixParseFns map[lexer.TokenType]prefixParseFn
+	infixParseFns  map[lexer.TokenType]infixParseFn
+	blockDepth     int // tracks nesting of expression blocks
 }
 
 func New(l *lexer.Lexer) *Parser {
@@ -91,24 +91,24 @@ func New(l *lexer.Lexer) *Parser {
 	}
 
 	p.infixParseFns = map[lexer.TokenType]infixParseFn{
-		lexer.PLUS:    p.parseInfixExpression,
-		lexer.MINUS:   p.parseInfixExpression,
-		lexer.STAR:    p.parseInfixExpression,
-		lexer.SLASH:   p.parseInfixExpression,
-		lexer.PERCENT: p.parseInfixExpression,
-		lexer.POWER:   p.parseInfixExpression,
-		lexer.EQ:      p.parseInfixExpression,
-		lexer.NOT_EQ:  p.parseInfixExpression,
-		lexer.LT:      p.parseInfixExpression,
-		lexer.ARROW:   p.parsePipelineExpression,
-		lexer.GT:      p.parseInfixExpression,
-		lexer.LTE:     p.parseInfixExpression,
-		lexer.GTE:     p.parseInfixExpression,
-		lexer.CONCAT:  p.parseInfixExpression,
-		lexer.AND:     p.parseInfixExpression,
-		lexer.OR:      p.parseInfixExpression,
-		lexer.DOT:     p.parseDotExpression,
-		lexer.LPAREN:  p.parseCallExpression,
+		lexer.PLUS:     p.parseInfixExpression,
+		lexer.MINUS:    p.parseInfixExpression,
+		lexer.STAR:     p.parseInfixExpression,
+		lexer.SLASH:    p.parseInfixExpression,
+		lexer.PERCENT:  p.parseInfixExpression,
+		lexer.POWER:    p.parseInfixExpression,
+		lexer.EQ:       p.parseInfixExpression,
+		lexer.NOT_EQ:   p.parseInfixExpression,
+		lexer.LT:       p.parseInfixExpression,
+		lexer.ARROW:    p.parsePipelineExpression,
+		lexer.GT:       p.parseInfixExpression,
+		lexer.LTE:      p.parseInfixExpression,
+		lexer.GTE:      p.parseInfixExpression,
+		lexer.CONCAT:   p.parseInfixExpression,
+		lexer.AND:      p.parseInfixExpression,
+		lexer.OR:       p.parseInfixExpression,
+		lexer.DOT:      p.parseDotExpression,
+		lexer.LPAREN:   p.parseCallExpression,
 		lexer.LBRACKET: p.parseIndexOrSlice,
 	}
 
@@ -275,11 +275,16 @@ func (p *Parser) parseCompoundAssign() ast.Statement {
 	opToken := p.peekToken
 	op := ""
 	switch opToken.Type {
-	case lexer.PLUSEQ: op = "+"
-	case lexer.MINUSEQ: op = "-"
-	case lexer.STAREQ: op = "*"
-	case lexer.SLASHEQ: op = "/"
-	case lexer.PERCENTEQ: op = "%"
+	case lexer.PLUSEQ:
+		op = "+"
+	case lexer.MINUSEQ:
+		op = "-"
+	case lexer.STAREQ:
+		op = "*"
+	case lexer.SLASHEQ:
+		op = "/"
+	case lexer.PERCENTEQ:
+		op = "%"
 	}
 
 	p.nextToken() // skip to +=

@@ -13,8 +13,8 @@ import (
 )
 
 const (
-	magic     = "PIPEBC"
-	version   = byte(1)
+	magic   = "PIPEBC"
+	version = byte(1)
 )
 
 func hashSource(data []byte) string {

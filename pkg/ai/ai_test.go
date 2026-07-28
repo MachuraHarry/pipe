@@ -7,10 +7,10 @@ import (
 
 func TestSetProvider(t *testing.T) {
 	tests := []struct {
-		name         string
-		provider     string
-		wantModel    string
-		wantAPIHost  string
+		name        string
+		provider    string
+		wantModel   string
+		wantAPIHost string
 	}{
 		{"openai", "openai", "gpt-4o-mini", "https://api.openai.com"},
 		{"anthropic", "anthropic", "claude-3-5-sonnet-20241022", "https://api.anthropic.com"},

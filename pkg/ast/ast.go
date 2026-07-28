@@ -164,7 +164,9 @@ type PrefixExpression struct {
 
 func (pe *PrefixExpression) expressionNode()      {}
 func (pe *PrefixExpression) TokenLiteral() string { return pe.Operator }
-func (pe *PrefixExpression) String() string       { return fmt.Sprintf("(%s%s)", pe.Operator, pe.Right.String()) }
+func (pe *PrefixExpression) String() string {
+	return fmt.Sprintf("(%s%s)", pe.Operator, pe.Right.String())
+}
 
 type InfixExpression struct {
 	Operator string
@@ -272,9 +274,9 @@ type ForExpression struct {
 	Update    Expression
 	Body      *BlockStatement
 	// For-in variant:
-	Iterator  *Identifier   // loop variable name
-	Iterable  Expression    // list/map to iterate over
-	IsForIn   bool
+	Iterator *Identifier // loop variable name
+	Iterable Expression  // list/map to iterate over
+	IsForIn  bool
 }
 
 func (fe *ForExpression) expressionNode()      {}
@@ -339,9 +341,9 @@ func (fl *FnLiteral) TokenLiteral() string { return "fn" }
 func (fl *FnLiteral) String() string       { return "fn(...)" }
 
 type SliceExpression struct {
-	List   Expression
-	Start  Expression
-	End    Expression
+	List  Expression
+	Start Expression
+	End   Expression
 }
 
 func (se *SliceExpression) expressionNode()      {}
@@ -349,9 +351,9 @@ func (se *SliceExpression) TokenLiteral() string { return "slice" }
 func (se *SliceExpression) String() string       { return "slice" }
 
 type TryExpression struct {
-	TryBlock    *BlockStatement
-	CatchParam  *Identifier
-	CatchBlock  *BlockStatement
+	TryBlock   *BlockStatement
+	CatchParam *Identifier
+	CatchBlock *BlockStatement
 }
 
 func (te *TryExpression) expressionNode()      {}

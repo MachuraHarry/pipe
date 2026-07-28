@@ -54,9 +54,9 @@ func EmbedBatch(texts []string, concurrency int) ([][]float64, []error) {
 	}
 
 	type result struct {
-		idx  int
-		vec  []float64
-		err  error
+		idx int
+		vec []float64
+		err error
 	}
 
 	results := make([][]float64, len(texts))

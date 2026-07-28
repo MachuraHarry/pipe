@@ -15,34 +15,34 @@ const (
 	STRING // "hello"
 
 	// Operators
-	ASSIGN   // =
-	PLUS     // +
-	MINUS    // -
-	STAR     // *
-	SLASH    // /
-	PERCENT  // %
-	EQ       // ==
-	NOT_EQ   // !=
-	LT       // <
-	GT       // >
-	LTE      // <=
-	GTE      // >=
-	CONCAT   // ++ (string concat)
-	BANG     // !
-	AND      // &&
-	OR       // ||
-	PLUSEQ   // +=
-	MINUSEQ  // -=
-	STAREQ   // *=
-	SLASHEQ  // /=
+	ASSIGN    // =
+	PLUS      // +
+	MINUS     // -
+	STAR      // *
+	SLASH     // /
+	PERCENT   // %
+	EQ        // ==
+	NOT_EQ    // !=
+	LT        // <
+	GT        // >
+	LTE       // <=
+	GTE       // >=
+	CONCAT    // ++ (string concat)
+	BANG      // !
+	AND       // &&
+	OR        // ||
+	PLUSEQ    // +=
+	MINUSEQ   // -=
+	STAREQ    // *=
+	SLASHEQ   // /=
 	PERCENTEQ // %=
-	POWER    // **
-	DOTDOT   // .. (slice range)
+	POWER     // **
+	DOTDOT    // .. (slice range)
 
 	// Pipeline
-	PIPE   // |
-	ARROW  // >
-	MATCH  // ->
+	PIPE  // |
+	ARROW // >
+	MATCH // ->
 
 	// Punctuation
 	LPAREN   // (

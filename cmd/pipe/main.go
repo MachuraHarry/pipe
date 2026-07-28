@@ -31,15 +31,15 @@ func main() {
 	}
 
 	var (
-		useVM     bool
-		quietVM   bool
-		showAST   bool
-		doFmt     bool
-		doBench   bool
-		doTest    bool
-		doBuild   bool
-		buildOut  string
-		filePath  string
+		useVM      bool
+		quietVM    bool
+		showAST    bool
+		doFmt      bool
+		doBench    bool
+		doTest     bool
+		doBuild    bool
+		buildOut   string
+		filePath   string
 		scriptArgs []string
 	)
 

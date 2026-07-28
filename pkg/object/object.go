@@ -26,17 +26,17 @@ import (
 type ObjectType string
 
 const (
-	INTEGER          ObjectType = "INTEGER"
-	FLOAT                       = "FLOAT"
-	STRING                      = "STRING"
-	BOOLEAN                     = "BOOLEAN"
-	NIL                         = "NIL"
-	FUNCTION                    = "FUNCTION"
-	COMPILED_FUNCTION           = "COMPILED_FUNCTION"
-	CLOSURE                     = "CLOSURE"
-	LIST                        = "LIST"
-	MAP                         = "MAP"
-	ERROR                       = "ERROR"
+	INTEGER           ObjectType = "INTEGER"
+	FLOAT                        = "FLOAT"
+	STRING                       = "STRING"
+	BOOLEAN                      = "BOOLEAN"
+	NIL                          = "NIL"
+	FUNCTION                     = "FUNCTION"
+	COMPILED_FUNCTION            = "COMPILED_FUNCTION"
+	CLOSURE                      = "CLOSURE"
+	LIST                         = "LIST"
+	MAP                          = "MAP"
+	ERROR                        = "ERROR"
 )
 
 type Object interface {

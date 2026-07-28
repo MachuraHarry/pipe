@@ -136,7 +136,7 @@
         },
         {
           "name": "support.function.builtin.ai.pipe",
-          "match": "\\b(ai_provider|ai_model|ai_timeout|ai_chat|ai_chat_json|ai_stream|ai_parallel|ai_batch|ai_rate_limit|summarize|translate|classify|extract|generate|ask)\\b"
+          "match": "\\b(ai_provider|ai_model|ai_timeout|ai_chat|ai_chat_json|ai_stream|ai_parallel|ai_batch|ai_rate_limit|embed|embed_batch|cosine_sim|dot_product|nearest|summarize|translate|classify|extract|generate|ask)\\b"
         }
       ]
     },

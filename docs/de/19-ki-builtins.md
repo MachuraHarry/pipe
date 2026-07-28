@@ -50,6 +50,11 @@ schlägt die Anfrage mit einem Fehler fehl.
 | `ai_parallel` | Parallel-Calls | `ai_parallel n system items` |
 | `ai_batch` | Auto-Parallel | `ai_batch system items` |
 | `ai_rate_limit` | Rate-Limiting | `ai_rate_limit calls_per_sec` |
+| `embed` | Text → Vektor | `embed text` |
+| `embed_batch` | Batch-Embedding | `embed_batch texts` |
+| `cosine_sim` | Kosinus-Ähnlichkeit | `cosine_sim a b` |
+| `dot_product` | Skalarprodukt | `dot_product a b` |
+| `nearest` | Top-K ähnlichste | `nearest query docs k` |
 | `summarize` | Text zusammenfassen | `summarize text` |
 | `translate` | Text übersetzen | `translate text zielsprache` |
 | `classify` | Text klassifizieren | `classify text kategorien` |
@@ -322,7 +327,112 @@ ergebnisse: ai_batch "Analysiere diesen Text." texte
 
 ---
 
-## 19.7 Pipeline mit KI
+## 19.7 Embeddings & Vektorsuche
+
+Embeddings wandeln Text in Vektoren (Zahlenlisten) um, die die *Bedeutung*
+des Texts im mathematischen Raum abbilden. Ähnliche Texte liegen nah beieinander.
+Das ermöglicht **semantische Suche** — nicht Keyword-Matching, sondern echtes
+Bedeutungs-Verständnis.
+
+### embed
+
+```
+embed text
+```
+
+Wandelt einen Text in einen Embedding-Vektor um (Liste von ~1536 Float-Zahlen).
+Nutzt die `/v1/embeddings` API (OpenAI-kompatibel, Modell: `text-embedding-3-small`).
+
+```pipe
+vec: embed "Pipe ist eine Skriptsprache."
+print (len vec)    -- 1536
+```
+
+**Hinweis:** Benötigt `OPENAI_API_KEY`. DeepSeek unterstützt keine Embeddings.
+
+### embed_batch
+
+```
+embed_batch texts
+```
+
+Berechnet Embeddings für eine Liste von Texten parallel (4 concurrent).
+
+```pipe
+dokumente: ["Text A", "Text B", "Text C"]
+vektoren: embed_batch dokumente
+```
+
+### cosine_sim
+
+```
+cosine_sim vector_a vector_b
+```
+
+Berechnet die Kosinus-Ähnlichkeit zweier Vektoren. Werte von -1 (entgegengesetzt)
+bis 1 (identische Richtung). **Kein API-Call nötig** — pure Mathematik.
+
+```pipe
+sim: cosine_sim vec1 vec2
+print sim    -- z.B. 0.87 (sehr ähnlich)
+```
+
+### dot_product
+
+```
+dot_product vector_a vector_b
+```
+
+Skalarprodukt zweier Vektoren. **Kein API-Call nötig.**
+
+```pipe
+dp: dot_product [1.0, 2.0, 3.0] [2.0, 4.0, 6.0]
+print dp    -- 28.0
+```
+
+### nearest
+
+```
+nearest query_vector document_vectors k
+```
+
+Findet die Top-K ähnlichsten Dokument-Vektoren zu einem Query-Vektor.
+Gibt die **Indizes** der ähnlichsten Dokumente zurück.
+
+```pipe
+-- Welche Dokumente sind der Frage am ähnlichsten?
+frage: embed "Wie funktioniert die VM?"
+top3: nearest frage vektoren 3
+
+for idx in top3
+    print (at dokumente idx)
+```
+
+### RAG mit Pipe (vollständiges Beispiel)
+
+```pipe
+-- 1. Wissensdatenbank einbetten
+dokumente: read_lines "wissen.txt"
+vektoren: embed_batch dokumente
+
+-- 2. Frage einbetten
+frage: "Wie funktioniert der Compiler?"
+frage_vec: embed frage
+
+-- 3. Relevante Dokumente finden
+top: nearest frage_vec vektoren 5
+kontext: ""
+for idx in top
+    kontext: kontext ++ (at dokumente idx) ++ "\n---\n"
+
+-- 4. KI mit Kontext antworten
+prompt: "Kontext:\n" ++ kontext ++ "\nFrage: " ++ frage
+ask prompt > print
+```
+
+---
+
+## 19.8 Pipeline mit KI
 
 KI-Operationen lassen sich nahtlos in Pipe-Pipelines integrieren:
 
@@ -350,7 +460,7 @@ ergebnisse: map dokumente fn(doc)
 
 ---
 
-## 19.8 Fehlerbehandlung
+## 19.9 Fehlerbehandlung
 
 KI-Operationen können fehlschlagen — etwa bei fehlendem API-Key,
 Netzwerkproblemen oder Timeout. Mit `try`/`catch` lassen sich
@@ -388,7 +498,7 @@ catch e
 
 ---
 
-## 19.9 Provider-Details
+## 19.10 Provider-Details
 
 | Provider | API-Endpunkt | Standardmodell | Umgebungsvariable |
 |----------|-------------|----------------|-------------------|
@@ -402,7 +512,7 @@ kompatibler Dienste über die Umgebungsvariable `OPENAI_API_KEY` und
 
 ---
 
-## 19.10 Beispiel: Vollständiger Workflow
+## 19.11 Beispiel: Vollständiger Workflow
 
 Dieser Workflow demonstriert alle KI-Builtins in einer praktischen Anwendung:
 

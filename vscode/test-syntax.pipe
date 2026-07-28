@@ -1,5 +1,5 @@
 -- ============================================================
--- Pipe SYNTAX HIGHLIGHTING — Ausführbarer Test
+-- Pipe SYNTAX HIGHLIGHTING — Executable test
 -- Starten: ../bin/pipe test-syntax.pipe
 -- ============================================================
 
@@ -217,7 +217,7 @@ print worte
 print (join worte "-")
 print (contains "hallo welt" "welt")
 
--- Typ-Prüfung
+-- Type check
 print (type_of 42)
 print (is_num 42)
 print (is_str "hi")

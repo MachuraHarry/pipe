@@ -50,6 +50,11 @@ is missing, the request fails with an error.
 | `ai_parallel` | Parallel calls | `ai_parallel n system items` |
 | `ai_batch` | Auto-parallel | `ai_batch system items` |
 | `ai_rate_limit` | Rate limiting | `ai_rate_limit calls_per_sec` |
+| `embed` | Text → Vector | `embed text` |
+| `embed_batch` | Batch embedding | `embed_batch texts` |
+| `cosine_sim` | Cosine similarity | `cosine_sim a b` |
+| `dot_product` | Dot product | `dot_product a b` |
+| `nearest` | Top-K nearest | `nearest query docs k` |
 | `summarize` | Summarize text | `summarize text` |
 | `translate` | Translate text | `translate text target_language` |
 | `classify` | Classify text | `classify text categories` |
@@ -322,7 +327,94 @@ results: ai_batch "Analyze this text." texts
 
 ---
 
-## 19.7 Pipeline with AI
+## 19.7 Embeddings & Vector Search
+
+Embeddings convert text into vectors (lists of numbers) that capture the *meaning*
+of text in mathematical space. Similar texts are close together. This enables
+**semantic search** — understanding meaning, not just keyword matching.
+
+### embed
+
+```
+embed text
+```
+
+Converts text into an embedding vector (~1536 floats). Uses the `/v1/embeddings`
+API (OpenAI-compatible, model: `text-embedding-3-small`).
+
+```pipe
+vec: embed "Pipe is a scripting language."
+print (len vec)    -- 1536
+```
+
+**Note:** Requires `OPENAI_API_KEY`. DeepSeek does not support embeddings.
+
+### embed_batch
+
+```
+embed_batch texts
+```
+
+Computes embeddings for a list of texts in parallel (4 concurrent).
+
+### cosine_sim
+
+```
+cosine_sim vector_a vector_b
+```
+
+Cosine similarity between two vectors. Range: -1 (opposite) to 1 (identical).
+**No API call** — pure math.
+
+### dot_product
+
+```
+dot_product vector_a vector_b
+```
+
+Dot product of two vectors. **No API call.**
+
+### nearest
+
+```
+nearest query_vector document_vectors k
+```
+
+Finds the top-K most similar documents to a query. Returns **indices**.
+
+```pipe
+question: embed "How does the VM work?"
+top3: nearest question vectors 3
+
+for idx in top3
+    print (at documents idx)
+```
+
+### RAG with Pipe (complete example)
+
+```pipe
+-- 1. Embed knowledge base
+documents: read_lines "knowledge.txt"
+vectors: embed_batch documents
+
+-- 2. Embed the question
+question: "How does the compiler work?"
+q_vec: embed question
+
+-- 3. Find relevant documents
+top: nearest q_vec vectors 5
+context: ""
+for idx in top
+    context: context ++ (at documents idx) ++ "\n---\n"
+
+-- 4. Answer with context
+prompt: "Context:\n" ++ context ++ "\nQuestion: " ++ question
+ask prompt > print
+```
+
+---
+
+## 19.8 Pipeline with AI
 
 AI operations integrate seamlessly into Pipe pipelines:
 
@@ -350,7 +442,7 @@ results: map documents fn(doc)
 
 ---
 
-## 19.8 Error Handling
+## 19.9 Error Handling
 
 AI operations can fail — for example due to missing API keys,
 network issues, or timeouts. These errors can be caught with
@@ -388,7 +480,7 @@ catch e
 
 ---
 
-## 19.9 Provider Details
+## 19.10 Provider Details
 
 | Provider | API Endpoint | Default Model | Environment Variable |
 |----------|-------------|---------------|---------------------|
@@ -402,7 +494,7 @@ for custom endpoints.
 
 ---
 
-## 19.10 Example: Complete Workflow
+## 19.11 Example: Complete Workflow
 
 This workflow demonstrates all AI builtins in a practical application:
 

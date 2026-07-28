@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Examples — Pipe</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #0a0a0f; --bg2: #111118; --bg3: #1a1a24;
+  --fg: #e0e0e8; --fg2: #9898a8;
+  --accent: #7c5cfc; --accent2: #5ce0fc;
+  --green: #3ce096; --orange: #fc8c3c; --red: #fc5c7c;
+  --border: #22222e; --radius: 8px;
+  --mono: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', 'Consolas', monospace;
+  --sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+}
+
+html { scroll-behavior: smooth; }
+body { background: var(--bg); color: var(--fg); font-family: var(--sans); line-height: 1.6; }
+.container { max-width: 1100px; margin: 0 auto; padding: 0 24px; }
+
+/* Nav */
+nav { position: sticky; top: 0; z-index: 100; background: var(--bg); border-bottom: 1px solid var(--border); padding: 14px 0; backdrop-filter: blur(12px); }
+nav .container { display: flex; justify-content: space-between; align-items: center; }
+nav .logo { font-weight: 800; font-size: 1.3rem; color: var(--accent); text-decoration: none; letter-spacing: -0.5px; }
+nav .nav-links { display: flex; align-items: center; gap: 20px; }
+nav a { color: var(--fg2); text-decoration: none; font-size: 0.9rem; transition: color 0.2s; }
+nav a:hover { color: var(--fg); }
+
+/* Lang switch */
+.lang-switch { display: flex; background: var(--bg3); border: 1px solid var(--border); border-radius: 20px; overflow: hidden; }
+.lang-switch button { background: none; border: none; color: var(--fg2); padding: 5px 12px; font-size: 0.78rem; cursor: pointer; font-family: var(--sans); font-weight: 600; transition: all 0.2s; }
+.lang-switch button.active { background: var(--accent); color: #fff; }
+.lang-switch button:hover:not(.active) { color: var(--fg); }
+
+/* Hero */
+.hero { padding: 80px 0 60px; text-align: center; }
+.hero .badge { display: inline-block; background: var(--bg3); border: 1px solid var(--border); border-radius: 20px; padding: 6px 16px; font-size: 0.8rem; color: var(--accent2); margin-bottom: 20px; }
+.hero h1 { font-size: clamp(2.2rem, 6vw, 3.8rem); font-weight: 800; letter-spacing: -1px; line-height: 1.15; margin-bottom: 16px; }
+.hero h1 span { background: linear-gradient(135deg, var(--accent), var(--accent2)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+.hero p { font-size: 1.15rem; color: var(--fg2); max-width: 650px; margin: 0 auto 40px; }
+.hero .cta { display: inline-flex; gap: 12px; flex-wrap: wrap; justify-content: center; }
+.hero .cta a { padding: 12px 32px; border-radius: var(--radius); font-weight: 600; font-size: 0.95rem; text-decoration: none; transition: all 0.2s; }
+.cta-primary { background: var(--accent); color: #fff; }
+.cta-primary:hover { background: #8e72fc; transform: translateY(-1px); box-shadow: 0 8px 32px rgba(124,92,252,0.3); }
+.cta-secondary { background: var(--bg3); color: var(--fg); border: 1px solid var(--border); }
+.cta-secondary:hover { border-color: var(--accent); }
+
+/* Code Window */
+.code-window { background: var(--bg2); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; margin: 60px 0; box-shadow: 0 24px 80px rgba(0,0,0,0.4); }
+.code-window .bar { background: var(--bg3); padding: 12px 16px; display: flex; gap: 8px; align-items: center; border-bottom: 1px solid var(--border); }
+.code-window .bar .dot { width: 10px; height: 10px; border-radius: 50%; }
+.dot-r { background: var(--red); } .dot-y { background: var(--orange); } .dot-g { background: var(--green); }
+.code-window .bar .title { color: var(--fg2); font-size: 0.78rem; margin-left: 8px; }
+.code-window .compare { display: grid; grid-template-columns: 1fr 48px 1fr; align-items: center; }
+.code-window .compare pre { padding: 20px 24px; font-family: var(--mono); font-size: 0.82rem; line-height: 1.7; overflow-x: auto; margin: 0; }
+.code-window .compare .divider { text-align: center; font-size: 1.4rem; color: var(--fg2); }
+.code-window .compare .left { color: var(--fg2); }
+.code-window .compare .right { color: var(--fg); }
+.code-window .right .kw { color: var(--accent); } .code-window .right .fn { color: var(--accent2); }
+.code-window .right .str { color: var(--green); } .code-window .right .pipe { color: var(--orange); }
+.code-window .right .num { color: var(--accent2); } .code-window .right .cmt { color: #555; }
+
+/* Sections */
+section { padding: 80px 0; }
+section h2 { font-size: 2rem; font-weight: 700; margin-bottom: 12px; letter-spacing: -0.5px; }
+section h3 { font-size: 1.5rem; font-weight: 700; margin-bottom: 8px; }
+section .subtitle { color: var(--fg2); font-size: 1rem; margin-bottom: 48px; }
+
+/* Grids */
+.grid-2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; }
+.grid-3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; }
+.grid-4 { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; }
+
+/* Cards */
+.card { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 24px; transition: border-color 0.2s; }
+.card:hover { border-color: var(--accent); }
+.card .icon { font-size: 1.6rem; margin-bottom: 12px; }
+.card h4 { font-size: 1rem; font-weight: 700; margin-bottom: 6px; }
+.card p { color: var(--fg2); font-size: 0.88rem; }
+
+/* Feature list */
+.feature-highlight .item { display: flex; gap: 24px; padding: 20px 0; border-bottom: 1px solid var(--border); align-items: flex-start; }
+.feature-highlight .item:last-child { border: none; }
+.feature-highlight .num { font-size: 2rem; font-weight: 800; color: var(--accent); min-width: 48px; line-height: 1; }
+.feature-highlight h4 { font-size: 1.1rem; margin-bottom: 4px; }
+.feature-highlight p { color: var(--fg2); font-size: 0.9rem; }
+
+/* Tables */
+.table-wrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
+th { text-align: left; padding: 12px 16px; color: var(--fg2); font-weight: 600; border-bottom: 2px solid var(--border); font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.5px; }
+td { padding: 10px 16px; border-bottom: 1px solid var(--border); }
+td:first-child { color: var(--accent2); font-family: var(--mono); font-size: 0.82rem; }
+
+/* Code blocks */
+code { background: var(--bg3); padding: 2px 6px; border-radius: 4px; font-family: var(--mono); font-size: 0.85em; color: var(--accent2); }
+pre.inline { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px 24px; overflow-x: auto; font-family: var(--mono); font-size: 0.82rem; line-height: 1.7; }
+
+/* --- Example-specific styles --- */
+
+/* Example card */
+.example-card { background: var(--bg2); border: 1px solid var(--border); border-radius: 12px; padding: 32px; margin-bottom: 32px; transition: border-color 0.2s; }
+.example-card:hover { border-color: var(--accent); }
+.example-card .ex-num { display: inline-block; background: var(--accent); color: #fff; font-size: 0.72rem; font-weight: 800; padding: 3px 10px; border-radius: 12px; margin-bottom: 12px; letter-spacing: 0.5px; }
+.example-card h3 { font-size: 1.35rem; font-weight: 700; margin-bottom: 8px; }
+.example-card .ex-desc { color: var(--fg2); font-size: 0.92rem; margin-bottom: 20px; line-height: 1.7; }
+
+/* Example code block */
+.example-code { background: #0d0d14; border: 1px solid var(--border); border-radius: var(--radius); padding: 20px 24px; overflow-x: auto; font-family: var(--mono); font-size: 0.82rem; line-height: 1.8; margin-bottom: 20px; }
+.example-code .kw { color: var(--accent); font-weight: 600; }
+.example-code .fn { color: var(--accent2); }
+.example-code .str { color: var(--green); }
+.example-code .pipe { color: var(--orange); }
+.example-code .cmt { color: #555; }
+.example-code .num { color: var(--accent2); }
+.example-code .op { color: var(--orange); }
+
+/* Example flow explanation */
+.example-flow { background: var(--bg3); border-left: 3px solid var(--accent); border-radius: 0 var(--radius) var(--radius) 0; padding: 16px 20px; margin-top: 4px; }
+.example-flow h4 { font-size: 0.82rem; font-weight: 700; color: var(--accent2); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
+.example-flow p { color: var(--fg2); font-size: 0.88rem; line-height: 1.7; }
+
+/* Footer */
+footer { border-top: 1px solid var(--border); padding: 40px 0; text-align: center; color: var(--fg2); font-size: 0.85rem; }
+footer a { color: var(--accent); text-decoration: none; }
+
+/* Lang visibility */
+[data-lang] { display: none; }
+[data-lang].active { display: inline; }
+span[data-lang].active, p[data-lang].active, h1[data-lang].active, h2[data-lang].active,
+h3[data-lang].active, h4[data-lang].active, a[data-lang].active, th[data-lang].active,
+td[data-lang].active, li[data-lang].active, div[data-lang].active { display: block; }
+h1[data-lang].active, h2[data-lang].active, h3[data-lang].active, h4[data-lang].active,
+p[data-lang].active, div[data-lang].active { display: block; }
+span[data-lang].active { display: inline; }
+a[data-lang].active { display: inline-block; }
+
+@media (max-width: 768px) {
+  .code-window .compare { grid-template-columns: 1fr; }
+  .code-window .compare .divider { display: none; }
+  .hero { padding: 60px 0; }
+  .example-card { padding: 20px; }
+}
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="container">
+    <a href="index.html" class="logo">Pipe<span>.lang</span></a>
+    <div class="nav-links">
+      <a href="index.html"><span data-lang="en" class="active">Home</span><span data-lang="de">Start</span></a>
+      <a href="docs.html"><span data-lang="en" class="active">Docs</span><span data-lang="de">Docs</span></a>
+      <a href="examples.html"><span data-lang="en" class="active">Examples</span><span data-lang="de">Beispiele</span></a>
+      <a href="install.html"><span data-lang="en" class="active">Install</span><span data-lang="de">Install</span></a>
+      <a href="https://github.com/harry/pipe"><span data-lang="en" class="active">GitHub</span><span data-lang="de">GitHub</span></a>
+      <div class="lang-switch">
+        <button id="btn-en" class="active" onclick="setLang('en')">EN</button>
+        <button id="btn-de" onclick="setLang('de')">DE</button>
+      </div>
+    </div>
+  </div>
+</nav>
+
+<main>
+
+<section class="hero">
+  <div class="container">
+    <h2 data-lang="en" class="active">Examples</h2>
+    <h2 data-lang="de">Beispiele</h2>
+    <p class="subtitle" data-lang="en" class="active">Real pipelines. Real AI. See what Pipe can do.</p>
+    <p class="subtitle" data-lang="de">Echte Pipelines. Echte KI. Was Pipe kann.</p>
+  </div>
+</section>
+
+<section style="padding-top:0">
+  <div class="container">
+
+    <!-- Example 1 -->
+    <div class="example-card">
+      <div class="ex-num">01</div>
+      <h3 data-lang="en" class="active">Log Analysis &rarr; Incident Report</h3>
+      <h3 data-lang="de">Log-Analyse &rarr; Incident-Report</h3>
+      <p class="ex-desc" data-lang="en" class="active">Reads error logs, classifies each line by AI, filters for critical entries only, summarizes them into a coherent report, translates it to German, and saves the result.</p>
+      <p class="ex-desc" data-lang="de">Liest Fehlerlogs, klassifiziert jede Zeile per KI, filtert kritische Einträge, fasst sie in einem Report zusammen, übersetzt ihn ins Deutsche und speichert das Ergebnis.</p>
+      <pre class="example-code"><span class="cmt">-- Read error logs, classify severity, summarize findings</span>
+<span class="fn">read_file</span> <span class="str">"/var/log/app/errors.log"</span>
+    <span class="pipe">&gt;</span> <span class="fn">split</span> <span class="str">"\n"</span>
+    <span class="pipe">&gt;</span> <span class="fn">classify</span> [<span class="str">"critical"</span>, <span class="str">"warning"</span>, <span class="str">"info"</span>]
+    <span class="pipe">&gt;</span> <span class="fn">filter</span> (<span class="kw">fn</span> l: l <span class="op">==</span> <span class="str">"critical"</span>)
+    <span class="pipe">&gt;</span> <span class="fn">summarize</span>
+    <span class="pipe">&gt;</span> <span class="fn">translate</span> <span class="str">"de"</span>
+    <span class="pipe">&gt;</span> <span class="fn">save</span> <span class="str">"incident_report.txt"</span></pre>
+      <div class="example-flow">
+        <h4 data-lang="en" class="active">Pipeline Flow</h4>
+        <h4 data-lang="de">Pipeline-Ablauf</h4>
+        <p data-lang="en" class="active">Each log line is classified by AI into critical, warning, or info. Critical entries are filtered out with a lambda predicate, then AI summarizes the remaining critical logs into a coherent incident report. The summary is translated to German and saved to disk — all in a single pipeline with no intermediate files.</p>
+        <p data-lang="de">Jede Log-Zeile wird per KI als critical, warning oder info klassifiziert. Kritische Einträge werden mit einem Lambda-Prädikat herausgefiltert, dann fasst die KI die verbleibenden Logs in einem kohärenten Incident-Report zusammen. Die Zusammenfassung wird ins Deutsche übersetzt und gespeichert — alles in einer einzigen Pipeline ohne Zwischendateien.</p>
+      </div>
+    </div>
+
+    <!-- Example 2 -->
+    <div class="example-card">
+      <div class="ex-num">02</div>
+      <h3 data-lang="en" class="active">Multi-Step RAG Pipeline</h3>
+      <h3 data-lang="de">Mehrstufige RAG-Pipeline</h3>
+      <p class="ex-desc" data-lang="en" class="active">Semantic search over a knowledge base using embeddings. Documents are vectorized, the question is embedded, and the nearest documents are retrieved by meaning — not keywords. The AI answers using only the relevant context.</p>
+      <p class="ex-desc" data-lang="de">Semantische Suche über eine Wissensbasis mit Embeddings. Dokumente werden vektorisiert, die Frage wird eingebettet und die ähnlichsten Dokumente werden nach Bedeutung gefunden — nicht nach Stichwörtern. Die KI antwortet nur mit dem relevanten Kontext.</p>
+      <pre class="example-code"><span class="cmt">-- Semantic search over a knowledge base</span>
+<span class="fn">docs</span>: <span class="fn">read_lines</span> <span class="str">"knowledge_base.txt"</span>
+<span class="fn">vectors</span>: <span class="fn">embed_batch</span> docs
+
+<span class="fn">question</span>: <span class="str">"How does the bytecode VM work?"</span>
+<span class="fn">q_vec</span>: <span class="fn">embed</span> question
+<span class="fn">top</span>: <span class="fn">nearest</span> q_vec vectors <span class="num">3</span>
+
+<span class="fn">context</span>: <span class="str">""</span>
+<span class="kw">for</span> idx <span class="kw">in</span> top
+    <span class="fn">context</span>: context <span class="op">++</span> (<span class="fn">at</span> docs idx) <span class="op">++</span> <span class="str">"\n---\n"</span>
+
+<span class="fn">ask</span> (<span class="str">"Based on this context:\n"</span> <span class="op">++</span> context <span class="op">++</span> <span class="str">"\n\nQuestion: "</span> <span class="op">++</span> question)
+    <span class="pipe">&gt;</span> <span class="fn">print</span></pre>
+      <div class="example-flow">
+        <h4 data-lang="en" class="active">Pipeline Flow</h4>
+        <h4 data-lang="de">Pipeline-Ablauf</h4>
+        <p data-lang="en" class="active">All documents are embedded into vectors in a single batch call. The question is also embedded. <code>nearest</code> finds the top 3 documents by cosine similarity — these are semantically related, not just keyword matches. The matched documents are concatenated as context and passed to <code>ask</code>, which answers the question using only that context. True retrieval-augmented generation in 11 lines.</p>
+        <p data-lang="de">Alle Dokumente werden in einem Batch-Call in Vektoren umgewandelt. Die Frage wird ebenfalls eingebettet. <code>nearest</code> findet die Top 3 Dokumente nach Kosinus-Ähnlichkeit — semantisch verwandt, nicht nur Stichwort-Treffer. Die gefundenen Dokumente werden als Kontext zusammengefügt und an <code>ask</code> übergeben, das die Frage nur mit diesem Kontext beantwortet. Echte Retrieval-Augmented Generation in 11 Zeilen.</p>
+      </div>
+    </div>
+
+    <!-- Example 3 -->
+    <div class="example-card">
+      <div class="ex-num">03</div>
+      <h3 data-lang="en" class="active">Parallel Batch Processing</h3>
+      <h3 data-lang="de">Parallele Batch-Verarbeitung</h3>
+      <p class="ex-desc" data-lang="en" class="active">Process 100 articles in parallel using AI batch processing with built-in rate limiting. Results are sorted and saved — no async/await, no Promise.all, just data flowing.</p>
+      <p class="ex-desc" data-lang="de">100 Artikel parallel mit KI-Batch-Verarbeitung und eingebautem Rate-Limiting verarbeiten. Ergebnisse werden sortiert und gespeichert — kein async/await, kein Promise.all, nur fließende Daten.</p>
+      <pre class="example-code"><span class="cmt">-- Process 100 articles in parallel with rate limiting</span>
+<span class="fn">ai_rate_limit</span> <span class="num">10</span>
+
+<span class="fn">texts</span>: <span class="fn">read_lines</span> <span class="str">"articles.txt"</span>
+<span class="fn">ai_batch</span> <span class="str">"Summarize this article in one sentence."</span> texts
+    <span class="pipe">&gt;</span> <span class="fn">sort</span>
+    <span class="pipe">&gt;</span> <span class="fn">join</span> <span class="str">"\n"</span>
+    <span class="pipe">&gt;</span> <span class="fn">save</span> <span class="str">"digest.txt"</span></pre>
+      <div class="example-flow">
+        <h4 data-lang="en" class="active">Pipeline Flow</h4>
+        <h4 data-lang="de">Pipeline-Ablauf</h4>
+        <p data-lang="en" class="active">100 articles are read from disk. <code>ai_batch</code> fires off concurrent LLM calls under the hood using Go goroutines. The rate limit of 10 caps simultaneous API requests to avoid throttling. All summaries are collected, sorted alphabetically, joined with newlines, and saved as a single digest file.</p>
+        <p data-lang="de">100 Artikel werden von der Festplatte gelesen. <code>ai_batch</code> feuert unter der Haube parallele LLM-Calls mit Go-Goroutines ab. Das Rate-Limit von 10 begrenzt gleichzeitige API-Requests, um Throttling zu vermeiden. Alle Zusammenfassungen werden gesammelt, alphabetisch sortiert, mit Zeilenumbrüchen verbunden und als eine Digest-Datei gespeichert.</p>
+      </div>
+    </div>
+
+    <!-- Example 4 -->
+    <div class="example-card">
+      <div class="ex-num">04</div>
+      <h3 data-lang="en" class="active">AI Agent with Tool Calling</h3>
+      <h3 data-lang="de">KI-Agent mit Tool-Calling</h3>
+      <p class="ex-desc" data-lang="en" class="active">Define a Pipe function, register it as an LLM tool with a JSON schema. The model autonomously decides when to call it — making two separate calls for two cities — and synthesizes a natural response.</p>
+      <p class="ex-desc" data-lang="de">Definiere eine Pipe-Funktion und registriere sie als LLM-Tool mit einem JSON-Schema. Das Modell entscheidet autonom, wann es die Funktion aufruft — zwei separate Calls für zwei Städte — und synthetisiert eine natürliche Antwort.</p>
+      <pre class="example-code"><span class="cmt">-- Define a weather tool, let the LLM call it autonomously</span>
+<span class="kw">fn</span> <span class="fn">get_weather</span> city
+    <span class="kw">match</span> city
+        <span class="op">|</span> <span class="str">"Berlin"</span> <span class="op">-&gt;</span> <span class="str">"22°C, sunny"</span>
+        <span class="op">|</span> <span class="str">"London"</span> <span class="op">-&gt;</span> <span class="str">"15°C, rainy"</span>
+        <span class="op">|</span> <span class="str">"Paris"</span> <span class="op">-&gt;</span> <span class="str">"25°C, clear"</span>
+        <span class="op">|</span> _ <span class="op">-&gt;</span> city <span class="op">++</span> <span class="str">": no data"</span>
+
+<span class="fn">schema</span>: {city: <span class="str">"Name of the city"</span>}
+<span class="fn">ai_tool</span> <span class="str">"get_weather"</span> <span class="str">"Get current weather for a city"</span> schema get_weather
+
+<span class="fn">ai_with_tools</span> <span class="str">"You are a weather assistant."</span>
+    <span class="str">"What's the weather in Berlin and Paris?"</span>
+    <span class="pipe">&gt;</span> <span class="fn">print</span></pre>
+      <div class="example-flow">
+        <h4 data-lang="en" class="active">Pipeline Flow</h4>
+        <h4 data-lang="de">Pipeline-Ablauf</h4>
+        <p data-lang="en" class="active">A Pipe function <code>get_weather</code> is defined with pattern matching for known cities. It is registered as an LLM tool with a JSON schema describing its parameter. <code>ai_with_tools</code> gives the model access to this tool. When asked about two cities, the model makes two autonomous function calls — one for Berlin, one for Paris — receives the results, and synthesizes a natural language weather report.</p>
+        <p data-lang="de">Eine Pipe-Funktion <code>get_weather</code> wird mit Pattern-Matching für bekannte Städte definiert. Sie wird als LLM-Tool mit einem JSON-Schema registriert. <code>ai_with_tools</code> gibt dem Modell Zugriff auf dieses Tool. Auf die Frage nach zwei Städten führt das Modell zwei autonome Funktionsaufrufe aus — einen für Berlin, einen für Paris — erhält die Ergebnisse und synthetisiert einen natürlichsprachlichen Wetterbericht.</p>
+      </div>
+    </div>
+
+    <!-- Example 5 -->
+    <div class="example-card">
+      <div class="ex-num">05</div>
+      <h3 data-lang="en" class="active">Live Translation with Streaming</h3>
+      <h3 data-lang="de">Live-Übersetzung mit Streaming</h3>
+      <p class="ex-desc" data-lang="en" class="active">Translate text and see the output appear in real time as tokens arrive. The collected text is then uppercased and printed — streaming and post-processing in one pipeline.</p>
+      <p class="ex-desc" data-lang="de">Text übersetzen und die Ausgabe in Echtzeit erscheinen sehen, während Tokens ankommen. Der gesammelte Text wird dann in Großbuchstaben umgewandelt und ausgegeben — Streaming und Nachverarbeitung in einer Pipeline.</p>
+      <pre class="example-code"><span class="cmt">-- Translate text and see output in real time</span>
+<span class="fn">ai_stream</span> <span class="str">"You are a translator. Translate precisely."</span>
+    <span class="str">"Artificial intelligence is reshaping how we interact with computers."</span>
+    <span class="pipe">&gt;</span> <span class="fn">upper</span>
+    <span class="pipe">&gt;</span> <span class="fn">print</span></pre>
+      <div class="example-flow">
+        <h4 data-lang="en" class="active">Pipeline Flow</h4>
+        <h4 data-lang="de">Pipeline-Ablauf</h4>
+        <p data-lang="en" class="active"><code>ai_stream</code> sends the prompt to the LLM and prints tokens to the terminal as they arrive — you see the translation appear word by word. Once streaming completes, the full translated text is passed down the pipeline to <code>upper</code> (which converts it to uppercase) and then <code>print</code>. Streaming output is a side effect; the return value continues through the pipeline for further processing.</p>
+        <p data-lang="de"><code>ai_stream</code> sendet den Prompt an das LLM und gibt Tokens im Terminal aus, sobald sie ankommen — die Übersetzung erscheint Wort für Wort. Nach Abschluss des Streamings wird der vollständige übersetzte Text an <code>upper</code> (Umwandlung in Großbuchstaben) und dann an <code>print</code> weitergereicht. Die Streaming-Ausgabe ist ein Seiteneffekt; der Rückgabewert fließt zur Weiterverarbeitung durch die Pipeline.</p>
+      </div>
+    </div>
+
+    <!-- Example 6 -->
+    <div class="example-card">
+      <div class="ex-num">06</div>
+      <h3 data-lang="en" class="active">Email Classifier with Structured Output</h3>
+      <h3 data-lang="de">E-Mail-Klassifizierer mit strukturierter Ausgabe</h3>
+      <p class="ex-desc" data-lang="en" class="active">Classify emails by urgency, extract structured data (sender, subject, deadline), and highlight urgent messages — combining classification, extraction, and conditional logic in one flow.</p>
+      <p class="ex-desc" data-lang="de">E-Mails nach Dringlichkeit klassifizieren, strukturierte Daten (Absender, Betreff, Frist) extrahieren und dringende Nachrichten hervorheben — Klassifizierung, Extraktion und bedingte Logik in einem Ablauf.</p>
+      <pre class="example-code"><span class="cmt">-- Classify emails and extract structured data</span>
+<span class="fn">emails</span>: <span class="fn">read_lines</span> <span class="str">"inbox.txt"</span>
+
+<span class="kw">for</span> email <span class="kw">in</span> emails
+    <span class="fn">category</span>: <span class="fn">classify</span> email [<span class="str">"urgent"</span>, <span class="str">"important"</span>, <span class="str">"newsletter"</span>, <span class="str">"spam"</span>]
+    <span class="fn">info</span>: <span class="fn">extract</span> email <span class="str">"{sender, subject, deadline}"</span>
+
+    <span class="kw">if</span> category <span class="op">==</span> <span class="str">"urgent"</span>
+        <span class="fn">print</span> (<span class="str">"[URGENT] "</span> <span class="op">++</span> (<span class="fn">get</span> info <span class="str">"subject"</span>) <span class="op">++</span> <span class="str">" — from "</span> <span class="op">++</span> (<span class="fn">get</span> info <span class="str">"sender"</span>))</pre>
+      <div class="example-flow">
+        <h4 data-lang="en" class="active">Pipeline Flow</h4>
+        <h4 data-lang="de">Pipeline-Ablauf</h4>
+        <p data-lang="en" class="active">Each email is read and processed in a loop. <code>classify</code> categorizes it as urgent, important, newsletter, or spam using AI. <code>extract</code> pulls structured JSON with sender, subject, and deadline fields. A conditional check highlights urgent emails with a <code>[URGENT]</code> prefix and prints key details. This pattern combines classification, structured extraction, and branching — a full email triage system.</p>
+        <p data-lang="de">Jede E-Mail wird in einer Schleife gelesen und verarbeitet. <code>classify</code> kategorisiert sie per KI als urgent, important, newsletter oder spam. <code>extract</code> zieht strukturierte JSON-Daten mit Absender, Betreff und Frist. Eine Bedingung hebt dringende E-Mails mit einem <code>[URGENT]</code>-Präfix hervor und gibt die wichtigsten Details aus. Dieses Muster kombiniert Klassifizierung, strukturierte Extraktion und Verzweigungen — ein vollständiges E-Mail-Triage-System.</p>
+      </div>
+    </div>
+
+    <!-- Example 7 -->
+    <div class="example-card">
+      <div class="ex-num">07</div>
+      <h3 data-lang="en" class="active">Self-Hosted Lexer (Meta)</h3>
+      <h3 data-lang="de">Selbst-gehosteter Lexer (Meta)</h3>
+      <p class="ex-desc" data-lang="en" class="active">Pipe's own lexer, written in Pipe (346 lines). Import it and tokenize Pipe source code — demonstrating that the language is Turing-complete and self-describing.</p>
+      <p class="ex-desc" data-lang="de">Pipes eigener Lexer, geschrieben in Pipe (346 Zeilen). Importiere ihn und tokenisiere Pipe-Quellcode — ein Beweis, dass die Sprache Turing-vollständig und selbstbeschreibend ist.</p>
+      <pre class="example-code"><span class="cmt">-- Pipe's own lexer written in Pipe (346 lines)</span>
+<span class="kw">import</span> <span class="str">"examples/selfhost/lexer.pipe"</span>
+
+<span class="fn">tokens</span>: <span class="fn">tokenize</span> <span class="str">"fn hello x: x + 1"</span>
+<span class="kw">for</span> t <span class="kw">in</span> tokens
+    <span class="fn">print</span> (<span class="fn">get</span> t <span class="str">"type"</span>)</pre>
+      <div class="example-flow">
+        <h4 data-lang="en" class="active">Pipeline Flow</h4>
+        <h4 data-lang="de">Pipeline-Ablauf</h4>
+        <p data-lang="en" class="active">The self-hosted lexer is imported from a 346-line Pipe file — no C, no Go, pure Pipe. <code>tokenize</code> takes a string of Pipe source code and returns a list of token objects with type, value, and position. The loop iterates over each token and prints its type (e.g., <code>FN</code>, <code>IDENT</code>, <code>PLUS</code>, <code>NUMBER</code>). This is the same lexer used by Pipe's parser — the language can parse itself.</p>
+        <p data-lang="de">Der selbst-gehostete Lexer wird aus einer 346-zeiligen Pipe-Datei importiert — kein C, kein Go, reines Pipe. <code>tokenize</code> nimmt einen Pipe-Quelltext-String und gibt eine Liste von Token-Objekten mit Typ, Wert und Position zurück. Die Schleife iteriert über jedes Token und gibt seinen Typ aus (z. B. <code>FN</code>, <code>IDENT</code>, <code>PLUS</code>, <code>NUMBER</code>). Dies ist derselbe Lexer, den Pipes Parser verwendet — die Sprache kann sich selbst parsen.</p>
+      </div>
+    </div>
+
+    <!-- Example 8 -->
+    <div class="example-card">
+      <div class="ex-num">08</div>
+      <h3 data-lang="en" class="active">CI/CD Status Reporter</h3>
+      <h3 data-lang="de">CI/CD-Status-Reporter</h3>
+      <p class="ex-desc" data-lang="en" class="active">Fetches GitHub Actions workflow status via API, filters for failed runs, and uses AI to summarize the failures into a readable report. A real DevOps automation pipeline.</p>
+      <p class="ex-desc" data-lang="de">Holt GitHub-Actions-Workflow-Status per API, filtert nach fehlgeschlagenen Runs und nutzt KI, um die Fehler in einem lesbaren Report zusammenzufassen. Eine echte DevOps-Automatisierungspipeline.</p>
+      <pre class="example-code"><span class="cmt">-- Check GitHub Actions status and report failures</span>
+<span class="fn">ci_data</span>: <span class="fn">http_get_json</span> <span class="str">"https://api.github.com/repos/harry/pipe/actions/runs"</span>
+
+<span class="fn">failed</span>: <span class="fn">filter</span> (<span class="fn">get</span> ci_data <span class="str">"workflow_runs"</span>)
+    (<span class="kw">fn</span> run: (<span class="fn">get</span> run <span class="str">"conclusion"</span>) <span class="op">==</span> <span class="str">"failure"</span>)
+
+<span class="kw">if</span> (<span class="fn">len</span> failed) <span class="op">&gt;</span> <span class="num">0</span>
+    <span class="fn">report</span>: <span class="fn">summarize</span> (<span class="fn">to_json</span> failed)
+    <span class="fn">print</span> <span class="str">"Failed workflows detected:"</span>
+    <span class="fn">print</span> report
+<span class="kw">else</span>
+    <span class="fn">print</span> <span class="str">"All checks passing."</span></pre>
+      <div class="example-flow">
+        <h4 data-lang="en" class="active">Pipeline Flow</h4>
+        <h4 data-lang="de">Pipeline-Ablauf</h4>
+        <p data-lang="en" class="active"><code>http_get_json</code> fetches the GitHub Actions API response and parses it into a Pipe object. <code>filter</code> with a lambda predicate selects only workflow runs whose conclusion is "failure". If any failed runs exist, <code>to_json</code> serializes them, <code>summarize</code> uses AI to produce a human-readable summary, and it's printed. Otherwise, an all-clear message is shown. This replaces brittle scripts that grep log output with an intelligent CI monitor.</p>
+        <p data-lang="de"><code>http_get_json</code> holt die GitHub-Actions-API-Antwort und parst sie in ein Pipe-Objekt. <code>filter</code> mit einem Lambda-Prädikat wählt nur Workflow-Runs aus, deren conclusion "failure" ist. Falls fehlgeschlagene Runs existieren, serialisiert <code>to_json</code> sie, <code>summarize</code> erstellt per KI eine lesbare Zusammenfassung, die ausgegeben wird. Andernfalls erscheint eine Entwarnung. Dies ersetzt fehleranfällige Skripte, die Log-Ausgaben parsen, durch einen intelligenten CI-Monitor.</p>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<section style="background: var(--bg2); padding: 40px 0 60px;">
+  <div class="container" style="text-align:center">
+    <h3 data-lang="en" class="active">More Examples</h3>
+    <h3 data-lang="de">Weitere Beispiele</h3>
+    <p data-lang="en" class="active">Find 23 example programs in the repository: <a href="https://github.com/MachuraHarry/pipe/tree/master/examples">github.com/MachuraHarry/pipe/examples</a></p>
+    <p data-lang="de">23 Beispielprogramme im Repository: <a href="https://github.com/MachuraHarry/pipe/tree/master/examples">github.com/MachuraHarry/pipe/examples</a></p>
+  </div>
+</section>
+
+</main>
+
+<footer>
+  <div class="container">
+    <p data-lang="en" class="active">Pipe — Semantic Pipeline Runtime. Built with Go. 10 MB binary. Zero dependencies.</p>
+    <p data-lang="de">Pipe — Semantic Pipeline Runtime. Gebaut mit Go. 10 MB Binary. Null Abhängigkeiten.</p>
+    <p style="margin-top:8px"><a href="https://github.com/harry/pipe">GitHub</a> &middot; MIT License &middot; v0.5.0</p>
+  </div>
+</footer>
+
+<script>
+function setLang(lang) {
+  document.querySelectorAll('[data-lang]').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('[data-lang="' + lang + '"]').forEach(el => el.classList.add('active'));
+  document.getElementById('btn-en').classList.toggle('active', lang === 'en');
+  document.getElementById('btn-de').classList.toggle('active', lang === 'de');
+  document.documentElement.lang = lang;
+  localStorage.setItem('pipe-lang', lang);
+}
+
+(function() {
+  var stored = localStorage.getItem('pipe-lang');
+  if (!stored) {
+    stored = navigator.language.startsWith('de') ? 'de' : 'en';
+  }
+  setLang(stored);
+})();
+</script>
+
+</body>
+</html>

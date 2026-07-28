@@ -228,7 +228,7 @@ func main() {
 }
 
 func runSearch(term string) {
-	registryURL := "https://raw.githubusercontent.com/MachuraHarry/pipe-modules/master/registry.json"
+	registryURL := "https://raw.githubusercontent.com/MachuraHarry/pipe-modules/master/registry.json?t=" + strconv.FormatInt(time.Now().Unix(), 10)
 
 	resp, err := httpGet(registryURL)
 	if err != nil {
@@ -270,7 +270,7 @@ func runSearch(term string) {
 }
 
 func resolveModuleURL(name string) (string, error) {
-	registryURL := "https://raw.githubusercontent.com/MachuraHarry/pipe-modules/master/registry.json"
+	registryURL := "https://raw.githubusercontent.com/MachuraHarry/pipe-modules/master/registry.json?t=" + strconv.FormatInt(time.Now().Unix(), 10)
 	resp, err := httpGet(registryURL)
 	if err != nil {
 		return "", fmt.Errorf("cannot fetch registry: %w", err)

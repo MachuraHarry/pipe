@@ -71,6 +71,7 @@ const (
 	CONTINUE // continue
 	IMPORT   // import
 	EXPORT   // export
+	ENUM     // enum
 	DEFER    // defer
 	RETURN   // return
 	TRY      // try
@@ -91,6 +92,7 @@ var keywords = map[string]TokenType{
 	"continue": CONTINUE,
 	"import":   IMPORT,
 	"export":   EXPORT,
+	"enum":     ENUM,
 	"defer":    DEFER,
 	"return":   RETURN,
 	"try":      TRY,
@@ -155,6 +157,7 @@ var tokenNames = map[TokenType]string{
 	CONTINUE:  "continue",
 	IMPORT:    "import",
 	EXPORT:    "export",
+	ENUM:      "enum",
 	DEFER:     "defer",
 	RETURN:    "return",
 	TRY:       "try",

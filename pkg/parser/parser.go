@@ -199,6 +199,8 @@ func (p *Parser) parseStatement() ast.Statement {
 		return p.parseDeferStatement()
 	case lexer.EXPORT:
 		return p.parseExportStatement()
+	case lexer.ENUM:
+		return p.parseEnumStatement()
 	case lexer.NEWLINE:
 		return nil
 	case lexer.DEDENT:
@@ -843,6 +845,33 @@ func (p *Parser) parseExportStatement() ast.Statement {
 		return &ast.ExportStatement{FnName: fnStmt.Name.Value, Fn: fnStmt}
 	}
 	return nil
+}
+
+func (p *Parser) parseEnumStatement() ast.Statement {
+	stmt := &ast.EnumStatement{}
+
+	p.nextToken() // skip 'enum'
+	if !p.curTokenIs(lexer.IDENT) {
+		p.error("enum erwartet einen Namen")
+		return nil
+	}
+	stmt.Name = p.curToken.Literal
+
+	if !p.expectPeek(lexer.COLON) {
+		return nil
+	}
+
+	p.nextToken() // skip colon
+
+	for p.curTokenIs(lexer.IDENT) {
+		stmt.Values = append(stmt.Values, p.curToken.Literal)
+		p.nextToken()
+		if p.curTokenIs(lexer.COMMA) {
+			p.nextToken() // skip comma
+		}
+	}
+
+	return stmt
 }
 
 func (p *Parser) parseImportStatement() ast.Statement {

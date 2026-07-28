@@ -4,12 +4,14 @@ import (
 	"bufio"
 	"fmt"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
 	"github.com/harry/pulse/pkg/ast"
 	"github.com/harry/pulse/pkg/compiler"
 	"github.com/harry/pulse/pkg/eval"
+	"github.com/harry/pulse/pkg/formatter"
 	"github.com/harry/pulse/pkg/lexer"
 	"github.com/harry/pulse/pkg/object"
 	"github.com/harry/pulse/pkg/parser"
@@ -23,6 +25,7 @@ func main() {
 		useVM    bool
 		quietVM  bool
 		showAST  bool
+		doFmt    bool
 		filePath string
 		scriptArgs []string
 	)
@@ -37,7 +40,7 @@ func main() {
 		case "-ast":
 			showAST = true
 		case "-fmt":
-			showAST = false
+			doFmt = true
 			// -fmt handled below
 		case "-h", "--help":
 			printHelp()
@@ -55,6 +58,20 @@ func main() {
 	if filePath == "" {
 		startREPL(useVM)
 		return
+	}
+
+	if doFmt {
+		if err := formatter.Format(filePath); err != nil {
+			fmt.Fprintf(os.Stderr, "pulse fmt: %s\n", err)
+			os.Exit(1)
+		}
+		fmt.Printf("Formatted %s\n", filePath)
+		return
+	}
+
+	if showAST {
+		_ = showAST
+		// handled below
 	}
 
 	data, err := os.ReadFile(filePath)
@@ -158,10 +175,12 @@ func startREPL(useVM bool) {
 	fmt.Printf("Pulse %s — REPL\n", version)
 	fmt.Println("Gib Pulse-Code ein. :quit oder Strg+D zum Beenden.")
 	fmt.Println("Leerzeile zum Abschließen von mehrzeiligen Blöcken.")
+	fmt.Println(":history — letzte Befehle | :!N — Befehl N wiederholen")
 	fmt.Println()
 
 	scanner := bufio.NewScanner(os.Stdin)
 	env := object.NewEnvironment()
+	history := make([]string, 0, 100)
 
 	var lines []string
 	needBlank := false
@@ -187,9 +206,11 @@ func startREPL(useVM bool) {
 				return
 			case ":help", ":h":
 				fmt.Println("  :quit, :q   — Beenden")
-				fmt.Println("  :help, :h   — Diese Hilfe")
+				fmt.Println("  :help, :h   — Hilfe")
 				fmt.Println("  :clear, :c  — Eingabe zurücksetzen")
 				fmt.Println("  :vm          — VM-Modus umschalten")
+				fmt.Println("  :history     — Letzte Befehle anzeigen")
+				fmt.Println("  :!N          — Befehl N wiederholen (z.B. :!3)")
 				fmt.Println("  Strg+D       — Beenden")
 				continue
 			case ":clear", ":c":
@@ -204,11 +225,46 @@ func startREPL(useVM bool) {
 					fmt.Println("  VM-Modus: aus")
 				}
 				continue
+			case ":history":
+				if len(history) == 0 {
+					fmt.Println("  (keine History)")
+				} else {
+					for i, cmd := range history {
+						fmt.Printf("  %d: %s\n", i+1, cmd)
+					}
+				}
+				continue
+			}
+			if strings.HasPrefix(trimmed, ":!") {
+				numStr := strings.TrimPrefix(trimmed, ":!")
+				num, err := strconv.Atoi(numStr)
+				if err != nil || num < 1 || num > len(history) {
+					fmt.Fprintf(os.Stderr, "  Ungültige Nummer. 1-%d\n", len(history))
+				} else {
+					// Replay the command by appending it as input
+					replayCmd := history[num-1]
+					fmt.Printf("  → %s\n", replayCmd)
+					lines = append(lines, replayCmd)
+					needBlank = false
+					if !isMultiLineStart(replayCmd) && tryParse(replayCmd) {
+						executeREPL(lines, env, useVM)
+						lines = nil
+					} else {
+						needBlank = true
+					}
+				}
+				continue
 			}
 		}
 
 		if trimmed == "" {
 			if len(lines) > 0 {
+				// Store multi-line input in history
+				cmd := strings.Join(lines, "; ")
+				history = append(history, cmd)
+				if len(history) > 100 {
+					history = history[1:]
+				}
 				executeREPL(lines, env, useVM)
 				lines = nil
 				needBlank = false
@@ -218,14 +274,17 @@ func startREPL(useVM bool) {
 
 		lines = append(lines, line)
 
-		// Auto-execute single-line inputs that parse successfully and aren't multi-line starters
+		// Auto-execute single-line inputs
 		if !needBlank && len(lines) == 1 {
 			if isMultiLineStart(trimmed) {
 				needBlank = true
 				continue
 			}
-			// Try to parse and execute if successful
 			if tryParse(strings.Join(lines, "\n")) {
+				history = append(history, trimmed)
+				if len(history) > 100 {
+					history = history[1:]
+				}
 				executeREPL(lines, env, useVM)
 				lines = nil
 				needBlank = false

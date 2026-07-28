@@ -96,6 +96,9 @@ func Eval(node ast.Node, env *object.Environment) object.Object {
 		exportedSymbols[n.FnName] = true
 		return Eval(n.Fn, env)
 
+	case *ast.EnumStatement:
+		return evalEnumStatement(n, env)
+
 	case *ast.ReturnStatement:
 		return &ReturnValue{Value: Eval(n.Value, env)}
 
@@ -592,6 +595,13 @@ func evalTryExpression(te *ast.TryExpression, env *object.Environment) object.Ob
 		return Eval(te.CatchBlock, env)
 	}
 	return result
+}
+
+func evalEnumStatement(es *ast.EnumStatement, env *object.Environment) object.Object {
+	for i, val := range es.Values {
+		env.Set(val, &object.Integer{Value: int64(i)})
+	}
+	return object.NILOBJ
 }
 
 func evalFnLiteral(fl *ast.FnLiteral, env *object.Environment) object.Object {

@@ -320,6 +320,14 @@ type ExportStatement struct {
 func (es *ExportStatement) statementNode()       {}
 func (es *ExportStatement) TokenLiteral() string { return "export" }
 
+type EnumStatement struct {
+	Name   string
+	Values []string
+}
+
+func (es *EnumStatement) statementNode()       {}
+func (es *EnumStatement) TokenLiteral() string { return "enum" }
+
 type FnLiteral struct {
 	Parameters []*Identifier
 	Body       *BlockStatement

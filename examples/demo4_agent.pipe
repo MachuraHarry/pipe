@@ -1,0 +1,68 @@
+-- ═══════════════════════════════════════════════
+-- PIPE KI-DEMO 4: AI Agent with Real Tools
+-- ═══════════════════════════════════════════════
+ai_provider "deepseek"
+
+print "╔══════════════════════════════════════╗"
+print "║  4. AI AGENT MIT TOOLS             ║"
+print "╚══════════════════════════════════════╝"
+print ""
+
+-- Tool 1: Wetter abrufen
+fn get_weather stadt
+    match stadt
+        | "Berlin" -> "22°C, sonnig, Wind 12 km/h"
+        | "Muenchen" -> "19°C, bewoelkt, leichter Regen"
+        | "Hamburg" -> "16°C, regnerisch, Wind 25 km/h"
+        | "Koeln" -> "24°C, klar, Wind 5 km/h"
+        | "Frankfurt" -> "21°C, teilweise bewoelkt"
+        | _ -> stadt ++ ": 20°C, wechselhaft"
+
+-- Tool 2: Rechner
+fn berechne ausdruck
+    match ausdruck
+        | "15*23" -> "345"
+        | "144/12" -> "12"
+        | "1024*8" -> "8192"
+        | _ -> "Kann ich nicht berechnen"
+
+-- Tool 3: Dateisystem-Info
+fn system_info dummy
+    "Betriebssystem: Linux, RAM: 16GB, CPU: 8 Kerne, Festplatte: 256GB frei"
+
+-- Tools registrieren
+wetter_schema: {stadt: "Name der Stadt"}
+rechner_schema: {ausdruck: "Mathematischer Ausdruck"}
+info_schema: {dummy: "Dummy-Parameter"}
+
+ai_tool "get_weather" "Aktuelles Wetter fuer eine Stadt abrufen" wetter_schema get_weather
+ai_tool "berechne" "Mathematische Berechnung durchfuehren" rechner_schema berechne
+ai_tool "system_info" "System-Informationen abrufen" info_schema system_info
+
+print "► Agent mit 3 Tools gestartet."
+print ""
+
+-- Frage 1: Kombinierte Analyse
+print "─── Frage 1: Wetter ───"
+r1: ai_with_tools "Du bist ein hilfreicher KI-Assistent. Nutze die verfuegbaren Tools um Fragen zu beantworten." "Wie ist das Wetter in Berlin, Muenchen und Hamburg? Welche Stadt hat das beste Wetter?"
+print r1
+
+print ""
+print ""
+
+-- Frage 2: Mathe
+print "─── Frage 2: Rechnung ───"
+r2: ai_with_tools "Du bist ein Rechen-Assistent." "Was ergibt 15*23? Und 1024*8?"
+print r2
+
+print ""
+print ""
+
+-- Frage 3: System + Wetter kombiniert
+print "─── Frage 3: Kombiniert ───"
+r3: ai_with_tools "Du bist ein System-Administrator." "Wie ist das Wetter in Frankfurt? Und wieviel Speicher ist noch frei?"
+print r3
+
+print ""
+print "══════════════════════════════════════"
+print "AI Agent Demo abgeschlossen."

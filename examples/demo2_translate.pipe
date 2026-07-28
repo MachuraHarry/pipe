@@ -1,0 +1,30 @@
+-- ═══════════════════════════════════════════════
+-- PIPE KI-DEMO 2: Batch Translator
+-- ═══════════════════════════════════════════════
+ai_provider "deepseek"
+
+print "╔══════════════════════════════════════╗"
+print "║  2. MULTI-LANG BATCH TRANSLATOR    ║"
+print "╚══════════════════════════════════════╝"
+print ""
+
+text: "Pipe is a Semantic Pipeline Runtime where AI operations are language primitives."
+
+print "Original (EN): " ++ text
+print ""
+
+print "► Uebersetze parallel in 4 Sprachen..."
+print ""
+
+prompts: ["Uebersetze ins Deutsche: " ++ text, "Translate to French: " ++ text, "Translate to Japanese (use romaji): " ++ text, "Traduce al espanol: " ++ text]
+sprachen: ["Deutsch", "Franzoesisch", "Japanisch", "Spanisch"]
+
+uebersetzungen: ai_batch "Du bist ein professioneller Uebersetzer. Uebersetze den gegebenen Text. Antworte NUR mit der Uebersetzung, nichts anderes." prompts
+
+i: 0
+for u in uebersetzungen
+    print ("  " ++ (at sprachen i) ++ ": " ++ u)
+    i: i + 1
+
+print ""
+print "► Fertig. 4 Sprachen parallel uebersetzt."

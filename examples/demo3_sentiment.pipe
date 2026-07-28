@@ -1,0 +1,35 @@
+-- ═══════════════════════════════════════════════
+-- PIPE KI-DEMO 3: Sentiment & Intent Analyzer
+-- ═══════════════════════════════════════════════
+ai_provider "deepseek"
+
+print "╔══════════════════════════════════════╗"
+print "║  3. SENTIMENT & INTENT ANALYZER    ║"
+print "╚══════════════════════════════════════╝"
+print ""
+
+tickets: ["Meine Bestellung ist seit 2 Wochen nicht angekommen. Sehr veraergert!", "Kann mir jemand erklaeren wie ich mein Passwort aendere? Danke!", "EUER PRODUKT IST KAPUTT. GELD ZURUECK!!!", "Tolles Produkt, funktioniert einwandfrei. Frage zur Konfiguration...", "Bitte loescht meinen Account. Wechsle zur Konkurrenz."]
+
+kategorien: ["positiv", "neutral", "negativ", "wuetend"]
+dringlichkeiten: ["niedrig", "mittel", "hoch", "kritisch"]
+themen: ["Lieferung", "Support", "Rechnung", "Account", "Feedback"]
+
+print "► Analysiere " ++ (to_str (len tickets)) ++ " Support-Tickets..."
+print ""
+
+for ticket in tickets
+    print "─────────────────────────────────────"
+    print "Ticket: " ++ ticket
+    print ""
+
+    sentiment: classify ticket kategorien
+    dring: classify ticket dringlichkeiten
+    thema: classify ticket themen
+
+    print ("  Sentiment:     " ++ sentiment)
+    print ("  Dringlichkeit: " ++ dring)
+    print ("  Thema:         " ++ thema)
+    print ""
+
+print "══════════════════════════════════════"
+print "Analyse abgeschlossen."

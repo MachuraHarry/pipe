@@ -1,0 +1,31 @@
+-- ═══════════════════════════════════════════════
+-- PIPE KI-DEMO 1: Code Review Assistant
+-- ═══════════════════════════════════════════════
+ai_provider "deepseek"
+
+print "╔══════════════════════════════════════╗"
+print "║  1. CODE REVIEW ASSISTANT          ║"
+print "╚══════════════════════════════════════╝"
+print ""
+
+-- Simulierter Code
+code: `fn calculate_total items
+    total: 0
+    for item in items
+        total: total + item
+    total`
+
+print "Code:"
+print code
+print ""
+
+print "► Review:"
+ai_stream "Du bist ein Senior Code Reviewer. Analysiere den Code auf: Lesbarkeit, Fehler, Performance, Best Practices. Gib 3 konkrete Verbesserungsvorschläge." code
+
+print ""
+print ""
+
+-- Bewertung (1-10) extrahieren
+print "► Bewertung (1-10):"
+bewertung: ask "Bewerte diesen Code auf einer Skala von 1-10 basierend auf Code-Qualitaet. Antworte NUR mit der Zahl." "fn calculate_total items\n    total: 0\n    for item in items\n        total: total + item\n    total"
+print bewertung

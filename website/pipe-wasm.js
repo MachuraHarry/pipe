@@ -13,6 +13,8 @@ WebAssembly.instantiateStreaming(fetch("pipe.wasm"), pipeGo.importObject).then(r
   }
   const btn = document.getElementById("play-btn");
   if (btn) btn.disabled = false;
+  const testBtn = document.getElementById("test-ai-btn");
+  if (testBtn) testBtn.disabled = false;
 }).catch(e => {
   const bar = document.getElementById("play-bar");
   if (bar) {

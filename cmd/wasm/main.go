@@ -3,7 +3,7 @@
 package main
 
 import (
-	"fmt"
+	"strconv"
 	"strings"
 	"syscall/js"
 
@@ -48,7 +48,7 @@ func pipeRun(this js.Value, args []js.Value) interface{} {
 
 	// Debug: show key status
 	outputBuf.WriteString("[WASM] Provider: " + ai.ActiveConfig.Provider)
-	outputBuf.WriteString(", Key: " + fmt.Sprintf("%d chars", len(ai.ActiveConfig.APIKey)) + "\n\n")
+	outputBuf.WriteString(", Key: " + strconv.Itoa(len(ai.ActiveConfig.APIKey)) + " chars\n\n")
 
 	if apiProvider != "" {
 		code = "ai_provider \"" + apiProvider + "\"\n" + code

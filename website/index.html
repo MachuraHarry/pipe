@@ -205,7 +205,7 @@ a[data-lang].active { display: inline-block; }
         </select>
         <input id="play-key" type="password" placeholder="sk-... (API key)" class="play-key-input">
         <button id="play-btn" class="play-run-btn" disabled onclick="runPlayground()">▶ Run</button>
-        <button class="play-run-btn" disabled onclick="testAI()" style="background:var(--green);font-size:0.7rem;padding:6px 10px">Test AI</button>
+        <button id="test-ai-btn" class="play-run-btn" disabled onclick="testAI()" style="background:var(--green);font-size:0.7rem;padding:6px 10px">Test AI</button>
       </div>
     </div>
     <textarea id="play-editor" class="play-editor" placeholder="Write Pipe code..." spellcheck="false">print "Hello!"

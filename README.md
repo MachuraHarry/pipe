@@ -1,4 +1,4 @@
-# Pipe (SPR) — Semantic Pipeline Runtime
+# <img src="website/logo.svg" width="32" height="32" align="left" style="margin-right:8px"> Pipe (SPR) — Semantic Pipeline Runtime
 
 [![CI](https://github.com/MachuraHarry/pipe/actions/workflows/ci.yml/badge.svg)](https://github.com/MachuraHarry/pipe/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-purple.svg)](LICENSE)

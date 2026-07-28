@@ -8,13 +8,21 @@ worker.onmessage = function(e) {
   const { type, id, text } = e.data;
   if (type === "ready") {
     pipeReady = true;
-    document.querySelectorAll("#play-status").forEach(el => {
-      el.textContent = "Ready — type code and click Run";
+    document.querySelectorAll(".play-bar").forEach(el => {
+      el.innerHTML = '<span>✓</span><span>WASM ready — type code and click Run</span>';
+      el.style.color = "#9898a8";
+    });
+    document.querySelectorAll(".play-bar-text").forEach(el => {
+      el.textContent = "WASM ready — type code and click Run";
       el.style.color = "#9898a8";
     });
     document.querySelectorAll("#play-btn, #runBtn").forEach(el => {
       el.disabled = false;
     });
+    var icon = document.getElementById("play-bar-icon");
+    if (icon) { icon.innerHTML = "✓"; icon.style.color = "#3ce096"; }
+    var text = document.getElementById("play-bar-text");
+    if (text) text.textContent = "Ready — type code and click Run";
   } else if (type === "result" || type === "error") {
     if (pending[id]) {
       pending[id](text, type === "error");

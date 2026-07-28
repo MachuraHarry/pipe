@@ -46,6 +46,7 @@ is missing, the request fails with an error.
 | `ai_timeout` | Set timeout | `ai_timeout seconds` |
 | `ai_chat` | Low-level chat | `ai_chat system prompt` |
 | `ai_chat_json` | Chat → JSON | `ai_chat_json system prompt` |
+| `ai_stream` | Live streaming | `ai_stream system prompt` |
 | `summarize` | Summarize text | `summarize text` |
 | `translate` | Translate text | `translate text target_language` |
 | `classify` | Classify text | `classify text categories` |
@@ -217,7 +218,43 @@ for lang in languages
 
 ---
 
-## 19.5 Pipeline with AI
+## 19.5 Streaming
+
+Streaming outputs AI responses **token by token in real-time** — the user sees
+the response appear like ChatGPT, instead of waiting for the full text.
+
+### ai_stream
+
+```
+ai_stream system_prompt user_prompt
+```
+
+Streams the response live to stdout and returns the full text as a string.
+
+```pipe
+-- Live poem — appears word by word
+ai_stream "You are a poet." "Write a short poem about coding."
+
+-- Live translation with post-processing
+text: ai_stream "Translate to German." "Hello world, this is streaming."
+print ("Translated: " ++ text)
+```
+
+**Behavior:**
+- Tokens are output to stdout **immediately** (live experience)
+- The full response text is returned as the **return value**
+- Usable in pipelines: `> upper > print` processes the fully collected text
+
+```pipe
+-- Streaming + Pipeline (text appears live, then post-processed)
+ai_stream "You are a translator." "Translate: Hello world"
+    > upper
+    > print
+```
+
+---
+
+## 19.6 Pipeline with AI
 
 AI operations integrate seamlessly into Pipe pipelines:
 

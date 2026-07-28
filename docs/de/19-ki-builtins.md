@@ -46,6 +46,7 @@ schlägt die Anfrage mit einem Fehler fehl.
 | `ai_timeout` | Timeout setzen | `ai_timeout sekunden` |
 | `ai_chat` | Low-Level Chat | `ai_chat system prompt` |
 | `ai_chat_json` | Chat → JSON | `ai_chat_json system prompt` |
+| `ai_stream` | Live-Streaming | `ai_stream system prompt` |
 | `summarize` | Text zusammenfassen | `summarize text` |
 | `translate` | Text übersetzen | `translate text zielsprache` |
 | `classify` | Text klassifizieren | `classify text kategorien` |
@@ -217,7 +218,43 @@ for sprache in sprachen
 
 ---
 
-## 19.5 Pipeline mit KI
+## 19.5 Streaming
+
+Streaming gibt KI-Antworten **Token für Token in Echtzeit** aus — der Nutzer sieht
+die Antwort erscheinen wie bei ChatGPT, statt auf den kompletten Text zu warten.
+
+### ai_stream
+
+```
+ai_stream system_prompt user_prompt
+```
+
+Streamt die Antwort live auf stdout und gibt den vollständigen Text als String zurück.
+
+```pipe
+-- Live-Gedicht — erscheint Wort für Wort
+ai_stream "Du bist ein Dichter." "Schreibe ein kurzes Gedicht."
+
+-- Live-Übersetzung mit Weiterverarbeitung
+text: ai_stream "Übersetze ins Deutsche." "Hello world, this is streaming."
+print ("Übersetzung: " ++ text)
+```
+
+**Verhalten:**
+- Tokens werden **sofort** auf stdout ausgegeben (Live-Erlebnis)
+- Der vollständige Antworttext wird als **Rückgabewert** geliefert
+- Nutzbar in Pipelines: `> upper > print` verarbeitet den kompletten gesammelten Text
+
+```pipe
+-- Streaming + Pipeline (Text wird live angezeigt, dann weiterverarbeitet)
+ai_stream "Du bist ein Übersetzer." "Translate: Hello world"
+    > upper
+    > print
+```
+
+---
+
+## 19.7 Pipeline mit KI
 
 KI-Operationen lassen sich nahtlos in Pipe-Pipelines integrieren:
 
@@ -245,7 +282,7 @@ ergebnisse: map dokumente fn(doc)
 
 ---
 
-## 19.6 Fehlerbehandlung
+## 19.8 Fehlerbehandlung
 
 KI-Operationen können fehlschlagen — etwa bei fehlendem API-Key,
 Netzwerkproblemen oder Timeout. Mit `try`/`catch` lassen sich
@@ -283,7 +320,7 @@ catch e
 
 ---
 
-## 19.7 Provider-Details
+## 19.9 Provider-Details
 
 | Provider | API-Endpunkt | Standardmodell | Umgebungsvariable |
 |----------|-------------|----------------|-------------------|
@@ -297,7 +334,7 @@ kompatibler Dienste über die Umgebungsvariable `OPENAI_API_KEY` und
 
 ---
 
-## 19.8 Beispiel: Vollständiger Workflow
+## 19.10 Beispiel: Vollständiger Workflow
 
 Dieser Workflow demonstriert alle KI-Builtins in einer praktischen Anwendung:
 

@@ -99,18 +99,15 @@ const examples = [
 
 function run() {
   if (!pipeReady) return;
-  const key = document.getElementById("apikey").value.trim();
-  const provider = document.getElementById("provider").value;
-  if (key) pipeSetKey(provider, key);
-
   const code = document.getElementById("editor").value;
   const out = document.getElementById("output");
   out.className = "output";
   out.textContent = "Running...";
-  const result = runPipe(code);
-  out.textContent = result || "(no output)";
-  if (result && result.includes("Error:")) out.className = "output error";
-  if (!result || result.trim() === "") out.className = "output empty";
+  runPipe(code).then(result => {
+    out.textContent = result || "(no output)";
+    if (result && result.includes("Error:")) out.className = "output error";
+    if (!result || result.trim() === "") out.className = "output empty";
+  });
 }
 
 function loadExample() {

@@ -205,7 +205,7 @@ a[data-lang].active { display: inline-block; }
         </select>
         <input id="play-key" type="password" placeholder="sk-... (API key)" class="play-key-input">
         <button id="play-btn" class="play-run-btn" disabled
-          onclick="var k=document.getElementById('play-key').value.trim();if(k)pipeSetKey(document.getElementById('play-provider').value,k);document.getElementById('play-out').textContent=runPipe(document.getElementById('play-editor').value)">
+          onclick="runPipeAsync(document.getElementById('play-editor').value)">
           ▶ Run
         </button>
       </div>

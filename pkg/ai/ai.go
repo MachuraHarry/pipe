@@ -60,7 +60,14 @@ func SetProvider(name string) {
 	case "deepseek":
 		ActiveConfig.APIHost = "https://api.deepseek.com"
 		ActiveConfig.Model = "deepseek-v4-pro"
+	case "ollama":
+		ActiveConfig.APIHost = "http://localhost:11434"
+		ActiveConfig.Model = "llama3.1:8b"
 	}
+}
+
+func SetHost(host string) {
+	ActiveConfig.APIHost = host
 }
 
 func SetModel(model string) {
@@ -79,6 +86,8 @@ func Chat(req ChatRequest) (ChatResponse, error) {
 		return anthropicChat(ActiveConfig, req)
 	case "deepseek":
 		return deepSeekChat(ActiveConfig, req)
+	case "ollama":
+		return ollamaChat(ActiveConfig, req)
 	default:
 		return ChatResponse{}, fmt.Errorf("unknown AI provider: %s", ActiveConfig.Provider)
 	}
@@ -96,6 +105,8 @@ func Stream(req ChatRequest, onToken StreamCallback) error {
 		return anthropicStream(ActiveConfig, req, onToken)
 	case "deepseek":
 		return deepSeekStream(ActiveConfig, req, onToken)
+	case "ollama":
+		return ollamaStream(ActiveConfig, req, onToken)
 	default:
 		return fmt.Errorf("unknown AI provider: %s", ActiveConfig.Provider)
 	}

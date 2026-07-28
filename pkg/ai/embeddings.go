@@ -26,6 +26,8 @@ func Embed(text string) ([]float64, error) {
 		model = "text-embedding-3-small"
 	case "deepseek":
 		model = "text-embedding-3-small"
+	case "ollama":
+		// Uses user-configured model, e.g., "nomic-embed-text"
 	case "anthropic":
 		return nil, fmt.Errorf("Anthropic does not support embeddings yet")
 	}
@@ -119,6 +121,8 @@ func getProviderKey() string {
 		return getKey("ANTHROPIC_API_KEY")
 	case "deepseek":
 		return getKey("DEEPSEEK_API_KEY")
+	case "ollama":
+		return "ollama"
 	}
 	return ""
 }
@@ -131,6 +135,8 @@ func keyEnvName() string {
 		return "ANTHROPIC_API_KEY"
 	case "deepseek":
 		return "DEEPSEEK_API_KEY"
+	case "ollama":
+		return ""
 	}
 	return "API_KEY"
 }

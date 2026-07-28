@@ -1,0 +1,59 @@
+-- ═══════════════════════════════════════════════
+-- OLLAMA DEMO — Lokale KI ohne API-Keys
+-- ═══════════════════════════════════════════════
+-- Voraussetzung: ollama serve läuft lokal
+--   curl -fsSL https://ollama.com/install.sh | sh
+--   ollama pull llama3.2:3b
+-- ═══════════════════════════════════════════════
+
+print "╔══════════════════════════════════════╗"
+print "║  OLLAMA — Lokale KI                ║"
+print "╚══════════════════════════════════════╝"
+print ""
+
+-- Provider auf Ollama setzen (localhost:11434)
+ai_provider "ollama"
+
+-- Optional: anderes Modell wählen
+-- ai_model "llama3.2:3b"     -- kleiner, schneller
+-- ai_model "mistral:7b"      -- alternativ
+
+-- Optional: Remote Ollama-Instanz
+-- ai_host "http://192.168.1.50:11434"
+
+print "Provider: Ollama (lokal, keine API-Keys)"
+print ""
+
+-- Test 1: Frage
+print "─── 1. Chat ───"
+print "Frage: Was ist eine Pipeline in der Programmierung?"
+print ""
+ask "Erklaere kurz was eine Pipeline in der Programmierung ist. 2-3 Saetze."
+    > print
+print ""
+
+-- Test 2: Zusammenfassung
+print "─── 2. Summarize ───"
+print "Text: Pipe ist eine Semantic Pipeline Runtime..."
+print ""
+summarize "Pipe (SPR) ist eine Semantic Pipeline Runtime — eine Pipeline-basierte Ausfuehrungsumgebung in der KI-Operationen wie summarize, translate und classify auf derselben syntaktischen Ebene leben wie arithmetische Operatoren."
+    > print
+print ""
+
+-- Test 3: Klassifizierung
+print "─── 3. Classify ───"
+levels: ["positiv", "neutral", "negativ"]
+texts: ["Dieses Produkt ist fantastisch!", "Es funktioniert.", "Totaler Schrott, nie wieder."]
+for t in texts
+    k: classify t levels
+    print ("  " ++ t ++ " → " ++ k)
+print ""
+
+print "══════════════════════════════════════"
+print "  Vorteile von Ollama mit Pipe:"
+print "  • Keine API-Keys nötig"
+print "  • Keine Daten verlassen dein System"
+print "  • Funktioniert komplett offline"
+print "  • Pipe + Ollama = ~10 MB + ~2 GB"
+print "  • Läuft auf Linux, macOS, Windows"
+print "══════════════════════════════════════"

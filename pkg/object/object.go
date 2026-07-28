@@ -336,6 +336,7 @@ var Builtins = []BuiltinInfo{
 	{"ai_provider", bAiProvider},
 	{"ai_model", bAiModel},
 	{"ai_timeout", bAiTimeout},
+	{"ai_host", bAiHost},
 
 	// AI — Low-level Chat
 	{"ai_chat", bAiChat},
@@ -1902,6 +1903,18 @@ func bAiTimeout(args ...Object) Object {
 	}
 	ai.SetTimeout(int(v))
 	return NILOBJ
+}
+
+func bAiHost(args ...Object) Object {
+	if len(args) != 1 {
+		return err("ai_host expects 1 argument (url)")
+	}
+	s, ok := args[0].(*String)
+	if !ok {
+		return err("ai_host: argument must be a string (e.g. 'http://localhost:11434')")
+	}
+	ai.SetHost(s.Value)
+	return &String{Value: "host set to " + s.Value}
 }
 
 func bAiChat(args ...Object) Object {

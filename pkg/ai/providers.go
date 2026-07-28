@@ -311,3 +311,62 @@ func httpPostStreamAnthropic(url, apiKey string, reqBody interface{}, timeout ti
 		}
 	}
 }
+
+// ---- Ollama Provider (OpenAI-compatible API) ----
+
+func ollamaChat(cfg Config, req ChatRequest) (ChatResponse, error) {
+	type oaiMsg struct {
+		Role    string `json:"role"`
+		Content string `json:"content"`
+	}
+	messages := make([]oaiMsg, len(req.Messages))
+	for i, m := range req.Messages {
+		messages[i] = oaiMsg{Role: m.Role, Content: m.Content}
+	}
+
+	body := map[string]interface{}{
+		"model":    cfg.Model,
+		"messages": messages,
+		"stream":   false,
+	}
+
+	result, err := httpPostJSON(cfg.APIHost+"/v1/chat/completions", "ollama", body, cfg.Timeout)
+	if err != nil {
+		return ChatResponse{}, fmt.Errorf("ollama: %w", err)
+	}
+
+	return extractOpenAIResult(result)
+}
+
+func ollamaStream(cfg Config, req ChatRequest, onToken StreamCallback) error {
+	type oaiMsg struct {
+		Role    string `json:"role"`
+		Content string `json:"content"`
+	}
+	messages := make([]oaiMsg, len(req.Messages))
+	for i, m := range req.Messages {
+		messages[i] = oaiMsg{Role: m.Role, Content: m.Content}
+	}
+
+	body := map[string]interface{}{
+		"model":    cfg.Model,
+		"messages": messages,
+		"stream":   true,
+	}
+
+	return httpPostStream(cfg.APIHost+"/v1/chat/completions", "ollama", body, cfg.Timeout, onToken)
+}
+
+func ollamaEmbed(cfg Config, text string) ([]float64, error) {
+	body := map[string]interface{}{
+		"model": cfg.Model,
+		"input": text,
+	}
+
+	result, err := httpPostJSON(cfg.APIHost+"/v1/embeddings", "ollama", body, cfg.Timeout)
+	if err != nil {
+		return nil, fmt.Errorf("ollama embed: %w", err)
+	}
+
+	return extractEmbedding(result)
+}

@@ -1,15 +1,16 @@
-# Pipe — Semantic Pipeline Runtime
+# Pipe (SPR) — Semantic Pipeline Runtime
 
-[![CI](https://github.com/harry/pipe/actions/workflows/ci.yml/badge.svg)](https://github.com/harry/pipe/actions/workflows/ci.yml)
+[![CI](https://github.com/MachuraHarry/pipe/actions/workflows/ci.yml/badge.svg)](https://github.com/MachuraHarry/pipe/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-purple.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-0.5.0-blue.svg)](https://github.com/harry/pipe/releases)
+[![Version](https://img.shields.io/badge/version-0.5.0-blue.svg)](https://github.com/MachuraHarry/pipe/releases)
+[![SPR](https://img.shields.io/badge/SPR-Semantic%20Pipeline%20Runtime-7c5cfc.svg)](#)
 
-> A language where AI operations are primitives — not library calls.
+> **SPR** — a new category of runtime where AI operations are language primitives, not library calls.
 > Pipe compiles to a single 10 MB binary. Zero dependencies.
 
 ## What is Pipe?
 
-Pipe is a **pipeline-based runtime** where `summarize`, `translate`, and `classify` live on the same syntactic level as `+`, `sort`, and `len`.
+Pipe is a **Semantic Pipeline Runtime (SPR)** — a pipeline-based execution environment where `summarize`, `translate`, and `classify` live on the same syntactic level as `+`, `sort`, and `len`. 
 
 **Python (30 lines):**
 

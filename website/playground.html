@@ -40,7 +40,7 @@ a{color:#7c5cfc;text-decoration:none}
       <option value="for i in (range 1 6)\n    print i">Loop 1-5</option>
       <option value="fn fib n\n    match n\n        | 0 -> 0\n        | 1 -> 1\n        | _ -> fib(n-1) + fib(n-2)\n\nprint (fib 10)">Fibonacci</option>
       <option value="fn greet name\n    &quot;Hallo &quot; ++ name\n\nprint (greet &quot;Welt&quot;)">Function</option>
-      <option value="print ([1,2,3] > len)">Pipeline</option>
+      <option value="print (len [1,2,3])">Length</option>
       <option value="x: 10\ny: 20\nprint (x + y)">Variables</option>
       <option value="if 5 > 3\n    print &quot;yes&quot;\nelse\n    print &quot;no&quot;">If/Else</option>
       <option value="match 2\n    | 1 -> &quot;one&quot;\n    | 2 -> &quot;two&quot;\n    | _ -> &quot;other&quot;">Match</option>
@@ -101,7 +101,7 @@ function run() {
 
 function loadExample(code) {
   if (!code) return;
-  document.getElementById("editor").value = code;
+  document.getElementById("editor").value = code.replace(/\\n/g, '\n');
 }
 
 document.addEventListener("keydown", e => {

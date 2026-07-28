@@ -7,28 +7,27 @@ branding:
 
 inputs:
   script:
-    description: 'Pipe script to execute'
+    description: 'Pipe script to execute (write to .pipe file or inline)'
     required: true
   version:
-    description: 'Pipe version (default: latest)'
+    description: 'Pipe version'
     required: false
     default: 'latest'
   flags:
-    description: 'Additional flags (-vm, -q, --sandbox)'
+    description: 'Additional flags'
     required: false
     default: '-vm -q'
   provider:
-    description: 'AI provider (openai, anthropic, deepseek, ollama)'
+    description: 'AI provider'
     required: false
 
 runs:
   using: 'composite'
   steps:
-    - name: Run Pipe
+    - run: bash $GITHUB_ACTION_PATH/run.sh
       shell: bash
       env:
         PIPE_SCRIPT: ${{ inputs.script }}
         PIPE_PROVIDER: ${{ inputs.provider }}
         PIPE_FLAGS: ${{ inputs.flags }}
-      run: |
-        printf '%s\n' "$PIPE_SCRIPT" | bash "$GITHUB_ACTION_PATH/run.sh"
+        PIPE_VERSION: ${{ inputs.version }}

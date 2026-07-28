@@ -1,18 +1,15 @@
 #!/bin/bash
-# Pipe Action wrapper — receives script content via stdin
+# Pipe Action wrapper
 set -e
 
-# Read everything from stdin into the script file
-cat > /tmp/pipe-script
+echo "$PIPE_SCRIPT" > /tmp/pipe-script
 
-# Prepend provider if specified
 [ -n "$PIPE_PROVIDER" ] && sed -i "1i ai_provider \"$PIPE_PROVIDER\"" /tmp/pipe-script || true
 
 echo "=== Pipe Script ==="
 cat /tmp/pipe-script
 echo "===================="
 
-# Download pipe if not available
 if ! command -v pipe &>/dev/null; then
   OS=$(uname -s | tr '[:upper:]' '[:lower:]')
   ARCH=$(uname -m)

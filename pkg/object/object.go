@@ -363,6 +363,10 @@ var Builtins = []BuiltinInfo{
 	{"cosine_sim", bCosineSim},
 	{"dot_product", bDotProduct},
 	{"nearest", bNearest},
+
+	// AI — Tool Calling
+	{"ai_tool", bAiTool},
+	{"ai_with_tools", bAiWithTools},
 }
 
 // ---- IO ----
@@ -2390,4 +2394,148 @@ func listToFloats(list *List) []float64 {
 		}
 	}
 	return floats
+}
+
+// ---- Tool Registry ----
+
+type ToolEntry struct {
+	Def ai.ToolDef
+	Fn  Object
+}
+
+var toolRegistry = map[string]ToolEntry{}
+
+func bAiTool(args ...Object) Object {
+	if len(args) < 4 {
+		return err("ai_tool expects 4 arguments (name, description, parameters, function)")
+	}
+	name, ok := args[0].(*String)
+	if !ok {
+		return err("ai_tool: first argument must be a string (tool name)")
+	}
+	desc, ok := args[1].(*String)
+	if !ok {
+		return err("ai_tool: second argument must be a string (description)")
+	}
+	params, ok := args[2].(*Map)
+	if !ok {
+		return err("ai_tool: third argument must be a map (parameter schema)")
+	}
+
+	fn := args[3]
+
+	paramSchema := make(map[string]interface{})
+	for k, v := range params.Pairs {
+		if s, ok := v.(*String); ok {
+			paramSchema[k] = map[string]interface{}{
+				"type":        "string",
+				"description": s.Value,
+			}
+		} else if m, ok := v.(*Map); ok {
+			inner := make(map[string]interface{})
+			for ik, iv := range m.Pairs {
+				if is, ok := iv.(*String); ok {
+					inner[ik] = is.Value
+				}
+			}
+			paramSchema[k] = inner
+		}
+	}
+
+	toolRegistry[name.Value] = ToolEntry{
+		Def: ai.ToolDef{
+			Name:        name.Value,
+			Description: desc.Value,
+			Parameters: map[string]interface{}{
+				"type":       "object",
+				"properties": paramSchema,
+				"required":   keysToStrings(params),
+			},
+		},
+		Fn: fn,
+	}
+
+	return NILOBJ
+}
+
+func keysToStrings(m *Map) []string {
+	keys := make([]string, 0, len(m.Pairs))
+	for k := range m.Pairs {
+		keys = append(keys, k)
+	}
+	return keys
+}
+
+func bAiWithTools(args ...Object) Object {
+	if len(args) < 2 {
+		return err("ai_with_tools expects at least 2 arguments (system_prompt, user_prompt)")
+	}
+	sp, ok := args[0].(*String)
+	if !ok {
+		return err("ai_with_tools: first argument must be a string (system prompt)")
+	}
+	up, ok := args[1].(*String)
+	if !ok {
+		return err("ai_with_tools: second argument must be a string (user prompt)")
+	}
+
+	maxRounds := 5
+	if len(args) >= 3 {
+		if n, ok := ToInt(args[2]); ok {
+			maxRounds = int(n)
+		}
+	}
+
+	tools := make([]ai.ToolDef, 0, len(toolRegistry))
+	for _, entry := range toolRegistry {
+		tools = append(tools, entry.Def)
+	}
+
+	if len(tools) == 0 {
+		return err("ai_with_tools: no tools registered. Use ai_tool first.")
+	}
+
+	executor := func(toolName string, args map[string]interface{}) (string, error) {
+		entry, exists := toolRegistry[toolName]
+		if !exists {
+			return "", fmt.Errorf("unknown tool: %s", toolName)
+		}
+
+		argObjects := make([]Object, 0, len(args))
+		for _, v := range args {
+			switch val := v.(type) {
+			case string:
+				argObjects = append(argObjects, &String{Value: val})
+			case float64:
+				if val == float64(int64(val)) {
+					argObjects = append(argObjects, &Integer{Value: int64(val)})
+				} else {
+					argObjects = append(argObjects, &Float{Value: val})
+				}
+			case bool:
+				argObjects = append(argObjects, NativeBoolToBoolean(val))
+			default:
+				argObjects = append(argObjects, &String{Value: fmt.Sprintf("%v", val)})
+			}
+		}
+
+		if callUserFn != nil {
+			result := callUserFn(entry.Fn, argObjects...)
+			return result.Inspect(), nil
+		}
+
+		if bi, ok := entry.Fn.(*BuiltinInfo); ok {
+			result := bi.Fn(argObjects...)
+			return result.Inspect(), nil
+		}
+
+		return "", fmt.Errorf("tool function not callable")
+	}
+
+	result, chatErr := ai.ChatWithTools(sp.Value, up.Value, tools, executor, maxRounds)
+	if chatErr != nil {
+		return err("ai_with_tools: " + chatErr.Error())
+	}
+
+	return &String{Value: result}
 }

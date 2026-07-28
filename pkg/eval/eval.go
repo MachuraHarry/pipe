@@ -22,12 +22,16 @@ type EvalContext struct {
 }
 
 func NewEvalContext(sourceFile string) *EvalContext {
-	return &EvalContext{
+	ctx := &EvalContext{
 		SourceFile:      sourceFile,
 		importCache:     make(map[string]*ast.Program),
 		importedFiles:   make(map[string]struct{}),
 		exportedSymbols: make(map[string]bool),
 	}
+	object.SetCallUserFn(func(fn object.Object, args ...object.Object) object.Object {
+		return ctx.applyFunction(fn, args)
+	})
+	return ctx
 }
 
 func (ctx *EvalContext) pushCall(name string)  { ctx.callStack = append(ctx.callStack, name) }
@@ -167,7 +171,7 @@ func (ctx *EvalContext) Eval(node ast.Node, env *object.Environment) object.Obje
 		return ctx.evalSliceExpression(n, env)
 
 	default:
-		return ctx.newError("unbekannter AST-Knoten: %T", node)
+		return ctx.newError("unknown AST node: %T", node)
 	}
 }
 
@@ -249,7 +253,7 @@ func (ctx *EvalContext) evalIdentifier(node *ast.Identifier, env *object.Environ
 	if builtin, ok := builtins[node.Value]; ok {
 		return builtin
 	}
-	return ctx.newError("undefinierte Variable: %s", node.Value)
+	return ctx.newError("undefined variable: %s", node.Value)
 }
 
 func evalPrefixExpression(operator string, right object.Object) object.Object {
@@ -259,7 +263,7 @@ func evalPrefixExpression(operator string, right object.Object) object.Object {
 	case "!":
 		return object.NativeBoolToBoolean(!object.IsTruthy(right))
 	default:
-		return newErrorSt("unbekannter Operator: %s%s", operator, right.Type())
+		return newErrorSt("unknown operator: %s%s", operator, right.Type())
 	}
 }
 
@@ -270,7 +274,7 @@ func evalMinusPrefixOperator(right object.Object) object.Object {
 	case *object.Float:
 		return &object.Float{Value: -v.Value}
 	default:
-		return newErrorSt("unbekannter Operator: -%s", right.Type())
+		return newErrorSt("unknown operator: -%s", right.Type())
 	}
 }
 
@@ -306,7 +310,7 @@ func evalInfixExpression(operator string, left, right object.Object) object.Obje
 	case operator == "!=":
 		return object.NativeBoolToBoolean(left != right)
 	default:
-		return newErrorSt("Typ-Fehler: %s %s %s", left.Type(), operator, right.Type())
+		return newErrorSt("Type error: %s %s %s", left.Type(), operator, right.Type())
 	}
 }
 
@@ -321,12 +325,12 @@ func evalIntegerInfix(operator string, left, right *object.Integer) object.Objec
 		return &object.Integer{Value: l * r}
 	case "/":
 		if r == 0 {
-			return newErrorSt("Division durch Null")
+			return newErrorSt("division by zero")
 		}
 		return &object.Integer{Value: l / r}
 	case "%":
 		if r == 0 {
-			return newErrorSt("Modulo durch Null")
+			return newErrorSt("modulo by zero")
 		}
 		return &object.Integer{Value: l % r}
 	case "**":
@@ -344,7 +348,7 @@ func evalIntegerInfix(operator string, left, right *object.Integer) object.Objec
 	case "!=":
 		return object.NativeBoolToBoolean(l != r)
 	default:
-		return newErrorSt("unbekannter Operator: %s %s %s", left.Type(), operator, right.Type())
+		return newErrorSt("unknown operator: %s %s %s", left.Type(), operator, right.Type())
 	}
 }
 
@@ -359,13 +363,13 @@ func evalFloatInfix(operator string, left, right *object.Float) object.Object {
 		return &object.Float{Value: l * r}
 	case "/":
 		if r == 0 {
-			return newErrorSt("Division durch Null")
+			return newErrorSt("division by zero")
 		}
 		return &object.Float{Value: l / r}
 	case "**":
 		return &object.Float{Value: math.Pow(l, r)}
 	case "%":
-		return newErrorSt("Modulo nicht für Float definiert")
+		return newErrorSt("modulo not defined for float")
 	case "<":
 		return object.NativeBoolToBoolean(l < r)
 	case ">":
@@ -379,7 +383,7 @@ func evalFloatInfix(operator string, left, right *object.Float) object.Object {
 	case "!=":
 		return object.NativeBoolToBoolean(l != r)
 	default:
-		return newErrorSt("unbekannter Operator: %s %s %s", left.Type(), operator, right.Type())
+		return newErrorSt("unknown operator: %s %s %s", left.Type(), operator, right.Type())
 	}
 }
 
@@ -400,7 +404,7 @@ func evalStringInfix(operator string, left, right *object.String) object.Object 
 	case ">=":
 		return object.NativeBoolToBoolean(left.Value >= right.Value)
 	default:
-		return newErrorSt("unbekannter Operator: %s %s %s", left.Type(), operator, right.Type())
+		return newErrorSt("unknown operator: %s %s %s", left.Type(), operator, right.Type())
 	}
 }
 
@@ -533,7 +537,7 @@ func (ctx *EvalContext) applyFunction(fn object.Object, args []object.Object) ob
 		return f.Fn(args...)
 
 	default:
-		return ctx.newError("keine Funktion: %s", fn.Type())
+		return ctx.newError("not a function: %s", fn.Type())
 	}
 }
 
@@ -608,7 +612,7 @@ func (ctx *EvalContext) evalPipeline(pe *ast.PipelineExpression, left object.Obj
 		return fn.Fn(append([]object.Object{left})...)
 	}
 
-	return ctx.newError("Pipeline: rechte Seite ist keine Funktion")
+	return ctx.newError("Pipeline: right side is not a function")
 }
 
 func (ctx *EvalContext) evalMapLiteral(ml *ast.MapLiteral, env *object.Environment) object.Object {
@@ -636,9 +640,9 @@ func (ctx *EvalContext) evalDotExpression(de *ast.DotExpression, env *object.Env
 		if val, ok := obj.Pairs[de.Field]; ok {
 			return val
 		}
-		return ctx.newError("Feld '%s' nicht gefunden", de.Field)
+		return ctx.newError("field '%s' not found", de.Field)
 	default:
-		return ctx.newError("Punkt-Zugriff nur auf Maps möglich, nicht %s", left.Type())
+		return ctx.newError("dot access only on maps, not %s", left.Type())
 	}
 }
 
@@ -733,7 +737,7 @@ func (ctx *EvalContext) evalForExpression(fe *ast.ForExpression, env *object.Env
 	if fe.IsForIn {
 		return ctx.evalForInExpression(fe, env)
 	}
-	return ctx.newError("for-Schleifen noch nicht vollständig implementiert")
+	return ctx.newError("for loops not yet fully implemented")
 }
 
 func (ctx *EvalContext) evalForInExpression(fe *ast.ForExpression, env *object.Environment) object.Object {
@@ -744,7 +748,7 @@ func (ctx *EvalContext) evalForInExpression(fe *ast.ForExpression, env *object.E
 
 	list, ok := iterable.(*object.List)
 	if !ok {
-		return ctx.newError("for-in erwartet eine List, nicht %s", iterable.Type())
+		return ctx.newError("for-in expects a list, not %s", iterable.Type())
 	}
 
 	iterName := fe.Iterator.Value
@@ -784,7 +788,7 @@ func (ctx *EvalContext) resolveImportPath(path string) (string, error) {
 			}
 		}
 	}
-	return "", fmt.Errorf("import nicht gefunden: %s (PIPE_PATH=%s)", path, pipePath)
+	return "", fmt.Errorf("import not found: %s (PIPE_PATH=%s)", path, pipePath)
 }
 
 func (ctx *EvalContext) evalImportStatement(is *ast.ImportStatement, env *object.Environment) object.Object {
@@ -806,14 +810,14 @@ func (ctx *EvalContext) evalImportStatement(is *ast.ImportStatement, env *object
 	if !ok {
 		data, err := os.ReadFile(resolvedPath)
 		if err != nil {
-			return ctx.newError("import fehlgeschlagen: %s", err)
+			return ctx.newError("import failed: %s", err)
 		}
 
 		l := lexer.New(string(data))
 		p := parser.New(l)
 		program = p.ParseProgram()
 		if len(p.Errors()) > 0 {
-			return ctx.newError("import parse-fehler in %s: %v", resolvedPath, p.Errors())
+			return ctx.newError("import parse error in %s: %v", resolvedPath, p.Errors())
 		}
 		ctx.importCache[resolvedPath] = program
 	}
@@ -854,7 +858,7 @@ func (ctx *EvalContext) evalSliceExpression(se *ast.SliceExpression, env *object
 
 	l, ok := list.(*object.List)
 	if !ok {
-		return ctx.newError("Slice nur auf Listen möglich, nicht %s", list.Type())
+		return ctx.newError("slice only on lists, not %s", list.Type())
 	}
 
 	startIdx := int64(0)
@@ -867,7 +871,7 @@ func (ctx *EvalContext) evalSliceExpression(se *ast.SliceExpression, env *object
 		}
 		s, ok := object.ToInt(start)
 		if !ok {
-			return ctx.newError("Slice-Start muss Zahl sein")
+			return ctx.newError("slice start must be a number")
 		}
 		startIdx = s
 	}
@@ -879,7 +883,7 @@ func (ctx *EvalContext) evalSliceExpression(se *ast.SliceExpression, env *object
 		}
 		e, ok := object.ToInt(end)
 		if !ok {
-			return ctx.newError("Slice-Ende muss Zahl sein")
+			return ctx.newError("slice end must be a number")
 		}
 		endIdx = e
 	}
@@ -902,7 +906,7 @@ func evalIndexExpression(left, right object.Object) object.Object {
 	case *object.List:
 		idx, ok := object.ToInt(right)
 		if !ok {
-			return newErrorSt("Listen-Index muss Zahl sein")
+			return newErrorSt("list index must be a number")
 		}
 		if idx < 0 || idx >= int64(len(container.Elements)) {
 			return object.NILOBJ
@@ -911,7 +915,7 @@ func evalIndexExpression(left, right object.Object) object.Object {
 	case *object.Map:
 		key, ok := right.(*object.String)
 		if !ok {
-			return newErrorSt("Map-Key muss String sein")
+			return newErrorSt("map key must be a string")
 		}
 		val, exists := container.Pairs[key.Value]
 		if !exists {
@@ -921,7 +925,7 @@ func evalIndexExpression(left, right object.Object) object.Object {
 	case *object.String:
 		idx, ok := object.ToInt(right)
 		if !ok {
-			return newErrorSt("String-Index muss Zahl sein")
+			return newErrorSt("string index must be a number")
 		}
 		s := container.Value
 		if idx < 0 || idx >= int64(len(s)) {
@@ -929,7 +933,7 @@ func evalIndexExpression(left, right object.Object) object.Object {
 		}
 		return &object.String{Value: string(s[idx])}
 	}
-	return newErrorSt("Index-Zugriff nicht unterstützt für %s", left.Type())
+	return newErrorSt("index access not supported for %s", left.Type())
 }
 
 type ReturnValue struct {

@@ -1,0 +1,29 @@
+-- Tool-Calling Demo: LLM kann eine Pipe-Funktion aufrufen
+ai_provider "deepseek"
+
+print "═══ TOOL-CALLING DEMO ═══"
+print ""
+
+-- 1. Eine einfache Tool-Funktion definieren
+fn get_wetter stadt
+    match stadt
+        | "Berlin" -> "Berlin: 22 Grad, sonnig"
+        | "London" -> "London: 15 Grad, regnerisch"
+        | "Paris" -> "Paris: 25 Grad, klar"
+        | _ -> stadt ++ ": Keine Daten"
+
+-- 2. Tool beim LLM registrieren
+schema: {stadt: "Name der Stadt"}
+ai_tool "get_wetter" "Holt das aktuelle Wetter fuer eine Stadt" schema get_wetter
+
+-- 3. LLM mit Tool-Zugriff fragen
+print "Frage: Wie ist das Wetter in Berlin und Paris?"
+print ""
+
+ergebnis: ai_with_tools "Du bist ein Wetter-Assistent. Nutze get_wetter um die Frage zu beantworten." "Wie ist das Wetter in Berlin und Paris?"
+
+print "Antwort:"
+print ergebnis
+
+print ""
+print "═══ TOOL-CALLING DONE ═══"

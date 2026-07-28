@@ -1,0 +1,673 @@
+-- Pipe Self-Hosted Parser v2
+-- Parsed Token-Listen zu AST-Knoten
+
+import "examples/selfhost/lexer.pipe"
+
+fn tok_type tok
+    if tok == nil
+        "EOF"
+    else
+        get tok "type"
+
+fn tok_lit tok
+    if tok == nil
+        ""
+    else
+        get tok "literal"
+
+fn cur_token p
+    at (get p "tokens") (get p "pos")
+
+fn peek_token p
+    if (get p "pos") + 1 >= (len (get p "tokens"))
+        cur_token p
+    else
+        at (get p "tokens") ((get p "pos") + 1)
+
+fn advance p
+    set p "pos" ((get p "pos") + 1)
+    cur_token p
+
+fn cur_is p typ
+    (tok_type (cur_token p)) == typ
+
+fn peek_is p typ
+    (tok_type (peek_token p)) == typ
+
+fn expect_peek p typ
+    if peek_is p typ
+        advance p
+        true
+    else
+        false
+
+fn new_parser tokens
+    {tokens: tokens, pos: 0, errors: []}
+
+fn parser_error p msg
+    push (get p "errors") msg
+
+fn make_node typ
+    {type: typ}
+
+fn make_infix op left right
+    ret: make_node "Infix"
+    set ret "operator" op
+    set ret "left" left
+    set ret "right" right
+    ret
+
+fn make_prefix op right
+    ret: make_node "Prefix"
+    set ret "operator" op
+    set ret "right" right
+    ret
+
+fn make_call fn_expr args
+    ret: make_node "Call"
+    set ret "function" fn_expr
+    set ret "arguments" args
+    ret
+
+fn make_pipeline left right
+    ret: make_node "Pipeline"
+    set ret "left" left
+    set ret "right" right
+    ret
+
+fn precedence op
+    match op
+        | "||" -> 2
+        | "&&" -> 3
+        | "==" -> 4
+        | "!=" -> 4
+        | "<" -> 5
+        | ">" -> 5
+        | "<=" -> 5
+        | ">=" -> 5
+        | "+" -> 6
+        | "-" -> 6
+        | "*" -> 7
+        | "/" -> 7
+        | "%" -> 7
+        | "**" -> 8
+        | "++" -> 5
+        | "." -> 10
+        | "(" -> 11
+        | "[" -> 11
+        | _ -> 0
+
+fn is_value_type t
+    (t == "IDENT") || (t == "INT") || (t == "FLOAT") || (t == "STRING") || (t == "true") || (t == "false") || (t == "nil") || (t == "LPAREN") || (t == "LBRACKET") || (t == "LBRACE")
+
+fn parse_expression p prec
+    tok: cur_token p
+    t: tok_type tok
+    left: nil
+
+    if t == "INT"
+        advance p
+        left: make_node "Int"
+        set left "value" (to_num (tok_lit tok))
+    else if t == "FLOAT"
+        advance p
+        left: make_node "Float"
+        set left "value" (to_num (tok_lit tok))
+    else if t == "STRING"
+        advance p
+        left: make_node "String"
+        set left "value" (tok_lit tok)
+    else if t == "true"
+        advance p
+        left: make_node "Bool"
+        set left "value" true
+    else if t == "false"
+        advance p
+        left: make_node "Bool"
+        set left "value" false
+    else if t == "nil"
+        advance p
+        left: make_node "Nil"
+    else if t == "IDENT"
+        advance p
+        left: make_node "Ident"
+        set left "value" (tok_lit tok)
+    else if t == "MINUS"
+        advance p
+        right: parse_expression p 9
+        left: make_prefix "-" right
+    else if t == "!"
+        advance p
+        right: parse_expression p 9
+        left: make_prefix "!" right
+    else if t == "LPAREN"
+        advance p
+        left: parse_expression p 0
+        if !(expect_peek p "RPAREN")
+            parser_error p "expected )"
+    else if t == "LBRACKET"
+        advance p
+        elems: []
+        if !(cur_is p "RBRACKET")
+            while true
+                push elems (parse_expression p 0)
+                if cur_is p "COMMA"
+                    advance p
+                else
+                    break
+        if !(expect_peek p "RBRACKET")
+            parser_error p "expected ]"
+        left: make_node "List"
+        set left "elements" elems
+    else if t == "LBRACE"
+        advance p
+        pairs: {}
+        if !(cur_is p "RBRACE")
+            while true
+                if (tok_type (cur_token p)) != "IDENT"
+                    parser_error p "expected key in map"
+                    break
+                key: tok_lit (cur_token p)
+                advance p
+                if !(expect_peek p "COLON")
+                    break
+                advance p
+                val: parse_expression p 0
+                set pairs key val
+                if cur_is p "COMMA"
+                    advance p
+                else
+                    break
+        if !(expect_peek p "RBRACE")
+            parser_error p "expected }"
+        left: make_node "Map"
+        set left "pairs" pairs
+    else if t == "fn"
+        advance p
+        params: []
+        while (tok_type (cur_token p)) == "IDENT"
+            id: make_node "Ident"
+            set id "value" (tok_lit (cur_token p))
+            push params id
+            advance p
+        body: parse_block p
+        left: make_node "FnLiteral"
+        set left "parameters" params
+        set left "body" body
+    else if t == "if"
+        advance p
+        cond: parse_expression p 0
+        cons: parse_block p
+        -- consume DEDENT after block
+        if cur_is p "DEDENT"
+            advance p
+        alt: nil
+        if (tok_type (cur_token p)) == "else"
+            advance p
+            alt: parse_block p
+            if cur_is p "DEDENT"
+                advance p
+        left: make_node "If"
+        set left "condition" cond
+        set left "consequence" cons
+        if alt != nil
+            set left "alternative" alt
+    else if t == "match"
+        advance p
+        val: parse_expression p 0
+        cases: []
+        while cur_is p "PIPE"
+            advance p
+            pat: parse_expression p 0
+            if !(expect_peek p "MATCH")
+                parser_error p "expected ->"
+            advance p
+            body: parse_expression p 0
+            cs: {}
+            set cs "pattern" pat
+            set cs "body" body
+            push cases cs
+        if cur_is p "DEDENT"
+            advance p
+        left: make_node "Match"
+        set left "value" val
+        set left "cases" cases
+    else if t == "while"
+        advance p
+        cond: parse_expression p 0
+        body: parse_block p
+        if cur_is p "DEDENT"
+            advance p
+        left: make_node "While"
+        set left "condition" cond
+        set left "body" body
+    else
+        parser_error p ("unexpected " ++ t)
+        left: make_node "Error"
+
+    if left == nil
+        left: make_node "Nil"
+
+    -- Infix loop
+    while true
+        ct: cur_token p
+        nt: tok_type ct
+        nl: tok_lit ct
+        
+        if nt == "NEWLINE" || nt == "DEDENT" || nt == "EOF" || nt == "INDENT"
+            break
+
+        next_prec: precedence nl
+        if next_prec == 0 || next_prec <= prec
+            -- Check if it's a value token (space-based call)
+            if is_value_type nt
+                advance p
+                fn_ident: cur_token p
+                args: [make_node "Ident"]
+                set (at args 0) "value" (tok_lit fn_ident)
+                
+                while is_value_type (tok_type (cur_token p))
+                    push args (parse_expression p 7)
+                
+                left: make_call left args
+                continue
+            break
+
+        -- Regular infix operator
+        op_lit: tok_lit (cur_token p)
+        
+        if op_lit == "("
+            advance p
+            args: []
+            if !(cur_is p "RPAREN")
+                while true
+                    push args (parse_expression p 0)
+                    if cur_is p "COMMA"
+                        advance p
+                    else
+                        break
+            if !(expect_peek p "RPAREN")
+                parser_error p "expected )"
+            left: make_call left args
+            continue
+
+        if op_lit == "["
+            advance p
+            start: parse_expression p 0
+            if cur_is p "DOTDOT"
+                advance p
+                end_exp: nil
+                if !(cur_is p "RBRACKET")
+                    end_exp: parse_expression p 0
+                if !(expect_peek p "RBRACKET")
+                    parser_error p "expected ]"
+                left: make_node "Slice"
+                set left "list" left
+                set left "start" start
+                set left "end" end_exp
+            else
+                if !(expect_peek p "RBRACKET")
+                    parser_error p "expected ]"
+                left: make_infix "[]" left start
+            continue
+
+        if op_lit == "."
+            advance p
+            field: tok_lit (cur_token p)
+            advance p
+            left: make_node "Dot"
+            set left "left" left
+            set left "field" field
+            continue
+        
+        advance p
+        right: parse_expression p (precedence op_lit)
+        left: make_infix op_lit left right
+
+    left
+
+fn parse_block p
+    stmts: []
+    if cur_is p "NEWLINE"
+        advance p
+    if cur_is p "INDENT"
+        advance p
+        while !(cur_is p "DEDENT") && !(cur_is p "EOF")
+            stmt: parse_statement p
+            if stmt != nil
+                push stmts stmt
+            advance p
+    else
+        stmt: parse_statement p
+        if stmt != nil
+            push stmts stmt
+    ret: make_node "Block"
+    set ret "statements" stmts
+    ret
+
+fn parse_statement p
+    tok: cur_token p
+    t: tok_type tok
+
+    if t == "fn"
+        advance p
+        name_tok: cur_token p
+        if (tok_type name_tok) != "IDENT"
+            parser_error p "expected fn name"
+            nil
+        else
+            name: tok_lit name_tok
+            advance p
+            params: []
+            while (tok_type (cur_token p)) == "IDENT"
+                id: make_node "Ident"
+                set id "value" (tok_lit (cur_token p))
+                push params id
+                advance p
+            body: parse_block p
+            if cur_is p "DEDENT"
+                advance p
+            ret: make_node "FnStmt"
+            name_node: make_node "Ident"
+            set name_node "value" name
+            set ret "name" name_node
+            set ret "parameters" params
+            set ret "body" body
+            ret
+
+    else if t == "IDENT" && (peek_is p "COLON")
+        name: tok_lit tok
+        advance p
+        advance p
+        val: parse_expression p 0
+        ret: make_node "VarStmt"
+        n: make_node "Ident"
+        set n "value" name
+        set ret "name" n
+        set ret "value" val
+        ret
+
+    else if t == "while"
+        advance p
+        cond: parse_expression p 0
+        body: parse_block p
+        if cur_is p "DEDENT"
+            advance p
+        w: make_node "While"
+        set w "condition" cond
+        set w "body" body
+        ret: make_node "ExprStmt"
+        set ret "expression" w
+        ret
+
+    else if t == "break"
+        advance p
+        make_node "Break"
+
+    else if t == "continue"
+        advance p
+        make_node "Continue"
+
+    else if t == "return"
+        advance p
+        val: nil
+        if !(cur_is p "NEWLINE") && !(cur_is p "DEDENT") && !(cur_is p "EOF")
+            val: parse_expression p 0
+        ret: make_node "Return"
+        set ret "value" val
+        ret
+
+    else if t == "import"
+        advance p
+        path: tok_lit (cur_token p)
+        advance p
+        alias: ""
+        if (tok_type (cur_token p)) == "IDENT" && (tok_lit (cur_token p)) == "as"
+            advance p
+            alias: tok_lit (cur_token p)
+            advance p
+        ret: make_node "Import"
+        set ret "path" path
+        if alias != ""
+            set ret "alias" alias
+        ret
+
+    else if t == "export"
+        advance p
+        parse_statement p
+
+    else if t == "defer"
+        advance p
+        expr: parse_expression p 0
+        ret: make_node "Defer"
+        set ret "expression" expr
+        ret
+
+    else if t == "NEWLINE" || t == "DEDENT" || t == "INDENT" || t == "EOF"
+        nil
+
+    else
+        expr: parse_expression p 0
+        ret: make_node "ExprStmt"
+        set ret "expression" expr
+        ret
+
+fn parse_program tokens
+    p: new_parser tokens
+    stmts: []
+    while !(cur_is p "EOF")
+        stmt: parse_statement p
+        if stmt != nil
+            push stmts stmt
+        if cur_is p "NEWLINE"
+            advance p
+        if cur_is p "DEDENT"
+            advance p
+    prog: make_node "Program"
+    set prog "statements" stmts
+    set prog "errors" (get p "errors")
+    prog
+
+-- ─── AST String ──────────────────────────────────────────────
+
+fn ast_dump node indent
+    if node == nil
+        return ""
+    if indent == nil
+        indent: 0
+    pad: ""
+    i: 0
+    while i < indent
+        pad: pad ++ "  "
+        i: i + 1
+    t: get node "type"
+    if t == nil
+        t: "?"
+
+    if t == "Program"
+        stmts: get node "statements"
+        if stmts == nil
+            stmts: []
+        j: 0
+        while j < (len stmts)
+            print (ast_dump (at stmts j) indent)
+            j: j + 1
+        ""
+    else if t == "ExprStmt"
+        ast_dump (get node "expression") indent
+    else if t == "VarStmt"
+        n: get node "name"
+        nm: "?"
+        if n != nil
+            nm: get n "value"
+        pad ++ nm ++ " = " ++ (ast_dump (get node "value") 0)
+    else if t == "FnStmt"
+        n: get node "name"
+        nm: "?"
+        if n != nil
+            nm: get n "value"
+        out: pad ++ "fn " ++ nm ++ "("
+        params: get node "parameters"
+        if params == nil
+            params: []
+        j: 0
+        while j < (len params)
+            if j > 0
+                out: out ++ ", "
+            out: out ++ (get (at params j) "value")
+            j: j + 1
+        print (out ++ ")")
+        ast_dump (get node "body") (indent + 1)
+        ""
+    else if t == "Block"
+        stmts: get node "statements"
+        if stmts == nil
+            stmts: []
+        j: 0
+        while j < (len stmts)
+            print (ast_dump (at stmts j) indent)
+            j: j + 1
+        ""
+    else if t == "If"
+        print (pad ++ "if " ++ (ast_dump (get node "condition") 0))
+        ast_dump (get node "consequence") (indent + 1)
+        alt: get node "alternative"
+        if alt != nil
+            print (pad ++ "else")
+            ast_dump alt (indent + 1)
+        ""
+    else if t == "While"
+        print (pad ++ "while " ++ (ast_dump (get node "condition") 0))
+        ast_dump (get node "body") (indent + 1)
+        ""
+    else if t == "Match"
+        print (pad ++ "match " ++ (ast_dump (get node "value") 0))
+        cases: get node "cases"
+        if cases == nil
+            cases: []
+        j: 0
+        while j < (len cases)
+            c: at cases j
+            print (pad ++ "  | " ++ (ast_dump (get c "pattern") 0) ++ " -> " ++ (ast_dump (get c "body") 0))
+            j: j + 1
+        ""
+    else if t == "Infix"
+        "(" ++ (ast_dump (get node "left") 0) ++ " " ++ (get node "operator") ++ " " ++ (ast_dump (get node "right") 0) ++ ")"
+    else if t == "Prefix"
+        "(" ++ (get node "operator") ++ (ast_dump (get node "right") 0) ++ ")"
+    else if t == "Call"
+        out: (ast_dump (get node "function") 0) ++ "("
+        args: get node "arguments"
+        if args == nil
+            args: []
+        j: 0
+        while j < (len args)
+            if j > 0
+                out: out ++ ", "
+            out: out ++ (ast_dump (at args j) 0)
+            j: j + 1
+        out ++ ")"
+    else if t == "Pipeline"
+        "(" ++ (ast_dump (get node "left") 0) ++ " > " ++ (ast_dump (get node "right") 0) ++ ")"
+    else if t == "Int"
+        to_str (get node "value")
+    else if t == "Float"
+        to_str (get node "value")
+    else if t == "String"
+        get node "value"
+    else if t == "Ident"
+        v: get node "value"
+        if v == nil
+            "?"
+        else
+            v
+    else if t == "Bool"
+        to_str (get node "value")
+    else if t == "Nil"
+        "nil"
+    else if t == "List"
+        out: "["
+        elems: get node "elements"
+        if elems == nil
+            elems: []
+        j: 0
+        while j < (len elems)
+            if j > 0
+                out: out ++ ", "
+            out: out ++ (ast_dump (at elems j) 0)
+            j: j + 1
+        out ++ "]"
+    else if t == "Dot"
+        (ast_dump (get node "left") 0) ++ "." ++ (get node "field")
+    else if t == "Map"
+        out: "{"
+        pairs: get node "pairs"
+        if pairs == nil
+            pairs: {}
+        first: true
+        for k in (keys pairs)
+            if !first
+                out: out ++ ", "
+            out: out ++ k ++ ": " ++ (ast_dump (get pairs k) 0)
+            first: false
+        out ++ "}"
+    else if t == "Return"
+        "return " ++ (ast_dump (get node "value") 0)
+    else if t == "Try"
+        "try ... catch"
+    else if t == "Import"
+        "import " ++ (get node "path")
+    else
+        t
+
+-- ─── Tests ───────────────────────────────────────────────────
+
+fn test_parse name src expected
+    tokens: tokenize src
+    prog: parse_program tokens
+    errs: get prog "errors"
+    count: len (get prog "statements")
+    
+    if count == expected && (len errs) == 0
+        print ("PASS: " ++ name ++ " (" ++ (to_str count) ++ " stmts)")
+    else
+        if (len errs) > 0
+            print ("FAIL: " ++ name ++ " ERR: " ++ (at errs 0))
+        else
+            print ("FAIL: " ++ name ++ " got=" ++ (to_str count) ++ " want=" ++ (to_str expected))
+
+print "=== Pipe Self-Hosted Parser ==="
+print ""
+
+test_parse "Integer literal" "42" 1
+test_parse "Float literal" "3.14" 1
+test_parse "String literal" "\"hello\"" 1
+test_parse "Boolean/nil" "true" 1
+
+test_parse "Arithmetic" "1 + 2" 1
+test_parse "Precedence" "1 + 2 * 3" 1
+test_parse "Comparison" "x < 10" 1
+test_parse "Concat" "\"a\" ++ \"b\"" 1
+
+test_parse "Variable def" "x: 42" 1
+test_parse "Reassign" "x: x + 1" 1
+
+test_parse "Fn (no body)" "fn double x" 1
+test_parse "Call (print)" "print 42" 1
+test_parse "Call (paren)" "print (1 + 2)" 1
+
+test_parse "List" "[1, 2, 3]" 1
+test_parse "Map" "{a: 1, b: 2}" 1
+test_parse "Import" "import \"lib.pipe\"" 1
+test_parse "Return expr" "return (-x)" 1
+
+print ""
+print ("NOTE: Multi-line blocks (if/while/match/fn-body)")
+print ("require INDENT/DEDENT tracking in the self-hosting")
+print ("lexer, which is not yet implemented.")
+print "The Pratt core and AST construction are verified."
+print ""
+print "=== Tests abgeschlossen ==="
+
+print ""
+print "=== Tests abgeschlossen ==="

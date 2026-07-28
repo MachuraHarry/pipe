@@ -7,7 +7,9 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"runtime"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -208,4 +210,76 @@ func httpPostStream(url, apiKey string, reqBody interface{}, timeout time.Durati
 		}
 	}
 	return nil
+}
+
+// ---- Parallel Execution ----
+
+var (
+	rateLimiter   *time.Ticker
+	rateLimitMu   sync.Mutex
+	rateLimitStop chan struct{}
+)
+
+func SetRateLimit(callsPerSecond int) {
+	rateLimitMu.Lock()
+	defer rateLimitMu.Unlock()
+
+	if rateLimitStop != nil {
+		close(rateLimitStop)
+	}
+	if callsPerSecond <= 0 {
+		rateLimiter = nil
+		return
+	}
+	interval := time.Second / time.Duration(callsPerSecond)
+	rateLimiter = time.NewTicker(interval)
+	rateLimitStop = make(chan struct{})
+}
+
+func waitRateLimit() {
+	rateLimitMu.Lock()
+	limiter := rateLimiter
+	rateLimitMu.Unlock()
+	if limiter != nil {
+		<-limiter.C
+	}
+}
+
+type ParallelResult struct {
+	Index  int
+	Result ChatResponse
+	Err    error
+}
+
+func ChatParallel(requests []ChatRequest, concurrency int) ([]ChatResponse, []error) {
+	if concurrency <= 0 {
+		concurrency = runtime.NumCPU() * 2
+	}
+	if concurrency > len(requests) {
+		concurrency = len(requests)
+	}
+
+	results := make([]ChatResponse, len(requests))
+	errs := make([]error, len(requests))
+
+	sem := make(chan struct{}, concurrency)
+	var wg sync.WaitGroup
+
+	for i, req := range requests {
+		wg.Add(1)
+		go func(idx int, r ChatRequest) {
+			defer wg.Done()
+			sem <- struct{}{}
+			defer func() { <-sem }()
+
+			waitRateLimit()
+
+			resp, err := Chat(r)
+			results[idx] = resp
+			errs[idx] = err
+		}(i, req)
+	}
+
+	wg.Wait()
+	return results, errs
 }

@@ -351,6 +351,11 @@ var Builtins = []BuiltinInfo{
 
 	// AI — Streaming
 	{"ai_stream", bAiStream},
+
+	// AI — Parallel
+	{"ai_parallel", bAiParallel},
+	{"ai_batch", bAiBatch},
+	{"ai_rate_limit", bAiRateLimit},
 }
 
 // ---- IO ----
@@ -2143,4 +2148,105 @@ func bAiStream(args ...Object) Object {
 		return err("ai_stream: " + streamErr.Error())
 	}
 	return &String{Value: fullText.String()}
+}
+
+func bAiRateLimit(args ...Object) Object {
+	if len(args) < 1 {
+		return err("ai_rate_limit expects 1 argument (calls_per_second)")
+	}
+	v, ok := ToInt(args[0])
+	if !ok {
+		return err("ai_rate_limit: argument must be a number")
+	}
+	ai.SetRateLimit(int(v))
+	return NILOBJ
+}
+
+func bAiParallel(args ...Object) Object {
+	if len(args) < 3 {
+		return err("ai_parallel expects 3 arguments (concurrency, system_prompt, items)")
+	}
+
+	concurrency, ok := ToInt(args[0])
+	if !ok {
+		return err("ai_parallel: first argument must be a number (concurrency)")
+	}
+
+	sp, ok := args[1].(*String)
+	if !ok {
+		return err("ai_parallel: second argument must be a string (system prompt)")
+	}
+
+	items, ok := args[2].(*List)
+	if !ok {
+		return err("ai_parallel: third argument must be a list of strings")
+	}
+
+	requests := make([]ai.ChatRequest, len(items.Elements))
+	for i, elem := range items.Elements {
+		s, ok := elem.(*String)
+		if !ok {
+			s = &String{Value: elem.Inspect()}
+		}
+		requests[i] = ai.ChatRequest{
+			Messages: []ai.Message{
+				{Role: "system", Content: sp.Value},
+				{Role: "user", Content: s.Value},
+			},
+		}
+	}
+
+	results, errs := ai.ChatParallel(requests, int(concurrency))
+
+	elems := make([]Object, len(results))
+	for i := range results {
+		if errs[i] != nil {
+			elems[i] = err("ai_parallel[" + fmt.Sprintf("%d", i) + "]: " + errs[i].Error())
+		} else {
+			elems[i] = &String{Value: results[i].Content}
+		}
+	}
+	return &List{Elements: elems}
+}
+
+func bAiBatch(args ...Object) Object {
+	if len(args) < 2 {
+		return err("ai_batch expects 2 arguments (system_prompt, items)")
+	}
+
+	sp, ok := args[0].(*String)
+	if !ok {
+		return err("ai_batch: first argument must be a string (system prompt)")
+	}
+
+	items, ok := args[1].(*List)
+	if !ok {
+		return err("ai_batch: second argument must be a list of strings")
+	}
+
+	requests := make([]ai.ChatRequest, len(items.Elements))
+	for i, elem := range items.Elements {
+		s, ok := elem.(*String)
+		if !ok {
+			s = &String{Value: elem.Inspect()}
+		}
+		requests[i] = ai.ChatRequest{
+			Messages: []ai.Message{
+				{Role: "system", Content: sp.Value},
+				{Role: "user", Content: s.Value},
+			},
+		}
+	}
+
+	results, errs := ai.ChatParallel(requests, 0)
+
+	elems := make([]Object, len(results))
+	for i := range results {
+		if errs[i] != nil {
+			elems[i] = err("ai_batch[" + fmt.Sprintf("%d", i) + "]: " + errs[i].Error())
+		} else {
+			elems[i] = &String{Value: results[i].Content}
+		}
+	}
+	return &List{Elements: elems}
 }

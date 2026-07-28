@@ -1,0 +1,58 @@
+-- Parallel AI Demo: ai_batch + ai_parallel
+ai_provider "deepseek"
+
+print "═══ PARALLEL AI TEST ═══"
+print ""
+
+fn show_clock label
+    ts: now 0
+    print (label ++ " Start: " ++ (format_time ts "15:04:05"))
+    ts
+
+fn show_elapsed label start
+    d: (now 0) - start
+    print (label ++ " Dauer: " ++ (to_str d) ++ "s")
+
+-- Test 1: Sequentiell als Baseline
+print "─── 1. Sequentiell (3 Texte) ───"
+t1: show_clock "Seq"
+
+single1: summarize "Pipe ist eine Skriptsprache."
+single2: summarize "Go ist eine Programmiersprache."
+single3: summarize "Python ist eine Skriptsprache."
+
+print single1
+print single2
+print single3
+show_elapsed "Seq" t1
+
+-- Test 2: ai_batch (automatisch parallel)
+print ""
+print "─── 2. ai_batch (3 Texte parallel) ───"
+t2: show_clock "Batch"
+
+texte: ["Pipe ist eine pipeline-orientierte Skriptsprache.", "DeepSeek ist ein KI-Modell.", "Docker ist eine Container-Plattform."]
+
+ergebnisse: ai_batch "Fasse diesen Text in EINEM Satz zusammen." texte
+
+for r in ergebnisse
+    print r
+
+show_elapsed "Batch" t2
+
+-- Test 3: ai_parallel mit 5 concurrent
+print ""
+print "─── 3. ai_parallel mit 5 concurrent ───"
+t3: show_clock "Parallel"
+
+fragen: ["1+1", "2+2", "3+3", "4+4", "5+5"]
+
+antworten: ai_parallel 5 "Du bist ein Taschenrechner. Antworte NUR mit der Zahl." fragen
+
+for a in antworten
+    print a
+
+show_elapsed "Parallel" t3
+
+print ""
+print "═══ PARALLEL TEST ABGESCHLOSSEN ═══"

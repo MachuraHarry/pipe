@@ -372,7 +372,13 @@ var Builtins = []BuiltinInfo{
 
 // ---- IO ----
 
+var PrintHook func(args ...Object)
+
 func bPrint(args ...Object) Object {
+	if PrintHook != nil {
+		PrintHook(args...)
+		return NILOBJ
+	}
 	for _, arg := range args {
 		fmt.Print(arg.Inspect())
 		fmt.Print(" ")

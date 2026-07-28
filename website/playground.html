@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Pipe Playground — Try Pipe in your browser</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#0a0a0f;color:#e0e0e8;font-family:system-ui,sans-serif;min-height:100vh;display:flex;flex-direction:column;align-items:center}
+h1{background:linear-gradient(135deg,#7c5cfc,#5ce0fc);-webkit-background-clip:text;-webkit-text-fill-color:transparent;font-size:2rem;text-align:center;margin:30px 0 5px}
+.subtitle{color:#9898a8;text-align:center;margin-bottom:25px;font-size:0.9rem}
+.loading{color:#fc8c3c;text-align:center;margin:40px;font-size:1.1rem}
+.container{width:100%;max-width:850px;display:flex;flex-direction:column;gap:12px;padding:0 16px}
+.toolbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.toolbar select{background:#1a1a24;color:#e0e0e8;border:1px solid #333;border-radius:6px;padding:6px 12px;font-size:0.82rem}
+button{background:#7c5cfc;color:#fff;border:none;border-radius:8px;padding:10px 28px;font-size:0.95rem;font-weight:600;cursor:pointer;transition:all .2s}
+button:hover{background:#8e72fc}
+button:disabled{opacity:0.4;cursor:not-allowed}
+#editor{width:100%;height:220px;background:#111118;color:#5ce0fc;border:1px solid #22222e;border-radius:8px;padding:16px;font-family:'JetBrains Mono','Fira Code',monospace;font-size:0.88rem;resize:vertical;tab-size:4}
+#editor:focus{outline:none;border-color:#7c5cfc}
+.output{background:#111118;border:1px solid #22222e;border-radius:8px;padding:20px;font-family:'JetBrains Mono','Fira Code',monospace;font-size:0.85rem;color:#3ce096;min-height:100px;white-space:pre-wrap;word-break:break-all}
+.output.error{color:#fc5c7c}
+.output.empty{color:#555;font-style:italic}
+.footer{color:#555;font-size:0.72rem;text-align:center;margin:20px 0}
+a{color:#7c5cfc;text-decoration:none}
+</style>
+</head>
+<body>
+
+<h1>Pipe (SPR) Playground</h1>
+<p class="subtitle">Write Pipe code. Run it in your browser. No install.</p>
+
+<div class="container">
+  <div class="toolbar">
+    <button onclick="run()" id="runBtn" disabled>▶ Run</button>
+    <select onchange="loadExample(this.value)">
+      <option value="">— Examples —</option>
+      <option value="print (2 + 2)">2 + 2</option>
+      <option value='print "Hello from the Browser!"'>Hello World</option>
+      <option value="for i in (range 1 6)\n    print i">Loop 1-5</option>
+      <option value="fn fib n\n    match n\n        | 0 -> 0\n        | 1 -> 1\n        | _ -> fib(n-1) + fib(n-2)\n\nprint (fib 10)">Fibonacci</option>
+      <option value="fn greet name\n    &quot;Hallo &quot; ++ name\n\nprint (greet &quot;Welt&quot;)">Function</option>
+      <option value="print ([1,2,3] > len)">Pipeline</option>
+      <option value="x: 10\ny: 20\nprint (x + y)">Variables</option>
+      <option value="if 5 > 3\n    print &quot;yes&quot;\nelse\n    print &quot;no&quot;">If/Else</option>
+      <option value="match 2\n    | 1 -> &quot;one&quot;\n    | 2 -> &quot;two&quot;\n    | _ -> &quot;other&quot;">Match</option>
+      <option value="zahlen: [1,2,3]\npush zahlen 4\nprint zahlen">Lists</option>
+      <option value="person: {name: &quot;Anna&quot;}\nprint (get person &quot;name&quot;)">Maps</option>
+    </select>
+    <span style="color:#555;font-size:0.75rem" id="status">Loading WASM...</span>
+  </div>
+
+  <textarea id="editor" placeholder="Write Pipe code here..." spellcheck="false">print "Hello from Pipe Playground!"
+print (2 + 2)
+for i in (range 1 4)
+    print i</textarea>
+
+  <div class="output empty" id="output">Output appears here after you click Run.</div>
+</div>
+
+<p class="footer">
+  Pipe (SPR) v0.5.0 — Running in your browser via WebAssembly |
+  <a href="index.html">Home</a> |
+  <a href="https://github.com/MachuraHarry/pipe">GitHub</a>
+</p>
+
+<script src="wasm_exec.js"></script>
+<script>
+const go = new Go();
+let ready = false;
+
+WebAssembly.instantiateStreaming(fetch("pipe.wasm"), go.importObject).then(result => {
+  go.run(result.instance);
+  ready = true;
+  document.getElementById("runBtn").disabled = false;
+  document.getElementById("status").textContent = "Ready";
+  document.getElementById("status").style.color = "#3ce096";
+}).catch(err => {
+  document.getElementById("status").textContent = "WASM load failed";
+  document.getElementById("status").style.color = "#fc5c7c";
+  console.error(err);
+});
+
+function run() {
+  if (!ready) return;
+  const code = document.getElementById("editor").value;
+  const out = document.getElementById("output");
+  out.className = "output";
+  out.textContent = "Running...";
+
+  try {
+    const result = pipeRun(code);
+    out.textContent = result || "(no output)";
+    if (result && result.includes("Error:")) out.className = "output error";
+    if (!result) out.className = "output empty";
+  } catch (e) {
+    out.textContent = "Runtime error: " + e;
+    out.className = "output error";
+  }
+}
+
+function loadExample(code) {
+  if (!code) return;
+  document.getElementById("editor").value = code;
+}
+
+document.addEventListener("keydown", e => {
+  if ((e.ctrlKey || e.metaKey) && e.key === "Enter") run();
+});
+</script>
+</body>
+</html>

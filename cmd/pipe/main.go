@@ -2,7 +2,10 @@ package main
 
 import (
 	"bufio"
+	"encoding/json"
 	"fmt"
+	"io"
+	"net/http"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -39,6 +42,8 @@ func main() {
 		doTest     bool
 		doBuild    bool
 		doGet      bool
+		doSearch   bool
+		searchTerm string
 		sandbox    bool
 		allowAI    bool
 		timeoutSec int
@@ -66,6 +71,8 @@ func main() {
 			doBuild = true
 		case "-get":
 			doGet = true
+		case "-search":
+			doSearch = true
 		case "-h", "--help":
 			printHelp()
 			return
@@ -90,6 +97,8 @@ func main() {
 				} else if buildOut == "" {
 					buildOut = arg
 				}
+			} else if doSearch && !strings.HasPrefix(arg, "-") {
+				searchTerm = arg
 			} else if !strings.HasPrefix(arg, "-") && !foundFile {
 				filePath = arg
 				foundFile = true
@@ -123,13 +132,30 @@ func main() {
 			fmt.Fprintln(os.Stderr, "  Example: pipe -get log-analyzer")
 			os.Exit(1)
 		}
+
+		target := filePath
+		if !strings.HasPrefix(filePath, "http://") && !strings.HasPrefix(filePath, "https://") {
+			url, err := resolveModuleURL(filePath)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "pipe get: %s\n", err)
+				fmt.Fprintln(os.Stderr, "  Use pipe -search to find available modules.")
+				os.Exit(1)
+			}
+			target = url
+		}
+
 		modDir := object.ModuleCacheDir()
-		_, _, err := object.ResolveImport(filePath)
+		_, _, err := object.ResolveImport(target)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "pipe get: %s\n", err)
 			os.Exit(1)
 		}
-		fmt.Printf("Installed to %s\n", modDir)
+		fmt.Printf("✓ Installed %s → %s\n", filePath, modDir)
+		return
+	}
+
+	if doSearch {
+		runSearch(searchTerm)
 		return
 	}
 
@@ -201,6 +227,82 @@ func main() {
 	}
 }
 
+func runSearch(term string) {
+	registryURL := "https://raw.githubusercontent.com/MachuraHarry/pipe-modules/master/registry.json"
+
+	resp, err := httpGet(registryURL)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "pipe search: cannot fetch registry: %s\n", err)
+		os.Exit(1)
+	}
+
+	var registry struct {
+		Modules map[string]struct {
+			Description string   `json:"description"`
+			Functions   []string `json:"functions"`
+			URL         string   `json:"url"`
+		} `json:"modules"`
+	}
+	if err := json.Unmarshal([]byte(resp), &registry); err != nil {
+		fmt.Fprintf(os.Stderr, "pipe search: invalid registry: %s\n", err)
+		os.Exit(1)
+	}
+
+	fmt.Printf("\n📦 Pipe Modules%s\n\n", map[bool]string{true: " (filter: \"" + term + "\")"}[term != ""])
+
+	found := 0
+	for name, mod := range registry.Modules {
+		if term != "" && !strings.Contains(strings.ToLower(name), strings.ToLower(term)) && !strings.Contains(strings.ToLower(mod.Description), strings.ToLower(term)) {
+			continue
+		}
+		found++
+		fmt.Printf("  %s\n", name)
+		fmt.Printf("    %s\n", mod.Description)
+		fmt.Printf("    Functions: %s\n", strings.Join(mod.Functions, ", "))
+		fmt.Println()
+	}
+
+	if found == 0 {
+		fmt.Printf("  No modules found matching \"%s\"\n", term)
+	} else {
+		fmt.Printf("  %d module(s) found. Install with: pipe -get <name>\n\n", found)
+	}
+}
+
+func resolveModuleURL(name string) (string, error) {
+	registryURL := "https://raw.githubusercontent.com/MachuraHarry/pipe-modules/master/registry.json"
+	resp, err := httpGet(registryURL)
+	if err != nil {
+		return "", fmt.Errorf("cannot fetch registry: %w", err)
+	}
+	var registry struct {
+		Modules map[string]struct {
+			URL string `json:"url"`
+		} `json:"modules"`
+	}
+	if err := json.Unmarshal([]byte(resp), &registry); err != nil {
+		return "", fmt.Errorf("invalid registry: %w", err)
+	}
+	mod, ok := registry.Modules[name]
+	if !ok {
+		return "", fmt.Errorf("module not found: %s", name)
+	}
+	return mod.URL, nil
+}
+
+func httpGet(url string) (string, error) {
+	resp, err := http.Get(url)
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", err
+	}
+	return string(body), nil
+}
+
 func printHelp() {
 	fmt.Println(`Pipe (SPR) ` + version + ` — Semantic Pipeline Runtime
 
@@ -218,15 +320,17 @@ Flags:
   --sandbox     Restrict dangerous builtins (exec, tcp, http, ai, fs-write)
   --allow-ai    In sandbox: re-enable AI builtins
   --timeout N   Kill execution after N seconds
+  -get <url>    Download a module into ~/.pipe/modules/
+  -search [term] Search available modules
   -h, --help    Show this help
 
 Examples:
   pipe examples/hello.pipe
   pipe -vm -q examples/fib.pipe
-  pipe --sandbox --allow-ai untrusted.pipe
-  pipe --timeout 30 ai_workflow.pipe
-  pipe -test
-  pipe -bench
+  pipe -search                  # List all modules
+  pipe -search log              # Search for "log" modules
+  pipe -get log-analyzer        # Install a module
+  pipe --sandbox script.pipe
   pipe -build my.pipe -o my_prog`)
 }
 

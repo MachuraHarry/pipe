@@ -47,6 +47,9 @@ is missing, the request fails with an error.
 | `ai_chat` | Low-level chat | `ai_chat system prompt` |
 | `ai_chat_json` | Chat → JSON | `ai_chat_json system prompt` |
 | `ai_stream` | Live streaming | `ai_stream system prompt` |
+| `ai_parallel` | Parallel calls | `ai_parallel n system items` |
+| `ai_batch` | Auto-parallel | `ai_batch system items` |
+| `ai_rate_limit` | Rate limiting | `ai_rate_limit calls_per_sec` |
 | `summarize` | Summarize text | `summarize text` |
 | `translate` | Translate text | `translate text target_language` |
 | `classify` | Classify text | `classify text categories` |
@@ -254,7 +257,72 @@ ai_stream "You are a translator." "Translate: Hello world"
 
 ---
 
-## 19.6 Pipeline with AI
+## 19.6 Parallel Calls
+
+Parallel AI calls process multiple texts simultaneously, dramatically reducing
+total execution time.
+
+### ai_batch
+
+```
+ai_batch system_prompt items
+```
+
+Processes a list of texts in parallel with automatic concurrency (CPU cores × 2).
+Returns a list of response strings in the original order.
+
+```pipe
+texts: ["Text 1", "Text 2", "Text 3", "Text 4", "Text 5"]
+results: ai_batch "Summarize each text in one sentence." texts
+
+for r in results
+    print r
+```
+
+### ai_parallel
+
+```
+ai_parallel concurrency system_prompt items
+```
+
+Like `ai_batch` but with explicit concurrency control.
+
+```pipe
+-- Max 3 parallel calls
+answers: ai_parallel 3 "Translate to German." [
+    "Hello world",
+    "Good morning",
+    "How are you?"
+]
+```
+
+### ai_rate_limit
+
+```
+ai_rate_limit calls_per_second
+```
+
+Limits API calls per second using a global token bucket.
+
+```pipe
+ai_rate_limit 5       -- Max 5 calls per second
+
+-- Process 100 texts with rate limiting
+texts: read_lines "data.txt"
+results: ai_batch "Analyze this text." texts
+```
+
+### Performance Comparison
+
+```
+3 texts sequential:   14s
+3 texts ai_batch:      6s  (2.3× faster)
+5 questions, 5 concurrent: 1s  (massively parallel)
+```
+
+---
+
+## 19.7 Pipeline with AI
 
 AI operations integrate seamlessly into Pipe pipelines:
 
@@ -282,7 +350,7 @@ results: map documents fn(doc)
 
 ---
 
-## 19.6 Error Handling
+## 19.8 Error Handling
 
 AI operations can fail — for example due to missing API keys,
 network issues, or timeouts. These errors can be caught with
@@ -320,7 +388,7 @@ catch e
 
 ---
 
-## 19.7 Provider Details
+## 19.9 Provider Details
 
 | Provider | API Endpoint | Default Model | Environment Variable |
 |----------|-------------|---------------|---------------------|
@@ -334,7 +402,7 @@ for custom endpoints.
 
 ---
 
-## 19.8 Example: Complete Workflow
+## 19.10 Example: Complete Workflow
 
 This workflow demonstrates all AI builtins in a practical application:
 

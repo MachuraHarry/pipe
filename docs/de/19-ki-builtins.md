@@ -47,6 +47,9 @@ schlägt die Anfrage mit einem Fehler fehl.
 | `ai_chat` | Low-Level Chat | `ai_chat system prompt` |
 | `ai_chat_json` | Chat → JSON | `ai_chat_json system prompt` |
 | `ai_stream` | Live-Streaming | `ai_stream system prompt` |
+| `ai_parallel` | Parallel-Calls | `ai_parallel n system items` |
+| `ai_batch` | Auto-Parallel | `ai_batch system items` |
+| `ai_rate_limit` | Rate-Limiting | `ai_rate_limit calls_per_sec` |
 | `summarize` | Text zusammenfassen | `summarize text` |
 | `translate` | Text übersetzen | `translate text zielsprache` |
 | `classify` | Text klassifizieren | `classify text kategorien` |
@@ -250,6 +253,71 @@ print ("Übersetzung: " ++ text)
 ai_stream "Du bist ein Übersetzer." "Translate: Hello world"
     > upper
     > print
+```
+
+---
+
+## 19.6 Parallele Calls
+
+Parallele KI-Calls verarbeiten mehrere Texte gleichzeitig und reduzieren
+die Gesamtlaufzeit drastisch.
+
+### ai_batch
+
+```
+ai_batch system_prompt items
+```
+
+Verarbeitet eine Liste von Texten parallel. Die Concurrency wird automatisch
+gewählt (CPU-Kerne × 2). Gibt eine Liste mit den Antworten zurück.
+
+```pipe
+texte: ["Text 1", "Text 2", "Text 3", "Text 4", "Text 5"]
+ergebnisse: ai_batch "Fasse jeden Text in einem Satz zusammen." texte
+
+for e in ergebnisse
+    print e
+```
+
+### ai_parallel
+
+```
+ai_parallel concurrency system_prompt items
+```
+
+Wie `ai_batch`, aber mit explizit steuerbarer Parallelität.
+
+```pipe
+-- Maximal 3 parallele Calls
+antworten: ai_parallel 3 "Übersetze ins Deutsche." [
+    "Hello world",
+    "Good morning",
+    "How are you?"
+]
+```
+
+### ai_rate_limit
+
+```
+ai_rate_limit calls_per_second
+```
+
+Begrenzt die Anzahl der API-Calls pro Sekunde (globaler Token-Bucket).
+
+```pipe
+ai_rate_limit 5       -- Max 5 Calls pro Sekunde
+
+-- 100 Texte verarbeiten, aber mit Rate-Limit
+texte: read_lines "daten.txt"
+ergebnisse: ai_batch "Analysiere diesen Text." texte
+```
+
+### Performance-Vergleich
+
+```
+3 Texte sequential:  14s
+3 Texte ai_batch:     6s  (2.3× schneller)
+5 Fragen, 5 concurrent: 1s  (massiv parallel)
 ```
 
 ---

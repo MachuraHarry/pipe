@@ -1,0 +1,78 @@
+-- ═══════════════════════════════════════════════════
+-- CODEBASE ANALYZER — Analyse des eigenen Projekts
+-- ═══════════════════════════════════════════════════
+ai_provider "deepseek"
+
+print "╔══════════════════════════════════════╗"
+print "║  CODEBASE ANALYZER                 ║"
+print "╚══════════════════════════════════════╝"
+print ""
+
+-- Projekt-Statistiken sammeln
+print "► Sammle Projekt-Daten..."
+
+-- Dateien zählen
+files: exec "find pkg cmd -name '*.go' | wc -l"
+go_files: trim (get files "output")
+
+-- Code-Zeilen zählen
+lines: exec "find pkg cmd -name '*.go' -exec cat {} + | wc -l"
+go_lines: trim (get lines "output")
+
+-- Tests zählen
+tests: exec "grep -r 'func Test' pkg --include='*_test.go' | wc -l"
+test_count: trim (get tests "output")
+
+-- Package-Liste
+pkgs: exec "ls -d pkg/*/"
+pkg_list: get pkgs "output"
+
+-- Letzte Änderungen
+changes: exec "git log --oneline -5"
+recent: get changes "output"
+
+-- Struktur
+tree: exec "find pkg cmd -type f -name '*.go' | head -40"
+structure: get tree "output"
+
+print ("Go-Dateien: " ++ go_files)
+print ("Code-Zeilen: " ++ go_lines)
+print ("Tests: " ++ test_count)
+print ("Packages: ")
+print pkg_list
+print ""
+
+-- KI-Analyse
+print "► KI analysiert Codebase..."
+print ""
+
+info: "Projekt: Pipe (SPR) — Semantic Pipeline Runtime\n"
+info: info ++ "Go-Dateien: " ++ go_files ++ "\n"
+info: info ++ "Code-Zeilen: " ++ go_lines ++ "\n"
+info: info ++ "Tests: " ++ test_count ++ "\n"
+info: info ++ "Packages:\n" ++ pkg_list ++ "\n"
+info: info ++ "Letzte Commits:\n" ++ recent ++ "\n"
+info: info ++ "Dateistruktur:\n" ++ structure
+
+analyse: ai_stream "Du bist ein erfahrener Software-Architekt. Analysiere diese Codebase: 1) Architektur-Stil, 2) Stärken, 3) Verbesserungsvorschläge, 4) Was fehlt noch? Antworte strukturiert mit Bullet-Points." info
+
+print ""
+print ""
+
+-- Score berechnen lassen
+print "► Codebase-Score (1-10)..."
+score: ask "Bewerte diese Codebase auf einer Skala von 1-10 basierend auf Code-Qualität, Architektur und Testabdeckung. Antworte nur mit der Zahl." info
+
+print ("Score: " ++ score ++ "/10")
+print ""
+
+-- Zusammenfassung speichern
+summary: "CODEBASE ANALYSIS — Pipe (SPR)\n\n"
+summary: summary ++ "Files: " ++ go_files ++ " Go files\n"
+summary: summary ++ "Lines: " ++ go_lines ++ "\n"
+summary: summary ++ "Tests: " ++ test_count ++ "\n"
+summary: summary ++ "Score: " ++ score ++ "/10\n\n"
+summary: summary ++ analyse
+
+write_file "CODEBASE_REPORT.md" summary
+print "✓ Report gespeichert: CODEBASE_REPORT.md"

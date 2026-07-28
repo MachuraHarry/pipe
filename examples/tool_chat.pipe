@@ -1,0 +1,37 @@
+-- ═══════════════════════════════════════════════════
+-- AI CHAT CLI — ChatGPT im Terminal
+-- ═══════════════════════════════════════════════════
+ai_provider "deepseek"
+
+print "╔══════════════════════════════════════╗"
+print "║  AI CHAT — Terminal Assistant      ║"
+print "╚══════════════════════════════════════╝"
+print ""
+print "Tippe :quit zum Beenden, :clear zum Neustart."
+print ""
+
+-- Kurzer System-Prompt
+system: "Du bist ein hilfreicher KI-Assistent im Terminal. Antworte prägnant und direkt. Max 3 Sätze wenn nicht anders gewünscht."
+
+fn chat_loop dummy
+    frage: input ">>> "
+    if frage == ":quit"
+        print "Tschüss!"
+    else if frage == ":clear"
+        print ""
+        print "─── Neuer Chat ───"
+        print ""
+    else if frage == ""
+        chat_loop 0
+    else if frage == ":help"
+        print "Befehle: :quit, :clear, :help, :code (für Code-Fragen)"
+        print ""
+        chat_loop 0
+    else
+        print ""
+        ai_stream system frage
+        print ""
+        print ""
+        chat_loop 0
+
+chat_loop 0

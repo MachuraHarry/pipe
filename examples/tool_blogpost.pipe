@@ -1,0 +1,45 @@
+-- ═══════════════════════════════════════════════════
+-- COMMIT-TO-BLOG: Git-Log → fertiger Blogpost
+-- ═══════════════════════════════════════════════════
+ai_provider "deepseek"
+
+print "╔══════════════════════════════════════╗"
+print "║  COMMIT → BLOGPOST                 ║"
+print "╚══════════════════════════════════════╝"
+print ""
+
+-- Git-Log der letzten 30 Commits holen
+log: exec "git log --oneline -30 --no-merges"
+commits: get log "output"
+
+print "Letzte Commits:"
+print commits
+print ""
+
+-- Schritt 1: Theme erkennen
+print "► Analysiere Commits..."
+thema: summarize "Analysiere diese Git-Commits. Welches große Thema wurde entwickelt? Antworte in EINEM Satz." "Commits:\n" ++ commits
+print ("Thema: " ++ thema)
+print ""
+
+-- Schritt 2: Blogpost generieren
+print "► Schreibe Blogpost..."
+print ""
+
+blog: ai_stream "Du bist ein Tech-Blogger. Schreibe einen ENGAINGING Blogpost über diese neuen Features. Struktur: 1) Fesselnde Einleitung (Hook), 2) Was wurde gebaut (mit Code-Beispielen), 3) Warum ist das wichtig, 4) Wie kann man es ausprobieren (Quick Start), 5) Ausblick. Schreibe im enthusiastischen aber professionellen Ton. Max 400 Wörter." ("Thema: " ++ thema ++ "\n\nCommits:\n" ++ commits)
+
+print ""
+print ""
+
+-- Schritt 3: Titel vorschlagen
+print "► Blog-Titel..."
+print ""
+titel: ask "Generiere 3 catchige Titel für einen Tech-Blogpost zu diesem Thema. Antworte nur mit den 3 Titeln, einer pro Zeile." thema
+
+print "Mögliche Titel:"
+print titel
+
+-- Blogpost speichern
+write_file "BLOGPOST.md" ("# " ++ titel ++ "\n\n" ++ blog)
+print ""
+print "✓ Blogpost gespeichert: BLOGPOST.md"

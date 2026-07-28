@@ -7,12 +7,8 @@ branding:
 
 inputs:
   script:
-    description: 'Pipe script to execute (write to .pipe file or inline)'
+    description: 'Pipe script to execute'
     required: true
-  version:
-    description: 'Pipe version'
-    required: false
-    default: 'latest'
   flags:
     description: 'Additional flags'
     required: false
@@ -24,10 +20,16 @@ inputs:
 runs:
   using: 'composite'
   steps:
-    - run: bash $GITHUB_ACTION_PATH/run.sh
+    - name: Run Pipe
       shell: bash
       env:
-        PIPE_SCRIPT: ${{ inputs.script }}
-        PIPE_PROVIDER: ${{ inputs.provider }}
         PIPE_FLAGS: ${{ inputs.flags }}
-        PIPE_VERSION: ${{ inputs.version }}
+        PIPE_PROVIDER: ${{ inputs.provider }}
+      run: |
+        [ -n "$PIPE_PROVIDER" ] && echo "ai_provider \"$PIPE_PROVIDER\"" > /tmp/script.pipe || echo -n > /tmp/script.pipe
+        cat >> /tmp/script.pipe <<'SCRIPTEOF'
+${{ inputs.script }}
+SCRIPTEOF
+        echo "=== Pipe Script ===" && cat /tmp/script.pipe && echo "===================="
+        curl -fsSL https://github.com/MachuraHarry/pipe/releases/latest/download/pipe-linux-amd64.tar.gz -o pipe.tar.gz && tar -xzf pipe.tar.gz && chmod +x pipe
+        ./pipe $PIPE_FLAGS /tmp/script.pipe

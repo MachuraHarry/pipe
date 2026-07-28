@@ -110,6 +110,20 @@ type Error struct{ Message string }
 func (e *Error) Type() ObjectType { return ERROR }
 func (e *Error) Inspect() string  { return "ERROR: " + e.Message }
 
+type Result struct {
+	Ok  bool
+	Val Object
+	Err string
+}
+
+func (r *Result) Type() ObjectType { return "RESULT" }
+func (r *Result) Inspect() string {
+	if r.Ok {
+		return "Ok(" + r.Val.Inspect() + ")"
+	}
+	return "Err(" + r.Err + ")"
+}
+
 type BuiltinInfo struct {
 	Name string
 	Fn   func(args ...Object) Object
@@ -281,6 +295,14 @@ var Builtins = []BuiltinInfo{
 	// Conversion
 	{"to_str", bToStr},
 	{"to_num", bToNum},
+
+	// Result type
+	{"Ok", bOk},
+	{"Err", bErr},
+	{"is_ok", bIsOk},
+	{"is_err", bIsErr},
+	{"unwrap", bUnwrap},
+	{"unwrap_or", bUnwrapOr},
 
 	// Encoding
 	{"base64_encode", bBase64Encode},
@@ -1608,6 +1630,76 @@ func bRandomRange(args ...Object) Object {
 }
 
 // ---- Helpers ----
+
+// ---- Result type ----
+
+func bOk(args ...Object) Object {
+	if len(args) != 1 {
+		return err("Ok erwartet 1 Argument")
+	}
+	return &Result{Ok: true, Val: args[0]}
+}
+
+func bErr(args ...Object) Object {
+	if len(args) != 1 {
+		return err("Err erwartet 1 Argument (Fehlermeldung)")
+	}
+	msg, ok := args[0].(*String)
+	if !ok {
+		msg = &String{Value: args[0].Inspect()}
+	}
+	return &Result{Ok: false, Err: msg.Value}
+}
+
+func bIsOk(args ...Object) Object {
+	if len(args) != 1 {
+		return err("is_ok erwartet 1 Argument")
+	}
+	r, ok := args[0].(*Result)
+	if !ok {
+		return FALSE
+	}
+	return NativeBoolToBoolean(r.Ok)
+}
+
+func bIsErr(args ...Object) Object {
+	if len(args) != 1 {
+		return err("is_err erwartet 1 Argument")
+	}
+	r, ok := args[0].(*Result)
+	if !ok {
+		return TRUE
+	}
+	return NativeBoolToBoolean(!r.Ok)
+}
+
+func bUnwrap(args ...Object) Object {
+	if len(args) != 1 {
+		return err("unwrap erwartet 1 Argument")
+	}
+	r, ok := args[0].(*Result)
+	if !ok {
+		return err("unwrap erwartet ein Result")
+	}
+	if !r.Ok {
+		return err("unwrap auf Err: " + r.Err)
+	}
+	return r.Val
+}
+
+func bUnwrapOr(args ...Object) Object {
+	if len(args) != 2 {
+		return err("unwrap_or erwartet 2 Argumente (Result, Default)")
+	}
+	r, ok := args[0].(*Result)
+	if !ok {
+		return args[1]
+	}
+	if !r.Ok {
+		return args[1]
+	}
+	return r.Val
+}
 
 // ---- Encoding ----
 

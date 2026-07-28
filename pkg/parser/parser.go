@@ -197,6 +197,8 @@ func (p *Parser) parseStatement() ast.Statement {
 		return p.parseReturnStatement()
 	case lexer.DEFER:
 		return p.parseDeferStatement()
+	case lexer.EXPORT:
+		return p.parseExportStatement()
 	case lexer.NEWLINE:
 		return nil
 	case lexer.DEDENT:
@@ -828,6 +830,19 @@ func (p *Parser) parseReturnStatement() ast.Statement {
 func (p *Parser) parseDeferStatement() ast.Statement {
 	p.nextToken() // skip 'defer'
 	return &ast.DeferStatement{Expression: p.parseExpression(PrecedenceLowest)}
+}
+
+func (p *Parser) parseExportStatement() ast.Statement {
+	p.nextToken() // skip 'export'
+	if !p.curTokenIs(lexer.FN) {
+		p.error("export erwartet 'fn'")
+		return nil
+	}
+	fnStmt := p.parseFnStatement()
+	if fnStmt != nil {
+		return &ast.ExportStatement{FnName: fnStmt.Name.Value, Fn: fnStmt}
+	}
+	return nil
 }
 
 func (p *Parser) parseImportStatement() ast.Statement {

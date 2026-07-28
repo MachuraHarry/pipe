@@ -28,3 +28,11 @@ func (e *Environment) Set(name string, val Object) Object {
 	e.store[name] = val
 	return val
 }
+
+func (e *Environment) Store() map[string]Object {
+	return e.store
+}
+
+func (e *Environment) Delete(name string) {
+	delete(e.store, name)
+}

@@ -312,6 +312,14 @@ type DeferStatement struct {
 func (ds *DeferStatement) statementNode()       {}
 func (ds *DeferStatement) TokenLiteral() string { return "defer" }
 
+type ExportStatement struct {
+	FnName string
+	Fn     *FnStatement
+}
+
+func (es *ExportStatement) statementNode()       {}
+func (es *ExportStatement) TokenLiteral() string { return "export" }
+
 type FnLiteral struct {
 	Parameters []*Identifier
 	Body       *BlockStatement

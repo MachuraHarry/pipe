@@ -14,6 +14,8 @@ import (
 
 var callStack []string
 var importCache = make(map[string]struct{})
+var SourceFile = "<stdin>"
+var exportedSymbols = make(map[string]bool)
 
 func pushCall(name string)  { callStack = append(callStack, name) }
 func popCall()              { if len(callStack) > 0 { callStack = callStack[:len(callStack)-1] } }
@@ -89,6 +91,10 @@ func Eval(node ast.Node, env *object.Environment) object.Object {
 	case *ast.DeferStatement:
 		// Collect for later execution
 		return &DeferredExpr{Expr: n.Expression, Env: env}
+
+	case *ast.ExportStatement:
+		exportedSymbols[n.FnName] = true
+		return Eval(n.Fn, env)
 
 	case *ast.ReturnStatement:
 		return &ReturnValue{Value: Eval(n.Value, env)}
@@ -665,7 +671,6 @@ func evalForInExpression(fe *ast.ForExpression, env *object.Environment) object.
 }
 
 func evalImportStatement(is *ast.ImportStatement, env *object.Environment) object.Object {
-	// Import cache: skip if already imported
 	if _, ok := importCache[is.Path]; ok {
 		return object.NILOBJ
 	}
@@ -676,14 +681,30 @@ func evalImportStatement(is *ast.ImportStatement, env *object.Environment) objec
 		return newError("import fehlgeschlagen: %s", err)
 	}
 
+	// Clear exported symbols before parsing the module
+	prevExports := exportedSymbols
+	exportedSymbols = make(map[string]bool)
+
 	l := lexer.New(string(data))
 	p := parser.New(l)
 	program := p.ParseProgram()
 	if len(p.Errors()) > 0 {
+		exportedSymbols = prevExports
 		return newError("import parse-fehler in %s: %v", is.Path, p.Errors())
 	}
 
-	return Eval(program, env)
+	result := Eval(program, env)
+
+	// Only keep exported symbols; remove non-exported ones
+	hasExports := len(exportedSymbols) > 0
+	for name := range env.Store() {
+		if hasExports && !exportedSymbols[name] {
+			env.Delete(name)
+		}
+	}
+
+	exportedSymbols = prevExports
+	return result
 }
 
 func evalSliceExpression(se *ast.SliceExpression, env *object.Environment) object.Object {
@@ -790,7 +811,8 @@ func (cv *ContinueValue) Type() object.ObjectType { return "CONTINUE" }
 func (cv *ContinueValue) Inspect() string         { return "continue" }
 
 func newError(format string, a ...interface{}) *object.Error {
-	return &object.Error{Message: fmt.Sprintf(format, a...)}
+	msg := fmt.Sprintf(format, a...)
+	return &object.Error{Message: SourceFile + ": " + msg}
 }
 
 func isError(obj object.Object) bool {

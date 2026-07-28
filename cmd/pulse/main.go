@@ -36,6 +36,9 @@ func main() {
 			quietVM = true
 		case "-ast":
 			showAST = true
+		case "-fmt":
+			showAST = false
+			// -fmt handled below
 		case "-h", "--help":
 			printHelp()
 			return
@@ -80,7 +83,7 @@ func main() {
 	if useVM {
 		runVM(program, quietVM)
 	} else {
-		runEval(program, scriptArgs)
+		runEval(program, scriptArgs, filePath)
 	}
 }
 
@@ -104,7 +107,7 @@ Beispiele:
   pulse -ast examples/pipeline.pulse`)
 }
 
-func runEval(program *ast.Program, scriptArgs []string) {
+func runEval(program *ast.Program, scriptArgs []string, filePath string) {
 	env := object.NewEnvironment()
 
 	// Set global args variable
@@ -114,6 +117,7 @@ func runEval(program *ast.Program, scriptArgs []string) {
 	}
 	env.Set("args", &object.List{Elements: argObjs})
 
+	eval.SourceFile = filePath
 	result := eval.Eval(program, env)
 	if result != nil && result.Type() == object.ERROR {
 		fmt.Fprintf(os.Stderr, "Laufzeit-Fehler: %s\n", result.Inspect())

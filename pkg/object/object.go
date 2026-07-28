@@ -2580,11 +2580,11 @@ type SandboxConfig struct {
 
 var Sandbox = SandboxConfig{}
 
-func SetSandbox(enabled bool)              { Sandbox.Enabled = enabled }
-func SetSandboxAllowAI(allowed bool)       { Sandbox.AllowAI = allowed }
-func SetSandboxAllowExec(allowed bool)     { Sandbox.AllowExec = allowed }
-func SetSandboxAllowNet(allowed bool)      { Sandbox.AllowNet = allowed }
-func SetSandboxAllowFS(allowed bool)       { Sandbox.AllowFS = allowed }
+func SetSandbox(enabled bool)          { Sandbox.Enabled = enabled }
+func SetSandboxAllowAI(allowed bool)   { Sandbox.AllowAI = allowed }
+func SetSandboxAllowExec(allowed bool) { Sandbox.AllowExec = allowed }
+func SetSandboxAllowNet(allowed bool)  { Sandbox.AllowNet = allowed }
+func SetSandboxAllowFS(allowed bool)   { Sandbox.AllowFS = allowed }
 
 func sandboxBlock(feature string) *Error {
 	return &Error{Message: "SANDBOX: " + feature + " is disabled in sandbox mode"}

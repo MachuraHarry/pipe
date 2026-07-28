@@ -63,10 +63,8 @@ print (2 + 2)</textarea>
 </p>
 
 <script src="wasm_exec.js"></script>
+<script src="pipe-wasm.js"></script>
 <script>
-const go = new Go();
-let ready = false;
-
 const examples = [
   "print (2 + 2)",
   'print "Hello from the Browser!"',
@@ -81,34 +79,16 @@ const examples = [
   'person: {name: "Anna"}\nprint (get person "name")'
 ];
 
-WebAssembly.instantiateStreaming(fetch("pipe.wasm"), go.importObject).then(result => {
-  go.run(result.instance);
-  ready = true;
-  document.getElementById("runBtn").disabled = false;
-  document.getElementById("status").textContent = "Ready";
-  document.getElementById("status").style.color = "#3ce096";
-}).catch(err => {
-  document.getElementById("status").textContent = "WASM load failed: " + err;
-  document.getElementById("status").style.color = "#fc5c7c";
-  console.error(err);
-});
-
 function run() {
-  if (!ready) return;
+  if (!pipeReady) return;
   const code = document.getElementById("editor").value;
   const out = document.getElementById("output");
   out.className = "output";
   out.textContent = "Running...";
-
-  try {
-    const result = pipeRun(code);
-    out.textContent = result || "(no output)";
-    if (result && result.includes("Error:")) out.className = "output error";
-    if (!result || result.trim() === "") out.className = "output empty";
-  } catch (e) {
-    out.textContent = "Runtime error: " + e;
-    out.className = "output error";
-  }
+  const result = runPipe(code);
+  out.textContent = result || "(no output)";
+  if (result && result.includes("Error:")) out.className = "output error";
+  if (!result || result.trim() === "") out.className = "output empty";
 }
 
 function loadExample() {

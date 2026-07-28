@@ -99,7 +99,16 @@ td:first-child { color: var(--accent2); font-family: var(--mono); font-size: 0.8
 code { background: var(--bg3); padding: 2px 6px; border-radius: 4px; font-family: var(--mono); font-size: 0.85em; color: var(--accent2); }
 pre.inline { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px 24px; overflow-x: auto; font-family: var(--mono); font-size: 0.82rem; line-height: 1.7; }
 
-/* Footer */
+/* Mini Playground */
+.play-mini { display: flex; gap: 12px; background: var(--bg2); border: 1px solid var(--border); border-radius: 12px; padding: 16px; align-items: stretch; max-width: 800px; margin: 0 auto; }
+.play-mini textarea { flex: 1; background: var(--bg); color: var(--fg); border: 1px solid var(--border); border-radius: 8px; padding: 12px; font-family: var(--mono); font-size: 0.82rem; resize: vertical; min-height: 80px; }
+.play-mini textarea:focus { outline: none; border-color: var(--accent); }
+.play-right { display: flex; flex-direction: column; gap: 8px; min-width: 140px; }
+.play-right button { background: var(--accent); color: #fff; border: none; border-radius: 8px; padding: 10px 20px; font-weight: 600; cursor: pointer; transition: all .2s; }
+.play-right button:hover { background: #8e72fc; }
+.play-right button:disabled { opacity: 0.4; cursor: not-allowed; }
+.play-output { background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 10px; font-family: var(--mono); font-size: 0.78rem; color: var(--green); min-height: 40px; white-space: pre-wrap; flex: 1; }
+.play-status { font-size: 0.7rem; color: var(--fg2); text-align: center; }
 footer { border-top: 1px solid var(--border); padding: 40px 0; text-align: center; color: var(--fg2); font-size: 0.85rem; }
 footer a { color: var(--accent); text-decoration: none; }
 
@@ -117,7 +126,30 @@ a[data-lang].active { display: inline-block; }
 @media (max-width: 768px) {
   .code-window .compare { grid-template-columns: 1fr; }
   .code-window .compare .divider { display: none; }
-  .hero { padding: 60px 0; }
+  .hero { padding: 40px 0; }
+  .hero h1 { font-size: 1.8rem; }
+  .hero p { font-size: 0.95rem; }
+  nav .nav-links { gap: 10px; flex-wrap: wrap; }
+  nav a { font-size: 0.75rem; }
+  nav .logo { font-size: 1rem; }
+  section { padding: 40px 0; }
+  section h2 { font-size: 1.4rem; }
+  .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; }
+  .feature-highlight .item { flex-direction: column; gap: 8px; }
+  pre.inline { font-size: 0.7rem; padding: 14px 16px; }
+  .code-window .compare pre { font-size: 0.65rem; padding: 12px; }
+  .container { padding: 0 12px; }
+  .play-mini { flex-direction: column !important; }
+  .play-mini textarea { height: 100px !important; }
+  .play-output { min-height: 50px !important; }
+}
+
+@media (max-width: 480px) {
+  nav .nav-links { gap: 6px; }
+  nav a { font-size: 0.68rem; }
+  .lang-switch button { padding: 4px 8px; font-size: 0.68rem; }
+  .hero h1 { font-size: 1.4rem; }
+  .badge { font-size: 0.68rem; }
 }
 </style>
 </head>
@@ -158,6 +190,23 @@ a[data-lang].active { display: inline-block; }
     </div>
   </div>
 </section>
+
+<!-- Mini Playground -->
+<div style="text-align:center;padding:0 0 20px">
+  <h3 data-lang="en" class="active">Try Pipe right here ↓</h3>
+  <h3 data-lang="de">Probier Pipe direkt hier ↓</h3>
+</div>
+<div class="container" style="margin:0 auto 40px">
+  <div class="play-mini">
+    <textarea id="play-editor" placeholder="Write Pipe code...">print "Hello!"
+print (2 + 2)</textarea>
+    <div class="play-right">
+      <button id="play-btn" onclick="document.getElementById('play-out').textContent=runPipe(document.getElementById('play-editor').value)" disabled>▶ Run</button>
+      <div class="play-output" id="play-out"></div>
+      <div class="play-status" id="play-status">Loading...</div>
+    </div>
+  </div>
+</div>
 
 <!-- Code Comparison -->
 <div class="container">
@@ -475,6 +524,8 @@ ask "What makes Pipe different?" &gt; print'</pre>
   </div>
 </footer>
 
+<script src="wasm_exec.js"></script>
+<script src="pipe-wasm.js"></script>
 <script>
 function setLang(lang) {
   document.querySelectorAll('[data-lang]').forEach(el => el.classList.remove('active'));

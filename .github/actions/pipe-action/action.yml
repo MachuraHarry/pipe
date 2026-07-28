@@ -26,12 +26,7 @@ runs:
   steps:
     - name: Write Script
       shell: bash
-      run: |
-        python3 -c "
-import sys
-with open('/tmp/pipe-script','w') as f:
-    f.write(sys.argv[1])
-" '${{ inputs.script }}'
+      run: python3 -c "import sys; open('/tmp/pipe-script','w').write(sys.argv[1])" '${{ inputs.script }}'
 
     - name: Download Pipe
       shell: bash

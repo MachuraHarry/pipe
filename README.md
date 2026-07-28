@@ -2,7 +2,7 @@
 
 [![CI](https://github.com/MachuraHarry/pipe/actions/workflows/ci.yml/badge.svg)](https://github.com/MachuraHarry/pipe/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-purple.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-0.5.0-blue.svg)](https://github.com/MachuraHarry/pipe/releases)
+[![Version](https://img.shields.io/badge/version-0.6.0-blue.svg)](https://github.com/MachuraHarry/pipe/releases)
 [![SPR](https://img.shields.io/badge/SPR-Semantic%20Pipeline%20Runtime-7c5cfc.svg)](#)
 
 > **SPR** — a new category of runtime where AI operations are language primitives, not library calls.

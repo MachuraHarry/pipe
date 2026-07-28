@@ -20,7 +20,7 @@ Pipe combines **Python-like readability** (indentation-based, no braces) with **
 
 ## About Pipe
 
-- **Version**: 0.5.0
+- **Version**: 0.6.0
 - **Implementation**: Go 1.26+
 - **License**: MIT
 - **Binary size**: ~10 MB (statically linked)

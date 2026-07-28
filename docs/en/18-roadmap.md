@@ -2,9 +2,9 @@
 
 This document outlines the past, present, and future of the Pipe language. The roadmap is organized into phases, with completed features marked accordingly.
 
-## Current Version: v0.5.0
+## Current Version: v0.6.0
 
-Pipe is currently at version **v0.5.0**, which includes the foundational language features, dual execution models, a comprehensive standard library, and developer tooling.
+Pipe is currently at version **v0.6.0**, which includes the foundational language features, dual execution models, a comprehensive standard library, and developer tooling.
 
 ---
 

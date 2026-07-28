@@ -1,0 +1,127 @@
+-- ═══════════════════════════════════════════════════════════
+-- PIPE (SPR) — SECURITY INCIDENT ANALYZER
+-- ═══════════════════════════════════════════════════════════
+ai_provider "deepseek"
+ai_timeout 90
+
+-- ─── Demo-Logs generieren ──────────────────────────────────
+
+if !(file_exists "access.log")
+    print "Erstelle Demo-Logs..."
+    write_file "access.log" `192.168.1.100 - - [28/Jul/2026:14:22:10] "GET /index.html HTTP/1.1" 200 2326
+192.168.1.100 - - [28/Jul/2026:14:22:11] "GET /style.css HTTP/1.1" 200 4521
+10.0.0.55 - - [28/Jul/2026:14:22:15] "POST /admin/login.php HTTP/1.1" 401 1234
+10.0.0.55 - - [28/Jul/2026:14:22:16] "POST /admin/login.php HTTP/1.1" 401 1234
+10.0.0.55 - - [28/Jul/2026:14:22:17] "POST /admin/login.php HTTP/1.1" 401 1234
+10.0.0.55 - - [28/Jul/2026:14:22:18] "POST /admin/login.php HTTP/1.1" 401 1234
+10.0.0.55 - - [28/Jul/2026:14:22:19] "POST /admin/login.php HTTP/1.1" 401 1234
+45.33.32.156 - - [28/Jul/2026:14:23:01] "GET /products.php?id=1 OR 1=1-- HTTP/1.1" 200 4567
+45.33.32.156 - - [28/Jul/2026:14:23:02] "GET /products.php?id=1 UNION SELECT username,password FROM users-- HTTP/1.1" 500 891
+45.33.32.156 - - [28/Jul/2026:14:23:05] "GET /../../../etc/passwd HTTP/1.1" 403 567
+185.220.101.34 - - [28/Jul/2026:14:25:11] "GET /search.php?q=<script>alert('XSS')</script> HTTP/1.1" 200 3456
+172.16.0.1 - - [28/Jul/2026:14:27:00] "POST /api/login HTTP/1.1" 200 567
+172.16.0.1 - - [28/Jul/2026:14:27:01] "POST /api/login HTTP/1.1" 401 567
+172.16.0.1 - - [28/Jul/2026:14:27:02] "POST /api/login HTTP/1.1" 401 567
+172.16.0.1 - - [28/Jul/2026:14:27:03] "POST /api/login HTTP/1.1" 401 567
+172.16.0.1 - - [28/Jul/2026:14:27:07] "POST /api/login HTTP/1.1" 200 567
+91.121.87.45 - - [28/Jul/2026:14:29:00] "GET /wp-admin HTTP/1.1" 404 1234
+91.121.87.45 - - [28/Jul/2026:14:29:01] "POST /wp-login.php HTTP/1.1" 401 567
+91.121.87.45 - - [28/Jul/2026:14:29:02] "POST /wp-login.php HTTP/1.1" 401 567
+91.121.87.45 - - [28/Jul/2026:14:29:03] "POST /wp-login.php HTTP/1.1" 401 567`
+
+print ""
+print "╔══════════════════════════════════════════╗"
+print "║  SECURITY INCIDENT ANALYZER v1.0      ║"
+print "╚══════════════════════════════════════════╝"
+print ""
+
+-- ─── 1. Logs laden ─────────────────────────────────────────
+
+logs: read_lines "access.log"
+print ("Geladen: " ++ (to_str (len logs)) ++ " Logzeilen")
+print ""
+
+-- ─── 2. Alle Logs parallel klassifizieren ───────────────────
+
+print "► Klassifiziere " ++ (to_str (len logs)) ++ " Einträge..."
+kategorien: ["normal", "SQL_injection", "brute_force", "XSS", "path_traversal", "vulnerability_scan"]
+
+klassen: ai_batch "Security-Analyst: Klassifiziere diese Server-Log-Zeile als 'normal', 'attack', oder 'scan'. Antworte NUR mit der Kategorie." logs
+
+-- Zähle Vorfälle
+counts: {}
+i: 0
+for k in klassen
+    c: get counts k
+    if is_nil c
+        c: 0
+    set counts k (c + 1)
+    i: i + 1
+
+print "Verteilung:"
+for k in (keys counts)
+    print ("  " ++ k ++ ": " ++ (to_str (get counts k)))
+print ""
+
+-- ─── 3. KI: Bedrohungs-Analyse ──────────────────────────────
+
+statistiken: ""
+for k in (keys counts)
+    statistiken: statistiken ++ k ++ ": " ++ (to_str (get counts k)) ++ ", "
+
+print "► KI analysiert Sicherheitslage..."
+
+analyse: ai_stream "Du bist ein Security Incident Responder. Analysiere die Log-Statistiken. Identifiziere: 1) Wahrscheinlichster Angriffsvektor, 2) Ob ein aktiver Angriff läuft, 3) 3 konkrete Sofortmaßnahmen." ("Log-Analyse: " ++ statistiken)
+
+print ""
+
+-- Schweregrad
+levels: ["low", "medium", "high", "critical"]
+severity: classify statistiken levels
+print ("Bedrohungsstufe: " ++ (to_str (upper severity)))
+print ""
+
+-- ─── 4. KI: Gegenmaßnahmen ──────────────────────────────────
+
+print "► Generiere Incident-Response-Plan..."
+
+massnahmen: ai_chat "Du bist Incident Response Manager. Erstelle eine priorisierte Checkliste mit [ ] für Sofortmaßnahmen (JETZT), Kurzfristig (HEUTE), und Langfristig (WOCHE). Konkret und ausführbar." ("Bedrohung: " ++ severity ++ ". " ++ analyse)
+
+-- ─── 5. Report generieren ───────────────────────────────────
+
+print ""
+print "► Erstelle Incident Report..."
+
+-- Timestamp
+ts: now 0
+datum: format_time ts "2006-01-02 15:04:05"
+
+-- Executive Summary generieren
+zusammenfassung: summarize ("Security incident report. Severity: " ++ severity ++ ". " ++ analyse)
+
+-- Report zusammensetzen
+report: "# ═══════════════════════════════════════\n"
+report: report ++ "# SECURITY INCIDENT REPORT\n"
+report: report ++ "# ═══════════════════════════════════════\n\n"
+report: report ++ "**Datum:** " ++ datum ++ "\n"
+report: report ++ "**Status:** " ++ (to_str (upper severity)) ++ "\n"
+report: report ++ "**Analysierte Zeilen:** " ++ (to_str (len logs)) ++ "\n\n"
+report: report ++ "## Executive Summary\n\n" ++ zusammenfassung ++ "\n\n"
+report: report ++ "## Log-Statistik\n\n| Kategorie | Anzahl |\n|-----------|--------|\n"
+
+for k in (keys counts)
+    report: report ++ "| " ++ k ++ " | " ++ (to_str (get counts k)) ++ " |\n"
+
+report: report ++ "\n## Threat Analysis\n\n" ++ analyse ++ "\n\n"
+report: report ++ "## Incident Response Plan\n\n" ++ massnahmen ++ "\n\n"
+report: report ++ "---\n*Generated by Pipe (SPR) Security Incident Analyzer*"
+
+print report
+
+-- ─── 6. Speichern ───────────────────────────────────────────
+
+write_file "incident_report.md" report
+print ""
+print "══════════════════════════════════════════"
+print "  ✓ Report gespeichert: incident_report.md"
+print "══════════════════════════════════════════"

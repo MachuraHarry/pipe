@@ -60,6 +60,23 @@ Run Pipe directly in CI/CD — no installation needed:
 
 [→ GitHub Action Documentation](docs/en/20-github-action.md)
 
+## Module Ecosystem
+
+Pipe has a [curated module library](https://github.com/MachuraHarry/pipe-modules) — 8 reusable AI pipeline modules:
+
+```bash
+pipe -search                 # Browse modules
+pipe -search log             # Filter by keyword
+pipe -get log-analyzer       # Install a module
+```
+
+```pipe
+import "https://raw.githubusercontent.com/MachuraHarry/pipe-modules/master/log-analyzer/module.pipe"
+logs > log_analyze > save "report.md"
+```
+
+[→ Ecosystem Documentation](docs/en/21-ecosystem.md) | [→ Contribute a Module](https://github.com/MachuraHarry/pipe-modules/blob/master/CONTRIBUTING.md)
+
 ## Execution Modes
 
 | Mode | Command | Speed |

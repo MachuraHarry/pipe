@@ -24,6 +24,7 @@ Willkommen zur vollständigen Dokumentation der Skriptsprache **Pipe**.
 18. [Roadmap](18-roadmap.md) — Zukunft der Sprache
 19. [KI-Builtins](19-ki-builtins.md) — KI-Funktionen für LLM-Integration
 20. [GitHub Action](20-github-action.md) — Pipe in CI/CD-Pipelines nutzen
+21. [Modul-Ökosystem](21-ecosystem.md) — Module finden, installieren, beitragen
 
 ## Anhang
 

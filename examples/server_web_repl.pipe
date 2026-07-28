@@ -1,0 +1,113 @@
+-- ═══════════════════════════════════════════════════════
+-- PIPE WEB REPL — Pipe-Code im Browser!
+-- Start: ./bin/pipe examples/server_web_repl.pipe
+-- Öffne: http://localhost:8080
+-- ═══════════════════════════════════════════════════════
+
+print "╔══════════════════════════════════════╗"
+print "║  PIPE WEB REPL                     ║"
+print "║  http://localhost:8080             ║"
+print "╚══════════════════════════════════════╝"
+print ""
+
+fn html_page output_text
+    print ("html received=[" ++ output_text ++ "]")
+    html: `HTTP/1.1 200 OK\r
+Content-Type: text/html; charset=utf-8\r
+\r
+<!DOCTYPE html>
+<html><head><title>Pipe Web REPL</title><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#0a0a0f;color:#e0e0e8;font-family:system-ui,sans-serif;display:flex;flex-direction:column;align-items:center;min-height:100vh;padding:20px}
+h1{background:linear-gradient(135deg,#7c5cfc,#5ce0fc);-webkit-background-clip:text;-webkit-text-fill-color:transparent;font-size:2rem;text-align:center;margin:30px 0 8px}
+.sub{color:#9898a8;text-align:center;margin-bottom:25px}
+.wrap{width:100%;max-width:700px}
+textarea{width:100%;height:180px;background:#111118;color:#5ce0fc;border:1px solid #22222e;border-radius:8px;padding:16px;font-family:monospace;font-size:0.9rem;resize:vertical}
+textarea:focus{outline:none;border-color:#7c5cfc}
+button{background:#7c5cfc;color:#fff;border:none;border-radius:8px;padding:12px 32px;font-size:1rem;font-weight:600;cursor:pointer;float:right;margin-top:10px}
+button:hover{background:#8e72fc}
+.out{background:#111118;border:1px solid #22222e;border-radius:8px;padding:20px;font-family:monospace;font-size:0.85rem;color:#3ce096;min-height:60px;white-space:pre-wrap;margin-top:55px;word-break:break-all}
+.examples{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+.ex{background:#1a1a24;border:1px solid #333;border-radius:6px;padding:5px 10px;font-size:0.72rem;color:#9898a8;cursor:pointer;font-family:monospace}
+.ex:hover{border-color:#5ce0fc;color:#5ce0fc}
+</style></head><body>
+<h1>Pipe (SPR) Web REPL</h1>
+<p class="sub">Write Pipe code. Run it. See results.</p>
+<div class="wrap">
+<div class="examples">
+<span class="ex" onclick="document.querySelector('textarea').value='print (2 + 2)'">2+2</span>
+<span class="ex" onclick="document.querySelector('textarea').value='print &quot;Hello&quot;'">Hello</span>
+<span class="ex" onclick="document.querySelector('textarea').value='for i in (range 1 6)\n    print i'">Loop</span>
+<span class="ex" onclick="document.querySelector('textarea').value='fn fib n\n    match n\n        | 0 -> 0\n        | 1 -> 1\n        | _ -> fib(n-1)+fib(n-2)\nprint (fib 10)'">Fib</span>
+</div>
+<form method="POST"><textarea name="code" placeholder="Write Pipe code..."></textarea><br><button type="submit">Run</button></form>
+<div class="out">` ++ output_text ++ `</div>
+</div></body></html>`
+
+    html
+
+fn run_pipe code
+    write_file "/tmp/wr.pipe" code
+    result: exec ("/home/harry/CODE/pipe/bin/pipe -vm -q /tmp/wr.pipe")
+    output: get result "output"
+    print ("output=[" ++ output ++ "]")
+    output
+
+fn parse_code request
+    body: ""
+    i: 0
+    while i < (len request) - 3
+        c0: at request i
+        c1: at request (i + 1)
+        c2: at request (i + 2)
+        c3: at request (i + 3)
+        if c0 == "\r"
+            if c1 == "\n"
+                if c2 == "\r"
+                    if c3 == "\n"
+                        j: i + 4
+                        while j < (len request)
+                            body: body ++ (at request j)
+                            j: j + 1
+        i: i + 1
+    
+    code: ""
+    k: 0
+    while k < (len body) - 4
+        if (at body k) == "c"
+            if (at body (k+1)) == "o"
+                if (at body (k+2)) == "d"
+                    if (at body (k+3)) == "e"
+                        if (at body (k+4)) == "="
+                            m: k + 5
+                            while m < (len body)
+                                c: at body m
+                                if c == "&" || c == "\r" || c == "\n"
+                                    break
+                                if c == "+"
+                                    c: " "
+                                if c == "%"
+                                    m: m + 3
+                                code: code ++ c
+                                m: m + 1
+        k: k + 1
+    code
+
+fn server_loop ln _
+    try
+        conn: tcp_accept ln
+        request: tcp_read conn
+        code: parse_code request
+        output: ""
+        if code != ""
+            print "Code: " ++ code
+            output: run_pipe code
+        tcp_write conn (html_page output)
+        tcp_close conn
+        server_loop ln 0
+    catch e
+        print ("Error: " ++ e)
+
+ln: tcp_listen "0.0.0.0" 8080
+server_loop ln 0

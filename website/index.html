@@ -270,26 +270,27 @@ async function runPlayground() {
   btn.classList.add("running");
   btn.textContent = "⏳ Running...";
   bar.className = "play-bar";
-  bar.innerHTML = '<span class="spinner"></span><span>Executing Pipe code...</span>';
+  bar.innerHTML = '<span class="spinner"></span><span>Executing...</span>';
   bar.style.color = "#fc8c3c";
   out.textContent = "";
 
-  setTimeout(function() {
-    var start = Date.now();
-    var code = document.getElementById("play-editor").value;
-    var result = runPipe(code);
-    var elapsed = ((Date.now() - start) / 1000).toFixed(1);
-    var isError = result && result.includes("Error:");
+  // Kurze Pause damit DOM rendert, dann synchron ausführen
+  await new Promise(r => setTimeout(r, 30));
 
-    btn.classList.remove("running");
-    btn.textContent = "▶ Run";
-    bar.className = "play-bar" + (isError ? " error" : " success");
-    bar.innerHTML = '<span>' + (isError ? '✗' : '✓') + '</span><span>' + (isError ? 'Error' : 'Done in ' + elapsed + 's') + '</span>';
-    bar.style.color = isError ? "var(--red)" : "var(--green)";
-    out.textContent = result || "(no output)";
-    if (isError) out.className = "play-output error";
-    else out.className = "play-output";
-  }, 50);
+  var start = Date.now();
+  var code = document.getElementById("play-editor").value;
+  var result = runPipe(code);
+  var elapsed = ((Date.now() - start) / 1000).toFixed(1);
+  var isError = result && (result.includes("Error:") || result.includes("Parse error"));
+
+  btn.classList.remove("running");
+  btn.textContent = "▶ Run";
+  bar.className = "play-bar" + (isError ? " error" : " success");
+  bar.innerHTML = '<span>' + (isError ? '✗' : '✓') + '</span><span>' + (isError ? 'Error' : 'Done in ' + elapsed + 's') + '</span>';
+  bar.style.color = isError ? "var(--red)" : "var(--green)";
+  out.textContent = result || "(no output)";
+  if (isError) out.className = "play-output error";
+  else out.className = "play-output";
 }
 </script>
 

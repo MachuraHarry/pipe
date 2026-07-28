@@ -22,7 +22,12 @@ WebAssembly.instantiateStreaming(fetch("pipe.wasm"), pipeGo.importObject).then(r
 });
 
 function runPipe(code) {
-  if (!pipeReady) return "(WASM not loaded)";
-  try { return pipeRun(code) || "(no output)"; }
-  catch(e) { return "Error: " + e; }
+  if (!pipeReady) return "[WASM not loaded]";
+  try {
+    var result = pipeRun(code);
+    if (!result || result === "") return "[pipeRun returned empty]";
+    return result;
+  } catch(e) {
+    return "[JS Error: " + e.message + "]";
+  }
 }

@@ -24,7 +24,7 @@ inputs:
 runs:
   using: 'composite'
   steps:
-    - name: Download Pipe Binary
+    - name: Download Pipe
       shell: bash
       env:
         VERSION: ${{ inputs.version }}
@@ -34,41 +34,33 @@ runs:
         ARCH=$(uname -m)
         [ "$ARCH" = "x86_64" ] && ARCH="amd64"
         [ "$ARCH" = "aarch64" ] && ARCH="arm64"
-
         if [ "$VERSION" = "latest" ]; then
           URL="https://github.com/MachuraHarry/pipe/releases/latest/download/pipe-${OS}-${ARCH}.tar.gz"
         else
           URL="https://github.com/MachuraHarry/pipe/releases/download/${VERSION}/pipe-${OS}-${ARCH}.tar.gz"
         fi
-
         if curl -fsSL "$URL" -o pipe.tar.gz 2>/dev/null; then
           tar -xzf pipe.tar.gz && rm pipe.tar.gz
         else
-          echo "::group::Building Pipe from source"
           TMP=$(mktemp -d)
-          git clone --depth 1 https://github.com/MachuraHarry/pipe "$TMP"
+          git clone --depth 1 https://github.com/MachuraHarry/pipe "$TMP" 2>/dev/null
           cd "$TMP" && go build -o pipe ./cmd/pipe && mv pipe "$GITHUB_WORKSPACE/"
           cd "$GITHUB_WORKSPACE" && rm -rf "$TMP"
-          echo "::endgroup::"
         fi
         chmod +x pipe
         echo "$GITHUB_WORKSPACE" >> "$GITHUB_PATH"
 
-    - name: Execute Pipe Script
+    - name: Run Pipe
       shell: bash
       env:
         PROVIDER: ${{ inputs.provider }}
         FLAGS: ${{ inputs.flags }}
       run: |
-        if [ -n "$PROVIDER" ]; then
-          echo "ai_provider \"$PROVIDER\"" > /tmp/script.pipe
-        fi
-        cat >> /tmp/script.pipe << 'PIPESCRIPT'
-${{ inputs.script }}
-PIPESCRIPT
-
+        [ -n "$PROVIDER" ] && echo "ai_provider \"$PROVIDER\"" > /tmp/script.pipe || true
+        cat >> /tmp/script.pipe <<- 'SCRIPTEND'
+		${{ inputs.script }}
+		SCRIPTEND
         echo "=== Pipe Script ==="
         cat /tmp/script.pipe
         echo "===================="
-
         pipe $FLAGS /tmp/script.pipe

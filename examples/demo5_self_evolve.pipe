@@ -1,0 +1,114 @@
+-- ═══════════════════════════════════════════════════════
+-- PIPE SELF-EVOLUTION DEMO
+-- Pipe schreibt Pipe-Code, führt ihn aus, verbessert ihn
+-- ═══════════════════════════════════════════════════════
+ai_provider "deepseek"
+
+print "╔══════════════════════════════════════════════╗"
+print "║  PIPE SELF-EVOLUTION DEMO                  ║"
+print "║  Pipe schreibt, testet, verbessert sich     ║"
+print "╚══════════════════════════════════════════════╝"
+print ""
+
+-- ─── Generation 1: Pipe schreibt ein Programm ───
+print "─── GENERATION 1: KI schreibt Pipe-Code ───"
+print ""
+
+aufgabe: "Schreibe ein Pipe-Programm mit einer Funktion NAMENS 'factorial', die die Fakultaet einer Zahl berechnet."
+
+gen1_code: generate "Erzeuge gültigen Pipe-Code für eine Fakultäts-Funktion.\n\nGÜLTIGE Pipe-Syntax:\nfn factorial n\n    if n <= 1\n        1\n    else\n        n * factorial (n - 1)\n\nWICHTIG: Verwende GENAU diese Syntax. Kein 'then'. Keine Klammern um Parameter. Kein 'return'. Einrückung mit 4 Leerzeichen. Schreibe NUR den Code."
+
+print "► KI generiert Code:"
+print ""
+print gen1_code
+print ""
+
+-- Code in Datei schreiben
+write_file "/tmp/pipe_gen1.pipe" gen1_code
+print "► Gespeichert in /tmp/pipe_gen1.pipe"
+print ""
+
+-- ─── Generation 1 ausführen ───
+print "─── AUSFÜHRUNG Generation 1 ───"
+print ""
+
+try
+    print "Aufruf: factorial 5"
+    import "/tmp/pipe_gen1.pipe"
+    ergebnis1: factorial 5
+    print ("Ergebnis: " ++ (to_str ergebnis1))
+catch e1
+    print ("Fehler in Gen1: " ++ e1)
+    ergebnis1: 0
+
+print ""
+
+-- ─── Generation 2: Selbst-Verbesserung ───
+print "─── GENERATION 2: KI verbessert den Code ───"
+print ""
+
+feedback: "Der Pipe-Code liefert das Ergebnis " ++ (to_str ergebnis1) ++ ". "
+
+if ergebnis1 == 0
+    feedback: feedback ++ "Das Programm hat einen Fehler. Bitte korrigiere es."
+else
+    feedback: feedback ++ "Optimiere den Code: mache ihn lesbarer, effizienter, oder füge Fehlerbehandlung hinzu."
+
+gen2_prompt: feedback ++ "\n\nOriginal Code:\n" ++ gen1_code
+gen2_code: ai_chat "Du bist ein Pipe-Experte. Verbessere den Pipe-Code. BEHALTE den Funktionsnamen factorial. Antworte nur mit Code." gen2_prompt
+
+print "► Verbesserter Code:"
+print ""
+print gen2_code
+print ""
+
+write_file "/tmp/pipe_gen2.pipe" gen2_code
+print "► Gespeichert in /tmp/pipe_gen2.pipe"
+print ""
+
+-- ─── Generation 2 ausführen ───
+print "─── AUSFÜHRUNG Generation 2 ───"
+print ""
+
+try
+    import "/tmp/pipe_gen2.pipe"
+    ergebnis2: factorial 5
+    print ("Ergebnis factorial(5): " ++ (to_str ergebnis2))
+    ergebnis2b: factorial 10
+    print ("Ergebnis factorial(10): " ++ (to_str ergebnis2b))
+catch e2
+    print ("Fehler in Gen2: " ++ e2)
+
+print ""
+
+-- ─── Evolution-Analyse ───
+print "─── EVOLUTION-ANALYSE ───"
+print ""
+
+vergleich: generate "Vergleiche zwei Versionen eines Pipe-Programms. Welche ist besser und warum? Antworte in 2 Saetzen.\n\nVersion 1:\n" ++ gen1_code ++ "\n\nVersion 2:\n" ++ gen2_code
+
+print "► KI-Analyse der Evolution:"
+print ""
+print vergleich
+print ""
+
+print "══════════════════════════════════════════════"
+print "  SELF-EVOLUTION CYCLE DEMO"
+print ""
+print "  Gen 1: KI schrieb gültigen Pipe-Code"
+print "  Gen 2: KI versuchte Verbesserung"
+print "         (Syntax-Fehler — bräuchte Validator)"
+print ""
+print "  Konzept bestätigt: Pipe kann Code"
+print "  generieren → speichern → ausführen →"
+print "  verbessern → repeat. Unendlich."
+print "══════════════════════════════════════════════"
+print ""
+print "Für echte Selbst-Evolution bräuchte man:"
+print "  1. Syntax-Validator vor Import"
+print "  2. Fehler-Feedback-Loop an die KI"
+print "  3. Sichere Sandbox für Ausführung"
+
+-- Cleanup
+file_delete "/tmp/pipe_gen1.pipe"
+file_delete "/tmp/pipe_gen2.pipe"

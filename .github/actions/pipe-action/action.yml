@@ -24,47 +24,11 @@ inputs:
 runs:
   using: 'composite'
   steps:
-    - name: Write Script File
-      shell: bash
-      run: |
-        cat > /tmp/pipe-script <<'PIPEHEREDOC'
-${{ inputs.script }}
-PIPEHEREDOC
-
-    - name: Download Pipe
-      shell: bash
-      env:
-        VERSION: ${{ inputs.version }}
-      run: |
-        set -e
-        OS=$(uname -s | tr '[:upper:]' '[:lower:]')
-        ARCH=$(uname -m)
-        [ "$ARCH" = "x86_64" ] && ARCH="amd64"
-        [ "$ARCH" = "aarch64" ] && ARCH="arm64"
-        if [ "$VERSION" = "latest" ]; then
-          URL="https://github.com/MachuraHarry/pipe/releases/latest/download/pipe-${OS}-${ARCH}.tar.gz"
-        else
-          URL="https://github.com/MachuraHarry/pipe/releases/download/${VERSION}/pipe-${OS}-${ARCH}.tar.gz"
-        fi
-        if curl -fsSL "$URL" -o pipe.tar.gz 2>/dev/null; then
-          tar -xzf pipe.tar.gz && rm pipe.tar.gz
-        else
-          TMP=$(mktemp -d)
-          git clone --depth 1 https://github.com/MachuraHarry/pipe "$TMP"
-          cd "$TMP" && go build -o pipe ./cmd/pipe && mv pipe "$GITHUB_WORKSPACE/"
-          cd "$GITHUB_WORKSPACE" && rm -rf "$TMP"
-        fi
-        chmod +x pipe
-        echo "$GITHUB_WORKSPACE" >> "$GITHUB_PATH"
-
     - name: Run Pipe
       shell: bash
       env:
+        PIPE_SCRIPT: ${{ inputs.script }}
         PIPE_PROVIDER: ${{ inputs.provider }}
         PIPE_FLAGS: ${{ inputs.flags }}
       run: |
-        [ -n "$PIPE_PROVIDER" ] && sed -i "1i ai_provider \"$PIPE_PROVIDER\"" /tmp/pipe-script || true
-        echo "=== Pipe Script ==="
-        cat /tmp/pipe-script
-        echo "===================="
-        pipe $PIPE_FLAGS /tmp/pipe-script
+        printf '%s\n' "$PIPE_SCRIPT" | bash "$GITHUB_ACTION_PATH/run.sh"

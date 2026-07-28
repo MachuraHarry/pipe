@@ -24,6 +24,15 @@ inputs:
 runs:
   using: 'composite'
   steps:
+    - name: Write Script
+      shell: bash
+      run: |
+        python3 -c "
+import sys
+with open('/tmp/pipe-script','w') as f:
+    f.write(sys.argv[1])
+" '${{ inputs.script }}'
+
     - name: Download Pipe
       shell: bash
       env:
@@ -43,7 +52,7 @@ runs:
           tar -xzf pipe.tar.gz && rm pipe.tar.gz
         else
           TMP=$(mktemp -d)
-          git clone --depth 1 https://github.com/MachuraHarry/pipe "$TMP" 2>/dev/null
+          git clone --depth 1 https://github.com/MachuraHarry/pipe "$TMP"
           cd "$TMP" && go build -o pipe ./cmd/pipe && mv pipe "$GITHUB_WORKSPACE/"
           cd "$GITHUB_WORKSPACE" && rm -rf "$TMP"
         fi
@@ -56,11 +65,8 @@ runs:
         PROVIDER: ${{ inputs.provider }}
         FLAGS: ${{ inputs.flags }}
       run: |
-        [ -n "$PROVIDER" ] && echo "ai_provider \"$PROVIDER\"" > /tmp/script.pipe || true
-        cat >> /tmp/script.pipe <<- 'SCRIPTEND'
-		${{ inputs.script }}
-		SCRIPTEND
+        [ -n "$PROVIDER" ] && sed -i "1i ai_provider \"$PROVIDER\"" /tmp/pipe-script || true
         echo "=== Pipe Script ==="
-        cat /tmp/script.pipe
+        cat /tmp/pipe-script
         echo "===================="
-        pipe $FLAGS /tmp/script.pipe
+        pipe $FLAGS /tmp/pipe-script

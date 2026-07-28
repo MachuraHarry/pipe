@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"math"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/harry/pipe/pkg/ast"
@@ -15,14 +16,16 @@ import (
 type EvalContext struct {
 	SourceFile      string
 	callStack       []string
-	importCache     map[string]struct{}
+	importCache     map[string]*ast.Program
+	importedFiles   map[string]struct{}
 	exportedSymbols map[string]bool
 }
 
 func NewEvalContext(sourceFile string) *EvalContext {
 	return &EvalContext{
 		SourceFile:      sourceFile,
-		importCache:     make(map[string]struct{}),
+		importCache:     make(map[string]*ast.Program),
+		importedFiles:   make(map[string]struct{}),
 		exportedSymbols: make(map[string]bool),
 	}
 }
@@ -388,6 +391,14 @@ func evalStringInfix(operator string, left, right *object.String) object.Object 
 		return object.NativeBoolToBoolean(left.Value == right.Value)
 	case "!=":
 		return object.NativeBoolToBoolean(left.Value != right.Value)
+	case "<":
+		return object.NativeBoolToBoolean(left.Value < right.Value)
+	case ">":
+		return object.NativeBoolToBoolean(left.Value > right.Value)
+	case "<=":
+		return object.NativeBoolToBoolean(left.Value <= right.Value)
+	case ">=":
+		return object.NativeBoolToBoolean(left.Value >= right.Value)
 	default:
 		return newErrorSt("unbekannter Operator: %s %s %s", left.Type(), operator, right.Type())
 	}
@@ -758,34 +769,76 @@ func (ctx *EvalContext) evalForInExpression(fe *ast.ForExpression, env *object.E
 	return object.NILOBJ
 }
 
-func (ctx *EvalContext) evalImportStatement(is *ast.ImportStatement, env *object.Environment) object.Object {
-	if _, ok := ctx.importCache[is.Path]; ok {
-		return object.NILOBJ
+func (ctx *EvalContext) resolveImportPath(path string) (string, error) {
+	// Absolute or relative path that exists
+	if _, err := os.Stat(path); err == nil {
+		return path, nil
 	}
-	ctx.importCache[is.Path] = struct{}{}
+	// Try PIPE_PATH directories
+	pipePath := os.Getenv("PIPE_PATH")
+	if pipePath != "" {
+		for _, dir := range strings.Split(pipePath, ":") {
+			candidate := filepath.Join(dir, path)
+			if _, err := os.Stat(candidate); err == nil {
+				return candidate, nil
+			}
+		}
+	}
+	return "", fmt.Errorf("import nicht gefunden: %s (PIPE_PATH=%s)", path, pipePath)
+}
 
-	data, err := os.ReadFile(is.Path)
+func (ctx *EvalContext) evalImportStatement(is *ast.ImportStatement, env *object.Environment) object.Object {
+	resolvedPath, err := ctx.resolveImportPath(is.Path)
 	if err != nil {
-		return ctx.newError("import fehlgeschlagen: %s", err)
+		return ctx.newError("%s", err)
+	}
+
+	// Flat imports: skip if already injected into this scope
+	if is.Alias == "" {
+		if _, ok := ctx.importedFiles[resolvedPath]; ok {
+			return object.NILOBJ
+		}
+		ctx.importedFiles[resolvedPath] = struct{}{}
+	}
+
+	// Use cached parse result or parse fresh
+	program, ok := ctx.importCache[resolvedPath]
+	if !ok {
+		data, err := os.ReadFile(resolvedPath)
+		if err != nil {
+			return ctx.newError("import fehlgeschlagen: %s", err)
+		}
+
+		l := lexer.New(string(data))
+		p := parser.New(l)
+		program = p.ParseProgram()
+		if len(p.Errors()) > 0 {
+			return ctx.newError("import parse-fehler in %s: %v", resolvedPath, p.Errors())
+		}
+		ctx.importCache[resolvedPath] = program
 	}
 
 	prevExports := ctx.exportedSymbols
 	ctx.exportedSymbols = make(map[string]bool)
 
-	l := lexer.New(string(data))
-	p := parser.New(l)
-	program := p.ParseProgram()
-	if len(p.Errors()) > 0 {
-		ctx.exportedSymbols = prevExports
-		return ctx.newError("import parse-fehler in %s: %v", is.Path, p.Errors())
-	}
-
-	result := ctx.Eval(program, env)
+	importEnv := object.NewEnvironment()
+	result := ctx.Eval(program, importEnv)
 
 	hasExports := len(ctx.exportedSymbols) > 0
-	for name := range env.Store() {
-		if hasExports && !ctx.exportedSymbols[name] {
-			env.Delete(name)
+
+	if is.Alias != "" {
+		nsObj := &object.Map{Pairs: make(map[string]object.Object)}
+		for name, val := range importEnv.Store() {
+			if !hasExports || ctx.exportedSymbols[name] {
+				nsObj.Pairs[name] = val
+			}
+		}
+		env.Set(is.Alias, nsObj)
+	} else {
+		for name, val := range importEnv.Store() {
+			if !hasExports || ctx.exportedSymbols[name] {
+				env.Set(name, val)
+			}
 		}
 	}
 

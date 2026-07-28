@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/harry/pipe/pkg/ast"
+	"github.com/harry/pipe/pkg/build"
 	"github.com/harry/pipe/pkg/cache"
 	"github.com/harry/pipe/pkg/compiler"
 	"github.com/harry/pipe/pkg/eval"
@@ -23,6 +24,12 @@ import (
 const version = "v0.5.0"
 
 func main() {
+	// Self-extracting binary detection
+	if embedded, ok := build.LoadEmbedded(os.Args[0]); ok {
+		runEmbedded(embedded)
+		return
+	}
+
 	var (
 		useVM     bool
 		quietVM   bool
@@ -30,6 +37,8 @@ func main() {
 		doFmt     bool
 		doBench   bool
 		doTest    bool
+		doBuild   bool
+		buildOut  string
 		filePath  string
 		scriptArgs []string
 	)
@@ -49,17 +58,43 @@ func main() {
 			doBench = true
 		case "-test":
 			doTest = true
+		case "-build":
+			doBuild = true
 		case "-h", "--help":
 			printHelp()
 			return
 		default:
-			if !strings.HasPrefix(arg, "-") && !foundFile {
+			if doBuild && !strings.HasPrefix(arg, "-") {
+				if filePath == "" {
+					filePath = arg
+					foundFile = true
+				} else if buildOut == "" {
+					buildOut = arg
+				}
+			} else if !strings.HasPrefix(arg, "-") && !foundFile {
 				filePath = arg
 				foundFile = true
 			} else if foundFile {
 				scriptArgs = append(scriptArgs, arg)
 			}
 		}
+	}
+
+	if doBuild {
+		if filePath == "" {
+			fmt.Fprintln(os.Stderr, "pipe: -build benötigt eine .pipe Datei")
+			os.Exit(1)
+		}
+		outPath := buildOut
+		if outPath == "" {
+			outPath = strings.TrimSuffix(filePath, ".pipe")
+		}
+		if err := build.Build(filePath, outPath); err != nil {
+			fmt.Fprintf(os.Stderr, "pipe build: %s\n", err)
+			os.Exit(1)
+		}
+		fmt.Printf("Built %s -> %s\n", filePath, outPath)
+		return
 	}
 
 	if doBench {
@@ -138,7 +173,9 @@ Beispiele:
   pipe -vm -q examples/fizzbuzz.pipe
   pipe -ast examples/pipeline.pipe
   pipe -test
-  pipe -bench`)
+  pipe -bench
+  pipe -build mein.pipe     # Kompiliert zu standalone Binary
+  pipe -build mein.pipe mein_prog  # Mit Ausgabename`)
 }
 
 func runEval(program *ast.Program, scriptArgs []string, filePath string) {
@@ -677,5 +714,31 @@ func astToString(out *strings.Builder, node ast.Node, depth int) {
 		out.WriteString(fmt.Sprintf("%sList [%d elements]\n", indent, len(n.Elements)))
 	case *ast.MapLiteral:
 		out.WriteString(fmt.Sprintf("%sMap {%d pairs}\n", indent, len(n.Pairs)))
+	}
+}
+
+func runEmbedded(src []byte) {
+	l := lexer.New(string(src))
+	p := parser.New(l)
+	program := p.ParseProgram()
+	if len(p.Errors()) > 0 {
+		fmt.Fprintln(os.Stderr, "Parse-Fehler in embedded binary:")
+		for _, err := range p.Errors() {
+			fmt.Fprintf(os.Stderr, "  %s\n", err)
+		}
+		os.Exit(1)
+	}
+
+	comp := compiler.New()
+	if err := comp.Compile(program); err != nil {
+		fmt.Fprintf(os.Stderr, "Compiler-Fehler: %s\n", err)
+		os.Exit(1)
+	}
+
+	bc := comp.Bytecode()
+	machine := vm.New(bc)
+	if err := machine.Run(); err != nil {
+		fmt.Fprintf(os.Stderr, "Fehler: %s\n", err)
+		os.Exit(1)
 	}
 }

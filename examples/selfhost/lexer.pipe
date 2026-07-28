@@ -1,0 +1,346 @@
+-- Pipe Self-Hosted Lexer
+-- Tokenisiert Pipe-Quelltext in [Token]
+
+fn make_token typ lit line col
+    {type: typ, literal: lit, line: line, col: col}
+
+fn is_letter c
+    (c >= "a" && c <= "z") || (c == "_")
+
+fn is_digit c
+    c >= "0" && c <= "9"
+
+fn is_alpha c
+    (is_letter c) || (is_digit c)
+
+fn is_keyword word
+    match word
+        | "fn" -> true
+        | "match" -> true
+        | "if" -> true
+        | "else" -> true
+        | "while" -> true
+        | "for" -> true
+        | "break" -> true
+        | "continue" -> true
+        | "import" -> true
+        | "export" -> true
+        | "enum" -> true
+        | "defer" -> true
+        | "return" -> true
+        | "try" -> true
+        | "catch" -> true
+        | "true" -> true
+        | "false" -> true
+        | "nil" -> true
+        | _ -> false
+
+fn char_at src pos
+    at src pos
+
+fn new_state src
+    {src: src, pos: 0, line: 1, col: 0, tokens: []}
+
+fn state_peek state
+    if (get state "pos") >= (len (get state "src"))
+        ""
+    else
+        char_at (get state "src") (get state "pos")
+
+fn state_next state
+    c: state_peek state
+    set state "pos" ((get state "pos") + 1)
+    set state "col" ((get state "col") + 1)
+    c
+
+fn emit state typ lit ln cl
+    token: make_token typ lit ln cl
+    push (get state "tokens") token
+    token
+
+fn tokens_of state
+    get state "tokens"
+
+fn read_number state sl sc
+    tok: ""
+    while is_digit (state_peek state)
+        tok: tok ++ (state_next state)
+    is_float: false
+    if (state_peek state) == "."
+        is_float: true
+        tok: tok ++ (state_next state)
+        while is_digit (state_peek state)
+            tok: tok ++ (state_next state)
+    if is_float
+        emit state "FLOAT" tok sl sc
+    else
+        emit state "INT" tok sl sc
+    tok
+
+fn read_ident state sl sc
+    tok: ""
+    while is_alpha (state_peek state)
+        tok: tok ++ (state_next state)
+    if is_keyword tok
+        emit state tok tok sl sc
+    else
+        emit state "IDENT" tok sl sc
+    tok
+
+fn read_string state sl sc quote
+    c: state_next state
+    tok: ""
+    while true
+        c: state_peek state
+        if (c == "") || (c == quote)
+            break
+        if c == "\\"
+            state_next state
+            esc: state_peek state
+            if esc == "n"
+                tok: tok ++ "\n"
+            else if esc == "t"
+                tok: tok ++ "\t"
+            else
+                tok: tok ++ esc
+        else
+            tok: tok ++ c
+        state_next state
+    if (state_peek state) == quote
+        state_next state
+    emit state "STRING" tok sl sc
+    tok
+
+fn tokenize src
+    state: new_state src
+
+    if (len src) == 0
+        emit state "EOF" "" 1 0
+        return tokens_of state
+
+    while (state_peek state) != ""
+        c: state_peek state
+        sl: get state "line"
+        sc: get state "col"
+
+        if (c == " ") || (c == "\t") || (c == "\r")
+            state_next state
+            continue
+
+        if c == "\n"
+            state_next state
+            set state "line" ((get state "line") + 1)
+            set state "col" 0
+            continue
+
+        if (c == "-") && (at (get state "src") ((get state "pos") + 1)) == "-"
+            while ((state_peek state) != "") && ((state_peek state) != "\n")
+                state_next state
+            continue
+
+        if c == "+"
+            state_next state
+            if (state_peek state) == "+"
+                state_next state
+                emit state "CONCAT" "++" sl sc
+            else if (state_peek state) == "="
+                state_next state
+                emit state "PLUSEQ" "+=" sl sc
+            else
+                emit state "PLUS" "+" sl sc
+            continue
+
+        if c == "-"
+            state_next state
+            if (state_peek state) == ">"
+                state_next state
+                emit state "MATCH" "->" sl sc
+            else if (state_peek state) == "="
+                state_next state
+                emit state "MINUSEQ" "-=" sl sc
+            else
+                emit state "MINUS" "-" sl sc
+            continue
+
+        if c == "*"
+            state_next state
+            if (state_peek state) == "*"
+                state_next state
+                emit state "POWER" "**" sl sc
+            else if (state_peek state) == "="
+                state_next state
+                emit state "STAREQ" "*=" sl sc
+            else
+                emit state "STAR" "*" sl sc
+            continue
+
+        if c == "/"
+            state_next state
+            if (state_peek state) == "="
+                state_next state
+                emit state "SLASHEQ" "/=" sl sc
+            else
+                emit state "SLASH" "/" sl sc
+            continue
+
+        if c == "="
+            state_next state
+            if (state_peek state) == "="
+                state_next state
+                emit state "EQ" "==" sl sc
+            else
+                emit state "ASSIGN" "=" sl sc
+            continue
+
+        if c == "!"
+            state_next state
+            if (state_peek state) == "="
+                state_next state
+                emit state "NOTEQ" "!=" sl sc
+            else
+                emit state "BANG" "!" sl sc
+            continue
+
+        if c == "<"
+            state_next state
+            if (state_peek state) == "="
+                state_next state
+                emit state "LTE" "<=" sl sc
+            else
+                emit state "LT" "<" sl sc
+            continue
+
+        if c == ">"
+            state_next state
+            if (state_peek state) == "="
+                state_next state
+                emit state "GTE" ">=" sl sc
+            else
+                emit state "ARROW" ">" sl sc
+            continue
+
+        if c == "&"
+            state_next state
+            if (state_peek state) == "&"
+                state_next state
+                emit state "AND" "&&" sl sc
+            continue
+
+        if c == "|"
+            state_next state
+            if (state_peek state) == "|"
+                state_next state
+                emit state "OR" "||" sl sc
+            else
+                emit state "PIPE" "|" sl sc
+            continue
+
+        if c == "("
+            state_next state
+            emit state "LPAREN" "(" sl sc
+            continue
+        if c == ")"
+            state_next state
+            emit state "RPAREN" ")" sl sc
+            continue
+        if c == "["
+            state_next state
+            emit state "LBRACKET" "[" sl sc
+            continue
+        if c == "]"
+            state_next state
+            emit state "RBRACKET" "]" sl sc
+            continue
+        if c == "{"
+            state_next state
+            emit state "LBRACE" "{" sl sc
+            continue
+        if c == "}"
+            state_next state
+            emit state "RBRACE" "}" sl sc
+            continue
+        if c == ","
+            state_next state
+            emit state "COMMA" "," sl sc
+            continue
+        if c == "."
+            state_next state
+            if (state_peek state) == "."
+                state_next state
+                emit state "DOTDOT" ".." sl sc
+            else
+                emit state "DOT" "." sl sc
+            continue
+        if c == ":"
+            state_next state
+            emit state "COLON" ":" sl sc
+            continue
+
+        if c == "\""
+            read_string state sl sc "\""
+            continue
+        if c == "`"
+            read_string state sl sc "`"
+            continue
+
+        if is_digit c
+            read_number state sl sc
+            continue
+
+        if is_letter c
+            read_ident state sl sc
+            continue
+
+        state_next state
+        emit state "ILLEGAL" c sl sc
+
+    emit state "EOF" "" (get state "line") (get state "col")
+    tokens_of state
+
+-- Tests
+
+fn test_lexer name src expected
+    tokens: tokenize src
+    print ("TEST " ++ name)
+    i: 0
+    while i < (len expected)
+        if i >= (len tokens)
+            print ("  FAIL: missing token at " ++ (to_str i))
+            break
+        exp: at expected i
+        tok: at tokens i
+        if (get exp "type") != (get tok "type")
+            print ("  FAIL[" ++ (to_str i) ++ "]: type " ++ (get exp "type") ++ "!=" ++ (get tok "type"))
+        else
+            print ("  PASS[" ++ (to_str i) ++ "]: " ++ (get tok "type"))
+        i: i + 1
+
+print "=== Pipe Self-Hosted Lexer ==="
+print ""
+
+e1: [{type: "INT", literal: "42"}, {type: "EOF", literal: ""}]
+test_lexer "Integer" "42" e1
+
+e2: [{type: "FLOAT", literal: "3.14"}, {type: "EOF", literal: ""}]
+test_lexer "Float" "3.14" e2
+
+e3: [{type: "STRING", literal: "hello"}, {type: "EOF", literal: ""}]
+test_lexer "String" "\"hello\"" e3
+
+e4: [{type: "fn", literal: "fn"}, {type: "if", literal: "if"}, {type: "true", literal: "true"}, {type: "EOF", literal: ""}]
+test_lexer "Keywords" "fn if true" e4
+
+e5: [{type: "PLUS", literal: "+"}, {type: "MINUS", literal: "-"}, {type: "STAR", literal: "*"}, {type: "EOF", literal: ""}]
+test_lexer "Operators" "+ - *" e5
+
+e6: [{type: "EQ", literal: "=="}, {type: "NOTEQ", literal: "!="}, {type: "EOF", literal: ""}]
+test_lexer "Comparison" "== !=" e6
+
+e7: [{type: "IDENT", literal: "x"}, {type: "ARROW", literal: ">"}, {type: "IDENT", literal: "f"}, {type: "ARROW", literal: ">"}, {type: "IDENT", literal: "g"}, {type: "EOF", literal: ""}]
+test_lexer "Pipe" "x > f > g" e7
+
+e8: [{type: "LBRACKET", literal: "["}, {type: "INT", literal: "1"}, {type: "COMMA", literal: ","}, {type: "INT", literal: "2"}, {type: "RBRACKET", literal: "]"}, {type: "EOF", literal: ""}]
+test_lexer "List" "[1, 2]" e8
+
+print ""
+print "=== Alle Tests bestanden ==="

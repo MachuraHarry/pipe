@@ -473,6 +473,14 @@ func (vm *VM) compareStringOp(op compiler.Opcode, left, right *object.String) ob
 		return object.NativeBoolToBoolean(left.Value == right.Value)
 	case compiler.OpNotEqual:
 		return object.NativeBoolToBoolean(left.Value != right.Value)
+	case compiler.OpLess:
+		return object.NativeBoolToBoolean(left.Value < right.Value)
+	case compiler.OpGreater:
+		return object.NativeBoolToBoolean(left.Value > right.Value)
+	case compiler.OpLte:
+		return object.NativeBoolToBoolean(left.Value <= right.Value)
+	case compiler.OpGte:
+		return object.NativeBoolToBoolean(left.Value >= right.Value)
 	}
 	return &object.Error{Message: fmt.Sprintf("Typ-Fehler: %s %s %s", left.Type(), op, right.Type())}
 }

@@ -880,7 +880,18 @@ func (p *Parser) parseImportStatement() ast.Statement {
 		p.error("import erwartet einen String-Pfad")
 		return nil
 	}
-	return &ast.ImportStatement{Path: p.curToken.Literal}
+	stmt := &ast.ImportStatement{Path: p.curToken.Literal}
+
+	// Optional: as <alias>
+	if p.peekTokenIs(lexer.IDENT) && p.peekToken.Literal == "as" {
+		p.nextToken() // skip 'as'
+		p.nextToken() // move to alias name
+		if p.curTokenIs(lexer.IDENT) {
+			stmt.Alias = p.curToken.Literal
+		}
+	}
+
+	return stmt
 }
 
 func (p *Parser) parseFnLiteral() ast.Expression {

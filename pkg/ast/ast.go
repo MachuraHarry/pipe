@@ -299,7 +299,8 @@ func (rs *ReturnStatement) statementNode()       {}
 func (rs *ReturnStatement) TokenLiteral() string { return "return" }
 
 type ImportStatement struct {
-	Path string
+	Path  string
+	Alias string // optional namespace alias
 }
 
 func (is *ImportStatement) statementNode()       {}

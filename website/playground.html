@@ -93,8 +93,8 @@ const examples = [
   "match 2\n    | 1 -> print \"one\"\n    | 2 -> print \"two\"\n    | _ -> print \"other\"",
   "zahlen: [1,2,3]\npush zahlen 4\nprint zahlen",
   'person: {name: "Anna"}\nprint (get person "name")',
-  'ask "Was ist die Hauptstadt von Frankreich? Antworte nur mit dem Stadtnamen." > print',
-  'summarize "Pipe ist eine Semantic Pipeline Runtime, die in Go geschrieben ist und als einzelne Binary ausgeliefert wird." > print'
+  'r: ask "Was ist die Hauptstadt von Frankreich? Antworte nur mit dem Stadtnamen."\nprint r',
+  'r: summarize "Pipe ist eine Semantic Pipeline Runtime, die in Go geschrieben ist und als einzelne Binary ausgeliefert wird."\nprint r'
 ];
 
 function run() {

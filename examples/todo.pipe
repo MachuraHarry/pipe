@@ -1,9 +1,9 @@
 -- ============================================================
--- PULSE TODO v1.0
+-- PIPE TODO v1.0
 -- ============================================================
--- Nutzung in der Pulse-REPL:
---   $ ./bin/pulse
---   >>> import "examples/todo.pulse"
+-- Nutzung in der Pipe-REPL:
+--   $ ./bin/pipe
+--   >>> import "examples/todo.pipe"
 --   >>> add "Milch holen"
 --   >>> add "Steuer machen"
 --   >>> list
@@ -172,7 +172,7 @@ fn clear
 
 fn help
     print ""
-    print "═══ PULSE TODO ═══"
+    print "═══ PIPE TODO ═══"
     print "  add \"Text\"     Neues Todo"
     print "  list            Anzeigen"
     print "  done <ID>       Erledigen"
@@ -187,7 +187,7 @@ fn help
 
 print ""
 print "╔══════════════════════════════╗"
-print "║    📋 PULSE TODO v1.0       ║"
+print "║    📋 PIPE TODO v1.0       ║"
 print "╚══════════════════════════════╝"
 print ""
 print "Todos: " ++ (to_str (len (load 0)))

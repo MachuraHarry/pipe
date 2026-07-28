@@ -1,4 +1,4 @@
--- Fibonacci in Pulse
+-- Fibonacci in Pipe
 
 fn fib n
     match n

@@ -1,7 +1,7 @@
 -- ============================================================
--- PULSE WEB SCRAPER — Webseite analysieren
+-- PIPE WEB SCRAPER — Webseite analysieren
 -- ============================================================
--- ./bin/pulse examples/web_scraper.pulse
+-- ./bin/pipe examples/web_scraper.pipe
 -- ============================================================
 
 fn fetch_page url
@@ -76,12 +76,12 @@ fn analyze url
             print "Kein <title> gefunden."
 
 -- ─── Start ─────────────────────────────────────────────────
-print "═══ PULSE WEB SCRAPER ═══"
+print "═══ PIPE WEB SCRAPER ═══"
 print ""
 
 if (len args) == 0
-    print "Nutzung: ./bin/pulse examples/web_scraper.pulse <URL>"
-    print "Beispiel: ./bin/pulse examples/web_scraper.pulse https://example.com"
+    print "Nutzung: ./bin/pipe examples/web_scraper.pipe <URL>"
+    print "Beispiel: ./bin/pipe examples/web_scraper.pipe https://example.com"
     print ""
     print "Demo mit example.com:"
     analyze "https://example.com"

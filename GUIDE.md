@@ -1,6 +1,6 @@
-# Pulse — Das Handbuch
+# Pipe — Das Handbuch
 
-Eine vollständige Einführung in die Programmiersprache Pulse.
+Eine vollständige Einführung in die Programmiersprache Pipe.
 Von den ersten Schritten bis zu fortgeschrittenen Konzepten.
 
 ---
@@ -24,7 +24,7 @@ Von den ersten Schritten bis zu fortgeschrittenen Konzepten.
 15. [Dateisystem](#15-dateisystem)
 16. [Netzwerk & HTTP](#16-netzwerk--http)
 17. [Regex, Datum, Zufall](#17-regex-datum-zufall)
-18. [Die Pulse REPL](#18-die-pulse-repl)
+18. [Die Pipe REPL](#18-die-pipe-repl)
 19. [Der VM-Modus](#19-der-vm-modus)
 20. [Kochrezepte](#20-kochrezepte)
 21. [Schnellreferenz](#21-schnellreferenz)
@@ -35,46 +35,46 @@ Von den ersten Schritten bis zu fortgeschrittenen Konzepten.
 
 ### Voraussetzungen
 
-Pulse benötigt **Go 1.21+**. Keine weiteren Abhängigkeiten.
+Pipe benötigt **Go 1.21+**. Keine weiteren Abhängigkeiten.
 
 ```bash
 # Repository klonen und bauen
-git clone <pulse-repo>
-cd pulse
+git clone <pipe-repo>
+cd pipe
 make build
 
 # Ausführen
-./bin/pulse examples/hello.pulse
+./bin/pipe examples/hello.pipe
 ```
 
 ### Erster Test
 
 ```bash
 # Eine Datei ausführen
-./bin/pulse datei.pulse
+./bin/pipe datei.pipe
 
 # REPL starten (interaktiv)
-./bin/pulse
+./bin/pipe
 
 # Mit Bytecode-VM (schneller)
-./bin/pulse -vm datei.pulse
+./bin/pipe -vm datei.pipe
 
 # AST anzeigen (für Entwickler)
-./bin/pulse -ast datei.pulse
+./bin/pipe -ast datei.pipe
 ```
 
 ---
 
 ## 2. Hallo Welt
 
-```pulse
--- Dein erstes Pulse-Programm
+```pipe
+-- Dein erstes Pipe-Programm
 print "Hallo Welt"
 ```
 
 Ausführen:
 ```bash
-./bin/pulse hello.pulse
+./bin/pipe hello.pipe
 ```
 
 Ausgabe:
@@ -88,7 +88,7 @@ Hallo Welt
 
 ## 3. Werte und Datentypen
 
-Pulse hat 7 eingebaute Datentypen:
+Pipe hat 7 eingebaute Datentypen:
 
 | Typ | Beispiel | Beschreibung |
 |-----|----------|-------------|
@@ -100,7 +100,7 @@ Pulse hat 7 eingebaute Datentypen:
 | `map` | `{name: "Anna"}` | Schlüssel-Wert-Paare |
 | `fn` | `fn x: x * 2` | Funktionen |
 
-```pulse
+```pipe
 -- Literale direkt ausprobieren
 print 42          -- Zahl
 print 3.14        -- Kommazahl
@@ -118,19 +118,19 @@ print {a: 1}      -- Map
 
 Variablen werden mit `name: wert` definiert:
 
-```pulse
-name: "Pulse"
+```pipe
+name: "Pipe"
 version: 1
 pi: 3.14159
 aktiv: true
 
-print name       -- Pulse
+print name       -- Pipe
 print version    -- 1
 ```
 
 **Neuzuweisung** verwendet die gleiche Syntax:
 
-```pulse
+```pipe
 zaehler: 0
 zaehler: zaehler + 1    -- jetzt 1
 zaehler: zaehler + 1    -- jetzt 2
@@ -146,7 +146,7 @@ Einrückung bestimmt den Gültigkeitsbereich).
 
 ### Arithmetik
 
-```pulse
+```pipe
 print (10 + 3)    -- 13
 print (10 - 3)    -- 7
 print (10 * 3)    -- 30
@@ -156,7 +156,7 @@ print (10 % 3)    -- 1 (Rest)
 
 ### Vergleiche
 
-```pulse
+```pipe
 print (10 == 10)   -- true
 print (10 != 5)    -- true
 print (5 < 10)     -- true
@@ -167,21 +167,21 @@ print (10 >= 5)    -- true
 
 ### Strings
 
-```pulse
+```pipe
 print ("Hallo " ++ "Welt")    -- "Hallo Welt"
 print ("abc" == "abc")        -- true
 ```
 
 ### Logische Operatoren
 
-Pulse hat keine `&&`/`||`-Operatoren. Stattdessen verwendet man
+Pipe hat keine `&&`/`||`-Operatoren. Stattdessen verwendet man
 verschachtelte `if`-Ausdrücke oder Hilfsfunktionen.
 
 ---
 
 ## 6. Bedingungen (if/else)
 
-```pulse
+```pipe
 temperatur: 25
 
 if temperatur > 30
@@ -199,7 +199,7 @@ else
 
 `if` ist ein **Ausdruck** — er gibt einen Wert zurück:
 
-```pulse
+```pipe
 status: if temperatur > 30
     "heiß"
 else
@@ -213,7 +213,7 @@ print status
 
 `match` vergleicht einen Wert mit mehreren Mustern. Das erste passende Muster gewinnt:
 
-```pulse
+```pipe
 fn bewertung note
     match note
         | 1      -> "Sehr gut"
@@ -231,7 +231,7 @@ print (bewertung 99)   -- "Ungültig"
 - `->` trennt Muster vom Ergebnis
 - `_` ist der Wildcard („alles andere")
 
-```pulse
+```pipe
 -- Fibonacci mit match
 fn fib n
     match n
@@ -248,7 +248,7 @@ print (fib 10)    -- 55
 
 ### while-Schleife
 
-```pulse
+```pipe
 i: 0
 while i < 5
     print i
@@ -258,7 +258,7 @@ while i < 5
 
 **break** bricht die Schleife ab:
 
-```pulse
+```pipe
 i: 0
 while true
     print i
@@ -270,7 +270,7 @@ while true
 
 **continue** springt zum nächsten Durchlauf:
 
-```pulse
+```pipe
 i: 0
 while i < 6
     i: i + 1
@@ -282,7 +282,7 @@ while i < 6
 
 ### for-in-Schleife
 
-```pulse
+```pipe
 -- Über eine Liste iterieren
 for farbe in ["rot", "grün", "blau"]
     print farbe
@@ -304,7 +304,7 @@ for n in (range 1 5)
 
 ### Definition
 
-```pulse
+```pipe
 fn verdopple x
     x * 2
 
@@ -323,7 +323,7 @@ fn begrüße name
 
 ### Aufruf
 
-```pulse
+```pipe
 print (verdopple 21)       -- 42
 print (addiere 3 4)        -- 7
 print (begrüße "Welt")     -- "Hallo Welt"
@@ -334,7 +334,7 @@ Funktionsaufrufe verwenden Leerzeichen statt Kommas:
 
 ### Anonyme Funktionen
 
-```pulse
+```pipe
 -- Funktion in Variable speichern
 verdreifacher: fn x
     x * 3
@@ -344,7 +344,7 @@ print (verdreifacher 7)    -- 21
 
 ### Rekursion
 
-```pulse
+```pipe
 fn fakultät n
     if n <= 1
         1
@@ -358,12 +358,12 @@ print (fakultät 5)    -- 120
 
 ## 10. Pipelines
 
-Die Pipeline (`>`) ist Pulse's Markenzeichen. Sie leitet einen Wert
+Die Pipeline (`>`) ist Pipe's Markenzeichen. Sie leitet einen Wert
 durch eine Kette von Funktionen — von links nach rechts.
 
 ### Horizontale Pipeline
 
-```pulse
+```pipe
 -- Statt: print(verdopple(addiere(10, 5)))
 -- Schreibt man:
 
@@ -376,7 +376,7 @@ Die vertikale Pipeline ist die empfohlene Schreibweise:
 
 ### Vertikale Pipeline
 
-```pulse
+```pipe
 42
     > verdopple
     > addiere 10
@@ -392,7 +392,7 @@ an die nächste Funktion übergeben.
 
 ### Pipeline mit mehreren Argumenten
 
-```pulse
+```pipe
 100
     > addiere 50    -- addiere(100, 50) = 150
     > verdopple     -- verdopple(150) = 300
@@ -405,7 +405,7 @@ an die nächste Funktion übergeben.
 
 ### Listen
 
-```pulse
+```pipe
 -- Erstellen
 zahlen: [10, 20, 30, 40, 50]
 leer: []
@@ -427,7 +427,7 @@ print (at zahlen 1)     -- 20
 
 ### Maps
 
-```pulse
+```pipe
 -- Erstellen
 person: {name: "Anna", alter: 28, stadt: "Berlin"}
 
@@ -448,7 +448,7 @@ print (values person)   -- ["Anna", 29, "Berlin"]
 
 Nur im Tree-Walker-Modus (nicht `-vm`) mit benutzerdefinierten Funktionen:
 
-```pulse
+```pipe
 fn verdopple x
     x * 2
 
@@ -472,7 +472,7 @@ print (reduce [1, 2, 3, 4] summe 0)    -- 10
 
 ## 12. Fehlerbehandlung (try/catch)
 
-```pulse
+```pipe
 fn teile a b
     if b == 0
         1 / 0     -- Erzwingt Fehler
@@ -506,8 +506,8 @@ ERROR: Division durch Null
 
 Mit `import` kannst du Code aus anderen Dateien laden:
 
-**math.pulse:**
-```pulse
+**math.pipe:**
+```pipe
 fn quadrat x
     x * x
 
@@ -515,9 +515,9 @@ fn kubik x
     x * (quadrat x)
 ```
 
-**main.pulse:**
-```pulse
-import "math.pulse"
+**main.pipe:**
+```pipe
+import "math.pipe"
 
 print (quadrat 7)    -- 49
 print (kubik 3)      -- 27
@@ -604,7 +604,7 @@ Der Pfad ist relativ zur aufrufenden Datei.
 
 ## 15. Dateisystem
 
-```pulse
+```pipe
 -- Existiert eine Datei?
 print (file_exists "config.txt")     -- true/false
 
@@ -616,7 +616,7 @@ print (file_type "config.txt")       -- "file"
 print (file_type "/tmp")             -- "dir"
 
 -- Verzeichnis auflisten
-print (list_dir ".")                 -- ["main.pulse", "lib.pulse", ...]
+print (list_dir ".")                 -- ["main.pipe", "lib.pipe", ...]
 print (list_dir "/tmp")              -- Inhalt von /tmp
 
 -- Datei kopieren / verschieben / löschen
@@ -641,7 +641,7 @@ print (path_ext "/a/b/c.txt")        -- ".txt"
 
 ### HTTP GET
 
-```pulse
+```pipe
 -- Einfacher GET-Request
 antwort: http_get "https://httpbin.org/get"
 print (get antwort "status")         -- 200
@@ -655,8 +655,8 @@ print (get daten "public_repos")     -- 12
 
 ### HTTP POST
 
-```pulse
-payload: {name: "Pulse", typ: "sprache"}
+```pipe
+payload: {name: "Pipe", typ: "sprache"}
 json: to_json payload
 antwort: http_post "https://httpbin.org/post" json
 print (get antwort "status")         -- 200
@@ -664,10 +664,10 @@ print (get antwort "status")         -- 200
 
 ### JSON
 
-```pulse
+```pipe
 -- JSON parsen
-daten: parse_json "{\"name\": \"Pulse\"}"
-print (get daten "name")             -- "Pulse"
+daten: parse_json "{\"name\": \"Pipe\"}"
+print (get daten "name")             -- "Pipe"
 
 -- Zu JSON konvertieren
 print (to_json {a: 1, b: 2})        -- {"a":1,"b":2}
@@ -675,7 +675,7 @@ print (to_json {a: 1, b: 2})        -- {"a":1,"b":2}
 
 ### TCP (Server + Client)
 
-```pulse
+```pipe
 -- Einfacher Echo-Server
 fn starte_server
     listener: tcp_listen "0.0.0.0" 9999
@@ -700,7 +700,7 @@ fn sende_nachricht text
 
 ### Regex
 
-```pulse
+```pipe
 -- Prüfen ob Muster passt
 print (regex_match "[0-9]+" "abc123")       -- true
 print (regex_match "^\\d{3}$" "123")        -- true
@@ -711,7 +711,7 @@ print (regex_replace "[0-9]" "#" "Tel: 0123"))  -- "Tel: ####"
 
 ### Datum und Zeit
 
-```pulse
+```pipe
 -- Aktueller Unix-Timestamp
 ts: now 0
 print ts                                     -- 1785100000
@@ -723,7 +723,7 @@ print (format_time ts "15:04:05")            -- "14:30:00"
 
 ### Zufall
 
-```pulse
+```pipe
 -- Zufallszahl zwischen 0 und 1
 print (random 0)                             -- 0.370874...
 
@@ -734,13 +734,13 @@ print (random_range 1 101)                   -- 42
 
 ---
 
-## 18. Die Pulse REPL
+## 18. Die Pipe REPL
 
-Starte die REPL mit `./bin/pulse` (ohne Dateiname):
+Starte die REPL mit `./bin/pipe` (ohne Dateiname):
 
 ```
-Pulse v0.4.0 — REPL
-Gib Pulse-Code ein. :quit oder Strg+D zum Beenden.
+Pipe v0.4.0 — REPL
+Gib Pipe-Code ein. :quit oder Strg+D zum Beenden.
 Leerzeile zum Abschließen von mehrzeiligen Blöcken.
 
 >>> 1 + 2
@@ -775,19 +775,19 @@ mehrzeilig. Mit einer Leerzeile abschließen.
 
 ## 19. Der VM-Modus
 
-Pulse hat zwei Ausführungsmodi:
+Pipe hat zwei Ausführungsmodi:
 
 | Modus | Befehl | Geschwindigkeit |
 |-------|--------|----------------|
-| **Tree-Walker** | `./bin/pulse datei.pulse` | Langsamer, alle Features |
-| **Bytecode-VM** | `./bin/pulse -vm datei.pulse` | ~3-7× schneller |
+| **Tree-Walker** | `./bin/pipe datei.pipe` | Langsamer, alle Features |
+| **Bytecode-VM** | `./bin/pipe -vm datei.pipe` | ~3-7× schneller |
 
 ```bash
 # VM-Modus (schnell)
-./bin/pulse -vm fibonacci.pulse
+./bin/pipe -vm fibonacci.pipe
 
 # VM ohne Bytecode-Ausgabe
-./bin/pulse -vm -q fibonacci.pulse
+./bin/pipe -vm -q fibonacci.pipe
 ```
 
 Die VM kompiliert den Code zu Bytecode (32 Opcodes) und führt ihn
@@ -805,7 +805,7 @@ Modi verfügbar.
 
 ### Fibonacci-Zahlen
 
-```pulse
+```pipe
 fn fib n
     match n
         | 0  -> 0
@@ -817,7 +817,7 @@ print (fib 10)    -- 55
 
 ### FizzBuzz
 
-```pulse
+```pipe
 fn fizzbuzz n
     if n % 15 == 0
         "FizzBuzz"
@@ -834,7 +834,7 @@ for n in (range 1 16)
 
 ### Primzahlen finden
 
-```pulse
+```pipe
 fn ist_prim n
     ist_prim_hilfe n 2
 
@@ -854,7 +854,7 @@ for n in (range 2 31)
 
 ### Palindrom-Prüfer
 
-```pulse
+```pipe
 fn reverse s
     reverse_hilfe s (len s - 1)
 
@@ -873,7 +873,7 @@ print (ist_palindrom "hello")      -- false
 
 ### Datei-Zeilen zählen
 
-```pulse
+```pipe
 fn zähle_zeilen pfad
     zeilen: read_lines pfad
     print "Datei: "
@@ -881,12 +881,12 @@ fn zähle_zeilen pfad
     print "Zeilen: "
     print (len zeilen)
 
-zähle_zeilen "main.pulse"
+zähle_zeilen "main.pipe"
 ```
 
 ### Konfigurationsdatei parsen
 
-```pulse
+```pipe
 -- Liest key=value-Paare aus einer Datei
 fn parse_config pfad
     zeilen: read_lines pfad
@@ -902,7 +902,7 @@ parse_config "config.ini"
 
 ### Einfacher Webservice-Check
 
-```pulse
+```pipe
 fn check_url url
     try
         antwort: http_get url
@@ -917,7 +917,7 @@ check_url "https://github.com"
 
 ### Summe einer Liste
 
-```pulse
+```pipe
 fn summe liste
     total: 0
     for n in liste
@@ -929,7 +929,7 @@ print (summe [1, 2, 3, 4, 5])    -- 15
 
 ### Caesar-Verschlüsselung
 
-```pulse
+```pipe
 fn caesar text verschiebung
     alpha: "abcdefghijklmnopqrstuvwxyz"
     ergebnis: ""
@@ -959,7 +959,7 @@ print (caesar "hallo" 3)    -- "kdoor"
 
 ### Syntax auf einen Blick
 
-```pulse
+```pipe
 -- Kommentar
 x: 42                         -- Variable
 fn name a b: ...              -- Funktion
@@ -968,7 +968,7 @@ match wert | 0 -> ... | _ ->  -- Pattern Matching
 while bedingung: ...          -- while-Schleife
 for x in liste: ...           -- for-in-Schleife
 try: ... catch e: ...         -- Fehlerbehandlung
-import "datei.pulse"          -- Modul laden
+import "datei.pipe"          -- Modul laden
 
 wert > funktion > ausgabe     -- Pipeline
 list[0..3]                    -- Slicing
@@ -988,17 +988,17 @@ list[0..3]                    -- Slicing
 
 ### Datei-Endung
 
-Pulse-Dateien haben die Endung **`.pulse`**.
+Pipe-Dateien haben die Endung **`.pipe`**.
 
 ### Projektstruktur
 
 ```
 mein_projekt/
-├── main.pulse          -- Hauptprogramm
-├── lib.pulse           -- Hilfsfunktionen
+├── main.pipe          -- Hauptprogramm
+├── lib.pipe           -- Hilfsfunktionen
 └── daten/              -- Daten-Verzeichnis
 ```
 
 ---
 
-**Viel Spaß mit Pulse!**
+**Viel Spaß mit Pipe!**

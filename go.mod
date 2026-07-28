@@ -1,3 +1,3 @@
-module github.com/harry/pulse
+module github.com/harry/pipe
 
 go 1.26.5

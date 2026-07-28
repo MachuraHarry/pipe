@@ -1,4 +1,4 @@
--- FizzBuzz in Pulse
+-- FizzBuzz in Pipe
 
 fn fizzbuzz n
     if n % 15 == 0

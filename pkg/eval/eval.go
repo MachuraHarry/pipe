@@ -6,31 +6,41 @@ import (
 	"os"
 	"strings"
 
-	"github.com/harry/pulse/pkg/ast"
-	"github.com/harry/pulse/pkg/lexer"
-	"github.com/harry/pulse/pkg/object"
-	"github.com/harry/pulse/pkg/parser"
+	"github.com/harry/pipe/pkg/ast"
+	"github.com/harry/pipe/pkg/lexer"
+	"github.com/harry/pipe/pkg/object"
+	"github.com/harry/pipe/pkg/parser"
 )
 
-var callStack []string
-var importCache = make(map[string]struct{})
-var SourceFile = "<stdin>"
-var exportedSymbols = make(map[string]bool)
+type EvalContext struct {
+	SourceFile      string
+	callStack       []string
+	importCache     map[string]struct{}
+	exportedSymbols map[string]bool
+}
 
-func pushCall(name string)  { callStack = append(callStack, name) }
-func popCall()              { if len(callStack) > 0 { callStack = callStack[:len(callStack)-1] } }
-func stackTrace() string    { return "  in " + strings.Join(callStack, "\n  in ") }
+func NewEvalContext(sourceFile string) *EvalContext {
+	return &EvalContext{
+		SourceFile:      sourceFile,
+		importCache:     make(map[string]struct{}),
+		exportedSymbols: make(map[string]bool),
+	}
+}
 
-func Eval(node ast.Node, env *object.Environment) object.Object {
+func (ctx *EvalContext) pushCall(name string)  { ctx.callStack = append(ctx.callStack, name) }
+func (ctx *EvalContext) popCall()              { if len(ctx.callStack) > 0 { ctx.callStack = ctx.callStack[:len(ctx.callStack)-1] } }
+func (ctx *EvalContext) stackTrace() string    { return "  in " + strings.Join(ctx.callStack, "\n  in ") }
+
+func (ctx *EvalContext) Eval(node ast.Node, env *object.Environment) object.Object {
 	switch n := node.(type) {
 	case *ast.Program:
-		return evalProgram(n.Statements, env)
+		return ctx.evalProgram(n.Statements, env)
 
 	case *ast.ExpressionStatement:
-		return Eval(n.Expression, env)
+		return ctx.Eval(n.Expression, env)
 
 	case *ast.VarStatement:
-		val := Eval(n.Value, env)
+		val := ctx.Eval(n.Value, env)
 		if isError(val) {
 			return val
 		}
@@ -38,7 +48,7 @@ func Eval(node ast.Node, env *object.Environment) object.Object {
 		return val
 
 	case *ast.BlockStatement:
-		return evalBlockStatement(n, env)
+		return ctx.evalBlockStatement(n, env)
 
 	case *ast.IntegerLiteral:
 		return &object.Integer{Value: n.Value}
@@ -56,116 +66,114 @@ func Eval(node ast.Node, env *object.Environment) object.Object {
 		return object.NILOBJ
 
 	case *ast.Identifier:
-		return evalIdentifier(n, env)
+		return ctx.evalIdentifier(n, env)
 
 	case *ast.PrefixExpression:
-		right := Eval(n.Right, env)
+		right := ctx.Eval(n.Right, env)
 		if isError(right) {
 			return right
 		}
 		return evalPrefixExpression(n.Operator, right)
 
 	case *ast.InfixExpression:
-		left := Eval(n.Left, env)
+		left := ctx.Eval(n.Left, env)
 		if isError(left) {
 			return left
 		}
-		right := Eval(n.Right, env)
+		right := ctx.Eval(n.Right, env)
 		if isError(right) {
 			return right
 		}
 		return evalInfixExpression(n.Operator, left, right)
 
 	case *ast.IfExpression:
-		return evalIfExpression(n, env)
+		return ctx.evalIfExpression(n, env)
 
 	case *ast.WhileExpression:
-		return evalWhileExpression(n, env)
+		return ctx.evalWhileExpression(n, env)
 
 	case *ast.ForExpression:
-		return evalForExpression(n, env)
+		return ctx.evalForExpression(n, env)
 
 	case *ast.BreakStatement:
 		return &BreakValue{}
 
 	case *ast.DeferStatement:
-		// Collect for later execution
 		return &DeferredExpr{Expr: n.Expression, Env: env}
 
 	case *ast.ExportStatement:
-		exportedSymbols[n.FnName] = true
-		return Eval(n.Fn, env)
+		ctx.exportedSymbols[n.FnName] = true
+		return ctx.Eval(n.Fn, env)
 
 	case *ast.EnumStatement:
-		return evalEnumStatement(n, env)
+		return ctx.evalEnumStatement(n, env)
 
 	case *ast.ReturnStatement:
-		return &ReturnValue{Value: Eval(n.Value, env)}
+		return &ReturnValue{Value: ctx.Eval(n.Value, env)}
 
 	case *ast.ContinueStatement:
 		return &ContinueValue{}
 
 	case *ast.ImportStatement:
-		return evalImportStatement(n, env)
+		return ctx.evalImportStatement(n, env)
 
 	case *ast.MatchExpression:
-		return evalMatchExpression(n, env)
+		return ctx.evalMatchExpression(n, env)
 
 	case *ast.FnStatement:
-		return evalFnStatement(n, env)
+		return ctx.evalFnStatement(n, env)
 
 	case *ast.FnLiteral:
-		return evalFnLiteral(n, env)
+		return ctx.evalFnLiteral(n, env)
 
 	case *ast.CallExpression:
-		fn := Eval(n.Function, env)
+		fn := ctx.Eval(n.Function, env)
 		if isError(fn) {
 			return fn
 		}
-		args := evalExpressions(n.Arguments, env)
+		args := ctx.evalExpressions(n.Arguments, env)
 		if len(args) == 1 && isError(args[0]) {
 			return args[0]
 		}
-		return applyFunction(fn, args)
+		return ctx.applyFunction(fn, args)
 
 	case *ast.PipelineExpression:
-		left := Eval(n.Left, env)
+		left := ctx.Eval(n.Left, env)
 		if isError(left) {
 			return left
 		}
-		// For pipeline: thread left as first argument to right function
-		return evalPipeline(n, left, env)
+		return ctx.evalPipeline(n, left, env)
 
 	case *ast.ListLiteral:
-		elements := evalExpressions(n.Elements, env)
+		elements := ctx.evalExpressions(n.Elements, env)
 		if len(elements) == 1 && isError(elements[0]) {
 			return elements[0]
 		}
 		return &object.List{Elements: elements}
 
 	case *ast.MapLiteral:
-		return evalMapLiteral(n, env)
+		return ctx.evalMapLiteral(n, env)
 
 	case *ast.DotExpression:
-		return evalDotExpression(n, env)
+		return ctx.evalDotExpression(n, env)
 
 	case *ast.TryExpression:
-		return evalTryExpression(n, env)
+		return ctx.evalTryExpression(n, env)
 
 	case *ast.SliceExpression:
-		return evalSliceExpression(n, env)
+		return ctx.evalSliceExpression(n, env)
 
 	default:
-		return newError("unbekannter AST-Knoten: %T", node)
+		return ctx.newError("unbekannter AST-Knoten: %T", node)
 	}
 }
 
-func evalProgram(stmts []ast.Statement, env *object.Environment) object.Object {
+func (ctx *EvalContext) evalProgram(stmts []ast.Statement, env *object.Environment) object.Object {
 	var result object.Object
 	var defers []*DeferredExpr
 
 	for _, stmt := range stmts {
-		result = Eval(stmt, env)
+		result = ctx.Eval(stmt, env)
 		if result != nil {
 			if d, ok := result.(*DeferredExpr); ok {
 				defers = append(defers, d)
@@ -182,14 +190,13 @@ func evalProgram(stmts []ast.Statement, env *object.Environment) object.Object {
 	return result
 }
 
-func evalBlockStatement(block *ast.BlockStatement, env *object.Environment) object.Object {
+func (ctx *EvalContext) evalBlockStatement(block *ast.BlockStatement, env *object.Environment) object.Object {
 	var result object.Object
 	var defers []*DeferredExpr
 
 	for _, stmt := range block.Statements {
-		result = Eval(stmt, env)
+		result = ctx.Eval(stmt, env)
 		if result != nil {
-			// Collect deferred expressions
 			if d, ok := result.(*DeferredExpr); ok {
 				defers = append(defers, d)
 				continue
@@ -217,7 +224,10 @@ func evalBlockStatement(block *ast.BlockStatement, env *object.Environment) obje
 
 func runDefers(defers []*DeferredExpr) {
 	for i := len(defers) - 1; i >= 0; i-- {
-		Eval(defers[i].Expr, defers[i].Env)
+		d := defers[i]
+		// Create a fresh throwaway context for defer execution
+		ctx := NewEvalContext("<defer>")
+		ctx.Eval(d.Expr, d.Env)
 	}
 }
 
@@ -229,14 +239,14 @@ type DeferredExpr struct {
 func (d *DeferredExpr) Type() object.ObjectType { return "DEFER" }
 func (d *DeferredExpr) Inspect() string         { return "deferred" }
 
-func evalIdentifier(node *ast.Identifier, env *object.Environment) object.Object {
+func (ctx *EvalContext) evalIdentifier(node *ast.Identifier, env *object.Environment) object.Object {
 	if val, ok := env.Get(node.Value); ok {
 		return val
 	}
 	if builtin, ok := builtins[node.Value]; ok {
 		return builtin
 	}
-	return newError("undefinierte Variable: %s", node.Value)
+	return ctx.newError("undefinierte Variable: %s", node.Value)
 }
 
 func evalPrefixExpression(operator string, right object.Object) object.Object {
@@ -246,7 +256,7 @@ func evalPrefixExpression(operator string, right object.Object) object.Object {
 	case "!":
 		return object.NativeBoolToBoolean(!object.IsTruthy(right))
 	default:
-		return newError("unbekannter Operator: %s%s", operator, right.Type())
+		return newErrorSt("unbekannter Operator: %s%s", operator, right.Type())
 	}
 }
 
@@ -257,7 +267,7 @@ func evalMinusPrefixOperator(right object.Object) object.Object {
 	case *object.Float:
 		return &object.Float{Value: -v.Value}
 	default:
-		return newError("unbekannter Operator: -%s", right.Type())
+		return newErrorSt("unbekannter Operator: -%s", right.Type())
 	}
 }
 
@@ -293,7 +303,7 @@ func evalInfixExpression(operator string, left, right object.Object) object.Obje
 	case operator == "!=":
 		return object.NativeBoolToBoolean(left != right)
 	default:
-		return newError("Typ-Fehler: %s %s %s", left.Type(), operator, right.Type())
+		return newErrorSt("Typ-Fehler: %s %s %s", left.Type(), operator, right.Type())
 	}
 }
 
@@ -308,17 +318,17 @@ func evalIntegerInfix(operator string, left, right *object.Integer) object.Objec
 		return &object.Integer{Value: l * r}
 	case "/":
 		if r == 0 {
-			return newError("Division durch Null")
+			return newErrorSt("Division durch Null")
 		}
 		return &object.Integer{Value: l / r}
 	case "%":
 		if r == 0 {
-			return newError("Modulo durch Null")
+			return newErrorSt("Modulo durch Null")
 		}
 		return &object.Integer{Value: l % r}
-		case "**":
-			return &object.Integer{Value: int64(math.Pow(float64(l), float64(r)))}
-		case "<":
+	case "**":
+		return &object.Integer{Value: int64(math.Pow(float64(l), float64(r)))}
+	case "<":
 		return object.NativeBoolToBoolean(l < r)
 	case ">":
 		return object.NativeBoolToBoolean(l > r)
@@ -331,7 +341,7 @@ func evalIntegerInfix(operator string, left, right *object.Integer) object.Objec
 	case "!=":
 		return object.NativeBoolToBoolean(l != r)
 	default:
-		return newError("unbekannter Operator: %s %s %s", left.Type(), operator, right.Type())
+		return newErrorSt("unbekannter Operator: %s %s %s", left.Type(), operator, right.Type())
 	}
 }
 
@@ -346,13 +356,13 @@ func evalFloatInfix(operator string, left, right *object.Float) object.Object {
 		return &object.Float{Value: l * r}
 	case "/":
 		if r == 0 {
-			return newError("Division durch Null")
+			return newErrorSt("Division durch Null")
 		}
 		return &object.Float{Value: l / r}
-		case "**":
-			return &object.Float{Value: math.Pow(l, r)}
-		case "%":
-		return newError("Modulo nicht für Float definiert")
+	case "**":
+		return &object.Float{Value: math.Pow(l, r)}
+	case "%":
+		return newErrorSt("Modulo nicht für Float definiert")
 	case "<":
 		return object.NativeBoolToBoolean(l < r)
 	case ">":
@@ -366,7 +376,7 @@ func evalFloatInfix(operator string, left, right *object.Float) object.Object {
 	case "!=":
 		return object.NativeBoolToBoolean(l != r)
 	default:
-		return newError("unbekannter Operator: %s %s %s", left.Type(), operator, right.Type())
+		return newErrorSt("unbekannter Operator: %s %s %s", left.Type(), operator, right.Type())
 	}
 }
 
@@ -379,76 +389,81 @@ func evalStringInfix(operator string, left, right *object.String) object.Object 
 	case "!=":
 		return object.NativeBoolToBoolean(left.Value != right.Value)
 	default:
-		return newError("unbekannter Operator: %s %s %s", left.Type(), operator, right.Type())
+		return newErrorSt("unbekannter Operator: %s %s %s", left.Type(), operator, right.Type())
 	}
 }
 
-func evalIfExpression(ie *ast.IfExpression, env *object.Environment) object.Object {
-	condition := Eval(ie.Condition, env)
+func (ctx *EvalContext) evalIfExpression(ie *ast.IfExpression, env *object.Environment) object.Object {
+	condition := ctx.Eval(ie.Condition, env)
 	if isError(condition) {
 		return condition
 	}
 
 	if object.IsTruthy(condition) {
-		return Eval(ie.Consequence, env)
+		return ctx.Eval(ie.Consequence, env)
 	} else if ie.Alternative != nil {
-		return Eval(ie.Alternative, env)
+		return ctx.Eval(ie.Alternative, env)
 	}
 	return object.NILOBJ
 }
 
-func evalMatchExpression(me *ast.MatchExpression, env *object.Environment) object.Object {
-	value := Eval(me.Value, env)
+func (ctx *EvalContext) evalMatchExpression(me *ast.MatchExpression, env *object.Environment) object.Object {
+	value := ctx.Eval(me.Value, env)
 	if isError(value) {
 		return value
 	}
 
 	for _, c := range me.Cases {
-		pattern := Eval(c.Pattern, env)
+		pattern := ctx.Eval(c.Pattern, env)
 		if isError(pattern) {
-			// Wildcard _ matches anything
 			if ident, ok := c.Pattern.(*ast.Identifier); ok && ident.Value == "_" {
-				return Eval(c.Body, env)
+				return ctx.Eval(c.Body, env)
 			}
 			continue
 		}
 
 		if valuesEqual(value, pattern) {
-			return Eval(c.Body, env)
+			return ctx.Eval(c.Body, env)
 		}
 
-		// Wildcard _ always matches
 		if ident, ok := c.Pattern.(*ast.Identifier); ok && ident.Value == "_" {
-			return Eval(c.Body, env)
+			return ctx.Eval(c.Body, env)
 		}
 	}
 
 	return object.NILOBJ
 }
 
-func evalFnStatement(fn *ast.FnStatement, env *object.Environment) object.Object {
+func (ctx *EvalContext) evalFnStatement(fn *ast.FnStatement, env *object.Environment) object.Object {
 	fnObj := &object.Function{
 		Name:       fn.Name.Value,
 		Parameters: fn.Parameters,
 		Body:       fn.Body,
 		Env:        env,
+		EvalCtx:    ctx,
 	}
 	env.Set(fn.Name.Value, fnObj)
 	return fnObj
 }
 
-func applyFunction(fn object.Object, args []object.Object) object.Object {
+func (ctx *EvalContext) applyFunction(fn object.Object, args []object.Object) object.Object {
 	switch f := fn.(type) {
 	case *object.Function:
-		pushCall("fn(" + fnName(f) + ")")
+		fnCtx := ctx
+		if f.EvalCtx != nil {
+			if ec, ok := f.EvalCtx.(*EvalContext); ok {
+				fnCtx = ec
+			}
+		}
+		fnCtx.pushCall("fn(" + fnName(f) + ")")
 		extendedEnv := extendFunctionEnv(f, args)
-		evaluated := Eval(f.Body, extendedEnv)
-		trace := stackTrace()
-		popCall()
+		evaluated := fnCtx.Eval(f.Body, extendedEnv)
+		trace := fnCtx.stackTrace()
+		fnCtx.popCall()
 		result := unwrapReturnValue(evaluated)
 		if result != nil && result.Type() == object.ERROR {
 			if !strings.Contains(result.Inspect(), "  in ") {
-				return newError("%s\n%s", result.Inspect(), trace)
+				return ctx.newError("%s\n%s", result.Inspect(), trace)
 			}
 		}
 		return result
@@ -457,7 +472,7 @@ func applyFunction(fn object.Object, args []object.Object) object.Object {
 		return f.Fn(args...)
 
 	default:
-		return newError("keine Funktion: %s", fn.Type())
+		return ctx.newError("keine Funktion: %s", fn.Type())
 	}
 }
 
@@ -485,27 +500,24 @@ func unwrapReturnValue(obj object.Object) object.Object {
 	return obj
 }
 
-func evalPipeline(pe *ast.PipelineExpression, left object.Object, env *object.Environment) object.Object {
-	// If right side is a call expression, thread left as first argument
+func (ctx *EvalContext) evalPipeline(pe *ast.PipelineExpression, left object.Object, env *object.Environment) object.Object {
 	if callExpr, ok := pe.Right.(*ast.CallExpression); ok {
-		fn := Eval(callExpr.Function, env)
+		fn := ctx.Eval(callExpr.Function, env)
 		if isError(fn) {
 			return fn
 		}
-		args := evalExpressions(callExpr.Arguments, env)
+		args := ctx.evalExpressions(callExpr.Arguments, env)
 		if len(args) == 1 && isError(args[0]) {
 			return args[0]
 		}
-		// If parser already inserted piped value (via _ placeholder), don't add again
 		if callExpr.PipedArg {
-			return applyFunction(fn, args)
+			return ctx.applyFunction(fn, args)
 		}
 		allArgs := append([]object.Object{left}, args...)
-		return applyFunction(fn, allArgs)
+		return ctx.applyFunction(fn, allArgs)
 	}
 
-	// If right side is an identifier (function name), call it with left as arg
-	rightFn := Eval(pe.Right, env)
+	rightFn := ctx.Eval(pe.Right, env)
 	if isError(rightFn) {
 		return rightFn
 	}
@@ -514,20 +526,20 @@ func evalPipeline(pe *ast.PipelineExpression, left object.Object, env *object.En
 	case *object.Function:
 		args := []object.Object{left}
 		extendedEnv := extendFunctionEnv(fn, args)
-		result := Eval(fn.Body, extendedEnv)
+		result := ctx.Eval(fn.Body, extendedEnv)
 		return unwrapReturnValue(result)
 	case *Builtin:
 		return fn.Fn(append([]object.Object{left})...)
 	}
 
-	return newError("Pipeline: rechte Seite ist keine Funktion")
+	return ctx.newError("Pipeline: rechte Seite ist keine Funktion")
 }
 
-func evalMapLiteral(ml *ast.MapLiteral, env *object.Environment) object.Object {
+func (ctx *EvalContext) evalMapLiteral(ml *ast.MapLiteral, env *object.Environment) object.Object {
 	pairs := make(map[string]object.Object)
 
 	for key, valExpr := range ml.Pairs {
-		val := Eval(valExpr, env)
+		val := ctx.Eval(valExpr, env)
 		if isError(val) {
 			return val
 		}
@@ -537,8 +549,8 @@ func evalMapLiteral(ml *ast.MapLiteral, env *object.Environment) object.Object {
 	return &object.Map{Pairs: pairs}
 }
 
-func evalDotExpression(de *ast.DotExpression, env *object.Environment) object.Object {
-	left := Eval(de.Left, env)
+func (ctx *EvalContext) evalDotExpression(de *ast.DotExpression, env *object.Environment) object.Object {
+	left := ctx.Eval(de.Left, env)
 	if isError(left) {
 		return left
 	}
@@ -548,17 +560,17 @@ func evalDotExpression(de *ast.DotExpression, env *object.Environment) object.Ob
 		if val, ok := obj.Pairs[de.Field]; ok {
 			return val
 		}
-		return newError("Feld '%s' nicht gefunden", de.Field)
+		return ctx.newError("Feld '%s' nicht gefunden", de.Field)
 	default:
-		return newError("Punkt-Zugriff nur auf Maps möglich, nicht %s", left.Type())
+		return ctx.newError("Punkt-Zugriff nur auf Maps möglich, nicht %s", left.Type())
 	}
 }
 
-func evalExpressions(exprs []ast.Expression, env *object.Environment) []object.Object {
+func (ctx *EvalContext) evalExpressions(exprs []ast.Expression, env *object.Environment) []object.Object {
 	var result []object.Object
 
 	for _, e := range exprs {
-		evaluated := Eval(e, env)
+		evaluated := ctx.Eval(e, env)
 		if isError(evaluated) {
 			return []object.Object{evaluated}
 		}
@@ -586,36 +598,37 @@ func valuesEqual(a, b object.Object) bool {
 	}
 }
 
-func evalTryExpression(te *ast.TryExpression, env *object.Environment) object.Object {
-	result := Eval(te.TryBlock, env)
+func (ctx *EvalContext) evalTryExpression(te *ast.TryExpression, env *object.Environment) object.Object {
+	result := ctx.Eval(te.TryBlock, env)
 	if result != nil && result.Type() == object.ERROR {
 		if te.CatchParam != nil {
 			env.Set(te.CatchParam.Value, result)
 		}
-		return Eval(te.CatchBlock, env)
+		return ctx.Eval(te.CatchBlock, env)
 	}
 	return result
 }
 
-func evalEnumStatement(es *ast.EnumStatement, env *object.Environment) object.Object {
+func (ctx *EvalContext) evalEnumStatement(es *ast.EnumStatement, env *object.Environment) object.Object {
 	for i, val := range es.Values {
 		env.Set(val, &object.Integer{Value: int64(i)})
 	}
 	return object.NILOBJ
 }
 
-func evalFnLiteral(fl *ast.FnLiteral, env *object.Environment) object.Object {
+func (ctx *EvalContext) evalFnLiteral(fl *ast.FnLiteral, env *object.Environment) object.Object {
 	return &object.Function{
 		Name:       "lambda",
 		Parameters: fl.Parameters,
 		Body:       fl.Body,
 		Env:        env,
+		EvalCtx:    ctx,
 	}
 }
 
-func evalWhileExpression(we *ast.WhileExpression, env *object.Environment) object.Object {
+func (ctx *EvalContext) evalWhileExpression(we *ast.WhileExpression, env *object.Environment) object.Object {
 	for {
-		condition := Eval(we.Condition, env)
+		condition := ctx.Eval(we.Condition, env)
 		if isError(condition) {
 			return condition
 		}
@@ -623,7 +636,7 @@ func evalWhileExpression(we *ast.WhileExpression, env *object.Environment) objec
 			return object.NILOBJ
 		}
 
-		result := Eval(we.Body, env)
+		result := ctx.Eval(we.Body, env)
 		if result == nil {
 			continue
 		}
@@ -640,29 +653,29 @@ func evalWhileExpression(we *ast.WhileExpression, env *object.Environment) objec
 	}
 }
 
-func evalForExpression(fe *ast.ForExpression, env *object.Environment) object.Object {
+func (ctx *EvalContext) evalForExpression(fe *ast.ForExpression, env *object.Environment) object.Object {
 	if fe.IsForIn {
-		return evalForInExpression(fe, env)
+		return ctx.evalForInExpression(fe, env)
 	}
-	return newError("for-Schleifen noch nicht vollständig implementiert")
+	return ctx.newError("for-Schleifen noch nicht vollständig implementiert")
 }
 
-func evalForInExpression(fe *ast.ForExpression, env *object.Environment) object.Object {
-	iterable := Eval(fe.Iterable, env)
+func (ctx *EvalContext) evalForInExpression(fe *ast.ForExpression, env *object.Environment) object.Object {
+	iterable := ctx.Eval(fe.Iterable, env)
 	if isError(iterable) {
 		return iterable
 	}
 
 	list, ok := iterable.(*object.List)
 	if !ok {
-		return newError("for-in erwartet eine List, nicht %s", iterable.Type())
+		return ctx.newError("for-in erwartet eine List, nicht %s", iterable.Type())
 	}
 
 	iterName := fe.Iterator.Value
 	for _, elem := range list.Elements {
 		env.Set(iterName, elem)
 
-		result := Eval(fe.Body, env)
+		result := ctx.Eval(fe.Body, env)
 		if result == nil {
 			continue
 		}
@@ -680,77 +693,75 @@ func evalForInExpression(fe *ast.ForExpression, env *object.Environment) object.
 	return object.NILOBJ
 }
 
-func evalImportStatement(is *ast.ImportStatement, env *object.Environment) object.Object {
-	if _, ok := importCache[is.Path]; ok {
+func (ctx *EvalContext) evalImportStatement(is *ast.ImportStatement, env *object.Environment) object.Object {
+	if _, ok := ctx.importCache[is.Path]; ok {
 		return object.NILOBJ
 	}
-	importCache[is.Path] = struct{}{}
+	ctx.importCache[is.Path] = struct{}{}
 
 	data, err := os.ReadFile(is.Path)
 	if err != nil {
-		return newError("import fehlgeschlagen: %s", err)
+		return ctx.newError("import fehlgeschlagen: %s", err)
 	}
 
-	// Clear exported symbols before parsing the module
-	prevExports := exportedSymbols
-	exportedSymbols = make(map[string]bool)
+	prevExports := ctx.exportedSymbols
+	ctx.exportedSymbols = make(map[string]bool)
 
 	l := lexer.New(string(data))
 	p := parser.New(l)
 	program := p.ParseProgram()
 	if len(p.Errors()) > 0 {
-		exportedSymbols = prevExports
-		return newError("import parse-fehler in %s: %v", is.Path, p.Errors())
+		ctx.exportedSymbols = prevExports
+		return ctx.newError("import parse-fehler in %s: %v", is.Path, p.Errors())
 	}
 
-	result := Eval(program, env)
+	result := ctx.Eval(program, env)
 
-	// Only keep exported symbols; remove non-exported ones
-	hasExports := len(exportedSymbols) > 0
+	hasExports := len(ctx.exportedSymbols) > 0
 	for name := range env.Store() {
-		if hasExports && !exportedSymbols[name] {
+		if hasExports && !ctx.exportedSymbols[name] {
 			env.Delete(name)
 		}
 	}
 
-	exportedSymbols = prevExports
+	ctx.exportedSymbols = prevExports
 	return result
 }
 
-func evalSliceExpression(se *ast.SliceExpression, env *object.Environment) object.Object {
-	list := Eval(se.List, env)
+func (ctx *EvalContext) evalSliceExpression(se *ast.SliceExpression, env *object.Environment) object.Object {
+	list := ctx.Eval(se.List, env)
 	if isError(list) {
 		return list
 	}
 
 	l, ok := list.(*object.List)
 	if !ok {
-		return newError("Slice nur auf Listen möglich, nicht %s", list.Type())
+		return ctx.newError("Slice nur auf Listen möglich, nicht %s", list.Type())
 	}
 
 	startIdx := int64(0)
 	endIdx := int64(len(l.Elements))
 
 	if se.Start != nil {
-		start := Eval(se.Start, env)
+		start := ctx.Eval(se.Start, env)
 		if isError(start) {
 			return start
 		}
 		s, ok := object.ToInt(start)
 		if !ok {
-			return newError("Slice-Start muss Zahl sein")
+			return ctx.newError("Slice-Start muss Zahl sein")
 		}
 		startIdx = s
 	}
 
 	if se.End != nil {
-		end := Eval(se.End, env)
+		end := ctx.Eval(se.End, env)
 		if isError(end) {
 			return end
 		}
 		e, ok := object.ToInt(end)
 		if !ok {
-			return newError("Slice-Ende muss Zahl sein")
+			return ctx.newError("Slice-Ende muss Zahl sein")
 		}
 		endIdx = e
 	}
@@ -773,16 +784,16 @@ func evalIndexExpression(left, right object.Object) object.Object {
 	case *object.List:
 		idx, ok := object.ToInt(right)
 		if !ok {
-			return newError("Listen-Index muss Zahl sein")
+			return newErrorSt("Listen-Index muss Zahl sein")
 		}
 		if idx < 0 || idx >= int64(len(container.Elements)) {
-			return newError("Index %d außerhalb (Länge %d)", idx, len(container.Elements))
+			return newErrorSt("Index %d außerhalb (Länge %d)", idx, len(container.Elements))
 		}
 		return container.Elements[idx]
 	case *object.Map:
 		key, ok := right.(*object.String)
 		if !ok {
-			return newError("Map-Key muss String sein")
+			return newErrorSt("Map-Key muss String sein")
 		}
 		val, exists := container.Pairs[key.Value]
 		if !exists {
@@ -792,15 +803,15 @@ func evalIndexExpression(left, right object.Object) object.Object {
 	case *object.String:
 		idx, ok := object.ToInt(right)
 		if !ok {
-			return newError("String-Index muss Zahl sein")
+			return newErrorSt("String-Index muss Zahl sein")
 		}
 		s := container.Value
 		if idx < 0 || idx >= int64(len(s)) {
-			return newError("Index %d außerhalb", idx)
+			return newErrorSt("Index %d außerhalb", idx)
 		}
 		return &object.String{Value: string(s[idx])}
 	}
-	return newError("Index-Zugriff nicht unterstützt für %s", left.Type())
+	return newErrorSt("Index-Zugriff nicht unterstützt für %s", left.Type())
 }
 
 type ReturnValue struct {
@@ -820,9 +831,14 @@ type ContinueValue struct{}
 func (cv *ContinueValue) Type() object.ObjectType { return "CONTINUE" }
 func (cv *ContinueValue) Inspect() string         { return "continue" }
 
-func newError(format string, a ...interface{}) *object.Error {
+func (ctx *EvalContext) newError(format string, a ...interface{}) *object.Error {
 	msg := fmt.Sprintf(format, a...)
-	return &object.Error{Message: SourceFile + ": " + msg}
+	return &object.Error{Message: ctx.SourceFile + ": " + msg}
+}
+
+func newErrorSt(format string, a ...interface{}) *object.Error {
+	msg := fmt.Sprintf(format, a...)
+	return &object.Error{Message: msg}
 }
 
 func isError(obj object.Object) bool {

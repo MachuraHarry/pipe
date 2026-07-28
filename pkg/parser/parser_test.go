@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/harry/pulse/pkg/ast"
-	"github.com/harry/pulse/pkg/lexer"
+	"github.com/harry/pipe/pkg/ast"
+	"github.com/harry/pipe/pkg/lexer"
 )
 
 func TestIntegerLiteral(t *testing.T) {

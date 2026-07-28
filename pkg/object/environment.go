@@ -19,9 +19,18 @@ func NewEnclosedEnvironment(outer *Environment) *Environment {
 func (e *Environment) Get(name string) (Object, bool) {
 	obj, ok := e.store[name]
 	if !ok && e.outer != nil {
-		return e.outer.Get(name)
+		obj, ok = e.outer.Get(name)
 	}
 	return obj, ok
+}
+
+func (e *Environment) SetParent(parent *Environment) {
+	e.outer = parent
+}
+
+func (e *Environment) HasLocal(name string) bool {
+	_, ok := e.store[name]
+	return ok
 }
 
 func (e *Environment) Set(name string, val Object) Object {

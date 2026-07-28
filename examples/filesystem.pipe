@@ -1,42 +1,42 @@
 -- Dateisystem-Demo: Alle Operationen
 
-fn has_pulse f
-    contains f "pulse_"
+fn has_pipe f
+    contains f "pipe_"
 
 print "=== Datei erstellen und schreiben ==="
-write_file "/tmp/pulse_demo.txt" "Hallo Welt\nDies ist Zeile 2"
-print (read_file "/tmp/pulse_demo.txt")
+write_file "/tmp/pipe_demo.txt" "Hallo Welt\nDies ist Zeile 2"
+print (read_file "/tmp/pipe_demo.txt")
 
 print ""
 print "=== Datei-Info ==="
 print "Existiert:  "
-print (file_exists "/tmp/pulse_demo.txt")
+print (file_exists "/tmp/pipe_demo.txt")
 print "Typ:        "
-print (file_type "/tmp/pulse_demo.txt")
+print (file_type "/tmp/pipe_demo.txt")
 print "Größe:      "
-print (file_size "/tmp/pulse_demo.txt")
+print (file_size "/tmp/pipe_demo.txt")
 
 print ""
 print "=== Zeilenweise ==="
-lines: read_lines "/tmp/pulse_demo.txt"
+lines: read_lines "/tmp/pipe_demo.txt"
 print "Zeilen: "
 print (len lines)
 
 print ""
 print "=== Anhängen ==="
-append_file "/tmp/pulse_demo.txt" "\nAngehängte Zeile"
-print (read_file "/tmp/pulse_demo.txt")
+append_file "/tmp/pipe_demo.txt" "\nAngehängte Zeile"
+print (read_file "/tmp/pipe_demo.txt")
 
 print ""
 print "=== Kopieren + Umbenennen ==="
-file_copy "/tmp/pulse_demo.txt" "/tmp/pulse_copy.txt"
-file_move "/tmp/pulse_copy.txt" "/tmp/pulse_final.txt"
+file_copy "/tmp/pipe_demo.txt" "/tmp/pipe_copy.txt"
+file_move "/tmp/pipe_copy.txt" "/tmp/pipe_final.txt"
 
 print ""
 print "=== Verzeichnisliste ==="
 files: list_dir "/tmp"
-matching: filter files has_pulse
-print "Pulse-Dateien in /tmp:"
+matching: filter files has_pipe
+print "Pipe-Dateien in /tmp:"
 print matching
 
 print ""
@@ -55,15 +55,15 @@ print (path_join "/tmp" "sub" "file.txt")
 
 print ""
 print "=== Verzeichnis anlegen ==="
-make_dir "/tmp/pulse_testdir"
+make_dir "/tmp/pipe_testdir"
 print "Existiert:  "
-print (file_exists "/tmp/pulse_testdir")
+print (file_exists "/tmp/pipe_testdir")
 print "Typ:        "
-print (file_type "/tmp/pulse_testdir")
+print (file_type "/tmp/pipe_testdir")
 
 print ""
 print "=== Aufräumen ==="
-file_delete "/tmp/pulse_demo.txt"
-file_delete "/tmp/pulse_final.txt"
-remove_dir "/tmp/pulse_testdir"
+file_delete "/tmp/pipe_demo.txt"
+file_delete "/tmp/pipe_final.txt"
+remove_dir "/tmp/pipe_testdir"
 print "Fertig."

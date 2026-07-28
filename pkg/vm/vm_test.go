@@ -3,9 +3,9 @@ package vm
 import (
 	"testing"
 
-	"github.com/harry/pulse/pkg/compiler"
-	"github.com/harry/pulse/pkg/lexer"
-	"github.com/harry/pulse/pkg/parser"
+	"github.com/harry/pipe/pkg/compiler"
+	"github.com/harry/pipe/pkg/lexer"
+	"github.com/harry/pipe/pkg/parser"
 )
 
 func parseAndCompile(t *testing.T, input string) *compiler.Bytecode {

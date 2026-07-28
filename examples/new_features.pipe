@@ -1,4 +1,4 @@
--- Pulse v0.4: Neue Features Demo
+-- Pipe v0.4: Neue Features Demo
 
 print "===== WHILE-SCHLEIFEN ====="
 i: 0
@@ -38,13 +38,13 @@ print (greet "Welt")
 
 print ""
 print "===== IMPORT ====="
-write_file "/tmp/math.pulse" "fn square x\n    x * x\n\nfn cube x\n    x * square x"
-import "/tmp/math.pulse"
+write_file "/tmp/math.pipe" "fn square x\n    x * x\n\nfn cube x\n    x * square x"
+import "/tmp/math.pipe"
 print "square 7 = "
 print (square 7)
 print "cube 3 = "
 print (cube 3)
-file_delete "/tmp/math.pulse"
+file_delete "/tmp/math.pipe"
 print "(library aufgeräumt)"
 
 print ""

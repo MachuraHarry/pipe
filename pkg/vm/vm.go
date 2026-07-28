@@ -3,8 +3,8 @@ package vm
 import (
 	"fmt"
 
-	"github.com/harry/pulse/pkg/compiler"
-	"github.com/harry/pulse/pkg/object"
+	"github.com/harry/pipe/pkg/compiler"
+	"github.com/harry/pipe/pkg/object"
 )
 
 const MaxFrames = 1024
@@ -267,18 +267,11 @@ func (vm *VM) Run() error {
 		case compiler.OpMap:
 			numPairs := int(compiler.ReadUint16(ins, frame.ip))
 			frame.ip += 2
-			// Values are on stack in reverse order
 			vals := make([]object.Object, numPairs)
 			for i := numPairs - 1; i >= 0; i-- {
 				vals[i] = vm.pop()
 			}
 			pairs := make(map[string]object.Object)
-			for i := 0; i < numPairs; i++ {
-				// Key comes next as constant index
-				_ = compiler.ReadUint16(ins, frame.ip) // consume the key index from map emit
-				frame.ip += 2
-				// Actually, keys come after OpMap as extra OpConstant instructions
-			}
 			for i := 0; i < numPairs; i++ {
 				ki := compiler.ReadUint16(ins, frame.ip)
 				frame.ip += 2

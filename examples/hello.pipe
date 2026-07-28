@@ -1,4 +1,4 @@
--- Hallo Welt in Pulse
+-- Hallo Welt in Pipe
 
 greeting: "Hallo Welt"
 print greeting

@@ -1,4 +1,4 @@
-# Pulse — Die umfassende Dokumentation
+# Pipe — Die umfassende Dokumentation
 
 > Version 0.5.0 | 21 Beispiele | 60 Tests | 80+ Builtins
 
@@ -6,27 +6,27 @@
 
 ## Inhaltsverzeichnis
 
-1. [Was ist Pulse?](#1-was-ist-pulse)
+1. [Was ist Pipe?](#1-was-ist-pipe)
 2. [Sprachreferenz](#2-sprachreferenz)
 3. [Standardbibliothek](#3-standardbibliothek)
 4. [Tooling & Ausführung](#4-tooling--ausführung)
-5. [Architektur (Wie Pulse intern funktioniert)](#5-architektur)
-6. [Was kann man mit Pulse bauen?](#6-anwendungsbereiche)
+5. [Architektur (Wie Pipe intern funktioniert)](#5-architektur)
+6. [Was kann man mit Pipe bauen?](#6-anwendungsbereiche)
 7. [Vergleich mit anderen Skriptsprachen](#7-vergleich-mit-anderen-skriptsprachen)
 8. [Schnellreferenz](#8-schnellreferenz)
 
 ---
 
-## 1. Was ist Pulse?
+## 1. Was ist Pipe?
 
-Pulse ist eine **einrückungsbasierte, pipeline-orientierte Skriptsprache**,
+Pipe ist eine **einrückungsbasierte, pipeline-orientierte Skriptsprache**,
 implementiert in Go und ausgeliefert als einzelne, statisch gelinkte Binary (~10 MB).
 
 **Kernphilosophie:** Daten fließen sichtbar von oben nach unten durch
 eine Kette von Transformationen — nicht versteckt in verschachtelten
 Klammerausdrücken.
 
-```pulse
+```pipe
 -- Statt: print(addiere(verdopple(42), 10))
 42
     > verdopple       -- verdopple(42) = 84
@@ -34,7 +34,7 @@ Klammerausdrücken.
     > print           -- Ausgabe: 94
 ```
 
-Pulse kombiniert die **Lesbarkeit von Python** (Einrückung statt Klammern) mit der **Pipeline-Philosophie der Unix-Shell** und der **Portabilität einer Go-Binary** (10 MB, null Abhängigkeiten).
+Pipe kombiniert die **Lesbarkeit von Python** (Einrückung statt Klammern) mit der **Pipeline-Philosophie der Unix-Shell** und der **Portabilität einer Go-Binary** (10 MB, null Abhängigkeiten).
 mit der **Pipeline-Philosophie der Unix-Shell** und der **Portabilität einer Go-Binary**
 (kompakt, keine externen Abhängigkeiten).
 
@@ -46,15 +46,15 @@ mit der **Pipeline-Philosophie der Unix-Shell** und der **Portabilität einer Go
 
 **Kommentare** beginnen mit `--` und gelten bis zum Zeilenende:
 
-```pulse
+```pipe
 -- Das ist ein Kommentar
 x: 42   -- Auch hinter Code möglich
 ```
 
-**Einrückung** definiert Code-Blöcke. Pulse verwendet 4 Leerzeichen
+**Einrückung** definiert Code-Blöcke. Pipe verwendet 4 Leerzeichen
 (oder Tabs) wie Python:
 
-```pulse
+```pipe
 if x > 10
     print "x ist groß"       -- Eingerückt = gehört zum if
     x: 0                     -- Eingerückt = gehört zum if
@@ -63,7 +63,7 @@ print "Fertig"               -- Nicht eingerückt = nach dem if
 
 **Mehrzeilige Strings** mit Backticks:
 
-```pulse
+```pipe
 text: `Zeile 1
 Zeile 2
 Zeile 3`
@@ -71,7 +71,7 @@ Zeile 3`
 
 ### 2.2 Datentypen
 
-Pulse hat 7 eingebaute Datentypen:
+Pipe hat 7 eingebaute Datentypen:
 
 | Typ | Literal | Beispiel |
 |-----|---------|----------|
@@ -83,21 +83,21 @@ Pulse hat 7 eingebaute Datentypen:
 | `map` | `{name: "Anna"}` | Assoziative Map (Schlüssel-Wert) |
 | `fn` | `fn x: x * 2` | First-Class Function |
 
-```pulse
+```pipe
 nichts: nil
 wahr:   true
 zahl:   42
 komma:  3.14
 text:   "Hallo Welt"
 liste:  [10, 20, 30]
-map:    {name: "Pulse", version: 1}
+map:    {name: "Pipe", version: 1}
 ```
 
 ### 2.3 Variablen & Zuweisung
 
 Variablen werden mit `name: wert` definiert und neu zugewiesen:
 
-```pulse
+```pipe
 zaehler: 0
 zaehler: zaehler + 1       -- Neuzuweisung: jetzt 1
 
@@ -148,9 +148,9 @@ umschließenden Scope (Closures).
 
 #### Strings
 
-```pulse
-name: "Pulse"
-print ("Hallo " ++ name)    -- "Hallo Pulse" (String-Verkettung)
+```pipe
+name: "Pipe"
+print ("Hallo " ++ name)    -- "Hallo Pipe" (String-Verkettung)
 ```
 
 #### Operator-Präzedenz (höchste zu niedrigste)
@@ -169,7 +169,7 @@ print ("Hallo " ++ name)    -- "Hallo Pulse" (String-Verkettung)
 
 #### if / else if / else
 
-```pulse
+```pipe
 punkte: 85
 
 if punkte >= 90
@@ -184,7 +184,7 @@ else
 
 `if` ist ein **Ausdruck** — der letzte Wert jedes Zweigs wird zurückgegeben:
 
-```pulse
+```pipe
 status: if punkte >= 50
     "bestanden"
 else
@@ -193,7 +193,7 @@ else
 
 #### match (Pattern Matching)
 
-```pulse
+```pipe
 fn bewertung note
     match note
         | 1      -> "Sehr gut"
@@ -208,7 +208,7 @@ print (bewertung 2)    -- "Gut"
 - `->` trennt Muster vom Ergebnis
 - `_` ist der Wildcard („trifft immer zu")
 
-```pulse
+```pipe
 -- Fibonacci mit match
 fn fib n
     match n
@@ -219,7 +219,7 @@ fn fib n
 
 #### while
 
-```pulse
+```pipe
 i: 0
 while i < 5
     print i
@@ -228,7 +228,7 @@ while i < 5
 
 **break** und **continue** funktionieren innerhalb von while-Schleifen.
 
-```pulse
+```pipe
 while true
     x: x + 1
     if x > 10
@@ -240,7 +240,7 @@ while true
 
 #### for-in
 
-```pulse
+```pipe
 for farbe in ["rot", "grün", "blau"]
     print farbe
 
@@ -255,7 +255,7 @@ for n in (range 1 6)
 
 #### return
 
-```pulse
+```pipe
 fn betrag x
     if x < 0
         return (-x)
@@ -270,7 +270,7 @@ print (betrag 5)       -- 5
 `defer` plant eine Aktion für das Ende des aktuellen Blocks ein —
 nützlich für Ressourcen-Freigabe (wie in Go):
 
-```pulse
+```pipe
 fn verarbeite_datei pfad
     print ("Öffne " ++ pfad)
     defer print ("Schließe " ++ pfad)  -- Wird am Ende ausgeführt
@@ -290,7 +290,7 @@ und funktionieren auch auf Top-Level (am Programm-Ende).
 
 #### Definition
 
-```pulse
+```pipe
 fn verdopple x
     x * 2
 
@@ -307,27 +307,27 @@ fn addiere a b
 
 Funktionsaufrufe verwenden Leerzeichen statt Kommas:
 
-```pulse
+```pipe
 print (verdopple 21)       -- 42
 print (addiere 3 4)        -- 7
 ```
 
 Bei **einem Argument** können die Klammern entfallen:
 
-```pulse
+```pipe
 print "Hallo"              -- äquivalent zu print("Hallo")
 ```
 
 **Wichtig:** Rechenausdrücke als Argumente brauchen Klammern:
 
-```pulse
+```pipe
 print (1 + 2)              -- Richtig: print(3)
 -- print 1 + 2             -- Falsch: (print 1) + 2
 ```
 
 #### Anonyme Funktionen
 
-```pulse
+```pipe
 verdreifacher: fn x
     x * 3
 
@@ -338,7 +338,7 @@ print (verdreifacher 7)    -- 21
 
 Funktionen merken sich den Scope, in dem sie definiert wurden:
 
-```pulse
+```pipe
 fn make_adder n
     fn adder x
         x + n
@@ -349,7 +349,7 @@ print (add5 10)            -- 15
 
 ### 2.7 Pipeline
 
-Die Pipeline ist das zentrale Sprach-Feature von Pulse.
+Die Pipeline ist das zentrale Sprach-Feature von Pipe.
 
 > **Wichtig:** `>` wird im Ausdruckskontext als **Vergleichsoperator** behandelt
 > (`a > b` = „a größer als b"). Nur in der **vertikalen Form mit Einrückung**
@@ -357,7 +357,7 @@ Die Pipeline ist das zentrale Sprach-Feature von Pulse.
 
 #### Vertikale Pipeline (empfohlen)
 
-```pulse
+```pipe
 42
     > verdopple       -- verdopple(42)
     > addiere 10      -- addiere(verdopple(42), 10)
@@ -371,7 +371,7 @@ und übergibt es als **erstes Argument** an die angegebene Funktion.
 
 Mit `_` kann der Pipeline-Wert an einer anderen Position eingefügt werden:
 
-```pulse
+```pipe
 fn subtrahiere a b
     a - b
 
@@ -391,7 +391,7 @@ als erstes Argument eingefügt.
 
 #### Pipeline mit Zusatzargumenten
 
-```pulse
+```pipe
 100
     > addiere 50      -- addiere(100, 50) = 150
     > print           -- 150
@@ -401,7 +401,7 @@ als erstes Argument eingefügt.
 
 #### Listen
 
-```pulse
+```pipe
 zahlen: [10, 20, 30, 40, 50]
 
 -- Zugriff per Index
@@ -427,7 +427,7 @@ print (map [1,2,3] verdopple)        -- [2, 4, 6]
 
 #### Maps
 
-```pulse
+```pipe
 person: {name: "Anna", alter: 28, stadt: "Berlin"}
 
 -- Zugriff
@@ -444,7 +444,7 @@ print (values person)           -- ["Anna", 29, "Berlin"]
 
 ### 2.9 Fehlerbehandlung
 
-```pulse
+```pipe
 try
     ergebnis: 10 / 0            -- gefährlicher Code
 catch fehler
@@ -464,7 +464,7 @@ ERROR: Division durch Null
 
 Seit v0.5 kann `return` für vorzeitiges Verlassen genutzt werden:
 
-```pulse
+```pipe
 fn teile a b
     if b == 0
         return nil
@@ -473,13 +473,13 @@ fn teile a b
 
 ### 2.10 Module & Importe
 
-```pulse
--- lib.pulse:
+```pipe
+-- lib.pipe:
 fn quadrat x
     x * x
 
--- main.pulse:
-import "lib.pulse"
+-- main.pipe:
+import "lib.pipe"
 print (quadrat 7)            -- 49
 ```
 
@@ -489,10 +489,10 @@ parst sie nur einmal.
 ### 2.11 CLI-Argumente
 
 ```bash
-./bin/pulse script.pulse arg1 arg2 arg3
+./bin/pipe script.pipe arg1 arg2 arg3
 ```
 
-```pulse
+```pipe
 print args                  -- ["arg1", "arg2", "arg3"]
 print (at args 0)           -- "arg1"
 print (len args)            -- 3
@@ -502,7 +502,7 @@ print (len args)            -- 3
 
 ## 3. Standardbibliothek
 
-Pulse hat über 80 eingebaute Funktionen — keine externen Abhängigkeiten.
+Pipe hat über 80 eingebaute Funktionen — keine externen Abhängigkeiten.
 
 ### I/O & System
 
@@ -635,27 +635,27 @@ Pulse hat über 80 eingebaute Funktionen — keine externen Abhängigkeiten.
 ### Installation & Start
 
 ```bash
-git clone <pulse-repo>
-cd pulse
+git clone <pipe-repo>
+cd pipe
 make build
-./bin/pulse examples/hello.pulse
+./bin/pipe examples/hello.pipe
 ```
 
 ### Ausführungsmodi
 
 | Modus | Befehl | Beschreibung |
 |-------|--------|-------------|
-| **Tree-Walker** | `./bin/pulse datei.pulse` | Alle Features, langsamer |
-| **Bytecode-VM** | `./bin/pulse -vm datei.pulse` | ~7× schneller, while/for-in/return |
-| **VM (quiet)** | `./bin/pulse -vm -q datei.pulse` | Ohne Bytecode-Ausgabe |
-| **AST** | `./bin/pulse -ast datei.pulse` | AST anzeigen (Entwickler) |
-| **REPL** | `./bin/pulse` | Interaktiver Modus |
-| **Hilfe** | `./bin/pulse -h` | Alle Optionen |
+| **Tree-Walker** | `./bin/pipe datei.pipe` | Alle Features, langsamer |
+| **Bytecode-VM** | `./bin/pipe -vm datei.pipe` | ~7× schneller, while/for-in/return |
+| **VM (quiet)** | `./bin/pipe -vm -q datei.pipe` | Ohne Bytecode-Ausgabe |
+| **AST** | `./bin/pipe -ast datei.pipe` | AST anzeigen (Entwickler) |
+| **REPL** | `./bin/pipe` | Interaktiver Modus |
+| **Hilfe** | `./bin/pipe -h` | Alle Optionen |
 
 ### REPL
 
 ```
-$ ./bin/pulse
+$ ./bin/pipe
 >>> 1 + 2
 3
 >>> fn verdopple x
@@ -680,10 +680,10 @@ $ ./bin/pulse
 
 ### 5.1 Überblick
 
-Pulse besteht aus fünf Hauptkomponenten:
+Pipe besteht aus fünf Hauptkomponenten:
 
 ```
-Quelltext (.pulse)
+Quelltext (.pipe)
     │
     ▼
 ┌─────────────┐
@@ -749,7 +749,7 @@ Quelltext (.pulse)
 - Environment mit Scope-Chain
 - Alle 80+ Builtins (Reine Go-Funktionen)
 
-### 5.8 CLI & REPL (`cmd/pulse/`)
+### 5.8 CLI & REPL (`cmd/pipe/`)
 
 - ~420 Zeilen Go
 - Flag-Parsing (`-vm`, `-q`, `-ast`, `-h`)
@@ -776,7 +776,7 @@ Quelltext (.pulse)
 
 ### CLI-Tools & Automation
 
-```pulse
+```pipe
 -- Build-Skript
 print (exec "go build ./...")
 print (exec "go test ./...")
@@ -786,13 +786,13 @@ ts: now 0
 ziel: path_join "/backups" ("backup_" ++ (to_str ts))
 make_dir ziel
 for f in (list_dir ".")
-    if contains f ".pulse"
+    if contains f ".pipe"
         file_copy f (path_join ziel f)
 ```
 
 ### API-Clients & Web-Scraping
 
-```pulse
+```pipe
 -- GitHub-API
 user: http_get_json "https://api.github.com/users/torvalds"
 print (get user "public_repos")    -- 12
@@ -805,7 +805,7 @@ print ("Wörter: " ++ (to_str woerter))
 
 ### Daten-Pipelines & Textverarbeitung
 
-```pulse
+```pipe
 read_file "log.txt"
     > split "\n"
     > filter (fn l: contains l "ERROR")
@@ -815,7 +815,7 @@ read_file "log.txt"
 
 ### TCP-Dienste
 
-```pulse
+```pipe
 -- Echo-Server
 ln: tcp_listen "0.0.0.0" 9999
 conn: tcp_accept ln
@@ -825,7 +825,7 @@ tcp_write conn ("ECHO: " ++ msg)
 
 ### Konfiguration & System-Management
 
-```pulse
+```pipe
 host: env "HOST"
 port: to_num (env "PORT")
 print (exec ("curl -s " ++ host ++ ":" ++ (to_str port) ++ "/health"))
@@ -835,9 +835,9 @@ print (exec ("curl -s " ++ host ++ ":" ++ (to_str port) ++ "/health"))
 
 ## 7. Vergleich mit anderen Skriptsprachen
 
-### 7.1 Pulse vs Python
+### 7.1 Pipe vs Python
 
-| Merkmal | Pulse | Python |
+| Merkmal | Pipe | Python |
 |---------|-------|--------|
 | **Pipeline** | `42 > fn > print` | `42 \| fn \| print` (geht nicht nativ) |
 | **Funktionsaufruf** | `print "Hallo"` (space-based) | `print("Hallo")` (Klammern) |
@@ -849,13 +849,13 @@ print (exec ("curl -s " ++ host ++ ":" ++ (to_str port) ++ "/health"))
 | **Statische Binary** | ✅ (10 MB) | ❌ (braucht Interpreter) |
 | **Ökosystem** | Eigenbau | Riesig (pip, 400k+ Packages) |
 
-**Wann Pulse statt Python?** Wenn du eine einzelne Binary ausliefern willst,
+**Wann Pipe statt Python?** Wenn du eine einzelne Binary ausliefern willst,
 keine Abhängigkeiten brauchst und Pipeline-artige Datenverarbeitung
 im Vordergrund steht.
 
-### 7.2 Pulse vs Lua
+### 7.2 Pipe vs Lua
 
-| Merkmal | Pulse | Lua |
+| Merkmal | Pipe | Lua |
 |---------|-------|-----|
 | **Portabilität** | ✅ (10 MB Binary) | ✅ (300 KB Binary) |
 | **Pipeline** | ✅ First-Class | ❌ |
@@ -869,13 +869,13 @@ im Vordergrund steht.
 | **Größe** | 10 MB | ~300 KB |
 | **Performance** | ~7× langsamer (VM) | Schnell (LuaJIT: extrem) |
 
-**Wann Pulse statt Lua?** Wenn du eine modernere Syntax mit mehr
+**Wann Pipe statt Lua?** Wenn du eine modernere Syntax mit mehr
 Builtins willst und keine C-Integration brauchst. Lua ist besser
 für Embedded-Systeme und wenn es auf jedes Kilobyte ankommt.
 
-### 7.3 Pulse vs JavaScript/Node.js
+### 7.3 Pipe vs JavaScript/Node.js
 
-| Merkmal | Pulse | Node.js |
+| Merkmal | Pipe | Node.js |
 |---------|-------|---------|
 | **Pipeline** | ✅ Sprach-Feature | ❌ (nur Array-Methoden) |
 | **Async/Await** | ❌ | ✅ |
@@ -885,12 +885,12 @@ für Embedded-Systeme und wenn es auf jedes Kilobyte ankommt.
 | **Einrückung** | ✅ | ❌ (`{}`) |
 | **Typisierung** | Dynamisch | Dynamisch |
 
-**Wann Pulse statt Node?** Für kleine bis mittlere Tools, wo NPM-Overhead
+**Wann Pipe statt Node?** Für kleine bis mittlere Tools, wo NPM-Overhead
 überdimensioniert wäre. Node ist besser für Web-Server mit Async-I/O.
 
-### 7.4 Pulse vs Bash
+### 7.4 Pipe vs Bash
 
-| Merkmal | Pulse | Bash |
+| Merkmal | Pipe | Bash |
 |---------|-------|------|
 | **Datenstrukturen** | ✅ (Listen, Maps) | ❌ (nur Strings) |
 | **Funktionen** | ✅ (First-Class) | 🟡 (eingeschränkt) |
@@ -900,8 +900,8 @@ für Embedded-Systeme und wenn es auf jedes Kilobyte ankommt.
 | **Pipeline** | ✅ (strukturiert) | ✅ (nur Text-Streams) |
 | **Regex** | ✅ | 🟡 (nur `grep`/`sed`) |
 
-**Wann Pulse statt Bash?** Sobald die Logik komplexer wird als
-„ein paar Befehle aneinanderreihen". Pulse gibt dir echte
+**Wann Pipe statt Bash?** Sobald die Logik komplexer wird als
+„ein paar Befehle aneinanderreihen". Pipe gibt dir echte
 Datenstrukturen und Fehlerbehandlung.
 
 ### 7.5 Zusammenfassung
@@ -922,7 +922,7 @@ Datenstrukturen und Fehlerbehandlung.
 
 ### Syntax-Cheatsheet
 
-```pulse
+```pipe
 -- Kommentar
 x: 42                         -- Variable
 x += 1                        -- Compound Assignment
@@ -933,7 +933,7 @@ while bed: ...                -- Schleife
 for x in liste: ...           -- for-in
 try: ... catch e: ...         -- Fehler abfangen
 return wert                   -- Vorzeitiges Verlassen
-import "datei.pulse"          -- Modul laden
+import "datei.pipe"          -- Modul laden
 
 wert
     > funktion                 -- Vertikale Pipeline
@@ -960,29 +960,29 @@ list[0..3]                    -- Slicing
 ### CLI-Cheatsheet
 
 ```bash
-pulse datei.pulse              # Tree-Walker
-pulse -vm datei.pulse          # Bytecode-VM
-pulse -vm -q datei.pulse       # VM ohne Bytecode-Ausgabe
-pulse -ast datei.pulse         # AST anzeigen
-pulse                          # REPL starten
-pulse datei.pulse arg1 arg2    # Mit CLI-Argumenten
+pipe datei.pipe              # Tree-Walker
+pipe -vm datei.pipe          # Bytecode-VM
+pipe -vm -q datei.pipe       # VM ohne Bytecode-Ausgabe
+pipe -ast datei.pipe         # AST anzeigen
+pipe                          # REPL starten
+pipe datei.pipe arg1 arg2    # Mit CLI-Argumenten
 ```
 
 ### Datei-Endung
 
-Pulse-Dateien: **`.pulse`**
+Pipe-Dateien: **`.pipe`**
 
 ### Projektstruktur (Empfehlung)
 
 ```
 mein_projekt/
-├── main.pulse
+├── main.pipe
 ├── lib/
-│   ├── helpers.pulse
-│   └── config.pulse
+│   ├── helpers.pipe
+│   └── config.pipe
 └── README.md
 ```
 
 ---
 
-*Pulse — Daten fließen lassen, nicht Klammern zählen.*
+*Pipe — Daten fließen lassen, nicht Klammern zählen.*

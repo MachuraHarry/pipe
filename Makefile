@@ -1,16 +1,16 @@
 .PHONY: build run test clean repl
 
 build:
-	go build -o bin/pulse ./cmd/pulse
+	go build -o bin/pipe ./cmd/pipe
 
 run: build
-	./bin/pulse
+	./bin/pipe
 
 test:
 	go test ./pkg/...
 
 repl: build
-	./bin/pulse
+	./bin/pipe
 
 clean:
 	rm -rf bin/

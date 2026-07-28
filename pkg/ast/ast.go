@@ -19,7 +19,7 @@ type Expression interface {
 	String() string
 }
 
-// Program is the root node of every Pulse AST.
+// Program is the root node of every Pipe AST.
 type Program struct {
 	Statements []Statement
 }

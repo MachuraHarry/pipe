@@ -8,17 +8,17 @@ import (
 	"strings"
 	"time"
 
-	"github.com/harry/pulse/pkg/ast"
-	"github.com/harry/pulse/pkg/compiler"
-	"github.com/harry/pulse/pkg/eval"
-	"github.com/harry/pulse/pkg/formatter"
-	"github.com/harry/pulse/pkg/lexer"
-	"github.com/harry/pulse/pkg/object"
-	"github.com/harry/pulse/pkg/parser"
-	"github.com/harry/pulse/pkg/vm"
+	"github.com/harry/pipe/pkg/ast"
+	"github.com/harry/pipe/pkg/compiler"
+	"github.com/harry/pipe/pkg/eval"
+	"github.com/harry/pipe/pkg/formatter"
+	"github.com/harry/pipe/pkg/lexer"
+	"github.com/harry/pipe/pkg/object"
+	"github.com/harry/pipe/pkg/parser"
+	"github.com/harry/pipe/pkg/vm"
 )
 
-const version = "v0.3.0"
+const version = "v0.5.0"
 
 func main() {
 	var (
@@ -62,7 +62,7 @@ func main() {
 
 	if doFmt {
 		if err := formatter.Format(filePath); err != nil {
-			fmt.Fprintf(os.Stderr, "pulse fmt: %s\n", err)
+			fmt.Fprintf(os.Stderr, "pipe fmt: %s\n", err)
 			os.Exit(1)
 		}
 		fmt.Printf("Formatted %s\n", filePath)
@@ -76,7 +76,7 @@ func main() {
 
 	data, err := os.ReadFile(filePath)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "pulse: %s\n", err)
+		fmt.Fprintf(os.Stderr, "pipe: %s\n", err)
 		os.Exit(1)
 	}
 
@@ -105,11 +105,11 @@ func main() {
 }
 
 func printHelp() {
-	fmt.Println(`Pulse ` + version + ` — Minimalistische Pipeline-Skriptsprache
+	fmt.Println(`Pipe ` + version + ` — Minimalistische Pipeline-Skriptsprache
 
 Verwendung:
-  pulse [flags] <datei.pulse>    Datei ausführen
-  pulse                          REPL starten
+  pipe [flags] <datei.pipe>    Datei ausführen
+  pipe                          REPL starten
 
 Flags:
   -vm           Bytecode-VM statt Tree-Walker verwenden
@@ -118,24 +118,23 @@ Flags:
   -h, --help    Diese Hilfe anzeigen
 
 Beispiele:
-  pulse examples/hello.pulse
-  pulse -vm examples/fib.pulse
-  pulse -vm -q examples/fizzbuzz.pulse
-  pulse -ast examples/pipeline.pulse`)
+  pipe examples/hello.pipe
+  pipe -vm examples/fib.pipe
+  pipe -vm -q examples/fizzbuzz.pipe
+  pipe -ast examples/pipeline.pipe`)
 }
 
 func runEval(program *ast.Program, scriptArgs []string, filePath string) {
 	env := object.NewEnvironment()
 
-	// Set global args variable
 	argObjs := make([]object.Object, len(scriptArgs))
 	for i, a := range scriptArgs {
 		argObjs[i] = &object.String{Value: a}
 	}
 	env.Set("args", &object.List{Elements: argObjs})
 
-	eval.SourceFile = filePath
-	result := eval.Eval(program, env)
+	ctx := eval.NewEvalContext(filePath)
+	result := ctx.Eval(program, env)
 	if result != nil && result.Type() == object.ERROR {
 		fmt.Fprintf(os.Stderr, "Laufzeit-Fehler: %s\n", result.Inspect())
 		os.Exit(1)
@@ -172,8 +171,8 @@ func runVM(program *ast.Program, quiet bool) {
 // ---- REPL ----
 
 func startREPL(useVM bool) {
-	fmt.Printf("Pulse %s — REPL\n", version)
-	fmt.Println("Gib Pulse-Code ein. :quit oder Strg+D zum Beenden.")
+	fmt.Printf("Pipe %s — REPL\n", version)
+	fmt.Println("Gib Pipe-Code ein. :quit oder Strg+D zum Beenden.")
 	fmt.Println("Leerzeile zum Abschließen von mehrzeiligen Blöcken.")
 	fmt.Println(":history — letzte Befehle | :!N — Befehl N wiederholen")
 	fmt.Println()
@@ -344,12 +343,12 @@ func executeREPL(lines []string, env *object.Environment, useVM bool) {
 }
 
 func replRunEval(program *ast.Program, env *object.Environment) {
-	result := eval.Eval(program, env)
+	ctx := eval.NewEvalContext("<repl>")
+	result := ctx.Eval(program, env)
 	if result != nil {
 		if result.Type() == object.ERROR {
 			fmt.Fprintf(os.Stderr, "Fehler: %s\n", result.Inspect())
 		} else if result.Type() != object.NIL {
-			// Don't show function definitions as values
 			if result.Type() != object.FUNCTION && result.Type() != object.COMPILED_FUNCTION {
 				fmt.Println(result.Inspect())
 			}

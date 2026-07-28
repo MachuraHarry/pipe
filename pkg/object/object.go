@@ -19,7 +19,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/harry/pulse/pkg/ast"
+	"github.com/harry/pipe/pkg/ast"
 )
 
 type ObjectType string
@@ -72,6 +72,7 @@ type Function struct {
 	Parameters []*ast.Identifier
 	Body       *ast.BlockStatement
 	Env        *Environment
+	EvalCtx    interface{} // *eval.EvalContext, avoids circular import
 }
 
 func (f *Function) Type() ObjectType { return FUNCTION }
@@ -811,7 +812,21 @@ func bSort(args ...Object) Object {
 	}
 	sorted := make([]Object, len(l.Elements))
 	copy(sorted, l.Elements)
+	allNumeric := true
+	for _, e := range sorted {
+		if _, ok := e.(*Integer); !ok {
+			if _, ok := e.(*Float); !ok {
+				allNumeric = false
+				break
+			}
+		}
+	}
 	sort.Slice(sorted, func(i, j int) bool {
+		if allNumeric {
+			af, _ := ToFloat(sorted[i])
+			bf, _ := ToFloat(sorted[j])
+			return af < bf
+		}
 		return sorted[i].Inspect() < sorted[j].Inspect()
 	})
 	return &List{Elements: sorted}
@@ -1739,4 +1754,8 @@ func strArg(args []Object, name string) (*String, bool) {
 
 func err(msg string) *Error {
 	return &Error{Message: msg}
+}
+
+func FormatMsg(format string, a ...interface{}) string {
+	return fmt.Sprintf(format, a...)
 }

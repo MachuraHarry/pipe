@@ -1,8 +1,8 @@
 -- ============================================================
--- PULSE TCP — Echo-Server + Client
+-- PIPE TCP — Echo-Server + Client
 -- ============================================================
--- Server: ./bin/pulse examples/tcp_chat.pulse server
--- Client: ./bin/pulse examples/tcp_chat.pulse client
+-- Server: ./bin/pipe examples/tcp_chat.pipe server
+-- Client: ./bin/pipe examples/tcp_chat.pipe client
 -- ============================================================
 
 fn run_server dummy
@@ -12,7 +12,7 @@ fn run_server dummy
     print "Warte auf Client..."
     conn: tcp_accept ln
     print "Client verbunden!"
-    tcp_write conn "Wilkommen zum Pulse-Echo-Server!\n"
+    tcp_write conn "Wilkommen zum Pipe-Echo-Server!\n"
 
     i: 0
     while i < 10
@@ -56,7 +56,7 @@ fn run_client dummy
 -- ─── Start ─────────────────────────────────────────────────
 print "═══ TCP CLIENT ═══"
 if (len args) == 0
-    print "Nutzung: pulse examples/tcp_chat.pulse server|client"
+    print "Nutzung: pipe examples/tcp_chat.pipe server|client"
 else
     mode: at args 0
     if mode == "server"

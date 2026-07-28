@@ -13,7 +13,7 @@ print data
 
 print ""
 print "=== JSON erstellen ==="
-payload: {name: "Pulse", type: "script"}
+payload: {name: "Pipe", type: "script"}
 json: to_json payload
 print "JSON:"
 print json

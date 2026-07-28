@@ -1,6 +1,6 @@
-# Pulse — Eine minimalistische, pipeline-basierte Skriptsprache
+# Pipe — Eine minimalistische, pipeline-basierte Skriptsprache
 
-Pulse ist eine einrückungsbasierte Skriptsprache mit Pipeline-Syntax.  
+Pipe ist eine einrückungsbasierte Skriptsprache mit Pipeline-Syntax.  
 Die gesamte Grammatik passt auf eine Seite — inspiriert von Lua's Minimalismus.
 
 ## Schnellstart
@@ -13,19 +13,19 @@ make build
 make repl
 
 # Datei ausführen (Tree-Walker)
-./bin/pulse beispiele/hello.pulse
+./bin/pipe beispiele/hello.pipe
 
 # Datei ausführen (VM, schnell)
-./bin/pulse -vm beispiele/fib.pulse
+./bin/pipe -vm beispiele/fib.pipe
 
 # VM ohne Bytecode-Ausgabe
-./bin/pulse -vm -q beispiele/pipeline.pulse
+./bin/pipe -vm -q beispiele/pipeline.pipe
 
 # AST ausgeben
-./bin/pulse -ast beispiele/fib.pulse
+./bin/pipe -ast beispiele/fib.pipe
 
 # Alle Beispiele ausführen
-for f in examples/*.pulse; do echo "=== $f ===" && ./bin/pulse "$f"; done
+for f in examples/*.pipe; do echo "=== $f ===" && ./bin/pipe "$f"; done
 ```
 
 ## Sprachüberblick
@@ -194,10 +194,10 @@ fib (n - 1)             -- parens for complex args
 ## Beispiele
 
 ```
-examples/hello.pulse     — Hallo Welt
-examples/fib.pulse       — Fibonacci-Zahlen  
-examples/fizzbuzz.pulse  — FizzBuzz
-examples/pipeline.pulse  — Pipeline-Ketten
+examples/hello.pipe     — Hallo Welt
+examples/fib.pipe       — Fibonacci-Zahlen  
+examples/fizzbuzz.pipe  — FizzBuzz
+examples/pipeline.pipe  — Pipeline-Ketten
 ```
 
 ## Entwicklungsstand
@@ -212,12 +212,12 @@ examples/pipeline.pulse  — Pipeline-Ketten
 - [x] M8: Bytecode-Compiler + Stack-VM (25 Tests)
 - [x] M9: Standardbibliothek (60+ Builtins: FS, HTTP, JSON, TCP)
 - [x] M10: REPL + CLI-Tooling
-- [x] v0.4: while, break, continue, slice, import, anonyme Fns
+- [x] v0.5: while, break, continue, slice, import, anonyme Fns, defer, compound-assign
 
 ## REPL
 
 ```bash
-make repl        # oder: ./bin/pulse
+make repl        # oder: ./bin/pipe
 ```
 
 ```
@@ -246,8 +246,8 @@ go test ./...
 ## Projektstruktur
 
 ```
-pulse/
-├── cmd/pulse/main.go       # CLI
+pipe/
+├── cmd/pipe/main.go       # CLI
 ├── pkg/lexer/              # Lexer (15 Tests)
 ├── pkg/parser/             # Parser (20 Tests)  
 ├── pkg/ast/                # AST-Definitionen

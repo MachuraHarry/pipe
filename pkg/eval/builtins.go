@@ -1,7 +1,7 @@
 package eval
 
 import (
-	"github.com/harry/pulse/pkg/object"
+	"github.com/harry/pipe/pkg/object"
 )
 
 type Builtin struct {
@@ -19,7 +19,6 @@ func init() {
 		builtins[bi.Name] = &Builtin{Fn: bi.Fn}
 	}
 
-	// Complex builtins that need the evaluator
 	builtins["map"] = &Builtin{Fn: bMap}
 	builtins["filter"] = &Builtin{Fn: bFilter}
 	builtins["reduce"] = &Builtin{Fn: bReduce}
@@ -29,15 +28,16 @@ func init() {
 
 func bMap(args ...object.Object) object.Object {
 	if len(args) != 2 {
-		return newError("map erwartet 2 Argumente (Liste, Funktion)")
+		return newErr("map erwartet 2 Argumente (Liste, Funktion)")
 	}
 	list, ok := args[0].(*object.List)
 	if !ok {
-		return newError("map: erstes Argument muss eine List sein")
+		return newErr("map: erstes Argument muss eine List sein")
 	}
+	fn := args[1]
 	result := make([]object.Object, len(list.Elements))
 	for i, elem := range list.Elements {
-		result[i] = applyFunction(args[1], []object.Object{elem})
+		result[i] = applyFn(fn, []object.Object{elem})
 		if result[i] != nil && result[i].Type() == object.ERROR {
 			return result[i]
 		}
@@ -47,15 +47,16 @@ func bMap(args ...object.Object) object.Object {
 
 func bFilter(args ...object.Object) object.Object {
 	if len(args) != 2 {
-		return newError("filter erwartet 2 Argumente (Liste, Funktion)")
+		return newErr("filter erwartet 2 Argumente (Liste, Funktion)")
 	}
 	list, ok := args[0].(*object.List)
 	if !ok {
-		return newError("filter: erstes Argument muss eine List sein")
+		return newErr("filter: erstes Argument muss eine List sein")
 	}
+	fn := args[1]
 	var result []object.Object
 	for _, elem := range list.Elements {
-		r := applyFunction(args[1], []object.Object{elem})
+		r := applyFn(fn, []object.Object{elem})
 		if r != nil && r.Type() == object.ERROR {
 			return r
 		}
@@ -68,15 +69,16 @@ func bFilter(args ...object.Object) object.Object {
 
 func bReduce(args ...object.Object) object.Object {
 	if len(args) != 3 {
-		return newError("reduce erwartet 3 Argumente (Liste, Funktion, Startwert)")
+		return newErr("reduce erwartet 3 Argumente (Liste, Funktion, Startwert)")
 	}
 	list, ok := args[0].(*object.List)
 	if !ok {
-		return newError("reduce: erstes Argument muss eine List sein")
+		return newErr("reduce: erstes Argument muss eine List sein")
 	}
+	fn := args[1]
 	acc := args[2]
 	for _, elem := range list.Elements {
-		acc = applyFunction(args[1], []object.Object{acc, elem})
+		acc = applyFn(fn, []object.Object{acc, elem})
 		if acc != nil && acc.Type() == object.ERROR {
 			return acc
 		}
@@ -86,21 +88,22 @@ func bReduce(args ...object.Object) object.Object {
 
 func bEach(args ...object.Object) object.Object {
 	if len(args) != 2 {
-		return newError("each erwartet 2 Argumente (Liste, Funktion)")
+		return newErr("each erwartet 2 Argumente (Liste, Funktion)")
 	}
 	list, ok := args[0].(*object.List)
 	if !ok {
-		return newError("each: erstes Argument muss eine List sein")
+		return newErr("each: erstes Argument muss eine List sein")
 	}
+	fn := args[1]
 	for _, elem := range list.Elements {
-		applyFunction(args[1], []object.Object{elem})
+		applyFn(fn, []object.Object{elem})
 	}
 	return object.NILOBJ
 }
 
 func bGo(args ...object.Object) object.Object {
 	if len(args) < 1 {
-		return newError("go erwartet mindestens 1 Argument (Funktion)")
+		return newErr("go erwartet mindestens 1 Argument (Funktion)")
 	}
 	fn := args[0]
 	fnArgs := args[1:]
@@ -114,12 +117,36 @@ func bGo(args ...object.Object) object.Object {
 					extEnv.Set(p.Value, fnArgs[i])
 				}
 			}
-			Eval(f.Body, extEnv)
+			fnCtx := getEvalCtx(f)
+			fnCtx.Eval(f.Body, extEnv)
 		}()
 	case *Builtin:
 		go f.Fn(fnArgs...)
 	default:
-		return newError("go: erstes Argument muss eine Funktion sein")
+		return newErr("go: erstes Argument muss eine Funktion sein")
 	}
 	return object.NILOBJ
+}
+
+func applyFn(fn object.Object, args []object.Object) object.Object {
+	switch f := fn.(type) {
+	case *object.Function:
+		fnCtx := getEvalCtx(f)
+		return fnCtx.applyFunction(f, args)
+	case *Builtin:
+		return f.Fn(args...)
+	}
+	return newErr("nicht aufrufbar")
+}
+
+func getEvalCtx(f *object.Function) *EvalContext {
+	if ctx, ok := f.EvalCtx.(*EvalContext); ok {
+		return ctx
+	}
+	return NewEvalContext("<lambda>")
+}
+
+func newErr(format string, a ...interface{}) *object.Error {
+	msg := object.FormatMsg(format, a...)
+	return &object.Error{Message: msg}
 }

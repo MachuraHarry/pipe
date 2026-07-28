@@ -1,17 +1,17 @@
-# Pulse für Dummies
+# Pipe für Dummies
 
-Eine lockere Einführung in die Skriptsprache Pulse —
+Eine lockere Einführung in die Skriptsprache Pipe —
 von Null auf den ersten Erfolg in 30 Minuten.
 
 ---
 
-## Vorwort: Was ist Pulse überhaupt?
+## Vorwort: Was ist Pipe überhaupt?
 
-Pulse ist eine **Skriptsprache**. Das heißt: Du schreibst Text-Dateien mit
-Endung `.pulse`, und ein Programm namens `pulse` führt sie aus. So ähnlich
+Pipe ist eine **Skriptsprache**. Das heißt: Du schreibst Text-Dateien mit
+Endung `.pipe`, und ein Programm namens `pipe` führt sie aus. So ähnlich
 wie Python oder Lua — aber mit einer eigenen, einfachen Syntax.
 
-Pulse wurde in Go programmiert und läuft auf **Linux, macOS, Windows**
+Pipe wurde in Go programmiert und läuft auf **Linux, macOS, Windows**
 und sogar dem Raspberry Pi.
 
 ---
@@ -21,16 +21,16 @@ und sogar dem Raspberry Pi.
 ### Schritt 1: Bauen
 
 ```bash
-cd pulse
+cd pipe
 make build
 ```
 
-Das erzeugt die Datei `bin/pulse`. Mehr brauchst du nicht.
+Das erzeugt die Datei `bin/pipe`. Mehr brauchst du nicht.
 
 ### Schritt 2: Testen
 
 ```bash
-./bin/pulse examples/hello.pulse
+./bin/pipe examples/hello.pipe
 ```
 
 Wenn `Hallo Welt` erscheint: **Alles funktioniert!** 🎉
@@ -39,15 +39,15 @@ Wenn `Hallo Welt` erscheint: **Alles funktioniert!** 🎉
 
 ## Kapitel 2: Deine erste Zeile Code (1 Minute)
 
-Erstelle eine Datei `test.pulse`:
+Erstelle eine Datei `test.pipe`:
 
-```pulse
+```pipe
 print "Hallo Welt"
 ```
 
 Ausführen:
 ```bash
-./bin/pulse test.pulse
+./bin/pipe test.pipe
 ```
 
 Ausgabe:
@@ -55,7 +55,7 @@ Ausgabe:
 Hallo Welt
 ```
 
-Glückwunsch! Du hast dein erstes Pulse-Programm geschrieben.
+Glückwunsch! Du hast dein erstes Pipe-Programm geschrieben.
 
 ---
 
@@ -63,7 +63,7 @@ Glückwunsch! Du hast dein erstes Pulse-Programm geschrieben.
 
 ### Texte und Zahlen ausgeben
 
-```pulse
+```pipe
 print 42
 print 3.14
 print "Hallo"
@@ -72,26 +72,26 @@ print true
 
 ### Rechnen
 
-```pulse
+```pipe
 print (10 + 5)    -- Ergibt 15
 print (20 - 7)    -- Ergibt 13
 print (4 * 3)     -- Ergibt 12
 print (15 / 3)    -- Ergibt 5
 ```
 
-**Wichtig:** Rechnungen in Klammern schreiben, sonst versteht Pulse sie nicht:
+**Wichtig:** Rechnungen in Klammern schreiben, sonst versteht Pipe sie nicht:
 
-```pulse
+```pipe
 -- Richtig:
 print (10 + 5)
 
 -- Falsch:
-print 10 + 5       -- Pulse denkt: "print 10, dann + 5 allein?"
+print 10 + 5       -- Pipe denkt: "print 10, dann + 5 allein?"
 ```
 
 ### Texte zusammenkleben
 
-```pulse
+```pipe
 print ("Hallo " ++ "Welt")    -- Ergibt "Hallo Welt"
 ```
 
@@ -99,7 +99,7 @@ print ("Hallo " ++ "Welt")    -- Ergibt "Hallo Welt"
 
 ## Kapitel 4: Werte merken (Variablen) (3 Minuten)
 
-```pulse
+```pipe
 name: "Anna"
 alter: 28
 groesse: 1.75
@@ -113,7 +113,7 @@ print groesse       -- 1.75
 
 Du kannst den Wert später ändern:
 
-```pulse
+```pipe
 zaehler: 0
 zaehler: zaehler + 1       -- jetzt 1
 zaehler: zaehler + 1       -- jetzt 2
@@ -124,7 +124,7 @@ print zaehler               -- 2
 
 ## Kapitel 5: Entscheidungen treffen (if) (5 Minuten)
 
-```pulse
+```pipe
 punkte: 85
 
 if punkte >= 90
@@ -146,7 +146,7 @@ Du *musst* einrücken, sonst klappt es nicht.
 
 ### while: „Solange..."
 
-```pulse
+```pipe
 i: 0
 while i < 5
     print i
@@ -166,7 +166,7 @@ Das gibt aus:
 
 ### for-in: „Für jedes Element..."
 
-```pulse
+```pipe
 for farbe in ["rot", "grün", "blau"]
     print farbe
 ```
@@ -175,7 +175,7 @@ Das gibt jede Farbe einzeln aus.
 
 ### Vorzeitig aufhören (break)
 
-```pulse
+```pipe
 i: 0
 while true
     print i
@@ -190,7 +190,7 @@ while true
 
 ### Eine einfache Funktion
 
-```pulse
+```pipe
 fn verdopple x
     x * 2
 
@@ -206,7 +206,7 @@ print (verdopple 21)    -- 42
 
 ### Funktion mit mehreren Parametern
 
-```pulse
+```pipe
 fn addiere a b
     a + b
 
@@ -216,7 +216,7 @@ print (addiere 10 20)   -- 30
 
 ### Funktion, die Text zurückgibt
 
-```pulse
+```pipe
 fn begruessung name
     "Hallo " ++ name
 
@@ -230,10 +230,10 @@ zurückgegeben. Kein `return` nötig!
 
 ## Kapitel 8: Die Pipeline (5 Minuten)
 
-Die Pipeline ist das Besondere an Pulse. Statt Funktionen ineinander
+Die Pipeline ist das Besondere an Pipe. Statt Funktionen ineinander
 zu verschachteln, schreibst du sie untereinander:
 
-```pulse
+```pipe
 -- Statt: print(addiere(verdopple(10), 5))
 -- Schreibe:
 
@@ -247,7 +247,7 @@ Das `>` bedeutet: „Nimm das Ergebnis von oben und gib es der nächsten
 Funktion als erstes Argument."
 
 **Ohne Pipeline wäre das:**
-```pulse
+```pipe
 print (addiere (verdopple 10) 5)
 ```
 
@@ -259,7 +259,7 @@ Schwer zu lesen, oder? Deshalb: **Pipeline!**
 
 Listen sind geordnete Sammlungen von Werten:
 
-```pulse
+```pipe
 zahlen: [10, 20, 30, 40, 50]
 namen: ["Anna", "Bob", "Clara"]
 gemischt: [1, "zwei", true]
@@ -267,21 +267,21 @@ gemischt: [1, "zwei", true]
 
 ### Auf Elemente zugreifen
 
-```pulse
+```pipe
 print (zahlen[0])       -- 10 (das erste Element)
 print (zahlen[2])       -- 30 (das dritte Element)
 ```
 
 ### Einen Teil der Liste nehmen (Slicing)
 
-```pulse
+```pipe
 print (zahlen[1..3])    -- [20, 30] (Position 1 bis vor 3)
 print (zahlen[0..2])    -- [10, 20]
 ```
 
 ### Nützliche Funktionen für Listen
 
-```pulse
+```pipe
 print (len zahlen)              -- 5 (wie viele Elemente?)
 push zahlen 60                  -- Fügt 60 am Ende an
 print (pop zahlen)              -- 60 (entfernt letztes Element)
@@ -292,7 +292,7 @@ print (range 5)                 -- [0, 1, 2, 3, 4]
 
 ### Durch eine Liste gehen
 
-```pulse
+```pipe
 for zahl in zahlen
     print zahl
 ```
@@ -301,7 +301,7 @@ for zahl in zahlen
 
 ## Kapitel 10: Maps (Schlüssel-Wert-Paare) (5 Minuten)
 
-```pulse
+```pipe
 person: {name: "Max", alter: 30, stadt: "Berlin"}
 
 print (get person "name")       -- "Max"
@@ -323,7 +323,7 @@ print (values person)           -- ["Max", 31, "Berlin"]
 Manchmal geht etwas schief. Statt dass das Programm abstürzt,
 kannst du Fehler mit `try`/`catch` abfangen:
 
-```pulse
+```pipe
 try
     -- Hier steht gefährlicher Code
     ergebnis: 10 / 0
@@ -339,7 +339,7 @@ print "Programm läuft weiter!"
 
 ## Kapitel 12: Dateien lesen und schreiben (5 Minuten)
 
-```pulse
+```pipe
 -- Datei schreiben
 write_file "notiz.txt" "Hallo Welt"
 
@@ -358,7 +358,7 @@ file_delete "notiz.txt"
 
 ## Kapitel 13: Das Internet anzapfen (HTTP) (5 Minuten)
 
-```pulse
+```pipe
 -- Eine Webseite abrufen
 antwort: http_get "https://httpbin.org/get"
 print (get antwort "status")        -- 200 (OK)
@@ -374,7 +374,7 @@ print (get daten "name")            -- "Linus Torvalds"
 
 ### Fehler 1: Einrückung vergessen
 
-```pulse
+```pipe
 -- Falsch:
 if x > 10
 print "x ist groß"    -- Nicht eingerückt!
@@ -386,7 +386,7 @@ if x > 10
 
 ### Fehler 2: Klammern bei Rechnungen vergessen
 
-```pulse
+```pipe
 -- Falsch:
 print 1 + 2
 
@@ -396,7 +396,7 @@ print (1 + 2)
 
 ### Fehler 3: `=` statt `==` beim Vergleichen
 
-```pulse
+```pipe
 -- Falsch:
 if x = 10
 
@@ -406,7 +406,7 @@ if x == 10
 
 ### Fehler 4: Pipeline `>` mit Vergleich `>` verwechselt
 
-```pulse
+```pipe
 -- Das hier ist ein VERGLEICH, keine Pipeline:
 if x > 10           -- „x ist größer als 10?"
 
@@ -420,16 +420,16 @@ if x > 10           -- „x ist größer als 10?"
 
 ## Kapitel 15: Die REPL — Dein Spielplatz (5 Minuten)
 
-Starte `./bin/pulse` ohne Dateinamen. Du landest in der REPL
+Starte `./bin/pipe` ohne Dateinamen. Du landest in der REPL
 (Read-Eval-Print-Loop). Hier kannst du Code Zeile für Zeile
 ausprobieren:
 
 ```
 >>> 1 + 2
 3
->>> name: "Pulse"
+>>> name: "Pipe"
 >>> print name
-Pulse
+Pipe
 >>> fn quadrat x
 ...     x * x
 ...
@@ -451,9 +451,9 @@ Pulse
 ### Alle 18 Beispielprogramme ausprobieren
 
 ```bash
-for f in examples/*.pulse; do
+for f in examples/*.pipe; do
     echo "=== $f ==="
-    ./bin/pulse "$f"
+    ./bin/pipe "$f"
 done
 ```
 
@@ -467,8 +467,8 @@ Built-in-Funktionen, fortgeschrittenen Themen und Kochrezepten.
 ```bash
 mkdir mein_projekt
 cd mein_projekt
-echo 'print "Mein erstes Projekt"' > main.pulse
-../bin/pulse main.pulse
+echo 'print "Mein erstes Projekt"' > main.pipe
+../bin/pipe main.pipe
 ```
 
 ---
@@ -484,7 +484,7 @@ match x | 0 -> ... | _ ->    -- Pattern Matching
 while bed: ...               -- Schleife
 for x in liste: ...          -- for-in-Schleife
 try: ... catch e: ...        -- Fehler abfangen
-import "datei.pulse"         -- Andere Datei laden
+import "datei.pipe"         -- Andere Datei laden
 
 wert > f > g > print         -- Vertikale Pipeline
 list[0..3]                   -- Teil-Liste
@@ -503,4 +503,4 @@ parse_json "..."             -- JSON parsen
 
 ---
 
-**Und jetzt: Viel Spaß beim Programmieren mit Pulse!**
+**Und jetzt: Viel Spaß beim Programmieren mit Pipe!**

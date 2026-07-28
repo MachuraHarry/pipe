@@ -16,4 +16,4 @@ fn analyze text
     print "Enthält 'Mars'?"
     print (contains text "Mars")
 
-analyze "Hallo Welt von Pulse"
+analyze "Hallo Welt von Pipe"

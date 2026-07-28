@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/harry/pulse/pkg/ast"
-	"github.com/harry/pulse/pkg/object"
+	"github.com/harry/pipe/pkg/ast"
+	"github.com/harry/pipe/pkg/object"
 )
 
 type SymbolScope int

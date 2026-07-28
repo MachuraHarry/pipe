@@ -1,4 +1,4 @@
-# Pulse — Roadmap
+# Pipe — Roadmap
 
 ## Phase 1: Quick Wins (v0.5.1)
 
@@ -19,12 +19,12 @@
 |---|---|---|
 | 5 | **Modul-System** | `export fn name` — explizite Exports. `import "lib" as name` — Namespace |
 | 6 | **Result-Typ** | `Ok(value)` / `Err(message)` für Pipeline-kompatible Fehler |
-| 7 | **`pulse fmt`** | Code-Formatter (Einrückung, Spacing) |
+| 7 | **`pipe fmt`** | Code-Formatter (Einrückung, Spacing) |
 | 8 | **REPL-History** | Pfeiltasten, `Ctrl+R` Suche |
 | 9 | **Bessere Fehlermeldungen** | `Datei:Zeile:Spalte` in allen Laufzeitfehlern |
 | 10 | **`enum` / benutzerdefinierte Typen** | `enum Color: Rot, Grün, Blau` |
 
-**Ziel:** Pulse wird teamtauglich. Module, Formatierung, bessere Fehler.
+**Ziel:** Pipe wird teamtauglich. Module, Formatierung, bessere Fehler.
 
 ---
 
@@ -36,10 +36,10 @@
 | 12 | **Optionale Typannotationen** | `fn add(a: num, b: num) -> num: a + b` |
 | 13 | **Package-Registry** | `import "github.com/user/lib"` mit Caching |
 | 14 | **Bytecode-Optimierungen** | Peephole-Optimizer, Inline-Caching |
-| 15 | **Web-Playground** | „Try Pulse in your Browser" via WASM |
+| 15 | **Web-Playground** | „Try Pipe in your Browser" via WASM |
 | 16 | **VSCode-Plugin** | Syntax-Highlighting, Autocomplete |
 
-**Ziel:** Pulse als ernsthafte Alternative zu Python/Lua für DevOps-Tools.
+**Ziel:** Pipe als ernsthafte Alternative zu Python/Lua für DevOps-Tools.
 
 ---
 
@@ -55,4 +55,4 @@
 - ✅ Listen-Slicing, Anonyme Fns, Import
 - ✅ REPL mit Multi-Line
 - ✅ 60 Tests, 21 Beispiele
-- ✅ Umfassende Doku (Doku.md, GUIDE.md, PULSE_FUER_DUMMIES.md)
+- ✅ Umfassende Doku (Doku.md, GUIDE.md, PIPE_FUER_DUMMIES.md)

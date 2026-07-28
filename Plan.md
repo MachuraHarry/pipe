@@ -1,4 +1,4 @@
-# Pulse — Eine minimalistische, pipeline-basierte Skriptsprache
+# Pipe — Eine minimalistische, pipeline-basierte Skriptsprache
 
 ## Entwicklungsplan
 
@@ -142,7 +142,7 @@ Rückgabewert ist der letzte Ausdruck im Funktionskörper. Kein `return`-Keyword
 ### 3.2 Architektur-Diagramm
 
 ```
-Quelltext (.pulse)
+Quelltext (.pipe)
     │
     ▼
 ┌─────────────┐
@@ -240,9 +240,9 @@ type Value interface {
 ## 4. Umsetzungsplan (10 Meilensteine)
 
 ### Meilenstein 0: Projekt-Setup
-- [ ] Go-Modul initialisieren: `go mod init github.com/user/pulse`
+- [ ] Go-Modul initialisieren: `go mod init github.com/user/pipe`
 - [ ] Verzeichnisstruktur anlegen
-- [ ] `main.go` mit CLI-Eingang (`pulse datei.pulse` und REPL-Modus)
+- [ ] `main.go` mit CLI-Eingang (`pipe datei.pipe` und REPL-Modus)
 - [ ] Makefile mit `build`, `test`, `run` Targets
 
 ### Meilenstein 1: Lexer
@@ -270,8 +270,8 @@ type Value interface {
 ### Meilenstein 4: AST + Pretty-Printer
 - [ ] AST-Knoten definieren
 - [ ] AST-Walker zur Validierung
-- [ ] Pretty-Printer (AST → formatierter Pulse-Code)
-- [ ] **Test:** Roundtrip: Pulse → AST → Pulse ist äquivalent
+- [ ] Pretty-Printer (AST → formatierter Pipe-Code)
+- [ ] **Test:** Roundtrip: Pipe → AST → Pipe ist äquivalent
 
 ### Meilenstein 5: Tree-Walk Interpreter
 - [ ] Evaluator mit Umgebungen (Scopes)
@@ -323,14 +323,14 @@ type Value interface {
 ## 5. Projektstruktur
 
 ```
-pulse/
+pipe/
 ├── Plan.md                  # Dieser Plan
 ├── README.md                # Spracheinführung
 ├── Makefile                 # Build-Automatisierung
 ├── go.mod
 ├── go.sum
 ├── cmd/
-│   └── pulse/
+│   └── pipe/
 │       └── main.go          # CLI-Einstiegspunkt
 ├── pkg/
 │   ├── lexer/
@@ -366,11 +366,11 @@ pulse/
 │       ├── net.go
 │       └── math.go
 ├── examples/
-│   ├── hello.pulse
-│   ├── fib.pulse
-│   ├── fizzbuzz.pulse
-│   ├── pipeline.pulse
-│   └── api.pulse
+│   ├── hello.pipe
+│   ├── fib.pipe
+│   ├── fizzbuzz.pipe
+│   ├── pipeline.pipe
+│   └── api.pipe
 └── test/
     └── integration/
         └── integration_test.go

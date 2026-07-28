@@ -25,6 +25,7 @@ const (
 	OpLte
 	OpConcat
 	OpMinus
+	OpNot
 	OpJump
 	OpJumpNotTruthy
 	OpJumpBackward
@@ -64,6 +65,7 @@ var opcodeNames = map[Opcode]string{
 	OpLte:           "OpLte",
 	OpConcat:        "OpConcat",
 	OpMinus:         "OpMinus",
+	OpNot:           "OpNot",
 	OpJump:          "OpJump",
 	OpJumpNotTruthy: "OpJumpNotTruthy",
 	OpJumpBackward:  "OpJumpBackward",

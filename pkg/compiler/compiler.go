@@ -206,11 +206,42 @@ func (c *Compiler) Compile(node ast.Node) error {
 		}
 		if n.Operator == "-" {
 			c.emit(OpMinus)
+		} else if n.Operator == "!" {
+			c.emit(OpNot)
 		} else {
 			return fmt.Errorf("unbekannter Präfix: %s", n.Operator)
 		}
 
 	case *ast.InfixExpression:
+		if n.Operator == "&&" {
+			if err := c.Compile(n.Left); err != nil {
+				return err
+			}
+			c.emit(OpDup)
+			jumpFalsy := c.emit(OpJumpNotTruthy, 9999)
+			c.emit(OpPop)
+			if err := c.Compile(n.Right); err != nil {
+				return err
+			}
+			afterRight := len(c.currentInstructions())
+			c.patchJump(jumpFalsy, afterRight)
+			return nil
+		}
+		if n.Operator == "||" {
+			if err := c.Compile(n.Left); err != nil {
+				return err
+			}
+			c.emit(OpDup)
+			jumpEnd := c.emit(OpJumpNotTruthy, 9999) // if falsy, skip to eval right
+			jumpEnd2 := c.emit(OpJump, 9999)           // if truthy, skip right entirely
+			c.patchJump(jumpEnd, len(c.currentInstructions()))
+			c.emit(OpPop)
+			if err := c.Compile(n.Right); err != nil {
+				return err
+			}
+			c.patchJump(jumpEnd2, len(c.currentInstructions()))
+			return nil
+		}
 		if err := c.Compile(n.Left); err != nil {
 			return err
 		}

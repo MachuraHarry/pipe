@@ -335,6 +335,18 @@ func TestEvalPipeResultType(t *testing.T) {
 	expectValue(t, "Ok 42", "Ok(42)")
 }
 
+func TestEvalTailCallOptimization(t *testing.T) {
+	// Deep recursion without TCO would overflow the Go stack
+	input := `fn count n acc
+    if n <= 0
+        acc
+    else
+        count (n - 1) (acc + 1)
+
+count 5000 0`
+	expectValue(t, input, "5000")
+}
+
 func TestEvalBuiltinsTypeCheck(t *testing.T) {
 	expectValue(t, "is_num 42", "true")
 	expectValue(t, `is_str "hello"`, "true")

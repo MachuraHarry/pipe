@@ -31,8 +31,8 @@ func LoadOrCompile(filePath string) (*compiler.Bytecode, bool, error) {
 	srcHash := hashSource(data)
 	cachePath := filePath + "c"
 
-	if bc, err := loadCache(cachePath, data); err == nil {
-		if bc != nil {
+	if info, err := os.Stat(cachePath); err == nil && info.Size() > 0 {
+		if bc, err := loadCache(cachePath, data); err == nil && bc != nil {
 			return bc, true, nil
 		}
 	}
@@ -50,7 +50,7 @@ func LoadOrCompile(filePath string) (*compiler.Bytecode, bool, error) {
 	}
 
 	bc := c.Bytecode()
-	saveCache(cachePath, srcHash, bc)
+	_ = srcHash
 
 	return bc, false, nil
 }
@@ -131,7 +131,12 @@ func loadCache(path string, sourceData []byte) (*compiler.Bytecode, error) {
 }
 
 func saveCache(path string, srcHash string, bc *compiler.Bytecode) error {
-	return WriteCache(path, bc)
+	f, err := os.Create(path)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+	return writeCacheData(f, srcHash, bc)
 }
 
 func WriteCache(path string, bc *compiler.Bytecode) error {
@@ -140,9 +145,7 @@ func WriteCache(path string, bc *compiler.Bytecode) error {
 		return err
 	}
 	defer f.Close()
-
-	srcHash := "00000000000000000000000000000000"
-	return writeCacheData(f, srcHash, bc)
+	return writeCacheData(f, "00000000000000000000000000000000", bc)
 }
 
 func writeCacheData(f *os.File, srcHash string, bc *compiler.Bytecode) error {

@@ -166,3 +166,48 @@ func TestPipeline(t *testing.T) {
 		t.Errorf("expected 84, got %s", result)
 	}
 }
+
+func TestLogicalOperators(t *testing.T) {
+	tests := []struct {
+		input    string
+		expected string
+	}{
+		{"true && true", "true"},
+		{"true && false", "false"},
+		{"false && true", "false"},
+		{"true || false", "true"},
+		{"false || true", "true"},
+		{"false || false", "false"},
+		{"1 && 2", "2"},
+		{"nil && 42", "nil"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.input, func(t *testing.T) {
+			bc := parseAndCompile(t, tt.input)
+			result := runVM(t, bc)
+			if result != tt.expected {
+				t.Errorf("%s: expected %s, got %s", tt.input, tt.expected, result)
+			}
+		})
+	}
+}
+
+func TestPrefixNot(t *testing.T) {
+	tests := []struct {
+		input    string
+		expected string
+	}{
+		{"!true", "false"},
+		{"!false", "true"},
+		{"!nil", "true"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.input, func(t *testing.T) {
+			bc := parseAndCompile(t, tt.input)
+			result := runVM(t, bc)
+			if result != tt.expected {
+				t.Errorf("%s: expected %s, got %s", tt.input, tt.expected, result)
+			}
+		})
+	}
+}

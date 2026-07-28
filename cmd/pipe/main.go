@@ -489,10 +489,16 @@ func isMultiLineStart(line string) bool {
 	if strings.HasPrefix(trimmed, "for ") {
 		return true
 	}
-	if strings.HasPrefix(trimmed, "try") && len(trimmed) <= 3 {
+	if trimmed == "try" || strings.HasPrefix(trimmed, "try\n") {
 		return true
 	}
 	if strings.HasPrefix(trimmed, "defer ") {
+		return true
+	}
+	if strings.HasPrefix(trimmed, "export ") {
+		return true
+	}
+	if strings.HasPrefix(trimmed, "enum ") {
 		return true
 	}
 	return false

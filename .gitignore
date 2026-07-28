@@ -1,6 +1,9 @@
 # Binaries
 bin/
 
+# Bytecode cache
+*.pipec
+
 # Go
 *.exe
 *.test

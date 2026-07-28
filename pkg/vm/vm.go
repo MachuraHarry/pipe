@@ -163,6 +163,10 @@ func (vm *VM) Run() error {
 				return fmt.Errorf("Typ-Fehler: -%s", val.Type())
 			}
 
+		case compiler.OpNot:
+			val := vm.pop()
+			vm.push(object.NativeBoolToBoolean(!object.IsTruthy(val)))
+
 		case compiler.OpJump:
 			target := compiler.ReadUint16(ins, frame.ip)
 			frame.ip = int(target)

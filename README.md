@@ -18,11 +18,20 @@ make repl
 # Datei ausführen (VM, schnell)
 ./bin/pipe -vm beispiele/fib.pipe
 
-# VM ohne Bytecode-Ausgabe
+# VM ohne Bytecode-Ausgabe + Cache
 ./bin/pipe -vm -q beispiele/pipeline.pipe
 
 # AST ausgeben
 ./bin/pipe -ast beispiele/fib.pipe
+
+# Datei formatieren
+./bin/pipe -fmt beispiele/hello.pipe
+
+# Tests ausführen
+./bin/pipe -test
+
+# Benchmarks
+./bin/pipe -bench
 
 # Alle Beispiele ausführen
 for f in examples/*.pipe; do echo "=== $f ===" && ./bin/pipe "$f"; done
@@ -206,13 +215,15 @@ examples/pipeline.pipe  — Pipeline-Ketten
 - [x] M1: Lexer (Einrückungs-Tracking, 15 Tests)
 - [x] M2+M3: Parser (Pratt-Parsing + Block-Strukturen, 20 Tests)
 - [x] M4: AST + CLI
-- [x] M5: Tree-Walk Interpreter
+- [x] M5: Tree-Walk Interpreter (38 Tests)
 - [x] M6: Datenstrukturen (Listen, Maps)
 - [x] M7: Pipeline-Semantik (horizontal + vertikal)
-- [x] M8: Bytecode-Compiler + Stack-VM (25 Tests)
-- [x] M9: Standardbibliothek (60+ Builtins: FS, HTTP, JSON, TCP)
-- [x] M10: REPL + CLI-Tooling
-- [x] v0.5: while, break, continue, slice, import, anonyme Fns, defer, compound-assign
+- [x] M8: Bytecode-Compiler + Stack-VM (31 Tests, **, !, &&, ||)
+- [x] M9: Standardbibliothek (80+ Builtins: FS, HTTP, JSON, TCP, Regex)
+- [x] M10: REPL + CLI-Tooling (REPL, -test, -bench, -fmt, -ast)
+- [x] v0.5: while, break, continue, for-in, slice, import, anonyme Fns
+- [x] v0.5: defer, compound-assign, return, try/catch, enum, export
+- [x] v0.5: Tail Call Optimization, Bytecode-Cache (.pipec)
 
 ## REPL
 
@@ -234,13 +245,17 @@ make repl        # oder: ./bin/pipe
 
 Befehle: `:quit`, `:help`, `:clear`, `:vm`
 
-## Tests (60 total)
+## Tests (130 total)
 
 ```bash
 go test ./...
-# ok  pkg/lexer    0.004s  (15 tests)
-# ok  pkg/parser   0.004s  (20 tests)
-# ok  pkg/vm       0.020s  (25 tests)
+# ok  pkg/cache      0.007s  (2 tests)
+# ok  pkg/compiler   0.011s  (29 tests)
+# ok  pkg/eval       0.685s  (39 tests)
+# ok  pkg/formatter  0.005s  (7 tests)
+# ok  pkg/lexer       0.006s  (15 tests)
+# ok  pkg/parser      0.006s  (20 tests)
+# ok  pkg/vm          0.027s  (18 tests)
 ```
 
 ## Projektstruktur

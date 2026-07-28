@@ -750,6 +750,8 @@ func bLen(args ...Object) Object {
 		return &Integer{Value: int64(len(a.Value))}
 	case *List:
 		return &Integer{Value: int64(len(a.Elements))}
+	case *Map:
+		return &Integer{Value: int64(len(a.Pairs))}
 	}
 	return err("len nicht unterstützt")
 }
@@ -790,12 +792,12 @@ func bAt(args ...Object) Object {
 	switch c := args[0].(type) {
 	case *List:
 		if idx < 0 || idx >= int64(len(c.Elements)) {
-			return err("at: Index außerhalb")
+			return NILOBJ
 		}
 		return c.Elements[idx]
 	case *String:
 		if idx < 0 || idx >= int64(len(c.Value)) {
-			return err("at: Index außerhalb")
+			return NILOBJ
 		}
 		return &String{Value: string(c.Value[idx])}
 	}

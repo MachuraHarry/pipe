@@ -19,13 +19,14 @@ type VM struct {
 	frames       []*Frame
 	frameIndex   int
 	instructions compiler.Instructions
-	ip           int // instruction pointer (in current frame)
+	ip           int
 }
 
 type Frame struct {
 	closure      *object.CompiledFunction
 	ip           int
 	basePointer  int
+	savedSp      int
 	instructions compiler.Instructions
 }
 
@@ -47,12 +48,12 @@ func New(bc *compiler.Bytecode) *VM {
 	frames[0] = mainFrame
 
 	return &VM{
-		constants:    bc.Constants,
-		globals:      globals,
-		stack:        stack,
-		sp:           0,
-		frames:       frames,
-		frameIndex:   0,
+		constants:  bc.Constants,
+		globals:    globals,
+		stack:      stack,
+		sp:         0,
+		frames:     frames,
+		frameIndex: 0,
 	}
 }
 
@@ -229,9 +230,8 @@ func (vm *VM) Run() error {
 			vm.callFunction(numArgs)
 
 		case compiler.OpReturn:
-			// Return nil
 			frame := vm.currentFrame()
-			vm.sp = frame.basePointer - 1
+			vm.sp = frame.savedSp
 			vm.frameIndex--
 			if vm.frameIndex < 0 {
 				return nil
@@ -241,7 +241,7 @@ func (vm *VM) Run() error {
 		case compiler.OpReturnValue:
 			frame := vm.currentFrame()
 			returnVal := vm.pop()
-			vm.sp = frame.basePointer - 1
+			vm.sp = frame.savedSp
 			vm.frameIndex--
 			if vm.frameIndex < 0 {
 				return nil
@@ -324,10 +324,14 @@ func (vm *VM) callFunction(numArgs int) {
 			panic("invalid compiled function instructions")
 		}
 
+		basePtr := vm.sp - numArgs
+		savedSp := basePtr - 1
+
 		frame := &Frame{
 			closure:      fn,
 			ip:           0,
-			basePointer:  vm.sp - numArgs,  // point to first argument
+			basePointer:  basePtr,
+			savedSp:      savedSp,
 			instructions: inst,
 		}
 
@@ -337,13 +341,18 @@ func (vm *VM) callFunction(numArgs int) {
 		}
 		vm.frames[vm.frameIndex] = frame
 
+		localsNeeded := basePtr + fn.NumLocals
+		if vm.sp < localsNeeded {
+			vm.sp = localsNeeded
+		}
+
 	case *object.BuiltinInfo:
 		args := make([]object.Object, numArgs)
 		for i := numArgs - 1; i >= 0; i-- {
 			args[i] = vm.pop()
 		}
 		result := fn.Fn(args...)
-		vm.pop() // pop the builtin object
+		vm.pop()
 		vm.push(result)
 
 	default:

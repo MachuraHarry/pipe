@@ -905,7 +905,7 @@ func evalIndexExpression(left, right object.Object) object.Object {
 			return newErrorSt("Listen-Index muss Zahl sein")
 		}
 		if idx < 0 || idx >= int64(len(container.Elements)) {
-			return newErrorSt("Index %d außerhalb (Länge %d)", idx, len(container.Elements))
+			return object.NILOBJ
 		}
 		return container.Elements[idx]
 	case *object.Map:
@@ -925,7 +925,7 @@ func evalIndexExpression(left, right object.Object) object.Object {
 		}
 		s := container.Value
 		if idx < 0 || idx >= int64(len(s)) {
-			return newErrorSt("Index %d außerhalb", idx)
+			return object.NILOBJ
 		}
 		return &object.String{Value: string(s[idx])}
 	}

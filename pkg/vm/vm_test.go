@@ -150,6 +150,24 @@ func TestFunction(t *testing.T) {
 	}
 }
 
+func TestFunctionLocalOutlivesBuiltinCall(t *testing.T) {
+	input := "fn one_var src\n    x: 42\n    len(src)\n    x\n\none_var \"OK\""
+	bc := parseAndCompile(t, input)
+	result := runVM(t, bc)
+	if result != "42" {
+		t.Errorf("expected 42, got %s", result)
+	}
+}
+
+func TestFunctionReturnPreservesCallerExpressionStack(t *testing.T) {
+	input := "fn inner n\n    tmp: 2\n    tmp\n\nfn outer src\n    x: 40\n    x + inner(src)\n\nouter 1"
+	bc := parseAndCompile(t, input)
+	result := runVM(t, bc)
+	if result != "42" {
+		t.Errorf("expected 42, got %s", result)
+	}
+}
+
 func TestRecursiveFunction(t *testing.T) {
 	input := "fn fact n\n    match n\n        | 0 -> 1\n        | _ -> n * fact(n - 1)\n\nfact 5"
 	bc := parseAndCompile(t, input)

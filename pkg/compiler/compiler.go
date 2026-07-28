@@ -303,8 +303,12 @@ func (c *Compiler) Compile(node ast.Node) error {
 			afterAlternative := len(c.currentInstructions())
 			c.patchJump(jumpPos, afterAlternative)
 		} else {
-			afterConsequence := len(c.currentInstructions())
-			c.patchJump(jumpNotTruthyPos, afterConsequence)
+			jumpPos := c.emit(OpJump, 9999)
+			falseBranch := len(c.currentInstructions())
+			c.patchJump(jumpNotTruthyPos, falseBranch)
+			c.emit(OpNil)
+			afterIf := len(c.currentInstructions())
+			c.patchJump(jumpPos, afterIf)
 		}
 
 	case *ast.WhileExpression:
@@ -334,6 +338,14 @@ func (c *Compiler) Compile(node ast.Node) error {
 
 	case *ast.ContinueStatement:
 		c.emitContinue()
+
+	case *ast.ReturnStatement:
+		if n.Value != nil {
+			if err := c.Compile(n.Value); err != nil {
+				return err
+			}
+		}
+		c.emit(OpReturnValue)
 
 	case *ast.MatchExpression:
 		if err := c.compileMatch(n); err != nil {

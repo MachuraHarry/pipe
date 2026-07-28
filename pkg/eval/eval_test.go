@@ -1,0 +1,345 @@
+package eval
+
+import (
+	"testing"
+
+	"github.com/harry/pipe/pkg/lexer"
+	"github.com/harry/pipe/pkg/object"
+	"github.com/harry/pipe/pkg/parser"
+)
+
+func parseAndEval(t *testing.T, input string) object.Object {
+	t.Helper()
+	l := lexer.New(input)
+	p := parser.New(l)
+	program := p.ParseProgram()
+	errs := p.Errors()
+	if len(errs) > 0 {
+		t.Fatalf("parse errors: %v", errs)
+	}
+	ctx := NewEvalContext("<test>")
+	env := object.NewEnvironment()
+	return ctx.Eval(program, env)
+}
+
+func expectValue(t *testing.T, input string, expected string) {
+	t.Helper()
+	result := parseAndEval(t, input)
+	if result == nil {
+		t.Fatalf("%q: got nil", input)
+	}
+	got := result.Inspect()
+	if got != expected {
+		t.Errorf("%q: expected %q, got %q", input, expected, got)
+	}
+}
+
+func expectError(t *testing.T, input string) {
+	t.Helper()
+	result := parseAndEval(t, input)
+	if result == nil {
+		t.Fatalf("%q: got nil, expected error", input)
+	}
+	if result.Type() != object.ERROR {
+		t.Errorf("%q: expected error, got %s (%q)", input, result.Type(), result.Inspect())
+	}
+}
+
+func TestEvalIntegerLiterals(t *testing.T) {
+	expectValue(t, "42", "42")
+	expectValue(t, "0", "0")
+	expectValue(t, "-1", "-1")
+	expectValue(t, "999999", "999999")
+}
+
+func TestEvalFloatLiterals(t *testing.T) {
+	expectValue(t, "3.14", "3.14")
+	expectValue(t, "0.5", "0.5")
+	expectValue(t, "-2.7", "-2.7")
+}
+
+func TestEvalStringLiterals(t *testing.T) {
+	expectValue(t, `"hello"`, "hello")
+	expectValue(t, `""`, "")
+	expectValue(t, `"Hallo Welt"`, "Hallo Welt")
+}
+
+func TestEvalBooleanAndNil(t *testing.T) {
+	expectValue(t, "true", "true")
+	expectValue(t, "false", "false")
+	expectValue(t, "nil", "nil")
+}
+
+func TestEvalArithmetic(t *testing.T) {
+	tests := []struct{ input, expected string }{
+		{"1 + 2", "3"},
+		{"10 - 3", "7"},
+		{"4 * 5", "20"},
+		{"20 / 4", "5"},
+		{"7 % 3", "1"},
+		{"2 ** 3", "8"},
+		{"2 ** 10", "1024"},
+		{"2 + 3 * 4", "14"},
+		{"(2 + 3) * 4", "20"},
+		{"10 / 3", "3"},
+		{"3.0 + 2.0", "5"},
+		{"3.5 * 2", "7"},
+	}
+	for _, tt := range tests {
+		expectValue(t, tt.input, tt.expected)
+	}
+}
+
+func TestEvalComparison(t *testing.T) {
+	tests := []struct{ input, expected string }{
+		{"1 == 1", "true"},
+		{"1 != 2", "true"},
+		{"1 < 2", "true"},
+		{"2 > 1", "true"},
+		{"2 <= 2", "true"},
+		{"2 >= 2", "true"},
+		{"1 == 2", "false"},
+		{"3 < 2", "false"},
+		{`"abc" == "abc"`, "true"},
+		{`"abc" != "xyz"`, "true"},
+	}
+	for _, tt := range tests {
+		expectValue(t, tt.input, tt.expected)
+	}
+}
+
+func TestEvalLogical(t *testing.T) {
+	tests := []struct{ input, expected string }{
+		{"true && true", "true"},
+		{"true && false", "false"},
+		{"false && true", "false"},
+		{"true || false", "true"},
+		{"false || true", "true"},
+		{"false || false", "false"},
+	}
+	for _, tt := range tests {
+		expectValue(t, tt.input, tt.expected)
+	}
+}
+
+func TestEvalStringConcat(t *testing.T) {
+	expectValue(t, `"hello " ++ "world"`, "hello world")
+	expectValue(t, `"a" ++ "b" ++ "c"`, "abc")
+}
+
+func TestEvalPrefixOperators(t *testing.T) {
+	expectValue(t, "!true", "false")
+	expectValue(t, "!false", "true")
+	expectValue(t, "!nil", "true")
+	expectValue(t, "-5", "-5")
+	expectValue(t, "-(-5)", "5")
+}
+
+func TestEvalVariables(t *testing.T) {
+	input := "x: 42\nx"
+	expectValue(t, input, "42")
+}
+
+func TestEvalReassignment(t *testing.T) {
+	input := "x: 42\nx: x + 8\nx"
+	expectValue(t, input, "50")
+}
+
+func TestEvalCompoundAssignment(t *testing.T) {
+	tests := []struct{ input, expected string }{
+		{"x: 10\nx += 5\nx", "15"},
+		{"x: 10\nx -= 3\nx", "7"},
+		{"x: 10\nx *= 2\nx", "20"},
+		{"x: 10\nx /= 4\nx", "2"},
+	}
+	for _, tt := range tests {
+		expectValue(t, tt.input, tt.expected)
+	}
+}
+
+func TestEvalIfExpression(t *testing.T) {
+	expectValue(t, "if true\n    42\nelse\n    10", "42")
+	expectValue(t, "if false\n    42\nelse\n    10", "10")
+	expectValue(t, "if 1\n    \"yes\"\nelse\n    \"no\"", "yes")
+	expectValue(t, "if nil\n    \"yes\"\nelse\n    \"no\"", "no")
+	expectValue(t, "if false\n    42\nelse\n    10", "10")
+}
+
+func TestEvalIfElseIf(t *testing.T) {
+	input := `if 1 > 2
+    "a"
+else if 2 > 1
+    "b"
+else
+    "c"`
+	expectValue(t, input, "b")
+}
+
+func TestEvalMatchExpression(t *testing.T) {
+	input := "match 2\n    | 0 -> \"null\"\n    | 1 -> \"eins\"\n    | _ -> \"sonst\""
+	expectValue(t, input, "sonst")
+
+	input2 := "match 1\n    | 0 -> \"null\"\n    | 1 -> \"eins\"\n    | _ -> \"sonst\""
+	expectValue(t, input2, "eins")
+}
+
+func TestEvalFunctions(t *testing.T) {
+	input := "fn double x\n    x * 2\n\ndouble 21"
+	expectValue(t, input, "42")
+}
+
+func TestEvalMultiArgFunction(t *testing.T) {
+	input := "fn add a b\n    a + b\n\nadd 3 4"
+	expectValue(t, input, "7")
+}
+
+func TestEvalRecursiveFunction(t *testing.T) {
+	input := "fn fact n\n    match n\n        | 0 -> 1\n        | _ -> n * fact(n - 1)\n\nfact 5"
+	expectValue(t, input, "120")
+}
+
+func TestEvalClosure(t *testing.T) {
+	input := "fn make_adder x\n    fn adder y\n        x + y\n\nadd5: make_adder 5\nadd5 10"
+	expectValue(t, input, "15")
+}
+
+func TestEvalPipeline(t *testing.T) {
+	input := "fn double x\n    x * 2\n\n42\n    > double"
+	expectValue(t, input, "84")
+}
+
+func TestEvalPipelineWithArgs(t *testing.T) {
+	input := "fn add a b\n    a + b\n\n10\n    > add 5"
+	expectValue(t, input, "15")
+}
+
+func TestEvalLists(t *testing.T) {
+	expectValue(t, "[1, 2, 3]", "[1, 2, 3]")
+	expectValue(t, "[]", "[]")
+}
+
+func TestEvalListIndex(t *testing.T) {
+	input := "nums: [10, 20, 30]\nnums[1]"
+	expectValue(t, input, "20")
+}
+
+func TestEvalListSlice(t *testing.T) {
+	input := "nums: [10, 20, 30, 40]\nnums[1..3]"
+	expectValue(t, input, "[20, 30]")
+}
+
+func TestEvalMaps(t *testing.T) {
+	input := "{a: 1, b: 2}"
+	result := parseAndEval(t, input)
+	if result == nil {
+		t.Fatal("got nil")
+	}
+	m, ok := result.(*object.Map)
+	if !ok {
+		t.Fatalf("expected Map, got %T", result)
+	}
+	if len(m.Pairs) != 2 {
+		t.Errorf("expected 2 pairs, got %d", len(m.Pairs))
+	}
+	aVal := m.Pairs["a"]
+	bVal := m.Pairs["b"]
+	if aVal == nil || aVal.Inspect() != "1" {
+		t.Errorf("a: expected 1, got %v", aVal)
+	}
+	if bVal == nil || bVal.Inspect() != "2" {
+		t.Errorf("b: expected 2, got %v", bVal)
+	}
+}
+
+func TestEvalMapAccess(t *testing.T) {
+	input := "m: {name: \"Pipe\"}\nget m \"name\""
+	expectValue(t, input, "Pipe")
+}
+
+func TestEvalWhileLoop(t *testing.T) {
+	input := "x: 0\nwhile x < 3\n    x: x + 1\nx"
+	expectValue(t, input, "3")
+}
+
+func TestEvalBreak(t *testing.T) {
+	input := "x: 0\nwhile true\n    x: x + 1\n    if x >= 5\n        break\nx"
+	expectValue(t, input, "5")
+}
+
+func TestEvalContinue(t *testing.T) {
+	input := "x: 0\nwhile x < 5\n    x: x + 1\n    if x % 2 == 1\n        continue\nx"
+	expectValue(t, input, "5")
+}
+
+func TestEvalForIn(t *testing.T) {
+	input := "sum: 0\nfor n in (range 1 4)\n    sum: sum + n\nsum"
+	expectValue(t, input, "6")
+}
+
+func TestEvalReturn(t *testing.T) {
+	input := "fn early x\n    if x < 0\n        return 0\n    x * 2\n\nearly 5"
+	expectValue(t, input, "10")
+
+	input2 := "fn early x\n    if x < 0\n        return 0\n    x * 2\n\nearly (-5)"
+	expectValue(t, input2, "0")
+}
+
+func TestEvalDividByZero(t *testing.T) {
+	expectError(t, "1 / 0")
+}
+
+func TestEvalUndefinedVar(t *testing.T) {
+	expectError(t, "no_such_var")
+}
+
+func TestEvalBuiltins(t *testing.T) {
+	expectValue(t, `len "hello"`, "5")
+	expectValue(t, `len ([1, 2, 3])`, "3")
+	expectValue(t, `abs (-5)`, "5")
+	expectValue(t, `upper "hello"`, "HELLO")
+	expectValue(t, `lower "HELLO"`, "hello")
+	expectValue(t, `trim "  hi  "`, "hi")
+	expectValue(t, `contains "hello" "ell"`, "true")
+}
+
+func TestEvalRange(t *testing.T) {
+	expectValue(t, "range 3", "[0, 1, 2]")
+	expectValue(t, "range 2 5", "[2, 3, 4]")
+	expectValue(t, "range 0 10 3", "[0, 3, 6, 9]")
+}
+
+func TestEvalAnonymousFunction(t *testing.T) {
+	input := "double: fn x\n    x * 2\n\ndouble 7"
+	expectValue(t, input, "14")
+}
+
+func TestEvalEnum(t *testing.T) {
+	input := "enum Color: Red, Green, Blue\nRed"
+	expectValue(t, input, "0")
+}
+
+func TestEvalTryCatch(t *testing.T) {
+	input := `try
+    1 / 0
+catch e
+    "caught"`
+	expectValue(t, input, "caught")
+}
+
+func TestEvalDefer(t *testing.T) {
+	input := "x: 0\n\ndefer print \"deferred\"\nx: 42"
+	expectValue(t, input, "42")
+}
+
+func TestEvalPipeResultType(t *testing.T) {
+	expectValue(t, "Ok 42", "Ok(42)")
+}
+
+func TestEvalBuiltinsTypeCheck(t *testing.T) {
+	expectValue(t, "is_num 42", "true")
+	expectValue(t, `is_str "hello"`, "true")
+	expectValue(t, `is_list ([1, 2])`, "true")
+	expectValue(t, `is_map ({a: 1})`, "true")
+	expectValue(t, "is_nil nil", "true")
+	expectValue(t, "is_num true", "false")
+}

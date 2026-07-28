@@ -20,3 +20,5 @@ Thumbs.db
 # Temp files
 /tmp/
 docs/Archiv.zip
+access.log
+incident_report.md

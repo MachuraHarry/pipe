@@ -166,6 +166,13 @@ func main() {
 	if allowAI {
 		object.SetSandboxAllowAI(true)
 	}
+	if timeoutSec > 0 {
+		go func() {
+			time.Sleep(time.Duration(timeoutSec) * time.Second)
+			fmt.Fprintf(os.Stderr, "\nTIMEOUT: execution exceeded %ds\n", timeoutSec)
+			os.Exit(124)
+		}()
+	}
 
 	if useVM {
 		runVM(program, quietVM, filePath)
@@ -175,30 +182,32 @@ func main() {
 }
 
 func printHelp() {
-	fmt.Println(`Pipe ` + version + ` — Minimalistic pipeline scripting language
+	fmt.Println(`Pipe (SPR) ` + version + ` — Semantic Pipeline Runtime
 
 Usage:
   pipe [flags] <file.pipe>    Execute file
   pipe                         Start REPL
 
 Flags:
-  -vm           Use bytecode VM instead of tree-walker
+  -vm           Use bytecode VM instead of tree-walker (~7x faster)
   -q            VM mode: suppress bytecode output
   -ast          Only print AST, don't execute
   -fmt          Format file (indentation, whitespace)
-  -test         Test all *.pipe and *_test.pipe in current directory
+  -test         Run all test files in current directory
   -bench        Run benchmarks (tree-walker vs VM)
+  --sandbox     Restrict dangerous builtins (exec, tcp, http, ai, fs-write)
+  --allow-ai    In sandbox: re-enable AI builtins
+  --timeout N   Kill execution after N seconds
   -h, --help    Show this help
 
 Examples:
   pipe examples/hello.pipe
-  pipe -vm examples/fib.pipe
-  pipe -vm -q examples/fizzbuzz.pipe
-  pipe -ast examples/pipeline.pipe
+  pipe -vm -q examples/fib.pipe
+  pipe --sandbox --allow-ai untrusted.pipe
+  pipe --timeout 30 ai_workflow.pipe
   pipe -test
   pipe -bench
-  pipe -build my.pipe         # Compiles to standalone binary
-  pipe -build my.pipe my_prog  # With output name`)
+  pipe -build my.pipe -o my_prog`)
 }
 
 func runEval(program *ast.Program, scriptArgs []string, filePath string) {

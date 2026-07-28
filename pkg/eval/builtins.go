@@ -24,6 +24,7 @@ func init() {
 	builtins["filter"] = &Builtin{Fn: bFilter}
 	builtins["reduce"] = &Builtin{Fn: bReduce}
 	builtins["each"] = &Builtin{Fn: bEach}
+	builtins["go"] = &Builtin{Fn: bGo}
 }
 
 func bMap(args ...object.Object) object.Object {
@@ -93,6 +94,32 @@ func bEach(args ...object.Object) object.Object {
 	}
 	for _, elem := range list.Elements {
 		applyFunction(args[1], []object.Object{elem})
+	}
+	return object.NILOBJ
+}
+
+func bGo(args ...object.Object) object.Object {
+	if len(args) < 1 {
+		return newError("go erwartet mindestens 1 Argument (Funktion)")
+	}
+	fn := args[0]
+	fnArgs := args[1:]
+
+	switch f := fn.(type) {
+	case *object.Function:
+		go func() {
+			extEnv := object.NewEnclosedEnvironment(f.Env)
+			for i, p := range f.Parameters {
+				if i < len(fnArgs) {
+					extEnv.Set(p.Value, fnArgs[i])
+				}
+			}
+			Eval(f.Body, extEnv)
+		}()
+	case *Builtin:
+		go f.Fn(fnArgs...)
+	default:
+		return newError("go: erstes Argument muss eine Funktion sein")
 	}
 	return object.NILOBJ
 }

@@ -86,7 +86,59 @@ import "meine_lib.pipe"
 
 Die Pfade werden mit `:` getrennt (wie bei `PATH`/`PYTHONPATH`).
 
-## 9.4 Modul-Struktur
+## 9.4 Modul-Registry und Versionen
+
+### 9.4.1 Registry
+
+Pipe hat eine zentrale Modul-Registry: `github.com/MachuraHarry/pipe-modules`. Module können mit `pipe -search` entdeckt werden:
+
+```bash
+pipe -search log       -- log-Module finden
+pipe -search ai        -- KI-Module finden
+```
+
+### 9.4.2 Module installieren
+
+```bash
+pipe -get log-analyzer               -- neueste Version
+pipe -get log-analyzer@1.0.0         -- bestimmte Version
+pipe -get https://.../module.pipe    -- via URL
+```
+
+Installierte Module liegen in `~/.pipe/modules/` und können per Name importiert werden.
+
+### 9.4.3 Versionierte Imports
+
+Mit `@version` wird eine bestimmte Version eines Moduls angefordert:
+
+```pipe
+import "log-analyzer@1.0.0"          -- exakte Version
+import "log-analyzer"                -- neueste (implizit @latest)
+import "sentiment@0.9.0" as s       -- Version mit Alias
+```
+
+Falls die lokale Datei nicht existiert, fragt Pipe die Registry nach der Versions-URL, lädt das Modul herunter und speichert es im Cache.
+
+### 9.4.4 Registry-Format
+
+```json
+{
+  "log-analyzer": {
+    "latest": "1.0.0",
+    "versions": {
+      "1.0.0": "https://raw.../v1.0.0/module.pipe",
+      "0.9.0": "https://raw.../v0.9.0/module.pipe"
+    }
+  }
+}
+```
+
+- `latest` zeigt auf die empfohlene Version
+- `versions` mappt Versions-Tags auf Modul-URLs
+- Ohne `@version` wird automatisch `latest` verwendet
+- Legacy-Format mit nur `url`-Feld wird ebenfalls unterstützt
+
+## 9.5 Modul-Struktur
 
 Empfohlene Projektstruktur:
 
@@ -101,7 +153,7 @@ mein_projekt/
     └── test_math.pipe     -- Tests
 ```
 
-## 9.5 Best Practices
+## 9.6 Best Practices
 
 ### 1. Exportiere nur, was gebraucht wird
 

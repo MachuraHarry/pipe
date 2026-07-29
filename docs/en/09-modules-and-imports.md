@@ -164,14 +164,87 @@ import "http-utils.pipe" as http
 When resolving an import path:
 
 1. **Relative to the importing file's directory** — always checked first.
-2. **Each directory in PIPE_PATH** — searched in order, first match wins.
-3. **Not found** — runtime error.
+2. **Current working directory** — then the directory where pipe was invoked.
+3. **Module cache** — `~/.pipe/modules/` for installed modules.
+4. **Each directory in PIPE_PATH** — searched in order, first match wins.
+5. **Module registry** — if no local file found, queries the Pipe module registry.
 
 ---
 
-## 9.5 Recommended Module Structure
+## 9.5 Remote Modules (URL Imports)
 
-### 9.5.1 Small Project
+Pipe can import modules directly from URLs:
+
+```pipe
+import "https://raw.githubusercontent.com/user/repo/main/module.pipe"
+import "https://example.com/lib/utils.pipe" as utils
+```
+
+URL imports are downloaded on first use and cached in `~/.pipe/modules/`. Subsequent imports use the cached version.
+
+---
+
+## 9.6 Module Registry and Versions
+
+### 9.6.1 The Registry
+
+Pipe has a central module registry at `github.com/MachuraHarry/pipe-modules`. Modules are discoverable via `pipe -search`:
+
+```bash
+pipe -search log        # find log-related modules
+pipe -search ai         # find AI modules
+```
+
+### 9.6.2 Installing Modules
+
+```bash
+pipe -get log-analyzer              # install latest version
+pipe -get log-analyzer@1.0.0        # install specific version
+pipe -get https://.../module.pipe   # install from URL
+```
+
+Installed modules are stored in `~/.pipe/modules/` and available for import by name.
+
+### 9.6.3 Versioned Imports
+
+Use `@version` to pin a module to a specific release:
+
+```pipe
+import "log-analyzer@1.0.0"         # exact version
+import "log-analyzer"               # latest (implicit @latest)
+import "sentiment@0.9.0" as s       # version with alias
+```
+
+The versioned import first checks the local module cache for the exact `name@version` file. If not found, it queries the registry for the version URL, downloads the module, and caches it.
+
+### 9.6.4 How Versions Work
+
+Each registry entry can define multiple versions:
+
+```json
+{
+  "log-analyzer": {
+    "description": "Log classification",
+    "functions": ["log_analyze", "log_summarize"],
+    "latest": "1.0.0",
+    "versions": {
+      "1.0.0": "https://raw.../v1.0.0/module.pipe",
+      "0.9.0": "https://raw.../v0.9.0/module.pipe"
+    }
+  }
+}
+```
+
+- `latest` points to the recommended version
+- `versions` maps version tags to module URLs
+- If no `@version` is specified, the `latest` version is used
+- If the registry uses the legacy `url` field (no `versions`), that URL is used as default
+
+---
+
+## 9.7 Recommended Module Structure
+
+### 9.7.1 Small Project
 
 ```
 my-project/
@@ -180,7 +253,7 @@ my-project/
   models.pipe            # data structures
 ```
 
-### 9.5.2 Medium Project
+### 9.7.2 Medium Project
 
 ```
 my-project/
@@ -194,7 +267,7 @@ my-project/
     post.pipe            # post-related functions
 ```
 
-### 9.5.3 Large Project
+### 9.7.3 Large Project
 
 ```
 my-app/
@@ -219,7 +292,7 @@ my-app/
 
 ---
 
-## 9.6 Best Practices
+## 9.8 Best Practices
 
 ### Export Only What's Needed
 

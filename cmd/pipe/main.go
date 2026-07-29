@@ -2,10 +2,7 @@ package main
 
 import (
 	"bufio"
-	"encoding/json"
 	"fmt"
-	"io"
-	"net/http"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -130,6 +127,7 @@ func main() {
 			fmt.Fprintln(os.Stderr, "pipe: -get requires a URL or module name")
 			fmt.Fprintln(os.Stderr, "  Example: pipe -get https://raw.githubusercontent.com/.../module.pipe")
 			fmt.Fprintln(os.Stderr, "  Example: pipe -get log-analyzer")
+			fmt.Fprintln(os.Stderr, "  Example: pipe -get log-analyzer@1.0.0")
 			os.Exit(1)
 		}
 
@@ -237,37 +235,33 @@ func main() {
 }
 
 func runSearch(term string) {
-	registryURL := "https://raw.githubusercontent.com/MachuraHarry/pipe-modules/master/registry.json?t=" + strconv.FormatInt(time.Now().Unix(), 10)
-
-	resp, err := httpGet(registryURL)
+	reg, err := object.FetchRegistry()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "pipe search: cannot fetch registry: %s\n", err)
+		fmt.Fprintf(os.Stderr, "pipe search: %s\n", err)
 		os.Exit(1)
 	}
 
-	var registry struct {
-		Modules map[string]struct {
-			Description string   `json:"description"`
-			Functions   []string `json:"functions"`
-			URL         string   `json:"url"`
-		} `json:"modules"`
-	}
-	if err := json.Unmarshal([]byte(resp), &registry); err != nil {
-		fmt.Fprintf(os.Stderr, "pipe search: invalid registry: %s\n", err)
-		os.Exit(1)
-	}
-
-	fmt.Printf("\n📦 Pipe Modules%s\n\n", map[bool]string{true: " (filter: \"" + term + "\")"}[term != ""])
+	fmt.Printf("\nPipe Modules%s\n\n", map[bool]string{true: " (filter: \"" + term + "\")"}[term != ""])
 
 	found := 0
-	for name, mod := range registry.Modules {
+	for name, mod := range reg.Modules {
 		if term != "" && !strings.Contains(strings.ToLower(name), strings.ToLower(term)) && !strings.Contains(strings.ToLower(mod.Description), strings.ToLower(term)) {
 			continue
 		}
 		found++
-		fmt.Printf("  %s\n", name)
-		fmt.Printf("    %s\n", mod.Description)
+		fmt.Printf("  %s", name)
+		if mod.Latest != "" {
+			fmt.Printf("  (latest: %s)", mod.Latest)
+		}
+		fmt.Printf("\n    %s\n", mod.Description)
 		fmt.Printf("    Functions: %s\n", strings.Join(mod.Functions, ", "))
+		if len(mod.Versions) > 1 {
+			vers := []string{}
+			for v := range mod.Versions {
+				vers = append(vers, v)
+			}
+			fmt.Printf("    Versions: %s\n", strings.Join(vers, ", "))
+		}
 		fmt.Println()
 	}
 
@@ -279,37 +273,8 @@ func runSearch(term string) {
 }
 
 func resolveModuleURL(name string) (string, error) {
-	registryURL := "https://raw.githubusercontent.com/MachuraHarry/pipe-modules/master/registry.json?t=" + strconv.FormatInt(time.Now().Unix(), 10)
-	resp, err := httpGet(registryURL)
-	if err != nil {
-		return "", fmt.Errorf("cannot fetch registry: %w", err)
-	}
-	var registry struct {
-		Modules map[string]struct {
-			URL string `json:"url"`
-		} `json:"modules"`
-	}
-	if err := json.Unmarshal([]byte(resp), &registry); err != nil {
-		return "", fmt.Errorf("invalid registry: %w", err)
-	}
-	mod, ok := registry.Modules[name]
-	if !ok {
-		return "", fmt.Errorf("module not found: %s", name)
-	}
-	return mod.URL, nil
-}
-
-func httpGet(url string) (string, error) {
-	resp, err := http.Get(url)
-	if err != nil {
-		return "", err
-	}
-	defer resp.Body.Close()
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return "", err
-	}
-	return string(body), nil
+	modName, version := object.ParseModuleSpec(name)
+	return object.ResolveModuleURL(modName, version)
 }
 
 func printHelp() {

@@ -129,6 +129,7 @@ Pipe is currently at version **v0.6.0**, which includes the foundational languag
 ## Phase 3: Maturity (v0.7+)
 
 ### Concurrency
+- [x] `>>` parallel pipeline with Future auto-resolution (v0.6)
 - [ ] Lightweight coroutines/green threads
 - [ ] Channel-based communication (similar to Go channels)
 - [ ] `spawn` keyword for launching concurrent tasks
@@ -143,11 +144,11 @@ Pipe is currently at version **v0.6.0**, which includes the foundational languag
 - [ ] `fn` return type annotations
 
 ### Package Registry
-- [ ] Central package index (similar to PyPI or npm)
-- [ ] `pipe install <package>` command
-- [ ] Package manifest format (`package.pipe` or `pipe.json`)
-- [ ] Semantic versioning support
+- [x] Central module registry (`pipe -search`, `pipe -get`) (v0.6)
+- [x] Semantic versioning (`@1.0.0`) (v0.6)
+- [ ] `pipe install <package>` for dependency management
 - [ ] `pipe publish` for package authors
+- [ ] Package manifest format (`package.pipe` or `pipe.json`)
 
 ### Bytecode Optimizations
 - [ ] Constant folding at compile time
@@ -218,6 +219,7 @@ Pipe is currently at version **v0.6.0**, which includes the foundational languag
 | Control Flow | ✅ Done | v0.1 | if/while/for/match/try |
 | Lists & Maps | ✅ Done | v0.1 | Dot access, slicing |
 | Pipelines | ✅ Done | v0.1 | Horizontal + vertical |
+| Parallel Pipeline (`>>`) | ✅ Done | v0.6 | Future auto-resolution |
 | Standard Library | ✅ Done | v0.2 | 86 builtins |
 | HTTP Client | ✅ Done | v0.3 | GET, POST, JSON |
 | TCP Networking | ✅ Done | v0.3 | Server + client |
@@ -226,6 +228,9 @@ Pipe is currently at version **v0.6.0**, which includes the foundational languag
 | Compound Assignment | ✅ Done | v0.3 | +=, -=, *=, /=, %= |
 | Enum | ✅ Done | v0.3 | Named values |
 | Import/Export | ✅ Done | v0.3 | Module system |
+| Module Registry | ✅ Done | v0.6 | pipe -search, pipe -get |
+| Module Versions | ✅ Done | v0.6 | import \"mod@1.0.0\" |
+| export let/enum | ✅ Done | v0.6 | Variable + enum exports |
 | Result Type | ✅ Done | v0.3 | Ok/Err pattern |
 | Bytecode VM | ✅ Done | v0.4 | 47 opcodes |
 | `.pipec` Cache | ✅ Done | v0.4 | SHA-256 validated |
@@ -244,7 +249,6 @@ Pipe is currently at version **v0.6.0**, which includes the foundational languag
 | Pattern Matching+ | 🔜 Planned | v0.6 | Guards, destructuring |
 | Concurrency | 🔮 Future | v0.7+ | Coroutines, channels |
 | Type Annotations | 🔮 Future | v0.7+ | Optional typing |
-| Package Registry | 🔮 Future | v0.7+ | `pipe install` |
 | Bytecode Opts | 🔮 Future | v0.7+ | Fold, inline, peephole |
 | Sets | 🔮 Future | v0.7+ | Unique collections |
 | Web Playground | 🔮 Future | v0.7+ | WASM-based |

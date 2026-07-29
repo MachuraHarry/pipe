@@ -4,9 +4,9 @@ import "testing"
 
 func TestParseModuleSpec(t *testing.T) {
 	tests := []struct {
-		input       string
-		expectName  string
-		expectVer   string
+		input      string
+		expectName string
+		expectVer  string
 	}{
 		{"log-analyzer", "log-analyzer", ""},
 		{"log-analyzer@1.0.0", "log-analyzer", "1.0.0"},

@@ -92,12 +92,13 @@ for x in [1, 2, 3, 4, 5] {
 }
 ```
 
-5. **Concurrency (`go`):** Launch parallel goroutines:
-
+5. **Concurrency (`go` and `>>`):** Launch parallel goroutines or parallel pipelines:
 ```pipe
 go fn() {
     http_get "https://api.example.com/process"
 }
+
+data >> slow_ai_call    -- parallel pipeline via Future
 ```
 
 6. **Better Error Messages:** Since the Tree-Walker operates directly on the AST, error messages include the exact source location and context.
@@ -148,9 +149,10 @@ pipe -vm large_app.pipe
 | `reduce` with user functions | No (built-in only) |
 | `for-in` loops | No |
 | `go` goroutines | No |
+| `>>` parallel pipeline | Yes (builtins only) |
 | Tail-Call Optimization (TCO) | No |
 
-2. **No Goroutines:** Concurrency via `go` is not implemented in the VM. Programs that depend on concurrent execution must use the Tree-Walker.
+2. **No Goroutines:** Concurrency via `go` is not implemented in the VM. However, the `>>` parallel pipeline operator works for builtins (AI calls, I/O) — user-defined closures fall back to synchronous execution.
 
 3. **Limited Tail Calls:** Deep recursion without TCO can cause stack overflow in the VM.
 
@@ -272,7 +274,8 @@ pipe -vm large_app.pipe     # Recompiles from source
 | Closures | Yes | Yes | |
 | Recursion | Yes | Yes | VM limited depth without TCO |
 | Tail-Call Optimization (TCO) | Yes | No | VM may stack overflow on deep recursion |
-| Pipeline operator (`\|`) | Yes | Yes | |
+| Pipeline operator (`>`) | Yes | Yes | |
+| Parallel pipeline (`>>`) | Yes | Yes (builtins) | User closures: sync in VM |
 | `try`/`catch` | Yes | Yes | |
 | `return` | Yes | Yes | |
 | Lists `[ ]` | Yes | Yes | |

@@ -276,4 +276,4 @@ my-project/
   README.md
 ```
 
-Pipe does not yet have a module or import system, so multi-file projects rely on concatenation or an include mechanism provided by external tooling. For now, keep related code in a single file or use a build script that concatenates files before feeding them to the interpreter.
+Pipe supports a full module system with `import`/`export`, a central module registry, and versioned dependencies (`@1.0.0`). See [Chapter 9: Modules and Imports](09-modules-and-imports.md) and the [Module Ecosystem](21-ecosystem.md).

@@ -53,6 +53,7 @@ Stack-Maschine aus.
   - `for-in` Schleifen
   - `go` (nebenläufige Ausführung)
   - Tail Call Optimization
+- `>>` Parallel-Pipeline funktioniert in der VM für Builtins (KI, I/O), fällt für Closures synchron zurück
 - Komplexere Fehlermeldungen
 
 ### Interner Ablauf
@@ -123,6 +124,7 @@ Benchmark-Ergebnisse (typische Werte):
 | Rekursion | ✅ | ✅ |
 | Tail Call Optimization | ✅ | ❌ |
 | Pipeline | ✅ | ✅ |
+| `>>` Parallel-Pipeline | ✅ | 🟡 (Builtins) |
 | Listen (Index, Slice) | ✅ | ✅ |
 | Maps | ✅ | ✅ |
 | Dot-Access | ✅ | ✅ |

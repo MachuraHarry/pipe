@@ -31,9 +31,9 @@
 
 | # | Feature | Beschreibung |
 |---|---|---|
-| 10 | **Concurrency: `go fn()`** | Goroutine-artige parallele Ausführung (auch in VM) |
+| 10 | **Concurrency** | `>>` Parallel-Pipeline existiert (v0.6); `go fn()` für volles VM-Concurrency geplant |
 | 11 | **Optionale Typannotationen** | `fn add(a: num, b: num) -> a + b` |
-| 12 | **Package-Registry** | Zentrales Repository für Pipe-Module, `import "github.com/..."` |
+| 12 | **Package-Registry 2.0** | `pipe publish`, `pipe install`; Basis (`-search`, `-get`, `@version`) existiert seit v0.6 |
 | 13 | **Bytecode-Optimierungen** | Peephole-Optimizer, Inline-Caching, Constant Folding |
 | 14 | **Web-Playground** | "Try Pipe in your Browser" via WASM |
 | 15 | **VSCode-Plugin 2.0** | Auto-Vervollständigung, Go-to-Definition, Debugger-Integration |
@@ -82,7 +82,11 @@
 | try/catch/return | ✅ | | | |
 | defer | ✅ | | | |
 | Pipeline | ✅ | | | |
+| Parallel-Pipeline (`>>`) | | | ✅ | |
 | Import/Export | ✅ | | | |
+| export var/enum | | | ✅ | |
+| Modul-Registry | | | ✅ | |
+| Modul-Versionen (`@1.0.0`) | | | ✅ | |
 | Enum | ✅ | | | |
 | Result-Typ | ✅ | | | |
 | Slicing | ✅ | | | |
@@ -99,6 +103,6 @@
 | Erweitertes Match | | | ✅ | |
 | Concurrency (go) | 🟡 (nur Tree) | | | ✅ |
 | Typannotationen | | | | ✅ |
-| Package Registry | | | | ✅ |
+| Package Registry | | | ✅ | |
 | LSP Server | | | | ✅ |
 | Web Playground | | | | ✅ |

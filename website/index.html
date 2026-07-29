@@ -38,14 +38,16 @@ nav a:hover{color:var(--fg)}
 .hero>*{position:relative;z-index:1}
 .hero .badge{display:inline-flex;align-items:center;gap:6px;background:var(--bg3);border:1px solid var(--border);border-radius:20px;padding:5px 16px;font-size:0.78rem;color:var(--accent2);margin-bottom:20px}
 .hero .badge strong{color:var(--accent);font-size:0.82rem}
-.hero h1{font-size:clamp(2.2rem,5vw,3.5rem);font-weight:800;letter-spacing:-1.5px;line-height:1.15;margin-bottom:14px}
+.hero h1{font-size:clamp(2.2rem,5vw,3.5rem);font-weight:800;letter-spacing:-1.5px;line-height:1.15;margin-bottom:14px;transition:all .5s cubic-bezier(.4,0,.2,1)}
 .hero h1 .grad{background:linear-gradient(135deg,var(--accent),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
-.hero .sub{font-size:1rem;color:var(--fg2);max-width:550px;margin:0 auto 28px;line-height:1.6}
+.hero .sub{font-size:1rem;color:var(--fg2);max-width:550px;margin:0 auto 28px;line-height:1.6;transition:all .45s cubic-bezier(.4,0,.2,1)}
 .hero .cta{display:inline-flex;gap:10px;flex-wrap:wrap;justify-content:center}
 .cta-primary{background:var(--accent);color:#fff;padding:12px 28px;border-radius:var(--radius);font-weight:600;font-size:0.9rem;text-decoration:none;transition:all .2s;box-shadow:0 4px 20px rgba(124,92,252,0.3)}
 .cta-primary:hover{background:#8e72fc;transform:translateY(-1px);box-shadow:0 8px 32px rgba(124,92,252,0.4)}
 .cta-secondary{background:var(--bg3);color:var(--fg);padding:12px 28px;border-radius:var(--radius);font-weight:600;font-size:0.9rem;text-decoration:none;border:1px solid var(--border);transition:all .2s}
 .cta-secondary:hover{border-color:var(--accent)}
+.hero h1.out,.hero .sub.out{opacity:0;transform:translateY(-20px)}
+.hero h1.in,.hero .sub.in{opacity:1;transform:translateY(0)}
 
 /* Stats inline bar */
 .stats-inline{display:flex;gap:32px;justify-content:center;flex-wrap:wrap;margin-bottom:20px}
@@ -201,10 +203,10 @@ span[data-lang].active{display:inline}a[data-lang].active{display:inline-block}
 <!-- Hero -->
 <section class="hero">
   <div class="badge"><strong>SPR</strong> v0.6.0 · Semantic Pipeline Runtime</div>
-  <h1 data-lang="en" class="active"><span class="grad">AI is not</span> a library call<br>— it's a language primitive.</h1>
-  <h1 data-lang="de"><span class="grad">KI ist kein</span> Library-Call<br>— sondern ein Sprach-Primitive.</h1>
-  <p class="sub" data-lang="en" class="active"><code>summarize</code>, <code>translate</code>, and <code>classify</code> live on the same syntax level as <code>+</code>, <code>sort</code>, and <code>len</code>. Pipe compiles to a single ~10 MB binary. Zero dependencies.</p>
-  <p class="sub" data-lang="de"><code>summarize</code>, <code>translate</code> und <code>classify</code> leben auf derselben Syntax-Ebene wie <code>+</code>, <code>sort</code> und <code>len</code>. Pipe kompiliert zu einer einzigen ~10 MB Binary. Null Abhängigkeiten.</p>
+
+  <h1 id="hero-headline" data-lang="en" class="active"><span class="grad">AI is not</span> a library call<br>— it's a language primitive.</h1>
+  <p id="hero-sub" data-lang="en" class="active"><code>summarize</code>, <code>translate</code>, and <code>classify</code> live on the same syntax level as <code>+</code>, <code>sort</code>, and <code>len</code>. Pipe compiles to a single ~10 MB binary. Zero dependencies.</p>
+
   <div class="stats-inline">
     <div class="stat"><span class="stat-num">25</span><div class="stat-label">AI Builtins</div></div>
     <div class="stat"><span class="stat-num">150+</span><div class="stat-label">Tests</div></div>
@@ -456,6 +458,77 @@ function setLang(l) {
   localStorage.setItem('pipe-lang',l);
 }
 (function(){var s=localStorage.getItem('pipe-lang')||(navigator.language.startsWith('de')?'de':'en');setLang(s);})();
+
+// Hero text carousel
+var heroTexts = {
+  en: [
+    {h:'<span class="grad">AI is not</span> a library call<br>— it\'s a language primitive.',
+     s:'<code>summarize</code>, <code>translate</code>, and <code>classify</code> live on the same syntax level as <code>+</code>, <code>sort</code>, and <code>len</code>. Pipe compiles to a single ~10 MB binary. Zero dependencies.'},
+    {h:'<span class="grad">Code that</span> fixes itself.<br>No other language can do this.',
+     s:'<code>try_ai</code> catches runtime errors and uses AI to automatically fix broken expressions. Type mismatches, division by zero, index errors — the AI repairs them at runtime.'},
+    {h:'<span class="grad">30 lines</span> of Python<br>become <span class="grad">5 lines</span> of Pipe.',
+     s:'AI operations are language primitives, not library calls. No imports, no SDKs, no API wrappers. One binary. Zero dependencies.'},
+    {h:'<span class="grad">Parallel</span> by design.<br><code>&gt;&gt;</code> starts pipelines in the background.',
+     s:'Futures auto-resolve when needed. <code>ai_batch</code> processes hundreds of texts concurrently. No async/await. No Promise.all. Just pure parallelism.'},
+    {h:'<span class="grad">One binary.</span> Zero dependencies.<br>Deploy anywhere in seconds.',
+     s:'~10 MB statically linked. No venv, no pip, no npm, no Docker. Compile once — run on Linux, macOS, Windows, or in the browser via WebAssembly.'}
+  ],
+  de: [
+    {h:'<span class="grad">KI ist kein</span> Library-Call<br>— sondern ein Sprach-Primitive.',
+     s:'<code>summarize</code>, <code>translate</code> und <code>classify</code> leben auf derselben Syntax-Ebene wie <code>+</code>, <code>sort</code> und <code>len</code>. Pipe kompiliert zu einer einzigen ~10 MB Binary. Null Abhängigkeiten.'},
+    {h:'<span class="grad">Code der</span> sich selbst repariert.<br>Keine andere Sprache kann das.',
+     s:'<code>try_ai</code> fängt Laufzeitfehler und nutzt KI um defekte Ausdrücke automatisch zu reparieren. Typ-Fehler, Division durch Null, Index-Fehler — die KI fixt sie zur Laufzeit.'},
+    {h:'Aus <span class="grad">30 Zeilen</span> Python<br>werden <span class="grad">5 Zeilen</span> Pipe.',
+     s:'KI-Operationen sind Sprach-Primitive, keine Library-Calls. Keine Imports, keine SDKs, keine API-Wrapper. Eine Binary. Null Abhängigkeiten.'},
+    {h:'<span class="grad">Parallel</span> per Design.<br><code>&gt;&gt;</code> startet Pipelines im Hintergrund.',
+     s:'Futures lösen sich automatisch auf. <code>ai_batch</code> verarbeitet hunderte Texte parallel. Kein async/await. Kein Promise.all. Reine Parallelität.'},
+    {h:'<span class="grad">Eine Binary.</span> Null Abhängigkeiten.<br>In Sekunden deployen.',
+     s:'~10 MB statisch gelinkt. Kein venv, kein pip, kein npm, kein Docker. Einmal kompilieren — auf Linux, macOS, Windows oder im Browser per WebAssembly ausführen.'}
+  ]
+};
+
+var heroIdx = 0, heroTimer;
+
+function updateHeroText(lang, instant) {
+  var hl = document.getElementById('hero-headline');
+  var sub = document.getElementById('hero-sub');
+  if (!hl || !sub) return;
+  var t = heroTexts[lang] || heroTexts['en'];
+  var next = t[heroIdx];
+  if (instant) {
+    hl.innerHTML = next.h;
+    sub.innerHTML = next.s;
+    return;
+  }
+  hl.classList.add('out');
+  sub.classList.add('out');
+  setTimeout(function() {
+    hl.innerHTML = next.h;
+    sub.innerHTML = next.s;
+    hl.classList.remove('out');
+    sub.classList.remove('out');
+  }, 400);
+}
+
+function cycleHero() {
+  var lang = document.documentElement.lang || 'en';
+  var t = heroTexts[lang] || heroTexts['en'];
+  heroIdx = Math.floor(Math.random() * t.length);
+  updateHeroText(lang, false);
+  heroTimer = setTimeout(cycleHero, 5000);
+}
+
+// Override setLang to restart carousel on language switch
+var origSetLang = setLang;
+setLang = function(l) {
+  origSetLang(l);
+  clearTimeout(heroTimer);
+  heroIdx = 0;
+  updateHeroText(l, true);
+  heroTimer = setTimeout(cycleHero, 5000);
+};
+
+setTimeout(cycleHero, 6000);
 
 document.getElementById("play-editor").addEventListener("keydown",function(e){if((e.ctrlKey||e.metaKey)&&e.key==="Enter")runPlayground();});
 

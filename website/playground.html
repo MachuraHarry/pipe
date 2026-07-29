@@ -3,80 +3,100 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Pipe Playground</title>
+<title>Pipe — Playground</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
-body{background:#0a0a0f;color:#e0e0e8;font-family:system-ui,sans-serif;display:flex;flex-direction:column;align-items:center;min-height:100vh;padding:20px}
-h1{background:linear-gradient(135deg,#7c5cfc,#5ce0fc);-webkit-background-clip:text;-webkit-text-fill-color:transparent;font-size:1.5rem;margin:10px 0 4px}
-.sub{color:#686880;font-size:.78rem;margin-bottom:16px}
-.wrap{width:100%;max-width:720px;display:flex;flex-direction:column;gap:10px}
-.bar{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
-.bar select{background:#14141e;color:#e0e0e8;border:1px solid #28283a;border-radius:6px;padding:5px 10px;font-size:.78rem}
-textarea{width:100%;min-height:180px;background:#0d0d16;color:#e0e0e8;border:1px solid #1e1e2e;border-radius:8px;padding:14px;font:15px/1.6 'JetBrains Mono','Fira Code',monospace;resize:vertical;tab-size:4;white-space:pre-wrap}
-textarea:focus{outline:none;border-color:#7c5cfc}
-.out{background:#0d0d16;border:1px solid #1e1e2e;border-radius:8px;padding:14px;font:14px/1.6 'JetBrains Mono','Fira Code',monospace;color:#3ce096;min-height:60px;white-space:pre-wrap;word-break:break-all}
-.out.err{color:#fc5c7c}
-.ft{color:#484860;font-size:.7rem;text-align:center;margin:16px 0}
-button{background:#7c5cfc;color:#fff;border:none;border-radius:6px;padding:7px 20px;font-size:.82rem;font-weight:600;cursor:pointer}
-button:hover{filter:brightness(1.15)}
-button:disabled{opacity:.35;cursor:not-allowed}
+body{background:#07070c;color:#e8e8f0;font-family:system-ui,sans-serif;display:flex;flex-direction:column;align-items:center;min-height:100vh;padding:20px}
+h1{font-size:1.4rem;margin:10px 0 4px;font-weight:800}
+h1 span{background:linear-gradient(135deg,#a855f7,#7c3aed);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.sub{color:#9090a8;font-size:.8rem;margin-bottom:16px}
+.wrap{width:100%;max-width:720px}
+.play-card{background:#0d0d16;border:1px solid #1e1e2e;border-radius:10px;overflow:hidden;box-shadow:0 0 0 1px rgba(168,85,247,0.04),0 16px 48px rgba(0,0,0,0.4)}
+.play-top{display:flex;justify-content:space-between;align-items:center;padding:8px 14px;background:#141420;border-bottom:1px solid #1e1e2e}
+.play-dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:4px}
+.play-run-btn{background:#a855f7;color:#fff;border:none;border-radius:6px;padding:6px 16px;font-weight:600;font-size:.78rem;cursor:pointer}
+.play-run-btn:hover:not(:disabled){background:#8e72fc}
+.play-run-btn:disabled{opacity:0.4;cursor:not-allowed}
+textarea{width:100%;min-height:140px;padding:14px 16px;font:14px/1.6 'JetBrains Mono','Fira Code',monospace;background:transparent;border:none;color:#e8e8f0;resize:vertical;outline:none;white-space:pre-wrap;tab-size:4}
+.play-bar{padding:6px 14px;background:#141420;border-top:1px solid #1e1e2e;font-size:.68rem;color:#9090a8;font-family:'JetBrains Mono','Fira Code',monospace}
+.play-output{padding:12px 16px;font:13px/1.6 'JetBrains Mono','Fira Code',monospace;color:#3ce096;min-height:40px;max-height:200px;overflow-y:auto;white-space:pre-wrap}
+.play-output.error{color:#fc5c7c}
+a{color:#a855f7;text-decoration:none}
+.ft{color:#606078;font-size:.7rem;text-align:center;margin:20px 0}
 </style>
 </head>
 <body>
-
-<h1>Pipe</h1>
-<p class="sub">code runner — browser via WebAssembly</p>
+<h1>Pipe <span>Playground</span></h1>
+<p class="sub">Write code. Run in browser.</p>
 
 <div class="wrap">
-  <div class="bar">
-    <button onclick="run()" id="runBtn" disabled>▶ Run</button>
-    <select id="ex" onchange="loadEx()">
-      <option value="">examples</option>
-      <option value="0">2+2</option>
-      <option value="1">hello</option>
-      <option value="2">loop</option>
-      <option value="3">fib</option>
-      <option value="4">pipeline</option>
-    </select>
-    <span style="color:#6868a0;font-size:.72rem" id="st">loading wasm…</span>
+  <div class="play-card">
+    <div class="play-top">
+      <div>
+        <span class="play-dot" style="background:#fc5c7c"></span>
+        <span class="play-dot" style="background:#fc8c3c"></span>
+        <span class="play-dot" style="background:#3ce096"></span>
+      </div>
+      <button id="play-btn" class="play-run-btn" disabled onclick="runPlay()">▶ Run</button>
+    </div>
+    <textarea id="play-editor" placeholder="Write Pipe code..." spellcheck="false">print (2 + 2)</textarea>
+    <div class="play-bar" id="play-bar"><span id="play-status">⏳ loading wasm…</span></div>
+    <div class="play-output" id="play-out"></div>
   </div>
-
-  <textarea id="ed" placeholder="pipe code" spellcheck="false"></textarea>
-  <div class="out" id="out">output</div>
 </div>
 
-<p class="ft">v0.6 · <a href="index.html">home</a> · <a href="https://github.com/MachuraHarry/pipe">github</a></p>
+<p class="ft"><a href="index.html">home</a> · <a href="https://github.com/MachuraHarry/pipe">github</a></p>
 
 <script src="wasm_exec.js"></script>
-<script src="pipe-wasm.js"></script>
 <script>
-const ex=[
-'print (2 + 2)',
-'print "Hello from Pipe!"',
-'for i in (range 1 6)\n    print i',
-'fn fib n\n    match n\n        | 0 -> 0\n        | 1 -> 1\n        | _ -> fib(n-1)+fib(n-2)\nprint (fib 10)',
-'"hello world"\n    > upper\n    > print',
-];
+let pipeReady = false;
+const pipeGo = new Go();
 
-function run(){
-  if(typeof pipeReady==='undefined'||!pipeReady)return;
-  const ta=document.getElementById('ed'),out=document.getElementById('out');
-  out.className='out';
-  out.textContent='…';
-  const r=window.pipeRun(ta.value);
-  out.textContent=r||'(no output)';
-  if(r&&r.includes('Error:'))out.className='out err';
+fetch("pipe.wasm").then(r => {
+  if (!r.ok) throw new Error("HTTP " + r.status);
+  return WebAssembly.instantiateStreaming(r, pipeGo.importObject);
+}).then(r => {
+  document.getElementById("play-status").textContent = "starting…";
+  pipeGo.run(r.instance);
+  pipeReady = true;
+  document.getElementById("play-status").textContent = "✓ ready";
+  document.getElementById("play-btn").disabled = false;
+}).catch(e => {
+  document.getElementById("play-status").textContent = "✗ " + e.message;
+  console.error("WASM:", e);
+});
+
+function runPlay() {
+  const btn=document.getElementById("play-btn"),out=document.getElementById("play-out"),bar=document.getElementById("play-bar");
+  if(!pipeReady||btn.disabled)return;
+  btn.disabled=true;btn.textContent="⏳";
+  bar.innerHTML='<span style="color:#fc8c3c">running…</span>';
+  out.className="play-output";
+  out.textContent="";
+  setTimeout(function(){
+    try{
+      const code=document.getElementById("play-editor").value;
+      const result=pipeRun(code);
+      btn.disabled=false;btn.textContent="▶ Run";
+      if(result&&(result.includes("Error:")||result.includes("Parse error"))){
+        bar.innerHTML='<span style="color:#fc5c7c">✗ error</span>';
+        out.className="play-output error";
+      }else{
+        bar.innerHTML='<span style="color:#3ce096">✓ done</span>';
+      }
+      out.textContent=result||"(no output)";
+    }catch(e){
+      btn.disabled=false;btn.textContent="▶ Run";
+      bar.innerHTML='<span style="color:#fc5c7c">✗ error</span>';
+      out.className="play-output error";
+      out.textContent="Error: "+e.message;
+    }
+  },50);
 }
 
-function loadEx(){
-  const i=parseInt(document.getElementById('ex').value);
-  if(isNaN(i))return;
-  document.getElementById('ed').value=ex[i];
-}
-
-document.addEventListener('keydown',e=>{if((e.ctrlKey||e.metaKey)&&e.key==='Enter')run()});
-
-document.getElementById('ed').value=ex[0];
+document.getElementById("play-editor").addEventListener("keydown",function(e){
+  if((e.ctrlKey||e.metaKey)&&e.key==="Enter")runPlay();
+});
 </script>
 </body>
 </html>

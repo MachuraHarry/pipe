@@ -14,6 +14,10 @@ h1 span{background:linear-gradient(135deg,#a855f7,#7c3aed);-webkit-background-cl
 .play-card{background:#0d0d16;border:1px solid #1e1e2e;border-radius:10px;overflow:hidden;box-shadow:0 0 0 1px rgba(168,85,247,0.04),0 16px 48px rgba(0,0,0,0.4)}
 .play-top{display:flex;justify-content:space-between;align-items:center;padding:8px 14px;background:#141420;border-bottom:1px solid #1e1e2e}
 .play-dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:4px}
+.play-actions{display:flex;gap:8px}
+.play-share-btn{background:transparent;color:#a855f7;border:1px solid #a855f7;border-radius:6px;padding:6px 14px;font-weight:600;font-size:.78rem;cursor:pointer}
+.play-share-btn:hover:not(:disabled){background:#a855f7;color:#fff}
+.play-share-btn:disabled{opacity:0.4;cursor:not-allowed}
 .play-run-btn{background:#a855f7;color:#fff;border:none;border-radius:6px;padding:6px 16px;font-weight:600;font-size:.78rem;cursor:pointer}
 .play-run-btn:hover:not(:disabled){background:#8e72fc}
 .play-run-btn:disabled{opacity:0.4;cursor:not-allowed}
@@ -23,6 +27,8 @@ textarea{width:100%;min-height:140px;padding:14px 16px;font:14px/1.6 'JetBrains 
 .play-output.error{color:#fc5c7c}
 a{color:#a855f7;text-decoration:none}
 .ft{color:#606078;font-size:.7rem;text-align:center;margin:20px 0}
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1e1e2e;color:#e8e8f0;padding:10px 20px;border-radius:8px;font-size:.82rem;border:1px solid #2e2e3e;z-index:100;opacity:0;transition:opacity .25s;pointer-events:none}
+.toast.show{opacity:1}
 </style>
 </head>
 <body>
@@ -37,7 +43,10 @@ a{color:#a855f7;text-decoration:none}
         <span class="play-dot" style="background:#fc8c3c"></span>
         <span class="play-dot" style="background:#3ce096"></span>
       </div>
-      <button id="play-btn" class="play-run-btn" disabled onclick="runPlay()">▶ Run</button>
+      <div class="play-actions">
+        <button id="share-btn" class="play-share-btn" onclick="sharePlay()">Share</button>
+        <button id="play-btn" class="play-run-btn" disabled onclick="runPlay()">▶ Run</button>
+      </div>
     </div>
     <textarea id="play-editor" placeholder="Write Pipe code..." spellcheck="false">print (2 + 2)</textarea>
     <div class="play-bar" id="play-bar"><span id="play-status">⏳ loading wasm…</span></div>
@@ -47,7 +56,12 @@ a{color:#a855f7;text-decoration:none}
 
 <p class="ft"><a href="index.html">home</a> · <a href="https://github.com/MachuraHarry/pipe">github</a></p>
 
+<div class="toast" id="toast"></div>
+
 <script src="wasm_exec.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-database-compat.js"></script>
+<script src="firebase-config.js"></script>
 <script>
 let pipeReady = false;
 const pipeGo = new Go();
@@ -97,6 +111,106 @@ function runPlay() {
 document.getElementById("play-editor").addEventListener("keydown",function(e){
   if((e.ctrlKey||e.metaKey)&&e.key==="Enter")runPlay();
 });
+
+// ---------- Firebase Code-Sharing ----------
+
+const db = firebase.database();
+const statusEl = document.getElementById("play-status");
+
+function showToast(msg) {
+  const t = document.getElementById("toast");
+  t.textContent = msg;
+  t.classList.add("show");
+  clearTimeout(t._hide);
+  t._hide = setTimeout(() => t.classList.remove("show"), 3000);
+}
+
+function sha256(str) {
+  const enc = new TextEncoder().encode(str);
+  return crypto.subtle.digest("SHA-256", enc).then(hash =>
+    Array.from(new Uint8Array(hash)).map(b => b.toString(16).padStart(2,"0")).join("")
+  );
+}
+
+async function sharePlay() {
+  const btn = document.getElementById("share-btn");
+  const code = document.getElementById("play-editor").value;
+  if (!code.trim()) { showToast("No code to share"); return; }
+  if (code.length > 10000) { showToast("Code too long (max 10,000 chars)"); return; }
+
+  btn.disabled = true;
+  btn.textContent = "⏳";
+
+  try {
+    const hash = await sha256(code);
+    const ref = db.ref("shared/" + hash);
+
+    try {
+      await ref.set({ code, created: Date.now() });
+    } catch (writeErr) {
+      const snap = await ref.once("value");
+      if (!snap.val()) {
+        showToast("Save failed: " + writeErr.message);
+        btn.disabled = false; btn.textContent = "Share";
+        return;
+      }
+    }
+
+    const url = window.location.origin + window.location.pathname + "?code=" + hash;
+    try {
+      await navigator.clipboard.writeText(url);
+      showToast("Link copied!");
+    } catch {
+      const ta = document.createElement("textarea");
+      ta.value = url;
+      ta.style.position = "fixed"; ta.style.left = "-9999px";
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand("copy");
+      document.body.removeChild(ta);
+      showToast("Link copied!");
+    }
+  } catch (e) {
+    showToast("Error: " + e.message);
+  }
+
+  btn.disabled = false;
+  btn.textContent = "Share";
+}
+
+async function loadSharedCode() {
+  const params = new URLSearchParams(window.location.search);
+  const hash = params.get("code");
+  if (!hash) return;
+
+  const editor = document.getElementById("play-editor");
+  statusEl.textContent = "⌛ loading shared code…";
+
+  try {
+    const snap = await db.ref("shared/" + hash).once("value");
+    const data = snap.val();
+    if (data && data.code) {
+      editor.value = data.code;
+      if (pipeReady) {
+        statusEl.textContent = "✓ shared code loaded";
+      } else {
+        const orig = statusEl.textContent;
+        const check = setInterval(() => {
+          if (pipeReady) {
+            clearInterval(check);
+            statusEl.textContent = "✓ shared code loaded";
+          }
+        }, 100);
+      }
+    } else {
+      statusEl.textContent = "✗ code not found";
+    }
+  } catch (e) {
+    statusEl.textContent = "✗ load failed: " + e.message;
+  }
+}
+
+loadSharedCode();
 </script>
 </body>
 </html>

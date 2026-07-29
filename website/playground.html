@@ -105,7 +105,7 @@ const examples = [
   'person: {name: "Anna"}\nprint (get person "name")',
   'fn triple x\n    x * 3\n\n-- Parallel: both start simultaneously\n10\n    >> triple\n    > print\n20\n    >> triple\n    > print',
   '-- While loop countdown\ni: 5\nwhile i > 0\n    print i\n    i: i - 1\nprint "Liftoff!"',
-  'fn reverse s\n    if (len s) <= 1\n        s\n    else\n        (reverse (s[1..(len s)])) ++ (s[0])\n\nprint (reverse "hello")\nprint (reverse "racecar")',
+  'fn pal s\n    fn check i j\n        if i >= j\n            true\n        else if (at s i) != (at s j)\n            false\n        else\n            check (i + 1) (j - 1)\n    check 0 (len s - 1)\n\nprint (pal "racecar")\nprint (pal "hello")',
   'fn fizzbuzz n\n    if n % 15 == 0\n        "FizzBuzz"\n    else if n % 3 == 0\n        "Fizz"\n    else if n % 5 == 0\n        "Buzz"\n    else\n        n\n\nfor i in (range 1 16)\n    print (fizzbuzz i)',
   'fn to_f c\n    c * 9 / 5 + 32\n\nprint "0C = "\nprint (to_f 0)\nprint "100C = "\nprint (to_f 100)'
 ];

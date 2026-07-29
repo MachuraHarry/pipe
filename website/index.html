@@ -237,10 +237,29 @@ span[data-lang].active{display:inline}a[data-lang].active{display:inline-block}
       </div>
       <div class="play-editor-wrap">
         <textarea id="play-editor" class="play-editor" placeholder="Write Pipe code..." spellcheck="false"
-oninput="syncHighlight()" onscroll="syncScroll()">read_file "news.txt"
-    > summarize
-    > translate "de"
-    > print</textarea>
+oninput="syncHighlight()" onscroll="syncScroll()">-- Pipe Playground — Try it live!
+-- Data flows top to bottom through transformations.
+
+fn double x
+    x * 2
+
+fn greet name
+    "Hello, " ++ name ++ "!"
+
+10
+    > double       -- 10 * 2 = 20
+    > double       -- 20 * 2 = 40
+    > print        -- outputs: 40
+
+greet "World"
+    > print        -- outputs: Hello, World!
+
+-- Parallel pipeline (>>) starts in background,
+-- Futures auto-resolve when the value is needed.
+100
+    >> double      -- starts immediately
+    >> double      -- chains in background
+    > print        -- waits, then prints 400</textarea>
         <pre id="play-hl" class="play-editor language-pipe" aria-hidden="true"></pre>
       </div>
       <div class="play-bar" id="play-bar"><span style="color:#fc8c3c">Loading WASM...</span></div>

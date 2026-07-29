@@ -98,6 +98,7 @@
 | Benchmarks | ✅ | | | |
 | Self-Extracting Binary | ✅ | | | |
 | REPL + History | ✅ | | | |
+| REPL Persistenz | | | ✅ | |
 | Bytecode-Cache | ✅ | | | |
 | VSCode Extension | ✅ | | | |
 | Erweitertes Match | | | ✅ | |

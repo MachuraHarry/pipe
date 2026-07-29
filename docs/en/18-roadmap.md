@@ -235,17 +235,17 @@ Pipe is currently at version **v0.6.0**, which includes the foundational languag
 | Bytecode VM | ✅ Done | v0.4 | 47 opcodes |
 | `.pipec` Cache | ✅ Done | v0.4 | SHA-256 validated |
 | Formatter | ✅ Done | v0.5 | `pipe fmt` |
+| Formatter Enhance | ✅ Done | v0.6 | --check, dirs |
 | Build System | ✅ Done | v0.5 | Self-extracting bins |
 | VSCode Extension | ✅ Done | v0.5 | Syntax + auto-indent |
 | Documentation | ✅ Done | v0.5 | 18 chapters |
 | REPL | ✅ Done | v0.5 | History, :vm toggle |
+| REPL History Persist | ✅ Done | v0.6 | Save/load ~/.pipe_history |
 | TCO | ✅ Done | v0.5 | Tree-walker only |
 | Defer | ✅ Done | v0.5.1 | LIFO cleanup |
 | `_` Placeholder | ✅ Done | v0.5.1 | Pipeline args |
 | Improved Module Sys | 🔜 Planned | v0.6 | Dirs, relative, circular |
-| Formatter Enhance | 🔜 Planned | v0.6 | --check, dirs |
-| REPL Improvements | 🔜 Planned | v0.6 | History, completion |
-| Better Errors | 🔜 Planned | v0.6 | Snippets, codes |
+| Better Errors | 🔜 Planned | v0.6 | Snippets, source lines |
 | Pattern Matching+ | 🔜 Planned | v0.6 | Guards, destructuring |
 | Concurrency | 🔮 Future | v0.7+ | Coroutines, channels |
 | Type Annotations | 🔮 Future | v0.7+ | Optional typing |

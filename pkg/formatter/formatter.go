@@ -22,6 +22,15 @@ func Format(path string) error {
 	return os.WriteFile(path, []byte(result), 0644)
 }
 
+func FormatCheck(path string) (bool, error) {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return false, err
+	}
+	result := FormatSource(string(data))
+	return result == string(data), nil
+}
+
 func FormatSource(src string) string {
 	l := lexer.New(src)
 	p := parser.New(l)

@@ -35,6 +35,7 @@ func main() {
 		quietVM    bool
 		showAST    bool
 		doFmt      bool
+		fmtCheck   bool
 		doBench    bool
 		doTest     bool
 		doBuild    bool
@@ -60,6 +61,9 @@ func main() {
 			showAST = true
 		case "-fmt":
 			doFmt = true
+		case "--check":
+			doFmt = true
+			fmtCheck = true
 		case "-bench":
 			doBench = true
 		case "-test":
@@ -182,11 +186,26 @@ func main() {
 	}
 
 	if doFmt {
-		if err := formatter.Format(filePath); err != nil {
+		if filePath == "" {
+			fmt.Fprintln(os.Stderr, "pipe fmt: requires a .pipe file or directory")
+			os.Exit(1)
+		}
+		changed, err := formatPath(filePath, fmtCheck)
+		if err != nil {
 			fmt.Fprintf(os.Stderr, "pipe fmt: %s\n", err)
 			os.Exit(1)
 		}
-		fmt.Printf("Formatted %s\n", filePath)
+		if fmtCheck {
+			if changed > 0 {
+				fmt.Printf("%d file(s) need formatting\n", changed)
+				os.Exit(1)
+			}
+			fmt.Println("All files formatted")
+		} else {
+			if changed > 0 {
+				fmt.Printf("Formatted %d file(s)\n", changed)
+			}
+		}
 		return
 	}
 
@@ -277,6 +296,62 @@ func resolveModuleURL(name string) (string, error) {
 	return object.ResolveModuleURL(modName, version)
 }
 
+func formatPath(path string, checkOnly bool) (int, error) {
+	info, err := os.Stat(path)
+	if err != nil {
+		return 0, err
+	}
+	if info.IsDir() {
+		return formatDir(path, checkOnly)
+	}
+	if checkOnly {
+		same, err := formatter.FormatCheck(path)
+		if err != nil {
+			return 0, err
+		}
+		if same {
+			return 0, nil
+		}
+		fmt.Println(path)
+		return 1, nil
+	}
+	if err := formatter.Format(path); err != nil {
+		return 0, err
+	}
+	return 1, nil
+}
+
+func formatDir(dir string, checkOnly bool) (int, error) {
+	count := 0
+	err := filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+		if info.IsDir() || !strings.HasSuffix(path, ".pipe") {
+			return nil
+		}
+		if checkOnly {
+			same, err := formatter.FormatCheck(path)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "pipe fmt: %s: %s\n", path, err)
+				return nil
+			}
+			if !same {
+				fmt.Println(path)
+				count++
+			}
+			return nil
+		}
+		if err := formatter.Format(path); err != nil {
+			fmt.Fprintf(os.Stderr, "pipe fmt: %s: %s\n", path, err)
+			return nil
+		}
+		count++
+		return nil
+	})
+	return count, err
+}
+
 func printHelp() {
 	fmt.Println(`Pipe (SPR) ` + version + ` — Semantic Pipeline Runtime
 
@@ -288,7 +363,8 @@ Flags:
   -vm           Use bytecode VM instead of tree-walker (~7x faster)
   -q            VM mode: suppress bytecode output
   -ast          Only print AST, don't execute
-  -fmt          Format file (indentation, whitespace)
+  -fmt          Format file or directory (indentation, whitespace)
+  --check       Check formatting without writing (requires -fmt)
   -test         Run all test files in current directory
   -bench        Run benchmarks (tree-walker vs VM)
   --sandbox     Restrict dangerous builtins (exec, tcp, http, ai, fs-write)
@@ -529,7 +605,7 @@ func startREPL(useVM bool) {
 
 	scanner := bufio.NewScanner(os.Stdin)
 	env := object.NewEnvironment()
-	history := make([]string, 0, 100)
+	history := loadHistory()
 
 	var lines []string
 	needBlank := false
@@ -543,6 +619,7 @@ func startREPL(useVM bool) {
 
 		if !scanner.Scan() {
 			fmt.Println()
+			saveHistory(history)
 			return
 		}
 
@@ -552,6 +629,7 @@ func startREPL(useVM bool) {
 		if len(lines) == 0 {
 			switch trimmed {
 			case ":quit", ":q":
+				saveHistory(history)
 				return
 			case ":help", ":h":
 				fmt.Println("  :quit, :q   — Exit")
@@ -676,6 +754,43 @@ func tryParse(input string) bool {
 	p := parser.New(l)
 	p.ParseProgram()
 	return len(p.Errors()) == 0
+}
+
+func histFile() string {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return ""
+	}
+	return filepath.Join(home, ".pipe_history")
+}
+
+func loadHistory() []string {
+	path := histFile()
+	if path == "" {
+		return make([]string, 0, 100)
+	}
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return make([]string, 0, 100)
+	}
+	lines := strings.Split(strings.TrimSpace(string(data)), "\n")
+	history := make([]string, 0, max(100, len(lines)+20))
+	for _, line := range lines {
+		trimmed := strings.TrimSpace(line)
+		if trimmed != "" {
+			history = append(history, trimmed)
+		}
+	}
+	return history
+}
+
+func saveHistory(history []string) {
+	path := histFile()
+	if path == "" || len(history) == 0 {
+		return
+	}
+	data := strings.Join(history, "\n") + "\n"
+	os.WriteFile(path, []byte(data), 0644)
 }
 
 func executeREPL(lines []string, env *object.Environment, useVM bool) {

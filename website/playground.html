@@ -17,14 +17,15 @@ button{background:#7c5cfc;color:#fff;border:none;border-radius:8px;padding:10px 
 button:hover{background:#8e72fc}
 button:disabled{opacity:0.4;cursor:not-allowed}
 
-/* Syntax highlighting */
-.pipe-hl .kw{color:#a78bfa;font-weight:600}
-.pipe-hl .fn{color:#5ce0fc}
-.pipe-hl .str{color:#3ce096}
-.pipe-hl .cmt{color:#666;font-style:italic}
-.pipe-hl .op{color:#fc8c3c}
-.pipe-hl .num{color:#c084fc}
-.pipe-hl .nil{color:#666}
+/* Prism token colors */
+.token.comment,.token.prolog,.token.doctype,.token.cdata{color:#666;font-style:italic}
+.token.punctuation{color:#9898a8}
+.token.boolean,.token.number,.token.constant,.token.symbol{color:#c084fc}
+.token.string,.token.char,.token.builtin{color:#3ce096}
+.token.operator,.token.entity,.token.url{color:#fc8c3c}
+.token.keyword{color:#a78bfa;font-weight:600}
+.token.function,.token.class-name{color:#5ce0fc}
+.token.variable{color:#e0e0e8}
 
 /* Editor overlay */
 .editor-wrap{display:grid;min-height:220px}
@@ -70,7 +71,7 @@ a{color:#7c5cfc;text-decoration:none}
     <textarea id="editor" placeholder="Write Pipe code here..." spellcheck="false"
 oninput="syncHighlight()" onscroll="syncScroll()">print "Hello from Pipe Playground!"
 print (2 + 2)</textarea>
-    <pre id="editor-hl" class="pipe-hl" aria-hidden="true"></pre>
+    <pre id="editor-hl" class="language-pipe" aria-hidden="true"></pre>
   </div>
 
   <div class="output empty" id="output">Output appears here after you click Run.</div>
@@ -84,6 +85,7 @@ print (2 + 2)</textarea>
 
 <script src="wasm_exec.js"></script>
 <script src="pipe-wasm.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
 <script>
 const examples = [
   "print (2 + 2)",
@@ -123,60 +125,24 @@ document.addEventListener("keydown", e => {
   if ((e.ctrlKey || e.metaKey) && e.key === "Enter") run();
 });
 
-// Pipe Syntax Highlighting
-var PIPE_KW=['fn','match','if','else','while','for','break','continue','import','export','enum','defer','return','try','catch'];
-var PIPE_OPS=['>>','->','++','**','..','+=','-=','*=','/=','%=','==','!=','<=','>=','&&','||'];
-
-function esc(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
-
-function highlightPipe(code){
-  var out='',i=0;
-  while(i<code.length){
-    var c=code[i];
-    if(c==='-'&&code[i+1]==='-'){
-      var e=code.indexOf('\n',i);if(e===-1)e=code.length;
-      out+='<span class="cmt">'+esc(code.slice(i,e))+'</span>';
-      i=e;continue;
-    }
-    if(c==='"'){
-      var s=i;i++;
-      while(i<code.length&&code[i]!=='"'){if(code[i]==='\\')i++;i++;}
-      i++;out+='<span class="str">'+esc(code.slice(s,i))+'</span>';continue;
-    }
-    if(/\d/.test(c)&&(i===0||/[^\w.]/.test(code[i-1]))){
-      var s=i;while(i<code.length&&/[\d.]/.test(code[i]))i++;
-      out+='<span class="num">'+esc(code.slice(s,i))+'</span>';continue;
-    }
-    var m=0;
-    for(var j=0;j<PIPE_OPS.length;j++){
-      var o=PIPE_OPS[j];
-      if(code.slice(i,i+o.length)===o){
-        out+='<span class="op">'+esc(o)+'</span>';i+=o.length;m=1;break;
-      }
-    }
-    if(m)continue;
-    if(code[i]==='>'||code[i]==='<'||code[i]==='+'||code[i]==='-'||code[i]==='*'||code[i]==='/'||code[i]==='%'||code[i]==='='||code[i]==='!'){
-      out+='<span class="op">'+esc(code[i])+'</span>';i++;continue;
-    }
-    if(/[a-zA-Z_]/.test(c)){
-      var s=i;while(i<code.length&&/\w/.test(code[i]))i++;
-      var w=code.slice(s,i);
-      if(PIPE_KW.indexOf(w)!==-1)out+='<span class="kw">'+w+'</span>';
-      else if(w==='nil'||w==='true'||w==='false')out+='<span class="nil">'+w+'</span>';
-      else if(i<code.length&&/\s*\(/.test(code.slice(i)))out+='<span class="fn">'+w+'</span>';
-      else out+=esc(w);
-      continue;
-    }
-    out+=esc(c);i++;
-  }
-  return out;
-}
+// Pipe language for Prism.js
+Prism.languages.pipe={
+  comment:/--.*/,
+  string:{pattern:/"(?:[^"\\]|\\.)*"/,greedy:!0},
+  number:/\b\d+(?:\.\d+)?\b/,
+  keyword:/\b(?:fn|match|if|else|while|for|break|continue|import|export|enum|defer|return|try|catch)\b/,
+  boolean:/\b(?:true|false|nil)\b/,
+  operator:/>>|->|\+\+|\*\*|\.\.|\+=|-=|\*=|\/=|%=|==|!=|<=|>=|&&|\|\||[+\-*\/%<>=!]/,
+  punctuation:/[{}[\]();,.:]/,
+  'function':{pattern:/\b[a-zA-Z_]\w*(?=\s*\()/,alias:'function'},
+  variable:/\b[a-zA-Z_]\w*\b/
+};
 
 function syncHighlight(){
   var ta=document.getElementById('editor');
   var pre=document.getElementById('editor-hl');
   if(!ta||!pre)return;
-  pre.innerHTML=highlightPipe(ta.value+'\n');
+  pre.innerHTML=Prism.highlight(ta.value,Prism.languages.pipe,'pipe')+'\n';
 }
 
 function syncScroll(){

@@ -170,14 +170,18 @@ span[data-lang].active{display:inline}a[data-lang].active{display:inline-block}
   nav .logo{font-size:1rem}
 }
 
-/* Syntax highlighting */
-.pipe-hl .kw{color:var(--accent);font-weight:600}
-.pipe-hl .fn{color:var(--accent2)}
-.pipe-hl .str{color:var(--green)}
-.pipe-hl .cmt{color:var(--fg3);font-style:italic}
-.pipe-hl .op{color:var(--orange)}
-.pipe-hl .num{color:#e0a0ff}
-.pipe-hl .nil{color:var(--fg3)}
+/* Prism token colors (matching Pipe theme) */
+.token.comment,.token.prolog,.token.doctype,.token.cdata{color:#666;font-style:italic}
+.token.punctuation{color:#9898a8}
+.token.property,.token.tag,.token.boolean,.token.number,.token.constant,.token.symbol{color:#c084fc}
+.token.selector,.token.attr-name,.token.string,.token.char,.token.builtin{color:#3ce096}
+.token.operator,.token.entity,.token.url{color:#fc8c3c}
+.token.atrule,.token.attr-value,.token.keyword{color:#a78bfa;font-weight:600}
+.token.function,.token.class-name{color:#5ce0fc}
+.token.regex,.token.important,.token.variable{color:#c084fc}
+.language-pipe .token.function{color:#5ce0fc}
+.language-pipe .token.operator{color:#fc8c3c}
+.language-pipe .token.keyword{color:#a78bfa;font-weight:600}
 </style>
 </head>
 <body>
@@ -330,7 +334,7 @@ text = open(<span class="str">"news.txt"</span>).read()
         <textarea id="play-editor" class="play-editor" placeholder="Write Pipe code..." spellcheck="false"
 oninput="syncHighlight()" onscroll="syncScroll()">print "Hello!"
 print (2 + 2)</textarea>
-        <pre id="play-hl" class="play-editor pipe-hl" aria-hidden="true"></pre>
+        <pre id="play-hl" class="play-editor language-pipe" aria-hidden="true"></pre>
       </div>
       <div class="play-bar" id="play-bar"><span style="color:#fc8c3c">Loading WASM...</span></div>
       <div class="play-output" id="play-out"></div>
@@ -372,6 +376,7 @@ print (2 + 2)</textarea>
 
 <script src="wasm_exec.js"></script>
 <script src="pipe-wasm.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
 <script>
 function setLang(l) {
   document.querySelectorAll('[data-lang]').forEach(e=>e.classList.remove('active'));
@@ -402,75 +407,36 @@ async function runPlayground(){
 
 function closeMenu(){document.getElementById('nav-menu').classList.remove('open');}
 
-// Pipe Syntax Highlighting
-var PIPE_KW=['fn','match','if','else','while','for','break','continue','import','export','enum','defer','return','try','catch'];
-var PIPE_OPS=['>>','->','++','**','..','+=','-=','*=','/=','%=','==','!=','<=','>=','&&','||'];
-
-function esc(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
-
-function highlightPipe(code){
-  var out='',i=0;
-  while(i<code.length){
-    var c=code[i];
-    if(c==='-'&&code[i+1]==='-'){
-      var e=code.indexOf('\n',i);if(e===-1)e=code.length;
-      out+='<span class="cmt">'+esc(code.slice(i,e))+'</span>';
-      i=e;continue;
-    }
-    if(c==='"'){
-      var s=i;i++;
-      while(i<code.length&&code[i]!=='"'){if(code[i]==='\\')i++;i++;}
-      i++;out+='<span class="str">'+esc(code.slice(s,i))+'</span>';continue;
-    }
-    if(/\d/.test(c)&&(i===0||/[^\w.]/.test(code[i-1]))){
-      var s=i;while(i<code.length&&/[\d.]/.test(code[i]))i++;
-      out+='<span class="num">'+esc(code.slice(s,i))+'</span>';continue;
-    }
-    var m=0;
-    for(var j=0;j<PIPE_OPS.length;j++){
-      var o=PIPE_OPS[j];
-      if(code.slice(i,i+o.length)===o){
-        out+='<span class="op">'+esc(o)+'</span>';i+=o.length;m=1;break;
-      }
-    }
-    if(m)continue;
-    if(code[i]==='>'||code[i]==='<'||code[i]==='+'||code[i]==='-'||code[i]==='*'||code[i]==='/'||code[i]==='%'||code[i]==='='||code[i]==='!'){
-      out+='<span class="op">'+esc(code[i])+'</span>';i++;continue;
-    }
-    if(/[a-zA-Z_]/.test(c)){
-      var s=i;while(i<code.length&&/\w/.test(code[i]))i++;
-      var w=code.slice(s,i);
-      if(PIPE_KW.indexOf(w)!==-1)out+='<span class="kw">'+w+'</span>';
-      else if(w==='nil'||w==='true'||w==='false')out+='<span class="nil">'+w+'</span>';
-      else if(i<code.length&&/\s*\(/.test(code.slice(i)))out+='<span class="fn">'+w+'</span>';
-      else out+=esc(w);
-      continue;
-    }
-    out+=esc(c);i++;
-  }
-  return out;
-}
+// Pipe language for Prism.js
+Prism.languages.pipe={
+  comment:/--.*/,
+  string:{pattern:/"(?:[^"\\]|\\.)*"/,greedy:!0},
+  number:/\b\d+(?:\.\d+)?\b/,
+  keyword:/\b(?:fn|match|if|else|while|for|break|continue|import|export|enum|defer|return|try|catch)\b/,
+  boolean:/\b(?:true|false|nil)\b/,
+  operator:/>>|->|\+\+|\*\*|\.\.|\+=|-=|\*=|\/=|%=|==|!=|<=|>=|&&|\|\||[+\-*\/%<>=!]/,
+  punctuation:/[{}[\]();,.:]/,
+  'function':{pattern:/\b[a-zA-Z_]\w*(?=\s*\()/,alias:'function'},
+  variable:/\b[a-zA-Z_]\w*\b/
+};
 
 function syncHighlight(){
   var ta=document.getElementById('play-editor');
   var pre=document.getElementById('play-hl');
   if(!ta||!pre)return;
-  pre.innerHTML=highlightPipe(ta.value+'\n');
+  pre.innerHTML=Prism.highlight(ta.value,Prism.languages.pipe,'pipe')+'\n';
 }
-
 function syncScroll(){
   var ta=document.getElementById('play-editor');
   var pre=document.getElementById('play-hl');
   if(!ta||!pre)return;
   pre.scrollTop=ta.scrollTop;pre.scrollLeft=ta.scrollLeft;
 }
-
 (function(){
   var ta=document.getElementById('play-editor');
   if(ta){ta.addEventListener('scroll',syncScroll);syncHighlight();}
 })();
 
-// Scroll reveal
 var observer=new IntersectionObserver(e=>{e.forEach(e=>{if(e.isIntersecting)e.target.classList.add('visible')})},{threshold:0.1});
 document.querySelectorAll('.reveal').forEach(e=>observer.observe(e));
 </script>

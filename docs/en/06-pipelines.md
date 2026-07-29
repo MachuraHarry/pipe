@@ -67,6 +67,85 @@ When a pipeline step needs arguments beyond the piped value, list them after the
 
 The piped value (`[1, 2, ...]`) is inserted as the first argument to `filter`. The anonymous function is the second argument.
 
+## Parallel Pipelines (`>>`)
+
+The `>>` (double arrow) operator starts a pipeline stage **in the background** and returns immediately with a **Future** — a placeholder that will hold the result once the computation finishes. The program continues executing without waiting.
+
+When the result is actually needed (used in arithmetic, passed to a function, printed, etc.), Pipe **automatically waits** for the background computation to finish.
+
+### Syntax
+
+```pipe
+initial_value
+>> slow_operation       -- starts in background, returns Future immediately
+> next_operation        -- continues when Future is resolved
+> print
+```
+
+### Why Parallel Pipelines?
+
+Many operations — especially AI calls — take seconds to complete. With `>`, each step waits for the previous one:
+
+```pipe
+-- Sequential: ~9 seconds (3 calls × 3 seconds each)
+"Question 1" > ask > print
+"Question 2" > ask > print
+"Question 3" > ask > print
+```
+
+With `>>`, all three start simultaneously:
+
+```pipe
+-- Parallel: ~3 seconds (all 3 calls run concurrently)
+"Question 1" >> ask
+"Question 2" >> ask
+"Question 3" >> ask
+
+print answer1 ++ answer2 ++ answer3     -- waits automatically
+```
+
+### Futures: Automatic Resolution
+
+When a `>>` stage returns, it does so with a **Future** — a promise that a value will arrive later. Futures resolve automatically when consumed:
+
+```pipe
+-- Store a Future in a variable
+result: 10
+    >> slow_double     -- result is a Future
+
+-- Arithmetic automatically waits for the Future
+result + 100
+    > print            -- Future is resolved before addition
+
+-- String concatenation waits too
+"I got: " ++ result    -- waits for slow_double to finish
+
+-- Function arguments wait
+max result 50          -- waits before comparing
+```
+
+### Mixing `>` and `>>`
+
+You can freely mix sequential and parallel pipeline stages:
+
+```pipe
+data
+    >> fetch_from_api    -- parallel: start API call
+    > parse_json         -- sequential: wait, then parse
+    >> analyze           -- parallel: start analysis
+    > format             -- sequential: wait, then format
+    > print
+```
+
+Each `>>` starts its operation immediately when reached. Each `>` waits for the previous step's result. This gives precise control over which operations run in parallel and which must be sequential.
+
+### Execution Modes
+
+| Mode | `>>` Behavior |
+|------|--------------|
+| Tree-Walker (`./bin/pipe`) | True parallelism via goroutines for all functions |
+| Bytecode VM (`./bin/pipe -vm`) | True parallelism for builtins (AI, I/O, etc.), synchronous fallback for user-defined closures |
+
 ### The `_` Placeholder
 
 Use `_` (underscore) to control where the piped value is inserted. Instead of always going as the first argument, `_` lets you place it at a specific position:
@@ -247,7 +326,9 @@ read_file "log.txt"
 Key points about pipelines:
 
 - The **first line** provides the initial data.
-- Each **`>` line** transforms the data from above.
+- Each **`>` line** transforms the data sequentially.
+- Each **`>>` line** starts a transformation in the background and returns a Future.
+- **Futures resolve automatically** when the value is consumed (arithmetic, function args, concatenation, etc.).
 - The **`_` placeholder** gives precise control over argument placement.
 - Pipelines **compose naturally** — a pipeline can be the initial value of another pipeline.
 - Pipeline results can be assigned to **variables** for reuse.

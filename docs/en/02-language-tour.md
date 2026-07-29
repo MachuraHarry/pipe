@@ -172,6 +172,7 @@ main.pipe
 | Operator | Meaning |
 |---|---|
 | `>` | Pass left-hand value as first argument to right-hand function |
+| `>>` | Start right-hand function in background, return Future immediately |
 
 ### Range Operator
 
@@ -250,6 +251,7 @@ for i in range 5             -- numeric range loop
   print i
 
 value > transform > output   -- pipeline
+value >> async_op >> next_op  -- parallel pipeline
 return value                 -- early return
 defer print "cleanup"        -- deferred execution
 

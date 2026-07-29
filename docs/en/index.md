@@ -62,5 +62,6 @@ value
 ! && ||            Logic (not, and, or)
 ++                 String concatenation
 >                  Pipeline (vertical with indentation)
+>>                 Parallel pipeline (background execution)
 ..                 Range (slicing)
 ```

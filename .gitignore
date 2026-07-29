@@ -1,6 +1,9 @@
 # Binaries
 bin/
 
+# AI instructions
+AGENTS.md
+
 # Bytecode cache
 *.pipec
 

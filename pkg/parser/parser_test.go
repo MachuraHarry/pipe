@@ -332,6 +332,22 @@ func testInfixExpression(t *testing.T, expr ast.Expression, left string, op stri
 	}
 }
 
+func TestParallelPipelineExpression(t *testing.T) {
+	input := "x\n    >> f\n    >> g\n"
+	program := parseProgram(t, input)
+
+	expr, ok := program.Statements[0].(*ast.ExpressionStatement).Expression.(*ast.PipelineExpression)
+	if !ok {
+		t.Fatalf("expected PipelineExpression, got %T", program.Statements[0].(*ast.ExpressionStatement).Expression)
+	}
+	if !expr.Parallel {
+		t.Errorf("expected Parallel=true")
+	}
+	if expr.String() != "((x >> f) >> g)" {
+		t.Errorf("got %s", expr.String())
+	}
+}
+
 func paramsToSlice(params []*ast.Identifier) []string {
 	var s []string
 	for _, p := range params {

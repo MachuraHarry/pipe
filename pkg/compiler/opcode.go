@@ -35,6 +35,7 @@ const (
 	OpSetLocal
 	OpGetBuiltin
 	OpCall
+	OpSpawn
 	OpReturn
 	OpReturnValue
 	OpClosure
@@ -77,6 +78,7 @@ var opcodeNames = map[Opcode]string{
 	OpSetLocal:      "OpSetLocal",
 	OpGetBuiltin:    "OpGetBuiltin",
 	OpCall:          "OpCall",
+	OpSpawn:         "OpSpawn",
 	OpReturn:        "OpReturn",
 	OpReturnValue:   "OpReturnValue",
 	OpClosure:       "OpClosure",

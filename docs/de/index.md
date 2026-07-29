@@ -62,5 +62,6 @@ wert
 ! && ||            Logik (not, and, or)
 ++                 String-Verkettung
 >                  Pipeline (vertikal mit Einrückung)
+>>                 Parallele Pipeline (Hintergrundausführung)
 ..                 Bereich (Slicing)
 ```

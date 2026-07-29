@@ -830,7 +830,11 @@ func astToString(out *strings.Builder, node ast.Node, depth int) {
 	case *ast.PipelineExpression:
 		out.WriteString(fmt.Sprintf("%sPipeline:\n", indent))
 		astToString(out, n.Left, depth+1)
-		out.WriteString(indent + "  >\n")
+		if n.Parallel {
+			out.WriteString(indent + "  >>\n")
+		} else {
+			out.WriteString(indent + "  >\n")
+		}
 		astToString(out, n.Right, depth+1)
 
 	case *ast.InfixExpression:

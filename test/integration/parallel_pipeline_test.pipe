@@ -1,0 +1,17 @@
+-- Pipe Integrationstest: Parallel Pipeline
+fn double x
+    x * 2
+
+10
+    >> double
+    > print
+
+-- Test mit Variablen-Future
+fn triple x
+    x * 3
+
+val: 5
+    >> triple
+
+val + 10
+    > print

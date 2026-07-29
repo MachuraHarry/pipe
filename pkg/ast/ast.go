@@ -181,14 +181,24 @@ func (ie *InfixExpression) String() string {
 }
 
 type PipelineExpression struct {
-	Left  Expression
-	Right Expression // the function or match to thread through
+	Left     Expression
+	Right    Expression // the function or match to thread through
+	Parallel bool       // true if >> was used instead of >
 }
 
-func (pe *PipelineExpression) expressionNode()      {}
-func (pe *PipelineExpression) TokenLiteral() string { return ">" }
+func (pe *PipelineExpression) expressionNode() {}
+func (pe *PipelineExpression) TokenLiteral() string {
+	if pe.Parallel {
+		return ">>"
+	}
+	return ">"
+}
 func (pe *PipelineExpression) String() string {
-	return fmt.Sprintf("(%s > %s)", pe.Left.String(), pe.Right.String())
+	op := ">"
+	if pe.Parallel {
+		op = ">>"
+	}
+	return fmt.Sprintf("(%s %s %s)", pe.Left.String(), op, pe.Right.String())
 }
 
 type CallExpression struct {

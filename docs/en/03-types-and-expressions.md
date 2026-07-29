@@ -280,7 +280,7 @@ Pipe defines 13 precedence levels, from highest (tightest binding) to lowest:
 | 10 | `==`, `!=` | Non-assoc | `a == b` |
 | 11 | `&&` | Left | `a && b && c` |
 | 12 | `\|\|` | Left | `a \|\| b \|\| c` |
-| 13 | `>` (pipeline) | Left | `a > b > c` |
+| 13 | `>`, `>>` (pipeline) | Left | `a > b >> c` |
 
 **Non-associative** means chaining without parentheses is an error: `a < b < c` is not valid. Use `(a < b) && (b < c)` instead.
 

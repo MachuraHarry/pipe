@@ -354,7 +354,11 @@ func formatPipeline(out *strings.Builder, expr ast.Expression, depth int) {
 
 	// Print this stage
 	out.WriteString(indent)
-	out.WriteString("> ")
+	if pe.Parallel {
+		out.WriteString(">> ")
+	} else {
+		out.WriteString("> ")
+	}
 	if call, ok := pe.Right.(*ast.CallExpression); ok {
 		formatExpr(out, call.Function, depth, 0)
 		for _, arg := range call.Arguments {

@@ -72,6 +72,89 @@ zusätzlichen Argumente nach dem Funktionsnamen angegeben:
 Das Pipeline-Ergebnis (100) wird als erstes Argument eingefügt,
 die zusätzlichen Argumente (50) folgen.
 
+## 6.3b Parallele Pipelines (`>>`)
+
+Der `>>`-Operator (Doppelpfeil) startet eine Pipeline-Stufe **im Hintergrund**
+und gibt sofort einen **Future** (ein Platzhalter-Ticket) zurück. Das Programm
+läuft weiter, ohne auf das Ergebnis zu warten.
+
+Sobald das Ergebnis gebraucht wird (Arithmetik, Funktionsaufruf, Ausgabe etc.),
+wartet Pipe **automatisch** auf den Future.
+
+### Syntax
+
+```pipe
+wert
+    >> langsame_operation    -- startet im Hintergrund, gibt Future zurück
+    > nächste_operation      -- wartet auf Future-Auflösung
+    > print
+```
+
+### Warum parallele Pipelines?
+
+KI-Abfragen und I/O-Operationen dauern oft Sekunden. Mit `>` läuft alles sequentiell:
+
+```pipe
+-- Sequentiell: ~9 Sekunden (3 × 3 Sekunden)
+"Frage 1" > ask > print
+"Frage 2" > ask > print
+"Frage 3" > ask > print
+```
+
+Mit `>>` laufen alle drei gleichzeitig:
+
+```pipe
+-- Parallel: ~3 Sekunden (alle 3 parallel)
+"Frage 1" >> ask
+"Frage 2" >> ask
+"Frage 3" >> ask
+
+print antwort1 ++ antwort2 ++ antwort3    -- wartet automatisch
+```
+
+### Futures: Automatische Auflösung
+
+Wenn eine `>>`-Stufe einen Future zurückgibt, wird dieser automatisch
+aufgelöst sobald der Wert konsumiert wird:
+
+```pipe
+-- Future in Variable speichern
+ergebnis: 10
+    >> langsam_verdoppeln
+
+-- Arithmetik wartet automatisch
+ergebnis + 100
+    > print            -- Future wird vor der Addition aufgelöst
+
+-- String-Konkatenation wartet auch
+"Wert: " ++ ergebnis    -- wartet auf Future
+
+-- Funktionsargumente warten
+max ergebnis 50          -- wartet vor dem Vergleich
+```
+
+### Mischen von `>` und `>>`
+
+Parallele und sequentielle Pipeline-Stufen lassen sich beliebig kombinieren:
+
+```pipe
+daten
+    >> api_abfrage     -- parallel: API-Call starten
+    > parse_json        -- sequentiell: warten, dann parsen
+    >> analysieren      -- parallel: Analyse starten
+    > formatieren       -- sequentiell: warten, dann formatieren
+    > print
+```
+
+Jedes `>>` startet sofort, jedes `>` wartet auf den vorherigen Schritt.
+
+### Ausführungsmodi
+
+| Modus | `>>` Verhalten |
+|-------|---------------|
+| Tree-Walker (`./bin/pipe`) | Echte Parallelität via Goroutinen für alle Funktionen |
+| Bytecode-VM (`./bin/pipe -vm`) | Echte Parallelität für Builtins (KI, I/O etc.), synchrone Ausführung für Closures |
+
 ## 6.4 `_` Platzhalter für Argument-Position
 
 Mit `_` kann der Pipeline-Wert an einer **beliebigen Position** eingefügt werden,

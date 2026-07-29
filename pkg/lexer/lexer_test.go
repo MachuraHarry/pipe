@@ -105,6 +105,16 @@ func TestMapLiteral(t *testing.T) {
 	})
 }
 
+func TestParallelArrow(t *testing.T) {
+	input := "10 >> double"
+	tokens := New(input).TokenizeAll()
+
+	assertTokens(t, tokens, []TokenType{
+		INT, ARROW2, IDENT,
+		EOF,
+	})
+}
+
 func TestMultilineBrackets(t *testing.T) {
 	input := "[1,\n 2,\n 3]"
 	tokens := New(input).TokenizeAll()

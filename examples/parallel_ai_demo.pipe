@@ -1,0 +1,115 @@
+-- ============================================================
+-- PARALLEL AI DEMO — >> mit KI-Operationen
+-- ============================================================
+-- Zeigt wie >> mit KI-Abfragen funktioniert.
+-- Mehrere Abfragen starten parallel — Ergebnisse werden
+-- automatisch eingesammelt sobald sie gebraucht werden.
+--
+-- Voraussetzung:
+--   export DEEPSEEK_API_KEY="sk-..."
+--
+-- Ausführung:
+--   ./bin/pipe -vm -q examples/parallel_ai_demo.pipe
+
+ai_provider "deepseek"
+
+print "Parallel AI Demo: >> mit KI-Operationen"
+print ""
+
+fn clock label
+    t: now 0
+    print (label ++ " Start: " ++ (format_time t "15:04:05"))
+    t
+
+fn elapsed label start
+    d: (now 0) - start
+    print (label ++ " Dauer: " ++ (to_str d) ++ "s")
+    print ""
+
+-- Demo 1: Drei KI-Fragen parallel starten
+print "--- 1. Drei parallele Fragen ---"
+t1: clock "Parallel"
+
+antw1: "Löse 7*8+4 und antworte nur mit der Zahl."
+    >> ask
+
+antw2: "Löse 12*12 und antworte nur mit der Zahl."
+    >> ask
+
+antw3: "Löse 100/4 und antworte nur mit der Zahl."
+    >> ask
+
+print "Alle drei Fragen gestartet im Hintergrund"
+
+print ("  Frage 1: 7*8+4 = " ++ antw1)
+print ("  Frage 2: 12*12 = " ++ antw2)
+print ("  Frage 3: 100/4 = " ++ antw3)
+elapsed "Parallel" t1
+
+-- Demo 2: Zeitvergleich Sequentiell vs Parallel
+print "--- 2. Zeitvergleich: Sequentiell vs Parallel ---"
+
+print "Sequentiell (bisher: >):"
+t_seq: clock "Seq"
+
+"Sage Hallo in einem Wort."
+    > ask
+    > print
+
+"Sage Tschüss in einem Wort."
+    > ask
+    > print
+
+elapsed "Seq" t_seq
+
+print "Parallel (neu: >>):"
+t_par: clock "Parallel"
+
+"Sage Hallo in einem Wort."
+    >> ask
+
+"Sage Tschüss in einem Wort."
+    >> ask
+
+"Beantworte: Ist die Erde rund? Nur Ja oder Nein."
+    >> ask
+    > print
+
+"Sage Gutenacht in einem Wort."
+    >> ask
+    > print
+
+print "Dritte Antwort:"
+    > print
+
+elapsed "Parallel" t_par
+
+-- Demo 3: KI-Ergebnis weiterverarbeiten
+print "--- 3. KI-Ergebnis verarbeiten ---"
+
+fn add_exclamation text
+    text ++ "!!!"
+
+"Erkläre das Wort Pipeline in EINEM Wort."
+    >> ask
+    > upper
+    > add_exclamation
+    > print
+
+-- Demo 4: KI + Berechnung parallel
+print "--- 4. KI + Berechnung parallel ---"
+
+fn slow_math x
+    x * x
+
+ki_text: "Nenne eine berühmte Programmiersprache in EINEM Wort."
+    >> ask
+
+math_result: 12
+    >> slow_math
+
+print ("  KI sagt: " ++ ki_text)
+print ("  Mathematik: 12^2 = " ++ (to_str math_result))
+
+print ""
+print "Parallel AI Demo abgeschlossen!"

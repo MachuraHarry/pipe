@@ -35,6 +35,7 @@ var precedences = map[lexer.TokenType]int{
 	lexer.OR:       PrecedenceOr,
 	lexer.AND:      PrecedenceAnd,
 	lexer.ARROW:    PrecedencePipeline,
+	lexer.ARROW2:   PrecedencePipeline,
 	lexer.EQ:       PrecedenceEquals,
 	lexer.NOT_EQ:   PrecedenceEquals,
 	lexer.LT:       PrecedenceCompare,
@@ -101,6 +102,7 @@ func New(l *lexer.Lexer) *Parser {
 		lexer.NOT_EQ:   p.parseInfixExpression,
 		lexer.LT:       p.parseInfixExpression,
 		lexer.ARROW:    p.parsePipelineExpression,
+		lexer.ARROW2:   p.parseParallelPipelineExpression,
 		lexer.GT:       p.parseInfixExpression,
 		lexer.LTE:      p.parseInfixExpression,
 		lexer.GTE:      p.parseInfixExpression,
@@ -224,19 +226,31 @@ func (p *Parser) parseExpressionOrVarStatement() ast.Statement {
 	stmt := &ast.ExpressionStatement{}
 	stmt.Expression = p.parseExpression(PrecedenceLowest)
 
+	p.tryPipelineContinuation(&stmt.Expression)
+
+	if p.peekTokenIs(lexer.NEWLINE) {
+		p.nextToken()
+	}
+
+	return stmt
+}
+
+func (p *Parser) tryPipelineContinuation(expr *ast.Expression) {
 	if p.peekTokenIs(lexer.NEWLINE) {
 		p.nextToken()
 		if p.peekTokenIs(lexer.INDENT) {
 			p.nextToken()
-			if p.peekTokenIs(lexer.ARROW) {
-				for p.peekTokenIs(lexer.ARROW) || p.peekTokenIs(lexer.PIPE) {
-					if p.peekTokenIs(lexer.ARROW) {
+			if p.peekTokenIs(lexer.ARROW) || p.peekTokenIs(lexer.ARROW2) {
+				for p.peekTokenIs(lexer.ARROW) || p.peekTokenIs(lexer.ARROW2) || p.peekTokenIs(lexer.PIPE) {
+					if p.peekTokenIs(lexer.ARROW) || p.peekTokenIs(lexer.ARROW2) {
+						parallel := p.peekTokenIs(lexer.ARROW2)
 						p.nextToken()
 						p.nextToken()
 						right := p.parseExpression(PrecedenceCall)
-						stmt.Expression = &ast.PipelineExpression{
-							Left:  stmt.Expression,
-							Right: p.insertPipelinePlaceholder(right, stmt.Expression),
+						*expr = &ast.PipelineExpression{
+							Left:     *expr,
+							Right:    p.insertPipelinePlaceholder(right, *expr),
+							Parallel: parallel,
 						}
 					} else if p.peekTokenIs(lexer.PIPE) {
 						p.nextToken()
@@ -252,12 +266,6 @@ func (p *Parser) parseExpressionOrVarStatement() ast.Statement {
 			}
 		}
 	}
-
-	if p.peekTokenIs(lexer.NEWLINE) {
-		p.nextToken()
-	}
-
-	return stmt
 }
 
 func isCompoundAssign(t lexer.TokenType) bool {
@@ -307,6 +315,8 @@ func (p *Parser) parseVarStatement() *ast.VarStatement {
 	p.nextToken()
 
 	stmt.Value = p.parseExpression(PrecedenceLowest)
+
+	p.tryPipelineContinuation(&stmt.Value)
 
 	return stmt
 }
@@ -694,6 +704,24 @@ func (p *Parser) parsePipelineExpression(left ast.Expression) ast.Expression {
 
 	expr := &ast.PipelineExpression{
 		Left: left,
+	}
+
+	precedence := p.curPrecedence()
+	p.nextToken()
+	right := p.parseExpression(precedence)
+	expr.Right = p.insertPipelinePlaceholder(right, left)
+
+	return expr
+}
+
+func (p *Parser) parseParallelPipelineExpression(left ast.Expression) ast.Expression {
+	if isSimpleLiteral(p.peekToken.Type) {
+		return p.parseInfixExpression(left)
+	}
+
+	expr := &ast.PipelineExpression{
+		Left:     left,
+		Parallel: true,
 	}
 
 	precedence := p.curPrecedence()

@@ -186,7 +186,7 @@ Von höchster zu niedrigster Priorität:
 | 7 | `+`, `-` | Additiv |
 | 6 | `<`, `>`, `<=`, `>=` | Vergleich |
 | 5 | `==`, `!=` | Gleichheit |
-| 4 | `>` | Pipeline |
+| 4 | `>`, `>>` | Pipeline |
 | 3 | `&&` | Logisches UND |
 | 2 | `\|\|` | Logisches ODER |
 | 1 | `:` | Zuweisung |

@@ -36,6 +36,7 @@ const (
 	CLOSURE                      = "CLOSURE"
 	LIST                         = "LIST"
 	MAP                          = "MAP"
+	FUTURE                       = "FUTURE"
 	ERROR                        = "ERROR"
 )
 
@@ -125,6 +126,40 @@ func (r *Result) Inspect() string {
 		return "Ok(" + r.Val.Inspect() + ")"
 	}
 	return "Err(" + r.Err + ")"
+}
+
+type Future struct {
+	Val  Object
+	Done chan struct{}
+}
+
+func NewFuture() *Future {
+	return &Future{Done: make(chan struct{})}
+}
+
+func (f *Future) Type() ObjectType { return FUTURE }
+func (f *Future) Inspect() string {
+	select {
+	case <-f.Done:
+		if f.Val != nil {
+			return f.Val.Inspect()
+		}
+		return "Future(resolved: nil)"
+	default:
+		return "Future(pending)"
+	}
+}
+
+func (f *Future) Resolve() Object {
+	<-f.Done
+	return f.Val
+}
+
+func EnsureResolved(obj Object) Object {
+	if f, ok := obj.(*Future); ok {
+		return f.Resolve()
+	}
+	return obj
 }
 
 type BuiltinInfo struct {

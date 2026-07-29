@@ -251,7 +251,10 @@ func (l *Lexer) scanToken() Token {
 		}
 
 	case '>':
-		if l.peekChar() == '=' {
+		if l.peekChar() == '>' {
+			l.readChar()
+			tok = Token{Type: ARROW2, Literal: ">>", Line: l.line, Col: l.col - 1}
+		} else if l.peekChar() == '=' {
 			l.readChar()
 			tok = Token{Type: GTE, Literal: ">=", Line: l.line, Col: l.col - 1}
 		} else {

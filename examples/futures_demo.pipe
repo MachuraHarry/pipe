@@ -1,0 +1,73 @@
+-- ============================================================
+-- FUTURES DEMO — Automatische Future-Auflösung in Pipe
+-- ============================================================
+
+print "Futures: Automatische Auflösung von >>-Ergebnissen"
+print ""
+
+fn work x name
+    print ("  [" ++ name ++ "] arbeitet...")
+    x * 2
+
+-- Demo 1: Arithmetik mit Future
+print "--- 1. Arithmetik mit Future ---"
+a: 10
+    >> work "A"
+
+a + 100
+    > print
+
+-- Demo 2: Mehrere Futures in einem Ausdruck
+print "--- 2. Mehrere Futures ---"
+x: 5
+    >> work "X"
+
+y: 8
+    >> work "Y"
+
+x * y
+    > print
+
+-- Demo 3: Future als Funktionsargument
+print "--- 3. Funktionsargumente ---"
+fn add a b
+    a + b
+
+v1: 20
+    >> work "V1"
+
+v2: 30
+    >> work "V2"
+
+add v1 v2
+    > print
+
+-- Demo 4: Pipeline-Kette mit Futures
+print "--- 4. Pipeline-Kette mit >> ---"
+fn plus1 x
+    x + 1
+
+fn mal2 x
+    x * 2
+
+100
+    >> plus1
+    >> mal2
+    > print
+
+-- Demo 5: Gemischte Pipeline
+print "--- 5. Mix >> und > ---"
+
+fn rechnen x
+    x * x
+
+fn halbieren x
+    x / 2
+
+8
+    >> rechnen
+    > halbieren
+    > print
+
+print ""
+print "Alle Futures erfolgreich aufgelöst!"

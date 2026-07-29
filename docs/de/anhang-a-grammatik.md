@@ -74,8 +74,8 @@ logical_or    = logical_and { "||" logical_and } ;
 
 logical_and   = pipeline { "&&" pipeline } ;
 
-pipeline      = comparison { ">" comparison }           (* horizontale Pipeline *)
-              | comparison newline INDENT ">" { comparison } DEDENT ;  (* vertikale Pipeline *)
+pipeline      = comparison { (">" | ">>") comparison }           (* horizontale Pipeline *)
+              | comparison newline INDENT (">" | ">>") { comparison } DEDENT ;  (* vertikale Pipeline *)
 
 comparison    = concat { ( "==" | "!=" | "<" | "<=" | ">" | ">=" ) concat } ;
 
@@ -159,7 +159,7 @@ block         = INDENT statement { statement } DEDENT ;
 | 7 | `+`, `-` | Links |
 | 6 | `<`, `>`, `<=`, `>=` | Links |
 | 5 | `==`, `!=` | Links |
-| 4 | `>` (Pipeline) | Links |
+| 4 | `>`, `>>` (Pipeline) | Links |
 | 3 | `&&` | Links |
 | 2 | `\|\|` | Links |
 | 1 | `:` (Zuweisung) | Rechts |

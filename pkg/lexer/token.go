@@ -40,9 +40,10 @@ const (
 	DOTDOT    // .. (slice range)
 
 	// Pipeline
-	PIPE  // |
-	ARROW // >
-	MATCH // ->
+	PIPE   // |
+	ARROW  // >
+	ARROW2 // >>
+	MATCH  // ->
 
 	// Punctuation
 	LPAREN   // (
@@ -134,6 +135,7 @@ var tokenNames = map[TokenType]string{
 	DOTDOT:    "..",
 	PIPE:      "|",
 	ARROW:     ">",
+	ARROW2:    ">>",
 	MATCH:     "->",
 	LPAREN:    "(",
 	RPAREN:    ")",

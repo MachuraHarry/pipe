@@ -1,0 +1,73 @@
+-- ============================================================
+-- PIPE PARALLEL PIPELINE DEMO — Der >> Operator
+-- ============================================================
+
+print "Der >> Operator: Parallele Pipelines"
+print ""
+
+-- Demo 1: Sequentiell vs Parallel
+print "--- 1. Sequentiell (>) ---"
+
+fn add n
+    n * 2
+
+42
+    > add
+    > print
+
+print "--- 2. Parallel (>>) ---"
+
+50
+    >> add
+    > print
+
+-- Demo 2: Mehrere parallele Pipelines
+print "--- 3. Mehrere parallele Tasks ---"
+
+fn square x
+    x * x
+
+a: 4
+    >> square
+
+b: 7
+    >> square
+
+c: 10
+    >> square
+
+a + b + c
+    > print
+
+-- Demo 3: Future in Variable speichern
+print "--- 4. Future in Variable ---"
+
+fn calc x
+    x * 10
+
+result: 3
+    >> calc
+
+result + 5
+    > print
+
+-- Demo 4: Mix von >> und >
+print "--- 5. Mix: >> dann > ---"
+
+fn plus10 x
+    x + 10
+
+fn times2 x
+    x * 2
+
+fn minus5 x
+    x - 5
+
+1
+    >> plus10
+    > times2
+    > minus5
+    > print
+
+print ""
+print "Alle Beispiele erfolgreich!"

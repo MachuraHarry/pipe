@@ -34,9 +34,11 @@ func hasOp(t *testing.T, bc *Bytecode, op Opcode) bool {
 		i++
 		switch o {
 		case OpConstant, OpGetGlobal, OpSetGlobal, OpGetLocal, OpSetLocal,
-			OpGetBuiltin, OpDot, OpClosure:
+			OpGetBuiltin, OpDot:
 			i += 2
-		case OpCall, OpList:
+		case OpClosure:
+			i += 4
+		case OpCall, OpSpawn, OpList:
 			i += 2
 		case OpJump, OpJumpNotTruthy, OpJumpBackward:
 			i += 2
@@ -239,6 +241,17 @@ func TestCompilePipeline(t *testing.T) {
 	}
 	if len(bc.Instructions) == 0 {
 		t.Error("expected instructions for pipeline")
+	}
+}
+
+func TestCompileParallelPipeline(t *testing.T) {
+	input := "fn double x\n    x * 2\n\n10\n    >> double"
+	bc := parseAndCompile(t, input)
+	if !hasOp(t, bc, OpSpawn) {
+		t.Error("expected OpSpawn for parallel pipeline")
+	}
+	if !hasOp(t, bc, OpClosure) {
+		t.Error("expected OpClosure for function")
 	}
 }
 

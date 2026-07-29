@@ -702,7 +702,11 @@ func (c *Compiler) compileTryExpression(te *ast.TryExpression) error {
 }
 
 func (c *Compiler) compilePipeline(pe *ast.PipelineExpression) error {
-	// Push function reference first, then args, then call
+	callOp := OpCall
+	if pe.Parallel {
+		callOp = OpSpawn
+	}
+
 	switch right := pe.Right.(type) {
 	case *ast.Identifier:
 		sym, ok := c.symbolTable.Resolve(right.Value)
@@ -713,11 +717,13 @@ func (c *Compiler) compilePipeline(pe *ast.PipelineExpression) error {
 		if err := c.Compile(pe.Left); err != nil {
 			return err
 		}
-		c.emit(OpCall, 1)
+		c.emit(callOp, 1)
 
 	case *ast.CallExpression:
-		// func(arg1, ..., piped_value)
 		if err := c.Compile(right.Function); err != nil {
+			return err
+		}
+		if err := c.Compile(pe.Left); err != nil {
 			return err
 		}
 		for _, arg := range right.Arguments {
@@ -725,20 +731,16 @@ func (c *Compiler) compilePipeline(pe *ast.PipelineExpression) error {
 				return err
 			}
 		}
-		if err := c.Compile(pe.Left); err != nil {
-			return err
-		}
-		c.emit(OpCall, len(right.Arguments)+1)
+		c.emit(callOp, len(right.Arguments)+1)
 
 	default:
-		// Compile right as function expression, then left as arg
 		if err := c.Compile(pe.Right); err != nil {
 			return err
 		}
 		if err := c.Compile(pe.Left); err != nil {
 			return err
 		}
-		c.emit(OpCall, 1)
+		c.emit(callOp, 1)
 	}
 
 	return nil

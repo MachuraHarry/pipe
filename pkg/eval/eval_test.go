@@ -355,3 +355,13 @@ func TestEvalBuiltinsTypeCheck(t *testing.T) {
 	expectValue(t, "is_nil nil", "true")
 	expectValue(t, "is_num true", "false")
 }
+
+func TestEvalParallelPipeline(t *testing.T) {
+	input := "fn double x\n    x * 2\n\n10\n    >> double\n    > to_num"
+	expectValue(t, input, "20")
+}
+
+func TestEvalParallelPipelineVar(t *testing.T) {
+	input := "fn triple x\n    x * 3\n\nresult: 5\n    >> triple\n\nresult + 10"
+	expectValue(t, input, "25")
+}

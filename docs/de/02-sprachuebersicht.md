@@ -126,7 +126,7 @@ Pipe-Dateien haben die Endung **`.pipe`**.
 | Vergleich | `==`, `!=`, `<`, `>`, `<=`, `>=` | `a == b` |
 | Logik | `!`, `&&`, `\|\|` | `!flag`, `a && b` |
 | String | `++` | `"Hallo " ++ "Welt"` |
-| Pipeline | `>` | Vertikal mit Einrückung |
+| Pipeline | `>`, `>>` | Vertikal mit Einrückung |
 | Bereich | `..` | `list[0..3]` |
 | Zuweisung | `:` | `name: wert` |
 

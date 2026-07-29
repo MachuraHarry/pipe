@@ -55,7 +55,7 @@ Token       = ILLEGAL | EOF
             | CONCAT | BANG | AND | OR
             | PLUSEQ | MINUSEQ | STAREQ | SLASHEQ | PERCENTEQ
             | POWER | DOTDOT
-            | PIPE | ARROW | MATCH
+            | PIPE | ARROW | ARROW2 | MATCH
             | LPAREN | RPAREN | LBRACKET | RBRACKET
             | LBRACE | RBRACE | COMMA | DOT | COLON
             | NEWLINE | INDENT | DEDENT
@@ -248,19 +248,23 @@ The `&&` operator short-circuits: if the left operand is not truthy, the right o
 #### Pipeline
 
 ```ebnf
-pipeline    = comparison , { ">" , comparison } ;
+pipeline    = comparison , { (">" | ">>") , comparison } ;
 ```
 
-The `>` operator (pipe) threads the left value as the last argument to the right function. If the right side is a call expression and contains the `_` placeholder, the piped value replaces the placeholder instead.
+The `>` operator pipes the left value as the first argument to the right function.
+The `>>` operator starts the right function in the background and returns a Future.
+
+If the right side is a call expression and contains the `_` placeholder, the piped
+value replaces the placeholder instead.
 
 #### Vertical Pipeline
 
 ```ebnf
 vertical_pipeline = NEWLINE , INDENT , { vertical_stage , NEWLINE } , DEDENT ;
-vertical_stage    = ">" , expression ;
+vertical_stage    = (">" | ">>") , expression ;
 ```
 
-Vertical pipelines are syntactic sugar for horizontal pipelines chained across multiple indented lines.
+Vertical pipelines are syntactic sugar for horizontal pipelines chained across multiple indented lines. `>>` stages start parallel execution.
 
 #### Comparison
 
@@ -440,7 +444,7 @@ Operators are listed from lowest to highest precedence. Higher numbers indicate 
 | 1 | Lowest | (none) | — |
 | 2 | Or | `\|\|` | Left |
 | 3 | And | `&&` | Left |
-| 4 | Pipeline | `>` | Left |
+| 4 | Pipeline | `>`, `>>` | Left |
 | 5 | Equals | `==`, `!=` | Left |
 | 6 | Compare | `<`, `<=`, `>`, `>=` | Left |
 | 7 | Sum | `+`, `-` | Left |

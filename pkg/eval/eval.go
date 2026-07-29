@@ -84,6 +84,7 @@ func (ctx *EvalContext) Eval(node ast.Node, env *object.Environment) object.Obje
 		if isError(right) {
 			return right
 		}
+		right = object.EnsureResolved(right)
 		return evalPrefixExpression(n.Operator, right)
 
 	case *ast.InfixExpression:
@@ -95,6 +96,8 @@ func (ctx *EvalContext) Eval(node ast.Node, env *object.Environment) object.Obje
 		if isError(right) {
 			return right
 		}
+		left = object.EnsureResolved(left)
+		right = object.EnsureResolved(right)
 		return evalInfixExpression(n.Operator, left, right)
 
 	case *ast.IfExpression:
@@ -152,6 +155,10 @@ func (ctx *EvalContext) Eval(node ast.Node, env *object.Environment) object.Obje
 		left := ctx.Eval(n.Left, env)
 		if isError(left) {
 			return left
+		}
+		left = object.EnsureResolved(left)
+		if n.Parallel {
+			return ctx.evalParallelPipeline(n, left, env)
 		}
 		return ctx.evalPipeline(n, left, env)
 
@@ -283,6 +290,8 @@ func evalMinusPrefixOperator(right object.Object) object.Object {
 }
 
 func evalInfixExpression(operator string, left, right object.Object) object.Object {
+	left = object.EnsureResolved(left)
+	right = object.EnsureResolved(right)
 	if operator == "[]" {
 		return evalIndexExpression(left, right)
 	}
@@ -466,6 +475,9 @@ func (ctx *EvalContext) evalFnStatement(fn *ast.FnStatement, env *object.Environ
 }
 
 func (ctx *EvalContext) applyFunction(fn object.Object, args []object.Object) object.Object {
+	for i, arg := range args {
+		args[i] = object.EnsureResolved(arg)
+	}
 	switch f := fn.(type) {
 	case *object.Function:
 		fnCtx := ctx
@@ -617,6 +629,18 @@ func (ctx *EvalContext) evalPipeline(pe *ast.PipelineExpression, left object.Obj
 	}
 
 	return ctx.newError("Pipeline: right side is not a function")
+}
+
+func (ctx *EvalContext) evalParallelPipeline(pe *ast.PipelineExpression, left object.Object, env *object.Environment) object.Object {
+	future := object.NewFuture()
+
+	go func() {
+		result := ctx.evalPipeline(pe, left, env)
+		future.Val = result
+		close(future.Done)
+	}()
+
+	return future
 }
 
 func (ctx *EvalContext) evalMapLiteral(ml *ast.MapLiteral, env *object.Environment) object.Object {

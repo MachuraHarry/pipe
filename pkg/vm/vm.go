@@ -154,6 +154,8 @@ func (vm *VM) Run() error {
 		case compiler.OpConcat:
 			right := vm.pop()
 			left := vm.pop()
+			right = object.EnsureResolved(right)
+			left = object.EnsureResolved(left)
 			vm.push(&object.String{Value: left.Inspect() + right.Inspect()})
 
 		case compiler.OpMinus:
@@ -234,6 +236,11 @@ func (vm *VM) Run() error {
 			numArgs := int(compiler.ReadUint16(ins, frame.ip))
 			frame.ip += 2
 			vm.callFunction(numArgs)
+
+		case compiler.OpSpawn:
+			numArgs := int(compiler.ReadUint16(ins, frame.ip))
+			frame.ip += 2
+			vm.spawnCall(numArgs)
 
 		case compiler.OpReturn:
 			frame := vm.currentFrame()
@@ -364,6 +371,9 @@ func (vm *VM) callFunction(numArgs int) {
 		for i := numArgs - 1; i >= 0; i-- {
 			args[i] = vm.pop()
 		}
+		for i := range args {
+			args[i] = object.EnsureResolved(args[i])
+		}
 		result := fn.Fn(args...)
 		vm.pop()
 		vm.push(result)
@@ -373,7 +383,35 @@ func (vm *VM) callFunction(numArgs int) {
 	}
 }
 
+func (vm *VM) spawnCall(numArgs int) {
+	callee := vm.stack[vm.sp-1-numArgs]
+
+	switch fn := callee.(type) {
+	case *object.BuiltinInfo:
+		args := make([]object.Object, numArgs)
+		for i := numArgs - 1; i >= 0; i-- {
+			args[i] = vm.pop()
+		}
+		for i := range args {
+			args[i] = object.EnsureResolved(args[i])
+		}
+		future := object.NewFuture()
+		vm.pop()
+		vm.push(future)
+		go func() {
+			result := fn.Fn(args...)
+			future.Val = result
+			close(future.Done)
+		}()
+
+	default:
+		vm.callFunction(numArgs)
+	}
+}
+
 func (vm *VM) binaryOp(op compiler.Opcode, left, right object.Object) object.Object {
+	left = object.EnsureResolved(left)
+	right = object.EnsureResolved(right)
 	switch {
 	case left.Type() == object.INTEGER && right.Type() == object.INTEGER:
 		return vm.binaryIntOp(op, left.(*object.Integer), right.(*object.Integer))
@@ -441,6 +479,8 @@ func (vm *VM) binaryFloatOp(op compiler.Opcode, left, right *object.Float) objec
 }
 
 func (vm *VM) compareOp(op compiler.Opcode, left, right object.Object) object.Object {
+	left = object.EnsureResolved(left)
+	right = object.EnsureResolved(right)
 	switch {
 	case left.Type() == object.INTEGER && right.Type() == object.INTEGER:
 		return vm.compareIntOp(op, left.(*object.Integer).Value, right.(*object.Integer).Value)
@@ -597,6 +637,8 @@ func (vm *VM) executeFrame() object.Object {
 		case compiler.OpConcat:
 			right := vm.pop()
 			left := vm.pop()
+			right = object.EnsureResolved(right)
+			left = object.EnsureResolved(left)
 			vm.push(&object.String{Value: left.Inspect() + right.Inspect()})
 
 		case compiler.OpJump:
@@ -662,6 +704,11 @@ func (vm *VM) executeFrame() object.Object {
 			numArgs := int(compiler.ReadUint16(ins, frame.ip))
 			frame.ip += 2
 			vm.callFunction(numArgs)
+
+		case compiler.OpSpawn:
+			numArgs := int(compiler.ReadUint16(ins, frame.ip))
+			frame.ip += 2
+			vm.spawnCall(numArgs)
 
 		case compiler.OpClosure:
 			idx := compiler.ReadUint16(ins, frame.ip)

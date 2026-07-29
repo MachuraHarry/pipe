@@ -200,7 +200,7 @@ span[data-lang].active{display:inline}a[data-lang].active{display:inline-block}
 <!-- Stats -->
 <div class="stats-bar">
   <div class="stat-item"><span class="stat-num">25</span><span class="stat-label">AI Builtins</span></div>
-  <div class="stat-item"><span class="stat-num">187</span><span class="stat-label">Tests</span></div>
+  <div class="stat-item"><span class="stat-num">150+</span><span class="stat-label">Tests</span></div>
   <div class="stat-item"><span class="stat-num">~10 MB</span><span class="stat-label">Binary</span></div>
   <div class="stat-item"><span class="stat-num">4</span><span class="stat-label">AI Providers</span></div>
 </div>
@@ -259,8 +259,8 @@ text = open(<span class="str">"news.txt"</span>).read()
       <div class="feature-text">
         <h3 data-lang="en" class="active"><span>Parallel by Default</span></h3>
         <h3 data-lang="de"><span>Standardmäßig parallel</span></h3>
-        <p data-lang="en" class="active"><code>ai_batch</code> processes hundreds of texts in parallel. Native goroutines, rate limiting built-in. No async/await, no Promise.all.</p>
-        <p data-lang="de"><code>ai_batch</code> verarbeitet hunderte Texte parallel. Native Goroutines, Rate-Limiting eingebaut. Kein async/await, kein Promise.all.</p>
+        <p data-lang="en" class="active"><code>>></code> parallel pipeline operator and <code>ai_batch</code> process hundreds of texts in parallel. Native goroutines, Future auto-resolution, rate limiting. No async/await, no Promise.all.</p>
+        <p data-lang="de"><code>>></code> Parallel-Pipeline-Operator und <code>ai_batch</code> verarbeiten hunderte Texte parallel. Native Goroutines, Future-Auflösung, Rate-Limiting. Kein async/await, kein Promise.all.</p>
       </div>
       <div class="feature-code"><div class="bar"><span class="dot" style="background:var(--red)"></span><span class="dot" style="background:var(--orange)"></span><span class="dot" style="background:var(--green)"></span></div><pre><span class="fn">ai_rate_limit</span> 10
 <span class="fn">texts</span>: <span class="fn">read_lines</span> <span class="str">"articles.txt"</span>

@@ -62,17 +62,21 @@ Run Pipe directly in CI/CD — no installation needed:
 
 ## Module Ecosystem
 
-Pipe has a [curated module library](https://github.com/MachuraHarry/pipe-modules) — 8 reusable AI pipeline modules:
+Pipe has a [curated module library](https://github.com/MachuraHarry/pipe-modules) — 9 reusable modules with version pinning:
 
 ```bash
 pipe -search                 # Browse modules
 pipe -search log             # Filter by keyword
-pipe -get log-analyzer       # Install a module
+pipe -get log-analyzer       # Install latest
+pipe -get log-analyzer@1.0.0 # Install specific version
 ```
 
 ```pipe
-import "https://raw.githubusercontent.com/MachuraHarry/pipe-modules/master/log-analyzer/module.pipe"
-logs > log_analyze > save "report.md"
+import "log-analyzer@1.0.0"              -- version pinning
+import "parallel-runner"                 -- latest version
+
+ask_many ["What is Paris?", "What is Berlin?"]
+    > print
 ```
 
 [→ Ecosystem Documentation](docs/en/21-ecosystem.md) | [→ Contribute a Module](https://github.com/MachuraHarry/pipe-modules/blob/master/CONTRIBUTING.md)
@@ -104,19 +108,29 @@ logs > log_analyze > save "report.md"
 ## Features
 
 - **AI as Primitive** — 25 built-in AI operations, no libraries needed
-- **Pipeline-Native** — Data flows top-to-bottom through transformations
+- **Pipeline-Native** — `>` sequential, `>>` parallel pipelines with Future auto-resolution
 - **Single Binary** — One ~10 MB file, statically linked, no venv/pip/npm
 - **Bytecode VM** — Compile to bytecode, execute ~7× faster with automatic caching
-- **Multi-Provider** — OpenAI, Anthropic (Claude), DeepSeek — switch with one line
+- **Multi-Provider** — OpenAI, Anthropic (Claude), DeepSeek, Ollama — switch with one line
 - **Tool Calling** — Register Pipe functions as LLM tools, model decides when to call them
 - **Streaming** — Real-time token output via `ai_stream`
-- **Parallel AI** — `ai_batch` processes hundreds of texts concurrently with rate limiting
+- **Parallel AI** — `ai_batch` for batch processing, `>>` operator for pipeline-level parallelism
+- **Module Ecosystem** — 9 curated modules, registry with version pinning (`@1.0.0`)
 - **Embeddings** — Native vector operations: embed, cosine_sim, nearest, RAG-ready
 - **Self-Extracting Binary** — Ship your pipeline as a standalone executable
 - **81 Standard Builtins** — HTTP, JSON, TCP, Regex, File I/O, and more
 - **Zero Dependencies** — No externals, pure Go standard library
 
 ## Examples
+
+### Parallel Pipeline (`>>`)
+```pipe
+"Frage A" >> ask
+"Frage B" >> ask
+"Frage C" >> ask
+
+print antwortA ++ antwortB ++ antwortC   -- Future auto-resolution
+```
 
 ### Log Analysis → Incident Report
 ```pipe
@@ -159,12 +173,9 @@ ai_with_tools "What is the weather in Berlin?"
 |---------|------|--------|------|
 | AI Primitives | Built-in | Libraries required | N/A |
 | Single Binary | ✓ | ✗ | ✗ |
-| Pipeline Syntax | Native | Manual | Pipes |
-| JSON Support | Built-in | `json` module | `jq` |
-| HTTP Client | Built-in | `requests` | `curl` |
-| Error Handling | `?>` operator | `try/except` | `||` |
-| Binary Size | ~10 MB | ~40 MB+ venv | Varies |
-| Dependencies | Zero | pip + venv | System tools |
+| Pipeline Syntax | Native (`>`, `>>`) | Manual | Pipes |
+| Parallel Execution | Built-in (`>>`, `ai_batch`) | `asyncio`/threading | `&`/`xargs` |
+| Module Registry | 9 modules + versioning | PyPI | N/A |
 
 ## Architecture
 
@@ -174,8 +185,8 @@ Source (.pipe) → Lexer → Parser → AST → [ Tree-Walker | Compiler + VM ]
                               Builtins (81 stdlib + 25 AI)
 ```
 
-- 52 token types, 27 AST node types, 47 opcodes
-- ~6,500 LoC Go, 134+ tests, 23 example programs
+- 52 token types, 27 AST node types, 48 opcodes
+- ~13,000 LoC Go, 150+ tests, 42 example programs
 
 ## Documentation
 

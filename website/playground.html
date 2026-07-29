@@ -64,32 +64,17 @@ a{color:#7c5cfc;text-decoration:none}
       <option value="9">Lists</option>
       <option value="10">Maps</option>
       <option value="11">Parallel >></option>
+      <option value="12">While Loop</option>
+      <option value="13">Palindrome</option>
+      <option value="14">FizzBuzz</option>
+      <option value="15">Temperature</option>
     </select>
     <span style="color:#555;font-size:0.75rem" id="status">Loading WASM...</span>
   </div>
 
   <div class="editor-wrap">
     <textarea id="editor" placeholder="Write Pipe code here..." spellcheck="false"
-oninput="syncHighlight()" onscroll="syncScroll()">-- Pipe Playground — try Pipe in your browser!
--- Data flows top to bottom through pipelines.
-
-fn double x
-    x * 2
-
-"Hello, World!"
-    > upper
-    > print
-
-10
-    > double
-    > double
-    > print
-
--- Parallel pipeline with >>
--- Futures auto-resolve when needed.
-42
-    >> double
-    > print</textarea>
+oninput="syncHighlight()" onscroll="syncScroll()"></textarea>
     <pre id="editor-hl" class="language-pipe" aria-hidden="true"></pre>
   </div>
 
@@ -118,7 +103,11 @@ const examples = [
   "match 2\n    | 1 -> print \"one\"\n    | 2 -> print \"two\"\n    | _ -> print \"other\"",
   "zahlen: [1,2,3]\npush zahlen 4\nprint zahlen",
   'person: {name: "Anna"}\nprint (get person "name")',
-  'fn triple x\n    x * 3\n\n-- Parallel: both start simultaneously\n10\n    >> triple\n    > print\n20\n    >> triple\n    > print'
+  'fn triple x\n    x * 3\n\n-- Parallel: both start simultaneously\n10\n    >> triple\n    > print\n20\n    >> triple\n    > print',
+  '-- While loop countdown\ni: 5\nwhile i > 0\n    print i\n    i: i - 1\nprint "Liftoff!"',
+  'fn reverse s\n    if (len s) <= 1\n        s\n    else\n        (reverse (s[1..(len s)])) ++ (s[0])\n\nprint (reverse "hello")\nprint (reverse "racecar")',
+  'fn fizzbuzz n\n    if n % 15 == 0\n        "FizzBuzz"\n    else if n % 3 == 0\n        "Fizz"\n    else if n % 5 == 0\n        "Buzz"\n    else\n        n\n\nfor i in (range 1 16)\n    print (fizzbuzz i)',
+  'fn to_f c\n    c * 9 / 5 + 32\n\nprint "0C = "\nprint (to_f 0)\nprint "100C = "\nprint (to_f 100)'
 ];
 
 function run() {
@@ -137,6 +126,14 @@ function run() {
 function loadExample() {
   const idx = parseInt(document.getElementById("examples").value);
   if (isNaN(idx)) return;
+  document.getElementById("editor").value = examples[idx];
+  syncHighlight();
+}
+
+function pickRandomExample() {
+  const idx = Math.floor(Math.random() * examples.length);
+  var sel = document.getElementById("examples");
+  if (sel) sel.value = idx.toString();
   document.getElementById("editor").value = examples[idx];
   syncHighlight();
 }
@@ -173,8 +170,9 @@ function syncScroll(){
 }
 
 (function(){
+  pickRandomExample();
   var ta=document.getElementById('editor');
-  if(ta){ta.addEventListener('scroll',syncScroll);syncHighlight();}
+  if(ta){ta.addEventListener('scroll',syncScroll);}
 })();
 </script>
 </body>

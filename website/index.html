@@ -237,29 +237,7 @@ span[data-lang].active{display:inline}a[data-lang].active{display:inline-block}
       </div>
       <div class="play-editor-wrap">
         <textarea id="play-editor" class="play-editor" placeholder="Write Pipe code..." spellcheck="false"
-oninput="syncHighlight()" onscroll="syncScroll()">-- Pipe Playground — Try it live!
--- Data flows top to bottom through transformations.
-
-fn double x
-    x * 2
-
-fn greet name
-    "Hello, " ++ name ++ "!"
-
-10
-    > double       -- 10 * 2 = 20
-    > double       -- 20 * 2 = 40
-    > print        -- outputs: 40
-
-greet "World"
-    > print        -- outputs: Hello, World!
-
--- Parallel pipeline (>>) starts in background,
--- Futures auto-resolve when the value is needed.
-100
-    >> double      -- starts immediately
-    >> double      -- chains in background
-    > print        -- waits, then prints 400</textarea>
+oninput="syncHighlight()" onscroll="syncScroll()"></textarea>
         <pre id="play-hl" class="play-editor language-pipe" aria-hidden="true"></pre>
       </div>
       <div class="play-bar" id="play-bar"><span style="color:#fc8c3c">Loading WASM...</span></div>
@@ -560,6 +538,32 @@ setLang = function(l) {
 
 setTimeout(cycleHero, 6000);
 
+var playExamples = [
+  'print (2 + 2)',
+  'print "Hello from the Browser!"',
+  'for i in (range 1 6)\n    print i',
+  'fn fib n\n    match n\n        | 0 -> 0\n        | 1 -> 1\n        | _ -> fib(n - 1) + fib(n - 2)\n\nprint (fib 10)',
+  'fn greet name\n    "Hello, " ++ name ++ "!"\n\nprint (greet "World")',
+  'print (len [1,2,3,4,5])',
+  'x: 10\ny: 20\nprint (x + y)',
+  'if 5 > 3\n    print "yes"\nelse\n    print "no"',
+  'match 3\n    | 1 -> print "one"\n    | 2 -> print "two"\n    | 3 -> print "three"\n    | _ -> print "other"',
+  'nums: [1,2,3]\npush nums 4\nprint nums',
+  'person: {name: "Anna", age: 30}\nprint (get person "name")',
+  'fn triple x\n    x * 3\n\n10\n    >> triple\n    > print\n20\n    >> triple\n    > print',
+  '-- While countdown\ni: 5\nwhile i > 0\n    print i\n    i: i - 1\nprint "Liftoff!"',
+  'fn reverse s\n    if (len s) <= 1\n        s\n    else\n        (reverse (s[1..(len s)])) ++ (s[0])\n\nprint (reverse "hello")\nprint (reverse "racecar")',
+  'fn fizzbuzz n\n    if n % 15 == 0\n        "FizzBuzz"\n    else if n % 3 == 0\n        "Fizz"\n    else if n % 5 == 0\n        "Buzz"\n    else\n        n\n\nfor i in (range 1 16)\n    print (fizzbuzz i)',
+  'fn to_f c\n    c * 9 / 5 + 32\n\nprint "0C = "\nprint (to_f 0)\nprint "100C = "\nprint (to_f 100)'
+];
+
+function pickPlayExample() {
+  var ta = document.getElementById("play-editor");
+  if (!ta) return;
+  ta.value = playExamples[Math.floor(Math.random() * playExamples.length)];
+  syncHighlight();
+}
+
 document.getElementById("play-editor").addEventListener("keydown",function(e){if((e.ctrlKey||e.metaKey)&&e.key==="Enter")runPlayground();});
 
 async function runPlayground(){
@@ -602,8 +606,9 @@ function syncScroll(){
   pre.scrollTop=ta.scrollTop;pre.scrollLeft=ta.scrollLeft;
 }
 (function(){
+  pickPlayExample();
   var ta=document.getElementById('play-editor');
-  if(ta){ta.addEventListener('scroll',syncScroll);syncHighlight();}
+  if(ta){ta.addEventListener('scroll',syncScroll);}
 })();
 
 var observer=new IntersectionObserver(e=>{e.forEach(e=>{if(e.isIntersecting)e.target.classList.add('visible')})},{threshold:0.1});

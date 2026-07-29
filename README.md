@@ -115,6 +115,7 @@ ask_many ["What is Paris?", "What is Berlin?"]
 - **Tool Calling** — Register Pipe functions as LLM tools, model decides when to call them
 - **Streaming** — Real-time token output via `ai_stream`
 - **Parallel AI** — `ai_batch` for batch processing, `>>` operator for pipeline-level parallelism
+- **Self-Healing Code** — `try_ai` uses AI to auto-fix runtime errors (type mismatches, div/zero, index errors)
 - **Module Ecosystem** — 9 curated modules, registry with version pinning (`@1.0.0`)
 - **Embeddings** — Native vector operations: embed, cosine_sim, nearest, RAG-ready
 - **Self-Extracting Binary** — Ship your pipeline as a standalone executable
@@ -122,6 +123,18 @@ ask_many ["What is Paris?", "What is Berlin?"]
 - **Zero Dependencies** — No externals, pure Go standard library
 
 ## Examples
+
+### Self-Healing Code (`try_ai`)
+```pipe
+ai_provider "deepseek"
+
+result: try_ai
+    "42" * 3           -- E002 Type Error → AI wraps with to_num → 126
+catch e
+    0                   -- only reached if AI fix fails
+
+print result           -- 126
+```
 
 ### Parallel Pipeline (`>>`)
 ```pipe

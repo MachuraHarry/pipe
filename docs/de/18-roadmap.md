@@ -99,6 +99,7 @@
 | Self-Extracting Binary | ✅ | | | |
 | REPL + History | ✅ | | | |
 | REPL Persistenz | | | ✅ | |
+| `try_ai` Selbstheilung | | | ✅ | |
 | Bytecode-Cache | ✅ | | | |
 | VSCode Extension | ✅ | | | |
 | Erweitertes Match | | | ✅ | |

@@ -103,6 +103,44 @@ Common operations that produce errors:
 | Invalid type for operation | Type mismatch errors |
 | File operations on missing files | Filesystem errors |
 
+### 8.1.5 `try_ai` — AI-Powered Self-Healing
+
+`try_ai` extends `try`/`catch` with automatic AI-driven error recovery. When a fixable error occurs inside `try_ai`, Pipe calls the configured AI provider to analyze and fix the expression — without developer intervention.
+
+```pipe
+ai_provider "deepseek"
+
+try_ai
+    "42" * 3           -- Type Error: STRING * INTEGER
+catch e
+    0                   -- fallback if AI cannot fix
+```
+
+#### How It Works
+
+1. **Error occurs** inside `try_ai` block
+2. **Error code checked** — only E002 (type), E003 (div/0), E006 (index) are AI-fixable
+3. **AI called** with error context and expression source
+4. **3-ring validation** — parse check → sandbox test → type check
+5. **Fix applied** in real environment, or **falls to catch** if unfixable
+
+#### Fixable vs Unfixable
+
+| Error | Code | AI Strategy | Example |
+|-------|------|-------------|---------|
+| Type mismatch | E002 | `to_num`, `to_str` wrapping | `"42" * 3` → `(to_num "42") * 3` |
+| Division by zero | E003 | Guard: `max(x, 1)` or if-expression | `100 / 0` → `100 / (max 0 1)` |
+| Index on wrong type | E006 | Fallback via `get` with default | `map.key` when not a map |
+| Undefined variable | E001 | **Not fixable** — skips AI | Falls directly to catch |
+| Not callable | E004 | **Not fixable** — skips AI | Falls directly to catch |
+
+#### Execution Modes
+
+| Mode | `try_ai` Behavior |
+|------|------------------|
+| Tree-Walker (`./bin/pipe`) | Full AI self-healing with 3-ring validation |
+| Bytecode VM (`./bin/pipe -vm`) | Falls back to basic `try`/`catch` (no AI) |
+
 ---
 
 ## 8.2 Stack Traces

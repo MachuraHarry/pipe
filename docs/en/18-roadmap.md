@@ -244,6 +244,7 @@ Pipe is currently at version **v0.6.0**, which includes the foundational languag
 | TCO | ✅ Done | v0.5 | Tree-walker only |
 | Defer | ✅ Done | v0.5.1 | LIFO cleanup |
 | `_` Placeholder | ✅ Done | v0.5.1 | Pipeline args |
+| `try_ai` Self-Healing | ✅ Done | v0.6 | AI auto-fix errors |
 | Improved Module Sys | 🔜 Planned | v0.6 | Dirs, relative, circular |
 | Better Errors | 🔜 Planned | v0.6 | Snippets, source lines |
 | Pattern Matching+ | 🔜 Planned | v0.6 | Guards, destructuring |

@@ -69,6 +69,45 @@ print (teile_sicher 10 0)   -- nil
 print (teile_sicher 10 2)   -- 5
 ```
 
+### 8.1.2 `try_ai` — KI-gesteuerte Selbstheilung
+
+`try_ai` erweitert `try`/`catch` um automatische KI-Fehlerkorrektur. Bei einem fixbaren Fehler
+analysiert und repariert die KI den Ausdruck — ohne Eingriff des Entwicklers.
+
+```pipe
+ai_provider "deepseek"
+
+try_ai
+    "42" * 3           -- Type Error → KI wrappt mit to_num → 126
+catch e
+    0                   -- Fallback wenn KI nicht fixen kann
+```
+
+#### Ablauf
+
+1. **Fehler** tritt im `try_ai`-Block auf
+2. **Error-Code** wird geprüft — nur E002, E003, E006 sind KI-fixbar
+3. **KI-Aufruf** mit Fehlerkontext und Quellcode
+4. **3-Ring-Validierung** — Parse → Sandbox-Test → Typ-Check
+5. **Fix übernommen** oder **Fallback zum catch**
+
+#### Fixbar vs. unfixbar
+
+| Fehler | Code | KI-Strategie |
+|--------|------|-------------|
+| Typ-Fehler | E002 | `to_num`, `to_str` wrapping |
+| Division durch Null | E003 | Guard: `max(x, 1)` oder if-Ausdruck |
+| Index auf falschem Typ | E006 | Fallback via `get` mit Default |
+| Undefinierte Variable | E001 | **Nicht fixbar** → direkt catch |
+| Nicht aufrufbar | E004 | **Nicht fixbar** → direkt catch |
+
+#### Ausführungsmodi
+
+| Modus | `try_ai` Verhalten |
+|-------|-------------------|
+| Tree-Walker (`./bin/pipe`) | Vollständige KI-Selbstheilung |
+| Bytecode-VM (`./bin/pipe -vm`) | Fallback zu normalem `try`/`catch` |
+
 ## 8.4 Result-Typ (Ok / Err)
 
 Pipe bietet einen **Result-Typ** für Pipeline-kompatible Fehlerbehandlung

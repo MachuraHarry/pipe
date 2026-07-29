@@ -1,4 +1,5 @@
 let pipeReady = false;
+console.log("WASM: starting load...");
 const pipeGo = new Go();
 
 WebAssembly.instantiateStreaming(fetch("pipe.wasm"), pipeGo.importObject).then(r => {
@@ -8,7 +9,8 @@ WebAssembly.instantiateStreaming(fetch("pipe.wasm"), pipeGo.importObject).then(r
   const btn = document.getElementById("runBtn");
   if (btn) btn.disabled = false;
 }).catch(e => {
-  document.getElementById("st").textContent = "failed";
+  document.getElementById("st").textContent = "failed: "+e.message;
+  console.error("WASM load error:", e);
 });
 
 function runPipe(code) {

@@ -265,7 +265,7 @@ Body:
 | Go-Packages | 8 |
 | Externe Abhängigkeiten | 0 |
 | Binary-Größe | ~10 MB |
-| Tests | 134+ |
+| Tests | 220+ |
 | Beispiel-Programme | 23 |
 | Builtins | 81 |
 | Opcodes | 47 |

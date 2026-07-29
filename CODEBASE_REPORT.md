@@ -2,7 +2,7 @@ CODEBASE ANALYSIS — Pipe (SPR)
 
 Files: 29 Go files
 Lines: 12435
-Tests: 152
+Tests: 222
 Score: No codebase provided./10
 
 ## 1) Architektur-Stil

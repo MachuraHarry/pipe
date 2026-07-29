@@ -250,4 +250,4 @@ make test
 go test ./pkg/...
 ```
 
-Führt alle 134+ Unit-Tests aus (Lexer, Parser, Eval, Compiler, VM, Cache, Formatter).
+Führt alle 220+ Unit-Tests aus (Lexer, Parser, AST, Eval, Compiler, VM, Cache, Formatter, Object).

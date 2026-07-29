@@ -378,7 +378,7 @@ The runtime reads itself, scans backward from EOF for the `PIPEBUILD` marker, ex
 | **Go packages** | 11 (`ast`, `build`, `cache`, `compiler`, `eval`, `formatter`, `lexer`, `object`, `parser`, `stdlib`, `vm`) |
 | **External dependencies** | 0 (standard library only) |
 | **Binary size** | ~10 MB (statically linked) |
-| **Tests** | 4 test files (lexer, parser, eval, compiler, VM) |
+| **Tests** | 220+ (across 10 packages) |
 | **Examples** | 19 example programs in `examples/` |
 | **Built-in functions** | 86 |
 | **Opcodes** | 47 |

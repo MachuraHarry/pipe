@@ -199,7 +199,7 @@ Source (.pipe) → Lexer → Parser → AST → [ Tree-Walker | Compiler + VM ]
 ```
 
 - 52 token types, 27 AST node types, 48 opcodes
-- ~13,000 LoC Go, 150+ tests, 42 example programs
+- ~13,000 LoC Go, 220+ tests, 42 example programs
 
 ## Documentation
 

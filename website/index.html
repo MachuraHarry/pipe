@@ -494,6 +494,8 @@ function updateHeroText(lang, instant) {
   var t = heroTexts[lang] || heroTexts['en'];
   var next = t[heroIdx];
   if (instant) {
+    hl.style.animation = 'none';
+    sub.style.animation = 'none';
     hl.style.opacity = '1';
     hl.style.transform = 'translateY(0)';
     sub.style.opacity = '1';
@@ -502,7 +504,9 @@ function updateHeroText(lang, instant) {
     sub.innerHTML = next.s;
     return;
   }
-  // Fade out
+  // Kill any existing CSS animations, then fade out
+  hl.style.animation = 'none';
+  sub.style.animation = 'none';
   hl.style.transition = 'opacity .4s ease, transform .4s ease';
   sub.style.transition = 'opacity .35s ease, transform .35s ease';
   hl.style.opacity = '0';

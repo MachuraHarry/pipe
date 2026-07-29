@@ -45,3 +45,11 @@ func (e *Environment) Store() map[string]Object {
 func (e *Environment) Delete(name string) {
 	delete(e.store, name)
 }
+
+func (e *Environment) Copy() *Environment {
+	s := make(map[string]Object, len(e.store))
+	for k, v := range e.store {
+		s[k] = v
+	}
+	return &Environment{store: s, outer: e.outer}
+}

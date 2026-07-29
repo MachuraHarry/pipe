@@ -80,6 +80,7 @@ const (
 	TRUE     // true
 	FALSE    // false
 	NIL      // nil
+	TRYAI    // try_ai
 )
 
 var keywords = map[string]TokenType{
@@ -98,6 +99,7 @@ var keywords = map[string]TokenType{
 	"return":   RETURN,
 	"try":      TRY,
 	"catch":    CATCH,
+	"try_ai":   TRYAI,
 	"true":     TRUE,
 	"false":    FALSE,
 	"nil":      NIL,
@@ -164,6 +166,7 @@ var tokenNames = map[TokenType]string{
 	RETURN:    "return",
 	TRY:       "try",
 	CATCH:     "catch",
+	TRYAI:     "try_ai",
 	TRUE:      "true",
 	FALSE:     "false",
 	NIL:       "nil",

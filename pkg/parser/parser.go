@@ -89,6 +89,7 @@ func New(l *lexer.Lexer) *Parser {
 		lexer.FOR:      p.parseForExpression,
 		lexer.FN:       p.parseFnLiteral,
 		lexer.TRY:      p.parseTryExpression,
+		lexer.TRYAI:    p.parseTryAIExpression,
 	}
 
 	p.infixParseFns = map[lexer.TokenType]infixParseFn{
@@ -1016,6 +1017,12 @@ func (p *Parser) parseTryExpression() ast.Expression {
 	expr.CatchBlock = p.parseBlock()
 	p.closeBlock()
 
+	return expr
+}
+
+func (p *Parser) parseTryAIExpression() ast.Expression {
+	expr := p.parseTryExpression().(*ast.TryExpression)
+	expr.AIFix = true
 	return expr
 }
 

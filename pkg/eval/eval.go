@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/harry/pipe/pkg/ai"
 	"github.com/harry/pipe/pkg/ast"
 	"github.com/harry/pipe/pkg/lexer"
 	"github.com/harry/pipe/pkg/object"
@@ -724,13 +725,122 @@ func valuesEqual(a, b object.Object) bool {
 
 func (ctx *EvalContext) evalTryExpression(te *ast.TryExpression, env *object.Environment) object.Object {
 	result := ctx.Eval(te.TryBlock, env)
-	if result != nil && result.Type() == object.ERROR {
-		if te.CatchParam != nil {
-			env.Set(te.CatchParam.Value, result)
-		}
-		return ctx.Eval(te.CatchBlock, env)
+	if result == nil || result.Type() != object.ERROR {
+		return result
 	}
-	return result
+
+	err, isErr := result.(*object.Error)
+	if !isErr {
+		return result
+	}
+
+	if te.AIFix {
+		if fixed := ctx.tryAIFix(err, te.TryBlock, env); fixed != nil && fixed.Type() != object.ERROR {
+			return fixed
+		}
+	}
+
+	if te.CatchParam != nil {
+		env.Set(te.CatchParam.Value, result)
+	}
+	return ctx.Eval(te.CatchBlock, env)
+}
+
+func (ctx *EvalContext) tryAIFix(err *object.Error, block *ast.BlockStatement, env *object.Environment) object.Object {
+	code := extractErrorCode(err.Message)
+	if !isAIFixable(code) {
+		return nil
+	}
+
+	src := blockSource(block)
+	prompt := fmt.Sprintf(
+		"Fix: `%s`. Error: %s. "+
+			"Return ONLY corrected Pipe code (space-separated args). "+
+			"If unfixable: UNFIXABLE",
+		src, err.Message,
+	)
+
+	resp, aiErr := ai.Chat(ai.ChatRequest{
+		Messages: []ai.Message{
+			{Role: "system", Content: "You fix Pipe code errors. Return ONLY the fix, no explanation. " +
+				"Pipe: function args are space-separated. " +
+				"CRITICAL: ALWAYS wrap the fix in (parentheses). " +
+				"Example: (to_num \"42\") * 3. " +
+				"Example: x / (if y != 0 then y else 1). " +
+				"to_num converts strings to numbers. " +
+				"If unfixable: UNFIXABLE"},
+			{Role: "user", Content: prompt},
+		},
+	})
+	if aiErr != nil {
+		return nil
+	}
+
+	fix := strings.TrimSpace(resp.Content)
+	if fix == "" || strings.HasPrefix(fix, "UNFIXABLE") || strings.HasPrefix(fix, "unfixable") {
+		return nil
+	}
+
+	return ctx.validateAndApply(fix, env)
+}
+
+func (ctx *EvalContext) validateAndApply(fix string, env *object.Environment) object.Object {
+	fix = strings.TrimSpace(fix)
+	if len(fix) > 2 && fix[0] == '(' && fix[len(fix)-1] == ')' {
+		fix = strings.TrimSpace(fix[1 : len(fix)-1])
+	}
+
+	l := lexer.New(fix)
+	p := parser.New(l)
+	program := p.ParseProgram()
+	if len(p.Errors()) > 0 || len(program.Statements) == 0 {
+		return nil
+	}
+
+	es, ok := program.Statements[0].(*ast.ExpressionStatement)
+	if !ok {
+		return nil
+	}
+
+	sandbox := env.Copy()
+	result := ctx.Eval(es.Expression, sandbox)
+	if result == nil || result.Type() == object.ERROR {
+		return nil
+	}
+
+	return ctx.Eval(es.Expression, env)
+}
+
+func extractErrorCode(msg string) string {
+	if idx := strings.Index(msg, "E0"); idx >= 0 {
+		end := idx + 4
+		if end > len(msg) {
+			end = len(msg)
+		}
+		return msg[idx:end]
+	}
+	return ""
+}
+
+func isAIFixable(code string) bool {
+	switch code {
+	case "E002", "E003", "E006":
+		return true
+	}
+	return false
+}
+
+func blockSource(block *ast.BlockStatement) string {
+	if len(block.Statements) == 1 {
+		if es, ok := block.Statements[0].(*ast.ExpressionStatement); ok {
+			return es.Expression.String()
+		}
+	}
+	var parts []string
+	for _, s := range block.Statements {
+		parts = append(parts, fmt.Sprintf("%s", s))
+	}
+	return strings.Join(parts, "; ")
 }
 
 func (ctx *EvalContext) evalEnumStatement(es *ast.EnumStatement, env *object.Environment) object.Object {

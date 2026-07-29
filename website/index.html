@@ -48,6 +48,7 @@ nav a:hover{color:var(--fg)}
 .cta-secondary:hover{border-color:var(--accent)}
 .hero h1.out,.hero .sub.out{opacity:0;transform:translateY(-20px)}
 .hero h1.in,.hero .sub.in{opacity:1;transform:translateY(0)}
+#hero-headline,#hero-sub{display:block!important}
 
 /* Stats inline bar */
 .stats-inline{display:flex;gap:32px;justify-content:center;flex-wrap:wrap;margin-bottom:20px}
@@ -204,8 +205,8 @@ span[data-lang].active{display:inline}a[data-lang].active{display:inline-block}
 <section class="hero">
   <div class="badge"><strong>SPR</strong> v0.6.0 · Semantic Pipeline Runtime</div>
 
-  <h1 id="hero-headline" data-lang="en" class="active"><span class="grad">AI is not</span> a library call<br>— it's a language primitive.</h1>
-  <p id="hero-sub" data-lang="en" class="active"><code>summarize</code>, <code>translate</code>, and <code>classify</code> live on the same syntax level as <code>+</code>, <code>sort</code>, and <code>len</code>. Pipe compiles to a single ~10 MB binary. Zero dependencies.</p>
+  <h1 id="hero-headline"><span class="grad">AI is not</span> a library call<br>— it's a language primitive.</h1>
+  <p id="hero-sub" class="sub"><code>summarize</code>, <code>translate</code>, and <code>classify</code> live on the same syntax level as <code>+</code>, <code>sort</code>, and <code>len</code>. Pipe compiles to a single ~10 MB binary. Zero dependencies.</p>
 
   <div class="stats-inline">
     <div class="stat"><span class="stat-num">25</span><div class="stat-label">AI Builtins</div></div>

@@ -3,177 +3,80 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Pipe Playground — Try Pipe in your browser</title>
+<title>Pipe Playground</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
-body{background:#0a0a0f;color:#e0e0e8;font-family:system-ui,sans-serif;min-height:100vh;display:flex;flex-direction:column;align-items:center}
-h1{background:linear-gradient(135deg,#7c5cfc,#5ce0fc);-webkit-background-clip:text;-webkit-text-fill-color:transparent;font-size:2rem;text-align:center;margin:30px 0 5px}
-.subtitle{color:#9898a8;text-align:center;margin-bottom:25px;font-size:0.9rem}
-.loading{color:#fc8c3c;text-align:center;margin:40px;font-size:1.1rem}
-.container{width:100%;max-width:850px;display:flex;flex-direction:column;gap:12px;padding:0 16px}
-.toolbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
-.toolbar select{background:#1a1a24;color:#e0e0e8;border:1px solid #333;border-radius:6px;padding:6px 12px;font-size:0.82rem}
-button{background:#7c5cfc;color:#fff;border:none;border-radius:8px;padding:10px 28px;font-size:0.95rem;font-weight:600;cursor:pointer;transition:all .2s}
-button:hover{background:#8e72fc}
-button:disabled{opacity:0.4;cursor:not-allowed}
-
-/* Prism token colors */
-.token.comment,.token.prolog,.token.doctype,.token.cdata{color:#666;font-style:italic}
-.token.punctuation{color:#9898a8}
-.token.boolean,.token.number,.token.constant,.token.symbol{color:#c084fc}
-.token.string,.token.char,.token.builtin{color:#3ce096}
-.token.operator,.token.entity,.token.url{color:#fc8c3c}
-.token.keyword{color:#a78bfa;font-weight:600}
-.token.function,.token.class-name{color:#5ce0fc}
-.token.variable{color:#e0e0e8}
-
-/* Editor overlay */
-.editor-wrap{display:grid;min-height:220px}
-.editor-wrap>*{grid-area:1/1}
-.editor-wrap textarea{width:100%;min-height:220px;background:transparent;color:transparent;caret-color:#5ce0fc;border:1px solid #22222e;border-radius:8px;padding:16px;font-family:'JetBrains Mono','Fira Code',monospace;font-size:0.88rem;resize:vertical;tab-size:4;z-index:2;white-space:pre-wrap;overflow:auto;line-height:1.6}
-.editor-wrap textarea:focus{outline:none;border-color:#7c5cfc}
-.editor-wrap pre{min-height:220px;border:1px solid transparent;border-radius:8px;padding:16px;font-family:'JetBrains Mono','Fira Code',monospace;font-size:0.88rem;z-index:1;pointer-events:none;user-select:none;overflow:hidden;white-space:pre-wrap;line-height:1.6;margin:0;color:#e0e0e8}
-.editor-wrap pre::-webkit-scrollbar{display:none}
-
-.output{background:#111118;border:1px solid #22222e;border-radius:8px;padding:20px;font-family:'JetBrains Mono','Fira Code',monospace;font-size:0.85rem;color:#3ce096;min-height:100px;white-space:pre-wrap;word-break:break-all}
-.output.error{color:#fc5c7c}
-.output.empty{color:#555;font-style:italic}
-.footer{color:#555;font-size:0.72rem;text-align:center;margin:20px 0}
-a{color:#7c5cfc;text-decoration:none}
+body{background:#0a0a0f;color:#e0e0e8;font-family:system-ui,sans-serif;display:flex;flex-direction:column;align-items:center;min-height:100vh;padding:20px}
+h1{background:linear-gradient(135deg,#7c5cfc,#5ce0fc);-webkit-background-clip:text;-webkit-text-fill-color:transparent;font-size:1.5rem;margin:10px 0 4px}
+.sub{color:#686880;font-size:.78rem;margin-bottom:16px}
+.wrap{width:100%;max-width:720px;display:flex;flex-direction:column;gap:10px}
+.bar{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.bar select{background:#14141e;color:#e0e0e8;border:1px solid #28283a;border-radius:6px;padding:5px 10px;font-size:.78rem}
+textarea{width:100%;min-height:180px;background:#0d0d16;color:#e0e0e8;border:1px solid #1e1e2e;border-radius:8px;padding:14px;font:15px/1.6 'JetBrains Mono','Fira Code',monospace;resize:vertical;tab-size:4;white-space:pre-wrap}
+textarea:focus{outline:none;border-color:#7c5cfc}
+.out{background:#0d0d16;border:1px solid #1e1e2e;border-radius:8px;padding:14px;font:14px/1.6 'JetBrains Mono','Fira Code',monospace;color:#3ce096;min-height:60px;white-space:pre-wrap;word-break:break-all}
+.out.err{color:#fc5c7c}
+.ft{color:#484860;font-size:.7rem;text-align:center;margin:16px 0}
+button{background:#7c5cfc;color:#fff;border:none;border-radius:6px;padding:7px 20px;font-size:.82rem;font-weight:600;cursor:pointer}
+button:hover{filter:brightness(1.15)}
+button:disabled{opacity:.35;cursor:not-allowed}
 </style>
 </head>
 <body>
 
-<h1>Pipe (SPR) Playground</h1>
-<p class="subtitle">Write Pipe code. Run it in your browser. No install.</p>
+<h1>Pipe</h1>
+<p class="sub">code runner — browser via WebAssembly</p>
 
-<div class="container">
-  <div class="toolbar">
+<div class="wrap">
+  <div class="bar">
     <button onclick="run()" id="runBtn" disabled>▶ Run</button>
-    <select id="examples" onchange="loadExample()">
-      <option value="">— Examples —</option>
-      <option value="0">2 + 2</option>
-      <option value="1">Hello World</option>
-      <option value="2">Loop 1-5</option>
-      <option value="3">Fibonacci</option>
-      <option value="4">Function</option>
-      <option value="5">Pipeline</option>
-      <option value="6">Variables</option>
-      <option value="7">If/Else</option>
-      <option value="8">Match</option>
-      <option value="9">Lists</option>
-      <option value="10">Maps</option>
-      <option value="11">Parallel >></option>
-      <option value="12">While Loop</option>
-      <option value="13">Palindrome</option>
-      <option value="14">FizzBuzz</option>
-      <option value="15">Temperature</option>
+    <select id="ex" onchange="loadEx()">
+      <option value="">examples</option>
+      <option value="0">2+2</option>
+      <option value="1">hello</option>
+      <option value="2">loop</option>
+      <option value="3">fib</option>
+      <option value="4">pipeline</option>
     </select>
-    <span style="color:#555;font-size:0.75rem" id="status">Loading WASM...</span>
+    <span style="color:#6868a0;font-size:.72rem" id="st">loading wasm…</span>
   </div>
 
-  <div class="editor-wrap">
-    <textarea id="editor" placeholder="Write Pipe code here..." spellcheck="false"
-oninput="syncHighlight()" onscroll="syncScroll()"></textarea>
-    <pre id="editor-hl" class="language-pipe" aria-hidden="true"></pre>
-  </div>
-
-  <div class="output empty" id="output">Output appears here after you click Run.</div>
+  <textarea id="ed" placeholder="pipe code" spellcheck="false"></textarea>
+  <div class="out" id="out">output</div>
 </div>
 
-<p class="footer">
-  Pipe (SPR) v0.6.0 — Running in your browser via WebAssembly |
-  <a href="index.html">Home</a> |
-  <a href="https://github.com/MachuraHarry/pipe">GitHub</a>
-</p>
+<p class="ft">v0.6 · <a href="index.html">home</a> · <a href="https://github.com/MachuraHarry/pipe">github</a></p>
 
 <script src="wasm_exec.js"></script>
 <script src="pipe-wasm.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
 <script>
-const examples = [
-  "print (2 + 2)",
-  'print "Hello from the Browser!"',
-  "for i in (range 1 6)\n    print i",
-  "fn fib n\n    match n\n        | 0 -> 0\n        | 1 -> 1\n        | _ -> fib(n - 1) + fib(n - 2)\n\nprint (fib 10)",
-  'fn greet name\n    "Hallo " ++ name\n\nprint (greet "Welt")',
-  "print (len [1,2,3])",
-  "x: 10\ny: 20\nprint (x + y)",
-  "if 5 > 3\n    print \"yes\"\nelse\n    print \"no\"",
-  "match 2\n    | 1 -> print \"one\"\n    | 2 -> print \"two\"\n    | _ -> print \"other\"",
-  "zahlen: [1,2,3]\npush zahlen 4\nprint zahlen",
-  'person: {name: "Anna"}\nprint (get person "name")',
-  'fn triple x\n    x * 3\n\n-- Parallel: both start simultaneously\n10\n    >> triple\n    > print\n20\n    >> triple\n    > print',
-  '-- While loop countdown\ni: 5\nwhile i > 0\n    print i\n    i: i - 1\nprint "Liftoff!"',
-  'fn pal s\n    fn check i j\n        if i >= j\n            true\n        else if (at s i) != (at s j)\n            false\n        else\n            check (i + 1) (j - 1)\n    check 0 (len s - 1)\n\nprint (pal "racecar")\nprint (pal "hello")',
-  'fn fizzbuzz n\n    if n % 15 == 0\n        "FizzBuzz"\n    else if n % 3 == 0\n        "Fizz"\n    else if n % 5 == 0\n        "Buzz"\n    else\n        n\n\nfor i in (range 1 16)\n    print (fizzbuzz i)',
-  'fn to_f c\n    c * 9 / 5 + 32\n\nprint "0C = "\nprint (to_f 0)\nprint "100C = "\nprint (to_f 100)'
+const ex=[
+'print (2 + 2)',
+'print "Hello from Pipe!"',
+'for i in (range 1 6)\n    print i',
+'fn fib n\n    match n\n        | 0 -> 0\n        | 1 -> 1\n        | _ -> fib(n-1)+fib(n-2)\nprint (fib 10)',
+'"hello world"\n    > upper\n    > print',
 ];
 
-function run() {
-  if (!pipeReady) return;
-  const code = document.getElementById("editor").value;
-  const out = document.getElementById("output");
-  out.className = "output";
-  out.textContent = "Running...";
-  runPipe(code).then(result => {
-    out.textContent = result || "(no output)";
-    if (result && result.includes("Error:")) out.className = "output error";
-    if (!result || result.trim() === "") out.className = "output empty";
-  });
+function run(){
+  if(typeof pipeReady==='undefined'||!pipeReady)return;
+  const ta=document.getElementById('ed'),out=document.getElementById('out');
+  out.className='out';
+  out.textContent='…';
+  const r=window.pipeRun(ta.value);
+  out.textContent=r||'(no output)';
+  if(r&&r.includes('Error:'))out.className='out err';
 }
 
-function loadExample() {
-  const idx = parseInt(document.getElementById("examples").value);
-  if (isNaN(idx)) return;
-  document.getElementById("editor").value = examples[idx];
-  syncHighlight();
+function loadEx(){
+  const i=parseInt(document.getElementById('ex').value);
+  if(isNaN(i))return;
+  document.getElementById('ed').value=ex[i];
 }
 
-function pickRandomExample() {
-  const idx = Math.floor(Math.random() * examples.length);
-  var sel = document.getElementById("examples");
-  if (sel) sel.value = idx.toString();
-  document.getElementById("editor").value = examples[idx];
-  syncHighlight();
-}
+document.addEventListener('keydown',e=>{if((e.ctrlKey||e.metaKey)&&e.key==='Enter')run()});
 
-document.addEventListener("keydown", e => {
-  if ((e.ctrlKey || e.metaKey) && e.key === "Enter") run();
-});
-
-// Pipe language for Prism.js
-Prism.languages.pipe={
-  comment:/--.*/,
-  string:{pattern:/"(?:[^"\\]|\\.)*"/,greedy:!0},
-  number:/\b\d+(?:\.\d+)?\b/,
-  keyword:/\b(?:fn|match|if|else|while|for|break|continue|import|export|enum|defer|return|try|catch)\b/,
-  boolean:/\b(?:true|false|nil)\b/,
-  operator:/>>|->|\+\+|\*\*|\.\.|\+=|-=|\*=|\/=|%=|==|!=|<=|>=|&&|\|\||[+\-*\/%<>=!]/,
-  punctuation:/[{}[\]();,.:]/,
-  'function':{pattern:/\b[a-zA-Z_]\w*(?=\s*\()/,alias:'function'},
-  variable:/\b[a-zA-Z_]\w*\b/
-};
-
-function syncHighlight(){
-  var ta=document.getElementById('editor');
-  var pre=document.getElementById('editor-hl');
-  if(!ta||!pre)return;
-  pre.innerHTML=Prism.highlight(ta.value,Prism.languages.pipe,'pipe')+'\n';
-}
-
-function syncScroll(){
-  var ta=document.getElementById('editor');
-  var pre=document.getElementById('editor-hl');
-  if(!ta||!pre)return;
-  pre.scrollTop=ta.scrollTop;pre.scrollLeft=ta.scrollLeft;
-}
-
-(function(){
-  pickRandomExample();
-  var ta=document.getElementById('editor');
-  if(ta){ta.addEventListener('scroll',syncScroll);}
-})();
+document.getElementById('ed').value=ex[0];
 </script>
 </body>
 </html>

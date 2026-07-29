@@ -32,119 +32,127 @@ nav a:hover{color:var(--fg)}
 .lang-switch button.active{background:var(--accent);color:#fff}
 
 /* Hero */
-.hero{position:relative;padding:140px 0 80px;text-align:center;overflow:hidden}
+.hero{position:relative;padding:120px 0 50px;text-align:center;overflow:hidden}
 .hero::before{content:'';position:absolute;top:-50%;left:-50%;width:200%;height:200%;background:radial-gradient(ellipse at 50% 0%,rgba(168,85,247,0.06) 0%,transparent 60%),radial-gradient(ellipse at 80% 50%,rgba(124,58,237,0.04) 0%,transparent 50%);animation:heroPulse 8s ease-in-out infinite;pointer-events:none}
 @keyframes heroPulse{0%,100%{opacity:1}50%{opacity:0.6}}
 .hero>*{position:relative;z-index:1}
 .hero .badge{display:inline-flex;align-items:center;gap:6px;background:var(--bg3);border:1px solid var(--border);border-radius:20px;padding:5px 16px;font-size:0.78rem;color:var(--accent2);margin-bottom:20px}
 .hero .badge strong{color:var(--accent);font-size:0.82rem}
-.hero h1{font-size:clamp(2.4rem,6vw,4rem);font-weight:800;letter-spacing:-1.5px;line-height:1.1;margin-bottom:16px}
+.hero h1{font-size:clamp(2.2rem,5vw,3.5rem);font-weight:800;letter-spacing:-1.5px;line-height:1.15;margin-bottom:14px}
 .hero h1 .grad{background:linear-gradient(135deg,var(--accent),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
-.hero .sub{font-size:1.1rem;color:var(--fg2);max-width:600px;margin:0 auto 32px;line-height:1.6}
-.hero .cta{display:inline-flex;gap:12px;flex-wrap:wrap;justify-content:center}
-.cta-primary{background:var(--accent);color:#fff;padding:12px 30px;border-radius:var(--radius);font-weight:600;font-size:0.92rem;text-decoration:none;transition:all .2s;box-shadow:0 4px 20px rgba(124,92,252,0.3)}
+.hero .sub{font-size:1rem;color:var(--fg2);max-width:550px;margin:0 auto 28px;line-height:1.6}
+.hero .cta{display:inline-flex;gap:10px;flex-wrap:wrap;justify-content:center}
+.cta-primary{background:var(--accent);color:#fff;padding:12px 28px;border-radius:var(--radius);font-weight:600;font-size:0.9rem;text-decoration:none;transition:all .2s;box-shadow:0 4px 20px rgba(124,92,252,0.3)}
 .cta-primary:hover{background:#8e72fc;transform:translateY(-1px);box-shadow:0 8px 32px rgba(124,92,252,0.4)}
-.cta-secondary{background:var(--bg3);color:var(--fg);padding:12px 30px;border-radius:var(--radius);font-weight:600;font-size:0.92rem;text-decoration:none;border:1px solid var(--border);transition:all .2s}
+.cta-secondary{background:var(--bg3);color:var(--fg);padding:12px 28px;border-radius:var(--radius);font-weight:600;font-size:0.9rem;text-decoration:none;border:1px solid var(--border);transition:all .2s}
 .cta-secondary:hover{border-color:var(--accent)}
 
-/* Stats */
-.stats-bar{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--border);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;margin:-30px auto 60px;max-width:900px;position:relative;z-index:2}
-.stat-item{background:var(--bg2);padding:24px 16px;text-align:center;transition:all .3s}
-.stat-item:hover{background:var(--bg3)}
-.stat-num{font-size:2rem;font-weight:800;background:linear-gradient(135deg,var(--accent),#7c3aed);-webkit-background-clip:text;-webkit-text-fill-color:transparent;display:block}
-.stat-label{font-size:0.75rem;color:var(--fg2);margin-top:4px;text-transform:uppercase;letter-spacing:0.5px}
+/* Stats inline bar */
+.stats-inline{display:flex;gap:32px;justify-content:center;flex-wrap:wrap;margin-bottom:20px}
+.stats-inline .stat{text-align:center}
+.stats-inline .stat-num{font-size:1.3rem;font-weight:700;background:linear-gradient(135deg,var(--accent),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.stats-inline .stat-label{font-size:0.7rem;color:var(--fg3);text-transform:uppercase;letter-spacing:.5px}
 
 /* Sections */
-section{padding:80px 0}
-.section-head{text-align:center;margin-bottom:56px}
-.section-head h2{font-size:2rem;font-weight:700;letter-spacing:-0.5px;margin-bottom:10px}
+section{padding:70px 0}
+.section-head{text-align:center;margin-bottom:48px}
+.section-head h2{font-size:1.9rem;font-weight:700;letter-spacing:-0.5px;margin-bottom:8px}
 .section-head h2 span{background:linear-gradient(135deg,var(--accent),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
-.section-head p{color:var(--fg2);font-size:0.95rem;max-width:500px;margin:0 auto}
+.section-head p{color:var(--fg2);font-size:0.9rem;max-width:500px;margin:0 auto}
 
 /* Staggered features */
-.feature-row{display:grid;grid-template-columns:1fr 1fr;gap:60px;align-items:center;margin-bottom:80px}
+.feature-row{display:grid;grid-template-columns:1fr 1fr;gap:48px;align-items:center;margin-bottom:64px}
 .feature-row:last-child{margin-bottom:0}
 .feature-row.reverse{direction:rtl}
-.feature-row.reverse .feature-text{direction:ltr}
-.feature-row.reverse .feature-code{direction:ltr}
-.feature-text h3{font-size:1.4rem;font-weight:700;margin-bottom:12px}
+.feature-row.reverse .feature-text,.feature-row.reverse .feature-code{direction:ltr}
+.feature-text h3{font-size:1.3rem;font-weight:700;margin-bottom:10px}
 .feature-text h3 span{background:linear-gradient(135deg,var(--accent),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
-.feature-text p{color:var(--fg2);font-size:0.9rem;line-height:1.7;margin-bottom:16px}
+.feature-text p{color:var(--fg2);font-size:0.88rem;line-height:1.7;margin-bottom:12px}
 .feature-code{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow)}
-.feature-code .bar{background:var(--bg3);padding:10px 14px;display:flex;gap:6px;border-bottom:1px solid var(--border)}
+.feature-code .bar{background:var(--bg3);padding:8px 14px;display:flex;gap:6px;border-bottom:1px solid var(--border)}
 .feature-code .bar .dot{width:9px;height:9px;border-radius:50%}
-.feature-code pre{padding:18px;font-family:var(--mono);font-size:0.78rem;line-height:1.8;overflow-x:auto;color:var(--fg);white-space:pre}
+.feature-code pre{padding:16px 18px;font-family:var(--mono);font-size:0.76rem;line-height:1.8;overflow-x:auto;color:var(--fg);white-space:pre}
 .feature-code .kw{color:var(--accent)}.feature-code .fn{color:var(--accent2)}
 .feature-code .str{color:var(--green)}.feature-code .pipe{color:var(--orange)}.feature-code .cmt{color:var(--fg3)}
 
 /* Grid cards */
-.grid-3{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px}
-.card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:24px;transition:all .3s}
+.grid-3{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px}
+.card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:22px;transition:all .3s}
 .card:hover{border-color:var(--accent);transform:translateY(-2px);box-shadow:0 8px 24px rgba(0,0,0,0.3)}
-.card .icon{font-size:1.5rem;margin-bottom:12px}
-.card h4{font-size:1rem;font-weight:700;margin-bottom:6px}
-.card p{color:var(--fg2);font-size:0.84rem;line-height:1.6}
+.card .icon{font-size:1.4rem;margin-bottom:10px}
+.card h4{font-size:0.95rem;font-weight:700;margin-bottom:5px}
+.card p{color:var(--fg2);font-size:0.8rem;line-height:1.6}
 
 /* Builtins table */
-.builtins-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:16px}
-.builtin-group{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:20px}
-.builtin-group h4{font-size:0.9rem;font-weight:700;margin-bottom:12px;color:var(--accent2)}
-.builtin-group table{width:100%;font-size:0.78rem;border-collapse:collapse}
-.builtin-group td{padding:4px 0;border-bottom:1px solid rgba(255,255,255,0.03)}
+.builtins-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px}
+.builtin-group{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:18px}
+.builtin-group h4{font-size:0.85rem;font-weight:700;margin-bottom:10px;color:var(--accent2)}
+.builtin-group table{width:100%;font-size:0.76rem;border-collapse:collapse}
+.builtin-group td{padding:3px 0;border-bottom:1px solid rgba(255,255,255,0.03)}
 .builtin-group td:first-child{font-family:var(--mono);color:var(--accent2);padding-right:8px}
 .builtin-group td:last-child{color:var(--fg2)}
 
-/* Footer */
-footer{background:var(--bg2);border-top:1px solid var(--border);padding:60px 0 30px}
-.footer-grid{display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:40px}
-.footer-col h5{font-size:0.8rem;text-transform:uppercase;letter-spacing:1px;color:var(--fg3);margin-bottom:16px}
-.footer-col a{display:block;color:var(--fg2);text-decoration:none;font-size:0.82rem;margin-bottom:8px;transition:color .2s}
-.footer-col a:hover{color:var(--fg)}
-.footer-brand{font-weight:800;font-size:1.1rem;color:var(--accent);letter-spacing:-0.5px;margin-bottom:8px;display:block}
-.footer-brand span{color:var(--fg)}
-.footer-bottom{border-top:1px solid var(--border);margin-top:40px;padding-top:20px;text-align:center;color:var(--fg3);font-size:0.75rem}
-
-/* Scroll animation */
-.reveal{opacity:0;transform:translateY(30px);transition:all .6s ease-out}
-.reveal.visible{opacity:1;transform:translateY(0)}
+/* Code comparison */
+.code-compare{display:grid;grid-template-columns:1fr auto 1fr;gap:0;background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow);max-width:900px;margin:0 auto}
+.code-compare .panel{padding:18px;font-family:var(--mono);font-size:0.76rem;line-height:1.8;overflow-x:auto;white-space:pre-wrap}
+.code-compare .left{background:var(--bg);color:var(--fg2)}
+.code-compare .right{background:var(--bg2);color:var(--fg)}
+.code-compare .divider{display:flex;align-items:center;justify-content:center;background:var(--bg3);padding:0 10px;color:var(--accent);font-weight:800;font-size:1.3rem;min-width:40px}
+.code-compare .cmt{color:var(--fg3)}.code-compare .kw{color:var(--accent)}
+.code-compare .fn{color:var(--accent2)}.code-compare .str{color:var(--green)}.code-compare .pipe{color:var(--orange)}
 
 /* Playground */
 .play-card{background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow);max-width:900px;margin:0 auto}
-.play-top{display:flex;justify-content:space-between;align-items:center;padding:10px 16px;background:var(--bg3);border-bottom:1px solid var(--border);flex-wrap:wrap;gap:8px}
+.play-top{display:flex;justify-content:space-between;align-items:center;padding:8px 14px;background:var(--bg3);border-bottom:1px solid var(--border);flex-wrap:wrap;gap:6px}
 .play-dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:4px}
-.play-label{color:var(--fg2);font-size:0.7rem;margin-left:4px}
-.play-run-btn{background:var(--accent);color:#fff;border:none;border-radius:6px;padding:7px 18px;font-weight:600;font-size:0.8rem;cursor:pointer;transition:all .15s}
+.play-label{color:var(--fg2);font-size:0.68rem;margin-left:4px}
+.play-run-btn{background:var(--accent);color:#fff;border:none;border-radius:6px;padding:6px 16px;font-weight:600;font-size:0.78rem;cursor:pointer;transition:all .15s}
 .play-run-btn:hover:not(:disabled){background:#8e72fc}
 .play-run-btn:disabled{opacity:0.4;cursor:not-allowed}
 .play-run-btn.running{background:var(--orange);animation:pulse 1s infinite}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.5}}
-.play-editor{width:100%;min-height:130px;background:var(--bg);border:none;padding:16px;font-family:var(--mono);font-size:0.85rem;resize:vertical;outline:none;white-space:pre-wrap;tab-size:4;line-height:1.6}
+.play-editor{width:100%;min-height:130px;background:var(--bg);border:none;padding:14px 16px;font-family:var(--mono);font-size:0.84rem;resize:vertical;outline:none;white-space:pre-wrap;tab-size:4;line-height:1.6}
 .play-editor:focus{background:#0a0a14}
-.play-editor-wrap{display:grid;min-height:160px}
+.play-editor-wrap{display:grid;min-height:150px}
 .play-editor-wrap>*{grid-area:1/1}
 .play-editor-wrap textarea.play-editor{background:transparent;color:transparent;caret-color:#5ce0fc;z-index:2;resize:vertical;overflow:auto}
 .play-editor-wrap pre.play-editor{color:var(--fg);z-index:1;overflow:hidden;pointer-events:none;user-select:none;margin:0}
 .play-editor-wrap pre::-webkit-scrollbar{display:none}
-.play-bar{display:flex;align-items:center;gap:8px;padding:8px 16px;background:var(--bg3);border-top:1px solid var(--border);border-bottom:1px solid var(--border);font-size:0.7rem;color:var(--fg2);font-family:var(--mono)}
+.play-bar{display:flex;align-items:center;gap:8px;padding:6px 14px;background:var(--bg3);border-top:1px solid var(--border);border-bottom:1px solid var(--border);font-size:0.68rem;color:var(--fg2);font-family:var(--mono)}
 .play-bar.success{color:var(--green)}.play-bar.error{color:var(--red)}
 .spinner{display:inline-block;width:12px;height:12px;border:2px solid var(--border);border-top-color:var(--orange);border-radius:50%;animation:spin .6s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
-.play-output{padding:14px 16px;font-family:var(--mono);font-size:0.82rem;color:var(--green);min-height:40px;max-height:250px;overflow-y:auto;white-space:pre-wrap}
+.play-output{padding:12px 16px;font-family:var(--mono);font-size:0.8rem;color:var(--green);min-height:36px;max-height:200px;overflow-y:auto;white-space:pre-wrap}
 .play-output.error{color:var(--red)}
 
-/* Code comparison */
-.code-compare{display:grid;grid-template-columns:1fr auto 1fr;gap:0;background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow)}
-.code-compare .panel{padding:20px;font-family:var(--mono);font-size:0.78rem;line-height:1.8;overflow-x:auto;white-space:pre-wrap}
-.code-compare .left{background:var(--bg);color:var(--fg2)}
-.code-compare .right{background:var(--bg2);color:var(--fg)}
-.code-compare .divider{display:flex;align-items:center;justify-content:center;background:var(--bg3);padding:0 8px;color:var(--accent);font-weight:700;font-size:1.2rem}
-.code-compare .cmt{color:var(--fg3)}.code-compare .kw{color:var(--accent)}
-.code-compare .fn{color:var(--accent2)}.code-compare .str{color:var(--green)}.code-compare .pipe{color:var(--orange)}
+/* Footer */
+footer{background:var(--bg2);border-top:1px solid var(--border);padding:50px 0 25px}
+.footer-grid{display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:32px}
+.footer-col h5{font-size:0.78rem;text-transform:uppercase;letter-spacing:1px;color:var(--fg3);margin-bottom:14px}
+.footer-col a{display:block;color:var(--fg2);text-decoration:none;font-size:0.8rem;margin-bottom:7px;transition:color .2s}
+.footer-col a:hover{color:var(--fg)}
+.footer-brand{font-weight:800;font-size:1.05rem;color:var(--accent);letter-spacing:-0.5px;margin-bottom:6px;display:block}
+.footer-brand span{color:var(--fg)}
+.footer-bottom{border-top:1px solid var(--border);margin-top:36px;padding-top:18px;text-align:center;color:var(--fg3);font-size:0.72rem}
+
+/* Scroll reveal */
+.reveal{opacity:0;transform:translateY(24px);transition:all .6s ease-out}
+.reveal.visible{opacity:1;transform:translateY(0)}
+
+/* Prism token colors */
+.token.comment,.token.prolog,.token.doctype,.token.cdata{color:#666;font-style:italic}
+.token.punctuation{color:#9898a8}
+.token.boolean,.token.number,.token.constant,.token.symbol{color:#c084fc}
+.token.string,.token.char,.token.builtin{color:#3ce096}
+.token.operator,.token.entity,.token.url{color:#fc8c3c}
+.token.keyword{color:#a78bfa;font-weight:600}
+.token.function,.token.class-name{color:#5ce0fc}
+.token.variable{color:#e0e0e8}
 
 /* Animations */
-@keyframes fadeUp{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:translateY(0)}}
-.hero h1,.hero .sub,.hero .cta,.stats-bar,.feature-row{animation:fadeUp .8s ease-out both}
-.hero .sub{animation-delay:.1s}.hero .cta{animation-delay:.2s}.stats-bar{animation-delay:.3s}
+@keyframes fadeUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+.hero h1,.hero .sub,.hero .cta{animation:fadeUp .8s ease-out both}
+.hero .sub{animation-delay:.1s}.hero .cta{animation-delay:.2s}
 
 /* Lang */
 [data-lang]{display:none}[data-lang].active{display:inline}
@@ -152,36 +160,21 @@ span[data-lang].active,p[data-lang].active,h1[data-lang].active,h2[data-lang].ac
 span[data-lang].active{display:inline}a[data-lang].active{display:inline-block}
 
 @media(max-width:768px){
-  .hero{padding:100px 0 50px}.hero h1{font-size:1.8rem}
-  .stats-bar{grid-template-columns:repeat(2,1fr);margin:0 16px 40px}
-  .feature-row{grid-template-columns:1fr;gap:24px}.feature-row.reverse{direction:ltr}
+  .hero{padding:100px 0 40px}.hero h1{font-size:1.7rem}
+  .play-editor{font-size:0.74rem;min-height:100px}
+  .feature-row{grid-template-columns:1fr;gap:20px}.feature-row.reverse{direction:ltr}
   .code-compare{grid-template-columns:1fr}.code-compare .divider{display:none}
   .footer-grid{grid-template-columns:1fr 1fr;gap:24px}
   section{padding:50px 0}
-  .play-editor{font-size:0.75rem;min-height:100px}
   .hamburger{display:block}
   nav .nav-links{display:none;position:absolute;top:100%;left:0;right:0;background:rgba(7,7,12,0.98);border-bottom:1px solid var(--border);flex-direction:column;padding:16px 20px;gap:12px;backdrop-filter:blur(12px)}
   nav .nav-links.open{display:flex}
   nav a{font-size:0.9rem;padding:8px 0}
 }
-
 @media(max-width:480px){
-  nav .logo img{height:24px}
-  nav .logo{font-size:1rem}
+  nav .logo img{height:24px}.nav .logo{font-size:1rem}
+  .stats-inline{gap:20px}
 }
-
-/* Prism token colors (matching Pipe theme) */
-.token.comment,.token.prolog,.token.doctype,.token.cdata{color:#666;font-style:italic}
-.token.punctuation{color:#9898a8}
-.token.property,.token.tag,.token.boolean,.token.number,.token.constant,.token.symbol{color:#c084fc}
-.token.selector,.token.attr-name,.token.string,.token.char,.token.builtin{color:#3ce096}
-.token.operator,.token.entity,.token.url{color:#fc8c3c}
-.token.atrule,.token.attr-value,.token.keyword{color:#a78bfa;font-weight:600}
-.token.function,.token.class-name{color:#5ce0fc}
-.token.regex,.token.important,.token.variable{color:#c084fc}
-.language-pipe .token.function{color:#5ce0fc}
-.language-pipe .token.operator{color:#fc8c3c}
-.language-pipe .token.keyword{color:#a78bfa;font-weight:600}
 </style>
 </head>
 <body>
@@ -191,10 +184,11 @@ span[data-lang].active{display:inline}a[data-lang].active{display:inline-block}
     <a href="#" class="logo"><img src="logo.svg" alt="Pipe">Pipe<span>.lang</span></a>
     <button class="hamburger" onclick="document.getElementById('nav-menu').classList.toggle('open')" aria-label="Menu">☰</button>
     <div class="nav-links" id="nav-menu">
-      <a href="#features" onclick="closeMenu()"><span data-lang="en" class="active">Features</span><span data-lang="de">Features</span></a>
       <a href="#play" onclick="closeMenu()"><span data-lang="en" class="active">Try</span><span data-lang="de">Testen</span></a>
+      <a href="#features" onclick="closeMenu()"><span data-lang="en" class="active">Features</span><span data-lang="de">Features</span></a>
+      <a href="#builtins" onclick="closeMenu()"><span data-lang="en" class="active">Builtins</span><span data-lang="de">Builtins</span></a>
       <a href="docs.html"><span data-lang="en" class="active">Docs</span><span data-lang="de">Doku</span></a>
-      <a href="playground.html"><span data-lang="en" class="active">Playground</span><span data-lang="de">Playground</span></a>
+      <a href="playground.html">Playground</a>
       <a href="https://github.com/MachuraHarry/pipe">GitHub</a>
       <div class="lang-switch">
         <button id="btn-en" class="active" onclick="setLang('en')">EN</button>
@@ -207,25 +201,57 @@ span[data-lang].active{display:inline}a[data-lang].active{display:inline-block}
 <!-- Hero -->
 <section class="hero">
   <div class="badge"><strong>SPR</strong> v0.6.0 · Semantic Pipeline Runtime</div>
-  <h1><span data-lang="en" class="active"><span class="grad">AI is no longer</span><br>a library call.</span><span data-lang="de"><span class="grad">KI ist kein</span><br>Library-Aufruf mehr.</span></h1>
-  <p class="sub" data-lang="en" class="active"><code>summarize</code>, <code>translate</code>, and <code>classify</code> live on the same level as <code>+</code>, <code>sort</code>, and <code>len</code>. One binary. Zero dependencies.</p>
-  <p class="sub" data-lang="de"><code>summarize</code>, <code>translate</code> und <code>classify</code> leben auf derselben Ebene wie <code>+</code>, <code>sort</code> und <code>len</code>. Eine Binary. Null Abhängigkeiten.</p>
+  <h1 data-lang="en" class="active"><span class="grad">AI is not</span> a library call<br>— it's a language primitive.</h1>
+  <h1 data-lang="de"><span class="grad">KI ist kein</span> Library-Call<br>— sondern ein Sprach-Primitive.</h1>
+  <p class="sub" data-lang="en" class="active"><code>summarize</code>, <code>translate</code>, and <code>classify</code> live on the same syntax level as <code>+</code>, <code>sort</code>, and <code>len</code>. Pipe compiles to a single ~10 MB binary. Zero dependencies.</p>
+  <p class="sub" data-lang="de"><code>summarize</code>, <code>translate</code> und <code>classify</code> leben auf derselben Syntax-Ebene wie <code>+</code>, <code>sort</code> und <code>len</code>. Pipe kompiliert zu einer einzigen ~10 MB Binary. Null Abhängigkeiten.</p>
+  <div class="stats-inline">
+    <div class="stat"><span class="stat-num">25</span><div class="stat-label">AI Builtins</div></div>
+    <div class="stat"><span class="stat-num">150+</span><div class="stat-label">Tests</div></div>
+    <div class="stat"><span class="stat-num">~10 MB</span><div class="stat-label">Binary Size</div></div>
+    <div class="stat"><span class="stat-num">4</span><div class="stat-label">Providers</div></div>
+    <div class="stat"><span class="stat-num">9</span><div class="stat-label">Modules</div></div>
+  </div>
   <div class="cta">
-    <a href="#play" class="cta-primary">▶ Try It</a>
+    <a href="#play" class="cta-primary">▶ Try it Live</a>
     <a href="https://github.com/MachuraHarry/pipe" class="cta-secondary">GitHub →</a>
   </div>
 </section>
 
-<!-- Stats -->
-<div class="stats-bar">
-  <div class="stat-item"><span class="stat-num">25</span><span class="stat-label">AI Builtins</span></div>
-  <div class="stat-item"><span class="stat-num">150+</span><span class="stat-label">Tests</span></div>
-  <div class="stat-item"><span class="stat-num">~10 MB</span><span class="stat-label">Binary</span></div>
-  <div class="stat-item"><span class="stat-num">4</span><span class="stat-label">AI Providers</span></div>
-</div>
+<!-- Playground — direkt unter der Hero -->
+<section id="play" style="background:var(--bg2);padding-top:20px">
+  <div class="container">
+    <div class="section-head" style="margin-bottom:28px">
+      <h2 data-lang="en" class="active">Try <span>Pipe</span> in your browser</h2>
+      <h2 data-lang="de">Probier <span>Pipe</span> im Browser</h2>
+      <p data-lang="en" class="active">No install. No signup. Just type Pipe code and run.</p>
+      <p data-lang="de">Keine Installation. Keine Anmeldung. Einfach tippen und ausführen.</p>
+    </div>
+    <div class="play-card reveal">
+      <div class="play-top">
+        <div>
+          <span class="play-dot" style="background:#fc5c7c"></span><span class="play-dot" style="background:#fc8c3c"></span><span class="play-dot" style="background:#3ce096"></span>
+          <span class="play-label">pipe playground</span>
+        </div>
+        <button id="play-btn" class="play-run-btn" disabled onclick="runPlayground()">▶ Run</button>
+      </div>
+      <div class="play-editor-wrap">
+        <textarea id="play-editor" class="play-editor" placeholder="Write Pipe code..." spellcheck="false"
+oninput="syncHighlight()" onscroll="syncScroll()">read_file "news.txt"
+    > summarize
+    > translate "de"
+    > print</textarea>
+        <pre id="play-hl" class="play-editor language-pipe" aria-hidden="true"></pre>
+      </div>
+      <div class="play-bar" id="play-bar"><span style="color:#fc8c3c">Loading WASM...</span></div>
+      <div class="play-output" id="play-out"></div>
+    </div>
+  </div>
+</section>
 
 <!-- Code Comparison -->
-<div class="container" style="margin-bottom:80px">
+<div class="container" style="margin:60px auto">
+  <div class="section-head"><h2 data-lang="en" class="active"><span>30 lines</span> of Python → <span>5 lines</span> of Pipe</h2><h2 data-lang="de"><span>30 Zeilen</span> Python → <span>5 Zeilen</span> Pipe</h2></div>
   <div class="code-compare reveal">
     <div class="panel left"><span class="cmt"># Python: KI ist ein Library-Call</span>
 <span class="kw">import</span> openai
@@ -240,7 +266,7 @@ span[data-lang].active{display:inline}a[data-lang].active{display:inline-block}
 <span class="kw">def</span> <span class="fn">translate</span>(text, lang):
     r = openai.chat.completions.create(
         model=<span class="str">"gpt-4o"</span>,
-        messages=[{<span class="str">"role"</span>:<span class="str">"system"</span>,<span class="str">"content"</span>:<span class="str">"Translate"</span>},
+        messages=[{<span class="str">"role"</span>:<span class="str">"system"</span>,<span class="str">"content"</span>:lang},
                   {<span class="str">"role"</span>:<span class="str">"user"</span>,<span class="str">"content"</span>:text}]
     )
     <span class="kw">return</span> r.choices[0].message.content
@@ -263,84 +289,93 @@ text = open(<span class="str">"news.txt"</span>).read()
 
     <div class="feature-row reveal">
       <div class="feature-text">
-        <h3 data-lang="en" class="active"><span>AI as Primitive</span></h3>
-        <h3 data-lang="de"><span>KI als Sprachbestandteil</span></h3>
-        <p data-lang="en" class="active">25 built-in AI operations. No imports, no libraries, no API wrappers. <code>summarize</code> is as fundamental as <code>+</code>.</p>
-        <p data-lang="de">25 eingebaute KI-Operationen. Keine Imports, keine Libraries, keine API-Wrapper. <code>summarize</code> ist so grundlegend wie <code>+</code>.</p>
+        <h3 data-lang="en" class="active"><span>AI as Language Primitive</span></h3>
+        <h3 data-lang="de"><span>KI als Sprach-Primitive</span></h3>
+        <p data-lang="en" class="active">25 built-in AI operations. No imports, no SDKs, no API wrappers. <code>summarize</code> sits next to <code>+</code> on the same syntax level — because AI is no longer a special case.</p>
+        <p data-lang="de">25 eingebaute KI-Operationen. Keine Imports, keine SDKs, keine API-Wrapper. <code>summarize</code> steht neben <code>+</code> auf derselben Syntax-Ebene — weil KI kein Sonderfall mehr ist.</p>
       </div>
-      <div class="feature-code"><div class="bar"><span class="dot" style="background:var(--red)"></span><span class="dot" style="background:var(--orange)"></span><span class="dot" style="background:var(--green)"></span></div><pre><span class="fn">read_file</span> <span class="str">"log.txt"</span>
+      <div class="feature-code"><div class="bar"><span class="dot" style="background:var(--red)"></span><span class="dot" style="background:var(--orange)"></span><span class="dot" style="background:var(--green)"></span></div><pre><span class="fn">read_file</span> <span class="str">"server.log"</span>
     <span class="pipe">&gt;</span> <span class="fn">classify</span> [<span class="str">"error","warn","info"</span>]
     <span class="pipe">&gt;</span> <span class="fn">summarize</span>
+    <span class="pipe">&gt;</span> <span class="fn">translate</span> <span class="str">"de"</span>
     <span class="pipe">&gt;</span> <span class="fn">save</span> <span class="str">"report.md"</span></pre></div>
     </div>
 
     <div class="feature-row reverse reveal">
       <div class="feature-text">
-        <h3 data-lang="en" class="active"><span>Parallel by Default</span></h3>
-        <h3 data-lang="de"><span>Standardmäßig parallel</span></h3>
-        <p data-lang="en" class="active"><code>>></code> parallel pipeline operator and <code>ai_batch</code> process hundreds of texts in parallel. Native goroutines, Future auto-resolution, rate limiting. No async/await, no Promise.all.</p>
-        <p data-lang="de"><code>>></code> Parallel-Pipeline-Operator und <code>ai_batch</code> verarbeiten hunderte Texte parallel. Native Goroutines, Future-Auflösung, Rate-Limiting. Kein async/await, kein Promise.all.</p>
+        <h3 data-lang="en" class="active"><span>Parallel by Design</span></h3>
+        <h3 data-lang="de"><span>Parallel per Design</span></h3>
+        <p data-lang="en" class="active"><code>>></code> starts any pipeline stage in the background — returning a Future that auto-resolves when needed. <code>ai_batch</code> handles hundreds of texts concurrently with built-in rate limiting. No async/await. No Promise.all.</p>
+        <p data-lang="de"><code>>></code> startet jede Pipeline-Stufe im Hintergrund — und gibt einen Future zurück, der sich automatisch auflöst. <code>ai_batch</code> verarbeitet hunderte Texte parallel mit eingebautem Rate-Limiting. Kein async/await. Kein Promise.all.</p>
       </div>
-      <div class="feature-code"><div class="bar"><span class="dot" style="background:var(--red)"></span><span class="dot" style="background:var(--orange)"></span><span class="dot" style="background:var(--green)"></span></div><pre><span class="fn">ai_rate_limit</span> 10
-<span class="fn">texts</span>: <span class="fn">read_lines</span> <span class="str">"articles.txt"</span>
-<span class="fn">results</span>: <span class="fn">ai_batch</span> <span class="str">"Summarize"</span> texts
-<span class="cmt">-- 100 texts → 10 seconds</span></pre></div>
+      <div class="feature-code"><div class="bar"><span class="dot" style="background:var(--red)"></span><span class="dot" style="background:var(--orange)"></span><span class="dot" style="background:var(--green)"></span></div><pre><span class="cmt">-- 3 AI calls — 3 seconds instead of 9</span>
+<span class="str">"Question A"</span> <span class="pipe">&gt;&gt;</span> <span class="fn">ask</span>
+<span class="str">"Question B"</span> <span class="pipe">&gt;&gt;</span> <span class="fn">ask</span>
+<span class="str">"Question C"</span> <span class="pipe">&gt;&gt;</span> <span class="fn">ask</span>
+
+<span class="fn">print</span> a ++ b ++ c  <span class="cmt">-- Futures auto-resolve</span></pre></div>
     </div>
 
     <div class="feature-row reveal">
       <div class="feature-text">
-        <h3 data-lang="en" class="active"><span>Single Binary</span></h3>
-        <h3 data-lang="de"><span>Einzelne Binary</span></h3>
-        <p data-lang="en" class="active">One ~10 MB file. No venv, no pip, no npm, no Docker. Compile once, deploy to Linux, macOS, Windows, Raspberry Pi. Or run directly in the browser via WASM.</p>
-        <p data-lang="de">Eine ~10 MB Datei. Kein venv, kein pip, kein npm, kein Docker. Einmal kompilieren, überall deployen. Oder direkt im Browser per WASM ausführen.</p>
+        <h3 data-lang="en" class="active"><span>Single Binary. Zero Dependencies.</span></h3>
+        <h3 data-lang="de"><span>Eine Binary. Null Abhängigkeiten.</span></h3>
+        <p data-lang="en" class="active">One ~10 MB statically-linked file. No venv, no pip, no npm, no Docker. Compile once — deploy to Linux, macOS, Windows, or run in the browser via WebAssembly.</p>
+        <p data-lang="de">Eine ~10 MB statisch gelinkte Datei. Kein venv, kein pip, kein npm, kein Docker. Einmal kompilieren — deployen auf Linux, macOS, Windows, oder direkt im Browser per WebAssembly.</p>
       </div>
-      <div class="feature-code"><div class="bar"><span class="dot" style="background:var(--red)"></span><span class="dot" style="background:var(--orange)"></span><span class="dot" style="background:var(--green)"></span></div><pre><span class="cmt"># Build once</span>
-<span class="fn">go build</span> -o pipe ./cmd/pipe
+      <div class="feature-code"><div class="bar"><span class="dot" style="background:var(--red)"></span><span class="dot" style="background:var(--orange)"></span><span class="dot" style="background:var(--green)"></span></div><pre>go build -o pipe ./cmd/pipe
 
-<span class="cmt"># Deploy everywhere</span>
-./pipe <span class="str">script.pipe</span>        <span class="cmt"># Linux</span>
-./pipe.exe <span class="str">script.pipe</span>     <span class="cmt"># Windows</span>
-<span class="cmt"># Or: open in browser → pipe.wasm</span></pre></div>
+./pipe script.pipe         <span class="cmt"># Linux</span>
+./pipe.exe script.pipe      <span class="cmt"># Windows</span>
+<span class="cmt"># Or: visit pipe.lang → playground</span></pre></div>
+    </div>
+
+    <div class="feature-row reverse reveal">
+      <div class="feature-text">
+        <h3 data-lang="en" class="active"><span>Module Ecosystem with Versioning</span></h3>
+        <h3 data-lang="de"><span>Modul-Ökosystem mit Versionierung</span></h3>
+        <p data-lang="en" class="active">9 curated modules in the registry. Pin versions with <code>@1.0.0</code>. <code>pipe -search</code> discovers, <code>pipe -get</code> installs. Import by name — no URLs needed.</p>
+        <p data-lang="de">9 kuratierte Module in der Registry. Versionen pinnen mit <code>@1.0.0</code>. <code>pipe -search</code> entdeckt, <code>pipe -get</code> installiert. Import per Name — keine URLs nötig.</p>
+      </div>
+      <div class="feature-code"><div class="bar"><span class="dot" style="background:var(--red)"></span><span class="dot" style="background:var(--orange)"></span><span class="dot" style="background:var(--green)"></span></div><pre><span class="cmt">-- Install and pin a module version</span>
+pipe -get parallel-runner@1.0.0
+
+<span class="kw">import</span> <span class="str">"parallel-runner@1.0.0"</span>
+
+<span class="fn">ask_many</span> [<span class="str">"What is Paris?"</span>, <span class="str">"What is Berlin?"</span>]
+    <span class="pipe">&gt;</span> <span class="fn">print</span></pre></div>
     </div>
   </div>
 </section>
 
 <!-- Capabilities -->
-<section>
+<section id="builtins">
   <div class="container">
-    <div class="section-head"><h2 data-lang="en" class="active"><span>25 AI Builtins</span></h2><h2 data-lang="de"><span>25 KI-Builtins</span></h2></div>
+    <div class="section-head"><h2 data-lang="en" class="active"><span>25 AI Builtins</span> + 81 Standard Builtins</h2><h2 data-lang="de"><span>25 KI-Builtins</span> + 81 Standard-Builtins</h2></div>
     <div class="builtins-grid reveal">
-      <div class="builtin-group"><h4>🧠 Understanding</h4><table><tr><td>summarize</td><td>Text zusammenfassen</td></tr><tr><td>translate</td><td>Übersetzen</td></tr><tr><td>classify</td><td>Klassifizieren</td></tr><tr><td>extract</td><td>Daten extrahieren</td></tr><tr><td>ask</td><td>Fragen beantworten</td></tr><tr><td>generate</td><td>Text generieren</td></tr></table></div>
-      <div class="builtin-group"><h4>⚡ Speed</h4><table><tr><td>ai_stream</td><td>Echtzeit-Streaming</td></tr><tr><td>ai_batch</td><td>Auto-parallel</td></tr><tr><td>ai_parallel</td><td>Concurrency-Steuerung</td></tr><tr><td>ai_rate_limit</td><td>Rate-Limiting</td></tr><tr><td>ai_chat</td><td>Low-Level Chat</td></tr><tr><td>ai_chat_json</td><td>Chat → JSON</td></tr></table></div>
-      <div class="builtin-group"><h4>🔍 Search</h4><table><tr><td>embed</td><td>Text → Vektor</td></tr><tr><td>embed_batch</td><td>Batch-Embeddings</td></tr><tr><td>cosine_sim</td><td>Semantische Ähnlichkeit</td></tr><tr><td>dot_product</td><td>Skalarprodukt</td></tr><tr><td>nearest</td><td>Top-K ähnlichste</td></tr></table></div>
-      <div class="builtin-group"><h4>🤖 Agency</h4><table><tr><td>ai_tool</td><td>Tool registrieren</td></tr><tr><td>ai_with_tools</td><td>Chat mit Tools</td></tr><tr><td>ai_provider</td><td>Provider wählen</td></tr><tr><td>ai_model</td><td>Modell wählen</td></tr><tr><td>ai_timeout</td><td>Timeout setzen</td></tr></table></div>
+      <div class="builtin-group"><h4>🧠 Understanding</h4><table><tr><td>summarize</td><td>Text summarization</td></tr><tr><td>translate</td><td>Translation</td></tr><tr><td>classify</td><td>Classification</td></tr><tr><td>extract</td><td>Data extraction (JSON)</td></tr><tr><td>ask</td><td>Question answering</td></tr><tr><td>generate</td><td>Free-text generation</td></tr></table></div>
+      <div class="builtin-group"><h4>⚡ Speed & Parallel</h4><table><tr><td>ai_stream</td><td>Real-time token streaming</td></tr><tr><td>ai_batch</td><td>Auto-parallel batch</td></tr><tr><td>ai_parallel</td><td>Concurrency control</td></tr><tr><td>ai_rate_limit</td><td>Rate limiting</td></tr><tr><td>ai_chat</td><td>Low-level chat</td></tr><tr><td>ai_chat_json</td><td>Chat → structured JSON</td></tr></table></div>
+      <div class="builtin-group"><h4>🔍 Embeddings & Search</h4><table><tr><td>embed</td><td>Text → vector</td></tr><tr><td>embed_batch</td><td>Batch embeddings</td></tr><tr><td>cosine_sim</td><td>Semantic similarity</td></tr><tr><td>dot_product</td><td>Dot product</td></tr><tr><td>nearest</td><td>Top-K nearest</td></tr></table></div>
+      <div class="builtin-group"><h4>🤖 Tool Calling & Config</h4><table><tr><td>ai_tool</td><td>Register function as tool</td></tr><tr><td>ai_with_tools</td><td>Chat with tool access</td></tr><tr><td>ai_provider</td><td>Select AI provider</td></tr><tr><td>ai_model</td><td>Select model</td></tr><tr><td>ai_timeout</td><td>Set timeout</td></tr></table></div>
     </div>
   </div>
 </section>
 
-<!-- Playground -->
-<section id="play" style="background:var(--bg2)">
-  <div class="container">
-    <div class="section-head"><h2 data-lang="en" class="active">Try <span>Pipe</span> in your browser</h2><h2 data-lang="de">Probier <span>Pipe</span> im Browser</h2><p data-lang="en" class="active">No install. No signup. Just type and run.</p><p data-lang="de">Keine Installation. Keine Anmeldung. Einfach tippen und ausführen.</p></div>
-    <div class="play-card reveal">
-      <div class="play-top">
-        <div class="play-top-left">
-          <span class="play-dot" style="background:#fc5c7c"></span><span class="play-dot" style="background:#fc8c3c"></span><span class="play-dot" style="background:#3ce096"></span>
-          <span class="play-label">pipe playground</span>
-        </div>
-        <div class="play-top-right"><button id="play-btn" class="play-run-btn" disabled onclick="runPlayground()">▶ Run</button></div>
-      </div>
-      <div class="play-editor-wrap">
-        <textarea id="play-editor" class="play-editor" placeholder="Write Pipe code..." spellcheck="false"
-oninput="syncHighlight()" onscroll="syncScroll()">print "Hello!"
-print (2 + 2)</textarea>
-        <pre id="play-hl" class="play-editor language-pipe" aria-hidden="true"></pre>
-      </div>
-      <div class="play-bar" id="play-bar"><span style="color:#fc8c3c">Loading WASM...</span></div>
-      <div class="play-output" id="play-out"></div>
-    </div>
+<!-- Quick Start -->
+<div class="container" style="margin:0 auto 60px">
+  <div class="section-head"><h2 data-lang="en" class="active">Get <span>Started</span> in 30 seconds</h2><h2 data-lang="de">In <span>30 Sekunden</span> starten</h2></div>
+  <div class="code-compare reveal" style="max-width:700px">
+    <div class="panel right" style="background:var(--bg2);color:var(--fg);border-radius:0">
+<span class="cmt"># Clone and build</span>
+git clone https://github.com/harry/pipe && cd pipe && make build
+
+<span class="cmt"># Set your API key</span>
+export DEEPSEEK_API_KEY=<span class="str">"sk-..."</span>
+
+<span class="cmt"># Run your first Pipe program</span>
+./bin/pipe -c <span class="str">'ai_provider "deepseek"; ask "What is Pipe?" &gt; print'</span></div>
   </div>
-</section>
+</div>
 
 <!-- Footer -->
 <footer>
@@ -407,7 +442,6 @@ async function runPlayground(){
 
 function closeMenu(){document.getElementById('nav-menu').classList.remove('open');}
 
-// Pipe language for Prism.js
 Prism.languages.pipe={
   comment:/--.*/,
   string:{pattern:/"(?:[^"\\]|\\.)*"/,greedy:!0},
@@ -421,14 +455,12 @@ Prism.languages.pipe={
 };
 
 function syncHighlight(){
-  var ta=document.getElementById('play-editor');
-  var pre=document.getElementById('play-hl');
+  var ta=document.getElementById('play-editor'),pre=document.getElementById('play-hl');
   if(!ta||!pre)return;
   pre.innerHTML=Prism.highlight(ta.value,Prism.languages.pipe,'pipe')+'\n';
 }
 function syncScroll(){
-  var ta=document.getElementById('play-editor');
-  var pre=document.getElementById('play-hl');
+  var ta=document.getElementById('play-editor'),pre=document.getElementById('play-hl');
   if(!ta||!pre)return;
   pre.scrollTop=ta.scrollTop;pre.scrollLeft=ta.scrollLeft;
 }

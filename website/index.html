@@ -545,7 +545,7 @@ function cycleHero() {
   var t = heroTexts[lang] || heroTexts['en'];
   heroIdx = Math.floor(Math.random() * t.length);
   updateHeroText(lang, false);
-  heroTimer = setTimeout(cycleHero, 5000);
+  heroTimer = setTimeout(cycleHero, 7000);
 }
 
 // Override setLang to restart carousel on language switch
@@ -555,10 +555,10 @@ setLang = function(l) {
   clearTimeout(heroTimer);
   heroIdx = 0;
   updateHeroText(l, true);
-  heroTimer = setTimeout(cycleHero, 5000);
+  heroTimer = setTimeout(cycleHero, 7000);
 };
 
-setTimeout(cycleHero, 4000);
+setTimeout(cycleHero, 6000);
 
 document.getElementById("play-editor").addEventListener("keydown",function(e){if((e.ctrlKey||e.metaKey)&&e.key==="Enter")runPlayground();});
 

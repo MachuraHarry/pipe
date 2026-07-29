@@ -22,10 +22,7 @@ type EvalContext struct {
 	exportedSymbols map[string]bool
 }
 
-var currentSourceFile string
-
 func NewEvalContext(sourceFile string) *EvalContext {
-	currentSourceFile = sourceFile
 	ctx := &EvalContext{
 		SourceFile:      sourceFile,
 		importCache:     make(map[string]*ast.Program),
@@ -340,7 +337,7 @@ func evalInfixExpression(operator string, left, right object.Object) object.Obje
 	case operator == "!=":
 		return object.NativeBoolToBoolean(left != right)
 	default:
-		return newErrorCode("E002", "Type error: %s %s %s", left.Type(), operator, right.Type())
+		return newErrorCode("", "E002", "Type error: %s %s %s", left.Type(), operator, right.Type())
 	}
 }
 
@@ -355,12 +352,12 @@ func evalIntegerInfix(operator string, left, right *object.Integer) object.Objec
 		return &object.Integer{Value: l * r}
 	case "/":
 		if r == 0 {
-			return newErrorCode("E003", "division by zero")
+			return newErrorCode("", "E003", "division by zero")
 		}
 		return &object.Integer{Value: l / r}
 	case "%":
 		if r == 0 {
-			return newErrorCode("E003", "modulo by zero")
+			return newErrorCode("", "E003", "modulo by zero")
 		}
 		return &object.Integer{Value: l % r}
 	case "**":
@@ -378,7 +375,7 @@ func evalIntegerInfix(operator string, left, right *object.Integer) object.Objec
 	case "!=":
 		return object.NativeBoolToBoolean(l != r)
 	default:
-		return newErrorCode("E005", "unknown operator: %s %s %s", left.Type(), operator, right.Type())
+		return newErrorCode("", "E005", "unknown operator: %s %s %s", left.Type(), operator, right.Type())
 	}
 }
 
@@ -393,7 +390,7 @@ func evalFloatInfix(operator string, left, right *object.Float) object.Object {
 		return &object.Float{Value: l * r}
 	case "/":
 		if r == 0 {
-			return newErrorCode("E003", "division by zero")
+			return newErrorCode("", "E003", "division by zero")
 		}
 		return &object.Float{Value: l / r}
 	case "**":
@@ -413,7 +410,7 @@ func evalFloatInfix(operator string, left, right *object.Float) object.Object {
 	case "!=":
 		return object.NativeBoolToBoolean(l != r)
 	default:
-		return newErrorCode("E005", "unknown operator: %s %s %s", left.Type(), operator, right.Type())
+		return newErrorCode("", "E005", "unknown operator: %s %s %s", left.Type(), operator, right.Type())
 	}
 }
 
@@ -434,7 +431,7 @@ func evalStringInfix(operator string, left, right *object.String) object.Object 
 	case ">=":
 		return object.NativeBoolToBoolean(left.Value >= right.Value)
 	default:
-		return newErrorCode("E005", "unknown operator: %s %s %s", left.Type(), operator, right.Type())
+		return newErrorCode("", "E005", "unknown operator: %s %s %s", left.Type(), operator, right.Type())
 	}
 }
 
@@ -1089,7 +1086,7 @@ func evalIndexExpression(left, right object.Object) object.Object {
 		}
 		return &object.String{Value: string(s[idx])}
 	}
-	return newErrorCode("E006", "index access not supported for %s", left.Type())
+	return newErrorCode("", "E006", "index access not supported for %s", left.Type())
 }
 
 type ReturnValue struct {
@@ -1115,8 +1112,7 @@ func (ctx *EvalContext) newError(format string, a ...interface{}) *object.Error 
 }
 
 func (ctx *EvalContext) newErrorCode(code, format string, a ...interface{}) *object.Error {
-	currentSourceFile = ctx.SourceFile
-	return newErrorCode(code, format, a...)
+	return newErrorCode(ctx.SourceFile, code, format, a...)
 }
 
 func newErrorSt(format string, a ...interface{}) *object.Error {
@@ -1124,10 +1120,10 @@ func newErrorSt(format string, a ...interface{}) *object.Error {
 	return &object.Error{Message: msg}
 }
 
-func newErrorCode(code, format string, a ...interface{}) *object.Error {
+func newErrorCode(sourceFile, code, format string, a ...interface{}) *object.Error {
 	msg := fmt.Sprintf(format, a...)
-	if currentSourceFile != "" {
-		return &object.Error{Message: currentSourceFile + ": " + code + ": " + msg}
+	if sourceFile != "" {
+		return &object.Error{Message: sourceFile + ": " + code + ": " + msg}
 	}
 	return &object.Error{Message: code + ": " + msg}
 }

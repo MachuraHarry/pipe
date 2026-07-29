@@ -1,6 +1,7 @@
 package ai
 
 import (
+	"os"
 	"testing"
 	"time"
 )
@@ -105,6 +106,10 @@ func TestChatNoAPIKey(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			oldVal := os.Getenv(tt.envVar)
+			os.Unsetenv(tt.envVar)
+			defer os.Setenv(tt.envVar, oldVal)
+
 			SetProvider(tt.provider)
 
 			_, err := Chat(ChatRequest{

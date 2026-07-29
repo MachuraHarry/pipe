@@ -380,11 +380,11 @@ type TryExpression struct {
 	AIFix      bool
 }
 
-func (te *TryExpression) expressionNode()      {}
+func (te *TryExpression) expressionNode() {}
 func (te *TryExpression) TokenLiteral() string {
 	if te.AIFix {
 		return "try_ai"
 	}
 	return "try"
 }
-func (te *TryExpression) String() string       { return "try ... catch" }
+func (te *TryExpression) String() string { return "try ... catch" }

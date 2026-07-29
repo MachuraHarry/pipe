@@ -460,28 +460,36 @@ function setLang(l) {
 // Hero text carousel
 var heroTexts = {
   en: [
-    {h:'<span class="grad">AI is not</span> a library call<br>— it\'s a language primitive.',
-     s:'<code>summarize</code>, <code>translate</code>, and <code>classify</code> live on the same syntax level as <code>+</code>, <code>sort</code>, and <code>len</code>. Pipe compiles to a single ~10 MB binary. Zero dependencies.'},
-    {h:'<span class="grad">Code that</span> fixes itself.<br>No other language can do this.',
-     s:'<code>try_ai</code> catches runtime errors and uses AI to automatically fix broken expressions. Type mismatches, division by zero, index errors — the AI repairs them at runtime.'},
-    {h:'<span class="grad">30 lines</span> of Python<br>become <span class="grad">5 lines</span> of Pipe.',
-     s:'AI operations are language primitives, not library calls. No imports, no SDKs, no API wrappers. One binary. Zero dependencies.'},
-    {h:'<span class="grad">Parallel</span> by design.<br><code>&gt;&gt;</code> starts pipelines in the background.',
-     s:'Futures auto-resolve when needed. <code>ai_batch</code> processes hundreds of texts concurrently. No async/await. No Promise.all. Just pure parallelism.'},
-    {h:'<span class="grad">One binary.</span> Zero dependencies.<br>Deploy anywhere in seconds.',
-     s:'~10 MB statically linked. No venv, no pip, no npm, no Docker. Compile once — run on Linux, macOS, Windows, or in the browser via WebAssembly.'}
+    {h:'<span class="grad">AI is not</span> a library call.<br>It\'s a language primitive.',
+     s:'<code>summarize</code>, <code>translate</code>, and <code>classify</code> sit on the same syntax level as <code>+</code> and <code>len</code>. No imports. No SDKs. Just Pipe.'},
+    {h:'<span class="grad">Code that fixes</span> itself.<br>No other language does this.',
+     s:'<code>try_ai</code> catches runtime errors and uses AI to repair broken expressions at runtime. Type mismatches and division by zero — fixed automatically.'},
+    {h:'<span class="grad">30 lines</span> of Python.<br><span class="grad">5 lines</span> of Pipe.',
+     s:'AI calls, file I/O, HTTP, JSON, regex — all built in. Pipe replaces your entire requirements.txt with a single ~10 MB binary.'},
+    {h:'<span class="grad">Parallel</span> by design.<br>Not bolted on after.',
+     s:'<code>&gt;&gt;</code> starts any pipeline stage in the background. Futures auto-resolve. <code>ai_batch</code> processes hundreds of texts concurrently with rate limiting.'},
+    {h:'<span class="grad">One file.</span> Zero dependencies.<br>Deploy in seconds.',
+     s:'Statically linked ~10 MB binary. No venv, no pip, no npm, no Docker. Linux, macOS, Windows, Raspberry Pi — or your browser via WebAssembly.'},
+    {h:'<span class="grad">Pipelines</span> are the language.<br>Not a library pattern.',
+     s:'Data flows top to bottom through transformations. <code>read_file &gt; classify &gt; summarize &gt; translate &gt; write_file</code> — five lines, fully readable.'},
+    {h:'<span class="grad">9 modules</span> and counting.<br>Versioned. Curated. Free.',
+     s:'<code>pipe -get parallel-runner@1.0.0</code> installs in seconds. Import by name. Pin versions. No lockfiles. No dependency hell.'}
   ],
   de: [
-    {h:'<span class="grad">KI ist kein</span> Library-Call<br>— sondern ein Sprach-Primitive.',
-     s:'<code>summarize</code>, <code>translate</code> und <code>classify</code> leben auf derselben Syntax-Ebene wie <code>+</code>, <code>sort</code> und <code>len</code>. Pipe kompiliert zu einer einzigen ~10 MB Binary. Null Abhängigkeiten.'},
-    {h:'<span class="grad">Code der</span> sich selbst repariert.<br>Keine andere Sprache kann das.',
-     s:'<code>try_ai</code> fängt Laufzeitfehler und nutzt KI um defekte Ausdrücke automatisch zu reparieren. Typ-Fehler, Division durch Null, Index-Fehler — die KI fixt sie zur Laufzeit.'},
+    {h:'<span class="grad">KI ist kein</span> Library-Call.<br>Sie ist ein Sprach-Primitive.',
+     s:'<code>summarize</code>, <code>translate</code> und <code>classify</code> stehen auf derselben Syntax-Ebene wie <code>+</code> und <code>len</code>. Keine Imports. Keine SDKs. Nur Pipe.'},
+    {h:'<span class="grad">Code der sich</span> selbst repariert.<br>Keine andere Sprache kann das.',
+     s:'<code>try_ai</code> fängt Laufzeitfehler und nutzt KI, um defekte Ausdrücke automatisch zu reparieren. Typfehler und Division durch Null — zur Laufzeit gefixt.'},
     {h:'Aus <span class="grad">30 Zeilen</span> Python<br>werden <span class="grad">5 Zeilen</span> Pipe.',
-     s:'KI-Operationen sind Sprach-Primitive, keine Library-Calls. Keine Imports, keine SDKs, keine API-Wrapper. Eine Binary. Null Abhängigkeiten.'},
-    {h:'<span class="grad">Parallel</span> per Design.<br><code>&gt;&gt;</code> startet Pipelines im Hintergrund.',
-     s:'Futures lösen sich automatisch auf. <code>ai_batch</code> verarbeitet hunderte Texte parallel. Kein async/await. Kein Promise.all. Reine Parallelität.'},
-    {h:'<span class="grad">Eine Binary.</span> Null Abhängigkeiten.<br>In Sekunden deployen.',
-     s:'~10 MB statisch gelinkt. Kein venv, kein pip, kein npm, kein Docker. Einmal kompilieren — auf Linux, macOS, Windows oder im Browser per WebAssembly ausführen.'}
+     s:'KI-Calls, Datei-I/O, HTTP, JSON, Regex — alles eingebaut. Pipe ersetzt deine gesamte requirements.txt durch eine einzige ~10 MB Binary.'},
+    {h:'<span class="grad">Parallel</span> per Design.<br>Nicht nachträglich angebaut.',
+     s:'<code>&gt;&gt;</code> startet jede Pipeline-Stufe im Hintergrund. Futures lösen sich automatisch auf. <code>ai_batch</code> verarbeitet hunderte Texte parallel mit Rate-Limiting.'},
+    {h:'<span class="grad">Eine Datei.</span> Null Abhängigkeiten.<br>In Sekunden deployt.',
+     s:'Statisch gelinkte ~10 MB Binary. Kein venv, kein pip, kein npm, kein Docker. Linux, macOS, Windows, Raspberry Pi — oder dein Browser per WebAssembly.'},
+    {h:'<span class="grad">Pipelines</span> sind die Sprache.<br>Kein Library-Pattern.',
+     s:'Daten fließen von oben nach unten durch Transformationen. <code>read_file &gt; classify &gt; summarize &gt; translate &gt; write_file</code> — fünf Zeilen, komplett lesbar.'},
+    {h:'<span class="grad">9 Module</span> und es werden mehr.<br>Versioniert. Kuratiert. Frei.',
+     s:'<code>pipe -get parallel-runner@1.0.0</code> installiert in Sekunden. Import per Name. Versionen pinnen. Keine Lockfiles. Kein Dependency-Hell.'}
   ]
 };
 

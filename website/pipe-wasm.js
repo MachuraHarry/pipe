@@ -1,15 +1,16 @@
 let pipeReady = false;
-console.log("WASM: starting load...");
 const pipeGo = new Go();
 
 WebAssembly.instantiateStreaming(fetch("pipe.wasm"), pipeGo.importObject).then(r => {
   pipeGo.run(r.instance);
   pipeReady = true;
-  document.getElementById("st").textContent = "ready";
-  const btn = document.getElementById("runBtn");
+  const bar = document.getElementById("play-bar");
+  if (bar) bar.innerHTML = '<span style="color:var(--green)">✓ ready</span>';
+  const btn = document.getElementById("play-btn");
   if (btn) btn.disabled = false;
 }).catch(e => {
-  document.getElementById("st").textContent = "failed: "+e.message;
+  const bar = document.getElementById("play-bar");
+  if (bar) bar.innerHTML = '<span style="color:var(--red)">✗ failed: ' + e.message + '</span>';
   console.error("WASM load error:", e);
 });
 

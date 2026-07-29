@@ -4,16 +4,11 @@ const pipeGo = new Go();
 WebAssembly.instantiateStreaming(fetch("pipe.wasm"), pipeGo.importObject).then(r => {
   pipeGo.run(r.instance);
   pipeReady = true;
-  const bar = document.getElementById("play-bar");
-  if (bar) {
-    bar.innerHTML = '<span style="color:#3ce096">✓</span><span>WASM ready</span>';
-    bar.style.color = "#9898a8";
-  }
-  const btn = document.getElementById("play-btn");
+  document.getElementById("st").textContent = "ready";
+  const btn = document.getElementById("runBtn");
   if (btn) btn.disabled = false;
 }).catch(e => {
-  const bar = document.getElementById("play-bar");
-  if (bar) bar.innerHTML = '<span style="color:#fc5c7c">✗</span><span>WASM failed</span>';
+  document.getElementById("st").textContent = "failed";
 });
 
 function runPipe(code) {

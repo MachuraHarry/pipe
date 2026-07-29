@@ -35,6 +35,13 @@ h1 span{background:linear-gradient(135deg,var(--accent),var(--accent2));-webkit-
 .run-btn{background:var(--accent);color:#fff;border:none;border-radius:6px;padding:5px 14px;font-weight:600;font-size:.78rem;cursor:pointer;transition:all .15s;line-height:1}
 .run-btn:hover:not(:disabled){background:#8e72fc}
 .run-btn:disabled{opacity:0.4;cursor:not-allowed}
+.rocket{display:inline-block;transition:none}
+.rocket.launch{animation:rocketLaunch .6s ease-out forwards}
+@keyframes rocketLaunch{
+  0%{transform:translateY(0) scale(1);opacity:1}
+  40%{transform:translateY(-24px) scale(1.15);opacity:1}
+  100%{transform:translateY(-70px) scale(.3);opacity:0}
+}
 .play-editor-wrap{display:grid;min-height:220px}
 .play-editor-wrap>*{grid-area:1/1}
 textarea.play-editor{width:100%;min-height:220px;padding:16px 18px;font:14px/1.7 var(--mono);background:transparent;border:none;color:transparent;caret-color:var(--fg);resize:vertical;outline:none;white-space:pre-wrap;tab-size:4;overflow:auto;z-index:2}
@@ -93,7 +100,7 @@ a{color:var(--accent);text-decoration:none}
       <div class="play-actions">
         <button class="icon-btn" onclick="downloadCode()" title="Download .pipe file">↓</button>
         <button id="share-btn" class="share-btn" onclick="sharePlay()">Share</button>
-        <button id="play-btn" class="run-btn" disabled onclick="runPlay()">▶ Run</button>
+        <button id="play-btn" class="run-btn" disabled onclick="runPlay()">Run <span class="rocket" id="rocket">🚀</span></button>
       </div>
     </div>
     <div class="play-editor-wrap">
@@ -173,9 +180,10 @@ function updateBar() {
 }
 
 function runPlay() {
-  const btn=document.getElementById("play-btn"),out=document.getElementById("play-out"),bar=document.getElementById("play-bar");
+  const btn=document.getElementById("play-btn"),out=document.getElementById("play-out"),bar=document.getElementById("play-bar"),rocket=document.getElementById("rocket");
   if(!pipeReady||btn.disabled)return;
-  btn.disabled=true;btn.textContent="⏳";
+  btn.disabled=true;
+  rocket.classList.add("launch");
   bar.className="play-bar";bar.innerHTML='<span>executing…</span>';
   out.className="play-out";
   out.textContent="";
@@ -185,7 +193,7 @@ function runPlay() {
       const t0=performance.now();
       const result=pipeRun(code);
       const t1=performance.now();
-      btn.disabled=false;btn.textContent="▶ Run";
+      btn.disabled=false;rocket.classList.remove("launch");
       const elapsed=((t1-t0)/1000).toFixed(2);
       if(result&&(result.includes("Error:")||result.includes("Parse error"))){
         bar.className="play-bar error";
@@ -198,7 +206,7 @@ function runPlay() {
       }
       out.textContent=result||"(no output)";
     }catch(e){
-      btn.disabled=false;btn.textContent="▶ Run";
+      btn.disabled=false;rocket.classList.remove("launch");
       bar.className="play-bar error";
       bar.innerHTML='<span>✗ error</span>';
       out.className="play-out error";

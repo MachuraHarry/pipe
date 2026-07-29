@@ -25,7 +25,7 @@ h1 span{background:linear-gradient(135deg,var(--accent),var(--accent2));-webkit-
 .play-top-left{display:flex;align-items:center;gap:8px}
 .play-dot{display:inline-block;width:10px;height:10px;border-radius:50%}
 .play-label{color:var(--fg3);font-size:.7rem;font-family:var(--mono);text-transform:uppercase;letter-spacing:.4px}
-.play-actions{display:flex;gap:6px}
+.play-actions{display:flex;align-items:center;gap:6px}
 .icon-btn{background:transparent;color:var(--fg2);border:1px solid var(--border);border-radius:6px;padding:5px 10px;font-size:.78rem;cursor:pointer;transition:all .15s;line-height:1}
 .icon-btn:hover{color:var(--fg);border-color:var(--fg3)}
 .icon-btn:disabled{opacity:0.4;cursor:not-allowed}
@@ -43,14 +43,30 @@ pre.play-editor::-webkit-scrollbar{display:none}
 .play-bar{display:flex;align-items:center;gap:8px;padding:7px 16px;background:var(--bg3);border-top:1px solid var(--border);font-size:.7rem;color:var(--fg2);font-family:var(--mono);min-height:32px}
 .play-bar.success{color:var(--green)}
 .play-bar.error{color:var(--red)}
-.play-out-wrap{background:var(--bg);border-top:1px solid var(--border);position:relative}
+.play-out-wrap{background:var(--bg);border-top:1px solid var(--border)}
 .play-out{padding:14px 18px;font:13px/1.6 var(--mono);color:var(--green);min-height:48px;max-height:220px;overflow-y:auto;white-space:pre-wrap}
 .play-out.error{color:var(--red)}
 .play-out:empty::before{content:"▶ output";color:var(--fg3)}
+.rating-section{border-top:1px solid var(--border);padding:12px 16px;background:var(--bg2);display:flex;align-items:center;gap:10px;min-height:44px}
+.rating-stars{display:inline-flex;gap:2px;font-size:1.4rem;cursor:pointer;line-height:1}
+.rating-stars span{color:var(--fg3);transition:color .12s;user-select:none}
+.rating-stars span.active{color:#fbbf24}
+.rating-stars span:hover{color:#fbbf24}
+.rating-info{font-size:.78rem;color:var(--fg2)}
 a{color:var(--accent);text-decoration:none}
 .ft{color:var(--fg3);font-size:.72rem;text-align:center;margin:22px 0 0}
 .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--bg3);color:var(--fg);padding:10px 22px;border-radius:8px;font-size:.82rem;border:1px solid var(--border);z-index:100;opacity:0;transition:opacity .25s;pointer-events:none;font-family:var(--sans)}
 .toast.show{opacity:1}
+.top-panel{margin-top:24px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden}
+.top-header{padding:14px 18px;background:var(--bg3);border-bottom:1px solid var(--border);font-size:.82rem;font-weight:700;display:flex;align-items:center;gap:8px}
+.top-list{padding:4px 0}
+.top-item{display:flex;align-items:center;gap:10px;padding:9px 18px;cursor:pointer;transition:background .12s;border-bottom:1px solid rgba(255,255,255,0.03)}
+.top-item:last-child{border-bottom:none}
+.top-item:hover{background:var(--bg3)}
+.top-rank{font-size:.68rem;font-weight:700;color:var(--fg3);min-width:16px;text-align:right}
+.top-stars{font-size:.82rem;color:#fbbf24;min-width:55px}
+.top-preview{font-family:var(--mono);font-size:.74rem;color:var(--fg2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1}
+.top-count{font-size:.66rem;color:var(--fg3);white-space:nowrap}
 .token.comment{color:var(--fg3);font-style:italic}
 .token.string,.token.char,.token.builtin{color:var(--green)}
 .token.number,.token.boolean,.token.constant{color:var(--orange)}
@@ -89,6 +105,21 @@ oninput="onEdit()" onscroll="syncScroll()">print (2 + 2)</textarea>
     <div class="play-out-wrap">
       <div class="play-out" id="play-out"></div>
     </div>
+    <div class="rating-section" id="rating-section" style="display:none">
+      <div class="rating-stars" id="rating-stars">
+        <span data-val="1">☆</span>
+        <span data-val="2">☆</span>
+        <span data-val="3">☆</span>
+        <span data-val="4">☆</span>
+        <span data-val="5">☆</span>
+      </div>
+      <div class="rating-info" id="rating-info"></div>
+    </div>
+  </div>
+
+  <div class="top-panel" id="top-panel" style="display:none">
+    <div class="top-header">🔥 Top Rated Snippets</div>
+    <div class="top-list" id="top-list"><div style="padding:14px 18px;font-size:.78rem;color:var(--fg3)">loading…</div></div>
   </div>
 </div>
 
@@ -229,6 +260,7 @@ function downloadCode() {
 
 const db = firebase.database();
 const statusEl = document.getElementById("play-status");
+let currentHash = null;
 
 function showToast(msg) {
   const t = document.getElementById("toast");
@@ -291,10 +323,166 @@ async function sharePlay() {
   btn.textContent = "Share";
 }
 
+// ---------- Rating System ----------
+
+function getVoterId() {
+  let id = localStorage.getItem("voter-id");
+  if (!id) {
+    id = crypto.randomUUID ? crypto.randomUUID() : "xxxx-xxxx-4xxx-yxxx".replace(/[xy]/g, c => {
+      const r = Math.random() * 16 | 0;
+      return (c === "x" ? r : r & 3 | 8).toString(16);
+    });
+    localStorage.setItem("voter-id", id);
+  }
+  return id;
+}
+
+const VOTER_ID = getVoterId();
+
+function renderStars(rating) {
+  const stars = document.querySelectorAll("#rating-stars span");
+  stars.forEach(s => s.classList.toggle("active", parseInt(s.dataset.val) <= rating));
+}
+
+function setRatingInfo(avg, count) {
+  const el = document.getElementById("rating-info");
+  if (avg === null) {
+    el.textContent = "not yet rated";
+  } else {
+    el.textContent = avg.toFixed(1) + " ★ avg · " + count + " rating" + (count !== 1 ? "s" : "");
+  }
+}
+
+async function loadRating(hash) {
+  const section = document.getElementById("rating-section");
+  section.style.display = "flex";
+
+  const stars = document.querySelectorAll("#rating-stars span");
+  stars.forEach(s => {
+    s.onmouseenter = () => renderStars(parseInt(s.dataset.val));
+    s.onmouseleave = () => loadRating._last && renderStars(loadRating._last);
+    s.onclick = () => submitRating(hash, parseInt(s.dataset.val));
+  });
+
+  try {
+    const snap = await db.ref("shared/" + hash + "/rating_sum").once("value");
+    const countSnap = await db.ref("shared/" + hash + "/rating_count").once("value");
+    const sum = snap.val();
+    const count = countSnap.val();
+
+    if (sum != null && count > 0) {
+      const avg = sum / count;
+      loadRating._last = avg;
+      renderStars(Math.round(avg));
+      setRatingInfo(avg, count);
+    } else {
+      loadRating._last = 0;
+      renderStars(0);
+      setRatingInfo(null, 0);
+    }
+
+    const mySnap = await db.ref("shared/" + hash + "/ratings/" + VOTER_ID).once("value");
+    if (mySnap.val() != null) {
+      renderStars(mySnap.val());
+      loadRating._last = mySnap.val();
+    }
+  } catch (e) {
+    document.getElementById("rating-info").textContent = "rate unavailable";
+  }
+}
+
+async function submitRating(hash, stars) {
+  const ref = db.ref("shared/" + hash);
+  const snap = await ref.once("value");
+  const data = snap.val();
+  if (!data) return;
+
+  const old = data.ratings && data.ratings[VOTER_ID];
+  const sum = data.rating_sum || 0;
+  const count = data.rating_count || 0;
+
+  let newSum, newCount;
+  if (old) {
+    newSum = sum - old + stars;
+    newCount = count;
+  } else {
+    newSum = sum + stars;
+    newCount = count + 1;
+  }
+  const newAvg = newSum / newCount;
+
+  const updates = {};
+  updates["shared/" + hash + "/rating_sum"] = newSum;
+  updates["shared/" + hash + "/rating_count"] = newCount;
+  updates["shared/" + hash + "/rating_avg"] = newAvg;
+  updates["shared/" + hash + "/ratings/" + VOTER_ID] = stars;
+  updates["popular/" + hash] = newAvg;
+
+  await db.ref().update(updates);
+  showToast("Rated " + stars + " ★");
+  loadRating._last = stars;
+  renderStars(stars);
+  setRatingInfo(newAvg, newCount);
+}
+
+async function loadTopSnippets() {
+  const panel = document.getElementById("top-panel");
+  const list = document.getElementById("top-list");
+
+  try {
+    const snap = await db.ref("popular").orderByValue().limitToLast(5).once("value");
+    const entries = snap.val();
+    if (!entries) {
+      list.innerHTML = '<div style="padding:14px 18px;font-size:.78rem;color:var(--fg3)">no ratings yet</div>';
+      panel.style.display = "block";
+      return;
+    }
+
+    const hashes = Object.keys(entries).sort((a, b) => entries[b] - entries[a]);
+    const items = [];
+    for (const hash of hashes) {
+      const s = await db.ref("shared/" + hash + "/code").once("value");
+      const code = s.val();
+      if (code) items.push({ hash, avg: entries[hash], code });
+    }
+
+    if (items.length === 0) {
+      list.innerHTML = '<div style="padding:14px 18px;font-size:.78rem;color:var(--fg3)">no ratings yet</div>';
+      panel.style.display = "block";
+      return;
+    }
+
+    const countSnap = await db.ref("shared/" + items[0].hash + "/rating_count").once("value");
+    const firstCount = countSnap.val() || 0;
+
+    panel.style.display = "block";
+    list.innerHTML = items.map((item, i) => {
+      const firstLine = item.code.trim().split("\n")[0];
+      return '<div class="top-item" onclick="window.location.href=\'?code=' + item.hash + '\'">' +
+        '<span class="top-rank">#' + (i + 1) + '</span>' +
+        '<span class="top-stars">' + "★".repeat(Math.round(item.avg)) + "☆".repeat(5 - Math.round(item.avg)) + '</span>' +
+        '<span class="top-preview">' + escapeHtml(firstLine) + '</span>' +
+        '</div>';
+    }).join("");
+  } catch (e) {
+    list.innerHTML = '<div style="padding:14px 18px;font-size:.78rem;color:var(--fg3)">load failed</div>';
+    panel.style.display = "block";
+  }
+}
+
+function escapeHtml(s) {
+  const d = document.createElement("div");
+  d.textContent = s;
+  return d.innerHTML;
+}
+
+// ---------- Init ----------
+
 async function loadSharedCode() {
   const params = new URLSearchParams(window.location.search);
   const hash = params.get("code");
   if (!hash) return;
+  currentHash = hash;
 
   const editor = document.getElementById("play-editor");
   statusEl.textContent = "⌛ loading shared code…";
@@ -318,6 +506,7 @@ async function loadSharedCode() {
         }, 100);
       }
       updateBar();
+      loadRating(hash);
     } else {
       statusEl.textContent = "✗ code not found";
       updateBar();
@@ -330,6 +519,7 @@ async function loadSharedCode() {
 
 loadDraft();
 loadSharedCode();
+loadTopSnippets();
 syncHighlight();
 </script>
 </body>

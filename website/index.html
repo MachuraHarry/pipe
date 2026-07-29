@@ -501,14 +501,18 @@ function updateHeroText(lang, instant) {
     sub.innerHTML = next.s;
     return;
   }
+  hl.style.transition = 'all .45s cubic-bezier(.4,0,.2,1)';
+  sub.style.transition = 'all .4s cubic-bezier(.4,0,.2,1)';
   hl.classList.add('out');
   sub.classList.add('out');
   setTimeout(function() {
     hl.innerHTML = next.h;
     sub.innerHTML = next.s;
+    hl.offsetHeight;
+    sub.offsetHeight;
     hl.classList.remove('out');
     sub.classList.remove('out');
-  }, 400);
+  }, 500);
 }
 
 function cycleHero() {
@@ -529,7 +533,7 @@ setLang = function(l) {
   heroTimer = setTimeout(cycleHero, 5000);
 };
 
-setTimeout(cycleHero, 6000);
+setTimeout(cycleHero, 4000);
 
 document.getElementById("play-editor").addEventListener("keydown",function(e){if((e.ctrlKey||e.metaKey)&&e.key==="Enter")runPlayground();});
 

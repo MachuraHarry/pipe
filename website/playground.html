@@ -227,38 +227,38 @@ function runPlay() {
     setTimeout(()=>{
       rocket.classList.remove("launch");
       rocket.classList.add("flying");
-    },1000);
-    bar.innerHTML='<span>executing…</span>';
-    setTimeout(function(){
-      try{
-        const code=document.getElementById("play-editor").value;
-        const t0=performance.now();
-        const result=pipeRun(code);
-        const t1=performance.now();
-        rocket.classList.remove("flying");
-        rocket.classList.add("landing");
-        const elapsed=((t1-t0)/1000).toFixed(2);
-        if(result&&(result.includes("Error:")||result.includes("Parse error"))){
+      bar.innerHTML='<span>executing…</span>';
+      setTimeout(()=>{
+        try{
+          const code=document.getElementById("play-editor").value;
+          const t0=performance.now();
+          const result=pipeRun(code);
+          const t1=performance.now();
+          rocket.classList.remove("flying");
+          rocket.classList.add("landing");
+          const elapsed=((t1-t0)/1000).toFixed(2);
+          if(result&&(result.includes("Error:")||result.includes("Parse error"))){
+            bar.className="play-bar error";
+            bar.innerHTML='<span>✗ error ('+elapsed+'s)</span>';
+            out.className="play-out error";
+          }else{
+            bar.className="play-bar success";
+            bar.innerHTML='<span>✓ done ('+elapsed+'s)</span>';
+            out.className="play-out";
+          }
+          out.textContent=result||"(no output)";
+          setTimeout(()=>{rocket.remove();btnRocket.style.visibility="visible";btn.disabled=false;},800);
+        }catch(e){
+          rocket.classList.remove("flying");
+          rocket.classList.add("landing");
+          setTimeout(()=>{rocket.remove();btnRocket.style.visibility="visible";btn.disabled=false;},800);
           bar.className="play-bar error";
-          bar.innerHTML='<span>✗ error ('+elapsed+'s)</span>';
+          bar.innerHTML='<span>✗ error</span>';
           out.className="play-out error";
-        }else{
-          bar.className="play-bar success";
-          bar.innerHTML='<span>✓ done ('+elapsed+'s)</span>';
-          out.className="play-out";
+          out.textContent="Error: "+e.message;
         }
-        out.textContent=result||"(no output)";
-        setTimeout(()=>{rocket.remove();btnRocket.style.visibility="visible";btn.disabled=false;},800);
-      }catch(e){
-        rocket.classList.remove("flying");
-        rocket.classList.add("landing");
-        setTimeout(()=>{rocket.remove();btnRocket.style.visibility="visible";btn.disabled=false;},800);
-        bar.className="play-bar error";
-        bar.innerHTML='<span>✗ error</span>';
-        out.className="play-out error";
-        out.textContent="Error: "+e.message;
-      }
-    },50);
+      },50);
+    },1000);
   },400);
 }
 

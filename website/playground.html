@@ -382,12 +382,6 @@ async function loadRating(hash) {
       renderStars(0);
       setRatingInfo(null, 0);
     }
-
-    const mySnap = await db.ref("shared/" + hash + "/ratings/" + VOTER_ID).once("value");
-    if (mySnap.val() != null) {
-      renderStars(mySnap.val());
-      loadRating._last = mySnap.val();
-    }
   } catch (e) {
     document.getElementById("rating-info").textContent = "rate unavailable";
   }
@@ -422,8 +416,8 @@ async function submitRating(hash, stars) {
 
   await db.ref().update(updates);
   showToast("Rated " + stars + " ★");
-  loadRating._last = stars;
-  renderStars(stars);
+  loadRating._last = newAvg;
+  renderStars(Math.round(newAvg));
   setRatingInfo(newAvg, newCount);
 }
 

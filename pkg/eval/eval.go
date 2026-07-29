@@ -21,7 +21,10 @@ type EvalContext struct {
 	exportedSymbols map[string]bool
 }
 
+var currentSourceFile string
+
 func NewEvalContext(sourceFile string) *EvalContext {
+	currentSourceFile = sourceFile
 	ctx := &EvalContext{
 		SourceFile:      sourceFile,
 		importCache:     make(map[string]*ast.Program),
@@ -566,7 +569,7 @@ func (ctx *EvalContext) applyFunction(fn object.Object, args []object.Object) ob
 		return f.Fn(args...)
 
 	default:
-		return ctx.newError("not a function: %s", fn.Type())
+		return ctx.newErrorCode("E004", "not a function: %s", fn.Type())
 	}
 }
 
@@ -995,8 +998,8 @@ func (ctx *EvalContext) newError(format string, a ...interface{}) *object.Error 
 }
 
 func (ctx *EvalContext) newErrorCode(code, format string, a ...interface{}) *object.Error {
-	msg := fmt.Sprintf(format, a...)
-	return &object.Error{Message: ctx.SourceFile + ": " + code + ": " + msg}
+	currentSourceFile = ctx.SourceFile
+	return newErrorCode(code, format, a...)
 }
 
 func newErrorSt(format string, a ...interface{}) *object.Error {
@@ -1006,6 +1009,9 @@ func newErrorSt(format string, a ...interface{}) *object.Error {
 
 func newErrorCode(code, format string, a ...interface{}) *object.Error {
 	msg := fmt.Sprintf(format, a...)
+	if currentSourceFile != "" {
+		return &object.Error{Message: currentSourceFile + ": " + code + ": " + msg}
+	}
 	return &object.Error{Message: code + ": " + msg}
 }
 

@@ -20,7 +20,9 @@ h1{font-size:1.5rem;margin:14px 0 2px;font-weight:800;letter-spacing:-0.5px}
 h1 span{background:linear-gradient(135deg,var(--accent),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
 .sub{color:var(--fg2);font-size:.85rem;margin-bottom:20px}
 .wrap{width:100%;max-width:900px}
-.play-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;box-shadow:0 0 0 1px rgba(168,85,247,0.04),0 16px 48px rgba(0,0,0,0.4)}
+.play-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);box-shadow:0 0 0 1px rgba(168,85,247,0.04),0 16px 48px rgba(0,0,0,0.4)}
+.play-card > :first-child{border-radius:var(--radius) var(--radius) 0 0;overflow:hidden}
+.play-card > :last-child{border-radius:0 0 var(--radius) var(--radius);overflow:hidden}
 .play-top{display:flex;justify-content:space-between;align-items:center;padding:10px 16px;background:var(--bg3);border-bottom:1px solid var(--border)}
 .play-top-left{display:flex;align-items:center;gap:8px}
 .play-dot{display:inline-block;width:10px;height:10px;border-radius:50%}
@@ -36,21 +38,35 @@ h1 span{background:linear-gradient(135deg,var(--accent),var(--accent2));-webkit-
 .run-btn:hover:not(:disabled){background:#8e72fc}
 .run-btn:disabled{opacity:0.4;cursor:not-allowed}
 .rocket{display:inline-block;transition:none}
-.rocket.launch{animation:rocketLaunch .5s ease-in forwards}
-.rocket.flying{animation:rocketFly .7s ease-in-out infinite}
-.rocket.landing{animation:rocketLand .5s ease-out forwards}
+.run-btn.shaking{animation:btnShake .4s ease-in-out}
+@keyframes btnShake{
+  0%,100%{transform:translateX(0)}
+  15%{transform:translateX(-2px) rotate(-1deg)}
+  30%{transform:translateX(2px) rotate(1deg)}
+  45%{transform:translateX(-2px)}
+  60%{transform:translateX(2px)}
+  75%{transform:translateX(-1px)}
+  90%{transform:translateX(1px)}
+}
+.rocket-anim{position:fixed;z-index:9999;font-size:1.2rem;pointer-events:none;transition:none}
+.rocket-anim.launch{animation:rocketLaunch 1s cubic-bezier(.2,.9,.3,1) forwards}
+.rocket-anim.flying{animation:rocketFly 1.5s ease-in-out infinite}
+.rocket-anim.landing{animation:rocketLand .8s cubic-bezier(.34,1.56,.64,1) forwards}
 @keyframes rocketLaunch{
-  0%{transform:translateY(0) scale(1);opacity:1}
-  100%{transform:translateY(-70px) scale(.5);opacity:.8}
+  0%{transform:translateY(0) scale(1);filter:drop-shadow(0 0 2px var(--accent))}
+  30%{transform:translateY(-10px) scale(1.15);filter:drop-shadow(0 0 8px rgba(168,85,247,.6))}
+  60%{transform:translateY(-60px) scale(.7);filter:drop-shadow(0 0 12px rgba(168,85,247,.4))}
+  100%{transform:translateY(-160px) scale(.45);filter:drop-shadow(0 0 6px rgba(168,85,247,.2))}
 }
 @keyframes rocketFly{
-  0%{transform:translateY(-70px) scale(.5) rotate(-4deg);opacity:.8}
-  50%{transform:translateY(-82px) scale(.5) rotate(4deg);opacity:.8}
-  100%{transform:translateY(-70px) scale(.5) rotate(-4deg);opacity:.8}
+  0%,100%{transform:translateY(-160px) scale(.45) rotate(-5deg);filter:drop-shadow(0 0 8px var(--accent)) drop-shadow(0 0 20px rgba(168,85,247,.4))}
+  50%{transform:translateY(-175px) scale(.45) rotate(5deg);filter:drop-shadow(0 0 12px var(--accent)) drop-shadow(0 0 30px rgba(168,85,247,.6))}
 }
 @keyframes rocketLand{
-  0%{transform:translateY(-70px) scale(.5);opacity:.8}
-  100%{transform:translateY(0) scale(1);opacity:1}
+  0%{transform:translateY(-160px) scale(.45);filter:drop-shadow(0 0 6px rgba(168,85,247,.2))}
+  50%{transform:translateY(-10px) scale(1.1);filter:drop-shadow(0 0 8px var(--accent))}
+  75%{transform:translateY(3px) scale(.97)}
+  100%{transform:translateY(0) scale(1);filter:drop-shadow(0 0 2px var(--accent))}
 }
 .play-editor-wrap{display:grid;min-height:220px}
 .play-editor-wrap>*{grid-area:1/1}
@@ -190,47 +206,60 @@ function updateBar() {
 }
 
 function runPlay() {
-  const btn=document.getElementById("play-btn"),out=document.getElementById("play-out"),bar=document.getElementById("play-bar"),rocket=document.getElementById("rocket");
+  const btn=document.getElementById("play-btn"),out=document.getElementById("play-out"),bar=document.getElementById("play-bar"),btnRocket=document.getElementById("rocket");
   if(!pipeReady||btn.disabled)return;
   btn.disabled=true;
-  rocket.classList.add("launch");
-  setTimeout(() => {
-    rocket.classList.remove("launch");
-    rocket.classList.add("flying");
-  }, 500);
-  bar.className="play-bar";bar.innerHTML='<span>executing…</span>';
+  btn.classList.add("shaking");
+  bar.className="play-bar";bar.innerHTML='<span>ignition…</span>';
   out.className="play-out";
   out.textContent="";
-  setTimeout(function(){
-    try{
-      const code=document.getElementById("play-editor").value;
-      const t0=performance.now();
-      const result=pipeRun(code);
-      const t1=performance.now();
-      rocket.classList.remove("flying");
-      rocket.classList.add("landing");
-      setTimeout(() => { rocket.classList.remove("landing"); btn.disabled=false; }, 500);
-      const elapsed=((t1-t0)/1000).toFixed(2);
-      if(result&&(result.includes("Error:")||result.includes("Parse error"))){
+  setTimeout(() => {
+    btn.classList.remove("shaking");
+    btnRocket.style.visibility="hidden";
+    const rect=btn.getBoundingClientRect();
+    const rocket=document.createElement("div");
+    rocket.className="rocket-anim";
+    rocket.textContent="🚀";
+    rocket.style.left=(rect.left+rect.width/2-10)+"px";
+    rocket.style.top=(rect.top+4)+"px";
+    document.body.appendChild(rocket);
+    requestAnimationFrame(()=>rocket.classList.add("launch"));
+    setTimeout(()=>{
+      rocket.classList.remove("launch");
+      rocket.classList.add("flying");
+    },1000);
+    bar.innerHTML='<span>executing…</span>';
+    setTimeout(function(){
+      try{
+        const code=document.getElementById("play-editor").value;
+        const t0=performance.now();
+        const result=pipeRun(code);
+        const t1=performance.now();
+        rocket.classList.remove("flying");
+        rocket.classList.add("landing");
+        const elapsed=((t1-t0)/1000).toFixed(2);
+        if(result&&(result.includes("Error:")||result.includes("Parse error"))){
+          bar.className="play-bar error";
+          bar.innerHTML='<span>✗ error ('+elapsed+'s)</span>';
+          out.className="play-out error";
+        }else{
+          bar.className="play-bar success";
+          bar.innerHTML='<span>✓ done ('+elapsed+'s)</span>';
+          out.className="play-out";
+        }
+        out.textContent=result||"(no output)";
+        setTimeout(()=>{rocket.remove();btnRocket.style.visibility="visible";btn.disabled=false;},800);
+      }catch(e){
+        rocket.classList.remove("flying");
+        rocket.classList.add("landing");
+        setTimeout(()=>{rocket.remove();btnRocket.style.visibility="visible";btn.disabled=false;},800);
         bar.className="play-bar error";
-        bar.innerHTML='<span>✗ error ('+elapsed+'s)</span>';
+        bar.innerHTML='<span>✗ error</span>';
         out.className="play-out error";
-      }else{
-        bar.className="play-bar success";
-        bar.innerHTML='<span>✓ done ('+elapsed+'s)</span>';
-        out.className="play-out";
+        out.textContent="Error: "+e.message;
       }
-      out.textContent=result||"(no output)";
-    }catch(e){
-      rocket.classList.remove("flying");
-      rocket.classList.add("landing");
-      setTimeout(() => { rocket.classList.remove("landing"); btn.disabled=false; }, 500);
-      bar.className="play-bar error";
-      bar.innerHTML='<span>✗ error</span>';
-      out.className="play-out error";
-      out.textContent="Error: "+e.message;
-    }
-  },50);
+    },50);
+  },400);
 }
 
 document.getElementById("play-editor").addEventListener("keydown",function(e){

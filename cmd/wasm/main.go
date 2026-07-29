@@ -48,6 +48,7 @@ func pipeRun(this js.Value, args []js.Value) interface{} {
 }
 
 func main() {
+	object.SetSandbox(true)
 	js.Global().Set("pipeRun", js.FuncOf(pipeRun))
 	js.Global().Set("pipeVersion", js.ValueOf("v0.6.0"))
 	select {}

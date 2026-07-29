@@ -582,10 +582,12 @@ func (c *Compiler) Compile(node ast.Node) error {
 }
 
 func (c *Compiler) compileProgram(stmts []ast.Statement) error {
-	// Pass 1: compile all definitions (closures + globals)
+	// Pass 1: compile only declarations (closures, enums, exports, imports)
+	// VarStatements are NOT compiled here — their values may have side effects
+	// that depend on execution order (e.g., ai_provider before ai_batch).
 	for _, stmt := range stmts {
 		switch stmt.(type) {
-		case *ast.FnStatement, *ast.VarStatement, *ast.EnumStatement,
+		case *ast.FnStatement, *ast.EnumStatement,
 			*ast.ExportStatement, *ast.ImportStatement:
 			if err := c.Compile(stmt); err != nil {
 				return err
@@ -593,10 +595,10 @@ func (c *Compiler) compileProgram(stmts []ast.Statement) error {
 		}
 	}
 
-	// Pass 2: compile all expressions (definitions already compiled)
+	// Pass 2: compile values (VarStatements) and expressions in source order
 	for _, stmt := range stmts {
 		switch stmt.(type) {
-		case *ast.FnStatement, *ast.VarStatement, *ast.EnumStatement,
+		case *ast.FnStatement, *ast.EnumStatement,
 			*ast.ExportStatement, *ast.ImportStatement:
 			continue
 		}

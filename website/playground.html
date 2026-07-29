@@ -36,11 +36,21 @@ h1 span{background:linear-gradient(135deg,var(--accent),var(--accent2));-webkit-
 .run-btn:hover:not(:disabled){background:#8e72fc}
 .run-btn:disabled{opacity:0.4;cursor:not-allowed}
 .rocket{display:inline-block;transition:none}
-.rocket.launch{animation:rocketLaunch .6s ease-out forwards}
+.rocket.launch{animation:rocketLaunch .5s ease-in forwards}
+.rocket.flying{animation:rocketFly .7s ease-in-out infinite}
+.rocket.landing{animation:rocketLand .5s ease-out forwards}
 @keyframes rocketLaunch{
   0%{transform:translateY(0) scale(1);opacity:1}
-  40%{transform:translateY(-24px) scale(1.15);opacity:1}
-  100%{transform:translateY(-70px) scale(.3);opacity:0}
+  100%{transform:translateY(-70px) scale(.5);opacity:.8}
+}
+@keyframes rocketFly{
+  0%{transform:translateY(-70px) scale(.5) rotate(-4deg);opacity:.8}
+  50%{transform:translateY(-82px) scale(.5) rotate(4deg);opacity:.8}
+  100%{transform:translateY(-70px) scale(.5) rotate(-4deg);opacity:.8}
+}
+@keyframes rocketLand{
+  0%{transform:translateY(-70px) scale(.5);opacity:.8}
+  100%{transform:translateY(0) scale(1);opacity:1}
 }
 .play-editor-wrap{display:grid;min-height:220px}
 .play-editor-wrap>*{grid-area:1/1}
@@ -184,6 +194,10 @@ function runPlay() {
   if(!pipeReady||btn.disabled)return;
   btn.disabled=true;
   rocket.classList.add("launch");
+  setTimeout(() => {
+    rocket.classList.remove("launch");
+    rocket.classList.add("flying");
+  }, 500);
   bar.className="play-bar";bar.innerHTML='<span>executing…</span>';
   out.className="play-out";
   out.textContent="";
@@ -193,7 +207,9 @@ function runPlay() {
       const t0=performance.now();
       const result=pipeRun(code);
       const t1=performance.now();
-      btn.disabled=false;rocket.classList.remove("launch");
+      rocket.classList.remove("flying");
+      rocket.classList.add("landing");
+      setTimeout(() => { rocket.classList.remove("landing"); btn.disabled=false; }, 500);
       const elapsed=((t1-t0)/1000).toFixed(2);
       if(result&&(result.includes("Error:")||result.includes("Parse error"))){
         bar.className="play-bar error";
@@ -206,7 +222,9 @@ function runPlay() {
       }
       out.textContent=result||"(no output)";
     }catch(e){
-      btn.disabled=false;rocket.classList.remove("launch");
+      rocket.classList.remove("flying");
+      rocket.classList.add("landing");
+      setTimeout(() => { rocket.classList.remove("landing"); btn.disabled=false; }, 500);
       bar.className="play-bar error";
       bar.innerHTML='<span>✗ error</span>';
       out.className="play-out error";

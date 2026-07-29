@@ -43,8 +43,6 @@ pre.play-editor::-webkit-scrollbar{display:none}
 .play-bar{display:flex;align-items:center;gap:8px;padding:7px 16px;background:var(--bg3);border-top:1px solid var(--border);font-size:.7rem;color:var(--fg2);font-family:var(--mono);min-height:32px}
 .play-bar.success{color:var(--green)}
 .play-bar.error{color:var(--red)}
-.spinner{display:inline-block;width:11px;height:11px;border:2px solid var(--border);border-top-color:var(--orange);border-radius:50%;animation:spin .6s linear infinite}
-@keyframes spin{to{transform:rotate(360deg)}}
 .play-out-wrap{background:var(--bg);border-top:1px solid var(--border);position:relative}
 .play-out{padding:14px 18px;font:13px/1.6 var(--mono);color:var(--green);min-height:48px;max-height:220px;overflow-y:auto;white-space:pre-wrap}
 .play-out.error{color:var(--red)}
@@ -87,7 +85,7 @@ a{color:var(--accent);text-decoration:none}
 oninput="onEdit()" onscroll="syncScroll()">print (2 + 2)</textarea>
       <pre id="play-hl" class="play-editor language-pipe" aria-hidden="true"></pre>
     </div>
-    <div class="play-bar" id="play-bar"><span class="spinner"></span> <span id="play-status">loading wasm…</span></div>
+    <div class="play-bar" id="play-bar"><span id="play-status">loading wasm…</span></div>
     <div class="play-out-wrap">
       <div class="play-out" id="play-out"></div>
     </div>
@@ -145,7 +143,7 @@ function runPlay() {
   const btn=document.getElementById("play-btn"),out=document.getElementById("play-out"),bar=document.getElementById("play-bar");
   if(!pipeReady||btn.disabled)return;
   btn.disabled=true;btn.textContent="⏳";
-  bar.className="play-bar";bar.innerHTML='<span class="spinner"></span> <span>executing…</span>';
+  bar.className="play-bar";bar.innerHTML='<span>executing…</span>';
   out.className="play-out";
   out.textContent="";
   setTimeout(function(){

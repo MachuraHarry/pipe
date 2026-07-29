@@ -14,18 +14,30 @@ pipe -search sentiment    # Find specific modules
 ## Installing Modules
 
 ```bash
-pipe -get log-analyzer    # Install by name
-pipe -get https://...     # Install from URL
+pipe -get log-analyzer              # Install latest (implicit @latest)
+pipe -get log-analyzer@1.0.0        # Install specific version
+pipe -get https://...               # Install from URL
 ```
 
 Modules are cached in `~/.pipe/modules/`.
+
+## Module Versions
+
+Use `@version` to pin a module to a specific release:
+
+```pipe
+import "log-analyzer@1.0.0"         # exact version
+import "log-analyzer"               # latest version
+```
+
+When no version is specified, Pipe resolves the `latest` version from the registry. Installed modules use the pinned version and don't auto-update.
 
 ## Using Modules
 
 After installing, import the module in your script:
 
 ```pipe
-import "https://raw.githubusercontent.com/MachuraHarry/pipe-modules/master/log-analyzer/module.pipe"
+import "log-analyzer@1.0.0"
 
 read_file "errors.log"
     > split "\n"
@@ -33,7 +45,7 @@ read_file "errors.log"
     > print
 ```
 
-## Available Modules (8)
+## Available Modules (9)
 
 | Module | Description | Functions |
 |--------|-------------|-----------|
@@ -45,6 +57,7 @@ read_file "errors.log"
 | `changelog-gen` | AI changelog generation | `changelog`, `changelog_bilingual` |
 | `email-classifier` | Email classification | `classify_email`, `email_batch`, `email_urgent` |
 | `date-formatter` | Date/time utilities | `format_now`, `relative_time`, `is_weekend` |
+| `parallel-runner` | Parallel AI query execution via `>>` | `ask_many`, `summarize_many`, `translate_many` |
 
 ## Contributing a Module
 

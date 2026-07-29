@@ -14,18 +14,30 @@ pipe -search sentiment    # Bestimmte Module finden
 ## Module installieren
 
 ```bash
-pipe -get log-analyzer    # Nach Namen installieren
-pipe -get https://...     # Von URL installieren
+pipe -get log-analyzer              # Neueste Version (implizit @latest)
+pipe -get log-analyzer@1.0.0        # Bestimmte Version
+pipe -get https://...               # Von URL installieren
 ```
 
 Module werden in `~/.pipe/modules/` zwischengespeichert.
+
+## Modul-Versionen
+
+Mit `@version` wird ein Modul auf eine bestimmte Version festgelegt:
+
+```pipe
+import "log-analyzer@1.0.0"         -- exakte Version
+import "log-analyzer"               -- neueste Version
+```
+
+Ohne Version ermittelt Pipe automatisch `latest` aus der Registry.
 
 ## Module nutzen
 
 Nach der Installation importierst du das Modul in dein Skript:
 
 ```pipe
-import "https://raw.githubusercontent.com/MachuraHarry/pipe-modules/master/log-analyzer/module.pipe"
+import "log-analyzer@1.0.0"
 
 read_file "errors.log"
     > split "\n"
@@ -33,7 +45,7 @@ read_file "errors.log"
     > print
 ```
 
-## Verfügbare Module (8)
+## Verfügbare Module (9)
 
 | Modul | Beschreibung | Funktionen |
 |--------|-------------|-----------|
@@ -45,6 +57,7 @@ read_file "errors.log"
 | `changelog-gen` | KI-Changelog-Generierung | `changelog`, `changelog_bilingual` |
 | `email-classifier` | E-Mail-Klassifizierung | `classify_email`, `email_batch`, `email_urgent` |
 | `date-formatter` | Datum/Zeit-Hilfsfunktionen | `format_now`, `relative_time`, `is_weekend` |
+| `parallel-runner` | Parallele KI-Abfragen via `>>` | `ask_many`, `summarize_many`, `translate_many` |
 
 ## Ein Modul beitragen
 

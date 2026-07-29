@@ -753,22 +753,25 @@ func (ctx *EvalContext) tryAIFix(err *object.Error, block *ast.BlockStatement, e
 	}
 
 	src := blockSource(block)
-	prompt := fmt.Sprintf(
-		"Fix: `%s`. Error: %s. "+
-			"Return ONLY corrected Pipe code (space-separated args). "+
-			"If unfixable: UNFIXABLE",
-		src, err.Message,
-	)
+	prompt := fmt.Sprintf("Error: %s\nExpression: %s\nFix it.", err.Message, src)
 
 	resp, aiErr := ai.Chat(ai.ChatRequest{
 		Messages: []ai.Message{
-			{Role: "system", Content: "You fix Pipe code errors. Return ONLY the fix, no explanation. " +
-				"Pipe: function args are space-separated. " +
-				"CRITICAL: ALWAYS wrap the fix in (parentheses). " +
-				"Example: (to_num \"42\") * 3. " +
-				"Example: x / (if y != 0 then y else 1). " +
-				"to_num converts strings to numbers. " +
-				"If unfixable: UNFIXABLE"},
+			{Role: "system", Content: `You are a Pipe expression fixer. Pipe is a pipeline language with space-separated args.
+
+RULES:
+1. Return ONLY the corrected expression, no explanation
+2. ALWAYS wrap in (parentheses): (to_num "42") * 3
+3. Pipe builtins: to_num, to_str, abs, min, max, len, upper, lower, trim, split, join, push, pop, get, set, keys, values, sort, range, type_of, is_num, is_str, is_list, is_map, is_nil, parse_json, to_json, now, format_time
+4. Pipe keywords: fn, match, if, else, while, for, break, continue, import, export, enum, defer, return, try, catch, true, false, nil
+5. Pipe operators: + - * / % ** ++ == != < > <= >= && || ! >> > >>
+6. Pipe syntax: args after function are space-separated: fn arg1 arg2
+7. Pipe lists: [a, b, c]. Maps: {key: val}
+8. Pipe dot-access: map.field. Index: list[0]
+9. For type errors: if string looks numeric, use to_num. If number should be string, use to_str
+10. For division by zero: replace divisor with max(divisor, 1) or (if divisor != 0 then divisor else 1)
+11. For index errors: use get with default: get map "key" "default"
+12. If truly unfixable (missing data), return: UNFIXABLE`},
 			{Role: "user", Content: prompt},
 		},
 	})
@@ -833,7 +836,11 @@ func isAIFixable(code string) bool {
 func blockSource(block *ast.BlockStatement) string {
 	if len(block.Statements) == 1 {
 		if es, ok := block.Statements[0].(*ast.ExpressionStatement); ok {
-			return es.Expression.String()
+			s := es.Expression.String()
+			if len(s) > 2 && s[0] == '(' && s[len(s)-1] == ')' {
+				s = s[1 : len(s)-1]
+			}
+			return s
 		}
 	}
 	var parts []string

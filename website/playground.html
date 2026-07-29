@@ -308,7 +308,6 @@ async function loadSharedCode() {
     if (data && data.code) {
       editor.value = data.code;
       syncHighlight();
-      saveDraft();
       if (pipeReady) {
         statusEl.textContent = "✓ shared code loaded";
       } else {

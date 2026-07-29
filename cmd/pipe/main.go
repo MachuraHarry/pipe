@@ -134,6 +134,7 @@ func main() {
 		}
 
 		target := filePath
+		isName := false
 		if !strings.HasPrefix(filePath, "http://") && !strings.HasPrefix(filePath, "https://") {
 			url, err := resolveModuleURL(filePath)
 			if err != nil {
@@ -142,14 +143,22 @@ func main() {
 				os.Exit(1)
 			}
 			target = url
+			isName = true
 		}
 
 		modDir := object.ModuleCacheDir()
-		_, _, err := object.ResolveImport(target)
+		_, content, err := object.ResolveImport(target)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "pipe get: %s\n", err)
 			os.Exit(1)
 		}
+
+		// Also save under the short name so import "name" works
+		if isName {
+			shortPath := filepath.Join(modDir, filePath+".pipe")
+			os.WriteFile(shortPath, []byte(content), 0644)
+		}
+
 		fmt.Printf("✓ Installed %s → %s\n", filePath, modDir)
 		return
 	}
@@ -352,7 +361,7 @@ func runEval(program *ast.Program, scriptArgs []string, filePath string) {
 }
 
 func runVM(program *ast.Program, quiet bool, filePath string) {
-	comp := compiler.New()
+	comp := compiler.NewWithFile(filePath)
 	if err := comp.Compile(program); err != nil {
 		fmt.Fprintf(os.Stderr, "Compiler error: %s\n", err)
 		os.Exit(1)

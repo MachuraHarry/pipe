@@ -326,12 +326,25 @@ func (ds *DeferStatement) statementNode()       {}
 func (ds *DeferStatement) TokenLiteral() string { return "defer" }
 
 type ExportStatement struct {
-	FnName string
-	Fn     *FnStatement
+	FnName   string
+	Fn       *FnStatement
+	VarName  string
+	Var      *VarStatement
+	EnumName string
+	Enum     *EnumStatement
 }
 
 func (es *ExportStatement) statementNode()       {}
 func (es *ExportStatement) TokenLiteral() string { return "export" }
+func (es *ExportStatement) ExportName() string {
+	if es.FnName != "" {
+		return es.FnName
+	}
+	if es.VarName != "" {
+		return es.VarName
+	}
+	return es.EnumName
+}
 
 type EnumStatement struct {
 	Name   string

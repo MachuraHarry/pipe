@@ -89,6 +89,9 @@ type Compiler struct {
 	scopes      []CompilationScope
 	scopeIndex  int
 	loopStack   []LoopContext
+	importCache map[string]*ast.Program
+	importedSet map[string]struct{}
+	sourceFile  string
 }
 
 type LoopContext struct {
@@ -113,6 +116,10 @@ type Bytecode struct {
 }
 
 func New() *Compiler {
+	return NewWithFile("")
+}
+
+func NewWithFile(sourceFile string) *Compiler {
 	mainScope := CompilationScope{
 		instructions: Instructions{},
 	}
@@ -127,6 +134,9 @@ func New() *Compiler {
 		symbolTable: symbolTable,
 		scopes:      []CompilationScope{mainScope},
 		scopeIndex:  0,
+		importCache: make(map[string]*ast.Program),
+		importedSet: make(map[string]struct{}),
+		sourceFile:  sourceFile,
 	}
 }
 
@@ -546,8 +556,20 @@ func (c *Compiler) Compile(node ast.Node) error {
 		}
 
 	case *ast.ExportStatement:
-		if err := c.Compile(n.Fn); err != nil {
-			return err
+		if n.Fn != nil {
+			if err := c.Compile(n.Fn); err != nil {
+				return err
+			}
+		}
+		if n.Var != nil {
+			if err := c.Compile(n.Var); err != nil {
+				return err
+			}
+		}
+		if n.Enum != nil {
+			if err := c.Compile(n.Enum); err != nil {
+				return err
+			}
 		}
 
 	case *ast.DeferStatement:
@@ -904,9 +926,25 @@ func (c *Compiler) compileDefer(de *ast.DeferStatement) error {
 }
 
 func (c *Compiler) compileImport(is *ast.ImportStatement) error {
-	program, err := resolveImport(is.Path)
-	if err != nil {
-		return fmt.Errorf("import %s: %w", is.Path, err)
+	cacheKey := is.Path
+
+	// Flat imports: skip if already imported (deduplication)
+	if is.Alias == "" {
+		if _, ok := c.importedSet[cacheKey]; ok {
+			return nil
+		}
+		c.importedSet[cacheKey] = struct{}{}
+	}
+
+	// Use cached parse result or parse fresh
+	program, ok := c.importCache[cacheKey]
+	if !ok {
+		var err error
+		program, err = c.resolveImport(is.Path)
+		if err != nil {
+			return fmt.Errorf("import %s: %w", is.Path, err)
+		}
+		c.importCache[cacheKey] = program
 	}
 
 	for _, stmt := range program.Statements {
@@ -924,8 +962,20 @@ func (c *Compiler) compileImport(is *ast.ImportStatement) error {
 				return fmt.Errorf("import %s: %w", is.Path, err)
 			}
 		case *ast.ExportStatement:
-			if err := c.Compile(s.Fn); err != nil {
-				return fmt.Errorf("import %s: %w", is.Path, err)
+			if s.Fn != nil {
+				if err := c.Compile(s.Fn); err != nil {
+					return fmt.Errorf("import %s: %w", is.Path, err)
+				}
+			}
+			if s.Var != nil {
+				if err := c.Compile(s.Var); err != nil {
+					return fmt.Errorf("import %s: %w", is.Path, err)
+				}
+			}
+			if s.Enum != nil {
+				if err := c.Compile(s.Enum); err != nil {
+					return fmt.Errorf("import %s: %w", is.Path, err)
+				}
 			}
 		case *ast.ExpressionStatement:
 			// skip standalone expressions in imports
@@ -934,8 +984,8 @@ func (c *Compiler) compileImport(is *ast.ImportStatement) error {
 	return nil
 }
 
-func resolveImport(path string) (*ast.Program, error) {
-	_, content, err := object.ResolveImport(path)
+func (c *Compiler) resolveImport(path string) (*ast.Program, error) {
+	_, content, err := object.ResolveImportFrom(path, c.sourceFile)
 	if err != nil {
 		return nil, err
 	}
@@ -979,9 +1029,19 @@ func (c *Compiler) defineTopLevelSymbols(stmts []ast.Statement) {
 				c.symbolTable.Define(name)
 			}
 		case *ast.ExportStatement:
-			c.symbolTable.Define(s.Fn.Name.Value)
+			if s.Fn != nil {
+				c.symbolTable.Define(s.Fn.Name.Value)
+			}
+			if s.Var != nil {
+				c.symbolTable.Define(s.Var.Name.Value)
+			}
+			if s.Enum != nil {
+				for _, name := range s.Enum.Values {
+					c.symbolTable.Define(name)
+				}
+			}
 		case *ast.ImportStatement:
-			program, err := resolveImport(s.Path)
+			program, err := c.resolveImport(s.Path)
 			if err == nil {
 				c.defineTopLevelSymbols(program.Statements)
 			}

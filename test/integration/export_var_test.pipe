@@ -1,0 +1,5 @@
+-- Pipe Integrationstest: export let (Variable exportieren)
+export PI: 3.14159
+
+result: PI * 2
+    > to_num

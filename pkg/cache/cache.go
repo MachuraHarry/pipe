@@ -44,7 +44,7 @@ func LoadOrCompile(filePath string) (*compiler.Bytecode, bool, error) {
 		return nil, false, fmt.Errorf("%s: parse errors: %v", filePath, p.Errors())
 	}
 
-	c := compiler.New()
+	c := compiler.NewWithFile(filePath)
 	if err := c.Compile(program); err != nil {
 		return nil, false, err
 	}

@@ -1,0 +1,4 @@
+-- Pipe Integrationstest: export enum
+export enum Color: RED, GREEN, BLUE
+
+print RED

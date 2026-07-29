@@ -116,8 +116,21 @@ func (ctx *EvalContext) Eval(node ast.Node, env *object.Environment) object.Obje
 		return &DeferredExpr{Expr: n.Expression, Env: env}
 
 	case *ast.ExportStatement:
-		ctx.exportedSymbols[n.FnName] = true
-		return ctx.Eval(n.Fn, env)
+		if n.Fn != nil {
+			ctx.exportedSymbols[n.FnName] = true
+			return ctx.Eval(n.Fn, env)
+		}
+		if n.Var != nil {
+			ctx.exportedSymbols[n.VarName] = true
+			return ctx.Eval(n.Var, env)
+		}
+		if n.Enum != nil {
+			for _, val := range n.Enum.Values {
+				ctx.exportedSymbols[val] = true
+			}
+			return ctx.Eval(n.Enum, env)
+		}
+		return object.NILOBJ
 
 	case *ast.EnumStatement:
 		return ctx.evalEnumStatement(n, env)
@@ -820,7 +833,7 @@ func (ctx *EvalContext) resolveImportPath(path string) (string, error) {
 }
 
 func (ctx *EvalContext) evalImportStatement(is *ast.ImportStatement, env *object.Environment) object.Object {
-	resolvedPath, content, err := object.ResolveImport(is.Path)
+	resolvedPath, content, err := object.ResolveImportFrom(is.Path, ctx.SourceFile)
 	if err != nil {
 		return ctx.newError("%s", err)
 	}

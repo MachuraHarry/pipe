@@ -24,14 +24,24 @@ func init() {
 func ModuleCacheDir() string { return moduleCacheDir }
 
 func ResolveImport(path string) (string, string, error) {
+	return ResolveImportFrom(path, "")
+}
+
+func ResolveImportFrom(path string, sourceFile string) (string, string, error) {
 	// URL import
 	if strings.HasPrefix(path, "http://") || strings.HasPrefix(path, "https://") {
 		return fetchURLModule(path)
 	}
 
-	// PIPE_PATH modules
+	// Build search dirs: importing file's directory first, then CWD, then PIPE_PATH
+	searchDirs := []string{}
+	if sourceFile != "" {
+		searchDirs = append(searchDirs, filepath.Dir(sourceFile))
+	}
+	searchDirs = append(searchDirs, ".")
+	searchDirs = append(searchDirs, moduleCacheDir)
+
 	pipePath := os.Getenv("PIPE_PATH")
-	searchDirs := []string{".", moduleCacheDir}
 	if pipePath != "" {
 		searchDirs = append(searchDirs, strings.Split(pipePath, ":")...)
 	}

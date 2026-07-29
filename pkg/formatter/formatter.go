@@ -118,12 +118,33 @@ func formatStatement(out *strings.Builder, stmt ast.Statement, depth int) {
 		}
 
 	case *ast.ExportStatement:
-		out.WriteString(indent)
-		out.WriteString("export fn ")
-		out.WriteString(s.FnName)
-		out.WriteByte('\n')
 		if s.Fn != nil {
+			out.WriteString(indent)
+			out.WriteString("export fn ")
+			out.WriteString(s.FnName)
+			out.WriteByte('\n')
 			formatBlock(out, s.Fn.Body, depth+1)
+		}
+		if s.Var != nil {
+			out.WriteString(indent)
+			out.WriteString("export ")
+			out.WriteString(s.VarName)
+			out.WriteString(": ")
+			formatExpr(out, s.Var.Value, depth, 0)
+			out.WriteByte('\n')
+		}
+		if s.Enum != nil {
+			out.WriteString(indent)
+			out.WriteString("export enum ")
+			out.WriteString(s.EnumName)
+			out.WriteString(": ")
+			for i, v := range s.Enum.Values {
+				if i > 0 {
+					out.WriteString(", ")
+				}
+				out.WriteString(v)
+			}
+			out.WriteByte('\n')
 		}
 
 	case *ast.EnumStatement:

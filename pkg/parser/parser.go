@@ -869,14 +869,28 @@ func (p *Parser) parseDeferStatement() ast.Statement {
 
 func (p *Parser) parseExportStatement() ast.Statement {
 	p.nextToken() // skip 'export'
-	if !p.curTokenIs(lexer.FN) {
-		p.error("export expects 'fn'")
-		return nil
+
+	switch p.curToken.Type {
+	case lexer.FN:
+		fnStmt := p.parseFnStatement()
+		if fnStmt != nil {
+			return &ast.ExportStatement{FnName: fnStmt.Name.Value, Fn: fnStmt}
+		}
+	case lexer.IDENT:
+		if p.peekTokenIs(lexer.COLON) {
+			varStmt := p.parseVarStatement()
+			if varStmt != nil {
+				return &ast.ExportStatement{VarName: varStmt.Name.Value, Var: varStmt}
+			}
+		}
+	case lexer.ENUM:
+		enumStmt := p.parseEnumStatement()
+		if es, ok := enumStmt.(*ast.EnumStatement); ok {
+			return &ast.ExportStatement{EnumName: es.Name, Enum: es}
+		}
 	}
-	fnStmt := p.parseFnStatement()
-	if fnStmt != nil {
-		return &ast.ExportStatement{FnName: fnStmt.Name.Value, Fn: fnStmt}
-	}
+
+	p.error("export expects 'fn', variable, or 'enum'")
 	return nil
 }
 

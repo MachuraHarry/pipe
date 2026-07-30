@@ -1,7 +1,10 @@
-.PHONY: build run test clean repl
+.PHONY: build run test clean repl api
 
 build:
 	go build -o bin/pipe ./cmd/pipe
+
+api:
+	go build -o bin/pipe-api ./cmd/api-server
 
 run: build
 	./bin/pipe

@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"flag"
 	"fmt"
 	"log"
 	"net/http"
@@ -16,6 +17,7 @@ import (
 )
 
 var outputBuf strings.Builder
+var pipeVersion = "v0.6.0"
 
 func init() {
 	object.PrintHook = func(args ...object.Object) {
@@ -53,17 +55,45 @@ func runCode(code string) string {
 	return outputBuf.String()
 }
 
+// ---- types ----
+
 type RunRequest struct {
 	Code string `json:"code"`
 }
 
 type RunResponse struct {
-	Output string `json:"output"`
+	Output  string `json:"output"`
+	Version string `json:"version,omitempty"`
 }
 
 type ErrorResponse struct {
 	Error string `json:"error"`
 }
+
+// ---- middleware ----
+
+func cors(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+		w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+		if r.Method == http.MethodOptions {
+			w.WriteHeader(http.StatusNoContent)
+			return
+		}
+		next.ServeHTTP(w, r)
+	})
+}
+
+func withLogging(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		start := time.Now()
+		next.ServeHTTP(w, r)
+		log.Printf("%s %s %s", r.Method, r.URL.Path, time.Since(start))
+	})
+}
+
+// ---- handlers ----
 
 func runHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
@@ -88,11 +118,11 @@ func runHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	output := runCode(req.Code)
-	writeJSON(w, http.StatusOK, RunResponse{Output: output})
+	writeJSON(w, http.StatusOK, RunResponse{Output: output, Version: pipeVersion})
 }
 
 func healthHandler(w http.ResponseWriter, r *http.Request) {
-	writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
+	writeJSON(w, http.StatusOK, map[string]string{"status": "ok", "version": pipeVersion})
 }
 
 func writeJSON(w http.ResponseWriter, status int, v interface{}) {
@@ -101,31 +131,33 @@ func writeJSON(w http.ResponseWriter, status int, v interface{}) {
 	json.NewEncoder(w).Encode(v)
 }
 
-func withLogging(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		start := time.Now()
-		next.ServeHTTP(w, r)
-		log.Printf("%s %s %s", r.Method, r.URL.Path, time.Since(start))
-	})
-}
+// ---- main ----
 
 func main() {
+	addr := flag.String("addr", ":3001", "listen address")
+	maxTime := flag.Duration("timeout", 10*time.Second, "max execution time per request")
+	flag.Parse()
+
+	if p := os.Getenv("PORT"); p != "" && *addr == ":3001" {
+		*addr = ":" + p
+	}
+
 	mux := http.NewServeMux()
 	mux.HandleFunc("/run", runHandler)
 	mux.HandleFunc("/health", healthHandler)
 
-	addr := ":3001"
-	if p := os.Getenv("PORT"); p != "" {
-		addr = ":" + p
-	}
+	handler := cors(withLogging(mux))
+	handler = http.TimeoutHandler(handler, *maxTime, `{"error":"execution timed out"}`)
 
 	server := &http.Server{
-		Addr:         addr,
-		Handler:      withLogging(mux),
+		Addr:         *addr,
+		Handler:      handler,
 		ReadTimeout:  10 * time.Second,
-		WriteTimeout: 30 * time.Second,
+		WriteTimeout: *maxTime + 2*time.Second,
 	}
 
-	fmt.Printf("pipe-api listening on %s\n", addr)
-	log.Fatal(server.ListenAndServe())
+	fmt.Printf("pipe-api %s listening on %s (timeout: %s)\n", pipeVersion, *addr, *maxTime)
+	if err := server.ListenAndServe(); err != nil {
+		log.Fatal(err)
+	}
 }

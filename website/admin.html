@@ -1,4 +1,21 @@
 <!DOCTYPE html>
+<!--
+  Firebase Realtime Database Rules benötigt:
+  Gehe zu https://console.firebase.google.com → Realtime Database → Rules
+  Und füge unter "rules" folgenden Block ein:
+
+  "blog": {
+    "posts": {
+      ".read": true,
+      ".write": "auth != null",
+      "$post_id": {
+        ".validate": "newData.hasChildren(['title', 'content', 'created', 'updated'])"
+      }
+    }
+  }
+
+  Zusammen mit den bestehenden Regeln für "shared" und "popular".
+-->
 <html lang="en">
 <head>
 <meta charset="utf-8">
@@ -69,13 +86,15 @@ a{color:var(--accent);text-decoration:none}
       <h2 data-lang="en" class="active">Login</h2>
       <h2 data-lang="de">Anmelden</h2>
       <div id="auth-status"></div>
-      <label>Email</label>
-      <input type="email" id="login-email" placeholder="admin@example.com" autocomplete="email">
-      <label>Password</label>
-      <input type="password" id="login-password" placeholder="password" autocomplete="current-password">
-      <div class="row">
-        <button class="btn btn-primary" id="login-btn" onclick="login()">Sign In</button>
-      </div>
+      <form onsubmit="event.preventDefault(); login()">
+        <label>Email</label>
+        <input type="email" id="login-email" placeholder="admin@example.com" autocomplete="email">
+        <label>Password</label>
+        <input type="password" id="login-password" placeholder="password" autocomplete="current-password">
+        <div class="row">
+          <button class="btn btn-primary" id="login-btn" type="submit">Sign In</button>
+        </div>
+      </form>
       <div class="msg" id="login-msg"></div>
     </div>
   </div>

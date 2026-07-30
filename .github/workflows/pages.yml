@@ -38,12 +38,18 @@ jobs:
         from xml.sax.saxutils import escape
         from email.utils import formatdate
 
-        url = "https://pipe-a3ad1-default-rtdb.europe-west1.firebasedatabase.app/blog/posts.json?orderBy=%22created%22"
-        data = json.load(urllib.request.urlopen(url))
+        url = "https://pipe-a3ad1-default-rtdb.europe-west1.firebasedatabase.app/blog/posts.json"
+        try:
+            resp = urllib.request.urlopen(url)
+            raw = resp.read().decode()
+            data = json.loads(raw) if raw != "null" else None
+        except Exception as e:
+            print(f"Firebase fetch failed: {e}")
+            data = None
 
         items = ""
-        if data:
-            for key in sorted(data.keys(), reverse=True):
+        if data and isinstance(data, dict):
+            for key in sorted(data.keys(), key=lambda k: data[k].get("created", 0), reverse=True):
                 p = data[key]
                 title = escape(p.get("title", ""))
                 excerpt = escape(" ".join(p.get("content", "").split())[:300])
@@ -74,7 +80,7 @@ jobs:
 
         with open("website/feed.xml", "w") as f:
             f.write(rss)
-        print(f"RSS feed generated: {len(rss)} bytes")
+        print(f"RSS feed generated: {len(rss)} bytes ({len(items.split(chr(10))) if items else 0} items)")
         PYEOF
         python3 /tmp/genrss.py
 

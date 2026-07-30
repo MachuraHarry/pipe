@@ -1,6 +1,6 @@
 # 10. Built-in Function Reference
 
-Pipe includes 81 built-in functions organized by category. This chapter documents each function with its signature, description, return type, and usage example.
+Pipe includes 103 built-in functions organized by category. This chapter documents each function with its signature, description, return type, and usage example.
 
 ---
 
@@ -13,7 +13,7 @@ Pipe includes 81 built-in functions organized by category. This chapter document
 ```pipe
 print "Hello"                          # Hello
 print "The answer is" 42               # The answer is 42
-print "x:" x "y:" y                    # x: 10 y: 20
+print "x:" x "y:" y     # x: 10 y: 20
 ```
 
 ### `input`
@@ -22,7 +22,7 @@ print "x:" x "y:" y                    # x: 10 y: 20
 **Returns:** `string`
 ```pipe
 let name = input "Enter your name: "
-print "Hello, " + name
+print "Hello, " ++ name
 ```
 
 ### `exec`
@@ -43,7 +43,7 @@ print version
 **Returns:** `string` or `nil`
 ```pipe
 let home = env "HOME"
-print "Home directory: " + home
+print "Home directory: " ++ home
 
 let path = env "PATH"
 print path
@@ -96,7 +96,7 @@ append_file "log.txt" "New log entry\n"
 ```pipe
 let lines = read_lines "data.csv"
 each lines fn(line) {
-    print "Line: " + line
+    print "Line: " ++ line
 }
 ```
 
@@ -142,7 +142,7 @@ file_copy "template.txt" "new_file.txt"
 **Returns:** `number`
 ```pipe
 let size = file_size "data.bin"
-print "File size: " + size + " bytes"
+print "File size: " ++ size ++ " bytes"
 ```
 
 ### `file_type`
@@ -583,7 +583,7 @@ tcp_write conn "Hello, server!"
 ```pipe
 let conn = tcp_accept listener
 let msg = tcp_read conn 1024
-print "Received: " + msg
+print "Received: " ++ msg
 ```
 
 ### `tcp_read`
@@ -621,8 +621,8 @@ print "Echo server on :9999"
 each range 0 5 fn(i) {
     let conn = tcp_accept listener
     let msg = tcp_read conn 1024
-    print "Got: " + msg
-    tcp_write conn "Echo: " + msg
+    print "Got: " ++ msg
+    tcp_write conn "Echo: " ++ msg
     tcp_close conn
 }
 
@@ -663,7 +663,7 @@ regex_replace "\\d" "#" "abc123xyz"            # "abc###xyz"
 **Returns:** `number`
 ```pipe
 let t = now()
-print "Current timestamp: " + t
+print "Current timestamp: " ++ t
 # e.g. 1700000000.123456
 ```
 
@@ -903,41 +903,304 @@ unwrap_or (Ok 42) 0      # 42
 unwrap_or (Err "x") 0    # 0
 unwrap_or (Ok "hi") ""   # "hi"
 ```
-
 ---
 
-## 10.16 Concurrency (1 function)
+## 10.16 AI — Configuration (4 functions)
 
-### `go`
-**Signature:** `go(fn)`
-**Description:** Launches `fn` as a concurrent goroutine. The function runs in parallel with the main program. **Tree-Walker mode only.** Not available in Bytecode VM.
+### `ai_provider`
+
+**Signature:** `ai_provider(name)`
+
+**Description:** Sets the AI provider to `name`. Supported: `"openai"`, `"anthropic"`, `"deepseek"`, `"ollama"`.
+
+**Returns:** `string` (confirmation message)
+```pipe
+ai_provider "deepseek"
+ai_model "deepseek-chat"
+```
+
+### `ai_model`
+
+**Signature:** `ai_model(name)`
+
+**Description:** Sets the model name for the current AI provider.
+
+**Returns:** `string` (confirmation message)
+```pipe
+ai_model "gpt-4o"
+ai_model "claude-3-5-sonnet-20241022"
+```
+
+### `ai_host`
+
+**Signature:** `ai_host(url)`
+
+**Description:** Sets a custom API host URL. Useful for local proxies or self-hosted endpoints.
+
+**Returns:** `string` (confirmation message)
+```pipe
+ai_host "http://localhost:11434/v1"   # Ollama
+```
+
+### `ai_timeout`
+
+**Signature:** `ai_timeout(seconds)`
+
+**Description:** Sets the AI request timeout in seconds.
 
 **Returns:** `nil`
 ```pipe
-go fn() {
-    sleep 1000
-    print "Hello from goroutine!"
-}
-
-print "Main continues immediately..."
-sleep 2000
-print "Main done"
-
-# Output (order may vary):
-# Main continues immediately...
-# Hello from goroutine!
-# Main done
+ai_timeout 30
 ```
-
-**Important limitations:**
-- Goroutines share the same address space; there is no built-in synchronization mechanism.
-- Use with caution when accessing shared mutable state.
-- Only works in Tree-Walker interpreter mode.
 
 ---
 
-## 10.17 Summary Table
+## 10.17 AI — Low-level Chat (2 functions)
 
+### `ai_chat`
+
+**Signature:** `ai_chat(system_prompt, user_prompt)`
+
+**Description:** Sends a chat request with system and user prompts. Returns the assistant's response.
+
+**Returns:** `string`
+```pipe
+ai_chat "You are a helpful assistant" "What is Pipe?"
+```
+
+### `ai_chat_json`
+
+**Signature:** `ai_chat_json(system_prompt, user_prompt)`
+
+**Description:** Like `ai_chat`, but parses the response as JSON and returns the parsed value.
+
+**Returns:** `any` (parsed JSON — map, list, number, string, boolean, or nil)
+```pipe
+let data = ai_chat_json "Return JSON" \
+    "List 3 colors as JSON array"
+# ["red", "green", "blue"]
+```
+
+---
+
+## 10.18 AI — Streaming (1 function)
+
+### `ai_stream`
+
+**Signature:** `ai_stream(system_prompt, user_prompt)`
+
+**Description:** Sends a chat request and streams the response token-by-token to stdout in real time. Returns the full accumulated response.
+
+**Returns:** `string`
+```pipe
+let full = ai_stream "Explain" "How does AI work?"
+# tokens print as they arrive
+```
+
+---
+
+## 10.19 AI — High-level Convenience (6 functions)
+
+### `summarize`
+
+**Signature:** `summarize(text)`
+
+**Description:** Summarizes the given text in 2-3 sentences.
+
+**Returns:** `string`
+```pipe
+summarize "Long article text here..."
+```
+
+### `translate`
+
+**Signature:** `translate(text, target_language)`
+
+**Description:** Translates `text` into `target_language`.
+
+**Returns:** `string`
+```pipe
+translate "Hello world" "German"
+```
+
+### `classify`
+
+**Signature:** `classify(text, categories)`
+
+**Description:** Classifies `text` into exactly one of the given categories. `categories` can be a string (comma-separated) or a list.
+
+**Returns:** `string` (the chosen category)
+```pipe
+classify "The app crashes on submit" (["bug", "feature", "question"])
+```
+
+### `extract`
+
+**Signature:** `extract(text, schema)`
+
+**Description:** Extracts structured data from `text` according to a schema description. Returns parsed JSON.
+
+**Returns:** `any` (parsed JSON)
+```pipe
+let data = extract "Alice is 30 and lives in Paris" \
+    "Extract name, age, city as JSON"
+```
+
+### `generate`
+
+**Signature:** `generate(prompt)`
+
+**Description:** Generates text from a single prompt (no system message).
+
+**Returns:** `string`
+```pipe
+generate "Write a haiku about programming"
+```
+
+### `ask`
+
+**Signature:** `ask(question)`
+
+**Description:** Answers a single question conversationally.
+
+**Returns:** `string`
+```pipe
+ask "What is the meaning of life?"
+```
+
+---
+
+## 10.20 AI — Parallel (3 functions)
+
+### `ai_batch`
+
+**Signature:** `ai_batch(system_prompt, items)`
+
+**Description:** Processes a list of items in parallel with the same system prompt. Each item is formatted into the user message.
+
+**Returns:** `list` of `string` (one response per item)
+```pipe
+let items = ["Summarize: Go", "Summarize: Rust", "Summarize: Zig"]
+let results = ai_batch "Explain briefly" items
+```
+
+### `ai_parallel`
+
+**Signature:** `ai_parallel(concurrency, system_prompt, items)`
+
+**Description:** Like `ai_batch` but with explicit `concurrency` limit (max parallel requests).
+
+**Returns:** `list` of `string`
+```pipe
+ai_parallel 2 "Translate to French" (["Hello", "Goodbye"])
+```
+
+### `ai_rate_limit`
+
+**Signature:** `ai_rate_limit(calls_per_second)`
+
+**Description:** Limits the rate of AI calls for subsequent parallel/batch operations.
+
+**Returns:** `nil`
+```pipe
+ai_rate_limit 5    # max 5 calls per second
+```
+
+---
+
+## 10.21 AI — Tool Calling (2 functions)
+
+### `ai_tool`
+
+**Signature:** `ai_tool(name, description, parameters, function)`
+
+**Description:** Registers a tool that the AI can call. `parameters` is a JSON schema map. `function` is called with the tool arguments.
+
+**Returns:** `nil`
+```pipe
+ai_tool "get_weather" "Get weather for a city" \
+    { "city" = { "type" = "string" } } \
+    fn(args) { http_get "https://wttr.in/" ++ get args "city" }
+```
+
+### `ai_with_tools`
+
+**Signature:** `ai_with_tools(system_prompt, user_prompt, max_rounds?)`
+
+**Description:** Sends a chat request with tool-calling enabled. The AI can invoke registered tools to answer the query. `max_rounds` defaults to 5.
+
+**Returns:** `string`
+```pipe
+ai_with_tools "You have weather data" \
+    "What is the weather in Berlin?"
+```
+
+---
+
+## 10.22 AI — Embeddings (5 functions)
+
+### `embed`
+
+**Signature:** `embed(text)`
+
+**Description:** Converts text into an embedding vector (list of floats).
+
+**Returns:** `list` of `float`
+```pipe
+let vec = embed "Pipe programming language"
+```
+
+### `embed_batch`
+
+**Signature:** `embed_batch(items)`
+
+**Description:** Embeds multiple texts in parallel.
+
+**Returns:** `list` of `list` of `float`
+```pipe
+let vecs = embed_batch (["Hello", "World", "Pipe"])
+```
+
+### `cosine_sim`
+
+**Signature:** `cosine_sim(vec_a, vec_b)`
+
+**Description:** Computes the cosine similarity between two embedding vectors.
+
+**Returns:** `float`
+```pipe
+let a = embed "cat"
+let b = embed "dog"
+cosine_sim a b
+```
+
+### `dot_product`
+
+**Signature:** `dot_product(vec_a, vec_b)`
+
+**Description:** Computes the dot product of two vectors.
+
+**Returns:** `float`
+```pipe
+dot_product (embed "a") (embed "b")
+```
+
+### `nearest`
+
+**Signature:** `nearest(query_vec, doc_vectors, k)`
+
+**Description:** Finds the `k` nearest neighbors to `query_vec` among `doc_vectors` using cosine similarity.
+
+**Returns:** `list` of `integer` (indices of nearest neighbors)
+```pipe
+let docs = embed_batch (["cat", "dog", "bird", "fish"])
+let q = embed "pet"
+nearest q docs 2    # [1, 0] (dog, cat)
+```
+
+---
+
+## 10.24 Summary Table
 ### IO & System (5)
 | # | Function | Signature | Returns |
 |---|----------|-----------|---------|
@@ -1080,11 +1343,57 @@ print "Main done"
 | 81 | `unwrap` | `unwrap(result)` | `any` |
 | 82 | `unwrap_or` | `unwrap_or(result, default)` | `any` |
 
-### Concurrency (1)
+### AI — Configuration (4)
 | # | Function | Signature | Returns |
 |---|----------|-----------|---------|
-| 83 | `go` | `go(fn)` | `nil` |
+| 83 | `ai_provider` | `ai_provider(name)` | `string` |
+| 84 | `ai_model` | `ai_model(name)` | `string` |
+| 85 | `ai_host` | `ai_host(url)` | `string` |
+| 86 | `ai_timeout` | `ai_timeout(seconds)` | `nil` |
+
+### AI — Low-level Chat (2)
+| # | Function | Signature | Returns |
+|---|----------|-----------|---------|
+| 87 | `ai_chat` | `ai_chat(system, user)` | `string` |
+| 88 | `ai_chat_json` | `ai_chat_json(system, user)` | `any` |
+
+### AI — Streaming (1)
+| # | Function | Signature | Returns |
+|---|----------|-----------|---------|
+| 89 | `ai_stream` | `ai_stream(system, user)` | `string` |
+
+### AI — High-level Convenience (6)
+| # | Function | Signature | Returns |
+|---|----------|-----------|---------|
+| 90 | `summarize` | `summarize(text)` | `string` |
+| 91 | `translate` | `translate(text, lang)` | `string` |
+| 92 | `classify` | `classify(text, categories)` | `string` |
+| 93 | `extract` | `extract(text, schema)` | `any` |
+| 94 | `generate` | `generate(prompt)` | `string` |
+| 95 | `ask` | `ask(question)` | `string` |
+
+### AI — Parallel (3)
+| # | Function | Signature | Returns |
+|---|----------|-----------|---------|
+| 96 | `ai_batch` | `ai_batch(system, items)` | `list` |
+| 97 | `ai_parallel` | `ai_parallel(n, system, items)` | `list` |
+| 98 | `ai_rate_limit` | `ai_rate_limit(calls/sec)` | `nil` |
+
+### AI — Tool Calling (2)
+| # | Function | Signature | Returns |
+|---|----------|-----------|---------|
+| 99 | `ai_tool` | `ai_tool(name, desc, params, fn)` | `nil` |
+| 100 | `ai_with_tools` | `ai_with_tools(system, user, ?rounds)` | `string` |
+
+### AI — Embeddings (5)
+| # | Function | Signature | Returns |
+|---|----------|-----------|---------|
+| 101 | `embed` | `embed(text)` | `list` |
+| 102 | `embed_batch` | `embed_batch(items)` | `list` |
+| 103 | `cosine_sim` | `cosine_sim(a, b)` | `float` |
+| 104 | `dot_product` | `dot_product(a, b)` | `float` |
+| 105 | `nearest` | `nearest(query, docs, k)` | `list` |
 
 ---
 
-**Total: 83 built-in functions** (note: `contains` and `len` serve double roles for strings and lists, counted once each)
+**Total: 105 built-in functions**

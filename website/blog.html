@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Pipe — Blog</title>
+<style>
+:root {
+  --bg:#07070c;--bg2:#0d0d16;--bg3:#141420;
+  --fg:#e8e8f0;--fg2:#9090a8;--fg3:#606078;
+  --accent:#a855f7;--accent2:#7c3aed;
+  --green:#3ce096;--orange:#fc8c3c;--red:#fc5c7c;
+  --border:#1e1e2e;--radius:10px;
+  --mono:'JetBrains Mono','Fira Code',monospace;
+  --sans:system-ui,-apple-system,sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--fg);font-family:var(--sans);display:flex;flex-direction:column;align-items:center;min-height:100vh;padding:24px}
+h1{font-size:1.5rem;margin:14px 0 2px;font-weight:800;letter-spacing:-0.5px}
+h1 span{background:linear-gradient(135deg,var(--accent),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.sub{color:var(--fg2);font-size:.85rem;margin-bottom:20px}
+.wrap{width:100%;max-width:720px}
+
+/* Post list */
+.post{cursor:pointer;background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:20px 24px;margin-bottom:12px;transition:border-color .15s}
+.post:hover{border-color:var(--fg3)}
+.post-title{font-size:1.1rem;font-weight:700;margin-bottom:6px;line-height:1.3}
+.post-date{font-size:.75rem;color:var(--fg3);margin-bottom:8px}
+.post-excerpt{font-size:.85rem;color:var(--fg2);line-height:1.6;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+
+/* Single post view */
+#post-view{display:none}
+#post-view.active{display:block}
+.back{display:inline-flex;align-items:center;gap:4px;color:var(--accent);cursor:pointer;font-size:.82rem;margin-bottom:16px;background:none;border:none;font-family:var(--sans);padding:0}
+.back:hover{text-decoration:underline}
+.view-title{font-size:1.3rem;font-weight:800;line-height:1.3;margin-bottom:6px}
+.view-date{font-size:.78rem;color:var(--fg3);margin-bottom:20px}
+.view-content{font-size:.92rem;line-height:1.8;color:var(--fg2)}
+.view-content p{margin-bottom:14px}
+.view-content code{background:var(--bg3);padding:2px 6px;border-radius:4px;font-size:.82rem;font-family:var(--mono);color:var(--green)}
+.view-content pre{background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:14px 16px;overflow-x:auto;font:13px/1.6 var(--mono);margin-bottom:14px;color:var(--fg)}
+.view-content pre code{background:none;padding:0;border-radius:0;color:inherit}
+.view-content a{color:var(--accent)}
+.view-content img{max-width:100%;border-radius:6px;margin:14px 0}
+.view-content h2,.view-content h3{margin-top:24px;margin-bottom:8px;color:var(--fg)}
+.view-content ul,.view-content ol{padding-left:20px;margin-bottom:14px}
+.view-content li{margin-bottom:4px}
+.view-content blockquote{border-left:3px solid var(--accent);padding:8px 16px;margin:14px 0;background:var(--bg3);border-radius:0 6px 6px 0;color:var(--fg2)}
+.view-content hr{border:none;border-top:1px solid var(--border);margin:20px 0}
+
+.empty-state{color:var(--fg3);font-size:.85rem;padding:40px 0;text-align:center}
+a{color:var(--accent);text-decoration:none}
+.ft{color:var(--fg3);font-size:.72rem;text-align:center;margin:22px 0 0}
+
+.loading{text-align:center;padding:40px 0;color:var(--fg3);font-size:.85rem}
+
+@media(max-width:600px){
+  body{padding:12px}
+  h1{font-size:1.2rem}
+  .post{padding:14px 16px}
+  .post-title{font-size:1rem}
+  .view-title{font-size:1.1rem}
+  .view-content{font-size:.85rem}
+}
+</style>
+</head>
+<body>
+<h1>Pipe <span>Blog</span></h1>
+<p class="sub"><a href="index.html">home</a> · <a href="admin.html">admin</a></p>
+
+<div class="wrap">
+
+  <div id="post-list">
+    <div class="loading">Loading posts...</div>
+  </div>
+
+  <div id="post-view">
+    <button class="back" onclick="showList()">← Back to posts</button>
+    <div class="view-title" id="view-title"></div>
+    <div class="view-date" id="view-date"></div>
+    <div class="view-content" id="view-content"></div>
+  </div>
+
+</div>
+
+<p class="ft"><a href="index.html">home</a> · <a href="admin.html">admin</a> · <a href="https://github.com/MachuraHarry/pipe">github</a></p>
+
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-database-compat.js"></script>
+<script src="firebase-config.js"></script>
+<script>
+const db = firebase.database();
+const listEl = document.getElementById("post-list");
+const viewEl = document.getElementById("post-view");
+const viewTitle = document.getElementById("view-title");
+const viewDate = document.getElementById("view-date");
+const viewContent = document.getElementById("view-content");
+
+function formatDate(ts) {
+  return new Date(ts).toLocaleDateString("en-US", {
+    year:"numeric", month:"long", day:"numeric"
+  });
+}
+
+function showList() {
+  viewEl.classList.remove("active");
+  viewEl.style.display = "none";
+  listEl.style.display = "block";
+  window.scrollTo({ top: 0 });
+}
+
+function showPost(key) {
+  db.ref("blog/posts/" + key).once("value").then(snap => {
+    const p = snap.val();
+    if (!p) return;
+    viewTitle.textContent = p.title;
+    viewDate.textContent = formatDate(p.created);
+    viewContent.innerHTML = p.content;
+    listEl.style.display = "none";
+    viewEl.classList.add("active");
+    viewEl.style.display = "block";
+    window.scrollTo({ top: 0 });
+  });
+}
+
+function renderExcerpt(html) {
+  const d = document.createElement("div");
+  d.innerHTML = html;
+  return d.textContent || d.innerText || "";
+}
+
+function loadPosts() {
+  db.ref("blog/posts").orderByChild("created").once("value").then(snap => {
+    const data = snap.val();
+    if (!data) {
+      listEl.innerHTML = '<div class="empty-state">No posts yet.</div>';
+      return;
+    }
+    const keys = Object.keys(data).reverse();
+    let html = "";
+    for (const key of keys) {
+      const p = data[key];
+      const excerpt = renderExcerpt(p.content).slice(0, 200);
+      html += '<div class="post" onclick="showPost(\'' + key + '\')">' +
+        '<div class="post-title">' + escapeHtml(p.title) + '</div>' +
+        '<div class="post-date">' + formatDate(p.created) + '</div>' +
+        '<div class="post-excerpt">' + escapeHtml(excerpt) + '…</div>' +
+        '</div>';
+    }
+    listEl.innerHTML = html;
+  }).catch(() => {
+    listEl.innerHTML = '<div class="empty-state">Failed to load posts.</div>';
+  });
+}
+
+function escapeHtml(s) {
+  const d = document.createElement("div");
+  d.textContent = s;
+  return d.innerHTML;
+}
+
+loadPosts();
+</script>
+</body>
+</html>

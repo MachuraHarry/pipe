@@ -1,0 +1,27 @@
+name: 'Pipe Action'
+description: 'Run Pipe code directly in your GitHub workflow'
+author: 'Pipe SPR'
+branding:
+  icon: 'terminal'
+  color: 'purple'
+
+inputs:
+  script:
+    description: 'Pipe code to execute'
+    required: true
+  sandbox:
+    description: 'Enable sandbox mode (block AI, exec, net, FS)'
+    required: false
+    default: 'false'
+  allow-ai:
+    description: 'In sandbox mode: re-enable AI builtins'
+    required: false
+    default: 'false'
+  timeout:
+    description: 'Max execution time in seconds'
+    required: false
+    default: '30'
+
+runs:
+  using: 'docker'
+  image: 'Dockerfile'

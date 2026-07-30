@@ -9,7 +9,12 @@
       ".read": true,
       ".write": "auth != null",
       "$post_id": {
-        ".validate": "newData.hasChildren(['title', 'content', 'created', 'updated'])"
+        ".validate": "newData.hasChildren(['title', 'content', 'created', 'updated'])",
+        "title": { ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length < 200" },
+        "content": { ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length < 50000" },
+        "created": { ".validate": "newData.isNumber()" },
+        "updated": { ".validate": "newData.isNumber()" },
+        "published": { ".validate": "newData.isBoolean()" }
       }
     }
   }

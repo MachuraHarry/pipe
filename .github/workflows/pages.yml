@@ -32,50 +32,50 @@ jobs:
 
     - name: Generate RSS Feed
       run: |
-        python3 -c '
-import json, sys, urllib.request
-from xml.sax.saxutils import escape
-from email.utils import formatdate
-from datetime import datetime
+        cat > /tmp/genrss.py << 'PYEOF'
+        import json, urllib.request
+        from xml.sax.saxutils import escape
+        from email.utils import formatdate
 
-url = "https://pipe-a3ad1-default-rtdb.europe-west1.firebasedatabase.app/blog/posts.json?orderBy=%22created%22"
-data = json.load(urllib.request.urlopen(url))
+        url = "https://pipe-a3ad1-default-rtdb.europe-west1.firebasedatabase.app/blog/posts.json?orderBy=%22created%22"
+        data = json.load(urllib.request.urlopen(url))
 
-items = ""
-if data:
-    for key in sorted(data.keys(), reverse=True):
-        p = data[key]
-        title = escape(p.get("title", ""))
-        excerpt = escape(" ".join(p.get("content", "").split())[:300])
-        post_url = f"https://pipe.lang/blog.html?post={key}"
-        ts = p.get("created", 0) / 1000
-        pubdate = formatdate(ts, usegmt=True)
-        items += f"""  <item>
-    <title>{title}</title>
-    <link>{post_url}</link>
-    <guid isPermaLink="true">{post_url}</guid>
-    <pubDate>{pubdate}</pubDate>
-    <description>{excerpt}</description>
-  </item>
-"""
+        items = ""
+        if data:
+            for key in sorted(data.keys(), reverse=True):
+                p = data[key]
+                title = escape(p.get("title", ""))
+                excerpt = escape(" ".join(p.get("content", "").split())[:300])
+                post_url = f"https://pipe.lang/blog.html?post={key}"
+                ts = p.get("created", 0) / 1000
+                pubdate = formatdate(ts, usegmt=True)
+                items += f"""  <item>
+            <title>{title}</title>
+            <link>{post_url}</link>
+            <guid isPermaLink="true">{post_url}</guid>
+            <pubDate>{pubdate}</pubDate>
+            <description>{excerpt}</description>
+          </item>
+        """
 
-now = formatdate(usegmt=True)
-rss = f"""<?xml version="1.0" encoding="UTF-8"?>
-<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
-<channel>
-  <title>Pipe Blog</title>
-  <link>https://pipe.lang/blog.html</link>
-  <description>Updates, tutorials, and deep dives into the Semantic Pipeline Runtime.</description>
-  <language>en</language>
-  <lastBuildDate>{now}</lastBuildDate>
-  <atom:link href="https://pipe.lang/feed.xml" rel="self" type="application/rss+xml"/>
-{items}</channel>
-</rss>"""
+        now = formatdate(usegmt=True)
+        rss = f"""<?xml version="1.0" encoding="UTF-8"?>
+        <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+        <channel>
+          <title>Pipe Blog</title>
+          <link>https://pipe.lang/blog.html</link>
+          <description>Updates, tutorials, and deep dives into the Semantic Pipeline Runtime.</description>
+          <language>en</language>
+          <lastBuildDate>{now}</lastBuildDate>
+          <atom:link href="https://pipe.lang/feed.xml" rel="self" type="application/rss+xml"/>
+        {items}</channel>
+        </rss>"""
 
-with open("website/feed.xml", "w") as f:
-    f.write(rss)
-print(f"RSS feed generated: {len(rss)} bytes")
-'
+        with open("website/feed.xml", "w") as f:
+            f.write(rss)
+        print(f"RSS feed generated: {len(rss)} bytes")
+        PYEOF
+        python3 /tmp/genrss.py
 
     - name: Upload artifact
       uses: actions/upload-pages-artifact@v3

@@ -82,6 +82,30 @@ a{color:var(--accent);text-decoration:none}
 .sandbox-notice a{color:var(--fg3);text-decoration:underline;text-underline-offset:2px}
 .sandbox-notice a:hover{color:var(--accent)}
 .sandbox-notice.show{display:inline-flex}
+@media(max-width:600px){
+  body{padding:12px}
+  h1{font-size:1.1rem;margin:10px 0 2px}
+  h1 img{height:22px!important}
+  .sub{font-size:.78rem;margin-bottom:14px}
+  .play-top{padding:8px 10px;flex-wrap:wrap;gap:4px}
+  .play-label{font-size:.65rem}
+  .play-actions{gap:4px;flex-wrap:wrap;justify-content:flex-end}
+  .icon-btn,.share-btn,.run-btn{font-size:.72rem;padding:4px 8px}
+  textarea.play-editor,pre.play-editor{font:13px/1.6 var(--mono);padding:12px 14px;min-height:160px}
+  .play-editor-wrap{min-height:160px}
+  .play-out{padding:10px 14px;font:12px/1.5 var(--mono);min-height:36px;max-height:150px}
+  .play-bar{padding:5px 10px;font-size:.65rem;flex-wrap:wrap;gap:4px}
+  .rating-section{padding:10px 12px;flex-wrap:wrap}
+  .rating-stars{font-size:1.2rem}
+  .rating-info{font-size:.72rem}
+  .top-header{padding:10px 12px;font-size:.76rem}
+  .top-item{padding:7px 12px;gap:6px}
+  .top-rank{font-size:.62rem;min-width:12px}
+  .top-stars{font-size:.72rem;min-width:40px}
+  .top-preview{font-size:.68rem}
+  .sandbox-notice{font-size:.58rem}
+  .ft{font-size:.65rem}
+}
 </style>
 </head>
 <body>

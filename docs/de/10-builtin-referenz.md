@@ -929,7 +929,25 @@ print "Hauptprogramm"
 ### Result-Typ (6)
 `Ok`, `Err`, `is_ok`, `is_err`, `unwrap`, `unwrap_or`
 
-### Konkurrenz (1)
-`go` (Tree-Walker only)
+### KI — Konfiguration (4)
+`ai_provider`, `ai_model`, `ai_host`, `ai_timeout`
 
-**Gesamt: 81 Builtins**
+### KI — Chat (2)
+`ai_chat`, `ai_chat_json`
+
+### KI — Streaming (1)
+`ai_stream`
+
+### KI — Convenience (6)
+`summarize`, `translate`, `classify`, `extract`, `generate`, `ask`
+
+### KI — Parallel (3)
+`ai_batch`, `ai_parallel`, `ai_rate_limit`
+
+### KI — Tool Calling (2)
+`ai_tool`, `ai_with_tools`
+
+### KI — Embeddings (5)
+`embed`, `embed_batch`, `cosine_sim`, `dot_product`, `nearest`
+
+**Gesamt: 105 Builtins**

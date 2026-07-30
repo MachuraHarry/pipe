@@ -1,0 +1,28 @@
+name: Test pipe-action
+
+on:
+  push:
+    paths: ['pipe-action/**', '.github/workflows/test-action.yml']
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Hello World
+        uses: ./pipe-action
+        with:
+          script: print "pipe-action works!"
+
+      - name: Math
+        uses: ./pipe-action
+        with:
+          script: print (1 + 2 + 3 + 4 + 5)
+
+      - name: Sandbox
+        uses: ./pipe-action
+        with:
+          script: print "sandbox active"
+          sandbox: true
+          timeout: 10

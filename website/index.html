@@ -206,7 +206,7 @@ span[data-lang].active{display:inline}a[data-lang].active{display:inline-block}
   <p id="hero-sub" class="sub"><code>summarize</code>, <code>translate</code>, and <code>classify</code> live on the same syntax level as <code>+</code>, <code>sort</code>, and <code>len</code>. Pipe compiles to a single ~10 MB binary. Zero dependencies.</p>
 
   <div class="stats-inline">
-    <div class="stat"><span class="stat-num">25</span><div class="stat-label">AI Builtins</div></div>
+    <div class="stat"><span class="stat-num">28</span><div class="stat-label">AI Builtins</div></div>
     <div class="stat"><span class="stat-num">220+</span><div class="stat-label">Tests</div></div>
     <div class="stat"><span class="stat-num">~10 MB</span><div class="stat-label">Binary Size</div></div>
     <div class="stat"><span class="stat-num">4</span><div class="stat-label">Providers</div></div>
@@ -336,6 +336,22 @@ text = open(<span class="str">"news.txt"</span>).read()
     <span class="pipe">&gt;</span> <span class="fn">save</span> <span class="str">"report.md"</span></pre></div>
     </div>
 
+    <div class="feature-row reveal">
+      <div class="feature-text">
+        <h3 data-lang="en" class="active"><span>Safety First: Sandbox Profiles</span></h3>
+        <h3 data-lang="de"><span>Sicherheit zuerst: Sandbox-Profile</span></h3>
+        <p data-lang="en" class="active">Declarative sandbox profiles restrict what AI agents and scripts can do. Lock down <code>exec</code>, <code>http_get</code>, <code>write_file</code> with a single <code>sandbox_profile</code> block. Essential for <code>ai_with_tools</code> — keep LLMs on a leash.</p>
+        <p data-lang="de">Deklarative Sandbox-Profile schränken ein, was KI-Agenten und Skripte tun dürfen. <code>exec</code>, <code>http_get</code>, <code>write_file</code> mit einem einzigen <code>sandbox_profile</code>-Block einschränken. Essentiell für <code>ai_with_tools</code> — LLMs an die Leine nehmen.</p>
+      </div>
+      <div class="feature-code"><div class="bar"><span class="dot" style="background:var(--red)"></span><span class="dot" style="background:var(--orange)"></span><span class="dot" style="background:var(--green)"></span></div><pre><span class="fn">sandbox_profile</span> <span class="str">"safe"</span> {<span class="kw">fs</span>: <span class="str">"read-only"</span>, <span class="kw">network</span>: <span class="kw">false</span>, <span class="kw">exec</span>: <span class="kw">false</span>, <span class="kw">ai</span>: <span class="kw">true</span>}
+
+<span class="fn">sandbox_profile</span> <span class="str">"agent"</span> {<span class="kw">fs</span>: <span class="str">"temp-only"</span>, <span class="kw">network</span>: <span class="kw">true</span>, <span class="kw">exec</span>: <span class="kw">false</span>, <span class="kw">ai</span>: <span class="kw">true</span>}
+
+<span class="kw">set_sandbox</span> <span class="str">"safe"</span>
+<span class="fn">read_file</span> <span class="str">"/etc/config"</span>     <span class="cmt">-- ✅ reading allowed</span>
+<span class="fn">write_file</span> <span class="str">"/etc/config"</span>    <span class="cmt">-- ❌ E_SANDBOX blocked</span></pre></div>
+    </div>
+
     <div class="feature-row reverse reveal">
       <div class="feature-text">
         <h3 data-lang="en" class="active"><span>Self-Healing Code</span></h3>
@@ -401,12 +417,13 @@ pipe -get parallel-runner@1.0.0
 <!-- Capabilities -->
 <section id="builtins">
   <div class="container">
-    <div class="section-head"><h2 data-lang="en" class="active"><span>25 AI Builtins</span> + 81 Standard Builtins</h2><h2 data-lang="de"><span>25 KI-Builtins</span> + 81 Standard-Builtins</h2></div>
+    <div class="section-head"><h2 data-lang="en" class="active"><span>28 AI Builtins</span> + 84 Standard Builtins</h2><h2 data-lang="de"><span>28 KI-Builtins</span> + 84 Standard-Builtins</h2></div>
     <div class="builtins-grid reveal">
       <div class="builtin-group"><h4>🧠 Understanding</h4><table><tr><td>summarize</td><td>Text summarization</td></tr><tr><td>translate</td><td>Translation</td></tr><tr><td>classify</td><td>Classification</td></tr><tr><td>extract</td><td>Data extraction (JSON)</td></tr><tr><td>ask</td><td>Question answering</td></tr><tr><td>generate</td><td>Free-text generation</td></tr></table></div>
       <div class="builtin-group"><h4>⚡ Speed & Parallel</h4><table><tr><td>ai_stream</td><td>Real-time token streaming</td></tr><tr><td>ai_batch</td><td>Auto-parallel batch</td></tr><tr><td>ai_parallel</td><td>Concurrency control</td></tr><tr><td>ai_rate_limit</td><td>Rate limiting</td></tr><tr><td>ai_chat</td><td>Low-level chat</td></tr><tr><td>ai_chat_json</td><td>Chat → structured JSON</td></tr></table></div>
       <div class="builtin-group"><h4>🔍 Embeddings & Search</h4><table><tr><td>embed</td><td>Text → vector</td></tr><tr><td>embed_batch</td><td>Batch embeddings</td></tr><tr><td>cosine_sim</td><td>Semantic similarity</td></tr><tr><td>dot_product</td><td>Dot product</td></tr><tr><td>nearest</td><td>Top-K nearest</td></tr></table></div>
       <div class="builtin-group"><h4>🤖 Tool Calling & Config</h4><table><tr><td>ai_tool</td><td>Register function as tool</td></tr><tr><td>ai_with_tools</td><td>Chat with tool access</td></tr><tr><td>ai_provider</td><td>Select AI provider</td></tr><tr><td>ai_model</td><td>Select model</td></tr><tr><td>ai_timeout</td><td>Set timeout</td></tr></table></div>
+      <div class="builtin-group"><h4>🔒 Sandbox Profiles</h4><table><tr><td>sandbox_profile</td><td>Define a sandbox profile</td></tr><tr><td>set_sandbox</td><td>Activate a profile</td></tr><tr><td>with_sandbox</td><td>Temp profile override</td></tr></table></div>
     </div>
   </div>
 </section>
@@ -489,7 +506,9 @@ var heroTexts = {
     {h:'<span class="grad">Pipelines</span> are the language.<br>Not a library pattern.',
      s:'Data flows top to bottom through transformations. <code>read_file &gt; classify &gt; summarize &gt; translate &gt; write_file</code> — five lines, fully readable.'},
     {h:'<span class="grad">9 modules</span> and counting.<br>Versioned. Curated. Free.',
-     s:'<code>pipe -get parallel-runner@1.0.0</code> installs in seconds. Import by name. Pin versions. No lockfiles. No dependency hell.'}
+     s:'<code>pipe -get parallel-runner@1.0.0</code> installs in seconds. Import by name. Pin versions. No lockfiles. No dependency hell.'},
+    {h:'<span class="grad">Sandbox Profiles</span> for AI agents.<br>Declarative. Composable. Safe.',
+     s:'Lock down <code>exec</code>, <code>http_get</code>, <code>write_file</code> with a single block. Essential for <code>ai_with_tools</code> — keep LLMs on a leash. Built-in profiles: strict, isolated, networked.'}
   ],
   de: [
     {h:'<span class="grad">KI ist kein</span> Library-Call.<br>Sie ist ein Sprach-Primitive.',
@@ -505,7 +524,9 @@ var heroTexts = {
     {h:'<span class="grad">Pipelines</span> sind die Sprache.<br>Kein Library-Pattern.',
      s:'Daten fließen von oben nach unten durch Transformationen. <code>read_file &gt; classify &gt; summarize &gt; translate &gt; write_file</code> — fünf Zeilen, komplett lesbar.'},
     {h:'<span class="grad">9 Module</span> und es werden mehr.<br>Versioniert. Kuratiert. Frei.',
-     s:'<code>pipe -get parallel-runner@1.0.0</code> installiert in Sekunden. Import per Name. Versionen pinnen. Keine Lockfiles. Kein Dependency-Hell.'}
+     s:'<code>pipe -get parallel-runner@1.0.0</code> installiert in Sekunden. Import per Name. Versionen pinnen. Keine Lockfiles. Kein Dependency-Hell.'},
+    {h:'<span class="grad">Sandbox-Profile</span> für KI-Agenten.<br>Deklarativ. Kombinierbar. Sicher.',
+     s:'<code>exec</code>, <code>http_get</code>, <code>write_file</code> mit einem einzigen Block einschränken. Essentiell für <code>ai_with_tools</code> — LLMs an die Leine nehmen. Integrierte Profile: strict, isolated, networked.'}
   ]
 };
 

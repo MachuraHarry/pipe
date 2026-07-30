@@ -400,6 +400,11 @@ var Builtins = []BuiltinInfo{
 	{"dot_product", bDotProduct},
 	{"nearest", bNearest},
 
+	// Sandbox Profiles
+	{"sandbox_profile", bSandboxProfile},
+	{"set_sandbox", bSetSandbox},
+	{"with_sandbox", bWithSandbox},
+
 	// AI — Tool Calling
 	{"ai_tool", bAiTool},
 	{"ai_with_tools", bAiWithTools},
@@ -449,6 +454,11 @@ func bReadFile(args ...Object) Object {
 	if !ok {
 		return err("read_file expects a string as path")
 	}
+	if ActiveProfile.Name != "none" {
+		if canErr := ActiveProfile.CanRead(s.Value); canErr != nil {
+			return err(canErr.Error())
+		}
+	}
 	data, e := os.ReadFile(s.Value)
 	if e != nil {
 		return err("read_file: " + e.Error())
@@ -464,6 +474,11 @@ func bWriteFile(args ...Object) Object {
 	c, ok2 := args[1].(*String)
 	if !ok || !ok2 {
 		return err("write_file: path und content must be strings")
+	}
+	if ActiveProfile.Name != "none" {
+		if canErr := ActiveProfile.CanWrite(p.Value); canErr != nil {
+			return err(canErr.Error())
+		}
 	}
 	if e := os.WriteFile(p.Value, []byte(c.Value), 0644); e != nil {
 		return err("write_file: " + e.Error())
@@ -496,7 +511,11 @@ func bSleep(args ...Object) Object {
 }
 
 func bExec(args ...Object) Object {
-	if Sandbox.Enabled && !Sandbox.AllowExec {
+	if ActiveProfile.Name != "none" {
+		if canErr := ActiveProfile.CanExec(); canErr != nil {
+			return err(canErr.Error())
+		}
+	} else if Sandbox.Enabled && !Sandbox.AllowExec {
 		return sandboxBlock("exec")
 	}
 	if len(args) != 1 {
@@ -531,6 +550,11 @@ func bAppendFile(args ...Object) Object {
 	c, ok2 := args[1].(*String)
 	if !ok || !ok2 {
 		return err("append_file: path und content must be strings")
+	}
+	if ActiveProfile.Name != "none" {
+		if canErr := ActiveProfile.CanWrite(p.Value); canErr != nil {
+			return err(canErr.Error())
+		}
 	}
 	f, e := os.OpenFile(p.Value, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if e != nil {
@@ -576,15 +600,19 @@ func bFileExists(args ...Object) Object {
 }
 
 func bFileDelete(args ...Object) Object {
-	if Sandbox.Enabled && !Sandbox.AllowFS {
-		return sandboxBlock("file_delete (filesystem write)")
-	}
 	if len(args) != 1 {
 		return err("file_delete expects 1 argument (path)")
 	}
 	p, ok := args[0].(*String)
 	if !ok {
 		return err("file_delete: path must be a string")
+	}
+	if ActiveProfile.Name != "none" {
+		if canErr := ActiveProfile.CanWrite(p.Value); canErr != nil {
+			return err(canErr.Error())
+		}
+	} else if Sandbox.Enabled && !Sandbox.AllowFS {
+		return sandboxBlock("file_delete (filesystem write)")
 	}
 	if e := os.Remove(p.Value); e != nil {
 		return err("file_delete: " + e.Error())
@@ -601,6 +629,11 @@ func bFileMove(args ...Object) Object {
 	if !ok || !ok2 {
 		return err("file_move: paths must be strings")
 	}
+	if ActiveProfile.Name != "none" {
+		if canErr := ActiveProfile.CanWrite(dst.Value); canErr != nil {
+			return err(canErr.Error())
+		}
+	}
 	if e := os.Rename(src.Value, dst.Value); e != nil {
 		return err("file_move: " + e.Error())
 	}
@@ -615,6 +648,14 @@ func bFileCopy(args ...Object) Object {
 	dst, ok2 := args[1].(*String)
 	if !ok || !ok2 {
 		return err("file_copy: paths must be strings")
+	}
+	if ActiveProfile.Name != "none" {
+		if canErr := ActiveProfile.CanRead(src.Value); canErr != nil {
+			return err(canErr.Error())
+		}
+		if canErr := ActiveProfile.CanWrite(dst.Value); canErr != nil {
+			return err(canErr.Error())
+		}
 	}
 	srcFile, e := os.Open(src.Value)
 	if e != nil {
@@ -700,6 +741,11 @@ func bMakeDir(args ...Object) Object {
 	if !ok {
 		return err("make_dir: path must be a string")
 	}
+	if ActiveProfile.Name != "none" {
+		if canErr := ActiveProfile.CanWrite(p.Value); canErr != nil {
+			return err(canErr.Error())
+		}
+	}
 	if e := os.MkdirAll(p.Value, 0755); e != nil {
 		return err("make_dir: " + e.Error())
 	}
@@ -707,15 +753,19 @@ func bMakeDir(args ...Object) Object {
 }
 
 func bRemoveDir(args ...Object) Object {
-	if Sandbox.Enabled && !Sandbox.AllowFS {
-		return sandboxBlock("remove_dir (filesystem write)")
-	}
 	if len(args) != 1 {
 		return err("remove_dir expects 1 argument (path)")
 	}
 	p, ok := args[0].(*String)
 	if !ok {
 		return err("remove_dir: path must be a string")
+	}
+	if ActiveProfile.Name != "none" {
+		if canErr := ActiveProfile.CanWrite(p.Value); canErr != nil {
+			return err(canErr.Error())
+		}
+	} else if Sandbox.Enabled && !Sandbox.AllowFS {
+		return sandboxBlock("remove_dir (filesystem write)")
 	}
 	if e := os.RemoveAll(p.Value); e != nil {
 		return err("remove_dir: " + e.Error())
@@ -1403,7 +1453,11 @@ func (tl *TcpListener) Inspect() string  { return fmt.Sprintf("tcp-listener:%d",
 // ---- Network ----
 
 func bHttpGet(args ...Object) Object {
-	if Sandbox.Enabled && !Sandbox.AllowNet {
+	if ActiveProfile.Name != "none" {
+		if canErr := ActiveProfile.CanNetwork(); canErr != nil {
+			return err(canErr.Error())
+		}
+	} else if Sandbox.Enabled && !Sandbox.AllowNet {
 		return sandboxBlock("http_get (network)")
 	}
 	if len(args) != 1 {
@@ -1430,6 +1484,11 @@ func bHttpGet(args ...Object) Object {
 }
 
 func bHttpPost(args ...Object) Object {
+	if ActiveProfile.Name != "none" {
+		if canErr := ActiveProfile.CanNetwork(); canErr != nil {
+			return err(canErr.Error())
+		}
+	}
 	if len(args) < 1 || len(args) > 2 {
 		return err("http_post expects 1-2 arguments (URL, Body?)")
 	}
@@ -1565,6 +1624,11 @@ func objectToJSON(obj Object) interface{} {
 // ---- TCP ----
 
 func bTcpListen(args ...Object) Object {
+	if ActiveProfile.Name != "none" {
+		if canErr := ActiveProfile.CanNetwork(); canErr != nil {
+			return err(canErr.Error())
+		}
+	}
 	if len(args) != 2 {
 		return err("tcp_listen expects 2 arguments (Host, Port)")
 	}
@@ -1590,6 +1654,11 @@ func bTcpListen(args ...Object) Object {
 }
 
 func bTcpConnect(args ...Object) Object {
+	if ActiveProfile.Name != "none" {
+		if canErr := ActiveProfile.CanNetwork(); canErr != nil {
+			return err(canErr.Error())
+		}
+	}
 	if len(args) != 2 {
 		return err("tcp_connect expects 2 arguments (Host, Port)")
 	}
@@ -1967,7 +2036,11 @@ func bAiHost(args ...Object) Object {
 }
 
 func bAiChat(args ...Object) Object {
-	if Sandbox.Enabled && !Sandbox.AllowAI {
+	if ActiveProfile.Name != "none" {
+		if canErr := ActiveProfile.CanAI(); canErr != nil {
+			return err(canErr.Error())
+		}
+	} else if Sandbox.Enabled && !Sandbox.AllowAI {
 		return sandboxBlock("ai_chat (AI calls)")
 	}
 	if len(args) < 2 {
@@ -1997,6 +2070,11 @@ func bAiChat(args ...Object) Object {
 }
 
 func bAiChatJSON(args ...Object) Object {
+	if ActiveProfile.Name != "none" {
+		if canErr := ActiveProfile.CanAI(); canErr != nil {
+			return err(canErr.Error())
+		}
+	}
 	if len(args) < 2 {
 		return err("ai_chat_json expects at least 2 arguments (system_prompt, user_prompt)")
 	}
@@ -2031,6 +2109,11 @@ func bAiChatJSON(args ...Object) Object {
 }
 
 func bSummarize(args ...Object) Object {
+	if ActiveProfile.Name != "none" {
+		if canErr := ActiveProfile.CanAI(); canErr != nil {
+			return err(canErr.Error())
+		}
+	}
 	if len(args) < 1 {
 		return err("summarize expects at least 1 argument (text)")
 	}
@@ -2056,6 +2139,11 @@ func bSummarize(args ...Object) Object {
 }
 
 func bTranslate(args ...Object) Object {
+	if ActiveProfile.Name != "none" {
+		if canErr := ActiveProfile.CanAI(); canErr != nil {
+			return err(canErr.Error())
+		}
+	}
 	if len(args) < 2 {
 		return err("translate expects 2 arguments (text, target_language)")
 	}
@@ -2085,6 +2173,11 @@ func bTranslate(args ...Object) Object {
 }
 
 func bClassify(args ...Object) Object {
+	if ActiveProfile.Name != "none" {
+		if canErr := ActiveProfile.CanAI(); canErr != nil {
+			return err(canErr.Error())
+		}
+	}
 	if len(args) < 2 {
 		return err("classify expects 2 arguments (text, categories)")
 	}
@@ -2124,6 +2217,11 @@ func bClassify(args ...Object) Object {
 }
 
 func bExtract(args ...Object) Object {
+	if ActiveProfile.Name != "none" {
+		if canErr := ActiveProfile.CanAI(); canErr != nil {
+			return err(canErr.Error())
+		}
+	}
 	if len(args) < 2 {
 		return err("extract expects 2 arguments (text, schema)")
 	}
@@ -2158,6 +2256,11 @@ func bExtract(args ...Object) Object {
 }
 
 func bGenerate(args ...Object) Object {
+	if ActiveProfile.Name != "none" {
+		if canErr := ActiveProfile.CanAI(); canErr != nil {
+			return err(canErr.Error())
+		}
+	}
 	if len(args) < 1 {
 		return err("generate expects at least 1 argument (prompt)")
 	}
@@ -2180,6 +2283,11 @@ func bGenerate(args ...Object) Object {
 }
 
 func bAsk(args ...Object) Object {
+	if ActiveProfile.Name != "none" {
+		if canErr := ActiveProfile.CanAI(); canErr != nil {
+			return err(canErr.Error())
+		}
+	}
 	if len(args) < 1 {
 		return err("ask expects at least 1 argument (question)")
 	}
@@ -2205,6 +2313,11 @@ func bAsk(args ...Object) Object {
 }
 
 func bAiStream(args ...Object) Object {
+	if ActiveProfile.Name != "none" {
+		if canErr := ActiveProfile.CanAI(); canErr != nil {
+			return err(canErr.Error())
+		}
+	}
 	if len(args) < 2 {
 		return err("ai_stream expects at least 2 arguments (system_prompt, user_prompt)")
 	}
@@ -2251,6 +2364,11 @@ func bAiRateLimit(args ...Object) Object {
 }
 
 func bAiParallel(args ...Object) Object {
+	if ActiveProfile.Name != "none" {
+		if canErr := ActiveProfile.CanAI(); canErr != nil {
+			return err(canErr.Error())
+		}
+	}
 	if len(args) < 3 {
 		return err("ai_parallel expects 3 arguments (concurrency, system_prompt, items)")
 	}
@@ -2298,6 +2416,11 @@ func bAiParallel(args ...Object) Object {
 }
 
 func bAiBatch(args ...Object) Object {
+	if ActiveProfile.Name != "none" {
+		if canErr := ActiveProfile.CanAI(); canErr != nil {
+			return err(canErr.Error())
+		}
+	}
 	if len(args) < 2 {
 		return err("ai_batch expects 2 arguments (system_prompt, items)")
 	}
@@ -2340,6 +2463,11 @@ func bAiBatch(args ...Object) Object {
 }
 
 func bEmbed(args ...Object) Object {
+	if ActiveProfile.Name != "none" {
+		if canErr := ActiveProfile.CanNetwork(); canErr != nil {
+			return err(canErr.Error())
+		}
+	}
 	if len(args) < 1 {
 		return err("embed expects 1 argument (text)")
 	}
@@ -2557,9 +2685,30 @@ func bAiWithTools(args ...Object) Object {
 	}
 
 	maxRounds := 5
+	argIdx := 2
 	if len(args) >= 3 {
 		if n, ok := ToInt(args[2]); ok {
 			maxRounds = int(n)
+			argIdx = 3
+		}
+	}
+
+	// Optional sandbox name from a string arg
+	profile := ActiveProfile
+	if len(args) > argIdx {
+		if s, ok := args[argIdx].(*String); ok {
+			if p, pErr := GetProfile(s.Value); pErr == nil {
+				profile = p
+			}
+		}
+	}
+
+	if profile.Name != "none" {
+		if canErr := profile.CanAI(); canErr != nil {
+			return err(canErr.Error())
+		}
+		if canErr := profile.CanNetwork(); canErr != nil {
+			return err(canErr.Error())
 		}
 	}
 
@@ -2576,6 +2725,12 @@ func bAiWithTools(args ...Object) Object {
 		entry, exists := toolRegistry[toolName]
 		if !exists {
 			return "", fmt.Errorf("unknown tool: %s", toolName)
+		}
+
+		if profile.Name != "none" {
+			if canErr := profile.CanExec(); canErr != nil {
+				return "", fmt.Errorf("E_SANDBOX: tool '%s' execution blocked by profile '%s'", toolName, profile.Name)
+			}
 		}
 
 		argObjects := make([]Object, 0, len(args))
@@ -2726,4 +2881,141 @@ func sandboxBlock(feature string) *Error {
 		msg += " — use --allow-ai or allow-ai: true to re-enable"
 	}
 	return &Error{Message: msg}
+}
+
+// ---- Sandbox Profile Builtins ----
+
+func bSandboxProfile(args ...Object) Object {
+	if len(args) < 2 {
+		return err("sandbox_profile needs name and config block")
+	}
+
+	name, ok := args[0].(*String)
+	if !ok {
+		return err("sandbox_profile name must be a string")
+	}
+
+	config, ok := args[1].(*Map)
+	if !ok {
+		return err("sandbox_profile config must be a block/map")
+	}
+
+	profile := NewSandboxProfile(name.Value)
+
+	for key, val := range config.Pairs {
+		switch key {
+		case "fs":
+			s, ok := val.(*String)
+			if !ok {
+				return err("sandbox_profile: fs must be a string")
+			}
+			fsLevel, fsErr := ParseFSAccess(s.Value)
+			if fsErr != nil {
+				return err(fsErr.Error())
+			}
+			profile.FSAccess = fsLevel
+
+		case "network":
+			b, ok := val.(*Boolean)
+			if !ok {
+				return err("sandbox_profile: network must be a bool")
+			}
+			profile.Network = b.Value
+
+		case "exec":
+			b, ok := val.(*Boolean)
+			if !ok {
+				return err("sandbox_profile: exec must be a bool")
+			}
+			profile.Exec = b.Value
+
+		case "ai":
+			b, ok := val.(*Boolean)
+			if !ok {
+				return err("sandbox_profile: ai must be a bool")
+			}
+			profile.AI = b.Value
+
+		case "timeout":
+			i, ok := val.(*Integer)
+			if !ok {
+				return err("sandbox_profile: timeout must be a number")
+			}
+			profile.Timeout = int(i.Value)
+
+		case "env":
+			m, ok := val.(*Map)
+			if !ok {
+				return err("sandbox_profile: env must be a map")
+			}
+			for ek, ev := range m.Pairs {
+				if s, ok := ev.(*String); ok {
+					profile.Env[ek] = s.Value
+				}
+			}
+
+		case "work_dir":
+			s, ok := val.(*String)
+			if !ok {
+				return err("sandbox_profile: work_dir must be a string")
+			}
+			profile.WorkDir = s.Value
+
+		default:
+			return err("sandbox_profile: unknown config key '" + key + "'")
+		}
+	}
+
+	if regErr := RegisterProfile(name.Value, profile); regErr != nil {
+		return err(regErr.Error())
+	}
+
+	return TRUE
+}
+
+func bSetSandbox(args ...Object) Object {
+	if len(args) < 1 {
+		return err("set_sandbox needs a profile name")
+	}
+	name, ok := args[0].(*String)
+	if !ok {
+		return err("set_sandbox name must be a string")
+	}
+	prof, profErr := GetProfile(name.Value)
+	if profErr != nil {
+		return err(profErr.Error())
+	}
+	ActiveProfile = prof
+	return TRUE
+}
+
+func bWithSandbox(args ...Object) Object {
+	if len(args) < 2 {
+		return err("with_sandbox needs a profile name and a block/function")
+	}
+	name, ok := args[0].(*String)
+	if !ok {
+		return err("with_sandbox name must be a string")
+	}
+
+	prev := ActiveProfile
+	defer func() { ActiveProfile = prev }()
+
+	prof, profErr := GetProfile(name.Value)
+	if profErr != nil {
+		return err(profErr.Error())
+	}
+	ActiveProfile = prof
+
+	switch fn := args[1].(type) {
+	case *Function:
+		if callUserFn != nil {
+			return callUserFn(fn)
+		}
+		return err("with_sandbox: function execution not available")
+	case *BuiltinInfo:
+		return fn.Fn()
+	default:
+		return err("with_sandbox: second argument must be a function/block")
+	}
 }

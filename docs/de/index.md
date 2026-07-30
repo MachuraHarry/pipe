@@ -25,6 +25,7 @@ Willkommen zur vollständigen Dokumentation der Skriptsprache **Pipe**.
 19. [KI-Builtins](19-ki-builtins.md) — KI-Funktionen für LLM-Integration
 20. [GitHub Action](20-github-action.md) — Pipe in CI/CD-Pipelines nutzen
 21. [Modul-Ökosystem](21-ecosystem.md) — Module finden, installieren, beitragen
+22. [Sandbox-Profile](22-sandbox-profile.md) — Deklarative Sicherheitsprofile für KI-Agenten und nicht vertrauenswürdigen Code
 
 ## Anhang
 

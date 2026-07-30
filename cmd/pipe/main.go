@@ -42,10 +42,11 @@ func main() {
 		doBuild    bool
 		doGet      bool
 		doSearch   bool
-		searchTerm string
-		sandbox    bool
-		allowAI    bool
-		aiProvider string
+		searchTerm       string
+		sandbox          bool
+		sandboxProfile   string
+		allowAI          bool
+		aiProvider       string
 		timeoutSec int
 		buildOut   string
 		filePath   string
@@ -81,6 +82,8 @@ func main() {
 			return
 		case "--sandbox":
 			sandbox = true
+		case "--sandbox-profile":
+			sandboxProfile = "-" // marker to read next arg
 		case "--allow-ai":
 			allowAI = true
 		case "--ai-provider":
@@ -90,6 +93,10 @@ func main() {
 		default:
 			if aiProvider == "-" {
 				aiProvider = arg
+				continue
+			}
+			if sandboxProfile == "-" {
+				sandboxProfile = arg
 				continue
 			}
 			if timeoutSec == -1 {
@@ -243,6 +250,14 @@ func main() {
 	if sandbox {
 		object.SetSandbox(true)
 	}
+	if sandboxProfile != "" && sandboxProfile != "-" {
+		prof, err := object.GetProfile(sandboxProfile)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "pipe: %s\n", err)
+			os.Exit(1)
+		}
+		object.ActiveProfile = prof
+	}
 	if allowAI {
 		object.SetSandboxAllowAI(true)
 	}
@@ -378,9 +393,10 @@ Flags:
   --check       Check formatting without writing (requires -fmt)
   -test         Run all test files in current directory
   -bench        Run benchmarks (tree-walker vs VM)
-  --sandbox     Restrict dangerous builtins (exec, tcp, http, ai, fs-write)
-  --allow-ai    In sandbox: re-enable AI builtins
-  --timeout N   Kill execution after N seconds
+  --sandbox              Restrict dangerous builtins (exec, tcp, http, ai, fs-write)
+  --sandbox-profile <name>  Use a predefined sandbox profile (strict, networked, etc.)
+  --allow-ai             In sandbox: re-enable AI builtins
+  --timeout N            Kill execution after N seconds
   --ai-provider openai|anthropic|deepseek|ollama
   -get <url>    Download a module into ~/.pipe/modules/
   -search [term] Search available modules

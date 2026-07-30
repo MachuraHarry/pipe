@@ -25,6 +25,7 @@ Welcome to the complete documentation for the **Pipe** scripting language.
 19. [AI Builtins](19-ai-builtins.md) — AI functions for LLM integration
 20. [GitHub Action](20-github-action.md) — Run Pipe in CI/CD pipelines
 21. [Module Ecosystem](21-ecosystem.md) — Find, install, and contribute modules
+22. [Sandbox Profiles](22-sandbox-profiles.md) — Declarative security profiles for AI agents and untrusted code
 
 ## Appendix
 

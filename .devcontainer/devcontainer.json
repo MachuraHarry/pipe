@@ -1,0 +1,16 @@
+{
+  "name": "Pipe Development",
+  "image": "mcr.microsoft.com/devcontainers/go:1.22",
+  "postCreateCommand": "make build",
+  "containerEnv": {
+    "PIPE_HOME": "/workspaces/pipe"
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": [],
+      "settings": {
+        "terminal.integrated.defaultProfile.linux": "bash"
+      }
+    }
+  }
+}

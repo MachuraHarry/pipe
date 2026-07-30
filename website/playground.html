@@ -37,52 +37,7 @@ h1 span{background:linear-gradient(135deg,var(--accent),var(--accent2));-webkit-
 .run-btn{background:var(--accent);color:#fff;border:none;border-radius:6px;padding:5px 14px;font-weight:600;font-size:.78rem;cursor:pointer;transition:all .15s;line-height:1}
 .run-btn:hover:not(:disabled){background:#8e72fc}
 .run-btn:disabled{opacity:0.4;cursor:not-allowed}
-/* === Rocket Animation v2 === */
-#rocket {
-  position: fixed;
-  z-index: 9999;
-  font-size: 1.2rem;
-  pointer-events: none;
-  opacity: 0;
-  transition: none;
-  filter: drop-shadow(0 0 4px rgba(168,85,247,0.3));
-}
-#rocket.visible { opacity: 1; }
-#rocket.launch {
-  animation: rocketUp .9s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
-}
-#rocket.hover {
-  animation: rocketHover 2.5s ease-in-out infinite;
-}
-#rocket.land {
-  animation: rocketDown 1.2s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
-}
-@keyframes rocketUp {
-  0%   { transform: translateX(-50%) translateY(0) scale(1); opacity: 1; }
-  100% { transform: translateX(-50%) translateY(-160px) scale(0.5); opacity: 1; }
-}
-@keyframes rocketHover {
-  0%, 100% { transform: translateX(-50%) translateY(-160px) scale(0.5) rotate(-3deg); }
-  50%      { transform: translateX(-50%) translateY(-172px) scale(0.5) rotate(3deg); }
-}
-@keyframes rocketDown {
-  0%   { transform: translateX(-50%) translateY(-160px) scale(0.5); opacity: 1; }
-  60%  { transform: translateX(-50%) translateY(4px) scale(1.05); }
-  80%  { transform: translateX(-50%) translateY(-2px) scale(0.98); }
-  100% { transform: translateX(-50%) translateY(0) scale(1); opacity: 1; }
-}
-.run-btn.shaking {
-  animation: btnShakeV2 .4s ease-in-out;
-}
-@keyframes btnShakeV2 {
-  0%, 100% { transform: translateX(0); }
-  15%      { transform: translateX(-3px) rotate(-1.5deg); }
-  30%      { transform: translateX(3px) rotate(1.5deg); }
-  45%      { transform: translateX(-2px) rotate(-1deg); }
-  60%      { transform: translateX(2px) rotate(1deg); }
-  75%      { transform: translateX(-1px); }
-  90%      { transform: translateX(1px); }
-}
+
 .play-editor-wrap{display:grid;min-height:220px}
 .play-editor-wrap>*{grid-area:1/1}
 textarea.play-editor{width:100%;min-height:220px;padding:16px 18px;font:14px/1.7 var(--mono);background:transparent;border:none;color:transparent;caret-color:var(--fg);resize:vertical;outline:none;white-space:pre-wrap;tab-size:4;overflow:auto;z-index:2}
@@ -141,7 +96,7 @@ a{color:var(--accent);text-decoration:none}
       <div class="play-actions">
         <button class="icon-btn" onclick="downloadCode()" title="Download .pipe file">↓</button>
         <button id="share-btn" class="share-btn" onclick="sharePlay()">Share</button>
-        <button id="play-btn" class="run-btn" disabled onclick="runPlay()">Run <span id="rocket-btn">🚀</span></button>
+        <button id="play-btn" class="run-btn" disabled onclick="runPlay()">▶ Run</button>
       </div>
     </div>
     <div class="play-editor-wrap">
@@ -173,7 +128,6 @@ oninput="onEdit()" onscroll="syncScroll()">print (2 + 2)</textarea>
 
 <p class="ft"><a href="index.html">home</a> · <a href="https://github.com/MachuraHarry/pipe">github</a></p>
 <div class="toast" id="toast"></div>
-<div id="rocket">🚀</div>
 
 <script src="wasm_exec.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
@@ -222,75 +176,38 @@ function updateBar() {
 }
 
 function runPlay() {
-  const btn=document.getElementById("play-btn"),out=document.getElementById("play-out"),bar=document.getElementById("play-bar"),rocket=document.getElementById("rocket"),btnRocket=document.getElementById("rocket-btn");
+  const btn=document.getElementById("play-btn"),out=document.getElementById("play-out"),bar=document.getElementById("play-bar");
   if(!pipeReady||btn.disabled)return;
-  btn.disabled=true;
-
-  const btnRect=btn.getBoundingClientRect();
-  const startX=btnRect.left+btnRect.width/2;
-  const startY=btnRect.top+btnRect.height/2;
-
-  rocket.style.left=startX+"px";
-  rocket.style.top=startY+"px";
-  rocket.style.transform="translateX(-50%) translateY(0) scale(1)";
-  rocket.classList.add("visible");
-
-  if(btnRocket)btnRocket.style.visibility="hidden";
-
-  btn.classList.add("shaking");
-  bar.className="play-bar";bar.innerHTML="<span>ignition…</span>";
+  btn.disabled=true;btn.textContent="⏳";
+  bar.className="play-bar";bar.innerHTML='<span>executing…</span>';
   out.className="play-out";
   out.textContent="";
-
-  setTimeout(()=>{
-    btn.classList.remove("shaking");
-    rocket.classList.add("launch");
-    bar.innerHTML="<span>executing…</span>";
-    setTimeout(()=>{
-      rocket.classList.remove("launch");
-      rocket.classList.add("hover");
-      setTimeout(()=>{
-        try{
-          const code=document.getElementById("play-editor").value;
-          const t0=performance.now();
-          const result=pipeRun(code);
-          const t1=performance.now();
-          rocket.classList.remove("hover");
-          rocket.classList.add("land");
-          const elapsed=((t1-t0)/1000).toFixed(2);
-          if(result&&(result.includes("Error:")||result.includes("Parse error"))){
-            bar.className="play-bar error";
-            bar.innerHTML="<span>✗ error ("+elapsed+"s)</span>";
-            out.className="play-out error";
-          }else{
-            bar.className="play-bar success";
-            bar.innerHTML="<span>✓ done ("+elapsed+"s)</span>";
-            out.className="play-out";
-          }
-          out.textContent=result||"(no output)";
-          setTimeout(()=>{
-            rocket.classList.remove("land","visible");
-            rocket.style.opacity="0";
-            if(btnRocket)btnRocket.style.visibility="visible";
-            btn.disabled=false;
-          },1200);
-        }catch(e){
-          rocket.classList.remove("hover");
-          rocket.classList.add("land");
-          setTimeout(()=>{
-            rocket.classList.remove("land","visible");
-            rocket.style.opacity="0";
-            if(btnRocket)btnRocket.style.visibility="visible";
-            btn.disabled=false;
-          },1200);
-          bar.className="play-bar error";
-          bar.innerHTML="<span>✗ error</span>";
-          out.className="play-out error";
-          out.textContent="Error: "+e.message;
-        }
-      },50);
-    },900);
-  },400);
+  setTimeout(function(){
+    try{
+      const code=document.getElementById("play-editor").value;
+      const t0=performance.now();
+      const result=pipeRun(code);
+      const t1=performance.now();
+      btn.disabled=false;btn.textContent="▶ Run";
+      const elapsed=((t1-t0)/1000).toFixed(2);
+      if(result&&(result.includes("Error:")||result.includes("Parse error"))){
+        bar.className="play-bar error";
+        bar.innerHTML='<span>✗ error ('+elapsed+'s)</span>';
+        out.className="play-out error";
+      }else{
+        bar.className="play-bar success";
+        bar.innerHTML='<span>✓ done ('+elapsed+'s)</span>';
+        out.className="play-out";
+      }
+      out.textContent=result||"(no output)";
+    }catch(e){
+      btn.disabled=false;btn.textContent="▶ Run";
+      bar.className="play-bar error";
+      bar.innerHTML='<span>✗ error</span>';
+      out.className="play-out error";
+      out.textContent="Error: "+e.message;
+    }
+  },50);
 }
 
 document.getElementById("play-editor").addEventListener("keydown",function(e){

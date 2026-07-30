@@ -191,6 +191,7 @@ span[data-lang].active{display:inline}a[data-lang].active{display:inline-block}
 
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-database-compat.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 <script src="firebase-config.js"></script>
 <script>
 const db = firebase.database();
@@ -218,13 +219,21 @@ function showList() {
   history.replaceState(null, "", window.location.pathname);
 }
 
+function renderMarkdown(markdown) {
+  if (window.marked) {
+    marked.setOptions({ gfm: true, breaks: true, headerIds: false, mangle: false });
+    return marked.parse(markdown || "");
+  }
+  return "<p>Markdown renderer unavailable.</p>";
+}
+
 function showPost(key) {
   db.ref("blog/posts/" + key).once("value").then(snap => {
     const p = snap.val();
     if (!p) return;
     viewTitle.textContent = p.title;
     viewDate.textContent = formatDate(p.created);
-    viewContent.innerHTML = p.content;
+    viewContent.innerHTML = renderMarkdown(p.content || "");
     listEl.style.display = "none";
     viewEl.classList.add("active");
     viewEl.style.display = "block";
@@ -233,10 +242,11 @@ function showPost(key) {
   });
 }
 
-function renderExcerpt(html) {
-  const d = document.createElement("div");
-  d.innerHTML = html;
-  const text = (d.textContent || d.innerText || "").replace(/\s+/g, " ").trim();
+function renderExcerpt(markdown) {
+  const text = (markdown || "")
+    .replace(/[#>*_`\-\[\]()] /g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
   return text.slice(0, 220);
 }
 

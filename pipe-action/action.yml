@@ -21,6 +21,10 @@ inputs:
     description: 'Max execution time in seconds'
     required: false
     default: '30'
+  ai-provider:
+    description: 'AI provider: openai, anthropic, deepseek, ollama'
+    required: false
+    default: ''
 
 runs:
   using: 'docker'

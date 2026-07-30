@@ -9,13 +9,14 @@ jobs:
   analyze:
     runs-on: ubuntu-latest
     steps:
-      - uses: MachuraHarry/pipe@master
+      - uses: actions/checkout@v4
+      - uses: MachuraHarry/pipe/pipe-action@master
         with:
           script: |
-            read_file "report.txt"
-              > summarize
-              > translate "de"
-              > print
+            read_file "README.md"
+                > summarize
+                > translate "de"
+                > print
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
 ```
@@ -28,31 +29,42 @@ jobs:
 | `sandbox` | `false` | Block AI, exec, net, FS builtins |
 | `allow-ai` | `false` | Re-enable AI builtins in sandbox |
 | `timeout` | `30` | Max execution time in seconds |
+| `ai-provider` | `openai` | AI provider: `openai`, `anthropic`, `deepseek`, `ollama` |
 
 ## Examples
 
 ### Hello World
 ```yaml
-- uses: MachuraHarry/pipe@master
+- uses: MachuraHarry/pipe/pipe-action@master
   with:
     script: print "hello from pipe-action"
 ```
 
-### Classify an Issue
+### Process a File (after checkout)
 ```yaml
-- uses: MachuraHarry/pipe@master
+- uses: actions/checkout@v4
+- uses: MachuraHarry/pipe/pipe-action@master
   with:
     script: |
-      read_file "${{ github.event.issue.body }}"
-        > classify ["bug","feature","question"]
-        > print
+      data: read_file "data.csv"
+      print data
+```
+
+### Classify with AI
+```yaml
+- uses: MachuraHarry/pipe/pipe-action@master
+  with:
+    script: |
+      cats: ["bug", "feature", "question"]
+      classify "this is a bug report" cats
+          > print
   env:
     OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
 ```
 
 ### Sandboxed Execution
 ```yaml
-- uses: MachuraHarry/pipe@master
+- uses: MachuraHarry/pipe/pipe-action@master
   with:
     script: print "safe execution"
     sandbox: true

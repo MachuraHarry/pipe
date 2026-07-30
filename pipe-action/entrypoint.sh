@@ -17,6 +17,9 @@ fi
 if [ -n "${INPUT_TIMEOUT:-}" ]; then
   flags="$flags --timeout $INPUT_TIMEOUT"
 fi
+if [ -n "${INPUT_AI_PROVIDER:-}" ]; then
+  flags="$flags --ai-provider $INPUT_AI_PROVIDER"
+fi
 
 tmpfile=$(mktemp)
 echo "$INPUT_SCRIPT" > "$tmpfile"

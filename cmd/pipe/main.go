@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/harry/pipe/pkg/ai"
 	"github.com/harry/pipe/pkg/ast"
 	"github.com/harry/pipe/pkg/build"
 	"github.com/harry/pipe/pkg/cache"
@@ -44,6 +45,7 @@ func main() {
 		searchTerm string
 		sandbox    bool
 		allowAI    bool
+		aiProvider string
 		timeoutSec int
 		buildOut   string
 		filePath   string
@@ -81,9 +83,15 @@ func main() {
 			sandbox = true
 		case "--allow-ai":
 			allowAI = true
+		case "--ai-provider":
+			aiProvider = "-" // marker to read next arg
 		case "--timeout":
 			timeoutSec = -1 // marker to read next arg
 		default:
+			if aiProvider == "-" {
+				aiProvider = arg
+				continue
+			}
 			if timeoutSec == -1 {
 				// --timeout <seconds>
 				if n, err := strconv.Atoi(arg); err == nil && n > 0 {
@@ -238,6 +246,9 @@ func main() {
 	if allowAI {
 		object.SetSandboxAllowAI(true)
 	}
+	if aiProvider != "" {
+		ai.SetProvider(aiProvider)
+	}
 	if timeoutSec > 0 {
 		go func() {
 			time.Sleep(time.Duration(timeoutSec) * time.Second)
@@ -370,6 +381,7 @@ Flags:
   --sandbox     Restrict dangerous builtins (exec, tcp, http, ai, fs-write)
   --allow-ai    In sandbox: re-enable AI builtins
   --timeout N   Kill execution after N seconds
+  --ai-provider openai|anthropic|deepseek|ollama
   -get <url>    Download a module into ~/.pipe/modules/
   -search [term] Search available modules
   -h, --help    Show this help

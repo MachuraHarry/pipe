@@ -38,7 +38,7 @@
 | 14 | **Web-Playground** | "Try Pipe in your Browser" via WASM |
 | 15 | **VSCode-Plugin 2.0** | Auto-Vervollständigung, Go-to-Definition, Debugger-Integration |
 | 16 | **LSP-Server** | Language Server Protocol für Editor-Unterstützung |
-| 17 | **Standard-Test-Framework** | `assert`, `test`, `suite` Keywords |
+| 17 | **Standard-Test-Framework** | `assert`, `test`, `assert_eq`, `assert_error`, `assert_lt`, `assert_gt` — `suite` fehlt noch |
 | 18 | **Dokumentations-Generator** | `pipe doc` — Dokumentation aus Quelltext-Kommentaren |
 
 ---

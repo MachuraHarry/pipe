@@ -950,4 +950,7 @@ print "Hauptprogramm"
 ### KI — Embeddings (5)
 `embed`, `embed_batch`, `cosine_sim`, `dot_product`, `nearest`
 
-**Gesamt: 105 Builtins**
+### Test-Assertions (6)
+`assert`, `assert_eq`, `assert_not_eq`, `assert_lt`, `assert_gt`, `assert_error`
+
+**Gesamt: 111 Builtins**

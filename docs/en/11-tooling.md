@@ -427,59 +427,50 @@ if x > 0 {
 
 The `-test` flag discovers test functions and runs them, reporting pass/fail status.
 
-### Test Function Syntax
+### Test Syntax
 
-The `test` keyword defines a test case:
+The `test` keyword defines a named test block with indentation-based body:
 
 ```pipe
-test "description of the test" {
-    # test body
-    # assertion failures should use print or error
-}
+test "description"
+    assert_eq (1 + 2) 3
+    assert_lt 3 5
 ```
 
 ### Test Discovery
 
-The runner searches for:
+The runner searches the current directory for:
 
-1. Files with names matching `*_test.pipe`
-2. Files in a `test/` directory
-3. Explicitly passed file paths
+1. Files matching `*_test.pipe`
+2. Files matching `*.test.pipe`
+
+### Built-in Assertions
+
+| Function | Description |
+|----------|-------------|
+| `assert(cond)` | Fails if value is not truthy |
+| `assert_eq(a, b)` | Fails if values are not equal |
+| `assert_not_eq(a, b)` | Fails if values are equal |
+| `assert_lt(a, b)` | Fails unless `a < b` |
+| `assert_gt(a, b)` | Fails unless `a > b` |
+| `assert_error(fn)` | Fails if `fn()` does not error |
 
 ### Comprehensive Test Example
 
 ```pipe
-# File: string_utils_test.pipe
-import "string_utils.pipe" as su
+test "string operations"
+    assert_eq ("hello" ++ " world") "hello world"
+    assert (len "hello") == 5
 
-test "capitalize single word" {
-    let result = su.capitalize "hello"
-    if result != "Hello" {
-        print "FAIL: capitalize 'hello' => '" + result + "' expected 'Hello'"
-    }
-}
+test "list operations"
+    my_list: [1, 2, 3]
+    assert_eq (len my_list) 3
+    assert_eq (push my_list 4) [1, 2, 3, 4]
 
-test "capitalize empty string" {
-    let result = su.capitalize ""
-    if result != "" {
-        print "FAIL: capitalize '' => '" + result + "'"
-    }
-}
-
-test "reverse preserves length" {
-    let original = "hello"
-    let reversed = su.reverse original
-    if len original != len reversed {
-        print "FAIL: lengths differ: " + (len original) + " vs " + (len reversed)
-    }
-}
-
-test "reverse palindrome" {
-    let result = su.reverse "racecar"
-    if result != "racecar" {
-        print "FAIL: reverse 'racecar' => '" + result + "'"
-    }
-}
+test "error handling"
+    failing: fn
+        read_file "nonexistent"
+    assert_error failing
 ```
 
 ---

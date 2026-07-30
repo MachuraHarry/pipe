@@ -156,17 +156,28 @@ Der Test-Runner:
 3. Führt sie aus
 4. Zeigt PASS/FAIL mit Zählung
 
+### Eingebaute Assertions
+
+| Funktion | Beschreibung |
+|----------|-------------|
+| `assert(cond)` | Schlägt fehl, wenn der Wert nicht truthy ist |
+| `assert_eq(a, b)` | Schlägt fehl, wenn die Werte nicht gleich sind |
+| `assert_not_eq(a, b)` | Schlägt fehl, wenn die Werte gleich sind |
+| `assert_lt(a, b)` | Schlägt fehl, wenn nicht `a < b` |
+| `assert_gt(a, b)` | Schlägt fehl, wenn nicht `a > b` |
+| `assert_error(fn)` | Schlägt fehl, wenn `fn()` keinen Fehler wirft |
+
 ```pipe
--- test_math.pipe
-fn test_addition
+test "addition"
     assert (1 + 2) == 3
+    assert_eq (2 + 2) 4
 
-fn test_multiplikation
-    assert (2 * 3) == 6
+test "multiplikation"
+    assert_eq (2 * 3) 6
 
-fn test_vergleich
-    assert (5 > 3)
-    assert (2 < 10)
+test "vergleich"
+    assert_lt 3 5
+    assert_gt 10 3
 ```
 
 ## 11.5 Benchmark (`-bench`)

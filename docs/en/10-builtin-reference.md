@@ -1200,6 +1200,95 @@ nearest q docs 2    # [1, 0] (dog, cat)
 
 ---
 
+## 10.23 Test Assertions (6 functions)
+
+**Note:** `test` blocks and assert builtins are available in all execution modes, but are designed for use with `pipe -test`.
+
+### `assert`
+
+**Signature:** `assert(condition)`
+
+**Description:** Asserts that a value is truthy.
+
+**Returns:** `nil` on success, `ERROR` on failure
+```pipe
+assert (2 + 2) == 4
+assert true
+```
+
+### `assert_eq`
+
+**Signature:** `assert_eq(expected, actual)`
+
+**Description:** Asserts that two values are equal.
+
+**Returns:** `nil` on success, `ERROR` on failure
+```pipe
+assert_eq (2 + 2) 4
+assert_eq "hello" ("hel" ++ "lo")
+```
+
+### `assert_not_eq`
+
+**Signature:** `assert_not_eq(unexpected, actual)`
+
+**Description:** Asserts that two values are not equal.
+
+**Returns:** `nil` on success, `ERROR` on failure
+```pipe
+assert_not_eq 5 6
+assert_not_eq "cat" "dog"
+```
+
+### `assert_lt`
+
+**Signature:** `assert_lt(a, b)`
+
+**Description:** Asserts that `a < b` (numeric comparison).
+
+**Returns:** `nil` on success, `ERROR` on failure
+```pipe
+assert_lt 3 5
+assert_lt (-5) 0
+```
+
+### `assert_gt`
+
+**Signature:** `assert_gt(a, b)`
+
+**Description:** Asserts that `a > b` (numeric comparison).
+
+**Returns:** `nil` on success, `ERROR` on failure
+```pipe
+assert_gt 10 3
+assert_gt 0 (-5)
+```
+
+### `assert_error`
+
+**Signature:** `assert_error(fn)`
+
+**Description:** Asserts that calling `fn()` returns an error. Pass a zero-argument function.
+
+**Returns:** `nil` on success, `ERROR` on failure
+```pipe
+failing: fn
+    read_file "nonexistent"
+assert_error failing
+```
+
+### `test` — test block
+
+**Description:** Groups assertions into a named test. Inside `pipe -test`, each test block prints `PASS name` or `FAIL name (reason)`. A failing assertion stops only its own test block.
+
+```pipe
+test "addition"
+    assert_eq (2 + 2) 4
+    assert_lt 3 5
+```
+
+---
+
 ## 10.24 Summary Table
 ### IO & System (5)
 | # | Function | Signature | Returns |
@@ -1394,6 +1483,16 @@ nearest q docs 2    # [1, 0] (dog, cat)
 | 104 | `dot_product` | `dot_product(a, b)` | `float` |
 | 105 | `nearest` | `nearest(query, docs, k)` | `list` |
 
+### Test Assertions (6)
+| # | Function | Signature | Returns |
+|---|----------|-----------|---------|
+| 106 | `assert` | `assert(condition)` | `nil` or `ERROR` |
+| 107 | `assert_eq` | `assert_eq(expected, actual)` | `nil` or `ERROR` |
+| 108 | `assert_not_eq` | `assert_not_eq(unexpected, actual)` | `nil` or `ERROR` |
+| 109 | `assert_lt` | `assert_lt(a, b)` | `nil` or `ERROR` |
+| 110 | `assert_gt` | `assert_gt(a, b)` | `nil` or `ERROR` |
+| 111 | `assert_error` | `assert_error(fn)` | `nil` or `ERROR` |
+
 ---
 
-**Total: 105 built-in functions**
+**Total: 111 built-in functions**

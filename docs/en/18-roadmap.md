@@ -181,7 +181,7 @@ Pipe is currently at version **v0.6.0**, which includes the foundational languag
 
 ### Test Framework
 - [ ] `test` keyword or `test` builtin function
-- [ ] Assertion helpers: `assert_eq`, `assert_true`, etc.
+- [x] Assertion helpers: `assert`, `assert_eq`, `assert_not_eq`, `assert_lt`, `assert_gt`, `assert_error`
 - [ ] Test runner CLI (`pipe test`)
 - [ ] Test file discovery (`*_test.pipe`)
 - [ ] Setup/teardown hooks

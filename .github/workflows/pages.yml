@@ -5,6 +5,7 @@ on:
     branches: [master]
     paths:
       - 'website/**'
+      - '.github/workflows/pages.yml'
   schedule:
     - cron: '0 6 * * *'  # daily at 6 AM UTC
 

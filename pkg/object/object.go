@@ -2628,5 +2628,9 @@ func SetSandboxAllowNet(allowed bool)  { Sandbox.AllowNet = allowed }
 func SetSandboxAllowFS(allowed bool)   { Sandbox.AllowFS = allowed }
 
 func sandboxBlock(feature string) *Error {
-	return &Error{Message: "SANDBOX: " + feature + " is disabled in sandbox mode"}
+	msg := "SANDBOX: " + feature + " is disabled in sandbox mode"
+	if strings.Contains(feature, "AI") || strings.Contains(feature, "ai") {
+		msg += " — use --allow-ai or allow-ai: true to re-enable"
+	}
+	return &Error{Message: msg}
 }

@@ -152,17 +152,87 @@ func (p *Parser) expectPeek(t lexer.TokenType) bool {
 }
 
 func (p *Parser) peekError(t lexer.TokenType) {
+	var hint string
+	expected := lexer.TokenName(t)
+	got := lexer.TokenName(p.peekToken.Type)
+	switch t {
+	case lexer.NEWLINE:
+		hint = fmt.Sprintf("expected a line break here, got %s", got)
+	case lexer.INDENT:
+		hint = fmt.Sprintf("expected an indented block here, got %s", got)
+	case lexer.COLON:
+		hint = fmt.Sprintf("expected ':', got %s (%q)", got, p.peekToken.Literal)
+	case lexer.ARROW, lexer.ARROW2:
+		hint = fmt.Sprintf("expected '%s', got %s (%q)", expected, got, p.peekToken.Literal)
+	case lexer.RPAREN:
+		hint = fmt.Sprintf("expected ')', got %s (%q) — did you forget to close a parenthesis?", got, p.peekToken.Literal)
+	case lexer.RBRACKET:
+		hint = fmt.Sprintf("expected ']', got %s (%q) — did you forget to close a bracket?", got, p.peekToken.Literal)
+	case lexer.RBRACE:
+		hint = fmt.Sprintf("expected '}', got %s (%q) — did you forget to close a brace?", got, p.peekToken.Literal)
+	case lexer.DEDENT:
+		hint = fmt.Sprintf("expected block end (dedent), got %s", got)
+	case lexer.LBRACE:
+		hint = fmt.Sprintf("expected '{', got %s (%q)", got, p.peekToken.Literal)
+	default:
+		if p.peekToken.Type == lexer.NEWLINE {
+			hint = fmt.Sprintf("expected %s, but the line ended here — did you forget something?", expected)
+		} else {
+			hint = fmt.Sprintf("expected %s, got %s (%q)", expected, got, p.peekToken.Literal)
+		}
+	}
 	p.errors = append(p.errors, fmt.Sprintf(
-		"line %d col %d: expected %s, got %s (%q)",
-		p.peekToken.Line, p.peekToken.Col,
-		lexer.TokenName(t), lexer.TokenName(p.peekToken.Type), p.peekToken.Literal,
-	))
+		"line %d col %d: %s",
+		p.peekToken.Line, p.peekToken.Col, hint))
 }
 
 func (p *Parser) noPrefixParseFnError(t lexer.TokenType) {
+	var hint string
+	switch t {
+	case lexer.NEWLINE:
+		hint = "unexpected line break — expected an expression. Did you forget to complete a value or add an operator?"
+	case lexer.COLON:
+		hint = "unexpected ':' — a colon starts a variable assignment (x: value) or a map entry ({key: value}), but cannot appear here"
+	case lexer.ARROW:
+		hint = "unexpected '>' — did you mean a pipeline? If so, indent the next line:\n    > your_function"
+	case lexer.ARROW2:
+		hint = "unexpected '>>' — did you mean a parallel pipeline? If so, indent:\n    >> your_function"
+	case lexer.PIPE:
+		hint = "unexpected '|' — Pipe uses '>' for pipelines, not '|'"
+	case lexer.INDENT:
+		hint = "unexpected indentation increase — this block is not expected here"
+	case lexer.DEDENT:
+		hint = "unexpected dedent — check that all blocks are properly aligned"
+	case lexer.ILLEGAL:
+		switch p.curToken.Literal {
+		case "@":
+			hint = "'@' is not a valid character in Pipe"
+		case "&":
+			hint = "unexpected '&' — did you mean 'and' (&&)?"
+		case "unterminated string":
+			hint = "string is missing the closing quote (\"...\")"
+		case "unterminated backtick string":
+			hint = "backtick string is missing the closing backtick (`...`)"
+		case "unexpected indent":
+			hint = "unexpected indentation increase — check that your indentation is consistent"
+		default:
+			if len(p.curToken.Literal) == 1 {
+				hint = fmt.Sprintf("invalid character %q", p.curToken.Literal)
+			} else {
+				hint = fmt.Sprintf("%s", p.curToken.Literal)
+			}
+		}
+	case lexer.INT, lexer.FLOAT, lexer.STRING, lexer.IDENT,
+		lexer.TRUE, lexer.FALSE, lexer.NIL, lexer.LPAREN,
+		lexer.LBRACKET, lexer.LBRACE, lexer.IF, lexer.FN,
+		lexer.MATCHKW, lexer.WHILE, lexer.FOR, lexer.MINUS, lexer.BANG:
+		hint = fmt.Sprintf("unexpected '%s' here — check your expression order", lexer.TokenName(t))
+	default:
+		hint = fmt.Sprintf("unexpected token '%s'", p.curToken.Literal)
+	}
 	p.errors = append(p.errors,
-		fmt.Sprintf("line %d col %d: no prefix parser for %s (%q)",
-			p.curToken.Line, p.curToken.Col, lexer.TokenName(t), p.curToken.Literal))
+		fmt.Sprintf("line %d col %d: %s",
+			p.curToken.Line, p.curToken.Col, hint))
 }
 
 // ---- Entry points ----

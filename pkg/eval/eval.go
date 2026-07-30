@@ -288,7 +288,7 @@ func evalPrefixExpression(operator string, right object.Object) object.Object {
 	case "!":
 		return object.NativeBoolToBoolean(!object.IsTruthy(right))
 	default:
-		return newErrorSt("unknown operator: %s%s", operator, right.Type())
+		return newErrorSt("unknown prefix operator '%s' for %s", operator, right.Type())
 	}
 }
 
@@ -299,7 +299,7 @@ func evalMinusPrefixOperator(right object.Object) object.Object {
 	case *object.Float:
 		return &object.Float{Value: -v.Value}
 	default:
-		return newErrorSt("unknown operator: -%s", right.Type())
+		return newErrorSt("cannot negate a %s with '-'", right.Type())
 	}
 }
 
@@ -337,7 +337,7 @@ func evalInfixExpression(operator string, left, right object.Object) object.Obje
 	case operator == "!=":
 		return object.NativeBoolToBoolean(left != right)
 	default:
-		return newErrorCode("", "E002", "Type error: %s %s %s", left.Type(), operator, right.Type())
+		return newErrorCode("", "E002", "type mismatch: cannot apply '%s' between %s and %s", operator, left.Type(), right.Type())
 	}
 }
 
@@ -375,7 +375,7 @@ func evalIntegerInfix(operator string, left, right *object.Integer) object.Objec
 	case "!=":
 		return object.NativeBoolToBoolean(l != r)
 	default:
-		return newErrorCode("", "E005", "unknown operator: %s %s %s", left.Type(), operator, right.Type())
+		return newErrorCode("", "E005", "operator '%s' not supported for %s and %s", operator, left.Type(), right.Type())
 	}
 }
 
@@ -396,7 +396,7 @@ func evalFloatInfix(operator string, left, right *object.Float) object.Object {
 	case "**":
 		return &object.Float{Value: math.Pow(l, r)}
 	case "%":
-		return newErrorSt("modulo not defined for float")
+		return newErrorSt("'%%' is not defined for float — use integer values or to_num()")
 	case "<":
 		return object.NativeBoolToBoolean(l < r)
 	case ">":
@@ -410,7 +410,7 @@ func evalFloatInfix(operator string, left, right *object.Float) object.Object {
 	case "!=":
 		return object.NativeBoolToBoolean(l != r)
 	default:
-		return newErrorCode("", "E005", "unknown operator: %s %s %s", left.Type(), operator, right.Type())
+		return newErrorCode("", "E005", "operator '%s' not supported for float", operator)
 	}
 }
 
@@ -431,7 +431,7 @@ func evalStringInfix(operator string, left, right *object.String) object.Object 
 	case ">=":
 		return object.NativeBoolToBoolean(left.Value >= right.Value)
 	default:
-		return newErrorCode("", "E005", "unknown operator: %s %s %s", left.Type(), operator, right.Type())
+		return newErrorCode("", "E005", "operator '%s' not supported for strings", operator)
 	}
 }
 
@@ -642,7 +642,7 @@ func (ctx *EvalContext) evalPipeline(pe *ast.PipelineExpression, left object.Obj
 		return fn.Fn(append([]object.Object{left})...)
 	}
 
-	return ctx.newError("Pipeline: right side is not a function")
+	return ctx.newError("pipeline: right side of '>' is %s, not a function — pipeline requires a function call on the right", rightFn.Type())
 }
 
 func (ctx *EvalContext) evalParallelPipeline(pe *ast.PipelineExpression, left object.Object, env *object.Environment) object.Object {
@@ -684,7 +684,7 @@ func (ctx *EvalContext) evalDotExpression(de *ast.DotExpression, env *object.Env
 		}
 		return ctx.newError("field '%s' not found", de.Field)
 	default:
-		return ctx.newError("dot access only on maps, not %s", left.Type())
+		return ctx.newError("cannot use .%s on a %s — dot access requires a map", de.Field, left.Type())
 	}
 }
 
@@ -1086,7 +1086,7 @@ func evalIndexExpression(left, right object.Object) object.Object {
 		}
 		return &object.String{Value: string(s[idx])}
 	}
-	return newErrorCode("", "E006", "index access not supported for %s", left.Type())
+	return newErrorCode("", "E006", "cannot index into a %s — only lists, maps, and strings support [ ]", left.Type())
 }
 
 type ReturnValue struct {

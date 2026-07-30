@@ -354,6 +354,14 @@ type EnumStatement struct {
 func (es *EnumStatement) statementNode()       {}
 func (es *EnumStatement) TokenLiteral() string { return "enum" }
 
+type TestStatement struct {
+	Name *StringLiteral
+	Body *BlockStatement
+}
+
+func (ts *TestStatement) statementNode()       {}
+func (ts *TestStatement) TokenLiteral() string { return "test" }
+
 type FnLiteral struct {
 	Parameters []*Identifier
 	Body       *BlockStatement

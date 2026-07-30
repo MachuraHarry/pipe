@@ -2,6 +2,8 @@
 
 ## 1. Aussagekräftige Fehlermeldungen
 
+**Status:** 🔶 Teilweise erledigt — Parser/Eval/Builtin-Texte verbessert, AST-Positionsinfos fehlen noch.
+
 ### Parser (aktuell)
 ```
 line 2 col 5: no prefix parser for NEWLINE ("\n")
@@ -68,6 +70,26 @@ test "list operations"
 
 **Aufwand:** 2 Tage (Parser + Evaluator + Test-Runner)
 
+**Status:** ✅ Erledigt (2026-07-30)
+- Lexer: `TEST`-Token + `"test"`-Keyword
+- AST: `TestStatement` (Name + Body)
+- Parser: `parseTestStatement()` — `test "name" \n <body>`
+- Evaluator: `evalTestStatement()` — führt Body aus, fängt Fehler, reportet PASS/FAIL
+- Builtins (6 neue): `assert`, `assert_eq`, `assert_not_eq`, `assert_lt`, `assert_gt`, `assert_error`
+- Test-Runner: per-test Ausgabe (`PASS name` / `FAIL name (reason)`), alle Tests laufen (erster Fehler bricht nur den Block ab)
+- Integration-Test: `test/integration/assertions_test.pipe`
+
+```pipe
+test "addition"
+    assert_eq (2 + 2) 4
+    assert_lt 3 5
+
+test "assert error"
+    failing: fn
+        read_file "nonexistent"
+    assert_error failing
+```
+
 ---
 
 ## 4. Language Server (LSP)
@@ -123,11 +145,11 @@ Typ-Prüfung als separater Durchlauf (optional, nicht zur Laufzeit).
 
 ## Priorisierung
 
-| Rang | Thema | Aufwand | Impact |
-|------|-------|---------|--------|
-| 1 | Fehlermeldungen | ~7 Tage | ★★★★★ |
-| 2 | Builtin-Doku | ~3 Tage | ★★★★ |
-| 3 | Test-Assertions | ~2 Tage | ★★★★ |
+| Rang | Thema | Aufwand | Impact | Status |
+|------|-------|---------|--------|--------|
+| 1 | Fehlermeldungen | ~7 Tage | ★★★★★ | 🔶 Parser/Eval/Builtins verbessert, Positionsinfos fehlen |
+| 2 | Builtin-Doku | ~3 Tage | ★★★★ | ✅ Erledigt (en+de, 105 Builtins) |
+| 3 | Test-Assertions | ~2 Tage | ★★★★ | ✅ Erledigt (test, assert, assert_eq, assert_error) |
 | 4 | LSP | ~6 Tage | ★★★ |
 | 5 | Debugger | ~4 Tage | ★★★ |
 | 6 | Ökosystem | ~6 Tage | ★★ |

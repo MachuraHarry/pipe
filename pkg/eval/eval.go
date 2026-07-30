@@ -20,6 +20,7 @@ type EvalContext struct {
 	importCache     map[string]*ast.Program
 	importedFiles   map[string]struct{}
 	exportedSymbols map[string]bool
+	testFailed      bool
 }
 
 func NewEvalContext(sourceFile string) *EvalContext {
@@ -133,6 +134,9 @@ func (ctx *EvalContext) Eval(node ast.Node, env *object.Environment) object.Obje
 		}
 		return object.NILOBJ
 
+	case *ast.TestStatement:
+		return ctx.evalTestStatement(n, env)
+
 	case *ast.EnumStatement:
 		return ctx.evalEnumStatement(n, env)
 
@@ -219,6 +223,11 @@ func (ctx *EvalContext) evalProgram(stmts []ast.Statement, env *object.Environme
 	}
 
 	runDefers(defers)
+
+	if ctx.testFailed {
+		return ctx.newError("some tests failed")
+	}
+
 	return result
 }
 
@@ -852,6 +861,21 @@ func (ctx *EvalContext) evalEnumStatement(es *ast.EnumStatement, env *object.Env
 		env.Set(val, &object.Integer{Value: int64(i)})
 	}
 	return object.NILOBJ
+}
+
+func (ctx *EvalContext) evalTestStatement(ts *ast.TestStatement, env *object.Environment) object.Object {
+	name := ""
+	if ts.Name != nil {
+		name = ts.Name.Value
+	}
+	result := ctx.Eval(ts.Body, env)
+	if isError(result) {
+		fmt.Printf("  FAIL %s (%s)\n", name, result.Inspect())
+		ctx.testFailed = true
+		return object.NILOBJ
+	}
+	fmt.Printf("  PASS %s\n", name)
+	return result
 }
 
 func (ctx *EvalContext) evalFnLiteral(fl *ast.FnLiteral, env *object.Environment) object.Object {

@@ -274,6 +274,8 @@ func (p *Parser) parseStatement() ast.Statement {
 		return p.parseExportStatement()
 	case lexer.ENUM:
 		return p.parseEnumStatement()
+	case lexer.TEST:
+		return p.parseTestStatement()
 	case lexer.NEWLINE:
 		return nil
 	case lexer.DEDENT:
@@ -988,6 +990,23 @@ func (p *Parser) parseEnumStatement() ast.Statement {
 			p.nextToken() // skip comma
 		}
 	}
+
+	return stmt
+}
+
+func (p *Parser) parseTestStatement() ast.Statement {
+	stmt := &ast.TestStatement{}
+
+	p.nextToken() // skip 'test'
+
+	if !p.curTokenIs(lexer.STRING) {
+		p.error("test expects a string description")
+		return nil
+	}
+	stmt.Name = &ast.StringLiteral{Value: p.curToken.Literal}
+
+	p.nextToken()
+	stmt.Body = p.parseBlock()
 
 	return stmt
 }

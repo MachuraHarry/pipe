@@ -81,6 +81,7 @@ const (
 	FALSE    // false
 	NIL      // nil
 	TRYAI    // try_ai
+	TEST     // test
 )
 
 var keywords = map[string]TokenType{
@@ -103,6 +104,7 @@ var keywords = map[string]TokenType{
 	"true":     TRUE,
 	"false":    FALSE,
 	"nil":      NIL,
+	"test":     TEST,
 }
 
 var tokenNames = map[TokenType]string{
@@ -170,6 +172,7 @@ var tokenNames = map[TokenType]string{
 	TRUE:      "true",
 	FALSE:     "false",
 	NIL:       "nil",
+	TEST:      "test",
 }
 
 type Token struct {

@@ -78,6 +78,10 @@ a{color:var(--accent);text-decoration:none}
 .token.operator{color:var(--orange)}
 .token.punctuation{color:var(--fg2)}
 .token.variable{color:var(--fg)}
+.sandbox-notice{margin-left:auto;font-size:.65rem;color:var(--fg3);display:none;align-items:center;gap:4px}
+.sandbox-notice a{color:var(--fg3);text-decoration:underline;text-underline-offset:2px}
+.sandbox-notice a:hover{color:var(--accent)}
+.sandbox-notice.show{display:inline-flex}
 </style>
 </head>
 <body>
@@ -104,7 +108,7 @@ a{color:var(--accent);text-decoration:none}
 oninput="onEdit()" onscroll="syncScroll()">print (2 + 2)</textarea>
       <pre id="play-hl" class="play-editor language-pipe" aria-hidden="true"></pre>
     </div>
-    <div class="play-bar" id="play-bar"><span id="play-status">loading wasm…</span></div>
+    <div class="play-bar" id="play-bar"><span id="play-status">loading wasm…</span><span class="sandbox-notice" id="sandbox-notice">🔒 sandbox mode · <a href="https://github.com/MachuraHarry/pipe?tab=security-ov-file" target="_blank">AI disabled</a></span></div>
     <div class="play-out-wrap">
       <div class="play-out" id="play-out"></div>
     </div>
@@ -159,6 +163,7 @@ fetch("pipe.wasm").then(r => {
   pipeGo.run(r.instance);
   pipeReady = true;
   document.getElementById("play-status").textContent = "✓ ready";
+  document.getElementById("sandbox-notice").classList.add("show");
   document.getElementById("play-btn").disabled = false;
   updateBar();
 }).catch(e => {

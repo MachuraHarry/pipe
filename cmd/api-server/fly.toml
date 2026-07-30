@@ -1,0 +1,13 @@
+app = "pipe-api"
+primary_region = "fra"
+
+[build]
+  docker = "cmd/api-server/Dockerfile"
+
+[http_service]
+  internal_port = 3001
+  force_https = true
+  auto_stop_machines = false
+  auto_start_machines = true
+  min_machines_running = 0
+  processes = ["app"]

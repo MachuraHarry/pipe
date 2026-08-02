@@ -29,16 +29,40 @@
 <title>Pipe — Blog Admin</title>
 <style>
 :root {
-  --bg:#07070c;--bg2:#0d0d16;--bg3:#141420;
+  --bg:#07070c;--bg2:#0d0d16;--bg3:#141420;--card:#11111c;
   --fg:#e8e8f0;--fg2:#9090a8;--fg3:#606078;
   --accent:#a855f7;--accent2:#7c3aed;
-  --green:#3ce096;--orange:#fc8c3c;--red:#fc5c7c;
-  --border:#1e1e2e;--radius:10px;
+  --green:#3ce096;--orange:#c084fc;--red:#fc5c7c;
+  --border:#1e1e2e;--radius:10px;--shadow:0 0 0 1px rgba(168,85,247,0.04),0 16px 48px rgba(0,0,0,0.4);
   --mono:'JetBrains Mono','Fira Code',monospace;
   --sans:system-ui,-apple-system,sans-serif;
 }
 *{box-sizing:border-box;margin:0;padding:0}
-body{background:var(--bg);color:var(--fg);font-family:var(--sans);display:flex;flex-direction:column;align-items:center;min-height:100vh;padding:24px}
+body{background:var(--bg);color:var(--fg);font-family:var(--sans);display:flex;flex-direction:column;align-items:center;min-height:100vh;padding:24px;padding-top:64px}
+
+/* Nav */
+nav{position:fixed;top:0;z-index:100;width:100%;background:rgba(7,7,12,0.85);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);padding:12px 0;transition:all .3s}
+nav .container{display:flex;justify-content:space-between;align-items:center;max-width:1100px;margin:0 auto;padding:0 20px}
+nav .logo{font-weight:800;font-size:1.2rem;color:var(--accent);text-decoration:none;letter-spacing:-0.5px;display:flex;align-items:center}
+nav .logo img{height:32px;margin-right:6px}
+nav .logo span{color:var(--fg)}
+nav .nav-links{display:flex;align-items:center;gap:18px}
+nav a{color:var(--fg2);text-decoration:none;font-size:0.82rem;transition:color .2s}
+nav a:hover{color:var(--fg)}
+.hamburger{display:none;background:none;border:none;color:var(--fg);font-size:1.4rem;cursor:pointer;padding:4px 8px}
+.lang-switch{display:flex;background:var(--bg3);border:1px solid var(--border);border-radius:20px;overflow:hidden}
+.lang-switch button{background:none;border:none;color:var(--fg2);padding:4px 10px;font-size:0.72rem;cursor:pointer;font-weight:600;transition:all .2s}
+.lang-switch button.active{background:var(--accent);color:#fff}
+
+/* Footer */
+footer{width:100%;background:var(--bg2);border-top:1px solid var(--border);padding:50px 0 25px}
+.footer-grid{display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:32px}
+.footer-col h5{font-size:0.78rem;text-transform:uppercase;letter-spacing:1px;color:var(--fg3);margin-bottom:14px}
+.footer-col a{display:block;color:var(--fg2);text-decoration:none;font-size:0.8rem;margin-bottom:7px;transition:color .2s}
+.footer-col a:hover{color:var(--fg)}
+.footer-brand{font-weight:800;font-size:1.05rem;color:var(--accent);letter-spacing:-0.5px;margin-bottom:6px;display:block}
+.footer-brand span{color:var(--fg)}
+.footer-bottom{border-top:1px solid var(--border);margin-top:36px;padding-top:18px;text-align:center;color:var(--fg3);font-size:0.72rem}
 h1{font-size:1.5rem;margin:14px 0 2px;font-weight:800;letter-spacing:-0.5px}
 h1 span{background:linear-gradient(135deg,var(--accent),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
 .sub{color:var(--fg2);font-size:.85rem;margin-bottom:20px}
@@ -73,15 +97,42 @@ textarea{min-height:280px;resize:vertical;font-family:var(--mono);font-size:.82r
 a{color:var(--accent);text-decoration:none}
 .ft{color:var(--fg3);font-size:.72rem;text-align:center;margin:22px 0 0}
 #auth-status{font-size:.78rem;color:var(--fg2);margin-bottom:10px}
+@media(max-width:768px){
+  .hamburger{display:block}
+  nav .nav-links{display:none;position:absolute;top:100%;left:0;right:0;background:rgba(7,7,12,0.98);border-bottom:1px solid var(--border);flex-direction:column;padding:16px 20px;gap:12px;backdrop-filter:blur(12px)}
+  nav .nav-links.open{display:flex}
+  nav a{font-size:0.9rem;padding:8px 0}
+  .footer-grid{grid-template-columns:1fr 1fr;gap:24px}
+}
 @media(max-width:600px){
-  body{padding:12px}
+  body{padding:12px;padding-top:64px}
   h1{font-size:1.2rem}
   .card{padding:16px}
   textarea{min-height:200px;font-size:.78rem}
+  .footer-grid{grid-template-columns:1fr}
 }
 </style>
 </head>
 <body>
+<nav>
+  <div class="container">
+    <a href="index.html" class="logo"><img src="logo.svg" alt="Pipe">Pipe<span>.lang</span></a>
+    <button class="hamburger" onclick="document.getElementById('nav-menu').classList.toggle('open')" aria-label="Menu">☰</button>
+    <div class="nav-links" id="nav-menu">
+      <a href="index.html" onclick="closeMenu()"><span data-lang="en" class="active">Home</span><span data-lang="de">Start</span></a>
+      <a href="docs.html" onclick="closeMenu()"><span data-lang="en" class="active">Docs</span><span data-lang="de">Doku</span></a>
+      <a href="examples.html" onclick="closeMenu()"><span data-lang="en" class="active">Examples</span><span data-lang="de">Beispiele</span></a>
+      <a href="install.html" onclick="closeMenu()"><span data-lang="en" class="active">Install</span><span data-lang="de">Installation</span></a>
+      <a href="playground.html" onclick="closeMenu()">Playground</a>
+      <a href="blog.html" onclick="closeMenu()">Blog</a>
+      <a href="https://github.com/MachuraHarry/pipe" onclick="closeMenu()">GitHub</a>
+      <div class="lang-switch">
+        <button id="btn-en" class="active" onclick="setLang('en')">EN</button>
+        <button id="btn-de" onclick="setLang('de')">DE</button>
+      </div>
+    </div>
+  </div>
+</nav>
 <h1>Pipe <span>Blog Admin</span></h1>
 <p class="sub"><a href="blog.html">blog</a> · <a href="index.html">home</a></p>
 
@@ -133,7 +184,38 @@ a{color:var(--accent);text-decoration:none}
 
 </div>
 
-<p class="ft"><a href="blog.html">blog</a> · <a href="index.html">home</a> · <a href="https://github.com/MachuraHarry/pipe">github</a></p>
+<footer>
+  <div class="container">
+    <div class="footer-grid">
+      <div class="footer-col">
+        <span class="footer-brand"><img src="logo.svg" alt="Pipe" style="height:20px;vertical-align:middle;margin-right:4px">Pipe<span>.lang</span></span>
+        <p style="color:var(--fg2);font-size:0.8rem;margin-top:8px">Semantic Pipeline Runtime.<br>AI operations as language primitives.<br>One binary. Zero dependencies.</p>
+      </div>
+      <div class="footer-col">
+        <h5>Product</h5>
+        <a href="index.html#features">Features</a>
+        <a href="index.html#play">Try Online</a>
+        <a href="playground.html">Playground</a>
+        <a href="blog.html">Blog</a>
+        <a href="install.html">Install</a>
+      </div>
+      <div class="footer-col">
+        <h5>Resources</h5>
+        <a href="docs.html">Documentation</a>
+        <a href="https://github.com/MachuraHarry/pipe-modules">Modules</a>
+        <a href="blog.html">Blog</a>
+        <a href="https://github.com/MachuraHarry/pipe">GitHub</a>
+      </div>
+      <div class="footer-col">
+        <h5>Community</h5>
+        <a href="https://github.com/MachuraHarry/pipe/blob/master/SECURITY.md">Security</a>
+        <a href="https://github.com/MachuraHarry/pipe/blob/master/CONTRIBUTING.md">Contribute</a>
+        <a href="https://github.com/MachuraHarry/pipe-modules/blob/master/CONTRIBUTING.md">Submit Module</a>
+      </div>
+    </div>
+    <div class="footer-bottom">© 2026 Pipe (SPR) · MIT License · Built with Go · Running in your browser via WebAssembly</div>
+  </div>
+</footer>
 
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
@@ -306,6 +388,9 @@ function escapeHtml(s) {
   d.textContent = s;
   return d.innerHTML;
 }
+
+function setLang(lang){document.querySelectorAll('[data-lang]').forEach(el=>{el.classList.toggle('active',el.dataset.lang===lang)});document.getElementById('btn-en').classList.toggle('active',lang==='en');document.getElementById('btn-de').classList.toggle('active',lang==='de');}
+function closeMenu(){document.getElementById('nav-menu').classList.remove('open');}
 </script>
 </body>
 </html>

@@ -680,9 +680,10 @@ function generatePlayground() {
       var code = generatePipe();
       document.getElementById("play-editor").value = code;
       syncHighlight();
+      var hasV2 = code.indexOf("-- gen v2:") === 0;
       btn.disabled = false; btn.textContent = "✦";
       bar.className = "play-bar success";
-      bar.innerHTML = '<span>✓ generated</span>';
+      bar.innerHTML = '<span>✓ generated ' + (hasV2 ? '(v2)' : '(v1)') + '</span>';
       bar.style.color = "var(--green)";
     } catch (e) {
       btn.disabled = false; btn.textContent = "✦";

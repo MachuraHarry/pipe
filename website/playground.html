@@ -225,13 +225,14 @@ function generatePlay() {
   setTimeout(function () {
     try {
       const code = pipeGenerate();
+      const hasV2 = code.startsWith("-- gen v2:");
       document.getElementById("play-editor").value = code;
       syncHighlight();
       saveDraft();
       btn.disabled = false;
       btn.textContent = "✦";
       bar.className = "play-bar success";
-      bar.innerHTML = '<span>✓ generated</span>';
+      bar.innerHTML = '<span>✓ generated ' + (hasV2 ? '(v2)' : '(v1)') + '</span>';
     } catch (e) {
       btn.disabled = false;
       btn.textContent = "✦";

@@ -79,6 +79,20 @@ Run Pipe directly in CI/CD — no installation needed:
 
 [→ GitHub Action Documentation](docs/en/20-github-action.md)
 
+## VSCode Extension
+
+Syntax highlighting and full IntelliSense for `.pipe` files, powered by a Language Server Protocol client (`vscode/`) and the `pipe-lsp` server (`cmd/pipe-lsp`):
+
+- Completion, hover docs, signature help, go-to-definition, references, rename
+- Diagnostics (parse errors, undefined/unused variables) and semantic highlighting
+- Format document, auto-completion of brackets, auto-indent and code folding
+
+```sh
+make vsix     # builds the server and packages vscode/pipe-syntax-0.1.0.vsix
+```
+
+Or run the extension in development with F5 from the `vscode/` folder. See [VSCode Extension Documentation](docs/en/15-vscode-extension.md).
+
 ## Module Ecosystem
 
 Pipe has a [curated module library](https://github.com/MachuraHarry/pipe-modules) — 9 reusable modules with version pinning:
@@ -214,11 +228,11 @@ ai_with_tools "What is the weather in Berlin?"
 ```
 Source (.pipe) → Lexer → Parser → AST → [ Tree-Walker | Compiler + VM ]
                                           ↓
-                              Builtins (91 stdlib + 23 AI)
+                              Builtins (92 stdlib + 23 AI)
 ```
 
-- 66 token types, 27 AST node types, 40 opcodes
-- ~13,000 LoC Go, 220+ tests, 42 example programs
+- 66 token types, 34 AST node types, 40 opcodes
+- ~15,000 LoC Go, 220+ tests, 42 example programs
 
 ## Documentation
 
@@ -229,7 +243,9 @@ Source (.pipe) → Lexer → Parser → AST → [ Tree-Walker | Compiler + VM ]
 
 ```
 pipe/
-├── cmd/pipe/main.go           # Entry point
+├── cmd/
+│   ├── pipe/main.go           # Entry point
+│   └── pipe-lsp/              # Language Server Protocol server (IntelliSense)
 ├── pkg/
 │   ├── ai/                    # AI provider integrations
 │   │   ├── ai.go
@@ -237,6 +253,7 @@ pipe/
 │   │   ├── embeddings.go
 │   │   ├── providers.go
 │   │   └── tools.go
+│   ├── analysis/              # IntelliSense library (builtins, diagnostics, completion…)
 │   ├── ast/                   # AST node definitions
 │   │   └── ast.go
 │   ├── build/                 # Self-extracting binary builder
@@ -266,10 +283,11 @@ pipe/
 │   ├── parser/                # Parser
 │   │   ├── parser.go
 │   │   └── parser_test.go
+│   ├── stdlib/                # Standard library helpers
 │   └── vm/                    # Bytecode VM
 │       ├── vm.go
 │       └── vm_test.go
-├── examples/                  # 23 example programs
+├── examples/                  # 42 example programs
 │   ├── ai_demo.pipe
 │   ├── ai_embedding_demo.pipe
 │   ├── ai_parallel_demo.pipe
@@ -278,12 +296,13 @@ pipe/
 │   ├── selfhost/              # Self-hosting lexer/parser
 │   └── ...
 ├── test/integration/          # Integration tests
-├── vscode/                    # VSCode extension
-│   ├── package.json
-│   └── syntaxes/pipe.tmLanguage.json
+├── vscode/                    # VSCode extension (syntax highlighting + LSP client)
+│   ├── src/                   # LSP client bootstrap (TypeScript)
+│   ├── syntaxes/pipe.tmLanguage.json
+│   └── package.json
 ├── docs/                      # Documentation (DE + EN)
-│   ├── en/                    # English docs (20 chapters)
-│   └── de/                    # German docs (20 chapters)
+│   ├── en/                    # English docs (24 chapters)
+│   └── de/                    # German docs (24 chapters)
 ├── website/                   # Project website
 ├── Makefile
 ├── go.mod

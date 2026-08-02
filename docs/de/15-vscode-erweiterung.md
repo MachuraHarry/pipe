@@ -12,7 +12,18 @@ Syntax-Highlighting und Sprachunterstützung.
 cp -r vscode/ ~/.vscode/extensions/pipe-lang.pipe-syntax-0.1.0/
 ```
 
-Oder in VSCode:
+### Installation als VSIX
+
+```bash
+make vsix   # paketiert vscode/pipe-syntax-0.1.0.vsix
+```
+
+Danach in VSCode `Ctrl+Shift+P` → "Extensions: Install from VSIX..." und die
+Datei `vscode/pipe-syntax-0.1.0.vsix` auswählen.
+
+### Entwicklung
+
+In VSCode:
 1. `Ctrl+Shift+P` → "Developer: Install Extension from Location..."
 2. `vscode/`-Verzeichnis auswählen
 
@@ -23,7 +34,7 @@ Oder in VSCode:
 | Name | `pipe-syntax` |
 | Publisher | `pipe-lang` |
 | Version | 0.1.0 |
-| VSCode Engine | ^1.80.0 |
+| VSCode Engine | ^1.85.0 |
 | Language ID | `pipe` |
 | Dateiendung | `.pipe` |
 
@@ -37,7 +48,7 @@ Die Extension erkennt und färbt:
 - **Strings:** `"..."` und `` `...` `` (orange)
 - **Keywords:** `fn`, `match`, `if`, `else`, `while`, `for`, `in`, `try`, `catch`, `return`, `break`, `continue`, `defer`, `import`, `export`, `enum`
 - **Konstanten:** `true`, `false`, `nil`, `_` (blau)
-- **Builtins:** Alle 80+ Funktionen in Kategorien:
+- **Builtins:** Alle 115 Funktionen in Kategorien:
   - IO: `print`, `input`
   - Dateisystem: `read_file`, `write_file`, `append_file`, `read_lines`, `file_exists`, `file_delete`, `file_move`, `file_copy`, `file_size`, `file_type`, `list_dir`, `make_dir`, `remove_dir`
   - Pfad: `path_join`, `path_base`, `path_dir`, `path_ext`
@@ -83,21 +94,66 @@ Unterstützt Folding-Marker:
 
 Erkennt Pipe-Identifier: `[A-Za-z_][A-Za-z0-9_]*`
 
-## 15.3 Dateien der Extension
+## 15.3 IntelliSense (Language Server)
+
+Seit Version 0.1.0 bringt die Extension einen LSP-Client mit, der sich mit dem
+`pipe-lsp`-Server verbindet und volle IntelliSense für `.pipe`-Dateien liefert:
+
+- **Auto-Vervollständigung** — eigene Funktionen, Variablen, Parameter, alle Builtins, Keywords und Snippets
+- **Hover-Dokumentation** — Signaturen und Beschreibungen für Builtins und eigenen Code
+- **Signatur-Hilfe** — Parameterlisten während der Eingabe eines Aufrufs
+- **Gehe zu Definition / Referenzen / Umbenennen** — für eigene Symbole
+- **Diagnosen** — Parse-Fehler, undefinierte Variablen (E001), ungenutzte Variablen (E007)
+- **Semantische Hervorhebung** — Tokens zusätzlich zur TextMate-Grammatik klassifiziert
+- **Dokument formatieren** — formatiert die gesamte Datei (`pipe formatter`)
+
+### Server bauen
+
+Das `pipe-lsp`-Binary einmalig bauen:
+
+```sh
+make lsp          # oder: go build -o bin/pipe-lsp ./cmd/pipe-lsp
+```
+
+Die Extension sucht das Binary in dieser Reihenfolge:
+
+1. die Einstellung `pipe.lspPath`
+2. `bin/pipe-lsp` im Extension-Ordner
+3. `<workspace>/bin/pipe-lsp`
+4. `pipe-lsp` auf `PATH`
+
+### Konfiguration
+
+| Einstellung | Standard | Beschreibung |
+|-------------|----------|--------------|
+| `pipe.lspPath` | `""` | Absoluter Pfad zum `pipe-lsp`-Binary |
+| `pipe.lsp.enabled` | `true` | Auf `false` setzen, um den Language Server zu deaktivieren |
+
+## 15.4 Dateien der Extension
 
 ```
 vscode/
 ├── package.json                     -- Extension-Manifest
 ├── language-configuration.json      -- Sprach-Konfiguration
+├── src/
+│   └── extension.ts                 -- LSP-Client-Bootstrap
 ├── syntaxes/
 │   └── pipe.tmLanguage.json        -- TextMate-Grammatik
 ├── icons/
-│   └── pipe-icon.svg               -- Extension-Icon
-├── test-syntax.pipe                 -- Syntax-Testdatei
-└── test-syntax.pipec               -- Kompilierte Testdatei
+│   ├── pipe-icon.png               -- Extension- und Sprach-Icon
+│   └── pipe-icon.svg               -- SVG-Quelle
+├── README.md                        -- Marketplace-Listing
+├── LICENSE                          -- MIT-Lizenz
+├── .vscodeignore                    -- Dateien, die aus dem VSIX ausgeschlossen sind
+├── tsconfig.json                    -- TypeScript-Konfiguration
+└── test-syntax.pipe                 -- Syntax-Testdatei
 ```
 
-## 15.4 Getestete Features
+## 15.5 Getestete Features
 
 Die Extension wurde mit einer `test-syntax.pipe` Datei getestet, die alle
-Sprachfeatures abdeckt. Eine kompilierte Version (`test-syntax.pipec`) liegt bei.
+Sprachfeatures abdeckt.
+
+Pipe besitzt seit Version 0.1.0 eine LSP-Implementierung (`cmd/pipe-lsp`,
+reine Standardbibliothek, ohne externe Abhängigkeiten). Die Extension verbindet
+sich automatisch damit; siehe [15.3 IntelliSense (Language Server)](#153-intellisense-language-server).

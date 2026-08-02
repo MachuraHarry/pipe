@@ -1,6 +1,6 @@
 # 19. KI-Builtins
 
-Pipe bietet **12 KI-Builtins** für die Arbeit mit Large Language Models.
+Pipe bietet **23 KI-Builtins** für die Arbeit mit Large Language Models.
 Die Kommunikation läuft über REST-APIs zu OpenAI, Anthropic oder DeepSeek.
 
 ---
@@ -82,7 +82,7 @@ summarize text
 text: "Pipe ist eine moderne Skriptsprache mit Fokus auf..."
 print (summarize text)
 -- → Pipe ist eine Skriptsprache mit Pipeline-Operator und Bytecode-VM.
---   Sie unterstützt 80+ Builtins und ist für Datenverarbeitung optimiert.
+--   Sie unterstützt 115 Builtins und ist für Datenverarbeitung optimiert.
 ```
 
 ### translate
@@ -613,7 +613,7 @@ ask "Was ist eine Pipeline?" > print
 - Keine Daten verlassen dein System (DSGVO/Compliance)
 - Funktioniert komplett offline
 - Kostenlos, unbegrenzte Nutzung
-- Alle 25 KI-Builtins funktionieren mit Ollama
+- Alle 23 KI-Builtins funktionieren mit Ollama
 
 **Remote Ollama** (z.B. im Firmennetzwerk):
 ```pipe

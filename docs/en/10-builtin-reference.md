@@ -1,10 +1,10 @@
 # 10. Built-in Function Reference
 
-Pipe includes 103 built-in functions organized by category. This chapter documents each function with its signature, description, return type, and usage example.
+Pipe includes 115 built-in functions organized by category. This chapter documents each function with its signature, description, return type, and usage example.
 
 ---
 
-## 10.1 IO & System (5 functions)
+## 10.1 IO & System (6 functions)
 
 ### `print`
 **Signature:** `print(value ...)`
@@ -60,9 +60,18 @@ print "Done waiting"
 sleep 500       # wait 0.5 seconds
 ```
 
+### `go`
+**Signature:** `go(fn, args...)`
+**Description:** Runs `fn` asynchronously in a goroutine with the given arguments.
+**Returns:** `nil`
+```pipe
+go print "concurrent"
+print "main"
+```
+
 ---
 
-## 10.2 File System (16 functions)
+## 10.2 File System (17 functions)
 
 ### `read_file`
 **Signature:** `read_file(path)`
@@ -1200,7 +1209,35 @@ nearest q docs 2    # [1, 0] (dog, cat)
 
 ---
 
-## 10.23 Test Assertions (6 functions)
+## 10.23 Sandbox (3 functions)
+
+### `sandbox_profile`
+**Signature:** `sandbox_profile(name)`
+**Description:** Selects a sandbox profile (`none`, `strict`, `noexec`, `isolated`, `networked`).
+**Returns:** `string`
+```pipe
+sandbox_profile "strict"
+```
+
+### `set_sandbox`
+**Signature:** `set_sandbox(profile)`
+**Description:** Sets the active sandbox from a profile map or name.
+**Returns:** `string`
+```pipe
+set_sandbox {type: "strict", write: false}
+```
+
+### `with_sandbox`
+**Signature:** `with_sandbox(profile, fn)`
+**Description:** Runs `fn` under the given sandbox profile, then restores the previous one.
+**Returns:** `any`
+```pipe
+with_sandbox "noexec" fn -> print "isolated"
+```
+
+---
+
+## 10.24 Test Assertions (6 functions)
 
 **Note:** `test` blocks and assert builtins are available in all execution modes, but are designed for use with `pipe -test`.
 
@@ -1289,210 +1326,243 @@ test "addition"
 
 ---
 
-## 10.24 Summary Table
-### IO & System (5)
+## 10.25 Summary Table
+
+### IO & System (6)
+
 | # | Function | Signature | Returns |
 |---|----------|-----------|---------|
-| 1 | `print` | `print(values...)` | `nil` |
+| 1 | `print` | `print(value ...)` | `nil` |
 | 2 | `input` | `input(prompt)` | `string` |
 | 3 | `exec` | `exec(command)` | `string` |
 | 4 | `env` | `env(name)` | `string` or `nil` |
 | 5 | `sleep` | `sleep(ms)` | `nil` |
+| 6 | `go` | `go(fn, args...)` | `nil` |
 
-### File System (16)
+### File System (17)
+
 | # | Function | Signature | Returns |
 |---|----------|-----------|---------|
-| 6 | `read_file` | `read_file(path)` | `string` |
-| 7 | `write_file` | `write_file(path, content)` | `nil` |
-| 8 | `append_file` | `append_file(path, content)` | `nil` |
-| 9 | `read_lines` | `read_lines(path)` | `list` |
-| 10 | `file_exists` | `file_exists(path)` | `boolean` |
-| 11 | `file_delete` | `file_delete(path)` | `boolean` |
-| 12 | `file_move` | `file_move(src, dst)` | `nil` |
-| 13 | `file_copy` | `file_copy(src, dst)` | `nil` |
-| 14 | `file_size` | `file_size(path)` | `number` |
-| 15 | `file_type` | `file_type(path)` | `string` or `nil` |
-| 16 | `list_dir` | `list_dir(path)` | `list` |
-| 17 | `make_dir` | `make_dir(path)` | `nil` |
-| 18 | `remove_dir` | `remove_dir(path)` | `nil` |
-| 19 | `path_join` | `path_join(base, part)` | `string` |
-| 20 | `path_base` | `path_base(path)` | `string` |
-| 21 | `path_dir` | `path_dir(path)` | `string` |
-| 22 | `path_ext` | `path_ext(path)` | `string` |
+| 7 | `read_file` | `read_file(path)` | `string` |
+| 8 | `write_file` | `write_file(path, content)` | `nil` |
+| 9 | `append_file` | `append_file(path, content)` | `nil` |
+| 10 | `read_lines` | `read_lines(path)` | `list` of strings |
+| 11 | `file_exists` | `file_exists(path)` | `boolean` |
+| 12 | `file_delete` | `file_delete(path)` | `boolean` |
+| 13 | `file_move` | `file_move(src, dst)` | `nil` |
+| 14 | `file_copy` | `file_copy(src, dst)` | `nil` |
+| 15 | `file_size` | `file_size(path)` | `number` |
+| 16 | `file_type` | `file_type(path)` | `string` or `nil` |
+| 17 | `list_dir` | `list_dir(path)` | `list` of strings |
+| 18 | `make_dir` | `make_dir(path)` | `nil` |
+| 19 | `remove_dir` | `remove_dir(path)` | `nil` |
+| 20 | `path_join` | `path_join(base, part)` | `string` |
+| 21 | `path_base` | `path_base(path)` | `string` |
+| 22 | `path_dir` | `path_dir(path)` | `string` |
+| 23 | `path_ext` | `path_ext(path)` | `string` |
 
 ### String (6)
+
 | # | Function | Signature | Returns |
 |---|----------|-----------|---------|
-| 23 | `upper` | `upper(str)` | `string` |
-| 24 | `lower` | `lower(str)` | `string` |
-| 25 | `trim` | `trim(str)` | `string` |
-| 26 | `split` | `split(str, delim)` | `list` |
-| 27 | `join` | `join(list, delim)` | `string` |
-| 28 | `contains` | `contains(haystack, needle)` | `boolean` |
+| 24 | `upper` | `upper(str)` | `string` |
+| 25 | `lower` | `lower(str)` | `string` |
+| 26 | `trim` | `trim(str)` | `string` |
+| 27 | `split` | `split(str, delimiter)` | `list` of strings |
+| 28 | `join` | `join(list, delimiter)` | `string` |
+| 29 | `contains` | `contains(haystack, needle)` | `boolean` |
 
 ### List (11)
+
 | # | Function | Signature | Returns |
 |---|----------|-----------|---------|
-| 29 | `len` | `len(value)` | `number` |
-| 30 | `push` | `push(list, value)` | `list` |
-| 31 | `pop` | `pop(list)` | `any` or `nil` |
-| 32 | `at` | `at(collection, index)` | `any` or `nil` |
-| 33 | `slice_list` | `slice_list(list, range)` | `list` |
-| 34 | `sort` | `sort(list)` | `list` |
-| 35 | `range` | `range(start, end)` | `list` |
-| 36 | `map` | `map(list, fn)` | `list` |
-| 37 | `filter` | `filter(list, fn)` | `list` |
-| 38 | `reduce` | `reduce(list, fn, initial)` | `any` |
-| 39 | `each` | `each(list, fn)` | `nil` |
+| 30 | `len` | `len(value)` | `number` |
+| 31 | `push` | `push(list, value)` | The mutated `list` |
+| 32 | `pop` | `pop(list)` | The removed element, or `nil` if empty |
+| 33 | `at` | `at(collection, index)` | `any` or `nil` |
+| 34 | `slice_list` | `slice_list(list, range)` | `list` |
+| 35 | `sort` | `sort(list)` | The mutated `list` |
+| 36 | `range` | `range(start, end)` | `list` of numbers |
+| 37 | `map` | `map(list, fn)` | `list` |
+| 38 | `filter` | `filter(list, fn)` | `list` |
+| 39 | `reduce` | `reduce(list, fn, initial)` | `any` |
+| 40 | `each` | `each(list, fn)` | `nil` |
 
 ### Map (4)
+
 | # | Function | Signature | Returns |
 |---|----------|-----------|---------|
-| 40 | `get` | `get(map, key)` | `any` or `nil` |
-| 41 | `set` | `set(map, key, value)` | `map` |
-| 42 | `keys` | `keys(map)` | `list` |
-| 43 | `values` | `values(map)` | `list` |
+| 41 | `get` | `get(map, key)` | `any` or `nil` |
+| 42 | `set` | `set(map, key, value)` | The mutated `map` |
+| 43 | `keys` | `keys(map)` | `list` of strings |
+| 44 | `values` | `values(map)` | `list` |
 
 ### Math (6)
+
 | # | Function | Signature | Returns |
 |---|----------|-----------|---------|
-| 44 | `abs` | `abs(x)` | `number` |
-| 45 | `min` | `min(a, b)` | `number` |
-| 46 | `max` | `max(a, b)` | `number` |
-| 47 | `pow` | `pow(base, exp)` | `number` |
-| 48 | `sqrt` | `sqrt(x)` | `number` |
-| 49 | `round` | `round(x)` | `number` |
+| 45 | `abs` | `abs(x)` | `number` |
+| 46 | `min` | `min(a, b)` | `number` |
+| 47 | `max` | `max(a, b)` | `number` |
+| 48 | `pow` | `pow(base, exp)` | `number` |
+| 49 | `sqrt` | `sqrt(x)` | `number` |
+| 50 | `round` | `round(x)` | `number` |
 
 ### Network & HTTP (5)
+
 | # | Function | Signature | Returns |
 |---|----------|-----------|---------|
-| 50 | `http_get` | `http_get(url)` | `string` |
-| 51 | `http_post` | `http_post(url, body)` | `string` |
-| 52 | `http_get_json` | `http_get_json(url)` | `any` |
-| 53 | `parse_json` | `parse_json(json_str)` | `any` or `nil` |
-| 54 | `to_json` | `to_json(value)` | `string` |
+| 51 | `http_get` | `http_get(url)` | `string` |
+| 52 | `http_post` | `http_post(url, body)` | `string` |
+| 53 | `http_get_json` | `http_get_json(url)` | `any` (map, list, number, string, boolean, or nil) |
+| 54 | `parse_json` | `parse_json(json_string)` | `any` or `nil` on parse error |
+| 55 | `to_json` | `to_json(value)` | `string` |
 
 ### TCP (6)
+
 | # | Function | Signature | Returns |
 |---|----------|-----------|---------|
-| 55 | `tcp_listen` | `tcp_listen(address)` | handle |
-| 56 | `tcp_connect` | `tcp_connect(address)` | handle |
-| 57 | `tcp_accept` | `tcp_accept(listener)` | handle |
-| 58 | `tcp_read` | `tcp_read(conn, max)` | `string` |
-| 59 | `tcp_write` | `tcp_write(conn, data)` | `nil` |
-| 60 | `tcp_close` | `tcp_close(handle)` | `nil` |
+| 56 | `tcp_listen` | `tcp_listen(address)` | `listener handle` |
+| 57 | `tcp_connect` | `tcp_connect(address)` | `connection handle` |
+| 58 | `tcp_accept` | `tcp_accept(listener)` | `connection handle` |
+| 59 | `tcp_read` | `tcp_read(conn, max_bytes)` | `string` |
+| 60 | `tcp_write` | `tcp_write(conn, data)` | `nil` |
+| 61 | `tcp_close` | `tcp_close(handle)` | `nil` |
 
 ### Regex (2)
+
 | # | Function | Signature | Returns |
 |---|----------|-----------|---------|
-| 61 | `regex_match` | `regex_match(pattern, str)` | `boolean` |
-| 62 | `regex_replace` | `regex_replace(pattern, repl, str)` | `string` |
+| 62 | `regex_match` | `regex_match(pattern, str)` | `boolean` |
+| 63 | `regex_replace` | `regex_replace(pattern, replacement, str)` | `string` |
 
 ### Date & Time (2)
+
 | # | Function | Signature | Returns |
 |---|----------|-----------|---------|
-| 63 | `now` | `now()` | `number` |
-| 64 | `format_time` | `format_time(ts, layout)` | `string` |
+| 64 | `now` | `now()` | `number` |
+| 65 | `format_time` | `format_time(timestamp, layout)` |  |
 
 ### Random (2)
+
 | # | Function | Signature | Returns |
 |---|----------|-----------|---------|
-| 65 | `random` | `random()` | `number` |
-| 66 | `random_range` | `random_range(min, max)` | `number` |
+| 66 | `random` | `random()` | `number` |
+| 67 | `random_range` | `random_range(min, max)` | `number` (integer) |
 
 ### Encoding (2)
+
 | # | Function | Signature | Returns |
 |---|----------|-----------|---------|
-| 67 | `base64_encode` | `base64_encode(str)` | `string` |
-| 68 | `base64_decode` | `base64_decode(str)` | `string` |
+| 68 | `base64_encode` | `base64_encode(str)` | `string` |
+| 69 | `base64_decode` | `base64_decode(str)` | `string` |
 
 ### Type Checks (6)
+
 | # | Function | Signature | Returns |
 |---|----------|-----------|---------|
-| 69 | `type_of` | `type_of(value)` | `string` |
-| 70 | `is_num` | `is_num(value)` | `boolean` |
-| 71 | `is_str` | `is_str(value)` | `boolean` |
-| 72 | `is_list` | `is_list(value)` | `boolean` |
-| 73 | `is_map` | `is_map(value)` | `boolean` |
-| 74 | `is_nil` | `is_nil(value)` | `boolean` |
+| 70 | `type_of` | `type_of(value)` | `string` — one of `"number"`, `"string"`, `"list"`, `"map"`, `"nil"`, `"function"`, `"boolean"`, `"result"` |
+| 71 | `is_num` | `is_num(value)` | `boolean` |
+| 72 | `is_str` | `is_str(value)` | `boolean` |
+| 73 | `is_list` | `is_list(value)` | `boolean` |
+| 74 | `is_map` | `is_map(value)` | `boolean` |
+| 75 | `is_nil` | `is_nil(value)` | `boolean` |
 
 ### Conversion (2)
+
 | # | Function | Signature | Returns |
 |---|----------|-----------|---------|
-| 75 | `to_str` | `to_str(value)` | `string` |
-| 76 | `to_num` | `to_num(str)` | `number` or `nil` |
+| 76 | `to_str` | `to_str(value)` | `string` |
+| 77 | `to_num` | `to_num(str)` | `number` or `nil` |
 
 ### Result Type (6)
+
 | # | Function | Signature | Returns |
 |---|----------|-----------|---------|
-| 77 | `Ok` | `Ok(value)` | `Result` |
-| 78 | `Err` | `Err(message)` | `Result` |
-| 79 | `is_ok` | `is_ok(result)` | `boolean` |
-| 80 | `is_err` | `is_err(result)` | `boolean` |
-| 81 | `unwrap` | `unwrap(result)` | `any` |
-| 82 | `unwrap_or` | `unwrap_or(result, default)` | `any` |
+| 78 | `Ok` | `Ok(value)` | `Result` (Ok variant) |
+| 79 | `Err` | `Err(message)` | `Result` (Err variant) |
+| 80 | `is_ok` | `is_ok(result)` | `boolean` |
+| 81 | `is_err` | `is_err(result)` | `boolean` |
+| 82 | `unwrap` | `unwrap(result)` | `any` |
+| 83 | `unwrap_or` | `unwrap_or(result, default)` | `any` |
 
 ### AI — Configuration (4)
+
 | # | Function | Signature | Returns |
 |---|----------|-----------|---------|
-| 83 | `ai_provider` | `ai_provider(name)` | `string` |
-| 84 | `ai_model` | `ai_model(name)` | `string` |
-| 85 | `ai_host` | `ai_host(url)` | `string` |
-| 86 | `ai_timeout` | `ai_timeout(seconds)` | `nil` |
+| 84 | `ai_provider` | `ai_provider(name)` |  |
+| 85 | `ai_model` | `ai_model(name)` |  |
+| 86 | `ai_host` | `ai_host(url)` |  |
+| 87 | `ai_timeout` | `ai_timeout(seconds)` |  |
 
 ### AI — Low-level Chat (2)
+
 | # | Function | Signature | Returns |
 |---|----------|-----------|---------|
-| 87 | `ai_chat` | `ai_chat(system, user)` | `string` |
-| 88 | `ai_chat_json` | `ai_chat_json(system, user)` | `any` |
+| 88 | `ai_chat` | `ai_chat(system_prompt, user_prompt)` |  |
+| 89 | `ai_chat_json` | `ai_chat_json(system_prompt, user_prompt)` |  |
 
 ### AI — Streaming (1)
+
 | # | Function | Signature | Returns |
 |---|----------|-----------|---------|
-| 89 | `ai_stream` | `ai_stream(system, user)` | `string` |
+| 90 | `ai_stream` | `ai_stream(system_prompt, user_prompt)` |  |
 
 ### AI — High-level Convenience (6)
+
 | # | Function | Signature | Returns |
 |---|----------|-----------|---------|
-| 90 | `summarize` | `summarize(text)` | `string` |
-| 91 | `translate` | `translate(text, lang)` | `string` |
-| 92 | `classify` | `classify(text, categories)` | `string` |
-| 93 | `extract` | `extract(text, schema)` | `any` |
-| 94 | `generate` | `generate(prompt)` | `string` |
-| 95 | `ask` | `ask(question)` | `string` |
+| 91 | `summarize` | `summarize(text)` |  |
+| 92 | `translate` | `translate(text, target_language)` |  |
+| 93 | `classify` | `classify(text, categories)` |  |
+| 94 | `extract` | `extract(text, schema)` |  |
+| 95 | `generate` | `generate(prompt)` |  |
+| 96 | `ask` | `ask(question)` |  |
 
 ### AI — Parallel (3)
+
 | # | Function | Signature | Returns |
 |---|----------|-----------|---------|
-| 96 | `ai_batch` | `ai_batch(system, items)` | `list` |
-| 97 | `ai_parallel` | `ai_parallel(n, system, items)` | `list` |
-| 98 | `ai_rate_limit` | `ai_rate_limit(calls/sec)` | `nil` |
+| 97 | `ai_batch` | `ai_batch(system_prompt, items)` |  |
+| 98 | `ai_parallel` | `ai_parallel(concurrency, system_prompt, items)` |  |
+| 99 | `ai_rate_limit` | `ai_rate_limit(calls_per_second)` |  |
 
 ### AI — Tool Calling (2)
+
 | # | Function | Signature | Returns |
 |---|----------|-----------|---------|
-| 99 | `ai_tool` | `ai_tool(name, desc, params, fn)` | `nil` |
-| 100 | `ai_with_tools` | `ai_with_tools(system, user, ?rounds)` | `string` |
+| 100 | `ai_tool` | `ai_tool(name, description, parameters, function)` |  |
+| 101 | `ai_with_tools` | `ai_with_tools(system_prompt, user_prompt, max_rounds?)` |  |
 
 ### AI — Embeddings (5)
+
 | # | Function | Signature | Returns |
 |---|----------|-----------|---------|
-| 101 | `embed` | `embed(text)` | `list` |
-| 102 | `embed_batch` | `embed_batch(items)` | `list` |
-| 103 | `cosine_sim` | `cosine_sim(a, b)` | `float` |
-| 104 | `dot_product` | `dot_product(a, b)` | `float` |
-| 105 | `nearest` | `nearest(query, docs, k)` | `list` |
+| 102 | `embed` | `embed(text)` |  |
+| 103 | `embed_batch` | `embed_batch(items)` |  |
+| 104 | `cosine_sim` | `cosine_sim(vec_a, vec_b)` |  |
+| 105 | `dot_product` | `dot_product(vec_a, vec_b)` |  |
+| 106 | `nearest` | `nearest(query_vec, doc_vectors, k)` |  |
+
+### Sandbox (3)
+
+| # | Function | Signature | Returns |
+|---|----------|-----------|---------|
+| 107 | `sandbox_profile` | `sandbox_profile(name)` | `string` |
+| 108 | `set_sandbox` | `set_sandbox(profile)` | `string` |
+| 109 | `with_sandbox` | `with_sandbox(profile, fn)` | `any` |
 
 ### Test Assertions (6)
+
 | # | Function | Signature | Returns |
 |---|----------|-----------|---------|
-| 106 | `assert` | `assert(condition)` | `nil` or `ERROR` |
-| 107 | `assert_eq` | `assert_eq(expected, actual)` | `nil` or `ERROR` |
-| 108 | `assert_not_eq` | `assert_not_eq(unexpected, actual)` | `nil` or `ERROR` |
-| 109 | `assert_lt` | `assert_lt(a, b)` | `nil` or `ERROR` |
-| 110 | `assert_gt` | `assert_gt(a, b)` | `nil` or `ERROR` |
-| 111 | `assert_error` | `assert_error(fn)` | `nil` or `ERROR` |
+| 110 | `assert` | `assert(condition)` |  |
+| 111 | `assert_eq` | `assert_eq(expected, actual)` |  |
+| 112 | `assert_not_eq` | `assert_not_eq(unexpected, actual)` |  |
+| 113 | `assert_lt` | `assert_lt(a, b)` |  |
+| 114 | `assert_gt` | `assert_gt(a, b)` |  |
+| 115 | `assert_error` | `assert_error(fn)` |  |
 
 ---
 
-**Total: 111 built-in functions**
+**Total: 115 built-in functions**

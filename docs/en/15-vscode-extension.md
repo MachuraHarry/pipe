@@ -12,12 +12,15 @@ cp -r vscode/ ~/.vscode/extensions/pipe-lang.pipe-syntax-0.1.0/
 
 Then restart VSCode or reload the window (`Ctrl+Shift+P` → "Developer: Reload Window").
 
-### Option 2: Via VSCode Command
+### Option 2: Install from VSIX
 
-1. Copy the `vscode/` directory to a location on your system
-2. Open VSCode
-3. Press `Ctrl+Shift+P` and run "Extensions: Install from VSIX..."
-4. Unfortunately Pipe currently doesn't ship a `.vsix` file, so Option 1 is recommended
+1. Package the extension (see [Building the Extension](#building-the-extension)):
+
+   ```sh
+   make vsix
+   ```
+
+2. Press `Ctrl+Shift+P` and run "Extensions: Install from VSIX...", then select `vscode/pipe-syntax-0.1.0.vsix`.
 
 ### Option 3: Symlink (for development)
 
@@ -35,12 +38,12 @@ This keeps the extension in sync with the repository during development.
 | **Display Name** | Pipe Language Support |
 | **Publisher** | `pipe-lang` |
 | **Version** | `0.1.0` |
-| **Engine** | VSCode `>=1.80.0` |
+| **Engine** | VSCode `>=1.85.0` |
 | **Language ID** | `pipe` |
 | **File Extension** | `.pipe` |
 | **Scope Name** | `source.pipe` |
 | **Categories** | Programming Languages |
-| **Icon** | `icons/pipe-icon.svg` |
+| **Icon** | `icons/pipe-icon.png` |
 
 ## Syntax Highlighting Features
 
@@ -186,18 +189,75 @@ The word pattern for navigation (double-click selection, word-based cursor movem
 
 This means double-clicking on an identifier like `my_var123` selects the entire identifier, including underscores.
 
+## IntelliSense (Language Server)
+
+Since version 0.1.0 the extension ships an LSP client that connects to the
+`pipe-lsp` server, providing full IntelliSense for `.pipe` files:
+
+- **Auto-completion** — user functions, variables, parameters, all builtins, keywords and snippets
+- **Hover documentation** — signatures and descriptions for builtins and user code
+- **Signature help** — parameter lists while typing a call
+- **Go-to-definition / Find references / Rename** — for user symbols
+- **Diagnostics** — parse errors, undefined variables (E001), unused variables (E007)
+- **Semantic highlighting** — tokens classified on top of the TextMate grammar
+- **Format document** — reformats the whole file (`pipe formatter`)
+
+### Building the Server
+
+Build the `pipe-lsp` binary once:
+
+```sh
+make lsp          # or: go build -o bin/pipe-lsp ./cmd/pipe-lsp
+```
+
+The extension looks for the binary in this order:
+
+1. the `pipe.lspPath` setting
+2. `bin/pipe-lsp` inside the extension folder
+3. `<workspace>/bin/pipe-lsp`
+4. `pipe-lsp` on `PATH`
+
+### Configuration
+
+| Setting | Default | Description |
+|---------|---------|-------------|
+| `pipe.lspPath` | `""` | Absolute path to the `pipe-lsp` binary |
+| `pipe.lsp.enabled` | `true` | Set to `false` to disable the language server |
+
 ## Extension File Structure
 
 ```
 vscode/
 ├── icons/
-│   └── pipe-icon.svg              # Language icon (light and dark)
+│   ├── pipe-icon.png              # Extension and language icon
+│   └── pipe-icon.svg              # Source vector icon
+├── src/
+│   └── extension.ts               # LSP client bootstrap
 ├── syntaxes/
 │   └── pipe.tmLanguage.json       # TextMate grammar for syntax highlighting
 ├── language-configuration.json     # Bracket pairs, auto-indent, folding rules
 ├── package.json                    # Extension manifest
+├── tsconfig.json                   # TypeScript compiler config
+├── .vscodeignore                   # Files excluded from the .vsix package
+├── README.md                       # Marketplace listing
+├── LICENSE                         # MIT license
 ├── test-syntax.pipe                # Syntax test file (source)
-└── test-syntax.pipec               # Compiled test file
+└── pipe-syntax-0.1.0.vsix          # Packaged extension (built with `make vsix`)
+```
+
+## Building the Extension
+
+```sh
+cd vscode
+npm install
+npm run compile          # compiles src/ to out/
+npm run build:server     # builds bin/pipe-lsp inside the extension
+```
+
+To produce an installable `.vsix` package (runs the prepublish build, then packages):
+
+```sh
+make vsix                # or: cd vscode && npx @vscode/vsce package
 ```
 
 ## Tested Features
@@ -213,4 +273,4 @@ The extension has been tested with the following VSCode features and confirmed w
 - **Word selection**: Double-click selects full identifiers including underscores
 - **Bracket content**: Content inside `()`, `[]`, `{}` is not affected by INDENT/DEDENT logic
 
-Pipe does not yet have a Language Server Protocol (LSP) implementation, so features like go-to-definition, find-references, hover information, and diagnostics are not yet available. These are planned for a future VSCode 2.0 extension (see [Roadmap](18-roadmap.md)).
+Pipe ships a Language Server Protocol (LSP) server (`cmd/pipe-lsp`, standard library only, no external dependencies). The VSCode extension connects to it automatically; see [IntelliSense (Language Server)](#intellisense-language-server) above.

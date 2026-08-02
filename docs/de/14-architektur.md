@@ -10,7 +10,7 @@ Quelltext (.pipe)
     │
     ▼
 ┌─────────────┐
-│   Lexer     │  → Token-Stream (52 Token-Typen, INDENT/DEDENT)
+│   Lexer     │  → Token-Stream (66 Token-Typen, INDENT/DEDENT)
 └─────────────┘
     │
     ▼
@@ -29,7 +29,7 @@ Quelltext (.pipe)
 
 ## 14.2 Lexer (`pkg/lexer/`)
 
-**Größe:** ~430 Zeilen Go (token.go) + ~480 Zeilen (lexer.go)
+**Größe:** ~204 Zeilen Go (token.go) + ~485 Zeilen (lexer.go)
 
 ### Token-Typen (52)
 
@@ -66,7 +66,7 @@ def add(a, b):          ← Level 0
 
 ## 14.3 Parser (`pkg/parser/`)
 
-**Größe:** ~996 Zeilen Go
+**Größe:** ~1245 Zeilen Go
 
 ### Parser-Typen
 
@@ -100,30 +100,30 @@ def add(a, b):          ← Level 0
 
 ## 14.4 AST (`pkg/ast/`)
 
-**Größe:** ~359 Zeilen Go  
-**Knotentypen:** 27
+ **Größe:** ~417 Zeilen Go  
+ **Knotentypen:** 34 (12 Statements, 20 Expressions, Programm, MatchCase)
 
 ### Statements (12 Typen)
 
-`Program`, `ExpressionStatement`, `FnStatement`, `VarStatement`, `BlockStatement`,
+`ExpressionStatement`, `FnStatement`, `VarStatement`, `BlockStatement`,
 `BreakStatement`, `ContinueStatement`, `ReturnStatement`, `ImportStatement`,
-`DeferStatement`, `ExportStatement`, `EnumStatement`
+`DeferStatement`, `ExportStatement`, `EnumStatement`, `TestStatement`
 
-### Expressions (15 Typen)
+### Expressions (20 Typen)
 
 `Identifier`, `IntegerLiteral`, `FloatLiteral`, `StringLiteral`, `BooleanLiteral`,
 `NilLiteral`, `PrefixExpression`, `InfixExpression`, `PipelineExpression`,
 `CallExpression`, `ListLiteral`, `MapLiteral`, `DotExpression`, `WhileExpression`,
 `ForExpression`, `FnLiteral`, `SliceExpression`, `TryExpression`, `IfExpression`,
-`MatchExpression`, `MatchCase`
+`MatchExpression`
 
 ## 14.5 Tree-Walker (`pkg/eval/`)
 
-**Größe:** ~967 Zeilen Go (eval.go) + ~152 Zeilen (builtins.go)
+**Größe:** ~1207 Zeilen Go (eval.go) + ~152 Zeilen (builtins.go)
 
 ### Evaluator
 
-Rekursive AST-Evaluation über eine große Switch-Anweisung. Jeder der 27 AST-Knoten
+Rekursive AST-Evaluation über eine große Switch-Anweisung. Jeder der 34 AST-Knoten
 wird einzeln behandelt.
 
 ### Environment (Scope-Chain)
@@ -169,7 +169,7 @@ Bei Fehlern wird der Stack-Trace automatisch an die Fehlermeldung angehängt.
 
 ## 14.6 Bytecode-Compiler (`pkg/compiler/`)
 
-**Größe:** ~876 Zeilen Go (compiler.go) + ~115 Zeilen (opcode.go)
+**Größe:** ~1184 Zeilen Go (compiler.go) + ~117 Zeilen (opcode.go)
 
 ### Compiler-Phasen
 
@@ -203,7 +203,7 @@ a || b:
 
 ## 14.7 Laufzeit-Typen (`pkg/object/`)
 
-**Größe:** ~1818 Zeilen Go
+**Größe:** ~3021 Zeilen Go
 
 ### Objekt-Typen (12)
 
@@ -243,7 +243,7 @@ Body:
 
 ## 14.9 Formatter (`pkg/formatter/`)
 
-**Größe:** ~409 Zeilen Go
+**Größe:** ~477 Zeilen Go
 
 - AST-basierte Formatierung (liest AST, schreibt formatiert zurück)
 - Fallback: Whitespace-Normalisierung wenn Parse fehlschlägt
@@ -261,16 +261,16 @@ Body:
 
 | Metrik | Wert |
 |--------|------|
-| Go-Zeilen | ~6.500 |
-| Go-Packages | 8 |
+| Go-Zeilen | ~19.500 (ohne Tests ~15.100) |
+| Go-Packages | 13 |
 | Externe Abhängigkeiten | 0 |
 | Binary-Größe | ~10 MB |
-| Tests | 220+ |
-| Beispiel-Programme | 23 |
-| Builtins | 81 |
-| Opcodes | 47 |
-| AST-Knotentypen | 27 |
-| Token-Typen | 52 |
+| Tests | 287 (in 12 Paketen) |
+| Beispiel-Programme | 42 |
+| Builtins | 115 |
+| Opcodes | 40 |
+| AST-Knotentypen | 34 |
+| Token-Typen | 66 |
 | Stack-Größe (VM) | 2048 |
 | Max Call-Frames | 1024 |
 | Globals-Array | 65536 |

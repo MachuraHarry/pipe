@@ -1,6 +1,6 @@
 # 10. Builtin-Referenz
 
-Pipe hat **80+ eingebaute Funktionen** — keine externen Abhängigkeiten
+Pipe hat **115 eingebaute Funktionen** — keine externen Abhängigkeiten
 (alle in Go implementiert, nutzen nur die Standardbibliothek).
 
 Die Builtins sind in **allen Ausführungsmodi** verfügbar (Tree-Walker und VM).
@@ -879,12 +879,43 @@ print "Hauptprogramm"
 
 ---
 
-## 10.17 Übersicht aller Builtins
+## 10.17 Sandbox (3 Funktionen)
 
-### IO & System (5)
-`print`, `input`, `exec`, `env`, `sleep`
+### sandbox_profile
+```
+sandbox_profile name
+```
+Wählt ein Sandbox-Profil aus (`none`, `strict`, `noexec`, `isolated`, `networked`).
+```pipe
+sandbox_profile "strict"
+```
 
-### Dateisystem (16)
+### set_sandbox
+```
+set_sandbox(profil)
+```
+Setzt die aktive Sandbox aus einem Profil-Map oder einem Namen.
+```pipe
+set_sandbox {type: "strict", write: false}
+```
+
+### with_sandbox
+```
+with_sandbox(profil, fn)
+```
+Führt `fn` unter dem angegebenen Sandbox-Profil aus und stellt danach das vorherige Profil wieder her.
+```pipe
+with_sandbox "noexec" fn -> print "isoliert"
+```
+
+---
+
+## 10.18 Übersicht aller Builtins
+
+### IO & System (6)
+`print`, `input`, `exec`, `env`, `sleep`, `go`
+
+### Dateisystem (17)
 `read_file`, `write_file`, `append_file`, `read_lines`, `file_exists`,
 `file_delete`, `file_move`, `file_copy`, `file_size`, `file_type`,
 `list_dir`, `make_dir`, `remove_dir`, `path_join`, `path_base`, `path_dir`, `path_ext`
@@ -892,7 +923,7 @@ print "Hauptprogramm"
 ### Strings (6)
 `upper`, `lower`, `trim`, `split`, `join`, `contains`
 
-### Listen (12)
+### Listen (11)
 `len`, `push`, `pop`, `at`, `slice_list`, `sort`, `range`,
 `map`, `filter`, `reduce`, `each`
 
@@ -953,4 +984,7 @@ print "Hauptprogramm"
 ### Test-Assertions (6)
 `assert`, `assert_eq`, `assert_not_eq`, `assert_lt`, `assert_gt`, `assert_error`
 
-**Gesamt: 111 Builtins**
+### Sandbox (3)
+`sandbox_profile`, `set_sandbox`, `with_sandbox`
+
+**Gesamt: 115 Builtins**

@@ -195,6 +195,41 @@ a[data-lang].active { display: inline-block; }
       <p data-lang="de">Das setzt DeepSeek als Provider, fragt das Modell "Hello!" und gibt die Antwort aus.</p>
     </div>
 
+    <!-- Editor Setup -->
+    <div class="section-divider"></div>
+
+    <div class="install-card">
+      <h3 data-lang="en" class="active">VSCode Extension — Highlighting + IntelliSense</h3>
+      <h3 data-lang="de">VSCode-Erweiterung — Highlighting + IntelliSense</h3>
+      <p data-lang="en" class="active">The extension (<code>vscode/</code>) adds TextMate syntax highlighting for <code>.pipe</code> files and connects to the <code>pipe-lsp</code> language server for completion, hover docs, go-to-definition, rename, diagnostics, and formatting.</p>
+      <p data-lang="de">Die Erweiterung (<code>vscode/</code>) fügt TextMate-Syntax-Highlighting für <code>.pipe</code>-Dateien hinzu und verbindet sich für Vervollständigung, Hover-Doku, Go-to-Definition, Umbenennen, Diagnostik und Formatierung mit dem <code>pipe-lsp</code>-Language-Server.</p>
+      <pre class="inline">make vsix          # packages vscode/pipe-syntax-0.1.0.vsix</pre>
+      <p data-lang="en" class="active">Then in VSCode press <code>Ctrl+Shift+P</code> → "Extensions: Install from VSIX..." and select <code>vscode/pipe-syntax-0.1.0.vsix</code>. Files ending in <code>.pipe</code> are recognized automatically.</p>
+      <p data-lang="de">Danach in VSCode <code>Ctrl+Shift+P</code> → "Extensions: Install from VSIX..." drücken und <code>vscode/pipe-syntax-0.1.0.vsix</code> auswählen. Dateien mit der Endung <code>.pipe</code> werden automatisch erkannt.</p>
+      <p data-lang="en" class="active">Build the language server yourself with <code>make lsp</code> → <code>bin/pipe-lsp</code>. The extension looks for it in this order: the <code>pipe.lspPath</code> setting, then <code>bin/pipe-lsp</code> inside the extension folder, then <code>&lt;workspace&gt;/bin/pipe-lsp</code>, then <code>pipe-lsp</code> on <code>PATH</code>.</p>
+      <p data-lang="de">Den Language Server selbst bauen: <code>make lsp</code> → <code>bin/pipe-lsp</code>. Die Erweiterung sucht ihn in dieser Reihenfolge: die Einstellung <code>pipe.lspPath</code>, dann <code>bin/pipe-lsp</code> im Erweiterungsordner, dann <code>&lt;workspace&gt;/bin/pipe-lsp</code>, dann <code>pipe-lsp</code> im <code>PATH</code>.</p>
+      <p data-lang="en" class="active"><strong>Settings:</strong> <code>pipe.lspPath</code> — absolute path to the <code>pipe-lsp</code> binary (default <code>""</code>) · <code>pipe.lsp.enabled</code> — set to <code>false</code> to disable the language server (default <code>true</code>).</p>
+      <p data-lang="de"><strong>Einstellungen:</strong> <code>pipe.lspPath</code> — absoluter Pfad zur <code>pipe-lsp</code>-Binary (Standard <code>""</code>) · <code>pipe.lsp.enabled</code> — <code>false</code>, um den Language Server zu deaktivieren (Standard <code>true</code>).</p>
+    </div>
+
+    <div class="install-card">
+      <h3 data-lang="en" class="active">LSP Server in Any Editor</h3>
+      <h3 data-lang="de">LSP-Server in jedem Editor</h3>
+      <p data-lang="en" class="active"><code>pipe-lsp</code> speaks the Language Server Protocol over stdin/stdout (stdio), so any LSP-capable editor can use it — for example Neovim:</p>
+      <p data-lang="de"><code>pipe-lsp</code> spricht das Language Server Protocol über stdin/stdout (stdio), sodass jeder LSP-fähige Editor ihn nutzen kann — z. B. Neovim:</p>
+      <pre class="inline">make lsp             # builds bin/pipe-lsp
+pipe-lsp -version    # verify: prints "pipe-lsp 0.1.0"</pre>
+      <pre class="inline">-- init.lua
+vim.lsp.start({
+  name = "pipe",
+  cmd = { "pipe-lsp", "--stdio" },
+})</pre>
+      <p data-lang="en" class="active">Supported capabilities: completion, hover, signature help, go-to-definition, references, rename, formatting, semantic tokens, and diagnostics.</p>
+      <p data-lang="de">Unterstützte Fähigkeiten: Vervollständigung, Hover, Signatur-Hilfe, Go-to-Definition, Referenzen, Umbenennen, Formatierung, semantische Tokens und Diagnostik.</p>
+      <p data-lang="en" class="active">Full details in the <a href="https://github.com/MachuraHarry/pipe/blob/master/docs/en/15-vscode-extension.md" target="_blank">VSCode Extension docs (EN)</a>.</p>
+      <p data-lang="de">Alle Details in der <a href="https://github.com/MachuraHarry/pipe/blob/master/docs/de/15-vscode-erweiterung.md" target="_blank">VSCode-Erweiterungs-Doku (DE)</a>.</p>
+    </div>
+
   </div>
 </section>
 

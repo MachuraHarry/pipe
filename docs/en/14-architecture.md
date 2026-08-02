@@ -11,12 +11,12 @@ This document describes the internal architecture of the Pipe language implement
                           └──────────┬───────────┘
                                      │
                               ┌──────▼──────┐
-                              │    Lexer     │   ~430+480 lines
+                               │    Lexer     │   ~204+485 lines
                               │  (pkg/lexer) │   token.go + lexer.go
                               └──────┬───────┘
                                      │ Token stream
                               ┌──────▼──────┐
-                              │    Parser    │   ~996 lines
+                               │    Parser    │   ~1245 lines
                               │  (pkg/parser)│   recursive descent + Pratt
                               └──────┬───────┘
                                      │ AST
@@ -25,13 +25,13 @@ This document describes the internal architecture of the Pipe language implement
            ┌────────▼──────┐  ┌──────▼──────┐  ┌─────▼────────┐
            │  Tree-Walker  │  │  Compiler   │  │   Formatter  │
            │   (pkg/eval)  │  │(pkg/compiler)│  │(pkg/formatter)│
-           │  ~967+152 ln  │  │ ~876+115 ln │  │   ~409 lines │
+            │  ~1207+152 ln │  │ ~1184+117 ln │  │   ~477 lines │
            └────────┬──────┘  └──────┬──────┘  └──────────────┘
                     │                │
                     │         ┌──────▼──────┐
                     │         │      VM      │
                     │         │   (pkg/vm)   │
-                    │         │   ~738 lines │
+                    │         │   ~775 lines │
                     │         └──────────────┘
                     │                │
                     ▼                ▼
@@ -43,7 +43,7 @@ The architecture uses a dual-execution strategy: during development, code runs t
 Supporting modules:
 - **Cache** (`pkg/cache/`, ~191 lines): writes/reads compiled `.pipec` bytecode files with SHA-256 source validation
 - **Build** (`pkg/build/`, ~94 lines): produces self-extracting binaries by appending source to the Pipe runtime
-- **Object** (`pkg/object/`, ~1818 lines): all runtime value types and 86 built-in functions
+- **Object** (`pkg/object/`, ~3021 lines): all runtime value types
 
 ## Lexer (`pkg/lexer/`)
 
@@ -51,31 +51,31 @@ The lexer converts raw source text into a stream of tokens. It consists of two f
 
 | File | Lines | Purpose |
 |------|-------|---------|
-| `token.go` | 193 | Token type definitions, keyword map, string representation |
-| `lexer.go` | 470 | Character-level scanning, indent tracking, tokenization |
+| `token.go` | 204 | Token type definitions, keyword map, string representation |
+| `lexer.go` | 485 | Character-level scanning, indent tracking, tokenization |
 
-### 52 Token Types
+### 66 Token Types
 
-**Literals** (6):
-`IDENT`, `INT`, `FLOAT`, `STRING`, `TRUE`, `FALSE`, `NIL`
+**Literals** (4):
+`IDENT`, `INT`, `FLOAT`, `STRING`
 
-**Operators** (17):
-`ASSIGN` (`=`), `PLUS` (`+`), `MINUS` (`-`), `STAR` (`*`), `SLASH` (`/`), `PERCENT` (`%`), `EQ` (`==`), `NOT_EQ` (`!=`), `LT` (`<`), `GT` (`>`), `LTE` (`<=`), `GTE` (`>=`), `CONCAT` (`++`), `BANG` (`!`), `AND` (`&&`), `OR` (`||`), `POWER` (`**`)
+**Operators** (18):
+`ASSIGN` (`=`), `PLUS` (`+`), `MINUS` (`-`), `STAR` (`*`), `SLASH` (`/`), `PERCENT` (`%`), `EQ` (`==`), `NOT_EQ` (`!=`), `LT` (`<`), `GT` (`>`), `LTE` (`<=`), `GTE` (`>=`), `CONCAT` (`++`), `BANG` (`!`), `AND` (`&&`), `OR` (`||`), `POWER` (`**`), `DOTDOT` (`..`)
 
 **Compound Assignment** (5):
 `PLUSEQ` (`+=`), `MINUSEQ` (`-=`), `STAREQ` (`*=`), `SLASHEQ` (`/=`), `PERCENTEQ` (`%=`)
 
-**Pipeline** (3):
-`PIPE` (`|`), `ARROW` (`>`), `MATCH` (`->`)
+**Pipeline** (4):
+`PIPE` (`|`), `ARROW` (`>`), `ARROW2` (`>>`), `FAT_ARROW` (`->`)
 
-**Punctuation** (8):
-`LPAREN`, `RPAREN`, `LBRACKET`, `RBRACKET`, `LBRACE`, `RBRACE`, `COMMA`, `DOT`, `COLON`
+**Punctuation** (10):
+`LPAREN`, `RPAREN`, `LBRACKET`, `RBRACKET`, `LBRACE`, `RBRACE`, `COMMA`, `SEMICOLON`, `DOT`, `COLON`
 
 **Structure** (3):
 `NEWLINE`, `INDENT`, `DEDENT`
 
-**Keywords** (18):
-`FN`, `MATCHKW`, `IF`, `ELSE`, `WHILE`, `FOR`, `BREAK`, `CONTINUE`, `IMPORT`, `EXPORT`, `ENUM`, `DEFER`, `RETURN`, `TRY`, `CATCH`, `TRUE`, `FALSE`, `NIL`
+**Keywords** (20):
+`FN`, `MATCH_KW`, `IF`, `ELSE`, `WHILE`, `FOR`, `BREAK`, `CONTINUE`, `IMPORT`, `EXPORT`, `ENUM`, `DEFER`, `RETURN`, `TRY`, `CATCH`, `TRYAI`, `TEST`, `TRUE`, `FALSE`, `NIL`
 
 **Special** (2):
 `ILLEGAL`, `EOF`
@@ -106,7 +106,7 @@ Each token carries `Line` and `Col` fields for error reporting. The column is re
 
 ## Parser (`pkg/parser/`)
 
-The parser uses a hybrid recursive descent + Pratt parsing approach (~996 lines).
+The parser uses a hybrid recursive descent + Pratt parsing approach (~1245 lines).
 
 ### Recursive Descent
 
@@ -162,7 +162,7 @@ print "a" "b" "c"    -- parsed as CallExpression{print, ["a", "b", "c"]}
 
 ## AST (`pkg/ast/`)
 
-The AST defines 27 node types implemented in ~359 lines.
+The AST defines 34 node types implemented in ~417 lines: 12 statements, 20 expressions, the root `Program`, and the `MatchCase` helper node.
 
 ### 12 Statements
 
@@ -179,8 +179,9 @@ The AST defines 27 node types implemented in ~359 lines.
 | `DeferStatement` | Deferred expression execution |
 | `ExportStatement` | Symbol export (wraps an `FnStatement`) |
 | `EnumStatement` | Enumeration definition |
+| `TestStatement` | Test block: `test "name": ...` |
 
-### 15 Expressions
+### 20 Expressions
 
 | Node | Description |
 |------|-------------|
@@ -209,7 +210,7 @@ The AST defines 27 node types implemented in ~359 lines.
 
 ## Tree-Walker (`pkg/eval/`)
 
-The tree-walking interpreter evaluates the AST directly by recursively traversing nodes. It consists of `eval.go` (~967 lines) and `builtins.go` (~152 lines).
+The tree-walking interpreter evaluates the AST directly by recursively traversing nodes. It consists of `eval.go` (~1207 lines) and `builtins.go` (~152 lines).
 
 ### Recursive AST Evaluation
 
@@ -245,7 +246,7 @@ Errors carry stack traces. Each function call pushes a frame onto the call stack
 
 ## Compiler (`pkg/compiler/`)
 
-The compiler transforms the AST into bytecode instructions. It consists of `compiler.go` (~876 lines) and `opcode.go` (~115 lines). The compiler is detailed in [Bytecode VM](13-bytecode-vm.md).
+The compiler transforms the AST into bytecode instructions. It consists of `compiler.go` (~1184 lines) and `opcode.go` (~117 lines). The compiler is detailed in [Bytecode VM](13-bytecode-vm.md).
 
 ### Compilation Phases
 
@@ -280,7 +281,7 @@ END:
 
 ## Object Types (`pkg/object/`)
 
-The object system defines all runtime value types in ~1818 lines.
+The object system defines all runtime value types in ~3021 lines (plus `environment.go`, ~66 lines).
 
 ### 12 Main Types
 
@@ -303,6 +304,7 @@ The object system defines all runtime value types in ~1818 lines.
 
 | Type | Go Struct | Description |
 |------|-----------|-------------|
+| `FUTURE` | `Future{...}` | Async result from `go` / concurrent calls |
 | `BUILTIN` | `BuiltinInfo{Name, Fn}` | Built-in function wrapper |
 | `TCP_CONN` | `TcpConn{Handle}` | TCP client connection handle |
 | `TCP_LISTENER` | `TcpListener{Handle}` | TCP server listener handle |
@@ -345,7 +347,7 @@ func LoadOrCompile(filePath string) (*Bytecode, bool, error)
 
 ## Formatter (`pkg/formatter/`)
 
-The formatter (~409 lines) provides `pipe fmt <file>` functionality.
+The formatter (~477 lines) provides `pipe fmt <file>` functionality.
 
 ### AST-Based Formatting
 
@@ -374,16 +376,16 @@ The runtime reads itself, scans backward from EOF for the `PIPEBUILD` marker, ex
 
 | Metric | Value |
 |--------|-------|
-| **Go source lines** | ~5,500+ total |
-| **Go packages** | 11 (`ast`, `build`, `cache`, `compiler`, `eval`, `formatter`, `lexer`, `object`, `parser`, `stdlib`, `vm`) |
+| **Go source lines** | ~19,500 total (~15,100 excluding tests) |
+| **Go packages** | 13 (`ai`, `analysis`, `ast`, `build`, `cache`, `compiler`, `eval`, `formatter`, `lexer`, `object`, `parser`, `stdlib`, `vm`) |
 | **External dependencies** | 0 (standard library only) |
 | **Binary size** | ~10 MB (statically linked) |
-| **Tests** | 220+ (across 10 packages) |
-| **Examples** | 19 example programs in `examples/` |
-| **Built-in functions** | 86 |
-| **Opcodes** | 47 |
-| **AST node types** | 27 (12 statements, 15 expressions) |
-| **Token types** | 52 |
+| **Tests** | 287 (across 12 packages) |
+| **Examples** | 42 example programs in `examples/` |
+| **Built-in functions** | 115 |
+| **Opcodes** | 40 |
+| **AST node types** | 34 (12 statements, 20 expressions, program, match case) |
+| **Token types** | 66 |
 | **Operand stack size** | 2048 slots |
 | **Maximum call frames** | 1024 |
 | **Maximum global variables** | 65536 |

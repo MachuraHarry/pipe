@@ -1,26 +1,21 @@
 package gen
 
-import "fmt"
-
 var varPrefixes = []string{
-	"x", "y", "z", "a", "b", "c",
-	"val", "sum", "cnt", "idx", "i", "j", "k",
-	"result", "tmp", "data", "text", "line", "entry",
-	"found", "done", "start", "limit", "total",
+	"name", "age", "score", "total", "count", "index",
+	"result", "data", "text", "value", "list", "nums",
+	"sum", "avg", "maxVal", "minVal", "found", "msg",
 }
 
 var fnPrefixes = []string{
-	"main", "helper", "calc", "process", "transform",
-	"check", "parse", "build", "handle", "run",
-	"init", "cleanup", "validate", "lookup", "compute",
-	"format", "extract", "filter", "convert", "find",
+	"greet", "double", "isEven", "add", "multiply",
+	"capitalize", "length", "check", "transform", "process",
+	"calculate", "format", "extract", "validate", "lookup",
 }
 
 type nameGen struct {
-	idx   int
-	varI  int
-	fnI   int
-	seed  int64
+	varI int
+	fnI  int
+	seed int64
 }
 
 func newNameGen(seed int64) *nameGen {
@@ -28,23 +23,27 @@ func newNameGen(seed int64) *nameGen {
 }
 
 func (n *nameGen) nextVar() string {
-	name := fmt.Sprintf("%s%d", varPrefixes[n.varI%len(varPrefixes)], n.varI)
+	name := varPrefixes[n.varI%len(varPrefixes)]
+	if n.varI >= len(varPrefixes) {
+		name += string(rune('0' + n.varI/len(varPrefixes)))
+	}
 	n.varI++
-	n.idx++
 	return name
 }
 
 func (n *nameGen) nextFn() string {
-	name := fmt.Sprintf("%s%d", fnPrefixes[n.fnI%len(fnPrefixes)], n.fnI)
+	name := fnPrefixes[n.fnI%len(fnPrefixes)]
+	if n.fnI >= len(fnPrefixes) {
+		name += string(rune('0' + n.fnI/len(fnPrefixes)))
+	}
 	n.fnI++
-	n.idx++
 	return name
 }
 
 func (n *nameGen) paramName(idx int) string {
-	names := []string{"a", "b", "c", "d", "e", "f", "g", "h", "x", "y", "n", "s", "val", "input", "data", "text"}
+	names := []string{"x", "y", "n", "s", "val", "input", "list", "text"}
 	if idx < len(names) {
 		return names[idx]
 	}
-	return fmt.Sprintf("p%d", idx)
+	return string(rune('a' + idx))
 }

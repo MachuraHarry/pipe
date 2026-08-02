@@ -79,7 +79,7 @@ func checkFull(prog *ast.Program, src string) bool {
 	machine := vm.New(bc)
 
 	oldHook := object.PrintHook
-	object.PrintHook = nil
+	object.PrintHook = func(args ...object.Object) {}
 	defer func() { object.PrintHook = oldHook }()
 
 	done := make(chan error, 1)

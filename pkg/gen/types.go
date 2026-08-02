@@ -73,8 +73,8 @@ type GenOptions struct {
 func DefaultOptions() GenOptions {
 	return GenOptions{
 		Seed:      1,
-		MaxStmts:  20,
-		MaxDepth:  5,
+		MaxStmts:  8,
+		MaxDepth:  4,
 		Pipelines: true,
 		TryExprs:  false,
 		Tests:     false,

@@ -26,19 +26,22 @@ func (g *Generator) genExprNoPipeline(prefType PipeType, depth int) ast.Expressi
 }
 
 func (g *Generator) tryGenSubExpr(prefType PipeType, depth int) ast.Expression {
+	if depth <= 3 {
+		return g.genLeaf(prefType)
+	}
 	r := g.rng.Intn(100)
 	switch {
-	case r < 30:
+	case r < 35:
 		return g.genLeaf(prefType)
-	case r < 55:
+	case r < 60:
 		return g.genCall(prefType, depth)
-	case r < 80:
+	case r < 75:
 		return g.genInfix(prefType, depth)
-	case r < 88:
+	case r < 82:
 		return g.genPrefix(depth)
-	case r < 93:
+	case r < 90:
 		return g.genList(depth)
-	case r < 98:
+	case r < 96:
 		return g.genMap(depth)
 	default:
 		return g.genLeaf(prefType)
@@ -51,19 +54,19 @@ func (g *Generator) genTopExpr(prefType PipeType, depth int) ast.Expression {
 	}
 	r := g.rng.Intn(100)
 	switch {
-	case r < 10 && g.opts.Pipelines:
+	case r < 15 && g.opts.Pipelines:
 		return g.genPipeline(depth)
 	case r < 25:
 		return g.genIfOrMatch(prefType, depth)
-	case r < 40:
+	case r < 50:
 		return g.genCall(prefType, depth)
-	case r < 60:
+	case r < 65:
 		return g.genInfix(prefType, depth)
-	case r < 70:
+	case r < 72:
 		return g.genPrefix(depth)
-	case r < 78:
+	case r < 82:
 		return g.genList(depth)
-	case r < 85:
+	case r < 90:
 		return g.genMap(depth)
 	default:
 		return g.genLeaf(prefType)

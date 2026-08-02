@@ -9,7 +9,7 @@ func (g *Generator) genFnDef() ast.Statement {
 
 	g.ctx.pushScope()
 
-	nParams := g.rng.Intn(4)
+	nParams := g.rng.Intn(3)
 	params := make([]*ast.Identifier, nParams)
 	for i := 0; i < nParams; i++ {
 		pName := g.ctx.names.paramName(i)
@@ -34,7 +34,7 @@ func (g *Generator) genFnDef() ast.Statement {
 func (g *Generator) genFnBody() *ast.BlockStatement {
 	block := &ast.BlockStatement{}
 	g.ctx.fnDepth++
-	nStmts := randInt(g.rng, 1, 6)
+	nStmts := randInt(g.rng, 1, 4)
 	for i := 0; i < nStmts; i++ {
 		stmt := g.genFnStmt()
 		if stmt != nil {
@@ -54,20 +54,18 @@ func (g *Generator) genFnStmt() ast.Statement {
 		return g.genExprStmt()
 	case r < 8 && g.ctx.fnDepth > 0:
 		return g.genReturnStmt()
-	case r < 9:
-		return g.genIfStmt()
 	default:
 		return g.genExprStmt()
 	}
 }
 
 func (g *Generator) genReturnStmt() ast.Statement {
-	return &ast.ReturnStatement{Value: g.genExprNoPipeline(TypeAny, g.opts.MaxDepth)}
+	return &ast.ReturnStatement{Value: g.genLeaf(TypeAny)}
 }
 
 func (g *Generator) genVarDef() ast.Statement {
 	name := g.ctx.names.nextVar()
-	value := g.genExprNoPipeline(TypeAny, g.opts.MaxDepth)
+	value := g.genExprNoPipeline(TypeAny, g.opts.MaxDepth-1)
 	g.ctx.define(name, ScopeEntry{Kind: KindVariable, Type: TypeAny})
 	return &ast.VarStatement{
 		Name:  &ast.Identifier{Value: name},
@@ -77,7 +75,7 @@ func (g *Generator) genVarDef() ast.Statement {
 
 func (g *Generator) genEnumDef() ast.Statement {
 	name := g.ctx.names.nextFn()
-	nVals := randInt(g.rng, 2, 5)
+	nVals := randInt(g.rng, 2, 4)
 	values := make([]string, nVals)
 	prefixes := []string{"Red", "Blue", "Green", "Small", "Large", "High", "Low", "On", "Off", "Open", "Closed", "Active", "Inactive"}
 	for i := 0; i < nVals; i++ {
@@ -94,25 +92,4 @@ func (g *Generator) genEnumDef() ast.Statement {
 func (g *Generator) genExprStmt() ast.Statement {
 	expr := g.genTopExpr(TypeAny, g.opts.MaxDepth)
 	return &ast.ExpressionStatement{Expression: expr}
-}
-
-func (g *Generator) genIfStmt() ast.Statement {
-	cond := g.genExpr(TypeBool, g.opts.MaxDepth)
-	cons := g.genExpr(TypeAny, g.opts.MaxDepth)
-
-	ifExpr := &ast.IfExpression{
-		Condition: cond,
-		Consequence: &ast.BlockStatement{
-			Statements: []ast.Statement{&ast.ExpressionStatement{Expression: cons}},
-		},
-	}
-
-	if g.rng.Intn(3) == 0 {
-		alt := g.genExpr(TypeAny, g.opts.MaxDepth)
-		ifExpr.Alternative = &ast.BlockStatement{
-			Statements: []ast.Statement{&ast.ExpressionStatement{Expression: alt}},
-		}
-	}
-
-	return &ast.ExpressionStatement{Expression: ifExpr}
 }

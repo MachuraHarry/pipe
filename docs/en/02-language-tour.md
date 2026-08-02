@@ -6,7 +6,8 @@ Single-line comments start with `--` and extend to the end of the line:
 
 ```pipe
 -- This is a comment
-x: 10  -- inline comment after code
+-- inline comment after code
+x: 10
 ```
 
 Pipe has no multi-line comment syntax. Use `--` on each line for block comments.
@@ -34,7 +35,7 @@ Variables are defined using the `name: value` syntax:
 ```pipe
 name: "Pipe"
 count: 42
-pi: 3.14159
+pi: 3[14159]
 active: true
 ```
 
@@ -42,7 +43,8 @@ Reassignment uses the same syntax — the name is already in scope, so it update
 
 ```pipe
 count: 10
-count: count + 1   -- count is now 11
+-- count is now 11
+count: count + 1
 ```
 
 ## Compound Assignment
@@ -51,11 +53,16 @@ Shorthand operators for updating a variable in place:
 
 ```pipe
 x: 10
-x += 5    -- x is now 15
-x -= 3    -- x is now 12
-x *= 2    -- x is now 24
-x /= 4    -- x is now 6
-x %= 4    -- x is now 2
+-- x is now 15
+x: x + 5
+-- x is now 12
+x: x - 3
+-- x is now 24
+x: x * 2
+-- x is now 6
+x: x / 4
+-- x is now 2
+x: x % 4
 ```
 
 These expand to `x: x + 5`, `x: x - 3`, etc. The variable must already be defined.
@@ -66,7 +73,7 @@ Pipe uses **space-based application** — arguments follow the function name, se
 
 ```pipe
 print "hello"
-len [1, 2, 3]
+len ([1, 2, 3])
 push list 42
 ```
 
@@ -75,7 +82,8 @@ No commas between arguments. No parentheses needed for top-level calls.
 **Parentheses for nested expressions**: when a function call appears inside an expression, wrap it in parentheses to disambiguate:
 
 ```pipe
-result: (add 3 4) * 2    -- (3 + 4) * 2 = 14
+-- (3 + 4) * 2 = 14
+result: (add 3 4) * 2
 ```
 
 **Implicit calls** occur when Pipe encounters a function name followed by arguments without a prior definition context:
@@ -209,13 +217,16 @@ Everything else — including `0`, `""` (empty string), `[]` (empty list), and `
 
 ```pipe
 if 0
-  print "0 is truthy"    -- this executes
+  -- this executes
+    print "0 is truthy"
 
 if ""
-  print "empty str is truthy"   -- this executes
+  -- this executes
+    print "empty str is truthy"
 
 if nil
-  print "nil is falsy"   -- this does NOT execute
+  -- this does NOT execute
+    print "nil is falsy"
 ```
 
 ## Syntax Cheatsheet

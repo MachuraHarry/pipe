@@ -21,7 +21,8 @@ für nicht gesetzte Map-Keys und fehlgeschlagene Lookups.
 
 ```pipe
 x: nil
-print x              -- nil
+-- nil
+print x
 ```
 
 ### bool
@@ -37,9 +38,12 @@ Zahlen werden als 64-Bit Integer (`int64`) oder Float (`float64`)
 dargestellt. Pipe konvertiert automatisch:
 
 ```pipe
-ganzzahl: 42          -- Integer
-kommazahl: 3.14       -- Float
-negativ: -100         -- Integer
+-- Integer
+ganzzahl: 42
+-- Float
+kommazahl: 3[14]
+-- Integer
+negativ: -100
 ```
 
 **Integer + Integer → Integer**  
@@ -81,11 +85,7 @@ Assoziative Maps (Schlüssel-Wert-Paare), nur String-Keys:
 ```pipe
 leer: {}
 person: {name: "Anna", alter: 28, stadt: "Berlin"}
-komplex: {
-    name: "Pipe",
-    version: 1,
-    tags: ["sprache", "skript"]
-}
+komplex: {name: "Pipe", version: 1, tags: ["sprache", "skript"]}
 ```
 
 ### fn
@@ -102,7 +102,8 @@ verdoppler: fn x
 fn anwenden f wert
     f wert
 
-print (anwenden verdoppler 21)    -- 42
+-- 42
+print (anwenden verdoppler 21)
 ```
 
 ## 3.2 Operatoren — Vollständige Referenz
@@ -197,9 +198,12 @@ sind links-assoziativ.
 ### Präzedenz-Beispiele
 
 ```pipe
-1 + 2 * 3        -- 1 + (2 * 3) = 7, nicht (1 + 2) * 3
--x ** 2          -- -(x ** 2), nicht (-x) ** 2
-a && b || c      -- (a && b) || c
+-- 1 + (2 * 3) = 7, nicht (1 + 2) * 3
+1 + 2 * 3
+-- -(x ** 2), nicht (-x) ** 2
+-x ** 2
+-- (a && b) || c
+a && b || c
 ```
 
 ## 3.4 Typ-Prüfung
@@ -207,31 +211,51 @@ a && b || c      -- (a && b) || c
 Pipe bietet eingebaute Funktionen zur Typ-Prüfung:
 
 ```pipe
-print (type_of 42)          -- "INTEGER"
-print (type_of 3.14)        -- "FLOAT"
-print (type_of "hallo")     -- "STRING"
-print (type_of true)        -- "BOOLEAN"
-print (type_of nil)         -- "NIL"
-print (type_of [1, 2])      -- "LIST"
-print (type_of {a: 1})      -- "MAP"
-print (type_of (fn x: x))   -- "FUNCTION"
+-- "INTEGER"
+print (type_of 42)
+-- "FLOAT"
+print (type_of 3[14])
+-- "STRING"
+print (type_of "hallo")
+-- "BOOLEAN"
+print (type_of true)
+-- "NIL"
+print (type_of nil)
+-- "LIST"
+print (type_of ([1, 2]))
+-- "MAP"
+print (type_of {a: 1})
+-- "FUNCTION"
+print (type_of (fn x
+    x))
 
-print (is_num 42)           -- true
-print (is_str "hallo")      -- true
-print (is_list [1, 2])      -- true
-print (is_map {a: 1})       -- true
-print (is_nil nil)          -- true
+-- true
+print (is_num 42)
+-- true
+print (is_str "hallo")
+-- true
+print (is_list ([1, 2]))
+-- true
+print (is_map {a: 1})
+-- true
+print (is_nil nil)
 ```
 
 ## 3.5 Typ-Konvertierung
 
 ```pipe
-print (to_str 42)           -- "42"
-print (to_str true)         -- "true"
-print (to_num "42")         -- 42
-print (to_num "3.14")       -- 3.14
-print (to_num true)         -- 1
-print (to_num false)        -- 0
+-- "42"
+print (to_str 42)
+-- "true"
+print (to_str true)
+-- 42
+print (to_num "42")
+-- 3[14]
+print (to_num "3[14]")
+-- 1
+print (to_num true)
+-- 0
+print (to_num false)
 ```
 
 ## 3.6 Mehrzeilige Strings (Backticks)

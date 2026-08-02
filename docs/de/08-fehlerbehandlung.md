@@ -6,12 +6,15 @@ Pipe bietet `try`/`catch` zum Abfangen von Laufzeitfehlern:
 
 ```pipe
 try
-    ergebnis: 10 / 0            -- Gefährlicher Code
+    -- Gefährlicher Code
+        ergebnis: 10 / 0
 catch fehler
     print "Fehler aufgetreten:"
-    print fehler                -- "Division durch Null"
+    -- "Division durch Null"
+        print fehler
 
-print "Programm läuft weiter!"  -- Wird ausgeführt!
+-- Wird ausgeführt!
+print "Programm läuft weiter!"
 ```
 
 ### Funktionsweise
@@ -27,7 +30,8 @@ print "Programm läuft weiter!"  -- Wird ausgeführt!
 ```pipe
 fn teile a b
     if b == 0
-        1 / 0                 -- Erzwingt einen Fehler
+        -- Erzwingt einen Fehler
+                1 / 0
     else
         a / b
 
@@ -57,16 +61,21 @@ fn betrag x
         return (-x)
     x
 
-print (betrag (-5))     -- 5
-print (betrag 5)        -- 5
+-- 5
+print (betrag (-5))
+-- 5
+print (betrag 5)
 
 fn teile_sicher a b
     if b == 0
-        return nil      -- Vorzeitiges Verlassen bei ungültiger Eingabe
+        -- Vorzeitiges Verlassen bei ungültiger Eingabe
+                return nil
     a / b
 
-print (teile_sicher 10 0)   -- nil
-print (teile_sicher 10 2)   -- 5
+-- nil
+print (teile_sicher 10 0)
+-- 5
+print (teile_sicher 10 2)
 ```
 
 ### 8.1.2 `try_ai` — KI-gesteuerte Selbstheilung
@@ -78,9 +87,11 @@ analysiert und repariert die KI den Ausdruck — ohne Eingriff des Entwicklers.
 ai_provider "deepseek"
 
 try_ai
-    "42" * 3           -- Type Error → KI wrappt mit to_num → 126
+    -- Type Error -> KI wrappt mit to_num -> 126
+        "42" * 3
 catch e
-    0                   -- Fallback wenn KI nicht fixen kann
+    -- Fallback wenn KI nicht fixen kann
+        0
 ```
 
 #### Ablauf
@@ -116,16 +127,23 @@ ohne try/catch:
 ```pipe
 -- Erfolg
 r1: Ok 42
-print (is_ok r1)          -- true
-print (is_err r1)         -- false
-print (unwrap r1)         -- 42
+-- true
+print (is_ok r1)
+-- false
+print (is_err r1)
+-- 42
+print (unwrap r1)
 
 -- Fehler
 r2: Err "Etwas ist schiefgelaufen"
-print (is_ok r2)          -- false
-print (is_err r2)         -- true
-print (unwrap r2)         -- ERROR (bricht ab)
-print (unwrap_or r2 0)    -- 0 (Default-Wert)
+-- false
+print (is_ok r2)
+-- true
+print (is_err r2)
+-- ERROR (bricht ab)
+print (unwrap r2)
+-- 0 (Default-Wert)
+print (unwrap_or r2 0)
 ```
 
 ### Result-Funktionen
@@ -149,14 +167,15 @@ fn sichere_division a b
         Ok (a / b)
 
 10
-    > sichere_division 2     -- Ok(5)
+    > sichere_division 2
     > unwrap
-    > print                   -- 5
+    > print
 
 10
-    > sichere_division 0     -- Err("Division durch Null")
-    > (fn r: unwrap_or r 0)  -- 0
-    > print                   -- 0
+    > sichere_division 0
+    > (fn r
+        unwrap_or r 0)
+    > print
 ```
 
 ## 8.5 Fehler vermeiden
@@ -172,8 +191,10 @@ fn sicherer_zugriff map key
         wert
 
 person: {name: "Anna"}
-print (sicherer_zugriff person "name")      -- "Anna"
-print (sicherer_zugriff person "alter")     -- "Nicht gefunden"
+-- "Anna"
+print (sicherer_zugriff person "name")
+-- "Nicht gefunden"
+print (sicherer_zugriff person "alter")
 ```
 
 ### Datei-Existenz prüfen

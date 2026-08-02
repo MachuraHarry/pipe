@@ -10,16 +10,21 @@ Communication happens via REST APIs to OpenAI, Anthropic, or DeepSeek.
 ### Choosing a Provider
 
 ```pipe
-ai_provider "openai"       -- OpenAI (default)
-ai_provider "anthropic"    -- Anthropic Claude
-ai_provider "deepseek"     -- DeepSeek
+-- OpenAI (default)
+ai_provider "openai"
+-- Anthropic Claude
+ai_provider "anthropic"
+-- DeepSeek
+ai_provider "deepseek"
 ```
 
 ### Model and Timeout
 
 ```pipe
-ai_model "gpt-4o"           -- Set model (default: gpt-4o-mini)
-ai_timeout 120               -- Timeout in seconds (default: 60)
+-- Set model (default: gpt-4o-mini)
+ai_model "gpt-4o"
+-- Timeout in seconds (default: 60)
+ai_timeout 120
 ```
 
 ### API Keys
@@ -81,7 +86,7 @@ summarize text
 -- Example
 text: "Pipe is a modern scripting language focused on..."
 print (summarize text)
--- → Pipe is a scripting language with a pipeline operator and bytecode VM.
+-- -> Pipe is a scripting language with a pipeline operator and bytecode VM.
 --   It supports 115 builtins and is optimized for data processing.
 ```
 
@@ -97,7 +102,7 @@ translate text target_language
 -- Example
 text: "The quick brown fox jumps over the lazy dog."
 print (translate text "German")
--- → Der schnelle braune Fuchs springt über den faulen Hund.
+-- -> Der schnelle braune Fuchs springt über den faulen Hund.
 ```
 
 ### classify
@@ -112,12 +117,13 @@ classify text categories
 
 -- Example 1: String
 result: classify "Apple announces new iPhone" "Tech, Sports, Politics"
-print result     -- → Tech
+-- -> Tech
+print result
 
 -- Example 2: List
 categories: ["urgent", "low", "medium"]
 print (classify "Server down since 2 hours" categories)
--- → urgent
+-- -> urgent
 ```
 
 ### extract
@@ -135,11 +141,16 @@ text: "John Doe, born on March 15, 1985 in London,
        works as a software engineer and earns $95,000."
 schema: { name: "str", birth_year: "num", city: "str", job: "str", salary: "num" }
 data: extract text schema
-print data.name        -- → John Doe
-print data.birth_year  -- → 1985
-print data.city        -- → London
-print data.job         -- → Software Engineer
-print data.salary      -- → 95000
+-- -> John Doe
+print data.name
+-- -> 1985
+print data.birth_year
+-- -> London
+print data.city
+-- -> Software Engineer
+print data.job
+-- -> 95000
+print data.salary
 ```
 
 ### generate
@@ -155,7 +166,7 @@ generate prompt
 prompt: "Write a short product description for an AI tool
          for automated code review."
 print (generate prompt)
--- → Automate your code review process with AI-powered analysis
+-- -> Automate your code review process with AI-powered analysis
 --   that catches bugs, suggests improvements, and ensures code
 --   quality — all before your PR reaches human reviewers.
 ```
@@ -171,7 +182,7 @@ ask question
 
 -- Example
 print (ask "What is the difference between stack and heap?")
--- → The stack is a LIFO memory region for local variables
+-- -> The stack is a LIFO memory region for local variables
 --   and function calls with fast allocation. The heap is
 --   a dynamic memory region for long-lived objects with
 --   manual or automatic garbage collection.
@@ -197,7 +208,7 @@ response: ai_chat
     "How do I list all files larger than 100 MB recursively?"
 
 print response
--- → find . -type f -size +100M -exec ls -lh {} \;
+-- -> find . -type f -size +100M -exec ls -lh {} \;
 ```
 
 ### ai_chat_json
@@ -215,8 +226,10 @@ response: ai_chat_json
     "You are a data analyst. Reply exclusively with JSON."
     "Give the top 3 programming languages for 2025 with percentage share."
 
-print response.first       -- → Python
-print response.share_py    -- → 34
+-- -> Python
+print response.first
+-- -> 34
+print response.share_py
 
 -- Example 2: List
 languages: ai_chat_json
@@ -295,13 +308,11 @@ ai_parallel concurrency system_prompt items
 
 Like `ai_batch` but with explicit concurrency control.
 
-```pipe
+```text
 -- Max 3 parallel calls
-answers: ai_parallel 3 "Translate to German." [
-    "Hello world",
+answers: ai_parallel 3 "Translate to German." (["Hello world",
     "Good morning",
-    "How are you?"
-]
+    "How are you?"])
 ```
 
 ### ai_rate_limit
@@ -313,7 +324,8 @@ ai_rate_limit calls_per_second
 Limits API calls per second using a global token bucket.
 
 ```pipe
-ai_rate_limit 5       -- Max 5 calls per second
+-- Max 5 calls per second
+ai_rate_limit 5
 
 -- Process 100 texts with rate limiting
 texts: read_lines "data.txt"
@@ -347,7 +359,8 @@ API (OpenAI-compatible, model: `text-embedding-3-small`).
 
 ```pipe
 vec: embed "Pipe is a scripting language."
-print (len vec)    -- 1536
+-- 1536
+print (len vec)
 ```
 
 **Note:** Requires `OPENAI_API_KEY`. DeepSeek does not support embeddings.
@@ -476,7 +489,7 @@ without further tool calls.
 
 ### Weather Assistant (complete)
 
-```pipe
+```text
 fn get_weather city
     match city
         | "Berlin" -> "22°C, sunny"
@@ -511,11 +524,11 @@ read_file "minutes.txt"
     > split " "
     > len
     > print
--- → 5 (words in the translated text)
+-- -> 5 (words in the translated text)
 
 -- Classification in data flow
 documents: read_lines "emails.txt"
-results: map documents fn(doc)
+results: map documents fn doc
     class: classify doc "internal, external, spam, support"
     { doc: doc, type: class }
 ```
@@ -528,7 +541,7 @@ AI operations can fail — for example due to missing API keys,
 network issues, or timeouts. These errors can be caught with
 `try`/`catch`:
 
-```pipe
+```text
 -- Missing API key
 try
     print (summarize "A long text...")
@@ -537,7 +550,8 @@ catch e
     print "Please set your API key!"
 
 -- Catch timeout
-ai_timeout 5     -- short timeout
+-- short timeout
+ai_timeout 5
 try
     print (generate "Write a 10-page essay about philosophy"))
 catch e
@@ -584,7 +598,7 @@ ollama pull llama3.2:3b
 
 ```pipe
 ai_provider "ollama"
-ai_model "llama3.2:3b"
+ai_model "llama3[2]:3b"
 
 ask "What is a pipeline?" > print
 ```
@@ -599,8 +613,8 @@ ask "What is a pipeline?" > print
 **Remote Ollama** (e.g., on a local network):
 ```pipe
 ai_provider "ollama"
-ai_host "http://192.168.1.50:11434"
-ai_model "qwen2.5-coder:7b"
+ai_host "http://192.168.1[50]:11434"
+ai_model "qwen2[5]-coder:7b"
 ```
 
 ---
@@ -609,7 +623,7 @@ ai_model "qwen2.5-coder:7b"
 
 This workflow demonstrates all AI builtins in a practical application:
 
-```pipe
+```text
 -- ai_demo.pipe — AI workflow with all builtins
 -- Usage: OPENAI_API_KEY="sk-..." pipe ai_demo.pipe
 

@@ -66,7 +66,7 @@ Parses the source file and prints its Abstract Syntax Tree to stdout. Useful for
 **Example input (`hello.pipe`):**
 
 ```pipe
-let greeting = "Hello, world!"
+greeting: "Hello, world!"
 print greeting
 ```
 
@@ -96,9 +96,9 @@ Formats Pipe source code according to the canonical style. The formatter operate
 
 **Before formatting:**
 
-```pipe
-let x=10
- let y = 20
+```text
+x: 10
+ y: 20
 print   ( x+ y )
 fn add(a,b){a+b}
 ```
@@ -106,11 +106,12 @@ fn add(a,b){a+b}
 **After formatting:**
 
 ```pipe
-let x = 10
-let y = 20
+x: 10
+y: 20
 print (x + y)
 
-let add = fn(a, b) { a + b }
+add: (fn a b
+    a + b)
 ```
 
 The formatter enforces:
@@ -136,26 +137,20 @@ Discovers and runs test functions defined in Pipe files. By default, it looks fo
 ```pipe
 import "math.pipe" as m
 
-test "addition works" {
-    let result = m.add 2 3
-    if result != 5 {
+test "addition works"
+    result: m.add 2 3
+    if result != 5
         print "FAIL: expected 5, got " + result
-    }
-}
 
-test "multiplication works" {
-    let result = m.multiply 4 5
-    if result != 20 {
+test "multiplication works"
+    result: m.multiply 4 5
+    if result != 20
         print "FAIL: expected 20, got " + result
-    }
-}
 
-test "division by zero returns nil" {
-    let result = m.safe_divide 10 0
-    if result != nil {
+test "division by zero returns nil"
+    result: m.safe_divide 10 0
+    if result != nil
         print "FAIL: expected nil"
-    }
-}
 ```
 
 When test functions throw or fail, the runner reports them. A test that completes without errors is considered passing.
@@ -183,29 +178,29 @@ Runs benchmark functions defined with the `bench` keyword and reports execution 
 **Benchmark file example (`calc_bench.pipe`):**
 
 ```pipe
-bench "fibonacci recursive" {
-    let fib = fn(n) {
-        if n <= 1 { n } { (fib (n - 1)) + (fib (n - 2)) }
-    }
-    each range 0 20 fn(_) { fib 20 }
-}
+bench "fibonacci recursive"
+    fib: fn n
+        if n <= 1
+            n
+        else
+            (fib (n - 1)) + (fib (n - 2))
+    each range 0 20 (fn _
+        fib 20)
 
-bench "list operations" {
-    each range 0 1000 fn(_) {
-        let xs = range 0 100
-        let mapped = map xs fn(x) { x * 2 }
-        let filtered = filter mapped fn(x) { x > 50 }
-    }
-}
+bench "list operations"
+    each range 0 1000 fn _
+        xs: range 0 100
+        mapped: map xs (fn x
+            x * 2)
+        filtered: filter mapped (fn x
+            x > 50)
 
-bench "string processing" {
-    each range 0 500 fn(_) {
-        let s = "the quick brown fox jumps over the lazy dog"
-        let parts = split s " "
-        let joined = join parts ","
-        let upper = upper joined
-    }
-}
+bench "string processing"
+    each range 0 500 fn _
+        s: "the quick brown fox jumps over the lazy dog"
+        parts: split s " "
+        joined: join parts ","
+        upper: upper joined
 ```
 
 **Sample output:**
@@ -283,16 +278,17 @@ pipe
 
 ### Basic Usage
 
-```pipe
->>> let x = 10
->>> print x
+```text
+x: 10
+print x
 10
->>> x * 2
+x * 2
 20
->>> let greet = fn(name) { "Hello, " + name + "!" }
->>> (greet "World")
+greet: (fn name
+    "Hello, " + name + "!")
+(greet "World")
 Hello, World!
->>> type_of [1, 2, 3]
+type_of ([1, 2, 3])
 list
 ```
 
@@ -301,29 +297,26 @@ list
 The REPL automatically enters multi-line mode when you start an unfinished statement (unclosed block, missing expression, etc.):
 
 ```pipe
->>> let add = fn(a, b) {
-...     let sum = a + b
-...     sum
-... }
->>> (add 5 3)
+add: fn a b
+    sum: a + b
+    sum
+(add 5 3)
 8
 ```
 
-```pipe
->>> let person = {
-...     "name" = "Alice",
-...     "age" = 30
-... }
->>> person.name
+```text
+person: {
+    name: "Alice",
+    age: 30
+person.name
 Alice
 ```
 
-```pipe
->>> if x > 5 {
-...     print "big"
-... } {
-...     print "small"
-... }
+```text
+if x > 5
+    print "big"
+    else
+    print "small"
 big
 ```
 
@@ -334,11 +327,11 @@ The `... ` prompt indicates continuation lines. You can press Enter on an empty 
 If an input is a single expression (not a statement), the REPL evaluates it and prints the result:
 
 ```pipe
->>> 2 + 2
+2 + 2
 4
->>> [1, 2, 3]
 [1, 2, 3]
->>> "hello" + " world"
+[1, 2, 3]
+"hello" + " world"
 hello world
 ```
 
@@ -354,71 +347,81 @@ The `-fmt` flag rewrites Pipe source files to conform to canonical formatting ru
 
 Before:
 ```pipe
-let x=10
-let y=20
+x: 10
+y: 20
 print(x+y)
 ```
 
 After:
 ```pipe
-let x = 10
-let y = 20
+x: 10
+y: 20
 print (x + y)
 ```
 
 **Example 2: Function Definitions**
 
 Before:
-```pipe
+```text
 fn add(a,b){return a+b}
 ```
 
 After:
 ```pipe
-let add = fn(a, b) { return a + b }
+add: fn a b
+    a + b
 ```
 
 **Example 3: Maps and Lists**
 
 Before:
 ```pipe
-let data={"a"=1,"b"=2,"c"=[3,4,5]}
+data: {a: 1,b: 2,c: [3,4,5]}
 ```
 
 After:
 ```pipe
-let data = { "a" = 1, "b" = 2, "c" = [3, 4, 5] }
+data: { a: 1, b: 2, c: [3, 4, 5] }
 ```
 
 **Example 4: Pipe Operators**
 
 Before:
-```pipe
-let result=data|filter fn(x){x>0}|map fn(x){x*x}|sort
+```text
+result: data
+    > filter fn x
+        x > 0
+    > map fn x
+        x * x
+    > sort
 ```
 
 After:
 ```pipe
-let result = data
-    | filter fn(x) { x > 0 }
-    | map fn(x) { x * x }
-    | sort
+result: data
+    > filter (fn x
+        x > 0)
+    > map (fn x
+        x * x)
+    > sort
 ```
 
 **Example 5: If/Else Blocks**
 
 Before:
 ```pipe
-if x>0{print"positive"}else{print"zero or neg"}
+if x > 0
+    print "positive"
+else
+    print "zero or neg"
 ```
 
 After:
 ```pipe
-if x > 0 {
+if x > 0
     print "positive"
-} {
+else
     print "zero or neg"
-}
 ```
 
 ---
@@ -457,7 +460,7 @@ The runner searches the current directory for:
 
 ### Comprehensive Test Example
 
-```pipe
+```text
 test "string operations"
     assert_eq ("hello" ++ " world") "hello world"
     assert (len "hello") == 5
@@ -468,10 +471,12 @@ test "list operations"
     assert_eq (push my_list 4) [1, 2, 3, 4]
 
 test "error handling"
-    failing: fn
+    failing: (fn
         read_file "nonexistent"
     assert_error failing
-```
+    )
+
+    )```
 
 ---
 
@@ -489,10 +494,9 @@ The `-bench` flag measures execution time of benchmark functions.
 ### Benchmark Structure
 
 ```pipe
-bench "name of the benchmark" {
-    # Code to benchmark
-    # Use each/range for multiple iterations
-}
+bench "name of the benchmark"
+    -- Code to benchmark
+    -- Use each/range for multiple iterations
 ```
 
 ### Three Benchmark Examples
@@ -500,39 +504,42 @@ bench "name of the benchmark" {
 **Benchmark 1: Computational — Fibonacci**
 
 ```pipe
-bench "fibonacci(30)" {
-    let fib = fn(n) {
-        if n <= 1 { n } { (fib (n - 1)) + (fib (n - 2)) }
-    }
+bench "fibonacci(30)"
+    fib: fn n
+        if n <= 1
+            n
+        else
+            (fib (n - 1)) + (fib (n - 2))
     fib 30
-}
-# Typical: ~15ms per iteration (Tree-Walker), ~2ms (VM)
+-- Typical: ~15ms per iteration (Tree-Walker), ~2ms (VM)
 ```
 
 **Benchmark 2: Data Transform — List pipeline**
 
 ```pipe
-bench "list pipeline 10k" {
-    let data = range 0 10000
-    let result = data
-        | map fn(x) { x * 3 }
-        | filter fn(x) { x % 2 == 0 }
-        | map fn(x) { x / 2 }
+bench "list pipeline 10k"
+    data: range 0 10000
+    result: data
+        > map (fn x
+            x * 3)
+        > filter (fn x
+            x % 2 == 0)
+        > map (fn x
+            x / 2)
     len result
-}
-# Typical: ~50ms per iteration (Tree-Walker), ~7ms (VM)
+-- Typical: ~50ms per iteration (Tree-Walker), ~7ms (VM)
 ```
 
 **Benchmark 3: I/O — File read and JSON parse**
 
 ```pipe
-bench "read and parse JSON" {
-    let raw = read_file "data.json"
-    let parsed = parse_json raw
-    let names = map parsed.users fn(u) { u.name }
+bench "read and parse JSON"
+    raw: read_file "data.json"
+    parsed: parse_json raw
+    names: map parsed.users (fn u
+        u.name)
     len names
-}
-# Typical: ~10ms per iteration (I/O dominated)
+-- Typical: ~10ms per iteration (I/O dominated)
 ```
 
 ---

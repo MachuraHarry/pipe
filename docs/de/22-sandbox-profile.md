@@ -17,9 +17,12 @@ sandbox_profile "strict" {fs: "read-only", network: false, exec: false, ai: fals
 
 set_sandbox "strict"
 
-write_file "/tmp/test.txt" "blockiert"   -- E_SANDBOX: blockiert
-read_file "/tmp/test.txt"                -- erlaubt (read-only)
-http_get "https://example.com"           -- E_SANDBOX: blockiert
+-- E_SANDBOX: blockiert
+write_file "/tmp/test.txt" "blockiert"
+-- erlaubt (read-only)
+read_file "/tmp/test.txt"
+-- E_SANDBOX: blockiert
+http_get "https://example.com"
 ```
 
 ---
@@ -101,8 +104,10 @@ Registriert ein benanntes Profil in der globalen Registry. Gibt einen Fehler zur
 ### `set_sandbox` — Profil aktivieren
 
 ```pipe
-set_sandbox "strict"     -- Alle folgenden Operationen nutzen dieses Profil
-set_sandbox "none"       -- Zurücksetzen auf uneingeschränkt
+-- Alle folgenden Operationen nutzen dieses Profil
+set_sandbox "strict"
+-- Zurücksetzen auf uneingeschränkt
+set_sandbox "none"
 ```
 
 Ändert das aktive Profil global. Alle nachfolgenden Builtin-Aufrufe werden gegen dieses Profil geprüft.
@@ -114,7 +119,8 @@ fn gefaehrliche_arbeit
     exec "gefährlicher Befehl"
     http_get "https://unbekannte-seite.com"
 
-with_sandbox "strict" gefaehrliche_arbeit   -- vom Sandbox blockiert
+-- vom Sandbox blockiert
+with_sandbox "strict" gefaehrliche_arbeit
 ```
 
 Führt eine Funktion unter einem bestimmten Profil aus und stellt danach das vorherige wieder her.
@@ -157,11 +163,11 @@ sandbox_profile "agent-safe" {fs: "read-only", network: true, exec: false, ai: t
 
 fn get_weather stadt
     http_get ("https://api.weather.com/" ++ stadt)
-    -- Sandbox erlaubt Netzwerk → OK
+    -- Sandbox erlaubt Netzwerk -> OK
 
 fn delete_logs pattern
     file_delete "/var/log/" ++ pattern
-    -- Sandbox blockiert Schreiben → Fehler an LLM
+    -- Sandbox blockiert Schreiben -> Fehler an LLM
 
 ai_tool "get_weather" "Wetter abrufen" {stadt: "Stadtname"} get_weather
 ai_tool "delete_logs" "Log-Dateien löschen" {pattern: "glob"} delete_logs

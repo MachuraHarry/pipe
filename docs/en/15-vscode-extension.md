@@ -130,7 +130,7 @@ When text is selected and a bracket key is pressed, the selection is wrapped:
 ### Increase Indent
 Triggered when a line begins with one of these keywords (unless `else` follows on the same line):
 
-```regex
+```text
 ^\s*(if|while|for|fn|match|try|catch|defer)\b(?!.*\b(else)\b)
 ```
 
@@ -139,13 +139,13 @@ Meaning: after typing `if`, `while`, `for`, `fn`, `match`, `try`, `catch`, or `d
 Example:
 ```pipe
 if x > 0
-    print "positive"   ← auto-indented
+    print "positive"   <- auto-indented
 ```
 
 ### Decrease Indent
 Triggered when a line begins with `else`, `else if`, or `catch`:
 
-```regex
+```text
 ^\s*(else|else if|catch)\b
 ```
 
@@ -153,7 +153,7 @@ Example:
 ```pipe
 if x > 0
     print "positive"
-else                   ← auto-outdented
+else                   -- auto-outdented
     print "not positive"
 ```
 

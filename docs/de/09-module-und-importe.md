@@ -17,8 +17,10 @@ fn kubik x
 ```pipe
 import "lib.pipe"
 
-print (quadrat 7)     -- 49
-print (kubik 3)       -- 27
+-- 49
+print (quadrat 7)
+-- 27
+print (kubik 3)
 ```
 
 Der Pfad ist **relativ zur aufrufenden Datei**.
@@ -34,8 +36,10 @@ aktuellen Scope injiziert.
 ```pipe
 import "lib.pipe" as lib
 
-print (lib.quadrat 7)     -- 49
-print (lib.kubik 3)       -- 27
+-- 49
+print (lib.quadrat 7)
+-- 27
+print (lib.kubik 3)
 ```
 
 Mit `as name` werden alle exportierten Symbole in eine Map verpackt,
@@ -54,7 +58,8 @@ export fn quadrat x
 export fn kubik x
     x * (quadrat x)
 
-fn intern x          -- Nicht exportiert, von außen unsichtbar
+-- Nicht exportiert, von außen unsichtbar
+fn intern x
     x + 1
 ```
 
@@ -62,8 +67,10 @@ fn intern x          -- Nicht exportiert, von außen unsichtbar
 ```pipe
 import "math.pipe"
 
-print (quadrat 5)     -- 25
-print (kubik 3)       -- 27
+-- 25
+print (quadrat 5)
+-- 27
+print (kubik 3)
 -- print (intern 5)   -- FEHLER: nicht sichtbar
 ```
 
@@ -112,9 +119,12 @@ Installierte Module liegen in `~/.pipe/modules/` und können per Name importiert
 Mit `@version` wird eine bestimmte Version eines Moduls angefordert:
 
 ```pipe
-import "log-analyzer@1.0.0"          -- exakte Version
-import "log-analyzer"                -- neueste (implizit @latest)
-import "sentiment@0.9.0" as s       -- Version mit Alias
+-- exakte Version
+import "log-analyzer@1.0[0]"
+-- neueste (implizit @latest)
+import "log-analyzer"
+-- Version mit Alias
+import "sentiment@0.9[0]" as s
 ```
 
 Falls die lokale Datei nicht existiert, fragt Pipe die Registry nach der Versions-URL, lädt das Modul herunter und speichert es im Cache.

@@ -10,9 +10,9 @@ The vertical pipeline uses indented lines, each starting with `>` followed by a 
 
 ```pipe
 initial_value
-> transformation1
-> transformation2
-> transformation3
+    > transformation1
+    > transformation2
+    > transformation3
 ```
 
 The pipeline starts with a value on its own line. Each subsequent indented line begins with `>` and specifies the next transformation.
@@ -23,9 +23,9 @@ Data flows **top to bottom**. The value on the first line becomes the first argu
 
 ```pipe
 5
-> double
-> square
-> to_str
+    > double
+    > square
+    > to_str
 
 -- equivalent to: to_str(square(double(5)))
 -- result: "100"
@@ -42,9 +42,9 @@ This reads naturally: "take 5, double it, square the result, convert to string."
 
 ```pipe
 "hello"
-> replace "l" "x"
-> upper
-> print
+    > replace "l" "x"
+    > upper
+    > print
 
 -- equivalent to: print(upper(replace("hello", "l", "x")))
 -- output: "HEXXO"
@@ -56,10 +56,12 @@ When a pipeline step needs arguments beyond the piped value, list them after the
 
 ```pipe
 [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
-> filter (fn x x % 2 == 0)
-> map (fn x x * 3)
-> sort
-> print
+    > filter (fn x
+        x % 2 == 0)
+    > map (fn x
+        x * 3)
+    > sort
+    > print
 
 -- filter even numbers, multiply by 3, sort, print
 -- output: [6, 12, 18, 24, 30]
@@ -77,9 +79,11 @@ When the result is actually needed (used in arithmetic, passed to a function, pr
 
 ```pipe
 initial_value
->> slow_operation       -- starts in background, returns Future immediately
-> next_operation        -- continues when Future is resolved
-> print
+    -- starts in background, returns Future immediately
+    >> slow_operation
+    -- continues when Future is resolved
+    > next_operation
+    > print
 ```
 
 ### Why Parallel Pipelines?
@@ -101,7 +105,8 @@ With `>>`, all three start simultaneously:
 "Question 2" >> ask
 "Question 3" >> ask
 
-print answer1 ++ answer2 ++ answer3     -- waits automatically
+-- waits automatically
+print answer1 ++ answer2 ++ answer3
 ```
 
 ### Futures: Automatic Resolution
@@ -111,17 +116,21 @@ When a `>>` stage returns, it does so with a **Future** — a promise that a val
 ```pipe
 -- Store a Future in a variable
 result: 10
-    >> slow_double     -- result is a Future
+    -- result is a Future
+    >> slow_double
 
 -- Arithmetic automatically waits for the Future
 result + 100
-    > print            -- Future is resolved before addition
+    -- Future is resolved before addition
+    > print
 
 -- String concatenation waits too
-"I got: " ++ result    -- waits for slow_double to finish
+-- waits for slow_double to finish
+"I got: " ++ result
 
 -- Function arguments wait
-max result 50          -- waits before comparing
+-- waits before comparing
+max result 50
 ```
 
 ### Mixing `>` and `>>`
@@ -130,10 +139,14 @@ You can freely mix sequential and parallel pipeline stages:
 
 ```pipe
 data
-    >> fetch_from_api    -- parallel: start API call
-    > parse_json         -- sequential: wait, then parse
-    >> analyze           -- parallel: start analysis
-    > format             -- sequential: wait, then format
+    -- parallel: start API call
+    >> fetch_from_api
+    -- sequential: wait, then parse
+    > parse_json
+    -- parallel: start analysis
+    >> analyze
+    -- sequential: wait, then format
+    > format
     > print
 ```
 
@@ -152,8 +165,9 @@ Use `_` (underscore) to control where the piped value is inserted. Instead of al
 
 ```pipe
 "hello"
-> replace _ "l" "x"       -- replace "hello" "l" "x"
-> print
+    -- replace "hello" "l" "x"
+    > replace _ "l" "x"
+    > print
 
 -- "hello" goes where _ is: replace("hello", "l", "x")
 ```
@@ -162,9 +176,10 @@ Without `_`, the value goes as the first argument. With `_`, the value goes exac
 
 ```pipe
 [3, 1, 4, 1, 5]
-> push _ 9              -- push([3, 1, 4, 1, 5], 9)
-> len _
-> print
+    -- push([3, 1, 4, 1, 5], 9)
+    > push _ 9
+    > len _
+    > print
 
 -- output: 6
 ```
@@ -173,7 +188,8 @@ Without `_`, the value goes as the first argument. With `_`, the value goes exac
 
 ```pipe
 "alpha"
-> print _ _              -- prints "alpha alpha"
+    -- prints "alpha alpha"
+    > print _ _
 ```
 
 ## File Processing Pipeline
@@ -182,12 +198,15 @@ A realistic example: reading a file, splitting into lines, filtering, sorting, a
 
 ```pipe
 read_file "data/words.txt"
-> split _ "\n"
-> filter (fn line (len line) > 0)     -- remove blank lines
-> filter (fn line (has line "pipe"))
-> sort
-> for line in _
-  print line
+    > split _ "\n"
+    -- remove blank lines
+    > filter (fn line
+        (len line) > 0)
+    > filter (fn line
+        has line "pipe")
+    > sort
+    > for line in _
+        print line
 ```
 
 Breaking this down step by step:
@@ -205,11 +224,12 @@ A multi-step number processing pipeline:
 
 ```pipe
 read_file "data/numbers.csv"
-> split _ ","
-> map _ to_num
-> filter (fn n (is_num n) && (n > 0))
-> sum _
-> print
+    > split _ ","
+    > map _ to_num
+    > filter (fn n
+        (is_num n) && (n > 0))
+    > sum _
+    > print
 ```
 
 ## Horizontal Pipeline Syntax
@@ -235,17 +255,21 @@ The `>` symbol is overloaded — it means both "greater than" in comparisons and
 - In an **expression context** at the top level or pipeline line, `>` is the pipeline operator.
 
 ```pipe
-if x > 10        -- comparison: greater than
+-- comparison: greater than
+if x > 10
   print "big"
 
-x > double       -- pipeline: pass x to double
+-- pipeline: pass x to double
+x > double
 ```
 
 When the intent is ambiguous, use parentheses to disambiguate:
 
 ```pipe
-result: (x > 5) > double    -- comparison first, then pipeline
-result: x > (5 > double)    -- pipeline on 5? unlikely, but parsed this way
+-- comparison first, then pipeline
+result: (x > 5) > double
+-- pipeline on 5? unlikely, but parsed this way
+result: x > (5 > double)
 ```
 
 The rule of thumb: **`>` in condition position is comparison; `>` in expression position is pipeline**.
@@ -264,11 +288,12 @@ print (sort (map (filter (split (read_file "data.txt") "\n") (fn x (len x) > 0))
 
 ```pipe
 read_file "data.txt"
-> split _ "\n"
-> filter (fn x (len x) > 0)
-> map _ upper
-> sort
-> print
+    > split _ "\n"
+    > filter (fn x
+        (len x) > 0)
+    > map _ upper
+    > sort
+    > print
 ```
 
 The pipeline version reads top-to-bottom in the order operations happen. The nested version reads inside-out, which is harder to follow as the chain grows.
@@ -289,22 +314,24 @@ fn process_data raw
     cleaned
 
 data: read_file "input.txt"
-> process_data
-> print
+    > process_data
+    > print
 ```
 
 Or use a conditional inside a pipeline step:
 
 ```pipe
-scores: [85, 92, 45, 78, 63, 99]
-> filter (fn s
+fn keep_passing s
     if s >= 60
-      true
+        true
     else
-      print "dropping " ++ (to_str s)
-      false)
-> sort
-> print
+        print "dropping " ++ (to_str s)
+        false
+
+scores: [85, 92, 45, 78, 63, 99]
+    > filter keep_passing
+    > sort
+    > print
 ```
 
 ## Design Principle
@@ -315,10 +342,11 @@ This makes Pipe programs read like a description:
 
 ```pipe
 read_file "log.txt"
-> split _ "\n"
-> filter (fn line (has line "ERROR"))
-> count
-> print
+    > split _ "\n"
+    > filter (fn line
+        has line "ERROR")
+    > count
+    > print
 ```
 
 "This program reads a log file, splits it into lines, filters for ERROR lines, counts them, and prints the count." The code structure directly mirrors the problem description.

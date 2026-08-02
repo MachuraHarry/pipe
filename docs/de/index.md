@@ -33,24 +33,40 @@ Willkommen zur vollständigen Dokumentation der Skriptsprache **Pipe**.
 
 ## Schnellreferenz
 
-```pipe
+```text
 -- Kommentar
-x: 42                         -- Variable
-x += 1                        -- Compound Assignment
-fn name a b: ...              -- Funktion
-if bed: ... else: ...         -- Bedingung
-match x | 0 -> ... | _ ->     -- Pattern Matching
-while bed: ...                -- Schleife
-for x in liste: ...           -- for-in
-try: ... catch e: ...         -- Fehlerbehandlung
-return wert                   -- Vorzeitiges Verlassen
-defer ausdruck                -- Verzögerte Ausführung
-import "datei.pipe"           -- Modul laden
-export fn name                -- Symbol exportieren
-enum Name: A, B, C            -- Enumeration
+-- Variable
+x: 42
+-- Compound Assignment
+x: x + 1
+-- Funktion
+fn name a b: ...
+-- Bedingung
+if bed: ... else: ...
+-- Pattern Matching
+match x | 0 -> ... | _ ->
+-- Schleife
+while bed: ...
+-- for-in
+for x in liste: ...
+-- Fehlerbehandlung
+try: ... catch e: ...
+-- Vorzeitiges Verlassen
+return wert
+-- Verzögerte Ausführung
+defer ausdruck
+-- Modul laden
+import "datei.pipe"
+-- Symbol exportieren
+export fn name
+A: 0
+B: 1
+-- Enumeration: 2
+C
 
 wert
-    > funktion                 -- Vertikale Pipeline
+    -- Vertikale Pipeline
+        > funktion
     > ausgabe
 ```
 

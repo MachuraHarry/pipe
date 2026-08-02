@@ -42,13 +42,16 @@ fn is_positive x
     x > 0
 
 42
-    > double          -- double(42) = 84
-    > add 10          -- add(84, 10) = 94
-    > print           -- 94
+    -- double(42) = 84
+    > double
+    -- add(84, 10) = 94
+    > add 10
+    -- 94
+    > print
 
 100
     > is_positive
-    > print           -- true
+    > print
 ```
 
 ### Syntax-Regeln
@@ -65,8 +68,10 @@ zusätzlichen Argumente nach dem Funktionsnamen angegeben:
 
 ```pipe
 100
-    > add 50           -- add(100, 50) = 150
-    > print            -- 150
+    -- add(100, 50) = 150
+        > add 50
+    -- 150
+        > print
 ```
 
 Das Pipeline-Ergebnis (100) wird als erstes Argument eingefügt,
@@ -85,8 +90,10 @@ wartet Pipe **automatisch** auf den Future.
 
 ```pipe
 wert
-    >> langsame_operation    -- startet im Hintergrund, gibt Future zurück
-    > nächste_operation      -- wartet auf Future-Auflösung
+    -- startet im Hintergrund, gibt Future zurueck
+    >> langsame_operation
+    -- wartet auf Future-Aufloesung
+    > naechste_operation
     > print
 ```
 
@@ -109,7 +116,8 @@ Mit `>>` laufen alle drei gleichzeitig:
 "Frage 2" >> ask
 "Frage 3" >> ask
 
-print antwort1 ++ antwort2 ++ antwort3    -- wartet automatisch
+-- wartet automatisch
+print antwort1 ++ antwort2 ++ antwort3
 ```
 
 ### Futures: Automatische Auflösung
@@ -124,13 +132,16 @@ ergebnis: 10
 
 -- Arithmetik wartet automatisch
 ergebnis + 100
-    > print            -- Future wird vor der Addition aufgelöst
+    -- Future wird vor der Addition aufgelöst
+        > print
 
 -- String-Konkatenation wartet auch
-"Wert: " ++ ergebnis    -- wartet auf Future
+-- wartet auf Future
+"Wert: " ++ ergebnis
 
 -- Funktionsargumente warten
-max ergebnis 50          -- wartet vor dem Vergleich
+-- wartet vor dem Vergleich
+max ergebnis 50
 ```
 
 ### Mischen von `>` und `>>`
@@ -139,10 +150,14 @@ Parallele und sequentielle Pipeline-Stufen lassen sich beliebig kombinieren:
 
 ```pipe
 daten
-    >> api_abfrage     -- parallel: API-Call starten
-    > parse_json        -- sequentiell: warten, dann parsen
-    >> analysieren      -- parallel: Analyse starten
-    > formatieren       -- sequentiell: warten, dann formatieren
+    -- parallel: API-Call starten
+    >> api_abfrage
+    -- sequentiell: warten, dann parsen
+    > parse_json
+    -- parallel: Analyse starten
+    >> analysieren
+    -- sequentiell: warten, dann formatieren
+    > formatieren
     > print
 ```
 
@@ -167,12 +182,12 @@ fn subtrahiere a b
 -- Standard: subtrahiere(10, 3) = 7
 10
     > subtrahiere 3
-    > print           -- 7
+    > print
 
 -- Mit Platzhalter: subtrahiere(3, 10) = -7
 10
     > subtrahiere 3 _
-    > print           -- -7
+    > print
 ```
 
 `_` wird durch den Pipeline-Wert ersetzt. Ohne `_` wird der Wert
@@ -182,24 +197,35 @@ automatisch als **erstes Argument** eingefügt.
 
 ```pipe
 [3, 1, 4, 1, 5, 9]
-    > sort              -- sort([3,1,4,1,5,9]) = [1,1,3,4,5,9]
-    > push 10           -- push([1,1,3,4,5,9], 10) = [1,1,3,4,5,9,10]
-    > print             -- [1, 1, 3, 4, 5, 9, 10]
+    -- sort([3,1,4,1,5,9]) = [1,1,3,4,5,9]
+        > sort
+    -- push([1,1,3,4,5,9], 10) = [1,1,3,4,5,9,10]
+        > push 10
+    -- [1, 1, 3, 4, 5, 9, 10]
+        > print
 
 "hallo welt"
-    > upper             -- upper("hallo welt") = "HALLO WELT"
-    > split " "         -- split("HALLO WELT", " ") = ["HALLO", "WELT"]
-    > print             -- ["HALLO", "WELT"]
+    -- upper("hallo welt") = "HALLO WELT"
+        > upper
+    -- split("HALLO WELT", " ") = ["HALLO", "WELT"]
+        > split " "
+    -- ["HALLO", "WELT"]
+        > print
 ```
 
 ## 6.6 Datei-Pipeline (Praxisbeispiel)
 
 ```pipe
 read_file "log.txt"
-    > split "\n"                            -- Zeilenweise
-    > filter (fn l: contains l "ERROR")     -- Nur ERROR-Zeilen
-    > sort                                   -- Sortieren
-    > print                                  -- Ausgeben
+    -- Zeilenweise
+    > split "\n"
+    -- Nur ERROR-Zeilen
+    > filter (fn l
+        contains l "ERROR")
+    -- Sortieren
+    > sort
+    -- Ausgeben
+    > print
 ```
 
 ## 6.7 Horizontale Pipeline
@@ -207,7 +233,8 @@ read_file "log.txt"
 Die Pipeline funktioniert auch einzeilig (horizontal), ist aber weniger lesbar:
 
 ```pipe
-print (42 > double > add 10)     -- 94
+-- 94
+print (42 > double > add 10)
 ```
 
 Die horizontale Form verwendet ebenfalls `>` zwischen den Stufen,
@@ -246,7 +273,7 @@ fn bewertung punkte
 punkte_liste: [95, 82, 67, 91, 73]
 punkte_liste
     > map bewertung
-    > print           -- ["A", "B", "C", "A", "C"]
+    > print
 ```
 
 ## 6.10 Design-Prinzip

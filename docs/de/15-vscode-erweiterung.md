@@ -86,7 +86,7 @@ Verringert Einrückung nach:
 Unterstützt Folding-Marker:
 ```pipe
 -- region Beschreibung
-...code...
+    -- code...
 -- endregion
 ```
 

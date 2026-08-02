@@ -26,8 +26,10 @@ Modules are cached in `~/.pipe/modules/`.
 Use `@version` to pin a module to a specific release:
 
 ```pipe
-import "log-analyzer@1.0.0"         # exact version
-import "log-analyzer"               # latest version
+-- exact version
+import "log-analyzer@1.0[0]"
+-- latest version
+import "log-analyzer"
 ```
 
 When no version is specified, Pipe resolves the `latest` version from the registry. Installed modules use the pinned version and don't auto-update.
@@ -37,7 +39,7 @@ When no version is specified, Pipe resolves the `latest` version from the regist
 After installing, import the module in your script:
 
 ```pipe
-import "log-analyzer@1.0.0"
+import "log-analyzer@1.0[0]"
 
 read_file "errors.log"
     > split "\n"

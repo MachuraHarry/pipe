@@ -13,9 +13,12 @@ Klammerausdrücken.
 ```pipe
 -- Statt: print(addiere(verdopple(42), 10))
 42
-    > verdopple       -- verdopple(42) = 84
-    > addiere 10      -- addiere(84, 10) = 94
-    > print           -- Ausgabe: 94
+    -- verdopple(42) = 84
+        > verdopple
+    -- addiere(84, 10) = 94
+        > addiere 10
+    -- Ausgabe: 94
+        > print
 ```
 
 ## 1.2 Voraussetzungen
@@ -109,9 +112,12 @@ Weitere Details in [Kapitel 12: Ausführungsmodelle](12-ausfuehrungsmodelle.md).
 Im Skript verfügbar als `args`-Liste:
 
 ```pipe
-print args                  -- ["arg1", "arg2", "arg3"]
-print (at args 0)           -- "arg1"
-print (len args)            -- 3
+-- ["arg1", "arg2", "arg3"]
+print args
+-- "arg1"
+print (at args 0)
+-- 3
+print (len args)
 ```
 
 ## 1.8 Hilfe anzeigen

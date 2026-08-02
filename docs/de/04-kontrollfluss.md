@@ -27,7 +27,8 @@ status: if punkte >= 50
 else
     "durchgefallen"
 
-print status    -- "bestanden"
+-- "bestanden"
+print status
 ```
 
 ### Verschachtelte if-Ausdrücke
@@ -71,7 +72,8 @@ fn fib n
         | 1  -> 1
         | _  -> fib(n - 1) + fib(n - 2)
 
-print (fib 10)    -- 55
+-- 55
+print (fib 10)
 ```
 
 ### Calculator mit match
@@ -86,8 +88,10 @@ fn calc a op b
         | "%" -> a % b
         | _   -> 0
 
-print (calc 10 "+" 5)     -- 15
-print (calc 10 "*" 5)     -- 50
+-- 15
+print (calc 10 "+" 5)
+-- 50
+print (calc 10 "*" 5)
 ```
 
 ## 4.3 while — While-Schleife
@@ -119,7 +123,8 @@ i: 0
 while i < 6
     i: i + 1
     if i % 2 == 0
-        continue          -- Überspringt gerade Zahlen
+        -- Überspringt gerade Zahlen
+                continue
     print i
 -- Ausgabe: 1, 3, 5
 ```
@@ -127,30 +132,33 @@ while i < 6
 ## 4.4 for-in — Über Listen iterieren
 
 ```pipe
-for farbe in ["rot", "grün", "blau"]
+for farbe in (["rot", "grün", "blau"])
     print farbe
 ```
 
 ### range() für Zahlenbereiche
 
 ```pipe
--- range(n) → [0, 1, ..., n-1]
+-- range(n) -> [0, 1, ..., n-1]
 for i in (range 5)
-    print i              -- 0, 1, 2, 3, 4
+    -- 0, 1, 2, 3, 4
+        print i
 
--- range(a, b) → [a, a+1, ..., b-1]
+-- range(a, b) -> [a, a+1, ..., b-1]
 for i in (range 2 6)
-    print i              -- 2, 3, 4, 5
+    -- 2, 3, 4, 5
+        print i
 
--- range(a, b, step) → [a, a+step, ..., <b]
+-- range(a, b, step) -> [a, a+step, ..., <b]
 for i in (range 0 10 2)
-    print i              -- 0, 2, 4, 6, 8
+    -- 0, 2, 4, 6, 8
+        print i
 ```
 
 ### for-in mit break
 
 ```pipe
-for i in [5, 4, 3, 2, 1, 0]
+for i in ([5, 4, 3, 2, 1, 0])
     print i
     if i <= 2
         break
@@ -220,7 +228,7 @@ Ohne Fehler wird der catch-Block übersprungen.
 fragt Pipe einen KI-Provider, den Fehler automatisch zu beheben.
 
 ```pipe
--- KI kann Typ-Fehler korrigieren: String "42" + Zahl → konvertiert zu Zahl
+-- KI kann Typ-Fehler korrigieren: String "42" + Zahl -> konvertiert zu Zahl
 try_ai
     ergebnis: "42" + 10
     print ergebnis
@@ -247,8 +255,10 @@ fn betrag x
         return (-x)
     x
 
-print (betrag (-5))     -- 5
-print (betrag 5)        -- 5
+-- 5
+print (betrag (-5))
+-- 5
+print (betrag 5)
 ```
 
 Ohne `return` ist der letzte Ausdruck im Funktionskörper der Rückgabewert.
@@ -257,8 +267,10 @@ Ohne `return` ist der letzte Ausdruck im Funktionskörper der Rückgabewert.
 ```pipe
 fn teile a b
     if b == 0
-        return nil      -- Vorzeitig verlassen
-    a / b               -- Normaler Rückgabewert
+        -- Vorzeitig verlassen
+        return nil
+    -- Normaler Rueckgabewert
+    a / b
 ```
 
 ## 4.8 defer — Verzögerte Ausführung
@@ -269,7 +281,8 @@ nützlich für Ressourcen-Freigabe (wie Go's `defer`):
 ```pipe
 fn verarbeite_datei pfad
     print ("Öffne " ++ pfad)
-    defer print ("Schließe " ++ pfad)  -- Wird am Ende ausgeführt
+    -- Wird am Ende ausgeführt
+        defer print ("Schließe " ++ pfad)
     print ("Verarbeite pfad")
     -- ... weitere Operationen
 
@@ -277,7 +290,7 @@ verarbeite_datei "daten.txt"
 -- Ausgabe:
 --   Öffne daten.txt
 --   Verarbeite daten.txt
---   Schließe daten.txt    ← defer!
+--   Schließe daten.txt    <- defer!
 ```
 
 ### LIFO-Reihenfolge
@@ -295,7 +308,7 @@ fn demofunktion
 demofunktion
 -- Ausgabe:
 --   Hauptlogik
---   Erster    ← zuletzt defer't, zuerst ausgeführt
+--   Erster    <- zuletzt defer't, zuerst ausgeführt
 --   Zweiter
 --   Dritter
 ```
@@ -307,24 +320,32 @@ Defer funktioniert auch auf **Top-Level** (wird am Programm-Ende ausgeführt).
 Definiert benannte Konstanten, beginnend bei 0:
 
 ```pipe
-enum Farbe: Rot, Grün, Blau
+Rot: 0
+Gruen: 1
+Blau: 2
 
-print Rot       -- 0
-print Grün      -- 1
-print Blau      -- 2
+-- 0
+print Rot
+-- 1
+print Gruen
+-- 2
+print Blau
 ```
 
 ```pipe
-enum Status: Aktiv, Inaktiv, Gelöscht
+Aktiv: 0
+Inaktiv: 1
+Geloescht: 2
 
 fn status_text s
     match s
         | Aktiv     -> "Aktiv"
         | Inaktiv   -> "Inaktiv"
-        | Gelöscht  -> "Gelöscht"
+        | Geloescht -> "Geloescht"
         | _         -> "Unbekannt"
 
-print (status_text Aktiv)     -- "Aktiv"
+-- "Aktiv"
+print (status_text Aktiv)
 ```
 
 Enum-Werte sind einfache Integer (0, 1, 2, ...) und können wie Variablen verwendet werden.

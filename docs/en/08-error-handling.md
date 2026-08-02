@@ -9,24 +9,24 @@ Pipe provides structured error handling through `try`/`catch` blocks, a `Result`
 The `try`/`catch` construct catches runtime errors, preventing program termination and allowing graceful recovery.
 
 ```pipe
-try {
-    # code that may error
-} catch err {
-    # handle the error
-    # err is the error message string
-}
+try
+    -- code that may error
+    risky_operation
+catch err
+    -- handle the error
+    -- err is the error message string
+    print err
 ```
 
 ### 8.1.1 Basic Example
 
 ```pipe
-try {
-    let result = 10 / 0
+try
+    result: 10 / 0
     print "This line is never reached"
-} catch err {
-    print "Caught error: " + err
-}
-# Output: Caught error: division by zero
+catch err
+    print "Caught error: " ++ err
+-- Output: Caught error: division by zero
 
 print "Program continues..."
 ```
@@ -43,18 +43,18 @@ When an error occurs inside a `try` block:
 If **no error** occurs in the try block, the catch block is **skipped entirely**.
 
 ```pipe
-try {
+try
     print "Start try"
-    let x = 100 / 5         # no error
+    -- no error
+    x: 100 / 5
     print "End try"
-} catch err {
+catch err
     print "This never runs"
-}
 print "Continues normally"
-# Output:
-# Start try
-# End try
-# Continues normally
+-- Output:
+-- Start try
+-- End try
+-- Continues normally
 ```
 
 ### 8.1.3 Nested `try`/`catch`
@@ -62,18 +62,17 @@ print "Continues normally"
 Errors in a catch block are **not** caught by that same catch block. You can nest them if needed:
 
 ```pipe
-try {
-    try {
+try
+    try
         10 / 0
-    } catch err {
-        print "Inner catch: " + err
-        # Simulate another error in the catch block
-        let x = nil
-        print x.field      # This will crash unless caught externally
-    }
-} catch err {
-    print "Outer catch: " + err
-}
+    catch err
+        print "Inner catch: " ++ err
+        -- Simulate another error in the catch block
+        x: nil
+        -- This will crash unless caught externally
+        print x.field
+catch err
+    print "Outer catch: " ++ err
 ```
 
 ### 8.1.4 Function That Forces Errors
@@ -81,17 +80,16 @@ try {
 You can deliberately raise errors using division by zero, accessing nil fields, or calling built-in functions with invalid arguments.
 
 ```pipe
-# Helper function to force an error
-let fail = fn(msg) {
+-- Helper function to force an error
+fail: fn msg
     print msg
-    nil.field     # accessing field on nil always errors
-}
+    -- accessing field on nil always errors
+    nil.field
 
-try {
+try
     fail "Something went wrong!"
-} catch err {
-    print "Caught: " + err
-}
+catch err
+    print "Caught: " ++ err
 ```
 
 Common operations that produce errors:
@@ -111,9 +109,11 @@ Common operations that produce errors:
 ai_provider "deepseek"
 
 try_ai
-    "42" * 3           -- Type Error: STRING * INTEGER
+    -- Type Error: STRING * INTEGER
+        "42" * 3
 catch e
-    0                   -- fallback if AI cannot fix
+    -- fallback if AI cannot fix
+        0
 ```
 
 #### How It Works
@@ -148,23 +148,20 @@ catch e
 When an error occurs, Pipe automatically generates a **stack trace** showing the call path that led to the error.
 
 ```pipe
-let deep_fn = fn() {
+deep_fn: fn
     10 / 0
-}
 
-let middle_fn = fn() {
-    deep_fn()
-}
+middle_fn: fn
+    deep_fn
 
-try {
-    middle_fn()
-} catch err {
-    print "Error: " + err
-}
-# Error includes stack trace showing:
-#   deep_fn (line 2)
-#   middle_fn (line 6)
-#   <main> (line 10)
+try
+    middle_fn
+catch err
+    print "Error: " ++ err
+-- Error includes stack trace showing:
+--   deep_fn (line 2)
+--   middle_fn (line 6)
+--   <main> (line 10)
 ```
 
 The stack trace is included in the error message string, making it easy to identify where errors originated.
@@ -176,32 +173,32 @@ The stack trace is included in the error message string, making it easy to ident
 The `return` keyword exits a function immediately, optionally providing a value. It does not trigger `try`/`catch` — it is normal control flow.
 
 ```pipe
-let find_first_even = fn(nums) {
-    each nums fn(n) {
-        if n % 2 == 0 {
-            return n       # early exit from find_first_even
-        }
-    }
+find_first_even: fn nums
+    each nums fn n
+        if n % 2 == 0
+            -- early exit from find_first_even
+                        return n
     return nil
-}
 
-let nums = [1, 3, 5, 6, 7, 8]
-let result = find_first_even nums
-print result     # 6
+nums: [1, 3, 5, 6, 7, 8]
+result: find_first_even nums
+-- 6
+print result
 ```
 
 `return` always exits the **current function scope**, not just the innermost block:
 
 ```pipe
-let outer = fn() {
-    let inner = fn() {
-        return 42       # exits inner, not outer
-    }
-    let val = inner()
-    print "Got: " + val  # "Got: 42"
+outer: fn
+    inner: fn
+        -- exits inner, not outer
+        return 42
+    val: inner
+    -- "Got: 42"
+    print "Got: " ++ val
     return 99
-}
-print outer()            # 99
+-- 99
+print outer
 ```
 
 ---
@@ -213,8 +210,10 @@ For cases where exceptions are undesirable, Pipe provides a `Result` type — an
 ### 8.4.1 Creating Results
 
 ```pipe
-let ok_result = Ok 42           # Wraps a value in success
-let err_result = Err "failed"   # Wraps an error message
+-- Wraps a value in success
+ok_result: Ok 42
+-- Wraps an error message
+err_result: Err "failed"
 ```
 
 - `Ok(value)` — represents a successful operation
@@ -223,20 +222,28 @@ let err_result = Err "failed"   # Wraps an error message
 ### 8.4.2 Checking Results
 
 ```pipe
-is_ok (Ok 42)       # true
-is_ok (Err "oops")  # false
-is_err (Ok 42)      # false
-is_err (Err "oops") # true
+-- true
+is_ok (Ok 42)
+-- false
+is_ok (Err "oops")
+-- false
+is_err (Ok 42)
+-- true
+is_err (Err "oops")
 ```
 
 ### 8.4.3 Unwrapping Results
 
 ```pipe
-unwrap (Ok 42)          # 42
-unwrap (Err "oops")     # ERROR: called unwrap on an Err value
+-- 42
+unwrap (Ok 42)
+-- ERROR: called unwrap on an Err value
+unwrap (Err "oops")
 
-unwrap_or (Ok 42) 0     # 42
-unwrap_or (Err "x") 0   # 0     (uses default)
+-- 42
+unwrap_or (Ok 42) 0
+-- 0     (uses default)
+unwrap_or (Err "x") 0
 ```
 
 - `unwrap(result)` — returns value if Ok, **panics** if Err
@@ -245,26 +252,26 @@ unwrap_or (Err "x") 0   # 0     (uses default)
 ### 8.4.4 Using Result in Functions
 
 ```pipe
-let safe_divide = fn(a, b) {
-    if b == 0 {
+safe_divide: fn a b
+    if b == 0
         return Err "division by zero"
-    }
     Ok (a / b)
-}
 
-let r1 = safe_divide 10 2
-if is_ok r1 {
-    print "Result: " + (unwrap r1)     # "Result: 5"
-}
+r1: safe_divide 10 2
+if is_ok r1
+    -- "Result: 5"
+        print "Result: " + (unwrap r1)
 
-let r2 = safe_divide 10 0
-if is_err r2 {
-    print "Failed: " + (unwrap r2)     # print the error message
-}
+r2: safe_divide 10 0
+if is_err r2
+    -- print the error message
+        print "Failed: " + (unwrap r2)
 
-# Using unwrap_or for defaults
-let v1 = unwrap_or (safe_divide 10 2) -1    # 5
-let v2 = unwrap_or (safe_divide 10 0) -1    # -1
+-- Using unwrap_or for defaults
+-- 5
+v1: unwrap_or (safe_divide 10 2) -1
+-- -1
+v2: unwrap_or (safe_divide 10 0) -1
 ```
 
 ### 8.4.5 Result in Pipelines
@@ -272,22 +279,23 @@ let v2 = unwrap_or (safe_divide 10 0) -1    # -1
 Results integrate naturally with Pipe's pipeline operator:
 
 ```pipe
-let process = fn(data) {
-    let parsed = parse_json data
-    if parsed == nil {
+process: fn data
+    parsed: parse_json data
+    if parsed == nil
         return Err "invalid JSON"
-    }
     Ok (parsed.value * 2)
-}
 
-let r = process `{"value": 21}`
-    | unwrap      # 42 (or error if parsing failed)
+r: process `{value: 21}`
+    -- 42 (or error if parsing failed)
+        > unwrap
 
-# Safe pipeline with default
-let safe_r = process `{}`
-    | fn(r) { unwrap_or r 0 }
+-- Safe pipeline with default
+safe_r: process `{}`
+    > (fn r
+        unwrap_or r 0)
 
-print safe_r     # 0  (default, since "value" key is missing)
+-- 0  (default, since "value" key is missing)
+print safe_r
 ```
 
 ---
@@ -299,20 +307,18 @@ print safe_r     # 0  (default, since "value" key is missing)
 Before accessing properties on a potentially nil value, check first:
 
 ```pipe
-# Defensive
-let process_user = fn(user) {
-    if user == nil {
+-- Defensive
+process_user: fn user
+    if user == nil
         return Err "no user provided"
-    }
-    if user.name == nil {
+    if user.name == nil
         return Err "user has no name"
-    }
     Ok (upper user.name)
-}
 
-# Using unwrap_or for safe defaults
-let name = unwrap_or (process_user nil) "Anonymous"
-print name    # "Anonymous"
+-- Using unwrap_or for safe defaults
+name: unwrap_or (process_user nil) "Anonymous"
+-- "Anonymous"
+print name
 ```
 
 ### 8.5.2 File Existence Checks
@@ -320,30 +326,28 @@ print name    # "Anonymous"
 Always check file existence before operations that might fail:
 
 ```pipe
-let safe_read = fn(path) {
-    if !file_exists path {
+safe_read: fn path
+    if !file_exists path
         return Err "file not found: " + path
-    }
     Ok (read_file path)
-}
 
-let content = unwrap_or (safe_read "config.json") "{}"
-let config = parse_json content
+content: unwrap_or (safe_read "config.json") "{}"
+config: parse_json content
 print config
 ```
 
 ### 8.5.3 Type Checking Before Operations
 
 ```pipe
-let safe_add = fn(a, b) {
-    if !is_num a or !is_num b {
+safe_add: fn a b
+    if !is_num a or !is_num b
         return Err "both arguments must be numbers"
-    }
     Ok (a + b)
-}
 
-safe_add 10 20      # Ok 30
-safe_add 10 "x"     # Err "both arguments must be numbers"
+-- Ok 30
+safe_add 10 20
+-- Err "both arguments must be numbers"
+safe_add 10 "x"
 ```
 
 ### 8.5.4 Combining `try`/`catch` with `Result`
@@ -351,16 +355,13 @@ safe_add 10 "x"     # Err "both arguments must be numbers"
 For external operations that might fail, wrap with `try`/`catch` and convert to `Result`:
 
 ```pipe
-let read_config = fn(path) {
-    try {
-        let raw = read_file path
-        let parsed = parse_json raw
-        if parsed == nil {
+read_config: fn path
+    try
+        raw: read_file path
+        parsed: parse_json raw
+        if parsed == nil
             return Err "invalid JSON"
-        }
         Ok parsed
-    } catch err {
-        Err ("read_config failed: " + err)
-    }
-}
+    catch err
+        Err ("read_config failed: " ++ err)
 ```

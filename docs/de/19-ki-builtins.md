@@ -10,16 +10,21 @@ Die Kommunikation läuft über REST-APIs zu OpenAI, Anthropic oder DeepSeek.
 ### Provider wählen
 
 ```pipe
-ai_provider "openai"       -- OpenAI (Standard)
-ai_provider "anthropic"    -- Anthropic Claude
-ai_provider "deepseek"     -- DeepSeek
+-- OpenAI (Standard)
+ai_provider "openai"
+-- Anthropic Claude
+ai_provider "anthropic"
+-- DeepSeek
+ai_provider "deepseek"
 ```
 
 ### Modell und Timeout
 
 ```pipe
-ai_model "gpt-4o"           -- Modell setzen (Standard: gpt-4o-mini)
-ai_timeout 120               -- Timeout in Sekunden (Standard: 60)
+-- Modell setzen (Standard: gpt-4o-mini)
+ai_model "gpt-4o"
+-- Timeout in Sekunden (Standard: 60)
+ai_timeout 120
 ```
 
 ### API-Keys
@@ -81,7 +86,7 @@ summarize text
 -- Beispiel
 text: "Pipe ist eine moderne Skriptsprache mit Fokus auf..."
 print (summarize text)
--- → Pipe ist eine Skriptsprache mit Pipeline-Operator und Bytecode-VM.
+-- -> Pipe ist eine Skriptsprache mit Pipeline-Operator und Bytecode-VM.
 --   Sie unterstützt 115 Builtins und ist für Datenverarbeitung optimiert.
 ```
 
@@ -97,7 +102,7 @@ translate text zielsprache
 -- Beispiel
 text: "The quick brown fox jumps over the lazy dog."
 print (translate text "German")
--- → Der schnelle braune Fuchs springt über den faulen Hund.
+-- -> Der schnelle braune Fuchs springt über den faulen Hund.
 ```
 
 ### classify
@@ -112,12 +117,13 @@ classify text kategorien
 
 -- Beispiel 1: String
 ergebnis: classify "Apple stellt neues iPhone vor" "Tech, Sport, Politik"
-print ergebnis     -- → Tech
+-- -> Tech
+print ergebnis
 
 -- Beispiel 2: Liste
 kategorien: ["dringend", "niedrig", "mittel"]
 print (classify "Server ausgefallen seit 2 Stunden" kategorien)
--- → dringend
+-- -> dringend
 ```
 
 ### extract
@@ -131,15 +137,20 @@ extract text schema
 -- schema beschreibt die gewünschten Felder.
 
 -- Beispiel
-text: "Max Mustermann, geboren am 15.03.1985 in Berlin,
-       arbeitet als Softwareentwickler und verdient 75.000 €."
+text: "Max Mustermann, geboren am 15.03[1985] in Berlin,
+       arbeitet als Softwareentwickler und verdient 75[000] €."
 schema: { name: "str", geburtsjahr: "num", stadt: "str", beruf: "str", gehalt: "num" }
 daten: extract text schema
-print daten.name         -- → Max Mustermann
-print daten.geburtsjahr  -- → 1985
-print daten.stadt        -- → Berlin
-print daten.beruf        -- → Softwareentwickler
-print daten.gehalt       -- → 75000
+-- -> Max Mustermann
+print daten.name
+-- -> 1985
+print daten.geburtsjahr
+-- -> Berlin
+print daten.stadt
+-- -> Softwareentwickler
+print daten.beruf
+-- -> 75000
+print daten.gehalt
 ```
 
 ### generate
@@ -155,7 +166,7 @@ generate prompt
 prompt: "Schreibe eine kurze Produktbeschreibung für ein KI-Tool
          zur automatischen Code-Review."
 print (generate prompt)
--- → Automate your code review process with AI-powered analysis
+-- -> Automate your code review process with AI-powered analysis
 --   that catches bugs, suggests improvements, and ensures code
 --   quality — all before your PR reaches human reviewers.
 ```
@@ -171,7 +182,7 @@ ask frage
 
 -- Beispiel
 print (ask "Was ist der Unterschied zwischen Stack und Heap?")
--- → Der Stack ist ein LIFO-Speicherbereich für lokale Variablen
+-- -> Der Stack ist ein LIFO-Speicherbereich für lokale Variablen
 --   und Funktionsaufrufe mit schneller Allokation. Der Heap ist
 --   ein dynamischer Speicherbereich für langlebige Objekte mit
 --   manueller oder automatischer Speicherbereinigung.
@@ -197,7 +208,7 @@ antowrt: ai_chat
     "Wie liste ich alle Dateien größer als 100 MB rekursiv auf?"
 
 print antwort
--- → find . -type f -size +100M -exec ls -lh {} \;
+-- -> find . -type f -size +100M -exec ls -lh {} \;
 ```
 
 ### ai_chat_json
@@ -215,8 +226,10 @@ antwort: ai_chat_json
     "Du bist ein Datenanalyst. Antworte ausschließlich mit JSON."
     "Gib die Top-3-Programmiersprachen 2025 mit Anteil in Prozent."
 
-print antwort.erste      -- → Python
-print antwort.anteil_py  -- → 34
+-- -> Python
+print antwort.erste
+-- -> 34
+print antwort.anteil_py
 
 -- Beispiel 2: List
 sprachen: ai_chat_json
@@ -297,11 +310,8 @@ Wie `ai_batch`, aber mit explizit steuerbarer Parallelität.
 
 ```pipe
 -- Maximal 3 parallele Calls
-antworten: ai_parallel 3 "Übersetze ins Deutsche." [
-    "Hello world",
-    "Good morning",
-    "How are you?"
-]
+fragen: ["Hello world", "Good morning", "How are you?"]
+antworten: ai_parallel 3 "Uebersetze ins Deutsche." fragen
 ```
 
 ### ai_rate_limit
@@ -313,7 +323,8 @@ ai_rate_limit calls_per_second
 Begrenzt die Anzahl der API-Calls pro Sekunde (globaler Token-Bucket).
 
 ```pipe
-ai_rate_limit 5       -- Max 5 Calls pro Sekunde
+-- Max 5 Calls pro Sekunde
+ai_rate_limit 5
 
 -- 100 Texte verarbeiten, aber mit Rate-Limit
 texte: read_lines "daten.txt"
@@ -348,7 +359,8 @@ Nutzt die `/v1/embeddings` API (OpenAI-kompatibel, Modell: `text-embedding-3-sma
 
 ```pipe
 vec: embed "Pipe ist eine Skriptsprache."
-print (len vec)    -- 1536
+-- 1536
+print (len vec)
 ```
 
 **Hinweis:** Benötigt `OPENAI_API_KEY`. DeepSeek unterstützt keine Embeddings.
@@ -377,7 +389,8 @@ bis 1 (identische Richtung). **Kein API-Call nötig** — pure Mathematik.
 
 ```pipe
 sim: cosine_sim vec1 vec2
-print sim    -- z.B. 0.87 (sehr ähnlich)
+-- z.B. 0[87] (sehr ähnlich)
+print sim
 ```
 
 ### dot_product
@@ -389,8 +402,9 @@ dot_product vector_a vector_b
 Skalarprodukt zweier Vektoren. **Kein API-Call nötig.**
 
 ```pipe
-dp: dot_product [1.0, 2.0, 3.0] [2.0, 4.0, 6.0]
-print dp    -- 28.0
+dp: dot_product ([1, 2, 3]) ([2, 4, 6])
+-- 28
+print dp
 ```
 
 ### nearest
@@ -498,17 +512,16 @@ Antwort ohne weitere Tool-Calls gibt.
 ```pipe
 fn get_wetter stadt
     match stadt
-        | "Berlin" -> "22°C, sonnig"
-        | "London" -> "15°C, regnerisch"
-        | "Paris" -> "25°C, klar"
+        | "Berlin" -> "22 Grad, sonnig"
+        | "London" -> "15 Grad, regnerisch"
+        | "Paris" -> "25 Grad, klar"
         | _ -> stadt ++ ": Keine Daten"
 
 schema: {stadt: "Name der Stadt"}
 ai_tool "get_wetter" "Wetter für eine Stadt abrufen" schema get_wetter
 
-ai_with_tools "Du bist ein Wetter-Experte."
-    "Wie ist das Wetter in Berlin, London und Paris?"
-    > print
+ergebnis: ai_with_tools "Du bist ein Wetter-Experte." "Wie ist das Wetter in Berlin, London und Paris?"
+print ergebnis
 ```
 
 ---
@@ -530,11 +543,11 @@ read_file "protokoll.txt"
     > split " "
     > len
     > print
--- → 6 (Wörter im übersetzten Text)
+-- -> 6 (Wörter im übersetzten Text)
 
 -- Klassifizierung im Datenfluss
 dokumente: read_lines "emails.txt"
-ergebnisse: map dokumente fn(doc)
+ergebnisse: map dokumente fn doc
     klass: classify doc "intern, extern, spam, support"
     { doc: doc, type: klass }
 ```
@@ -556,7 +569,8 @@ catch e
     print "Bitte API-Key setzen!"
 
 -- Timeout abfangen
-ai_timeout 5     -- kurzer Timeout
+-- kurzer Timeout
+ai_timeout 5
 try
     print (generate "Schreibe einen 10-seitigen Aufsatz über Philosophie")
 catch e
@@ -603,7 +617,7 @@ ollama pull llama3.2:3b
 
 ```pipe
 ai_provider "ollama"
-ai_model "llama3.2:3b"
+ai_model "llama3[2]:3b"
 
 ask "Was ist eine Pipeline?" > print
 ```
@@ -618,8 +632,8 @@ ask "Was ist eine Pipeline?" > print
 **Remote Ollama** (z.B. im Firmennetzwerk):
 ```pipe
 ai_provider "ollama"
-ai_host "http://192.168.1.50:11434"
-ai_model "qwen2.5-coder:7b"
+ai_host "http://192.168.1[50]:11434"
+ai_model "qwen2[5]-coder:7b"
 ```
 
 ---
@@ -656,9 +670,8 @@ print "\n=== 5. Daten extrahieren ==="
 lebenslauf: "
   Anna Schmidt, Senior Developerin bei TechCorp in München.
   Sie hat 12 Jahre Erfahrung mit Python, Go und Rust.
-  Ihre E-Mail ist anna@techcorp.de und sie verdient 95.000 € pro Jahr."
-schema: { name: "str", firma: "str", erfahrung_jahre: "num",
-           sprachen: "list", email: "str", gehalt: "num" }
+  Ihre E-Mail ist anna@techcorp.de und sie verdient 95[000] € pro Jahr."
+schema: {name: "str", firma: "str", erfahrung_jahre: "num", sprachen: "list", email: "str", gehalt: "num"}
 daten: extract lebenslauf schema
 print "Name:      " ++ daten.name
 print "Firma:     " ++ daten.firma
@@ -668,8 +681,7 @@ print "E-Mail:    " ++ daten.email
 print "Gehalt:    " ++ (to_str daten.gehalt) ++ " €"
 
 print "\n=== 6. Frage beantworten ==="
-frage: "Welche dieser Sprachen — " ++ (join daten.sprachen ", ") ++
-       " — eignet sich am besten für Systemprogrammierung und warum?"
+frage: "Welche dieser Sprachen — " ++ (join daten.sprachen ", ") ++ " — eignet sich am besten fuer Systemprogrammierung und warum?"
 antwort: ask frage
 print antwort
 
@@ -689,14 +701,14 @@ empfehlungen: ai_chat_json
     "Analysiere: " ++ lebenslauf
 
 print "Stärken:"
-for s in empfehlungen.stärken
+for s in empfehlungen.staerken
     print "  - " ++ s
 
 print "Verbesserungspotenzial:"
 for v in empfehlungen.verbesserung
     print "  - " ++ v
 
-print "Nächster Schritt: " ++ empfehlungen.nächster_karriereschritt
+print "Naechster Schritt: " ++ empfehlungen.naechster_karriereschritt
 print "Gehaltsprognose:  " ++ (to_str empfehlungen.gehaltsprognose) ++ " €"
 
 print "\n=== 9. Fehlerbehandlung im Workflow ==="

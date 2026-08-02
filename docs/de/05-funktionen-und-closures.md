@@ -21,32 +21,39 @@ fn addiere a b
 Funktionsaufrufe verwenden **Leerzeichen** statt Kommas:
 
 ```pipe
-print (verdopple 21)       -- 42
-print (addiere 3 4)        -- 7
-print (begrüße "Welt")     -- "Hallo Welt"
+-- 42
+print (verdopple 21)
+-- 7
+print (addiere 3 4)
+-- "Hallo Welt"
+print (begruesse "Welt")
 ```
 
 **Bei einem Argument** können die Klammern entfallen:
 
 ```pipe
-print "Hallo"              -- Äquivalent zu print("Hallo")
-print (fib 10)              -- Klammern optional bei einem Arg
+-- Äquivalent zu print("Hallo")
+print "Hallo"
+-- Klammern optional bei einem Arg
+print (fib 10)
 ```
 
 **Wichtig:** Rechenausdrücke als Argumente brauchen Klammern:
 
 ```pipe
-print (1 + 2)              -- Richtig: print(3)
+-- Richtig: print(3)
+print (1 + 2)
 -- print 1 + 2             -- Falsch: (print 1) + 2
 ```
 
 ## 5.3 Mehrere Parameter
 
 ```pipe
-fn begrüße vorname nachname
+fn begruesse vorname nachname
     "Hallo " ++ vorname ++ " " ++ nachname
 
-print (begrüße "Max" "Mustermann"))     -- "Hallo Max Mustermann"
+-- "Hallo Max Mustermann"
+print (begruesse "Max" "Mustermann")
 ```
 
 ## 5.4 Anonyme Funktionen
@@ -57,7 +64,8 @@ Funktionen ohne Namen können in Variablen gespeichert werden:
 verdreifacher: fn x
     x * 3
 
-print (verdreifacher 7)    -- 21
+-- 21
+print (verdreifacher 7)
 ```
 
 Anonyme Funktionen sind **First-Class Citizens** — sie können als Argumente
@@ -70,7 +78,8 @@ fn anwenden f wert
 doppelt: fn x
     x * 2
 
-print (anwenden doppelt 5)    -- 10
+-- 10
+print (anwenden doppelt 5)
 ```
 
 ## 5.5 Closures
@@ -86,8 +95,10 @@ fn make_adder n
 add5: make_adder 5
 add10: make_adder 10
 
-print (add5 7)      -- 12
-print (add10 7)     -- 17
+-- 12
+print (add5 7)
+-- 17
+print (add10 7)
 ```
 
 `adder` fängt die Variable `n` aus dem äußeren Scope ein —
@@ -105,10 +116,14 @@ fn make_counter start
 c1: make_counter 0
 c2: make_counter 100
 
-print (c1)     -- 1
-print (c1)     -- 2
-print (c2)     -- 101
-print (c1)     -- 3
+-- 1
+print (c1)
+-- 2
+print (c1)
+-- 101
+print (c2)
+-- 3
+print (c1)
 ```
 
 Jeder Zähler hat seinen eigenen internen Zustand.
@@ -122,9 +137,12 @@ fn make_greater_than schwelle
 
 filter: make_greater_than 5
 
-print (filter 3)      -- false
-print (filter 7)      -- true
-print (filter 10)     -- true
+-- false
+print (filter 3)
+-- true
+print (filter 7)
+-- true
+print (filter 10)
 ```
 
 ## 5.6 Rekursion
@@ -132,14 +150,16 @@ print (filter 10)     -- true
 Funktionen können sich selbst aufrufen:
 
 ```pipe
-fn fakultät n
+fn fakultaet n
     if n <= 1
         1
     else
-        n * (fakultät (n - 1))
+        n * (fakultaet (n - 1))
 
-print (fakultät 5)      -- 120
-print (fakultät 10)     -- 3628800
+-- 120
+print (fakultaet 5)
+-- 3628800
+print (fakultaet 10)
 ```
 
 ## 5.7 Tail Call Optimization (TCO)
@@ -153,9 +173,11 @@ fn countdown n
         print "Start!"
     else
         print n
-        countdown (n - 1)       -- End-rekursiv → optimiert
+        -- End-rekursiv -> optimiert
+                countdown (n - 1)
 
-countdown 5000                   -- Kein Stack-Overflow!
+-- Kein Stack-Overflow!
+countdown 5000
 ```
 
 **Bedingungen für TCO:**
@@ -169,7 +191,8 @@ fn nicht_tco n
     if n <= 1
         1
     else
-        n * (nicht_tco (n - 1))     -- × folgt dem rekursiven Aufruf
+        -- × folgt dem rekursiven Aufruf
+                n * (nicht_tco (n - 1))
 ```
 
 ## 5.8 Funktionen als Rückgabewert
@@ -190,9 +213,12 @@ deutsch: make_greeter "DE"
 franz: make_greeter "FR"
 englisch: make_greeter "EN"
 
-print (deutsch "Welt"))       -- "Hallo Welt"
-print (franz "Monde"))        -- "Bonjour Monde"
-print (englisch "World"))     -- "Hello World"
+-- "Hallo Welt"
+print (deutsch "Welt")
+-- "Bonjour Monde"
+print (franz "Monde")
+-- "Hello World"
+print (englisch "World")
 ```
 
 ## 5.9 Scope und Variablen-Sichtbarkeit
@@ -208,11 +234,14 @@ global: 100
 fn outer x
     local: 200
     fn inner y
-        x + y + local + global     -- Sieht alles!
+        -- Sieht alles!
+        x + y + local + global
 
-    print (inner 3)                 -- 100 + 200 + x + 3
+    -- 100 + 200 + x + 3
+    print (inner 3)
 
-outer 10     -- 313
+-- 313
+outer 10
 ```
 
 ## 5.10 Funktionen und Pipeline
@@ -227,7 +256,10 @@ fn add a b
     a + b
 
 42
-    > double            -- double(42) = 84
-    > add 10             -- add(84, 10) = 94
-    > print              -- 94
+    -- double(42) = 84
+        > double
+    -- add(84, 10) = 94
+        > add 10
+    -- 94
+        > print
 ```

@@ -11,7 +11,8 @@ fn fib n
         | 1  -> 1
         | _  -> fib(n - 1) + fib(n - 2)
 
-print (fib 10)    -- 55
+-- 55
+print (fib 10)
 ```
 
 ## 16.2 FizzBuzz
@@ -61,8 +62,10 @@ fn fakultaet n
     else
         n * (fakultaet (n - 1))
 
-print (fakultaet 5)     -- 120
-print (fakultaet 10)    -- 3628800
+-- 120
+print (fakultaet 5)
+-- 3628800
+print (fakultaet 10)
 ```
 
 ## 16.5 Palindrom-Prüfer
@@ -80,9 +83,12 @@ fn reverse_helper s i
 fn is_palindrome s
     s == (reverse_str s)
 
-print (is_palindrome "racecar")     -- true
-print (is_palindrome "hello")       -- false
-print (is_palindrome "anna")        -- true
+-- true
+print (is_palindrome "racecar")
+-- false
+print (is_palindrome "hello")
+-- true
+print (is_palindrome "anna")
 ```
 
 ## 16.6 Celsius ↔ Fahrenheit
@@ -128,7 +134,8 @@ fn caesar_helper text offset pos result
         caesar_helper text offset (pos + 1) (result ++ shifted)
 
 print "Caesar('hallo', 3):"
-print (caesar "hallo" 3)     -- "kdoor"
+-- "kdoor"
+print (caesar "hallo" 3)
 ```
 
 ## 16.8 Listen-Summe
@@ -140,7 +147,8 @@ fn summe liste
         total: total + n
     total
 
-print (summe [1, 2, 3, 4, 5])    -- 15
+-- 15
+print (summe ([1, 2, 3, 4, 5]))
 ```
 
 ## 16.9 Text-Statistik
@@ -168,11 +176,16 @@ fn calc a op b
         | "%" -> a % b
         | _   -> 0
 
-print (calc 10 "+" 5)     -- 15
-print (calc 10 "-" 5)     -- 5
-print (calc 10 "*" 5)     -- 50
-print (calc 10 "/" 5)     -- 2
-print (calc 10 "%" 3)     -- 1
+-- 15
+print (calc 10 "+" 5)
+-- 5
+print (calc 10 "-" 5)
+-- 50
+print (calc 10 "*" 5)
+-- 2
+print (calc 10 "/" 5)
+-- 1
+print (calc 10 "%" 3)
 ```
 
 ## 16.11 HTTP-Client
@@ -188,7 +201,7 @@ print "Name: " ++ (get daten "name")
 print "Repos: " ++ (to_str (get daten "public_repos"))
 
 -- HTTP POST
-payload: to_json {name: "Pipe", typ: "sprache"}
+payload: to_json ({name: "Pipe", typ: "sprache"})
 post_resp: http_post "https://httpbin.org/post" payload
 print "POST Status: " ++ (to_str (get post_resp "status"))
 ```
@@ -208,7 +221,7 @@ zeilen: read_lines "/tmp/demo.txt"
 print "Anzahl Zeilen: " ++ (to_str (len zeilen))
 
 -- Prüfungen
-print "Existiert? " ++ (to_str (file_exists "/tmp/demo.txt")))
+print "Existiert? " ++ (to_str (file_exists "/tmp/demo.txt"))
 print "Typ: " ++ (file_type "/tmp/demo.txt")
 print "Größe: " ++ (to_str (file_size "/tmp/demo.txt")) ++ " Bytes"
 
@@ -228,7 +241,7 @@ file_delete "/tmp/demo.txt"
 ```pipe
 -- Verzeichnis anlegen
 make_dir "/tmp/mein_projekt/unterordner"
-print "Existiert? " ++ (to_str (file_exists "/tmp/mein_projekt")))
+print "Existiert? " ++ (to_str (file_exists "/tmp/mein_projekt"))
 
 -- Pfad-Operationen
 p: "/home/user/docs/report.txt"
@@ -251,7 +264,7 @@ remove_dir "/tmp/mein_projekt"
 -- Server
 fn run_server
     print "Echo-Server auf :9999..."
-    ln: tcp_listen "0.0.0.0" 9999
+    ln: tcp_listen "0.0.0[0]" 9999
     conn: tcp_accept ln
     msg: tcp_read conn
     print "Empfangen: " ++ msg
@@ -262,7 +275,7 @@ fn run_server
 -- Client
 fn run_client message
     print "Verbinde zu :9999..."
-    conn: tcp_connect "127.0.0.1" 9999
+    conn: tcp_connect "127.0.0[1]" 9999
     tcp_write conn message
     reply: tcp_read conn
     print "Antwort: " ++ reply
@@ -271,7 +284,7 @@ fn run_client message
 
 ## 16.15 JSON Konfiguration
 
-```pipe
+```text
 -- JSON schreiben
 config: {
     name: "MeineApp",
@@ -297,8 +310,8 @@ fn is_valid_email email
 fn mask_phone phone
     regex_replace "[0-9]" "#" phone
 
-print "Email gültig? " ++ (to_str (is_valid_email "test@example.com")))
-print "Tel maskiert: " ++ (mask_phone "Tel: 0123-456789"))
+print "Email gültig? " ++ (to_str (is_valid_email "test@example.com"))
+print "Tel maskiert: " ++ (mask_phone "Tel: 0123-456789")
 ```
 
 ## 16.17 Datum und Zeit
@@ -318,7 +331,7 @@ print "Würfel (1-6):"
 for i in (range 1 4)
     print (to_str (random_range 1 7))
 
-print "Zufall 0-1: " ++ (to_str (random 0)))
+print "Zufall 0-1: " ++ (to_str (random))
 ```
 
 ## 16.19 Shell-Befehle ausführen
@@ -361,8 +374,10 @@ fn verarbeite_division a b
     else
         print "Fehler!"
 
-verarbeite_division 10 2     -- "Ergebnis: 5"
-verarbeite_division 10 0     -- "Fehler!"
+-- "Ergebnis: 5"
+verarbeite_division 10 2
+-- "Fehler!"
+verarbeite_division 10 0
 ```
 
 ## 16.21 Closures (Funktionsfabrik)
@@ -375,8 +390,10 @@ fn make_multiplier faktor
 verdoppler: make_multiplier 2
 verdreifacher: make_multiplier 3
 
-print (verdoppler 10)       -- 20
-print (verdreifacher 10)    -- 30
+-- 20
+print (verdoppler 10)
+-- 30
+print (verdreifacher 10)
 ```
 
 ## 16.22 Binäre Suche
@@ -396,14 +413,16 @@ fn binary_search target list low high
             binary_search target list (mid + 1) high
 
 zahlen: [1, 3, 5, 7, 9, 11, 13, 15]
-print "Position von 7: " ++ (to_str (binary_search 7 zahlen 0 7)))     -- 3
-print "Position von 10: " ++ (to_str (binary_search 10 zahlen 0 7)))   -- -1
+-- 3
+print "Position von 7: " ++ (to_str (binary_search 7 zahlen 0 7))
+-- -1
+print "Position von 10: " ++ (to_str (binary_search 10 zahlen 0 7))
 ```
 
 ## 16.23 Enum + Match
 
-```pipe
-enum Status: Aktiv, Inaktiv, Gelöscht
+```text
+-- Aktiv: 0, Inaktiv: 1, Gelöscht: 2
 
 fn status_text s
     match s
@@ -412,8 +431,10 @@ fn status_text s
         | Gelöscht  -> "Gelöscht"
         | _         -> "Unbekannt"
 
-print "Status 0: " ++ (status_text Aktiv))     -- "Status 0: Aktiv"
-print "Status 1: " ++ (status_text Inaktiv))   -- "Status 1: Inaktiv"
+-- "Status 0: Aktiv"
+print "Status 0: " ++ (status_text Aktiv))
+-- "Status 1: Inaktiv"
+print "Status 1: " ++ (status_text Inaktiv))
 ```
 
 ## 16.24 Import & Modul-System
@@ -426,7 +447,8 @@ export fn quadrat x
 export fn kubik x
     x * (quadrat x)
 
-fn intern x          -- Nicht exportiert
+-- Nicht exportiert
+fn intern x
     x + 1
 ```
 
@@ -434,8 +456,10 @@ fn intern x          -- Nicht exportiert
 ```pipe
 import "math.pipe"
 
-print "7² = " ++ (to_str (quadrat 7)))     -- 49
-print "3³ = " ++ (to_str (kubik 3)))       -- 27
+-- 49
+print "7² = " ++ (to_str (quadrat 7))
+-- 27
+print "3³ = " ++ (to_str (kubik 3))
 ```
 
 ## 16.25 Defer für Cleanup
@@ -455,5 +479,5 @@ file_delete "/tmp/test.txt"
 --   Öffne /tmp/test.txt
 --   Inhalt: Test-Daten
 --   Verarbeitung abgeschlossen
---   Schließe /tmp/test.txt     ← defer!
+--   Schließe /tmp/test.txt     <- defer!
 ```

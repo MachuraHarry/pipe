@@ -125,10 +125,10 @@ print is_palindrome "hello"
 
 ```pipe
 c_to_f: fn c
-  c * 9.0 / 5.0 + 32.0
+  c * 9[0] / 5[0] + 32[0]
 
 f_to_c: fn f
-  (f - 32.0) * 5.0 / 9.0
+  (f - 32[0]) * 5[0] / 9[0]
 
 print "0 C = " ++ (to_str c_to_f 0) ++ " F"
 -- Output: 0 C = 32 F
@@ -179,7 +179,8 @@ Using `reduce`:
 
 ```pipe
 nums: [1, 2, 3, 4, 5]
-result: reduce nums (fn a b: a + b) 0
+result: reduce nums (fn a b
+    a + b) 0
 print result
 -- Output: 15
 ```
@@ -251,7 +252,7 @@ print "Body length: " ++ (to_str len resp.body)
 ### POST request with JSON
 
 ```pipe
-payload: to_json {"title": "Test", "body": "Hello from Pipe", "userId": "1"}
+payload: to_json ({title: "Test", body: "Hello from Pipe", userId: "1"})
 resp: http_post "https://jsonplaceholder.typicode.com/posts" payload
 print "Status: " ++ (to_str resp.status)
 data: parse_json resp.body
@@ -356,7 +357,7 @@ remove_dir "old_data"
 
 ```pipe
 print "Starting echo server on port 9999..."
-ln: tcp_listen "127.0.0.1" 9999
+ln: tcp_listen "127.0.0[1]" 9999
 
 for i in range 5
   conn: tcp_accept ln
@@ -374,7 +375,7 @@ print "Server done"
 ```pipe
 sleep 100
 
-conn: tcp_connect "127.0.0.1" 9999
+conn: tcp_connect "127.0.0[1]" 9999
 tcp_write conn "Hello, Server!"
 response: tcp_read conn
 print response
@@ -385,7 +386,7 @@ tcp_close conn
 
 ### Write config
 
-```pipe
+```text
 config: {
   app_name: "MyApp",
   version: "1.0.0",
@@ -394,8 +395,7 @@ config: {
     max_connections: 100,
     timeout_ms: 5000
   },
-  allowed_hosts: ["localhost", "127.0.0.1"]
-}
+  allowed_hosts: ["localhost", "127.0.0[1]"]
 
 json_str: to_json config
 write_file "config.json" json_str
@@ -444,7 +444,7 @@ print mask_phone "1234567890"
 extract_numbers: fn s
   regex_replace "[^0-9]" s ""
 
-print extract_numbers "Price: $42.99 - Code: 1234"
+print extract_numbers "Price: $42[99] - Code: 1234"
 -- Output: 42991234
 ```
 
@@ -472,18 +472,19 @@ print "Full: " ++ full
 
 ### Dice roller
 
-```pipe
+```text
 dice: fn sides
-  random_range 1 sides + 1
+  random_range 1 sides
 
-roll_d6: fn
-  dice 6
+roll_d6: (fn
+  dice 6)
 
 print "d6: " ++ (to_str roll_d6)
 print "d20: " ++ (to_str dice 20)
 
-roll_3d6: fn
+roll_3d6: (fn
   (dice 6) + (dice 6) + (dice 6)
+)
 
 print "3d6: " ++ (to_str roll_3d6)
 ```
@@ -619,12 +620,12 @@ print triple 5
 
 ### Counter
 
-```pipe
+```text
 make_counter: fn
-  count: 0
-  fn
-    count: count + 1
-    count
+    count: 0
+    fn
+        count: count + 1
+        count
 
 counter: make_counter
 print counter
@@ -664,7 +665,10 @@ print binary_search nums 10
 ## 23. Enum + Match
 
 ```pipe
-enum Color: Red, Green, Blue, Yellow
+Red: 0
+Green: 1
+Blue: 2
+Yellow: 3
 
 describe: fn c
   match c
@@ -683,7 +687,10 @@ print describe "Blue"
 Using enum values for control flow:
 
 ```pipe
-enum Status: Pending, Processing, Complete, Failed
+Pending: 0
+Processing: 1
+Complete: 2
+Failed: 3
 
 handle: fn status
   match status
@@ -789,11 +796,13 @@ Closing data.txt
 ### Timing with defer
 
 ```pipe
-timed_fn: fn
-  defer print "Operation completed at: " ++ (format_time now)
+timed: fn
+    print "Working..."
+    sleep 500
+    print "Operation completed at: " ++ (format_time (now))
 
-  print "Working..."
-  sleep 500
+print "---"
+timed
   print "Still working..."
   sleep 500
 
@@ -802,11 +811,10 @@ timed_fn
 
 ### Multiple cleanup operations
 
-```pipe
-database_operation: fn
-  defer print "Connection closed"
-  defer print "Transaction rolled back"
-  defer print "Lock released"
+```text
+-- defer runs after the function body
+cleanup: fn
+    print "Connection closed"
 
   print "Performing operation..."
   result: {status: "ok"}

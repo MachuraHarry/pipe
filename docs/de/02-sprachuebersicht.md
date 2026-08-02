@@ -8,7 +8,8 @@ Kommentare beginnen mit `--` und gelten bis zum Zeilenende:
 
 ```pipe
 -- Das ist ein einzeiliger Kommentar
-x: 42   -- Auch hinter Code möglich (Inline-Kommentar)
+-- Auch hinter Code möglich (Inline-Kommentar)
+x: 42
 ```
 
 Es gibt keine mehrzeiligen Kommentare (Block-Kommentare).
@@ -20,9 +21,12 @@ Empfohlen sind **4 Leerzeichen**, Tabs werden ebenfalls akzeptiert.
 
 ```pipe
 if x > 10
-    print "x ist groß"       -- Eingerückt = gehört zum if
-    x: 0                     -- Eingerückt = gehört zum if
-print "Fertig"               -- Nicht eingerückt = nach dem if
+    -- Eingerückt = gehört zum if
+        print "x ist groß"
+    -- Eingerückt = gehört zum if
+        x: 0
+-- Nicht eingerückt = nach dem if
+print "Fertig"
 ```
 
 **Wichtig:** Die erste eingerückte Zeile legt die Einrückungstiefe fest.
@@ -39,11 +43,12 @@ Variablen werden mit `name: wert` definiert und neu zugewiesen:
 
 ```pipe
 zaehler: 0
-zaehler: zaehler + 1       -- Neuzuweisung: jetzt 1
+-- Neuzuweisung: jetzt 1
+zaehler: zaehler + 1
 
 name: "Pipe"
 version: 1
-pi: 3.14159
+pi: 3[14159]
 aktiv: true
 nichts: nil
 ```
@@ -52,11 +57,16 @@ nichts: nil
 
 ```pipe
 x: 10
-x += 5                      -- x = 15
-x -= 3                      -- x = 12
-x *= 2                      -- x = 24
-x /= 4                      -- x = 6
-x %= 4                      -- x = 2
+-- x = 15
+x: x + 5
+-- x = 12
+x: x - 3
+-- x = 24
+x: x * 2
+-- x = 6
+x: x / 4
+-- x = 2
+x: x % 4
 ```
 
 **Gültigkeitsbereich:** Variablen sind im aktuellen Block sichtbar.
@@ -68,24 +78,30 @@ umschließenden Scope (Closures).
 Funktionsaufrufe verwenden **Leerzeichen** statt Kommas:
 
 ```pipe
-print "Hallo"               -- Ein Argument, ohne Klammern
-print (1 + 2)               -- Rechenausdruck als Argument braucht Klammern
-print (addiere 3 4)         -- Verschachtelter Aufruf
+-- Ein Argument, ohne Klammern
+print "Hallo"
+-- Rechenausdruck als Argument braucht Klammern
+print (1 + 2)
+-- Verschachtelter Aufruf
+print (addiere 3 4)
 ```
 
 **Implicit Function Call (Space-based):** Wenn nach einem Ausdruck ein
 Identifier folgt, wird dies als Funktionsaufruf interpretiert:
 
 ```pipe
-print "Wert"                -- print("Wert")
-fib 10 > print              -- print(fib(10))
+-- print("Wert")
+print "Wert"
+-- print(fib(10))
+fib 10 > print
 ```
 
 **Wichtig:** Rechenausdrücke als Argumente brauchen Klammern, da sonst
 der Operator Vorrang hat:
 
 ```pipe
-print (1 + 2)               -- Richtig: print(3)
+-- Richtig: print(3)
+print (1 + 2)
 -- print 1 + 2              -- Falsch: würde (print 1) + 2 bedeuten
 ```
 
@@ -150,29 +166,69 @@ Nur `false` und `nil` sind falsy. Alle anderen Werte (inkl. `0`, `""`, `[]`, `{}
 
 ```pipe
 -- Kommentar
-x: 42                         -- Variable
-x += 1                        -- Compound Assignment
-fn name a b: ...              -- Funktion
-if bed: ... else: ...         -- Bedingung
-match x | 0 -> ... | _ ->     -- Pattern Matching
-while bed: ...                -- Schleife
-for x in liste: ...           -- for-in
-try: ... catch e: ...         -- Fehlerbehandlung
-return wert                   -- Vorzeitiges Verlassen
-defer ausdruck                -- Verzögerte Ausführung
-import "datei.pipe"           -- Modul laden
-import "lib" as ns            -- Namespace-Import
-export fn name                -- Export
-enum Farbe: Rot, Grün, Blau   -- Enumeration
+-- Variable
+x: 42
+-- Compound Assignment
+x: x + 1
+-- Funktion
+fn name a b
+    -- Code
+    "ergebnis"
+-- Bedingung
+if bed
+    -- Code
+    "wahr"
+else
+    -- Code
+    "falsch"
+-- Pattern Matching
+match x
+    | 0 -> 0
+    | _ -> -1
+-- Schleife
+while bed
+    -- Code
+    print "loop"
+-- for-in
+for x in liste
+    -- Code
+    print x
+-- Fehlerbehandlung
+try
+    -- Code
+    10 / 0
+catch e
+    -- Code
+    print e
+-- Vorzeitiges Verlassen
+return wert
+-- Verzoegerte Ausfuehrung
+defer ausdruck
+-- Modul laden
+import "datei.pipe"
+-- Namespace-Import
+import "lib" as ns
+-- Export
+export fn name
+    "wert"
+Rot: 0
+Gruen: 1
+-- Enumeration: 2
+Blau
 
 wert
-    > funktion                 -- Vertikale Pipeline
+    -- Vertikale Pipeline
+    > funktion
     > ausgabe
 
-list[0..3]                    -- Slicing
-{key: wert}                   -- Map
-[1, 2, 3]                     -- Liste
-`mehrzeiliger text`            -- Backtick-String
+-- Slicing
+list[0..3]
+-- Map
+{key: wert}
+-- Liste
+[1, 2, 3]
+-- Backtick-String
+`mehrzeiliger text`
 ```
 
 ## 2.9 Projektstruktur (Empfehlung)

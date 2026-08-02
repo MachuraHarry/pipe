@@ -9,11 +9,14 @@ Pipe supports a module system that allows code organization across multiple file
 The `import` statement loads and evaluates another Pipe file. The path is **relative to the file containing the import statement**.
 
 ```pipe
-# File: /home/user/project/main.pipe
+-- File: /home/user/project/main.pipe
 
-import "lib/math.pipe"        # imports from /home/user/project/lib/math.pipe
-import "./helpers.pipe"       # imports from /home/user/project/helpers.pipe
-import "../shared/common.pipe" # imports from /home/user/shared/common.pipe
+-- imports from /home/user/project/lib/math.pipe
+import "lib/math.pipe"
+-- imports from /home/user/project/helpers.pipe
+import "./helpers.pipe"
+-- imports from /home/user/shared/common.pipe
+import "../shared/common.pipe"
 ```
 
 ### 9.1.1 Direct Import
@@ -21,25 +24,26 @@ import "../shared/common.pipe" # imports from /home/user/shared/common.pipe
 When you import a file without an alias, all exported symbols become available in the current scope:
 
 ```pipe
-# File: math.pipe
-export let PI = 3.14159
+-- File: math.pipe
+export PI: 3[14159]
 
-export let square = fn(x) {
+export fn square x
     x * x
-}
 
-export let cube = fn(x) {
+export fn cube x
     x * x * x
-}
 ```
 
 ```pipe
-# File: main.pipe
+-- File: main.pipe
 import "math.pipe"
 
-print PI            # 3.14159
-print (square 5)    # 25
-print (cube 3)      # 27
+-- 3[14159]
+print PI
+-- 25
+print (square 5)
+-- 27
+print (cube 3)
 ```
 
 ### 9.1.2 Namespace Import with `as`
@@ -47,13 +51,16 @@ print (cube 3)      # 27
 To avoid name collisions and keep code organized, use the `as` keyword to create a namespace:
 
 ```pipe
-# File: main.pipe
+-- File: main.pipe
 import "math.pipe" as math
 import "strings.pipe" as str
 
-print math.PI               # 3.14159
-print (math.square 5)       # 25
-print (str.capitalize "hello")  # "Hello"
+-- 3[14159]
+print math.PI
+-- 25
+print (math.square 5)
+-- "Hello"
+print (str.capitalize "hello")
 ```
 
 Using `as` is considered a **best practice** for non-trivial projects.
@@ -65,12 +72,12 @@ Using `as` is considered a **best practice** for non-trivial projects.
 Pipe **caches module imports**. Each unique file path is parsed and evaluated only **once** per program execution. Subsequent imports of the same file return the cached namespace immediately.
 
 ```pipe
-# File: main.pipe
+-- File: main.pipe
 import "math.pipe" as math1
 import "math.pipe" as math2
 
-# math1 and math2 reference the same module instance
-# The file math.pipe is only parsed/evaluated once
+-- math1 and math2 reference the same module instance
+-- The file math.pipe is only parsed/evaluated once
 ```
 
 This caching behavior means:
@@ -80,25 +87,28 @@ This caching behavior means:
 - **Faster imports.** Repeated imports incur no additional parsing or evaluation cost.
 
 ```pipe
-# File: counter.pipe
-let count = 0
+-- File: counter.pipe
+count: 0
 
-export let increment = fn() {
-    count = count + 1
+export fn increment
+    count: count + 1
     count
-}
 
-export let get_count = fn() { count }
+export fn get_count
+    count
 ```
 
 ```pipe
-# File: main.pipe
+-- File: main.pipe
 import "counter.pipe" as c1
 import "counter.pipe" as c2
 
-c1.increment()     # returns 1
-c2.increment()     # returns 2  (same count!)
-c2.get_count()     # 2
+-- returns 1
+c1.increment
+-- returns 2  (same count!)
+c2.increment
+-- 2
+c2.get_count
 ```
 
 ---
@@ -108,30 +118,37 @@ c2.get_count()     # 2
 By default, **all top-level definitions** in a module are visible to importers. However, if any `export` keyword is used in the file, then **only explicitly exported symbols** are visible.
 
 ```pipe
-# File: lib.pipe
-let public_val = 42        # not exported if any export exists
-export let visible = 100   # exported
-let hidden = "secret"      # not exported
+-- File: lib.pipe
+-- not exported if any export exists
+public_val: 42
+-- exported
+export visible: 100
+-- not exported
+hidden: "secret"
 
-export let greet = fn(name) {
-    "Hello, " + name + "!"
-}
+export fn greet name
+    "Hello, " ++ name ++ "!"
 
-let internal_helper = fn(x) {   # not exported, private
+-- not exported, private
+internal_helper: fn x
     x * 2
-}
 ```
 
 ```pipe
-# File: main.pipe
+-- File: main.pipe
 import "lib.pipe"
 
-print visible       # 100
-print (greet "World")  # "Hello, World!"
+-- 100
+print visible
+-- "Hello, World!"
+print (greet "World")
 
-print public_val    # ERROR: not exported
-print hidden        # ERROR: not exported
-print internal_helper  # ERROR: not exported
+-- ERROR: not exported
+print public_val
+-- ERROR: not exported
+print hidden
+-- ERROR: not exported
+print internal_helper
 ```
 
 **Rule:** If there are one or more `export` declarations in a module, only those marked with `export` are accessible by importers. If there are **zero** `export` declarations, all top-level symbols are accessible (open module).
@@ -154,7 +171,7 @@ set PIPE_PATH=C:\pipe-libs;C:\Program Files\Pipe\lib
 ```
 
 ```pipe
-# With PIPE_PATH set, you can import from search directories:
+-- With PIPE_PATH set, you can import from search directories:
 import "json-tools.pipe" as json
 import "http-utils.pipe" as http
 ```
@@ -210,9 +227,12 @@ Installed modules are stored in `~/.pipe/modules/` and available for import by n
 Use `@version` to pin a module to a specific release:
 
 ```pipe
-import "log-analyzer@1.0.0"         # exact version
-import "log-analyzer"               # latest (implicit @latest)
-import "sentiment@0.9.0" as s       # version with alias
+-- exact version
+import "log-analyzer@1.0[0]"
+-- latest (implicit @latest)
+import "log-analyzer"
+-- version with alias
+import "sentiment@0.9[0]" as s
 ```
 
 The versioned import first checks the local module cache for the exact `name@version` file. If not found, it queries the registry for the version URL, downloads the module, and caches it.
@@ -299,12 +319,13 @@ my-app/
 Minimize the public API surface of each module. Internal helpers should not be exported.
 
 ```pipe
-# Good: explicit exports
-export let public_api = fn(x) { internal(x) * 2 }
+-- Good: explicit exports
+export fn public_api x
+    internal x * 2
 
-let internal = fn(x) {      # Not exported, private to module
+-- Not exported, private to module
+internal: fn x
     x + 10
-}
 ```
 
 ### Use Namespaces to Prevent Collisions
@@ -312,14 +333,15 @@ let internal = fn(x) {      # Not exported, private to module
 Always use `as` for non-trivial programs:
 
 ```pipe
-# Good
+-- Good
 import "math.pipe" as math
 import "stats.pipe" as stats
 
-let result = stats.mean (math.square 5)
+result: stats.mean (math.square 5)
 
-# Avoid (unless small script)
-import "math.pipe"     # All symbols dumped into global scope
+-- Avoid (unless small script)
+-- All symbols dumped into global scope
+import "math.pipe"
 ```
 
 ### Group Imports at the Top
@@ -332,7 +354,7 @@ import "lib/math.pipe" as math
 import "lib/strings.pipe" as str
 import "models/user.pipe" as user_model
 
-# ... rest of the file
+-- ... rest of the file
 ```
 
 ### Use Relative Paths, Avoid Absolute Paths
@@ -340,13 +362,15 @@ import "models/user.pipe" as user_model
 Relative paths keep your project portable across environments:
 
 ```pipe
-# Good: portable
+-- Good: portable
 import "./lib/helpers.pipe"
 import "../shared/utils.pipe"
 
-# Avoid: not portable
-import "/home/user/project/lib/helpers.pipe"     # Windows breaks
-import "C:\\Users\\user\\project\\lib\\helpers.pipe"  # Linux breaks
+-- Avoid: not portable
+-- Windows breaks
+import "/home/user/project/lib/helpers.pipe"
+-- Linux breaks
+import "C:\\Users\\user\\project\\lib\\helpers.pipe"
 ```
 
 ### Handle Circular Imports Carefully
@@ -354,10 +378,13 @@ import "C:\\Users\\user\\project\\lib\\helpers.pipe"  # Linux breaks
 Circular imports (A imports B, B imports A) are technically possible due to caching but should be avoided. They can cause confusing initialization order issues:
 
 ```pipe
-# File: a.pipe
+-- File: a.pipe
 import "b.pipe" as b
-export let x = b.y + 1       # b.y might be nil if b hasn't finished
-export let get_x = fn() { b.y + 1 }  # safer: defer evaluation
+-- b.y might be nil if b hasn't finished
+export x: b.y + 1
+-- safer: defer evaluation
+export fn get_x
+    b.y + 1
 ```
 
 ### Keep Modules Focused

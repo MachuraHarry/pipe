@@ -11,9 +11,12 @@ Pipe includes 115 built-in functions organized by category. This chapter documen
 **Description:** Prints one or more values to stdout, separated by spaces and followed by a newline.
 **Returns:** `nil`
 ```pipe
-print "Hello"                          # Hello
-print "The answer is" 42               # The answer is 42
-print "x:" x "y:" y     # x: 10 y: 20
+-- Hello
+print "Hello"
+-- The answer is 42
+print "The answer is" 42
+-- x: 10 y: 20
+print "x:" x "y:" y
 ```
 
 ### `input`
@@ -21,7 +24,7 @@ print "x:" x "y:" y     # x: 10 y: 20
 **Description:** Displays `prompt` (optional), reads a line from stdin, and returns it as a string.
 **Returns:** `string`
 ```pipe
-let name = input "Enter your name: "
+name: input "Enter your name: "
 print "Hello, " ++ name
 ```
 
@@ -30,10 +33,10 @@ print "Hello, " ++ name
 **Description:** Executes a system command via the shell and returns the combined stdout/stderr output.
 **Returns:** `string`
 ```pipe
-let files = exec "ls -la"
+files: exec "ls -la"
 print files
 
-let version = exec "git --version"
+version: exec "git --version"
 print version
 ```
 
@@ -42,10 +45,10 @@ print version
 **Description:** Returns the value of the environment variable `name`, or `nil` if not set.
 **Returns:** `string` or `nil`
 ```pipe
-let home = env "HOME"
+home: env "HOME"
 print "Home directory: " ++ home
 
-let path = env "PATH"
+path: env "PATH"
 print path
 ```
 
@@ -54,10 +57,12 @@ print path
 **Description:** Pauses execution for `ms` milliseconds.
 **Returns:** `nil`
 ```pipe
-sleep 1000      # wait 1 second
+-- wait 1 second
+sleep 1000
 print "Done waiting"
 
-sleep 500       # wait 0.5 seconds
+-- wait 0[5] seconds
+sleep 500
 ```
 
 ### `go`
@@ -78,7 +83,7 @@ print "main"
 **Description:** Reads the entire contents of a file and returns it as a string. Errors if the file does not exist.
 **Returns:** `string`
 ```pipe
-let content = read_file "config.json"
+content: read_file "config.json"
 print content
 ```
 
@@ -103,10 +108,9 @@ append_file "log.txt" "New log entry\n"
 **Description:** Reads a file and returns its lines as a list of strings (without trailing newlines).
 **Returns:** `list` of strings
 ```pipe
-let lines = read_lines "data.csv"
-each lines fn(line) {
+lines: read_lines "data.csv"
+each lines fn line
     print "Line: " ++ line
-}
 ```
 
 ### `file_exists`
@@ -114,11 +118,10 @@ each lines fn(line) {
 **Description:** Returns `true` if the file or directory at `path` exists, `false` otherwise.
 **Returns:** `boolean`
 ```pipe
-if file_exists "config.json" {
+if file_exists "config.json"
     print "Config found"
-} {
+else
     print "Config missing"
-}
 ```
 
 ### `file_delete`
@@ -150,7 +153,7 @@ file_copy "template.txt" "new_file.txt"
 **Description:** Returns the size of the file in bytes.
 **Returns:** `number`
 ```pipe
-let size = file_size "data.bin"
+size: file_size "data.bin"
 print "File size: " ++ size ++ " bytes"
 ```
 
@@ -159,10 +162,9 @@ print "File size: " ++ size ++ " bytes"
 **Description:** Returns `"file"`, `"dir"`, or `nil` if the path does not exist.
 **Returns:** `string` or `nil`
 ```pipe
-let t = file_type "config.json"
-if t == "dir" {
+t: file_type "config.json"
+if t == "dir"
     print "It's a directory"
-}
 ```
 
 ### `list_dir`
@@ -170,8 +172,9 @@ if t == "dir" {
 **Description:** Returns a list of filenames in the directory at `path`.
 **Returns:** `list` of strings
 ```pipe
-let files = list_dir "."
-each files fn(f) { print f }
+files: list_dir "."
+each files (fn f
+    print f)
 ```
 
 ### `make_dir`
@@ -195,8 +198,9 @@ remove_dir "output/temp"
 **Description:** Joins two path components with the OS-appropriate separator.
 **Returns:** `string`
 ```pipe
-let full = path_join "/home/user" "docs"
-print full      # "/home/user/docs"
+full: path_join "/home/user" "docs"
+-- "/home/user/docs"
+print full
 ```
 
 ### `path_base`
@@ -204,8 +208,10 @@ print full      # "/home/user/docs"
 **Description:** Returns the last component of a path (the filename or directory name).
 **Returns:** `string`
 ```pipe
-path_base "/home/user/file.txt"     # "file.txt"
-path_base "/home/user/"             # "user"
+-- "file.txt"
+path_base "/home/user/file.txt"
+-- "user"
+path_base "/home/user/"
 ```
 
 ### `path_dir`
@@ -213,8 +219,10 @@ path_base "/home/user/"             # "user"
 **Description:** Returns the directory portion of a path, without the final component.
 **Returns:** `string`
 ```pipe
-path_dir "/home/user/file.txt"      # "/home/user"
-path_dir "file.txt"                 # "."
+-- "/home/user"
+path_dir "/home/user/file.txt"
+-- "."
+path_dir "file.txt"
 ```
 
 ### `path_ext`
@@ -222,9 +230,12 @@ path_dir "file.txt"                 # "."
 **Description:** Returns the file extension including the dot, or empty string if none.
 **Returns:** `string`
 ```pipe
-path_ext "file.txt"     # ".txt"
-path_ext "archive.tar.gz"  # ".gz"
-path_ext "Makefile"     # ""
+-- ".txt"
+path_ext "file.txt"
+-- ".gz"
+path_ext "archive.tar.gz"
+-- ""
+path_ext "Makefile"
 ```
 
 ---
@@ -236,8 +247,10 @@ path_ext "Makefile"     # ""
 **Description:** Returns a copy of `str` with all characters converted to uppercase.
 **Returns:** `string`
 ```pipe
-upper "hello"       # "HELLO"
-upper "Hello World" # "HELLO WORLD"
+-- "HELLO"
+upper "hello"
+-- "HELLO WORLD"
+upper "Hello World"
 ```
 
 ### `lower`
@@ -245,8 +258,10 @@ upper "Hello World" # "HELLO WORLD"
 **Description:** Returns a copy of `str` with all characters converted to lowercase.
 **Returns:** `string`
 ```pipe
-lower "HELLO"       # "hello"
-lower "Hello World" # "hello world"
+-- "hello"
+lower "HELLO"
+-- "hello world"
+lower "Hello World"
 ```
 
 ### `trim`
@@ -254,8 +269,10 @@ lower "Hello World" # "hello world"
 **Description:** Returns a copy of `str` with leading and trailing whitespace removed.
 **Returns:** `string`
 ```pipe
-trim "  hello  "    # "hello"
-trim "\t indented\n"  # "indented"
+-- "hello"
+trim "  hello  "
+-- "indented"
+trim "\t indented\n"
 ```
 
 ### `split`
@@ -263,9 +280,12 @@ trim "\t indented\n"  # "indented"
 **Description:** Splits `str` into a list of substrings separated by `delimiter`.
 **Returns:** `list` of strings
 ```pipe
-split "a,b,c" ","       # ["a", "b", "c"]
-split "one two three" " "  # ["one", "two", "three"]
-split "hello" ""        # ["h", "e", "l", "l", "o"]
+-- ["a", "b", "c"]
+split "a,b,c" ","
+-- ["one", "two", "three"]
+split "one two three" " "
+-- ["h", "e", "l", "l", "o"]
+split "hello" ""
 ```
 
 ### `join`
@@ -273,9 +293,12 @@ split "hello" ""        # ["h", "e", "l", "l", "o"]
 **Description:** Joins list elements into a string with `delimiter` between each element.
 **Returns:** `string`
 ```pipe
-join ["a", "b", "c"] ","    # "a,b,c"
-join ["one", "two"] " - "   # "one - two"
-join [1, 2, 3] ""           # "123"
+-- "a,b,c"
+join (["a", "b", "c"]) ","
+-- "one - two"
+join (["one", "two"]) " - "
+-- "123"
+join ([1, 2, 3]) ""
 ```
 
 ### `contains`
@@ -283,10 +306,14 @@ join [1, 2, 3] ""           # "123"
 **Description:** For strings: checks if `needle` is a substring. For lists: checks if `needle` is an element.
 **Returns:** `boolean`
 ```pipe
-contains "hello world" "lo"     # true
-contains "hello world" "xyz"    # false
-contains [1, 2, 3] 2            # true
-contains ["a", "b"] "c"         # false
+-- true
+contains "hello world" "lo"
+-- false
+contains "hello world" "xyz"
+-- true
+contains ([1, 2, 3]) 2
+-- false
+contains (["a", "b"]) "c"
 ```
 
 ---
@@ -298,9 +325,12 @@ contains ["a", "b"] "c"         # false
 **Description:** Returns the length of a string (characters), list (elements), or map (keys).
 **Returns:** `number`
 ```pipe
-len "hello"         # 5
-len [1, 2, 3]       # 3
-len { "a" = 1 }     # 1
+-- 5
+len "hello"
+-- 3
+len ([1, 2, 3])
+-- 1
+len { a: 1 }
 ```
 
 ### `push`
@@ -308,9 +338,11 @@ len { "a" = 1 }     # 1
 **Description:** Appends `value` to the end of `list`. **Mutates the list in place.**
 **Returns:** The mutated `list`
 ```pipe
-let xs = [1, 2]
-push xs 3           # xs is now [1, 2, 3]
-push xs "hello"     # xs is now [1, 2, 3, "hello"]
+xs: [1, 2]
+-- xs is now ([1, 2, 3])
+push xs 3
+-- xs is now ([1, 2, 3, "hello"])
+push xs "hello"
 ```
 
 ### `pop`
@@ -318,9 +350,11 @@ push xs "hello"     # xs is now [1, 2, 3, "hello"]
 **Description:** Removes and returns the last element of `list`. **Mutates the list in place.**
 **Returns:** The removed element, or `nil` if empty
 ```pipe
-let xs = [1, 2, 3]
-let last = pop xs   # last = 3, xs is now [1, 2]
-pop []              # nil
+xs: [1, 2, 3]
+-- last = 3, xs is now ([1, 2])
+last: pop xs
+-- nil
+pop []
 ```
 
 ### `at`
@@ -328,9 +362,12 @@ pop []              # nil
 **Description:** Returns the element at 0-based `index` in a list or string. Returns `nil` if out of bounds.
 **Returns:** `any` or `nil`
 ```pipe
-at [10, 20, 30] 1   # 20
-at "hello" 0         # "h"
-at [1, 2] 99         # nil
+-- 20
+at ([10, 20, 30]) 1
+-- "h"
+at "hello" 0
+-- nil
+at ([1, 2]) 99
 ```
 
 ### `slice_list`
@@ -338,9 +375,12 @@ at [1, 2] 99         # nil
 **Description:** Returns a sublist from `start` to `end` (exclusive). Uses `start..end` syntax.
 **Returns:** `list`
 ```pipe
-slice_list [10, 20, 30, 40, 50] 0..3    # [10, 20, 30]
-slice_list [10, 20, 30, 40, 50] 2..5    # [30, 40, 50]
-slice_list [10, 20, 30] 1..1             # []
+-- [10, 20, 30]
+slice_list ([10, 20, 30, 40, 50]) (range 0 3)
+-- [30, 40, 50]
+slice_list ([10, 20, 30, 40, 50]) (range 2 5)
+-- []
+slice_list ([10, 20, 30]) (range 1 1)
 ```
 
 ### `sort`
@@ -348,11 +388,13 @@ slice_list [10, 20, 30] 1..1             # []
 **Description:** Sorts `list` in ascending order **in place**. For strings, sorts lexicographically. For numbers, sorts numerically.
 **Returns:** The mutated `list`
 ```pipe
-let xs = [3, 1, 4, 1, 5]
-sort xs             # xs is now [1, 1, 3, 4, 5]
+xs: [3, 1, 4, 1, 5]
+-- xs is now ([1, 1, 3, 4, 5])
+sort xs
 
-let ys = ["b", "a", "c"]
-sort ys             # ys is now ["a", "b", "c"]
+ys: ["b", "a", "c"]
+-- ys is now (["a", "b", "c"])
+sort ys
 ```
 
 ### `range`
@@ -360,9 +402,12 @@ sort ys             # ys is now ["a", "b", "c"]
 **Description:** Creates a list of numbers from `start` (inclusive) to `end` (exclusive).
 **Returns:** `list` of numbers
 ```pipe
-range 0 5           # [0, 1, 2, 3, 4]
-range 5 10          # [5, 6, 7, 8, 9]
-range 0 0           # []
+-- [0, 1, 2, 3, 4]
+range 0 5
+-- [5, 6, 7, 8, 9]
+range 5 10
+-- []
+range 0 0
 ```
 
 ### `map`
@@ -370,8 +415,12 @@ range 0 0           # []
 **Description:** Applies `fn` to each element and returns a new list of results. In VM mode, only built-in functions are accepted.
 **Returns:** `list`
 ```pipe
-map [1, 2, 3] fn(x) { x * 2 }       # [2, 4, 6]
-map ["a", "b"] fn(s) { upper s }    # ["A", "B"]
+map ([1, 2, 3]) (fn x
+    -- [2, 4, 6]
+        x * 2)
+map (["a", "b"]) (fn s
+    -- ["A", "B"]
+        upper s)
 ```
 
 ### `filter`
@@ -379,8 +428,12 @@ map ["a", "b"] fn(s) { upper s }    # ["A", "B"]
 **Description:** Returns a new list containing only elements where `fn(element)` returns truthy. In VM mode, only built-in functions are accepted.
 **Returns:** `list`
 ```pipe
-filter [1, 2, 3, 4] fn(x) { x > 2 }        # [3, 4]
-filter [0, 1, 0, 3] fn(x) { x }             # [1, 3] (truthy elements)
+filter ([1, 2, 3, 4]) (fn x
+    -- [3, 4]
+        x > 2)
+filter ([0, 1, 0, 3]) (fn x
+    -- [1, 3] (truthy elements)
+        x)
 ```
 
 ### `reduce`
@@ -388,8 +441,12 @@ filter [0, 1, 0, 3] fn(x) { x }             # [1, 3] (truthy elements)
 **Description:** Accumulates a value by calling `fn(accumulator, element)` for each element. `initial` is the starting accumulator. In VM mode, only built-in functions are accepted.
 **Returns:** `any`
 ```pipe
-reduce [1, 2, 3] fn(acc, x) { acc + x } 0      # 6
-reduce [2, 3, 4] fn(acc, x) { acc * x } 1      # 24
+reduce ([1, 2, 3]) fn acc x
+    -- 6
+        acc + x  0
+reduce ([2, 3, 4]) fn acc x
+    -- 24
+        acc * x  1
 ```
 
 ### `each`
@@ -397,10 +454,11 @@ reduce [2, 3, 4] fn(acc, x) { acc * x } 1      # 24
 **Description:** Calls `fn(element)` for each element in `list`. Used for side effects. Works with both built-in and user functions in all modes.
 **Returns:** `nil`
 ```pipe
-each [1, 2, 3] fn(x) { print x }
-# 1
-# 2
-# 3
+each ([1, 2, 3]) (fn x
+    print x)
+-- 1
+-- 2
+-- 3
 ```
 
 ---
@@ -412,9 +470,11 @@ each [1, 2, 3] fn(x) { print x }
 **Description:** Returns the value associated with `key` in `map`, or `nil` if key not found.
 **Returns:** `any` or `nil`
 ```pipe
-let m = { "name" = "Alice", "age" = 30 }
-get m "name"        # "Alice"
-get m "country"     # nil
+m: { name: "Alice", age: 30 }
+-- "Alice"
+get m "name"
+-- nil
+get m "country"
 ```
 
 ### `set`
@@ -422,10 +482,12 @@ get m "country"     # nil
 **Description:** Sets `key` to `value` in `map`. Creates new key or updates existing. **Mutates the map in place.**
 **Returns:** The mutated `map`
 ```pipe
-let m = { "name" = "Alice" }
-set m "age" 30      # adds key
-set m "name" "Bob"  # updates key
-# m is now { "name" = "Bob", "age" = 30 }
+m: { name: "Alice" }
+-- adds key
+set m "age" 30
+-- updates key
+set m "name" "Bob"
+-- m is now { name: "Bob", age: 30 }
 ```
 
 ### `keys`
@@ -433,8 +495,9 @@ set m "name" "Bob"  # updates key
 **Description:** Returns a list of all keys in `map`. Order is not guaranteed.
 **Returns:** `list` of strings
 ```pipe
-let m = { "a" = 1, "b" = 2, "c" = 3 }
-keys m              # ["a", "b", "c"] (order may vary)
+m: { a: 1, b: 2, c: 3 }
+-- ["a", "b", "c"] (order may vary)
+keys m
 ```
 
 ### `values`
@@ -442,8 +505,9 @@ keys m              # ["a", "b", "c"] (order may vary)
 **Description:** Returns a list of all values in `map`. Order corresponds to `keys` order.
 **Returns:** `list`
 ```pipe
-let m = { "a" = 1, "b" = 2, "c" = 3 }
-values m            # [1, 2, 3] (order corresponds to keys)
+m: { a: 1, b: 2, c: 3 }
+-- [1, 2, 3] (order corresponds to keys)
+values m
 ```
 
 ---
@@ -455,9 +519,12 @@ values m            # [1, 2, 3] (order corresponds to keys)
 **Description:** Returns the absolute value of `x`.
 **Returns:** `number`
 ```pipe
-abs -5          # 5
-abs 42          # 42
-abs 0           # 0
+-- 5
+abs -5
+-- 42
+abs 42
+-- 0
+abs 0
 ```
 
 ### `min`
@@ -465,9 +532,12 @@ abs 0           # 0
 **Description:** Returns the smaller of `a` and `b`.
 **Returns:** `number`
 ```pipe
-min 10 20       # 10
-min -5 0        # -5
-min 3.14 3.0    # 3.0
+-- 10
+min 10 20
+-- -5
+min -5 0
+-- 3[0]
+min 3[14] 3[0]
 ```
 
 ### `max`
@@ -475,9 +545,12 @@ min 3.14 3.0    # 3.0
 **Description:** Returns the larger of `a` and `b`.
 **Returns:** `number`
 ```pipe
-max 10 20       # 20
-max -5 0        # 0
-max 3.14 3.0    # 3.14
+-- 20
+max 10 20
+-- 0
+max -5 0
+-- 3[14]
+max 3[14] 3[0]
 ```
 
 ### `pow`
@@ -485,9 +558,12 @@ max 3.14 3.0    # 3.14
 **Description:** Returns `base` raised to the power of `exp`.
 **Returns:** `number`
 ```pipe
-pow 2 10        # 1024
-pow 2 0.5       # 1.414... (square root)
-pow 10 3        # 1000
+-- 1024
+pow 2 10
+-- 1.414... (square root)
+pow 2 0[5]
+-- 1000
+pow 10 3
 ```
 
 ### `sqrt`
@@ -495,9 +571,12 @@ pow 10 3        # 1000
 **Description:** Returns the square root of `x`.
 **Returns:** `number`
 ```pipe
-sqrt 100        # 10
-sqrt 2          # 1.414...
-sqrt 0          # 0
+-- 10
+sqrt 100
+-- 1.414...
+sqrt 2
+-- 0
+sqrt 0
 ```
 
 ### `round`
@@ -505,10 +584,14 @@ sqrt 0          # 0
 **Description:** Rounds `x` to the nearest integer. Half values round to the nearest even integer (banker's rounding).
 **Returns:** `number`
 ```pipe
-round 3.14      # 3
-round 3.5       # 4
-round 2.5       # 2 (banker's rounding)
-round 4.7       # 5
+-- 3
+round 3[14]
+-- 4
+round 3[5]
+-- 2 (banker's rounding)
+round 2[5]
+-- 5
+round 4[7]
 ```
 
 ---
@@ -520,7 +603,7 @@ round 4.7       # 5
 **Description:** Performs an HTTP GET request to `url` and returns the response body as a string.
 **Returns:** `string`
 ```pipe
-let body = http_get "https://api.example.com/data"
+body: http_get "https://api.example.com/data"
 print body
 ```
 
@@ -529,7 +612,7 @@ print body
 **Description:** Performs an HTTP POST request to `url` with `body` as the request payload. Returns the response body.
 **Returns:** `string`
 ```pipe
-let resp = http_post "https://api.example.com/submit" "{\"key\": \"value\"}"
+resp: http_post "https://api.example.com/submit" "{\"key\": \"value\"}"
 print resp
 ```
 
@@ -538,9 +621,10 @@ print resp
 **Description:** Performs an HTTP GET request to `url` and parses the response as JSON.
 **Returns:** `any` (map, list, number, string, boolean, or nil)
 ```pipe
-let data = http_get_json "https://api.example.com/users"
+data: http_get_json "https://api.example.com/users"
 print data.count
-each data.users fn(u) { print u.name }
+each data.users (fn u
+    print u.name)
 ```
 
 ### `parse_json`
@@ -548,9 +632,11 @@ each data.users fn(u) { print u.name }
 **Description:** Parses a JSON string into Pipe data structures (maps, lists, numbers, strings, booleans, nil).
 **Returns:** `any` or `nil` on parse error
 ```pipe
-let obj = parse_json `{"name": "Alice", "scores": [95, 87, 92]}`
-print obj.name          # "Alice"
-print obj.scores.1      # 87
+obj: parse_json `{name: "Alice", scores: [95, 87, 92]}`
+-- "Alice"
+print obj.name
+-- 87
+print obj.scores[1]
 ```
 
 ### `to_json`
@@ -558,9 +644,10 @@ print obj.scores.1      # 87
 **Description:** Serializes a Pipe value into a JSON string.
 **Returns:** `string`
 ```pipe
-let data = { "name" = "Alice", "age" = 30 }
-let json_str = to_json data
-print json_str          # {"name":"Alice","age":30}
+data: { name: "Alice", age: 30 }
+json_str: to_json data
+-- {name: "Alice",age: 30}
+print json_str
 ```
 
 ---
@@ -572,7 +659,7 @@ print json_str          # {"name":"Alice","age":30}
 **Description:** Starts a TCP server listening on `address` (e.g., `":8080"` or `"localhost:3000"`). Returns a listener handle.
 **Returns:** `listener handle`
 ```pipe
-let listener = tcp_listen ":8080"
+listener: tcp_listen ":8080"
 print "Server listening on port 8080"
 ```
 
@@ -581,7 +668,7 @@ print "Server listening on port 8080"
 **Description:** Connects to a TCP server at `address` and returns a connection handle.
 **Returns:** `connection handle`
 ```pipe
-let conn = tcp_connect "localhost:8080"
+conn: tcp_connect "localhost:8080"
 tcp_write conn "Hello, server!"
 ```
 
@@ -590,8 +677,8 @@ tcp_write conn "Hello, server!"
 **Description:** Accepts an incoming connection on a listener. Blocks until a client connects. Returns a connection handle.
 **Returns:** `connection handle`
 ```pipe
-let conn = tcp_accept listener
-let msg = tcp_read conn 1024
+conn: tcp_accept listener
+msg: tcp_read conn 1024
 print "Received: " ++ msg
 ```
 
@@ -600,7 +687,7 @@ print "Received: " ++ msg
 **Description:** Reads up to `max_bytes` from a TCP connection and returns the data as a string.
 **Returns:** `string`
 ```pipe
-let data = tcp_read conn 4096
+data: tcp_read conn 4096
 print data
 ```
 
@@ -609,7 +696,7 @@ print data
 **Description:** Writes `data` to a TCP connection.
 **Returns:** `nil`
 ```pipe
-tcp_write conn "HTTP/1.1 200 OK\r\n\r\nHello"
+tcp_write conn "HTTP/1[1] 200 OK\r\n\r\nHello"
 ```
 
 ### `tcp_close`
@@ -624,16 +711,15 @@ tcp_close listener
 ### TCP Server Example
 
 ```pipe
-let listener = tcp_listen ":9999"
+listener: tcp_listen ":9999"
 print "Echo server on :9999"
 
-each range 0 5 fn(i) {
-    let conn = tcp_accept listener
-    let msg = tcp_read conn 1024
+each range 0 5 fn i
+    conn: tcp_accept listener
+    msg: tcp_read conn 1024
     print "Got: " ++ msg
     tcp_write conn "Echo: " ++ msg
     tcp_close conn
-}
 
 tcp_close listener
 ```
@@ -647,9 +733,12 @@ tcp_close listener
 **Description:** Returns `true` if `str` matches the regex `pattern`, `false` otherwise.
 **Returns:** `boolean`
 ```pipe
-regex_match "^[a-z]+$" "hello"      # true
-regex_match "^[a-z]+$" "hello123"   # false
-regex_match "\\d{3}-\\d{4}" "555-1234"  # true
+-- true
+regex_match "^[a-z]+$" "hello"
+-- false
+regex_match "^[a-z]+$" "hello123"
+-- true
+regex_match "\\d{3}-\\d{4}" "555-1234"
 ```
 
 ### `regex_replace`
@@ -657,9 +746,12 @@ regex_match "\\d{3}-\\d{4}" "555-1234"  # true
 **Description:** Replaces all occurrences of `pattern` in `str` with `replacement`.
 **Returns:** `string`
 ```pipe
-regex_replace "\\s+" "-" "hello world"         # "hello-world"
-regex_replace "[aeiou]" "*" "hello"            # "h*ll*"
-regex_replace "\\d" "#" "abc123xyz"            # "abc###xyz"
+-- "hello-world"
+regex_replace "\\s+" "-" "hello world"
+-- "h*ll*"
+regex_replace "[aeiou]" "*" "hello"
+-- "abc###xyz"
+regex_replace "\\d" "#" "abc123xyz"
 ```
 
 ---
@@ -671,9 +763,9 @@ regex_replace "\\d" "#" "abc123xyz"            # "abc###xyz"
 **Description:** Returns the current time as a Unix timestamp in seconds (floating point, includes fractional seconds).
 **Returns:** `number`
 ```pipe
-let t = now()
+t: now
 print "Current timestamp: " ++ t
-# e.g. 1700000000.123456
+-- e.g. 1700000000.123456
 ```
 
 ### `format_time`
@@ -701,13 +793,18 @@ print "Current timestamp: " ++ t
 
 **Returns:** `string`
 ```pipe
-let t = now()
+t: now
 
-format_time t "2006-01-02"              # "2024-07-15"
-format_time t "2006-01-02 15:04:05"     # "2024-07-15 14:30:00"
-format_time t "Mon Jan 2 15:04:05 2006" # "Mon Jul 15 14:30:00 2024"
-format_time t "03:04 PM"                # "02:30 PM"
-format_time t "Monday, January 2, 2006" # "Monday, July 15, 2024"
+-- "2024-07-15"
+format_time t "2006-01-02"
+-- "2024-07-15 14:30:00"
+format_time t "2006-01-02 15:04:05"
+-- "Mon Jul 15 14:30:00 2024"
+format_time t "Mon Jan 2 15:04:05 2006"
+-- "02:30 PM"
+format_time t "03:04 PM"
+-- "Monday, July 15, 2024"
+format_time t "Monday, January 2, 2006"
 ```
 
 ---
@@ -719,7 +816,8 @@ format_time t "Monday, January 2, 2006" # "Monday, July 15, 2024"
 **Description:** Returns a random floating-point number in the range `[0.0, 1.0)`.
 **Returns:** `number`
 ```pipe
-let r = random()        # e.g. 0.734291
+-- e.g. 0[734291]
+r: random
 print r
 ```
 
@@ -728,8 +826,10 @@ print r
 **Description:** Returns a random integer in the range `[min, max]` inclusive.
 **Returns:** `number` (integer)
 ```pipe
-let dice = random_range 1 6        # 1, 2, 3, 4, 5, or 6
-let coin = random_range 0 1        # 0 or 1
+-- 1, 2, 3, 4, 5, or 6
+dice: random_range 1 6
+-- 0 or 1
+coin: random_range 0 1
 ```
 
 ---
@@ -741,8 +841,10 @@ let coin = random_range 0 1        # 0 or 1
 **Description:** Encodes a string to Base64.
 **Returns:** `string`
 ```pipe
-base64_encode "hello"       # "aGVsbG8="
-base64_encode "Pipe"        # "UGlwZQ=="
+-- "aGVsbG8="
+base64_encode "hello"
+-- "UGlwZQ=="
+base64_encode "Pipe"
 ```
 
 ### `base64_decode`
@@ -750,8 +852,10 @@ base64_encode "Pipe"        # "UGlwZQ=="
 **Description:** Decodes a Base64-encoded string.
 **Returns:** `string`
 ```pipe
-base64_decode "aGVsbG8="   # "hello"
-base64_decode "UGlwZQ=="   # "Pipe"
+-- "hello"
+base64_decode "aGVsbG8="
+-- "Pipe"
+base64_decode "UGlwZQ=="
 ```
 
 ---
@@ -763,14 +867,22 @@ base64_decode "UGlwZQ=="   # "Pipe"
 **Description:** Returns a string indicating the type of `value`.
 **Returns:** `string` — one of `"number"`, `"string"`, `"list"`, `"map"`, `"nil"`, `"function"`, `"boolean"`, `"result"`
 ```pipe
-type_of 42              # "number"
-type_of "hello"         # "string"
-type_of [1, 2]          # "list"
-type_of { "a" = 1 }     # "map"
-type_of nil             # "nil"
-type_of fn(x) { x }     # "function"
-type_of true            # "boolean"
-type_of (Ok 1)          # "result"
+-- "number"
+type_of 42
+-- "string"
+type_of "hello"
+-- "list"
+type_of ([1, 2])
+-- "map"
+type_of { a: 1 }
+-- "nil"
+type_of nil
+type_of: (fn x
+    x)-- "function"
+-- "boolean"
+type_of true
+-- "result"
+type_of (Ok 1)
 ```
 
 ### `is_num`
@@ -778,10 +890,14 @@ type_of (Ok 1)          # "result"
 **Description:** Returns `true` if `value` is a number.
 **Returns:** `boolean`
 ```pipe
-is_num 42       # true
-is_num 3.14     # true
-is_num "42"     # false
-is_num nil      # false
+-- true
+is_num 42
+-- true
+is_num 3[14]
+-- false
+is_num "42"
+-- false
+is_num nil
 ```
 
 ### `is_str`
@@ -789,9 +905,12 @@ is_num nil      # false
 **Description:** Returns `true` if `value` is a string.
 **Returns:** `boolean`
 ```pipe
-is_str "hello"  # true
-is_str 42       # false
-is_str ""       # true
+-- true
+is_str "hello"
+-- false
+is_str 42
+-- true
+is_str ""
 ```
 
 ### `is_list`
@@ -799,9 +918,12 @@ is_str ""       # true
 **Description:** Returns `true` if `value` is a list.
 **Returns:** `boolean`
 ```pipe
-is_list [1, 2]  # true
-is_list []      # true
-is_list "ab"    # false
+-- true
+is_list ([1, 2])
+-- true
+is_list []
+-- false
+is_list "ab"
 ```
 
 ### `is_map`
@@ -809,9 +931,12 @@ is_list "ab"    # false
 **Description:** Returns `true` if `value` is a map.
 **Returns:** `boolean`
 ```pipe
-is_map { "a" = 1 }  # true
-is_map {}           # true
-is_map [1, 2]       # false
+-- true
+is_map { a: 1 }
+-- true
+is_map {}
+-- false
+is_map ([1, 2])
 ```
 
 ### `is_nil`
@@ -819,10 +944,14 @@ is_map [1, 2]       # false
 **Description:** Returns `true` if `value` is `nil`.
 **Returns:** `boolean`
 ```pipe
-is_nil nil      # true
-is_nil 0        # false
-is_nil ""       # false
-is_nil false    # false
+-- true
+is_nil nil
+-- false
+is_nil 0
+-- false
+is_nil ""
+-- false
+is_nil false
 ```
 
 ---
@@ -834,11 +963,16 @@ is_nil false    # false
 **Description:** Converts `value` to its string representation. Numbers, booleans, and nil all convert to strings.
 **Returns:** `string`
 ```pipe
-to_str 42           # "42"
-to_str 3.14         # "3.14"
-to_str true         # "true"
-to_str nil          # "nil"
-to_str [1, 2, 3]   # "[1, 2, 3]"
+-- "42"
+to_str 42
+-- "3[14]"
+to_str 3[14]
+-- "true"
+to_str true
+-- "nil"
+to_str nil
+-- "[1, 2, 3]"
+to_str ([1, 2, 3])
 ```
 
 ### `to_num`
@@ -846,10 +980,14 @@ to_str [1, 2, 3]   # "[1, 2, 3]"
 **Description:** Parses a string into a number. Returns `nil` if parsing fails.
 **Returns:** `number` or `nil`
 ```pipe
-to_num "42"         # 42
-to_num "3.14"       # 3.14
-to_num "hello"      # nil
-to_num "0xFF"       # nil (only decimal)
+-- 42
+to_num "42"
+-- 3[14]
+to_num "3[14]"
+-- nil
+to_num "hello"
+-- nil (only decimal)
+to_num "0xFF"
 ```
 
 ---
@@ -861,9 +999,11 @@ to_num "0xFF"       # nil (only decimal)
 **Description:** Creates a successful `Result` containing `value`.
 **Returns:** `Result` (Ok variant)
 ```pipe
-let r = Ok 42
-is_ok r     # true
-unwrap r    # 42
+r: Ok 42
+-- true
+is_ok r
+-- 42
+unwrap r
 ```
 
 ### `Err`
@@ -871,9 +1011,11 @@ unwrap r    # 42
 **Description:** Creates a failed `Result` containing the error `message` string.
 **Returns:** `Result` (Err variant)
 ```pipe
-let r = Err "something went wrong"
-is_err r    # true
-unwrap r    # ERROR: called unwrap on an Err value
+r: Err "something went wrong"
+-- true
+is_err r
+-- ERROR: called unwrap on an Err value
+unwrap r
 ```
 
 ### `is_ok`
@@ -881,8 +1023,10 @@ unwrap r    # ERROR: called unwrap on an Err value
 **Description:** Returns `true` if `result` is an `Ok` variant.
 **Returns:** `boolean`
 ```pipe
-is_ok (Ok 42)       # true
-is_ok (Err "oops")  # false
+-- true
+is_ok (Ok 42)
+-- false
+is_ok (Err "oops")
 ```
 
 ### `is_err`
@@ -890,8 +1034,10 @@ is_ok (Err "oops")  # false
 **Description:** Returns `true` if `result` is an `Err` variant.
 **Returns:** `boolean`
 ```pipe
-is_err (Ok 42)      # false
-is_err (Err "oops") # true
+-- false
+is_err (Ok 42)
+-- true
+is_err (Err "oops")
 ```
 
 ### `unwrap`
@@ -899,8 +1045,10 @@ is_err (Err "oops") # true
 **Description:** Returns the value inside `Ok`, or raises an error if called on `Err`.
 **Returns:** `any`
 ```pipe
-unwrap (Ok 42)          # 42
-unwrap (Err "fail")     # ERROR: called unwrap on an Err value
+-- 42
+unwrap (Ok 42)
+-- ERROR: called unwrap on an Err value
+unwrap (Err "fail")
 ```
 
 ### `unwrap_or`
@@ -908,9 +1056,12 @@ unwrap (Err "fail")     # ERROR: called unwrap on an Err value
 **Description:** Returns the value inside `Ok`, or `default` if `result` is `Err`.
 **Returns:** `any`
 ```pipe
-unwrap_or (Ok 42) 0      # 42
-unwrap_or (Err "x") 0    # 0
-unwrap_or (Ok "hi") ""   # "hi"
+-- 42
+unwrap_or (Ok 42) 0
+-- 0
+unwrap_or (Err "x") 0
+-- "hi"
+unwrap_or (Ok "hi") ""
 ```
 ---
 
@@ -948,7 +1099,8 @@ ai_model "claude-3-5-sonnet-20241022"
 
 **Returns:** `string` (confirmation message)
 ```pipe
-ai_host "http://localhost:11434/v1"   # Ollama
+-- Ollama
+ai_host "http://localhost:11434/v1"
 ```
 
 ### `ai_timeout`
@@ -985,9 +1137,8 @@ ai_chat "You are a helpful assistant" "What is Pipe?"
 
 **Returns:** `any` (parsed JSON — map, list, number, string, boolean, or nil)
 ```pipe
-let data = ai_chat_json "Return JSON" \
-    "List 3 colors as JSON array"
-# ["red", "green", "blue"]
+data: ai_chat_json "Return JSON" "List 3 colors as JSON array"
+-- ["red", "green", "blue"]
 ```
 
 ---
@@ -1002,8 +1153,8 @@ let data = ai_chat_json "Return JSON" \
 
 **Returns:** `string`
 ```pipe
-let full = ai_stream "Explain" "How does AI work?"
-# tokens print as they arrive
+full: ai_stream "Explain" "How does AI work?"
+-- tokens print as they arrive
 ```
 
 ---
@@ -1051,8 +1202,7 @@ classify "The app crashes on submit" (["bug", "feature", "question"])
 
 **Returns:** `any` (parsed JSON)
 ```pipe
-let data = extract "Alice is 30 and lives in Paris" \
-    "Extract name, age, city as JSON"
+data: extract "Alice is 30 and lives in Paris" "Extract name, age, city as JSON"
 ```
 
 ### `generate`
@@ -1089,8 +1239,8 @@ ask "What is the meaning of life?"
 
 **Returns:** `list` of `string` (one response per item)
 ```pipe
-let items = ["Summarize: Go", "Summarize: Rust", "Summarize: Zig"]
-let results = ai_batch "Explain briefly" items
+items: ["Summarize: Go", "Summarize: Rust", "Summarize: Zig"]
+results: ai_batch "Explain briefly" items
 ```
 
 ### `ai_parallel`
@@ -1112,7 +1262,8 @@ ai_parallel 2 "Translate to French" (["Hello", "Goodbye"])
 
 **Returns:** `nil`
 ```pipe
-ai_rate_limit 5    # max 5 calls per second
+-- max 5 calls per second
+ai_rate_limit 5
 ```
 
 ---
@@ -1127,9 +1278,8 @@ ai_rate_limit 5    # max 5 calls per second
 
 **Returns:** `nil`
 ```pipe
-ai_tool "get_weather" "Get weather for a city" \
-    { "city" = { "type" = "string" } } \
-    fn(args) { http_get "https://wttr.in/" ++ get args "city" }
+ai_tool "get_weather" "Get weather for a city" { city: { type: "string" } } (fn args
+        http_get "https://wttr.in/" ++ get args "city")
 ```
 
 ### `ai_with_tools`
@@ -1140,8 +1290,7 @@ ai_tool "get_weather" "Get weather for a city" \
 
 **Returns:** `string`
 ```pipe
-ai_with_tools "You have weather data" \
-    "What is the weather in Berlin?"
+ai_with_tools "You have weather data" "What is the weather in Berlin?"
 ```
 
 ---
@@ -1156,7 +1305,7 @@ ai_with_tools "You have weather data" \
 
 **Returns:** `list` of `float`
 ```pipe
-let vec = embed "Pipe programming language"
+vec: embed "Pipe programming language"
 ```
 
 ### `embed_batch`
@@ -1167,7 +1316,7 @@ let vec = embed "Pipe programming language"
 
 **Returns:** `list` of `list` of `float`
 ```pipe
-let vecs = embed_batch (["Hello", "World", "Pipe"])
+vecs: embed_batch (["Hello", "World", "Pipe"])
 ```
 
 ### `cosine_sim`
@@ -1178,8 +1327,8 @@ let vecs = embed_batch (["Hello", "World", "Pipe"])
 
 **Returns:** `float`
 ```pipe
-let a = embed "cat"
-let b = embed "dog"
+a: embed "cat"
+b: embed "dog"
 cosine_sim a b
 ```
 
@@ -1202,9 +1351,10 @@ dot_product (embed "a") (embed "b")
 
 **Returns:** `list` of `integer` (indices of nearest neighbors)
 ```pipe
-let docs = embed_batch (["cat", "dog", "bird", "fish"])
-let q = embed "pet"
-nearest q docs 2    # [1, 0] (dog, cat)
+docs: embed_batch (["cat", "dog", "bird", "fish"])
+q: embed "pet"
+-- [1, 0] (dog, cat)
+nearest q docs 2
 ```
 
 ---
@@ -1224,7 +1374,7 @@ sandbox_profile "strict"
 **Description:** Sets the active sandbox from a profile map or name.
 **Returns:** `string`
 ```pipe
-set_sandbox {type: "strict", write: false}
+set_sandbox ({type: "strict", write: false})
 ```
 
 ### `with_sandbox`
@@ -1232,7 +1382,8 @@ set_sandbox {type: "strict", write: false}
 **Description:** Runs `fn` under the given sandbox profile, then restores the previous one.
 **Returns:** `any`
 ```pipe
-with_sandbox "noexec" fn -> print "isolated"
+with_sandbox "noexec" (fn
+    print "isolated")
 ```
 
 ---
@@ -1309,8 +1460,8 @@ assert_gt 0 (-5)
 
 **Returns:** `nil` on success, `ERROR` on failure
 ```pipe
-failing: fn
-    read_file "nonexistent"
+failing: (fn
+    read_file "nonexistent")
 assert_error failing
 ```
 

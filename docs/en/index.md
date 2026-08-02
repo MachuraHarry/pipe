@@ -33,24 +33,40 @@ Welcome to the complete documentation for the **Pipe** scripting language.
 
 ## Quick Reference
 
-```pipe
+```text
 -- Comment
-x: 42                         -- Variable
-x += 1                        -- Compound assignment
-fn name a b: ...              -- Function
-if cond: ... else: ...        -- Conditional
-match x | 0 -> ... | _ ->     -- Pattern matching
-while cond: ...               -- Loop
-for x in list: ...            -- for-in
-try: ... catch e: ...         -- Error handling
-return value                  -- Early return
-defer expr                    -- Deferred execution
-import "file.pipe"            -- Module import
-export fn name                -- Symbol export
-enum Name: A, B, C            -- Enumeration
+-- Variable
+x: 42
+-- Compound assignment
+x: x + 1
+-- Function
+fn name a b: ...
+-- Conditional
+if cond: ... else: ...
+-- Pattern matching
+match x | 0 -> ... | _ ->
+-- Loop
+while cond: ...
+-- for-in
+for x in list: ...
+-- Error handling
+try: ... catch e: ...
+-- Early return
+return value
+-- Deferred execution
+defer expr
+-- Module import
+import "file.pipe"
+-- Symbol export
+export fn name
+A: 0
+B: 1
+-- Enumeration: 2
+C
 
 value
-    > function                 -- Vertical pipeline
+    -- Vertical pipeline
+        > function
     > output
 ```
 

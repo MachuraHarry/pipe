@@ -19,9 +19,12 @@ gemischt: [1, "zwei", true, nil, [1, 2, 3]]
 Der Zugriff erfolgt über `liste[index]` — 0-basiert:
 
 ```pipe
-print (zahlen[0])       -- 10 (erstes Element)
-print (zahlen[2])       -- 30 (drittes Element)
-print (zahlen[4])       -- 50 (letztes Element)
+-- 10 (erstes Element)
+print (zahlen[0])
+-- 30 (drittes Element)
+print (zahlen[2])
+-- 50 (letztes Element)
+print (zahlen[4])
 ```
 
 ### Slicing (Teillisten)
@@ -29,10 +32,14 @@ print (zahlen[4])       -- 50 (letztes Element)
 ```pipe
 list: [10, 20, 30, 40, 50]
 
-print (list[0..3])      -- [10, 20, 30]       (Index 0 bis vor 3)
-print (list[2..4])      -- [30, 40]            (Index 2 bis vor 4)
-print (list[1..5])      -- [20, 30, 40, 50]    (Index 1 bis vor 5)
-print (list[0..1])      -- [10]                (nur erstes Element)
+-- [10, 20, 30]       (Index 0 bis vor 3)
+print (list[0..3])
+-- [30, 40]            (Index 2 bis vor 4)
+print (list[2..4])
+-- [20, 30, 40, 50]    (Index 1 bis vor 5)
+print (list[1..5])
+-- [10]                (nur erstes Element)
+print (list[0..1])
 ```
 
 Die Syntax `start..ende` erzeugt eine Teilliste von `start` (inklusive) bis `ende` (exklusive).
@@ -40,7 +47,8 @@ Die Syntax `start..ende` erzeugt eine Teilliste von `start` (inklusive) bis `end
 ### Einfacher Index
 
 ```pipe
-print (zahlen[3])       -- 40 (einzelnes Element, kein Slice)
+-- 40 (einzelnes Element, kein Slice)
+print (zahlen[3])
 ```
 
 ### Listen-Operationen
@@ -75,9 +83,12 @@ fn ist_gerade x
 fn summe a b
     a + b
 
-print (map [1, 2, 3] verdopple)          -- [2, 4, 6]
-print (filter [1, 2, 3, 4] ist_gerade)   -- [2, 4]
-print (reduce [1, 2, 3, 4] summe 0)      -- 10
+-- [2, 4, 6]
+print (map ([1, 2, 3]) verdopple)
+-- [2, 4]
+print (filter ([1, 2, 3, 4]) ist_gerade)
+-- 10
+print (reduce ([1, 2, 3, 4]) summe 0)
 ```
 
 **Wichtig:** `map`, `filter`, `reduce`, `each` mit benutzerdefinierten Funktionen
@@ -97,22 +108,27 @@ person: {name: "Anna", alter: 28, stadt: "Berlin"}
 ### Zugriff
 
 ```pipe
-print (get person "name")     -- "Anna"
-print (get person "alter")    -- 28
+-- "Anna"
+print (get person "name")
+-- 28
+print (get person "alter")
 ```
 
 ### Ändern
 
 ```pipe
 set person "alter" 29
-print (get person "alter")    -- 29
+-- 29
+print (get person "alter")
 ```
 
 ### Schlüssel und Werte
 
 ```pipe
-print (keys person)           -- ["name", "alter", "stadt"]
-print (values person)         -- ["Anna", 29, "Berlin"]
+-- ["name", "alter", "stadt"]
+print (keys person)
+-- ["Anna", 29, "Berlin"]
+print (values person)
 ```
 
 ### Map-Operationen
@@ -132,8 +148,10 @@ Pipe unterstützt auch Punkt-Notation für Map-Zugriffe:
 person: {name: "Anna", alter: 28}
 
 -- Beide Varianten sind äquivalent:
-print (get person "name")     -- "Anna"
-print person.name              -- "Anna"
+-- "Anna"
+print (get person "name")
+-- "Anna"
+print person.name
 ```
 
 ## 7.3 Strings als Index-Zugriff
@@ -142,18 +160,25 @@ Mit `at` kann man auf einzelne Zeichen eines Strings zugreifen:
 
 ```pipe
 text: "Hallo"
-print (at text 0)     -- "H"
-print (at text 1)     -- "a"
-print (at text 4)     -- "o"
+-- "H"
+print (at text 0)
+-- "a"
+print (at text 1)
+-- "o"
+print (at text 4)
 ```
 
 ## 7.4 contains für Strings und Listen
 
 ```pipe
-print (contains "Hallo Welt" "Welt")      -- true
-print (contains "Hallo Welt" "Mars")      -- false
-print (contains [1, 2, 3] 2)              -- true
-print (contains [1, 2, 3] 5)              -- false
+-- true
+print (contains "Hallo Welt" "Welt")
+-- false
+print (contains "Hallo Welt" "Mars")
+-- true
+print (contains ([1, 2, 3]) 2)
+-- false
+print (contains ([1, 2, 3]) 5)
 ```
 
 ## 7.5 Praxis-Beispiele
@@ -167,7 +192,8 @@ fn summe liste
         total: total + n
     total
 
-print (summe [1, 2, 3, 4, 5])    -- 15
+-- 15
+print (summe ([1, 2, 3, 4, 5]))
 ```
 
 ### Elementweise Verarbeitung
@@ -176,10 +202,11 @@ print (summe [1, 2, 3, 4, 5])    -- 15
 fn verdopple_alle liste
     for n in liste
         n
-            > (fn x: x * 2)
+            > (fn x
+                x * 2)
             > print
 
-verdopple_alle [1, 2, 3]
+verdopple_alle ([1, 2, 3])
 -- Ausgabe: 2, 4, 6
 ```
 
@@ -187,6 +214,8 @@ verdopple_alle [1, 2, 3]
 
 ```pipe
 antwort: parse_json "{\"name\": \"Pipe\", \"version\": 1}"
-print (get antwort "name")       -- "Pipe"
-print (get antwort "version")    -- 1
+-- "Pipe"
+print (get antwort "name")
+-- 1
+print (get antwort "version")
 ```

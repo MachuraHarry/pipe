@@ -17,9 +17,12 @@ sandbox_profile "strict" {fs: "read-only", network: false, exec: false, ai: fals
 
 set_sandbox "strict"
 
-write_file "/tmp/test.txt" "blocked"   -- E_SANDBOX: blocked
-read_file "/tmp/test.txt"              -- allowed (read-only)
-http_get "https://example.com"         -- E_SANDBOX: blocked
+-- E_SANDBOX: blocked
+write_file "/tmp/test.txt" "blocked"
+-- allowed (read-only)
+read_file "/tmp/test.txt"
+-- E_SANDBOX: blocked
+http_get "https://example.com"
 ```
 
 ---
@@ -101,8 +104,10 @@ Registers a named profile in the global registry. Returns an error if the name a
 ### `set_sandbox` — Activate a Profile
 
 ```pipe
-set_sandbox "strict"     -- All following operations use this profile
-set_sandbox "none"       -- Reset to unrestricted
+-- All following operations use this profile
+set_sandbox "strict"
+-- Reset to unrestricted
+set_sandbox "none"
 ```
 
 Changes the active profile globally. All subsequent builtin calls are checked against this profile.
@@ -114,7 +119,8 @@ fn do_risky_work
     exec "dangerous command"
     http_get "https://unknown-site.com"
 
-with_sandbox "strict" do_risky_work   -- blocked by sandbox
+-- blocked by sandbox
+with_sandbox "strict" do_risky_work
 ```
 
 Runs a function under a specific profile, then restores the previous one.
@@ -157,11 +163,11 @@ sandbox_profile "agent-safe" {fs: "read-only", network: true, exec: false, ai: t
 
 fn get_weather city
     http_get ("https://api.weather.com/" ++ city)
-    -- sandbox allows network → OK
+    -- sandbox allows network -> OK
 
 fn delete_logs pattern
     file_delete "/var/log/" ++ pattern
-    -- sandbox blocks write → error returned to LLM
+    -- sandbox blocks write -> error returned to LLM
 
 ai_tool "get_weather" "Get weather" {city: "city"} get_weather
 ai_tool "delete_logs" "Delete log files" {pattern: "glob"} delete_logs

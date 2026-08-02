@@ -26,8 +26,10 @@ Module werden in `~/.pipe/modules/` zwischengespeichert.
 Mit `@version` wird ein Modul auf eine bestimmte Version festgelegt:
 
 ```pipe
-import "log-analyzer@1.0.0"         -- exakte Version
-import "log-analyzer"               -- neueste Version
+-- exakte Version
+import "log-analyzer@1.0[0]"
+-- neueste Version
+import "log-analyzer"
 ```
 
 Ohne Version ermittelt Pipe automatisch `latest` aus der Registry.
@@ -37,7 +39,7 @@ Ohne Version ermittelt Pipe automatisch `latest` aus der Registry.
 Nach der Installation importierst du das Modul in dein Skript:
 
 ```pipe
-import "log-analyzer@1.0.0"
+import "log-analyzer@1.0[0]"
 
 read_file "errors.log"
     > split "\n"

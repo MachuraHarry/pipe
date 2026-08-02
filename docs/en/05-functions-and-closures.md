@@ -7,7 +7,7 @@ Functions are defined with the `fn` keyword followed by the function name and pa
 ```pipe
 fn name param1 param2 param3
   body
-  ...
+      
 ```
 
 Parameters are separated by **spaces**, not commas. The body is defined by indentation.
@@ -27,21 +27,26 @@ The **last expression** in the function body is the return value. No `return` ke
 Calling a function uses space-separated arguments:
 
 ```pipe
-print (add 3 5)      -- 8
-print (greet "Pipe")  -- Hello, Pipe!
+-- 8
+print (add 3 5)
+-- Hello, Pipe!
+print (greet "Pipe")
 ```
 
 When a function call appears inside a larger expression, wrap it in parentheses to disambiguate:
 
 ```pipe
-result: (add 1 2) * (add 3 4)   -- (1+2) * (3+4) = 21
+-- (1+2) * (3+4) = 21
+result: (add 1 2) * (add 3 4)
 ```
 
 For top-level calls (where they stand alone as a statement), parentheses are optional:
 
 ```pipe
-print "direct call"        -- no parens needed
-greet "world"               -- standalone call
+-- no parens needed
+print "direct call"
+-- standalone call
+greet "world"
 ```
 
 **Pipeline calls** use the `>` operator and are covered in [Chapter 6](./06-pipelines.md).
@@ -58,7 +63,10 @@ square: fn x
   x * x
 
 -- inline anonymous function
-result: (fn a b (a * b) + 10) 3 4   -- (3 * 4) + 10 = 22
+-- (3 * 4) + 10 = 22
+compute: fn a b
+    (a * b) + 10
+result: compute 3 4
 ```
 
 Anonymous functions are first-class values — the same as named functions, just without a name in scope.
@@ -69,19 +77,25 @@ A **closure** is a function that captures variables from its enclosing scope. Th
 
 ```pipe
 fn make_counter start
-  fn
-    start += 1
+  fn counter
+    start: start + 1
     start
 
 counter: make_counter 0
-print (counter)   -- 1
-print (counter)   -- 2
-print (counter)   -- 3
+-- 1
+print (counter)
+-- 2
+print (counter)
+-- 3
+print (counter)
 
 counter2: make_counter 100
-print (counter2)  -- 101
-print (counter2)  -- 102
-print (counter)   -- 4   (different counter, independent state)
+-- 101
+print (counter2)
+-- 102
+print (counter2)
+-- 4   (different counter, independent state)
+print (counter)
 ```
 
 Each call to `make_counter` creates a new closure with its own captured `start` variable. The closures are independent — modifying one does not affect the other.
@@ -98,10 +112,14 @@ make_adder: fn increment
 add5: make_adder 5
 add10: make_adder 10
 
-print (add5 3)    -- 8
-print (add5 7)    -- 12
-print (add10 3)   -- 13
-print (add10 7)   -- 17
+-- 8
+print (add5 3)
+-- 12
+print (add5 7)
+-- 13
+print (add10 3)
+-- 17
+print (add10 7)
 ```
 
 The parameter `increment` is captured by the inner function and persists across calls.
@@ -117,8 +135,10 @@ fn factorial n
   else
     n * (factorial (n - 1))
 
-print (factorial 5)    -- 120
-print (factorial 10)   -- 3628800
+-- 120
+print (factorial 5)
+-- 3628800
+print (factorial 10)
 ```
 
 ### Tail Call Optimization (TCO)
@@ -134,8 +154,10 @@ fn factorial_tail n acc
   else
     factorial_tail (n - 1) (n * acc)
 
-print (factorial_tail 5 1)     -- 120
-print (factorial_tail 5000 1)  -- works without stack overflow
+-- 120
+print (factorial_tail 5 1)
+-- works without stack overflow
+print (factorial_tail 5000 1)
 ```
 
 In tree-walker mode, deep recursion may exhaust the Go stack. In VM mode, TCO allows arbitrary recursion depth as long as the call is in tail position. Pipe's implementation has been tested to a depth of 5000 nested tail calls without overflow.
@@ -168,8 +190,10 @@ Functions can accept other functions as arguments and return functions as result
 fn apply_twice f x
   f (f x)
 
-increment: fn n n + 1
-print (apply_twice increment 5)   -- 7  (increment(increment(5)))
+increment: fn n
+    n + 1
+-- 7  (increment(increment(5)))
+print (apply_twice increment 5)
 ```
 
 A custom map function:
@@ -182,8 +206,10 @@ fn my_map list f
   result
 
 nums: [1, 2, 3, 4, 5]
-double: fn x x * 2
-print (my_map nums double)   -- [2, 4, 6, 8, 10]
+double: fn x
+    x * 2
+-- [2, 4, 6, 8, 10]
+print (my_map nums double)
 ```
 
 A filtering function:
@@ -196,8 +222,10 @@ fn my_filter list pred
       push result item
   result
 
-even: fn x x % 2 == 0
-print (my_filter [1, 2, 3, 4, 5, 6] even)   -- [2, 4, 6]
+even: fn x
+    x % 2 == 0
+-- [2, 4, 6]
+print (my_filter ([1, 2, 3, 4, 5, 6]) even)
 ```
 
 ### Functions as Return Values
@@ -212,8 +240,10 @@ fn multiplier factor
 double: multiplier 2
 triple: multiplier 3
 
-print (double 5)    -- 10
-print (triple 5)    -- 15
+-- 10
+print (double 5)
+-- 15
+print (triple 5)
 ```
 
 Function composition:
@@ -223,14 +253,18 @@ fn compose f g
   fn x
     f (g x)
 
-add1: fn x x + 1
-square: fn x x * x
+add1: fn x
+    x + 1
+square: fn x
+    x * x
 
 add1_then_square: compose square add1
 square_then_add1: compose add1 square
 
-print (add1_then_square 3)     -- (3+1)^2 = 16
-print (square_then_add1 3)     -- (3^2)+1 = 10
+-- (3+1)^2 = 16
+print (add1_then_square 3)
+-- (3^2)+1 = 10
+print (square_then_add1 3)
 ```
 
 ## Function Scope and Variable Visibility
@@ -242,10 +276,13 @@ Function parameters are local to the function body. They shadow variables from o
 ```pipe
 x: 10
 fn foo x
-  print x    -- prints the parameter, not the outer x
+  -- prints the parameter, not the outer x
+    print x
 
-foo 42        -- prints 42
-print x       -- prints 10 (outer x unchanged)
+-- prints 42
+foo 42
+-- prints 10 (outer x unchanged)
+print x
 ```
 
 ### Lexical Scoping
@@ -259,7 +296,8 @@ fn outer a
   inner
 
 add10: outer 10
-print (add10 5)   -- 15
+-- 15
+print (add10 5)
 
 -- 'a' is captured from outer's scope and used inside inner
 ```
@@ -271,7 +309,8 @@ Variables defined inside blocks (`if`, `while`, `for`, `match`) are scoped to th
 ```pipe
 if true
   temp: 42
-  print temp   -- 42
+  -- 42
+    print temp
 
 -- print temp  -- error: temp is not in scope here
 ```
@@ -284,7 +323,7 @@ Variables defined at the top level of a file (outside any function or block) are
 counter: 0
 
 fn increment
-  counter += 1
+  counter: counter + 1
   counter
 
 fn reset

@@ -145,15 +145,18 @@ Expression parsing uses Pratt's top-down operator precedence (TDOP) technique wi
 
 **Implicit Calls**: When parsing an expression followed by a value token (identifier, literal, etc.) without an operator between them, the parser automatically wraps the left expression in a `CallExpression`. This enables calling functions without parentheses:
 ```pipe
-print "hello"        -- parsed as CallExpression{print, ["hello"]}
-print "a" "b" "c"    -- parsed as CallExpression{print, ["a", "b", "c"]}
+-- parsed as CallExpression{print, ["hello"]}
+print "hello"
+-- parsed as CallExpression{print, ["a", "b", "c"]}
+print "a" "b" "c"
 ```
 
 **Vertical Pipeline**: After parsing an expression, if the parser encounters `NEWLINE INDENT ARROW`, it enters vertical pipeline mode, parsing each `>`-prefixed line as a pipeline stage and wrapping them in chained `PipelineExpression` nodes.
 
 **`_` Placeholder**: In pipeline mode, the `_` identifier in a call argument position is replaced with the piped value:
 ```pipe
-5 > add (1, _)    -- "_" is replaced with the value 5 → add(1, 5)
+-- "_" is replaced with the value 5
+5 > add 1 _
 ```
 
 **Slice vs Index**: The `[ ]` infix parser distinguishes between indexing (`x[i]`) and slicing (`x[i..j]` or `x[..j]`) by checking for a `..` token. Slices produce `SliceExpression` nodes; indices produce `InfixExpression{Operator: "[]"}`.

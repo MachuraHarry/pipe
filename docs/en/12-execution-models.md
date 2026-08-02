@@ -62,43 +62,45 @@ The VM compiles the entire program before execution begins, enabling optimizatio
 2. **Tail-Call Optimization (TCO):** Recursive functions in tail position are optimized to avoid stack overflow. The Tree-Walker detects when a function call is the last operation and reuses the current stack frame.
 
 ```pipe
-let countdown = fn(n) {
-    if n <= 0 {
+countdown: fn n
+    if n <= 0
         print "Done!"
-    } {
+    else
         print n
-        countdown (n - 1)     # tail call — optimized, no stack growth
-    }
-}
+        -- tail call — optimized, no stack growth
+                countdown (n - 1)
 
-countdown 10000    # Works! No stack overflow thanks to TCO
+-- Works! No stack overflow thanks to TCO
+countdown 10000
 ```
 
 3. **Higher-Order Functions with User Functions:** `map`, `filter`, and `reduce` accept user-defined functions:
 
 ```pipe
-let double = fn(x) { x * 2 }
-let result = map [1, 2, 3] double      # [2, 4, 6]
+double: (fn x
+    x * 2)
+-- [2, 4, 6]
+result: map ([1, 2, 3]) double
 
-let is_even = fn(x) { x % 2 == 0 }
-let evens = filter [1, 2, 3, 4] is_even  # [2, 4]
+is_even: (fn x
+    x % 2 == 0)
+-- [2, 4]
+evens: filter ([1, 2, 3, 4]) is_even
 ```
 
 4. **`for-in` Loop Support:**
 
 ```pipe
-for x in [1, 2, 3, 4, 5] {
+for x in ([1, 2, 3, 4, 5])
     print x * x
-}
 ```
 
 5. **Concurrency (`go` and `>>`):** Launch parallel goroutines or parallel pipelines:
 ```pipe
-go fn() {
-    http_get "https://api.example.com/process"
-}
+go http_get "https://api.example.com/process"
 
-data >> slow_ai_call    -- parallel pipeline via Future
+-- parallel pipeline via Future
+data > slow_ai_call
 ```
 
 6. **Better Error Messages:** Since the Tree-Walker operates directly on the AST, error messages include the exact source location and context.
@@ -221,20 +223,20 @@ pipe -build my_program.pipe
 
 Switch modes in the REPL with the `:vm` command:
 
-```pipe
-# Start REPL in Tree-Walker mode (default)
+```text
+-- Start REPL in Tree-Walker mode (default)
 pipe
 
->>> :vm
+:vm
 Switched to Bytecode VM mode.
 
->>> 2 + 2
+2 + 2
 4
 
->>> :vm
+:vm
 Switched to Tree-Walker mode.
 
->>> 2 + 2
+2 + 2
 4
 ```
 
@@ -319,37 +321,36 @@ If you want to run an existing Tree-Walker program in VM mode, check for these i
 1. **Replace `for-in` with `each` + `range`:**
 
 ```pipe
-# Tree-Walker only:
-for item in items {
+-- Tree-Walker only:
+for item in items
     print item
-}
 
-# Compatible with both:
-each items fn(item) { print item }
+-- Compatible with both:
+each items (fn item
+    print item)
 
-# Or with index:
-each range 0 (len items) fn(i) {
+-- Or with index:
+each range 0 (len items) fn i
     print at items i
-}
 ```
 
 2. **Replace user-function `map`/`filter`/`reduce` with inline loops:**
 
 ```pipe
-# Tree-Walker only:
-let doubled = map nums fn(x) { x * 2 }
+-- Tree-Walker only:
+doubled: map nums (fn x
+    x * 2)
 
-# VM-compatible (manual loop approach):
-let doubled = []
-each nums fn(x) {
+-- VM-compatible (manual loop approach):
+doubled: []
+each nums fn x
     push doubled (x * 2)
-}
 ```
 
 3. **Remove `go` calls** or guard them with a mode check:
 
 ```pipe
-# Not available in VM — remove or use conditional execution
+-- Not available in VM — remove or use conditional execution
 ```
 
 4. **Guard deep recursion** — if your Tree-Walker code uses deep recursion that relies on TCO, refactor to use iteration or `each` in VM mode.

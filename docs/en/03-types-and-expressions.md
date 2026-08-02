@@ -15,7 +15,8 @@ Literal: nil
 
 ```pipe
 x: nil
-print (type_of nil)   -- "nil"
+-- "nil"
+print (type_of nil)
 ```
 
 ### bool
@@ -30,7 +31,8 @@ Literals: true, false
 ```pipe
 flag: true
 done: false
-print (type_of true)   -- "bool"
+-- "bool"
+print (type_of true)
 ```
 
 #### Truthiness Rules
@@ -39,10 +41,12 @@ Only `false` and `nil` are falsy. Every other value — including `0`, `""`, `[]
 
 ```pipe
 if 0
-  print "reached"     -- executes, because 0 is truthy
+  -- executes, because 0 is truthy
+    print "reached"
 
 if nil
-  print "unreachable"  -- does not execute
+  -- does not execute
+    print "unreachable"
 ```
 
 ### num
@@ -55,20 +59,28 @@ Literals: 42, -7, 3.14159, 2.5e3, 0xFF
 ```
 
 ```pipe
-age: 42             -- stored as int64
-pi: 3.14159         -- stored as float64
-hex: 0xFF           -- 255, stored as int64
-sci: 1.5e3          -- 1500.0, stored as float64
+-- stored as int64
+age: 42
+-- stored as float64
+pi: 3[14159]
+-- 255, stored as int64
+hex: 0xFF
+-- 1500[0], stored as float64
+sci: 1.5e3
 
 -- integer arithmetic produces integers
-a: 10 + 5           -- 15 (int64)
+-- 15 (int64)
+a: 10 + 5
 
 -- mixing int and float promotes to float
-b: 10 + 3.5         -- 13.5 (float64)
+-- 13[5] (float64)
+b: 10 + 3[5]
 
 -- division of integers that doesn't divide evenly
-c: 10 / 4           -- 2 (int64, truncates toward zero)
-d: 10 / 4.0         -- 2.5 (float64)
+-- 2 (int64, truncates toward zero)
+c: 10 / 4
+-- 2[5] (float64)
+d: 10 / 4[0]
 ```
 
 ### str
@@ -121,17 +133,22 @@ nums: [1, 2, 3, 4, 5]
 mixed: [42, "hello", true, nil, [1, 2]]
 
 -- access by index (0-based)
-first: nums[0]       -- 1
-third: nums[2]       -- 3
+-- 1
+first: nums[0]
+-- 3
+third: nums[2]
 
 -- modify element
-nums[2]: 99          -- nums is now [1, 2, 99, 4, 5]
+-- nums is now ([1, 2, 99, 4, 5])
+set nums 2 99
 
 -- length
-len nums             -- 5
+-- 5
+len nums
 
 -- append
-push nums 6          -- nums is now [1, 2, 99, 4, 5, 6]
+-- nums is now ([1, 2, 99, 4, 5, 6])
+push nums 6
 ```
 
 ### map
@@ -145,20 +162,24 @@ Literal: {"key1": value1, "key2": value2}
 
 ```pipe
 empty: {}
-person: {"name": "Alice", "age": 30, "active": true}
+person: {name: "Alice", age: 30, active: true}
 
 -- access by key
-person["name"]       -- "Alice"
+-- "Alice"
+person["name"]
 
 -- set/update key
-person["city"]: "NYC"
+set person "city" "NYC"
 
 -- check existence
-has person "age"     -- true
-has person "email"   -- false
+-- true
+has person "age"
+-- false
+has person "email"
 
 -- length
-len person           -- 3
+-- 3
+len person
 ```
 
 ### fn
@@ -176,10 +197,12 @@ double: fn x
 
 -- functions are values
 some_fn: double
-some_fn 5              -- 10
+-- 10
+some_fn 5
 
 -- anonymous functions as arguments
-result: (map [1, 2, 3] (fn x x * 3))
+result: (map ([1, 2, 3]) (fn x
+    x * 3))
 ```
 
 ## Operators
@@ -224,10 +247,12 @@ check: fn x
   x > 0
 
 -- short-circuit: check(5) is never called
-false && (check 5)    -- prints nothing, returns false
+-- prints nothing, returns false
+false && (check 5)
 
 -- short-circuit: check(-3) is never called
-true || (check -3)     -- prints nothing, returns true
+-- prints nothing, returns true
+true || (check -3)
 ```
 
 ### String Concatenation Operator
@@ -235,7 +260,8 @@ true || (check -3)     -- prints nothing, returns true
 The `++` operator concatenates two strings. Both operands must be of type `str`.
 
 ```pipe
-greeting: "Hello, " ++ "World"   -- "Hello, World"
+-- "Hello, World"
+greeting: "Hello, " ++ "World"
 path: dir ++ "/" ++ filename
 ```
 
@@ -251,8 +277,10 @@ path: dir ++ "/" ++ filename
 
 ```pipe
 counter: 0
-counter += 1        -- counter: counter + 1
-counter *= 2        -- counter: counter * 2
+-- counter: counter + 1
+counter: counter + 1
+-- counter: counter * 2
+counter: counter * 2
 ```
 
 ### Unary Operators
@@ -288,67 +316,98 @@ Pipe defines 13 precedence levels, from highest (tightest binding) to lowest:
 
 ```pipe
 -- negation binds tighter than multiplication
--3 * 4            -- (-3) * 4 = -12
+-- (-3) * 4 = -12
+-3 * 4
 
 -- exponent binds tighter than negation
--2 ** 4           -- -(2 ** 4) = -16
+-- -(2 ** 4) = -16
+-2 ** 4
 
 -- pipeline has lowest precedence
-x + 1 > double    -- (x + 1) > double
+-- (x + 1) > double
+x + 1 > double
 
 -- logical operators bind lower than comparisons
-x > 0 && x < 10   -- (x > 0) && (x < 10)
+-- (x > 0) && (x < 10)
+x > 0 && x < 10
 
 -- string concat binds between arithmetic and comparison
-a ++ b == "ab"    -- (a ++ b) == "ab"
+-- (a ++ b) == "ab"
+a ++ b == "ab"
 ```
 
 When in doubt, use parentheses to make intent explicit:
 
 ```pipe
--(2 ** 4)         -- explicit: (-2) ** 4? no, -(2 ** 4)
-(a ++ b) ++ c     -- explicit grouping
+-- explicit: (-2) ** 4? no, -(2 ** 4)
+-(2 ** 4)
+-- explicit grouping
+(a ++ b) ++ c
 ```
 
 ## Type Checking Functions
 
 ```pipe
-type_of value     -- returns the type as a string: "nil", "bool", "num", "str", "list", "map", "fn"
-is_nil value      -- true if value is nil
-is_num value      -- true if value is a number
-is_str value      -- true if value is a string
-is_list value     -- true if value is a list
-is_map value      -- true if value is a map
+-- returns the type as a string: "nil", "bool", "num", "str", "list", "map", "fn"
+type_of value
+-- true if value is nil
+is_nil value
+-- true if value is a number
+is_num value
+-- true if value is a string
+is_str value
+-- true if value is a list
+is_list value
+-- true if value is a map
+is_map value
 ```
 
 ```pipe
-type_of 42         -- "num"
-type_of "hello"    -- "str"
-type_of [1, 2]     -- "list"
-type_of (fn x x)   -- "fn"
+-- "num"
+type_of 42
+-- "str"
+type_of "hello"
+-- "list"
+type_of ([1, 2])
+-- "fn"
+type_of (fn x
+    x)
 
-is_num 3.14        -- true
-is_num "three"     -- false
-is_list []         -- true
-is_nil nil         -- true
+-- true
+is_num 3[14]
+-- false
+is_num "three"
+-- true
+is_list []
+-- true
+is_nil nil
 ```
 
 ## Type Conversion
 
 ```pipe
-to_str value       -- convert any value to its string representation
-to_num value       -- parse a string into a number, or convert a number (no-op)
+-- convert any value to its string representation
+to_str value
+-- parse a string into a number, or convert a number (no-op)
+to_num value
 ```
 
 ```pipe
-to_str 42           -- "42"
-to_str true         -- "true"
-to_str [1, 2, 3]    -- "[1, 2, 3]"
+-- "42"
+to_str 42
+-- "true"
+to_str true
+-- "[1, 2, 3]"
+to_str ([1, 2, 3])
 
-to_num "42"         -- 42 (int64)
-to_num "3.14"       -- 3.14 (float64)
-to_num "abc"        -- nil (parse failure)
-to_num 42           -- 42 (no change)
+-- 42 (int64)
+to_num "42"
+-- 3[14] (float64)
+to_num "3[14]"
+-- nil (parse failure)
+to_num "abc"
+-- 42 (no change)
+to_num 42
 
 -- safe conversion pattern
 n: to_num input

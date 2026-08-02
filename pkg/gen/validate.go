@@ -6,6 +6,7 @@ import (
 
 	"github.com/harry/pipe/pkg/ast"
 	"github.com/harry/pipe/pkg/compiler"
+	"github.com/harry/pipe/pkg/eval"
 	"github.com/harry/pipe/pkg/formatter"
 	"github.com/harry/pipe/pkg/lexer"
 	"github.com/harry/pipe/pkg/object"
@@ -66,7 +67,6 @@ func checkCompile(prog *ast.Program) bool {
 	comp := compiler.New()
 	return comp.Compile(prog) == nil
 }
-
 func checkFull(prog *ast.Program, src string) bool {
 	if !checkParse(src) {
 		return false
@@ -81,6 +81,7 @@ func checkFull(prog *ast.Program, src string) bool {
 	oldHook := object.PrintHook
 	object.PrintHook = nil
 	defer func() { object.PrintHook = oldHook }()
+
 	done := make(chan error, 1)
 	go func() {
 		defer func() {
@@ -95,12 +96,21 @@ func checkFull(prog *ast.Program, src string) bool {
 		if err != nil {
 			return false
 		}
-		res := machine.LastPoppedStackElem()
-		if res != nil && res.Type() == object.ERROR {
-			return false
-		}
-		return true
 	case <-time.After(2 * time.Second):
 		return false
 	}
+
+	res := machine.LastPoppedStackElem()
+	if res != nil && res.Type() == object.ERROR {
+		return false
+	}
+
+	env := object.NewEnvironment()
+	evalCtx := eval.NewEvalContext("<gen>")
+	evalRes := evalCtx.Eval(prog, env)
+	if evalRes != nil && evalRes.Type() == object.ERROR {
+		return false
+	}
+
+	return true
 }

@@ -1,6 +1,6 @@
 # Appendix A: Formal Grammar
 
-This appendix defines the complete formal grammar of the Pipe programming language in Extended Backus-Naur Form (EBNF). The grammar covers all lexical and syntactic constructs through version 0.5.1.
+This appendix defines the complete formal grammar of the Pipe programming language in Extended Backus-Naur Form (EBNF). The grammar covers all lexical and syntactic constructs through version 1.0.0.
 
 ## Lexical Tokens
 
@@ -55,14 +55,14 @@ Token       = ILLEGAL | EOF
             | CONCAT | BANG | AND | OR
             | PLUSEQ | MINUSEQ | STAREQ | SLASHEQ | PERCENTEQ
             | POWER | DOTDOT
-            | PIPE | ARROW | ARROW2 | MATCH
+            | PIPE | ARROW | ARROW2 | FAT_ARROW | SEMICOLON
             | LPAREN | RPAREN | LBRACKET | RBRACKET
             | LBRACE | RBRACE | COMMA | DOT | COLON
             | NEWLINE | INDENT | DEDENT
-            | FN | MATCHKW | IF | ELSE | WHILE | FOR
+            | FN | MATCH_KW | IF | ELSE | WHILE | FOR
             | BREAK | CONTINUE | IMPORT | EXPORT | ENUM
-            | DEFER | RETURN | TRY | CATCH
-            | TRUE | FALSE | NIL ;
+            | DEFER | RETURN | TRY | CATCH | TRYAI
+            | TRUE | FALSE | NIL | TEST ;
 ```
 
 ## INDENT/DEDENT Rules
@@ -102,8 +102,8 @@ At EOF:
 ```ebnf
 keyword     = "fn" | "match" | "if" | "else" | "while" | "for"
             | "break" | "continue" | "import" | "export" | "enum"
-            | "defer" | "return" | "try" | "catch"
-            | "true" | "false" | "nil" ;
+            | "defer" | "return" | "try" | "catch" | "try_ai"
+            | "true" | "false" | "nil" | "test" | "not" ;
 ```
 
 These are reserved words and cannot be used as identifiers.
@@ -147,6 +147,7 @@ statement   = function_def
             | return_statement
             | break_statement
             | continue_statement
+            | test_statement
             | expression_statement ;
 ```
 
@@ -184,8 +185,10 @@ enum_def    = "enum" , identifier , ":" , identifier , { "," , identifier } ;
 #### Export Statement
 
 ```ebnf
-export_statement = "export" , function_def ;
+export_statement = "export" , ( function_def | variable_def | enum_def | test_statement ) ;
 ```
+
+Exports make functions, variables, enums, and tests available to importing modules.
 
 #### Import Statement
 
@@ -216,6 +219,14 @@ break_statement = "break" ;
 ```ebnf
 continue_statement = "continue" ;
 ```
+
+#### Test Statement
+
+```ebnf
+test_statement = "test" , string , block ;
+```
+
+A test block groups assertions together. The string describes the test. Built-in assertion functions (`assert_eq`, `assert_lt`, `assert_gt`, `assert_not_eq`, `assert_error`, `assert`) are used inside the body. Test blocks may be exported.
 
 #### Expression Statement
 
@@ -305,10 +316,10 @@ The `**` operator is right-associative.
 #### Unary
 
 ```ebnf
-unary       = { "-" | "!" } , call ;
+unary       = { "-" | "!" | "not" } , call ;
 ```
 
-Prefix operators: `-` (arithmetic negation), `!` (logical negation).
+Prefix operators: `-` (arithmetic negation), `!` (logical negation), `not` (synonym for `!`).
 
 #### Call
 
@@ -405,11 +416,11 @@ If/else chains are expressions: they evaluate to the value of the last expressio
 
 ```ebnf
 match_expression = "match" , expression , NEWLINE , INDENT , { match_case } , DEDENT ;
-match_case       = "|" , pattern , "->" , expression ;
+match_case       = "|" , pattern , { "|" , pattern } , "->" , expression ;
 pattern          = identifier | integer | string | boolean | nil | "_" ;
 ```
 
-Each case pattern is compared for equality with the match value. The `_` wildcard matches any value. Cases are evaluated in order; the body of the first matching case is executed and its value becomes the result.
+Each case pattern is compared for equality with the match value. Multiple patterns may be combined with `|` to share a single body (e.g., `| 1 | 2 | 3 -> "small"`). The `_` wildcard matches any value. Cases are evaluated in order; the body of the first matching case is executed and its value becomes the result.
 
 #### While Expression
 
@@ -422,18 +433,38 @@ The body is repeated while the condition is truthy. `break` exits the loop; `con
 #### For Expression
 
 ```ebnf
-for_expression  = "for" , identifier , "in" , expression , block ;
+for_expression  = for_in | for_cstyle ;
+
+for_in          = "for" , identifier , "in" , expression , block ;
+
+for_cstyle      = "for" , [ identifier , ":" , expression ] , ";"
+                , [ expression ] , ";"
+                , [ expression | variable_def ]
+                , block ;
 ```
 
-The for-in expression iterates over a list. On each iteration, the iterator variable is bound to the next element. The body is executed for each element.
+**For-in**: iterates over a list. On each iteration, the iterator variable is bound to the next element. Works with any list (including `range` results).
+
+**C-style for**: three semicolon-separated clauses — init, condition, update. Any clause may be empty:
+- Init: variable assignment (`i: 0`) or omitted (`; cond ; update`)
+- Condition: evaluates before each iteration; omitted means infinite loop
+- Update: variable assignment (`i: i + 1`) or expression, executed after each body run
+
+`break` exits the loop; `continue` jumps to the next update/condition check.
 
 #### Try Expression
 
 ```ebnf
-try_expression  = "try" , block , "catch" , [ identifier ] , block ;
+try_expression  = try_normal | try_ai ;
+
+try_normal      = "try" , block , "catch" , [ identifier ] , block ;
+
+try_ai          = "try_ai" , block , [ "catch" , [ identifier ] , block ] ;
 ```
 
-The try block is executed. If an error occurs (an `ERROR` object is produced), execution jumps to the catch block, with the error value bound to the catch parameter identifier. If no error occurs, the catch block is skipped.
+**Try**: The try block is executed. If an error occurs (an `ERROR` object is produced), execution jumps to the catch block, with the error value bound to the catch parameter identifier. If no error occurs, the catch block is skipped. A `catch` block is *required* after `try`.
+
+**Try-ai**: Works like `try`, but before falling through to the catch block, Pipe asks an AI provider to fix the error and re-executes the fixed code. The `catch` block is *optional* for `try_ai` — if omitted and the AI fix fails, the error propagates.
 
 ### Operator Precedence
 
@@ -463,11 +494,11 @@ All reserved keywords (cannot be used as identifiers):
 fn       match    if       else     while
 for      break    continue import   export
 enum     defer    return   try      catch
-true     false    nil      in       not
-as
+try_ai   test     true     false    nil
+in       not      as
 ```
 
-Note: `in`, `not`, and `as` are context-sensitive keywords. `in` is recognized as `IDENT` with literal `"in"`; `not` is recognized as `BANG` (unary `!` equivalent); `as` is only recognized after an import path.
+Note: `in`, `not`, and `as` are context-sensitive keywords. `in` is recognized as `IDENT` with literal `"in"` (only meaningful in for-in loops); `not` is recognized as `BANG` (unary `!` equivalent, as in `not true`); `as` is only recognized after an import path.
 
 ### Built-in Types (Runtime)
 

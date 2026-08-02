@@ -240,6 +240,85 @@ for i in range 10 0 (-1)
 
 The stop value is **exclusive** — the loop runs while the counter is less than stop.
 
+## C-style for Loop
+
+The C-style `for` loop gives full control over iteration with three semicolon-separated clauses: init, condition, and update.
+
+```pipe
+for i: 0; i < 5; i: i + 1
+  print i
+-- prints: 0, 1, 2, 3, 4
+```
+
+### Empty clauses
+
+Any clause may be omitted. Omit the init by starting with `;`:
+
+```pipe
+-- iterate an existing variable
+j: 0
+for ; j < 3; j: j + 1
+  print j
+-- prints: 0, 1, 2
+```
+
+Omit the condition for an infinite loop (use `break` to exit):
+
+```pipe
+k: 0
+for ; ; k: k + 1
+  if k >= 5
+    break
+  print k
+```
+
+### Counting down
+
+```pipe
+for n: 10; n > 0; n: n - 1
+  print n
+-- prints: 10, 9, 8, 7, 6, 5, 4, 3, 2, 1
+```
+
+`break` and `continue` work the same as in `while` and `for-in` loops.
+
+## try / catch — Error Handling
+
+`try` catches errors that occur during the execution of expressions. If the try block produces an `ERROR` value, execution jumps to the catch block.
+
+```pipe
+try
+  result: 10 / 0
+catch err
+  print "Division failed"
+  result: 0
+```
+
+The catch parameter (`err` in the example) receives the error value. If no error occurs, the catch block is skipped.
+
+### try_ai — AI Self-Healing
+
+`try_ai` works like `try`, but before falling through to the catch block, Pipe asks an AI provider to fix the error and retries the fixed code automatically.
+
+```pipe
+-- AI can fix type errors: string "42" + number → converts to number first
+try_ai
+  result: "42" + 10
+  print result
+catch err
+  print "Even AI couldn't fix it"
+```
+
+The `catch` block is **optional** for `try_ai` — if omitted and the AI fix fails, the error propagates normally:
+
+```pipe
+try_ai
+  bad: 10 / 0
+-- if AI can't fix division by zero, error propagates
+```
+
+Requires an AI provider and API key to be configured.
+
 ## return
 
 `return` provides an early exit from a function, optionally with a value:

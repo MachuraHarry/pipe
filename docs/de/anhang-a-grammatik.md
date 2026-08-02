@@ -41,6 +41,7 @@ statement     = function_def
               | return_statement
               | break_statement
               | continue_statement
+              | test_statement
               | expression_statement
               ;
 
@@ -53,7 +54,7 @@ compound_assign = "+=" | "-=" | "*=" | "/=" | "%=" ;
 
 enum_def      = "enum" identifier ":" identifier { "," identifier } newline ;
 
-export_statement = "export" function_def ;
+export_statement = "export" ( function_def | variable_def | enum_def | test_statement ) ;
 
 import_statement = "import" string ( "as" identifier )? newline ;
 
@@ -64,6 +65,8 @@ return_statement = "return" [ expression ] newline ;
 break_statement = "break" newline ;
 
 continue_statement = "continue" newline ;
+
+test_statement = "test" string newline INDENT statement { statement } DEDENT ;
 
 expression_statement = expression newline ;
 
@@ -87,7 +90,7 @@ multiplicative = power { ( "*" | "/" | "%" ) power } ;
 
 power         = unary { "**" unary } ;
 
-unary         = { "!" | "-" } call ;
+unary         = { "!" | "-" | "not" } call ;
 
 call          = dot { "(" [ expression { "," expression } ] ")"
                     | "[" expression ( ".." expression )? "]"
@@ -133,14 +136,26 @@ match_expression = "match" expression newline INDENT
                    match_case { match_case }
                    DEDENT ;
 
-match_case    = "|" expression "->" expression newline ;
+match_case    = "|" expression { "|" expression } "->" expression newline ;
 
 while_expression = "while" expression newline INDENT statement { statement } DEDENT ;
 
-for_expression  = "for" identifier "in" expression newline INDENT statement { statement } DEDENT ;
+for_expression  = for_in | for_cstyle ;
 
-try_expression = "try" newline INDENT statement { statement } DEDENT
-                 "catch" identifier newline INDENT statement { statement } DEDENT ;
+for_in      = "for" identifier "in" expression newline INDENT statement { statement } DEDENT ;
+
+for_cstyle  = "for" [ identifier ":" expression ] ";"
+              [ expression ] ";"
+              [ expression | variable_def ]
+              newline INDENT statement { statement } DEDENT ;
+
+try_expression = try_normal | try_ai ;
+
+try_normal  = "try" newline INDENT statement { statement } DEDENT
+              "catch" identifier newline INDENT statement { statement } DEDENT ;
+
+try_ai      = "try_ai" newline INDENT statement { statement } DEDENT
+              [ "catch" identifier newline INDENT statement { statement } DEDENT ] ;
 
 (* Block-Struktur *)
 block         = INDENT statement { statement } DEDENT ;
@@ -168,8 +183,8 @@ block         = INDENT statement { statement } DEDENT ;
 
 ```
 fn, match, if, else, while, for, in, break, continue,
-import, export, enum, defer, return, try, catch,
-true, false, nil
+import, export, enum, defer, return, try, catch, try_ai, test,
+true, false, nil, not
 ```
 
 ## A.5 Eingebaute Typen

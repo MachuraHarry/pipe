@@ -157,7 +157,89 @@ for i in [5, 4, 3, 2, 1, 0]
 -- Ausgabe: 5, 4, 3, 2
 ```
 
-## 4.5 return — Vorzeitiges Verlassen
+## 4.5 C-style for — Volle Kontrolle
+
+Die C-style `for`-Schleife bietet drei durch Semikolon getrennte Klauseln: Init, Bedingung und Update.
+
+```pipe
+for i: 0; i < 5; i: i + 1
+    print i
+-- Ausgabe: 0, 1, 2, 3, 4
+```
+
+### Leere Klauseln
+
+Jede Klausel darf weggelassen werden. Init weglassen beginnt mit `;`:
+
+```pipe
+j: 0
+for ; j < 3; j: j + 1
+    print j
+-- Ausgabe: 0, 1, 2
+```
+
+Ohne Bedingung läuft die Schleife endlos (`break` zum Beenden):
+
+```pipe
+k: 0
+for ; ; k: k + 1
+    if k >= 5
+        break
+    print k
+```
+
+### Rückwärts zählen
+
+```pipe
+for n: 10; n > 0; n: n - 1
+    print n
+-- Ausgabe: 10, 9, 8, 7, 6, 5, 4, 3, 2, 1
+```
+
+`break` und `continue` funktionieren wie in `while` und `for-in`.
+
+## 4.6 try / catch — Fehlerbehandlung
+
+`try` fängt Fehler während der Ausführung des try-Blocks. Produziert der Block
+einen `ERROR`-Wert, springt die Ausführung in den catch-Block.
+
+```pipe
+try
+    ergebnis: 10 / 0
+catch fehler
+    print "Division fehlgeschlagen"
+    ergebnis: 0
+```
+
+Der catch-Parameter (`fehler` im Beispiel) erhält den Fehlerwert. 
+Ohne Fehler wird der catch-Block übersprungen.
+
+### try_ai — KI-Selbstheilung
+
+`try_ai` funktioniert wie `try`, aber vor dem Fallthrough in den catch-Block
+fragt Pipe einen KI-Provider, den Fehler automatisch zu beheben.
+
+```pipe
+-- KI kann Typ-Fehler korrigieren: String "42" + Zahl → konvertiert zu Zahl
+try_ai
+    ergebnis: "42" + 10
+    print ergebnis
+catch fehler
+    print "Selbst die KI konnte es nicht reparieren"
+```
+
+Der `catch`-Block ist bei `try_ai` **optional** — ohne catch wird der Fehler
+bei gescheitertem KI-Fix normal propagiert:
+
+```pipe
+try_ai
+    schlecht: 10 / 0
+-- Wenn KI Division durch Null nicht fixen kann, propagiert der Fehler
+```
+
+Benötigt einen konfigurierten KI-Provider und API-Key.
+
+## 4.7 return — Vorzeitiges Verlassen
 
 ```pipe
 fn betrag x
@@ -179,7 +261,7 @@ fn teile a b
     a / b               -- Normaler Rückgabewert
 ```
 
-## 4.6 defer — Verzögerte Ausführung
+## 4.8 defer — Verzögerte Ausführung
 
 `defer` plant eine Aktion für das **Ende des aktuellen Blocks** ein —
 nützlich für Ressourcen-Freigabe (wie Go's `defer`):
@@ -220,7 +302,7 @@ demofunktion
 
 Defer funktioniert auch auf **Top-Level** (wird am Programm-Ende ausgeführt).
 
-## 4.7 enum — Enumerationen
+## 4.9 enum — Enumerationen
 
 Definiert benannte Konstanten, beginnend bei 0:
 

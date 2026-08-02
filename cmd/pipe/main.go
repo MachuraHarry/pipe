@@ -170,15 +170,7 @@ func main() {
 			opts := gen.DefaultOptions()
 			opts.Seed = time.Now().UnixNano() + int64(i)
 
-			var prog *ast.Program
-			var src string
-			var err error
-
-			if genCheck || genRun {
-				prog, src, err = gen.GenerateValid(opts)
-			} else {
-				prog, src, err = gen.GenerateCompilable(opts)
-			}
+			prog, src, err := gen.GenerateValid(opts)
 			if err != nil {
 				allOK = false
 				fmt.Fprintf(os.Stderr, "gen: %s\n", err)

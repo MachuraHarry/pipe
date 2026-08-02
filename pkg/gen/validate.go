@@ -8,6 +8,7 @@ import (
 	"github.com/harry/pipe/pkg/compiler"
 	"github.com/harry/pipe/pkg/formatter"
 	"github.com/harry/pipe/pkg/lexer"
+	"github.com/harry/pipe/pkg/object"
 	"github.com/harry/pipe/pkg/parser"
 	"github.com/harry/pipe/pkg/vm"
 )
@@ -76,6 +77,10 @@ func checkFull(prog *ast.Program, src string) bool {
 	}
 	bc := comp.Bytecode()
 	machine := vm.New(bc)
+
+	oldHook := object.PrintHook
+	object.PrintHook = nil
+	defer func() { object.PrintHook = oldHook }()
 	done := make(chan error, 1)
 	go func() {
 		defer func() {

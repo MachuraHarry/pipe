@@ -152,6 +152,9 @@ func (g *Generator) genInfix(prefType PipeType, depth int) ast.Expression {
 	case "++":
 		left = g.genLeaf(TypeString)
 		right = g.genLeaf(TypeString)
+	case "==", "!=", "<", ">", "<=", ">=":
+		left = g.genNumeric(depth - 1)
+		right = g.genNumeric(depth - 1)
 	case "&&", "||":
 		left = g.genExpr(TypeAny, depth-1)
 		right = g.genExpr(TypeAny, depth-1)
@@ -201,13 +204,15 @@ func (g *Generator) genPrefix(depth int) ast.Expression {
 }
 
 func (g *Generator) genNumeric(depth int) ast.Expression {
-	if depth <= 0 || g.rng.Intn(3) == 0 {
-		return g.genLiteral(TypeInt)
+	if depth > 1 && g.rng.Intn(4) == 0 {
+		op := []string{"+", "-", "*", "/", "%"}[g.rng.Intn(5)]
+		return &ast.InfixExpression{
+			Operator: op,
+			Left:     g.genLiteral(TypeInt),
+			Right:    g.genLiteral(TypeInt),
+		}
 	}
-	if g.rng.Intn(3) == 0 {
-		return g.genInfix(TypeInt, depth)
-	}
-	return g.genLeaf(TypeInt)
+	return g.genLiteral(TypeInt)
 }
 
 func (g *Generator) genTypedExpr(prefType PipeType, depth int) ast.Expression {

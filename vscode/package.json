@@ -1,15 +1,39 @@
 {
   "name": "pipe-syntax",
   "displayName": "Pipe Language Support",
-  "description": "Syntax Highlighting & Language Support for the Pipe scripting language (.pipe files)",
+  "description": "Syntax highlighting & IntelliSense (LSP) for the Pipe scripting language (.pipe files)",
   "version": "0.1.0",
   "publisher": "pipe-lang",
+  "license": "MIT",
+  "icon": "icons/pipe-icon.png",
+  "homepage": "https://github.com/MachuraHarry/pipe",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/MachuraHarry/pipe.git"
+  },
+  "bugs": {
+    "url": "https://github.com/MachuraHarry/pipe/issues"
+  },
+  "keywords": [
+    "pipe",
+    "pipeline",
+    "spr",
+    "semantic",
+    "language",
+    "lsp",
+    "intellisense",
+    "ai"
+  ],
   "engines": {
-    "vscode": "^1.80.0"
+    "vscode": "^1.85.0"
   },
   "categories": [
     "Programming Languages"
   ],
+  "activationEvents": [
+    "onLanguage:pipe"
+  ],
+  "main": "./out/extension.js",
   "contributes": {
     "languages": [
       {
@@ -18,8 +42,8 @@
         "extensions": [".pipe"],
         "configuration": "./language-configuration.json",
         "icon": {
-          "light": "./icons/pipe-icon.svg",
-          "dark": "./icons/pipe-icon.svg"
+          "light": "./icons/pipe-icon.png",
+          "dark": "./icons/pipe-icon.png"
         }
       }
     ],
@@ -29,6 +53,35 @@
         "scopeName": "source.pipe",
         "path": "./syntaxes/pipe.tmLanguage.json"
       }
-    ]
+    ],
+    "configuration": {
+      "title": "Pipe",
+      "properties": {
+        "pipe.lspPath": {
+          "type": "string",
+          "default": "",
+          "description": "Path to the pipe-lsp server binary. Leave empty to auto-detect (extension bin/, then <workspace>/bin/pipe-lsp, then PATH)."
+        },
+        "pipe.lsp.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Whether to start the Pipe language server."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "build:server": "go build -o bin/pipe-lsp ../cmd/pipe-lsp",
+    "vscode:prepublish": "npm run compile && npm run build:server",
+    "compile": "tsc -p ./",
+    "watch": "tsc -w -p ./"
+  },
+  "dependencies": {
+    "vscode-languageclient": "^9.0.1"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "@types/vscode": "^1.85.0",
+    "typescript": "^5.4.0"
   }
 }

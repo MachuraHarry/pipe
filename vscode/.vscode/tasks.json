@@ -1,0 +1,24 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "pipe-lsp: build",
+      "dependsOn": ["npm: compile", "pipe-lsp: build server"],
+      "group": "build"
+    },
+    {
+      "label": "npm: compile",
+      "type": "npm",
+      "script": "compile",
+      "problemMatcher": "$tsc",
+      "group": "build"
+    },
+    {
+      "label": "pipe-lsp: build server",
+      "type": "shell",
+      "command": "go build -o bin/pipe-lsp ../cmd/pipe-lsp",
+      "group": "build",
+      "problemMatcher": []
+    }
+  ]
+}

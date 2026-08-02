@@ -19,6 +19,7 @@ Thumbs.db
 # IDE
 .vscode/
 .idea/
+!vscode/.vscode/
 
 # Temp files
 /tmp/
@@ -26,3 +27,10 @@ docs/Archiv.zip
 access.log
 incident_report.md
 dist/
+
+# VSCode extension build output
+vscode/node_modules/
+vscode/out/
+
+# VSCode extension package
+*.vsix

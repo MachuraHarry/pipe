@@ -1,0 +1,12 @@
+# Development sources not shipped in the .vsix
+.vscode/**
+src/**
+tsconfig.json
+.gitignore
+
+# Build artefacts
+**/*.map
+*.tsbuildinfo
+
+# Test fixture bytecode cache
+*.pipec

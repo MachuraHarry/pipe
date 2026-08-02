@@ -1,6 +1,6 @@
 # 18. Roadmap
 
-## Aktuelle Version: v0.6.0
+## Aktuelle Version: v0.7.0
 
 ---
 
@@ -24,6 +24,26 @@
 | 7 | **REPL-History-Upgrade** | Pfeiltasten-Navigation, inkrementelle Suche |
 | 8 | **Verbesserte Fehlermeldungen** | `Datei:Zeile:Spalte` in allen Laufzeitfehlern, farbige Ausgabe |
 | 9 | **Erweiterte Pattern-Matching** | Bereichs-Muster (`1..10`), Guard-Klauseln |
+
+---
+
+## v0.7 — Ecosystem, Selbstheilung & Tooling (Abgeschlossen)
+
+| # | Feature | Beschreibung | Status |
+|---|---|---|---|
+| 1 | **Parallel-Pipeline `>>`** | Future-Autoauflösung | ✅ Erledigt |
+| 2 | **`try_ai` Selbstheilung** | KI repariert Laufzeitfehler, optionales `catch` | ✅ Erledigt |
+| 3 | **Modul-Versionierung** | `import "mod@1.0.0"`, `pipe -get`, `pipe -search` | ✅ Erledigt |
+| 4 | **C-style `for`** | `for i: 0; i < 5; i: i + 1` in Tree-Walker + VM | ✅ Erledigt |
+| 5 | **`not`-Keyword** | Synonym für `!` | ✅ Erledigt |
+| 6 | **Multi-Pattern-Match** | `| 1 | 2 | 3 -> "small"` | ✅ Erledigt |
+| 7 | **Test-Framework** | `test`-Blöcke + `assert`/`assert_eq`/`assert_error`/`assert_lt`/`assert_gt`/`assert_not_eq` | ✅ Erledigt |
+| 8 | **Sandbox-Profile** | Deklarative Laufzeit-Sicherheit für KI-Agenten | ✅ Erledigt |
+| 9 | **Fehlercodes** | E001–E004 mit Parser-Hinweisen | ✅ Erledigt |
+| 10 | **Formatter `--check` + Verzeichnisse** | REPL-History-Persistenz | ✅ Erledigt |
+| 11 | **GitHub Action** | `pipe-action` für CI/CD | ✅ Erledigt |
+| 12 | **HTTP-API-Server** | `cmd/api-server` mit Fly.io-Deployment | ✅ Erledigt |
+| 13 | **WASM-Playground v2 + Blog** | Code-Sharing, Syntax-Highlighting, Bewertungen | ✅ Erledigt |
 
 ---
 
@@ -102,9 +122,16 @@
 | `try_ai` Selbstheilung | | | ✅ | |
 | Bytecode-Cache | ✅ | | | |
 | VSCode Extension | ✅ | | | |
-| Erweitertes Match | | | ✅ | |
+| Erweitertes Match (Multi-Pattern) | | | ✅ | |
+| C-style `for` + `not` | | | ✅ | |
+| Sandbox-Profile | | | ✅ | |
+| Fehlercodes E001–E004 | | | ✅ | |
+| Test-Framework (`test` + asserts) | | | ✅ | |
+| GitHub Action | | | ✅ | |
+| HTTP-API-Server | | | ✅ | |
+| Web Playground v2 + Blog | | | ✅ | |
 | Concurrency (go) | 🟡 (nur Tree) | | | ✅ |
 | Typannotationen | | | | ✅ |
 | Package Registry | | | ✅ | |
 | LSP Server | | | | ✅ |
-| Web Playground | | | | ✅ |
+| Web Playground (klassisch) | | | | ✅ |

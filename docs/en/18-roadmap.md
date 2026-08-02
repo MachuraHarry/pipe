@@ -2,9 +2,30 @@
 
 This document outlines the past, present, and future of the Pipe language. The roadmap is organized into phases, with completed features marked accordingly.
 
-## Current Version: v0.6.0
+## Current Version: v0.7.0
 
-Pipe is currently at version **v0.6.0**, which includes the foundational language features, dual execution models, a comprehensive standard library, and developer tooling.
+Pipe is currently at version **v0.7.0**, which includes the foundational language features, dual execution models, a comprehensive standard library, AI primitives, developer tooling, and an emerging ecosystem.
+
+---
+
+## v0.7 — Ecosystem, Self-Healing & Tooling
+
+> **Status: Completed**
+
+- [x] Parallel pipeline operator (`>>`) with Future auto-resolution
+- [x] `try_ai` — AI-powered self-healing error recovery (optional `catch`)
+- [x] Module versioning (`import "mod@1.0.0"`), `pipe -get`, `pipe -search`
+- [x] C-style `for` loops (`for i: 0; i < 5; i: i + 1`) in Tree-Walker and Bytecode VM
+- [x] `not` keyword (synonym for `!`)
+- [x] Multi-pattern match cases (`| 1 | 2 | 3 -> "small"`)
+- [x] Test framework: `test` blocks + `assert`, `assert_eq`, `assert_error`, `assert_lt`, `assert_gt`, `assert_not_eq`, `pipe -test`
+- [x] Sandbox profiles — declarative runtime security for AI agents and untrusted code
+- [x] Error codes (E001–E004) with contextual parser hints
+- [x] Formatter `--check` + directory processing, REPL history persistence
+- [x] GitHub Action (`pipe-action`) for CI/CD
+- [x] HTTP API server (`cmd/api-server`) with Fly.io deployment
+- [x] WASM playground v2 (code sharing, syntax highlighting, rating) + blog
+- [x] 230+ Go tests, 8 integration suites, 42 example programs
 
 ---
 
@@ -245,16 +266,16 @@ Pipe is currently at version **v0.6.0**, which includes the foundational languag
 | Defer | ✅ Done | v0.5.1 | LIFO cleanup |
 | `_` Placeholder | ✅ Done | v0.5.1 | Pipeline args |
 | `try_ai` Self-Healing | ✅ Done | v0.6 | AI auto-fix errors |
-| Improved Module Sys | 🔜 Planned | v0.6 | Dirs, relative, circular |
-| Better Errors | 🔜 Planned | v0.6 | Snippets, source lines |
-| Pattern Matching+ | 🔜 Planned | v0.6 | Guards, destructuring |
+| Improved Module Sys | 🔜 Planned | v0.8 | Dirs, relative, circular |
+| Better Errors | 🟡 Partial | v0.6/v0.7 | Error codes done; snippets open |
+| Pattern Matching+ | 🟡 Partial | v0.7 | Multi-pattern done; guards, destructuring open |
 | Concurrency | 🔮 Future | v0.7+ | Coroutines, channels |
 | Type Annotations | 🔮 Future | v0.7+ | Optional typing |
 | Bytecode Opts | 🔮 Future | v0.7+ | Fold, inline, peephole |
 | Sets | 🔮 Future | v0.7+ | Unique collections |
-| Web Playground | 🔮 Future | v0.7+ | WASM-based |
+| Web Playground | ✅ Done | v0.7 | WASM-based + code sharing |
 | VSCode 2.0 | 🔮 Future | v0.7+ | Debugger, snippets |
 | LSP | 🔮 Future | v0.7+ | Full language server |
-| Test Framework | 🔮 Future | v0.7+ | `pipe test` |
+| Test Framework | 🟡 Partial | v0.7 | test blocks + asserts; `pipe test` CLI open |
 | Doc Generator | 🔮 Future | v0.7+ | `pipe doc` |
 | Plugins | 🔮 Future | v0.8+ | Go/WASM extensions |

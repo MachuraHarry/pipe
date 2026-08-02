@@ -156,7 +156,7 @@ a[data-lang].active { display: inline-block; }
       <a href="docs.html"><span data-lang="en" class="active">Docs</span><span data-lang="de">Docs</span></a>
       <a href="examples.html"><span data-lang="en" class="active">Examples</span><span data-lang="de">Beispiele</span></a>
       <a href="install.html"><span data-lang="en" class="active">Install</span><span data-lang="de">Install</span></a>
-      <a href="https://github.com/harry/pipe"><span data-lang="en" class="active">GitHub</span><span data-lang="de">GitHub</span></a>
+      <a href="https://github.com/MachuraHarry/pipe"><span data-lang="en" class="active">GitHub</span><span data-lang="de">GitHub</span></a>
       <div class="lang-switch">
         <button id="btn-en" class="active" onclick="setLang('en')">EN</button>
         <button id="btn-de" onclick="setLang('de')">DE</button>
@@ -358,7 +358,7 @@ a[data-lang].active { display: inline-block; }
       <p class="ex-desc" data-lang="en" class="active">Fetches GitHub Actions workflow status via API, filters for failed runs, and uses AI to summarize the failures into a readable report. A real DevOps automation pipeline.</p>
       <p class="ex-desc" data-lang="de">Holt GitHub-Actions-Workflow-Status per API, filtert nach fehlgeschlagenen Runs und nutzt KI, um die Fehler in einem lesbaren Report zusammenzufassen. Eine echte DevOps-Automatisierungspipeline.</p>
       <pre class="example-code"><span class="cmt">-- Check GitHub Actions status and report failures</span>
-<span class="fn">ci_data</span>: <span class="fn">http_get_json</span> <span class="str">"https://api.github.com/repos/harry/pipe/actions/runs"</span>
+<span class="fn">ci_data</span>: <span class="fn">http_get_json</span> <span class="str">"https://api.github.com/repos/MachuraHarry/pipe/actions/runs"</span>
 
 <span class="fn">failed</span>: <span class="fn">filter</span> (<span class="fn">get</span> ci_data <span class="str">"workflow_runs"</span>)
     (<span class="kw">fn</span> run: (<span class="fn">get</span> run <span class="str">"conclusion"</span>) <span class="op">==</span> <span class="str">"failure"</span>)
@@ -395,7 +395,7 @@ a[data-lang].active { display: inline-block; }
   <div class="container">
     <p data-lang="en" class="active">Pipe (SPR) — Semantic Pipeline Runtime. Built with Go. 10 MB binary. Zero dependencies.</p>
     <p data-lang="de">Pipe (SPR) — Semantic Pipeline Runtime. Gebaut mit Go. 10 MB Binary. Null Abhängigkeiten.</p>
-    <p style="margin-top:8px"><a href="https://github.com/harry/pipe">GitHub</a> &middot; MIT License &middot; v0.6.0</p>
+    <p style="margin-top:8px"><a href="https://github.com/MachuraHarry/pipe">GitHub</a> &middot; MIT License &middot; v0.7.0</p>
   </div>
 </footer>
 

@@ -20,17 +20,17 @@ Pipe combines **Python-like readability** (indentation-based, no braces) with **
 
 ## About Pipe
 
-- **Version**: 0.6.0
+- **Version**: 0.7.0
 - **Implementation**: Go 1.26+
 - **License**: MIT
 - **Binary size**: ~10 MB (statically linked)
-- **Tests**: 220+ (across 10 packages)
+- **Tests**: 230+ (across 10 packages)
 - **Builtins**: 80+
-- **Opcodes**: 47
+- **Opcodes**: 40
 - **AST node types**: 27
-- **Example programs**: 23
+- **Example programs**: 42
 
 ## Project Links
 
-- Repository: `https://github.com/harry/pipe`
+- Repository: `https://github.com/MachuraHarry/pipe`
 - VSCode Extension: Included in `vscode/`

@@ -2,7 +2,7 @@
 
 [![CI](https://github.com/MachuraHarry/pipe/actions/workflows/ci.yml/badge.svg)](https://github.com/MachuraHarry/pipe/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-purple.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-0.6.0-blue.svg)](https://github.com/MachuraHarry/pipe/releases)
+[![Version](https://img.shields.io/badge/version-0.7.0-blue.svg)](https://github.com/MachuraHarry/pipe/releases)
 [![SPR](https://img.shields.io/badge/SPR-Semantic%20Pipeline%20Runtime-7c5cfc.svg)](#)
 
 > **SPR** — a new category of runtime where AI operations are language primitives, not library calls.
@@ -40,7 +40,7 @@ read_file "news.txt"
 ## Quick Start
 
 ```bash
-git clone https://github.com/harry/pipe && cd pipe && make build
+git clone https://github.com/MachuraHarry/pipe && cd pipe && make build
 export DEEPSEEK_API_KEY="sk-..."
 ./bin/pipe -vm -q -c 'ai_provider "deepseek"; ask "What makes Pipe different?" > print'
 ```
@@ -198,7 +198,7 @@ Source (.pipe) → Lexer → Parser → AST → [ Tree-Walker | Compiler + VM ]
                               Builtins (81 stdlib + 25 AI)
 ```
 
-- 52 token types, 27 AST node types, 48 opcodes
+- 66 token types, 27 AST node types, 40 opcodes
 - ~13,000 LoC Go, 220+ tests, 42 example programs
 
 ## Documentation

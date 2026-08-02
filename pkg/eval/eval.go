@@ -648,7 +648,7 @@ func (ctx *EvalContext) evalPipeline(pe *ast.PipelineExpression, left object.Obj
 		result := ctx.Eval(fn.Body, extendedEnv)
 		return unwrapReturnValue(result)
 	case *Builtin:
-		return fn.Fn(append([]object.Object{left})...)
+		return fn.Fn([]object.Object{left}...)
 	}
 
 	return ctx.newError("pipeline: right side of '>' is %s, not a function — pipeline requires a function call on the right", rightFn.Type())

@@ -47,7 +47,7 @@ Starts the REPL without printing the welcome banner and version information.
 ```bash
 # Normal REPL:
 $ pipe
-Pipe Language v1.0.0
+Pipe v0.7.0 — REPL
 >>>
 
 # Quiet REPL:

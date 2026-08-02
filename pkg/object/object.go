@@ -1670,7 +1670,7 @@ func bTcpConnect(args ...Object) Object {
 	if !ok {
 		return err("tcp_connect: Port must be a number")
 	}
-	addr := fmt.Sprintf("%s:%d", host.Value, port)
+	addr := net.JoinHostPort(host.Value, strconv.FormatInt(port, 10))
 	c, e := net.Dial("tcp", addr)
 	if e != nil {
 		return err("tcp_connect: " + e.Error())

@@ -270,7 +270,9 @@ func (g *Generator) genIf(depth int) ast.Expression {
 func (g *Generator) genMatch(depth int) ast.Expression {
 	val := g.genExpr(TypeAny, depth-1)
 	nCases := randInt(g.rng, 1, 4)
-	cases := make([]ast.MatchCase, nCases)
+	cases := make([]ast.MatchCase, 0, nCases)
+	hasWildcard := false
+
 	for i := 0; i < nCases; i++ {
 		var pat ast.Expression
 		switch g.rng.Intn(4) {
@@ -281,12 +283,17 @@ func (g *Generator) genMatch(depth int) ast.Expression {
 		case 2:
 			pat = &ast.BooleanLiteral{Value: g.rng.Intn(2) == 0}
 		default:
-			pat = &ast.Identifier{Value: "_"}
+			if hasWildcard {
+				pat = &ast.IntegerLiteral{Value: int64(g.rng.Intn(10))}
+			} else {
+				pat = &ast.Identifier{Value: "_"}
+				hasWildcard = true
+			}
 		}
-		cases[i] = ast.MatchCase{
+		cases = append(cases, ast.MatchCase{
 			Pattern: pat,
 			Body:    g.genExpr(TypeAny, depth-1),
-		}
+		})
 	}
 	return &ast.MatchExpression{
 		Value: val,

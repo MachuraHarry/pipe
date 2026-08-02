@@ -45,6 +45,25 @@ export DEEPSEEK_API_KEY="sk-..."
 ./bin/pipe -vm -q -c 'ai_provider "deepseek"; ask "What makes Pipe different?" > print'
 ```
 
+## Try it in your browser
+
+No install needed — Pipe runs fully in your browser via WebAssembly:
+
+<p align="center">
+  <a href="https://pipe-lang.com/playground.html">
+    <img src="website/logo.svg" width="64" height="64" alt="Pipe"><br>
+    <b>Open the Pipe Playground →</b>
+  </a>
+</p>
+
+```pipe
+-- Paste this into the playground and hit Run
+read_file "server.log"
+    > classify ["error","warn","info"]
+    > summarize
+    > print
+```
+
 ## GitHub Action
 
 Run Pipe directly in CI/CD — no installation needed:
@@ -88,7 +107,7 @@ ask_many ["What is Paris?", "What is Berlin?"]
 | Tree-Walker | `./bin/pipe script.pipe` | Baseline |
 | Bytecode VM | `./bin/pipe -vm -q script.pipe` | ~7× faster |
 
-## 25 AI Builtins
+## 23 AI Builtins
 
 ### Understanding
 `summarize`, `translate`, `classify`, `extract`, `ask`, `generate`
@@ -107,7 +126,7 @@ ask_many ["What is Paris?", "What is Berlin?"]
 
 ## Features
 
-- **AI as Primitive** — 25 built-in AI operations, no libraries needed
+- **AI as Primitive** — 23 built-in AI operations, no libraries needed
 - **Pipeline-Native** — `>` sequential, `>>` parallel pipelines with Future auto-resolution
 - **Single Binary** — One ~10 MB file, statically linked, no venv/pip/npm
 - **Bytecode VM** — Compile to bytecode, execute ~7× faster with automatic caching
@@ -195,7 +214,7 @@ ai_with_tools "What is the weather in Berlin?"
 ```
 Source (.pipe) → Lexer → Parser → AST → [ Tree-Walker | Compiler + VM ]
                                           ↓
-                              Builtins (81 stdlib + 25 AI)
+                              Builtins (91 stdlib + 23 AI)
 ```
 
 - 66 token types, 27 AST node types, 40 opcodes

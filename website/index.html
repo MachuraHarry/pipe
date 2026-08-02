@@ -3,6 +3,13 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="description" content="Pipe (SPR) — Semantic Pipeline Runtime. AI operations as language primitives: summarize, translate, classify, embed. One ~10 MB binary, zero dependencies.">
+<meta property="og:title" content="Pipe — Semantic Pipeline Runtime">
+<meta property="og:description" content="AI is not a library call — it's a language primitive. 23 AI builtins, 114 total, runs in your browser.">
+<meta property="og:type" content="website">
+<meta property="og:image" content="https://pipe-lang.com/og-image.png">
+<meta property="og:url" content="https://pipe-lang.com/">
+<meta name="twitter:card" content="summary_large_image">
 <title>Pipe (SPR) — Semantic Pipeline Runtime</title>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -207,8 +214,8 @@ span[data-lang].active{display:inline}a[data-lang].active{display:inline-block}
   <p id="hero-sub" class="sub"><code>summarize</code>, <code>translate</code>, and <code>classify</code> live on the same syntax level as <code>+</code>, <code>sort</code>, and <code>len</code>. Pipe compiles to a single ~10 MB binary. Zero dependencies.</p>
 
   <div class="stats-inline">
-    <div class="stat"><span class="stat-num">28</span><div class="stat-label">AI Builtins</div></div>
-    <div class="stat"><span class="stat-num">220+</span><div class="stat-label">Tests</div></div>
+    <div class="stat"><span class="stat-num">23</span><div class="stat-label">AI Builtins</div></div>
+    <div class="stat"><span class="stat-num">230+</span><div class="stat-label">Tests</div></div>
     <div class="stat"><span class="stat-num">~10 MB</span><div class="stat-label">Binary Size</div></div>
     <div class="stat"><span class="stat-num">4</span><div class="stat-label">Providers</div></div>
     <div class="stat"><span class="stat-num">9</span><div class="stat-label">Modules</div></div>
@@ -328,8 +335,8 @@ text = open(<span class="str">"news.txt"</span>).read()
       <div class="feature-text">
         <h3 data-lang="en" class="active"><span>AI as Language Primitive</span></h3>
         <h3 data-lang="de"><span>KI als Sprach-Primitive</span></h3>
-        <p data-lang="en" class="active">25 built-in AI operations. No imports, no SDKs, no API wrappers. <code>summarize</code> sits next to <code>+</code> on the same syntax level — because AI is no longer a special case.</p>
-        <p data-lang="de">25 eingebaute KI-Operationen. Keine Imports, keine SDKs, keine API-Wrapper. <code>summarize</code> steht neben <code>+</code> auf derselben Syntax-Ebene — weil KI kein Sonderfall mehr ist.</p>
+        <p data-lang="en" class="active">23 built-in AI operations. No imports, no SDKs, no API wrappers. <code>summarize</code> sits next to <code>+</code> on the same syntax level — because AI is no longer a special case.</p>
+        <p data-lang="de">23 eingebaute KI-Operationen. Keine Imports, keine SDKs, keine API-Wrapper. <code>summarize</code> steht neben <code>+</code> auf derselben Syntax-Ebene — weil KI kein Sonderfall mehr ist.</p>
       </div>
       <div class="feature-code"><div class="bar"><span class="dot" style="background:var(--red)"></span><span class="dot" style="background:var(--orange)"></span><span class="dot" style="background:var(--green)"></span></div><pre><span class="fn">read_file</span> <span class="str">"server.log"</span>
     <span class="pipe">&gt;</span> <span class="fn">classify</span> [<span class="str">"error","warn","info"</span>]
@@ -413,19 +420,40 @@ pipe -get parallel-runner@1.0.0
 <span class="fn">ask_many</span> [<span class="str">"What is Paris?"</span>, <span class="str">"What is Berlin?"</span>]
     <span class="pipe">&gt;</span> <span class="fn">print</span></pre></div>
     </div>
+    <div class="feature-row reveal">
+      <div class="feature-text">
+        <h3 data-lang="en" class="active"><span>Tests + Modern Control Flow, Built In</span></h3>
+        <h3 data-lang="de"><span>Tests + moderne Kontrollstrukturen, eingebaut</span></h3>
+        <p data-lang="en" class="active">Zero-setup testing: <code>test</code> blocks with <code>assert_eq</code>, <code>assert_lt</code>, <code>assert_error</code> — run via <code>pipe -test</code>. C-style <code>for</code> loops, a <code>not</code> keyword, and multi-pattern <code>match</code> keep everyday scripting painless. Add the official GitHub Action to run tests in CI.</p>
+        <p data-lang="de">Testen ohne Setup: <code>test</code>-Blöcke mit <code>assert_eq</code>, <code>assert_lt</code>, <code>assert_error</code> — ausgeführt per <code>pipe -test</code>. C-Style-<code>for</code>-Schleifen, ein <code>not</code>-Keyword und Multi-Pattern-<code>match</code> machen alltägliches Scripting angenehm. Die offizielle GitHub Action bringt die Tests in die CI.</p>
+      </div>
+      <div class="feature-code"><div class="bar"><span class="dot" style="background:var(--red)"></span><span class="dot" style="background:var(--orange)"></span><span class="dot" style="background:var(--green)"></span></div><pre><span class="kw">test</span> <span class="str">"sum of range"</span>
+    total: <span class="num">0</span>
+    <span class="kw">for</span> i: <span class="num">0</span>; i &lt;= <span class="num">5</span>; i: i + <span class="num">1</span>
+        total: total + i
+    <span class="fn">assert_eq</span> total <span class="num">15</span>
+
+<span class="kw">match</span> (<span class="fn">len</span> <span class="str">"pipe"</span>)
+    | <span class="num">3</span> | <span class="num">4</span> -&gt; <span class="fn">print</span> <span class="str">"short word"</span>
+    | _ -&gt; <span class="fn">print</span> <span class="str">"long word"</span>
+
+<span class="kw">if</span> <span class="kw">not</span> (<span class="num">2</span> &gt; <span class="num">3</span>)
+    <span class="fn">print</span> <span class="str">"clearly true"</span></pre></div>
+    </div>
   </div>
 </section>
 
 <!-- Capabilities -->
 <section id="builtins">
   <div class="container">
-    <div class="section-head"><h2 data-lang="en" class="active"><span>28 AI Builtins</span> + 84 Standard Builtins</h2><h2 data-lang="de"><span>28 KI-Builtins</span> + 84 Standard-Builtins</h2></div>
+    <div class="section-head"><h2 data-lang="en" class="active"><span>23 AI Builtins</span> + 91 Standard Builtins</h2><h2 data-lang="de"><span>23 KI-Builtins</span> + 91 Standard-Builtins</h2></div>
     <div class="builtins-grid reveal">
       <div class="builtin-group"><h4>🧠 Understanding</h4><table><tr><td>summarize</td><td>Text summarization</td></tr><tr><td>translate</td><td>Translation</td></tr><tr><td>classify</td><td>Classification</td></tr><tr><td>extract</td><td>Data extraction (JSON)</td></tr><tr><td>ask</td><td>Question answering</td></tr><tr><td>generate</td><td>Free-text generation</td></tr></table></div>
       <div class="builtin-group"><h4>⚡ Speed & Parallel</h4><table><tr><td>ai_stream</td><td>Real-time token streaming</td></tr><tr><td>ai_batch</td><td>Auto-parallel batch</td></tr><tr><td>ai_parallel</td><td>Concurrency control</td></tr><tr><td>ai_rate_limit</td><td>Rate limiting</td></tr><tr><td>ai_chat</td><td>Low-level chat</td></tr><tr><td>ai_chat_json</td><td>Chat → structured JSON</td></tr></table></div>
       <div class="builtin-group"><h4>🔍 Embeddings & Search</h4><table><tr><td>embed</td><td>Text → vector</td></tr><tr><td>embed_batch</td><td>Batch embeddings</td></tr><tr><td>cosine_sim</td><td>Semantic similarity</td></tr><tr><td>dot_product</td><td>Dot product</td></tr><tr><td>nearest</td><td>Top-K nearest</td></tr></table></div>
-      <div class="builtin-group"><h4>🤖 Tool Calling & Config</h4><table><tr><td>ai_tool</td><td>Register function as tool</td></tr><tr><td>ai_with_tools</td><td>Chat with tool access</td></tr><tr><td>ai_provider</td><td>Select AI provider</td></tr><tr><td>ai_model</td><td>Select model</td></tr><tr><td>ai_timeout</td><td>Set timeout</td></tr></table></div>
+      <div class="builtin-group"><h4>🤖 Tool Calling & Config</h4><table><tr><td>ai_tool</td><td>Register function as tool</td></tr><tr><td>ai_with_tools</td><td>Chat with tool access</td></tr><tr><td>ai_provider</td><td>Select AI provider</td></tr><tr><td>ai_model</td><td>Select model</td></tr><tr><td>ai_host</td><td>Custom API host</td></tr><tr><td>ai_timeout</td><td>Set timeout</td></tr></table></div>
       <div class="builtin-group"><h4>🔒 Sandbox Profiles</h4><table><tr><td>sandbox_profile</td><td>Define a sandbox profile</td></tr><tr><td>set_sandbox</td><td>Activate a profile</td></tr><tr><td>with_sandbox</td><td>Temp profile override</td></tr></table></div>
+      <div class="builtin-group"><h4>🧪 Testing</h4><table><tr><td>test</td><td>Grouped test block</td></tr><tr><td>assert</td><td>Truthy check</td></tr><tr><td>assert_eq</td><td>Equality check</td></tr><tr><td>assert_lt</td><td>Less-than check</td></tr><tr><td>assert_gt</td><td>Greater-than check</td></tr><tr><td>assert_error</td><td>Expect an error</td></tr></table></div>
     </div>
   </div>
 </section>
@@ -512,7 +540,9 @@ var heroTexts = {
     {h:'<span class="grad">9 modules</span> and counting.<br>Versioned. Curated. Free.',
      s:'<code>pipe -get parallel-runner@1.0.0</code> installs in seconds. Import by name. Pin versions. No lockfiles. No dependency hell.'},
     {h:'<span class="grad">Sandbox Profiles</span> for AI agents.<br>Declarative. Composable. Safe.',
-     s:'Lock down <code>exec</code>, <code>http_get</code>, <code>write_file</code> with a single block. Essential for <code>ai_with_tools</code> — keep LLMs on a leash. Built-in profiles: strict, isolated, networked.'}
+     s:'Lock down <code>exec</code>, <code>http_get</code>, <code>write_file</code> with a single block. Essential for <code>ai_with_tools</code> — keep LLMs on a leash. Built-in profiles: strict, isolated, networked.'},
+    {h:'<span class="grad">Tested</span> by default.<br>Not bolted on after.',
+     s:'<code>test</code> blocks, <code>assert_eq</code>, <code>assert_error</code> — run with <code>pipe -test</code>. C-style for loops and multi-pattern match keep everyday scripting painless.'}
   ],
   de: [
     {h:'<span class="grad">KI ist kein</span> Library-Call.<br>Sie ist ein Sprach-Primitive.',
@@ -530,7 +560,9 @@ var heroTexts = {
     {h:'<span class="grad">9 Module</span> und es werden mehr.<br>Versioniert. Kuratiert. Frei.',
      s:'<code>pipe -get parallel-runner@1.0.0</code> installiert in Sekunden. Import per Name. Versionen pinnen. Keine Lockfiles. Kein Dependency-Hell.'},
     {h:'<span class="grad">Sandbox-Profile</span> für KI-Agenten.<br>Deklarativ. Kombinierbar. Sicher.',
-     s:'<code>exec</code>, <code>http_get</code>, <code>write_file</code> mit einem einzigen Block einschränken. Essentiell für <code>ai_with_tools</code> — LLMs an die Leine nehmen. Integrierte Profile: strict, isolated, networked.'}
+     s:'<code>exec</code>, <code>http_get</code>, <code>write_file</code> mit einem einzigen Block einschränken. Essentiell für <code>ai_with_tools</code> — LLMs an die Leine nehmen. Integrierte Profile: strict, isolated, networked.'},
+    {h:'<span class="grad">Getestet</span> per Default.<br>Nicht nachträglich angebaut.',
+     s:'<code>test</code>-Blöcke, <code>assert_eq</code>, <code>assert_error</code> — ausgeführt mit <code>pipe -test</code>. C-Style-for-Schleifen und Multi-Pattern-match halten alltägliches Scripting angenehm.'}
   ]
 };
 
@@ -617,7 +649,11 @@ var playExamples = [
   '-- While countdown\ni: 5\nwhile i > 0\n    print i\n    i: i - 1\nprint "Liftoff!"',
   'fn pal s\n    fn check i j\n        if i >= j\n            true\n        else if (at s i) != (at s j)\n            false\n        else\n            check (i + 1) (j - 1)\n    check 0 (len s - 1)\n\nprint (pal "racecar")\nprint (pal "hello")',
   'fn fizzbuzz n\n    if n % 15 == 0\n        "FizzBuzz"\n    else if n % 3 == 0\n        "Fizz"\n    else if n % 5 == 0\n        "Buzz"\n    else\n        n\n\nfor i in (range 1 16)\n    print (fizzbuzz i)',
-  'fn to_f c\n    c * 9 / 5 + 32\n\nprint "0C = "\nprint (to_f 0)\nprint "100C = "\nprint (to_f 100)'
+  'fn to_f c\n    c * 9 / 5 + 32\n\nprint "0C = "\nprint (to_f 0)\nprint "100C = "\nprint (to_f 100)',
+  '-- C-style for\nfor i: 0; i < 5; i: i + 1\n    print i\nprint "liftoff!"',
+  '-- Multi-pattern match\nmatch 6\n    | 2 | 4 | 6 -> print "even"\n    | 1 | 3 | 5 -> print "odd"\n    | _ -> print "other"',
+  '-- not keyword\nif not (2 > 3)\n    print "not works"',
+  'test "sum"\n    total: 0\n    for i: 1; i <= 5; i: i + 1\n        total: total + i\n    assert_eq total 15\n\nprint "all tests passed"'
 ];
 
 function pickPlayExample() {
@@ -650,7 +686,7 @@ Prism.languages.pipe={
   comment:/--.*/,
   string:{pattern:/"(?:[^"\\]|\\.)*"/,greedy:!0},
   number:/\b\d+(?:\.\d+)?\b/,
-  keyword:/\b(?:fn|match|if|else|while|for|break|continue|import|export|enum|defer|return|try|catch)\b/,
+  keyword:/\b(?:fn|match|if|else|while|for|break|continue|import|export|enum|defer|return|try|catch|not|test)\b/,
   boolean:/\b(?:true|false|nil)\b/,
   operator:/>>|->|\+\+|\*\*|\.\.|\+=|-=|\*=|\/=|%=|==|!=|<=|>=|&&|\|\||[+\-*\/%<>=!]/,
   punctuation:/[{}[\]();,.:]/,

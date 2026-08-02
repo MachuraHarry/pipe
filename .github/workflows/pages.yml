@@ -53,7 +53,7 @@ jobs:
                 p = data[key]
                 title = escape(p.get("title", ""))
                 excerpt = escape(" ".join(p.get("content", "").split())[:300])
-                post_url = f"https://pipe.lang/blog.html?post={key}"
+                post_url = f"https://pipe-lang.com/blog.html?post={key}"
                 ts = p.get("created", 0) / 1000
                 pubdate = formatdate(ts, usegmt=True)
                 items += f"""  <item>
@@ -70,11 +70,11 @@ jobs:
         <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
         <channel>
           <title>Pipe Blog</title>
-          <link>https://pipe.lang/blog.html</link>
+          <link>https://pipe-lang.com/blog.html</link>
           <description>Updates, tutorials, and deep dives into the Semantic Pipeline Runtime.</description>
           <language>en</language>
           <lastBuildDate>{now}</lastBuildDate>
-          <atom:link href="https://pipe.lang/feed.xml" rel="self" type="application/rss+xml"/>
+          <atom:link href="https://pipe-lang.com/feed.xml" rel="self" type="application/rss+xml"/>
         {items}</channel>
         </rss>"""
 

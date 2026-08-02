@@ -2,7 +2,14 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="description" content="Pipe (SPR) documentation: language guide, builtin reference (114 functions), pipelines, AI builtins, sandbox profiles, and more.">
+<meta property="og:title" content="Docs — Pipe (SPR)">
+<meta property="og:description" content="Complete documentation for Pipe: 114 builtins, pipelines, AI, sandbox profiles, and the bytecode VM.">
+<meta property="og:type" content="website">
+<meta property="og:image" content="https://pipe-lang.com/og-image.png">
+<meta property="og:url" content="https://pipe-lang.com/docs.html">
+<meta name="twitter:card" content="summary_large_image">
 <title>Docs — Pipe (SPR)</title>
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -253,8 +260,8 @@ a[data-lang].active { display: inline-block; }
           <div class="ch-num">10</div>
           <div class="ch-title ch-title-en" data-lang="en" class="active">Builtin Reference</div>
           <div class="ch-title-de ch-title" data-lang="de">Builtin-Referenz</div>
-          <div class="ch-desc" data-lang="en" class="active">Complete reference for all 81 built-in functions with signatures and examples.</div>
-          <div class="ch-desc-de" data-lang="de">Vollständige Referenz aller 81 Builtin-Funktionen mit Signaturen und Beispielen.</div>
+          <div class="ch-desc" data-lang="en" class="active">Complete reference for all 114 built-in functions (91 standard + 23 AI) with signatures and examples.</div>
+          <div class="ch-desc-de" data-lang="de">Vollständige Referenz aller 114 Builtin-Funktionen (91 Standard + 23 KI) mit Signaturen und Beispielen.</div>
           <div class="ch-links">
             <a class="en-link" href="https://github.com/MachuraHarry/pipe/blob/master/docs/en/10-builtin-reference.md" target="_blank">EN</a>
             <a class="de-link" href="https://github.com/MachuraHarry/pipe/blob/master/docs/de/10-builtin-referenz.md" target="_blank">DE</a>
@@ -379,6 +386,42 @@ a[data-lang].active { display: inline-block; }
           </div>
         </div>
 
+        <div class="chapter-card">
+          <div class="ch-num">20</div>
+          <div class="ch-title ch-title-en" data-lang="en" class="active">GitHub Action</div>
+          <div class="ch-title-de ch-title" data-lang="de">GitHub Action</div>
+          <div class="ch-desc" data-lang="en" class="active">Official GitHub Action to run Pipe scripts and tests in CI/CD pipelines.</div>
+          <div class="ch-desc-de" data-lang="de">Offizielle GitHub Action zum Ausführen von Pipe-Skripten und -Tests in CI/CD-Pipelines.</div>
+          <div class="ch-links">
+            <a class="en-link" href="https://github.com/MachuraHarry/pipe/blob/master/docs/en/20-github-action.md" target="_blank">EN</a>
+            <a class="de-link" href="https://github.com/MachuraHarry/pipe/blob/master/docs/de/20-github-action.md" target="_blank">DE</a>
+          </div>
+        </div>
+
+        <div class="chapter-card">
+          <div class="ch-num">21</div>
+          <div class="ch-title ch-title-en" data-lang="en" class="active">Ecosystem</div>
+          <div class="ch-title-de ch-title" data-lang="de">Ökosystem</div>
+          <div class="ch-desc" data-lang="en" class="active">Module registry, community packages, tooling, and the wider Pipe ecosystem.</div>
+          <div class="ch-desc-de" data-lang="de">Modul-Registry, Community-Pakete, Tooling und das weitere Pipe-Ökosystem.</div>
+          <div class="ch-links">
+            <a class="en-link" href="https://github.com/MachuraHarry/pipe/blob/master/docs/en/21-ecosystem.md" target="_blank">EN</a>
+            <a class="de-link" href="https://github.com/MachuraHarry/pipe/blob/master/docs/de/21-ecosystem.md" target="_blank">DE</a>
+          </div>
+        </div>
+
+        <div class="chapter-card">
+          <div class="ch-num">22</div>
+          <div class="ch-title ch-title-en" data-lang="en" class="active">Sandbox Profiles</div>
+          <div class="ch-title-de ch-title" data-lang="de">Sandbox-Profile</div>
+          <div class="ch-desc" data-lang="en" class="active">Declarative sandbox profiles to lock down AI agents, exec, filesystem, and network access.</div>
+          <div class="ch-desc-de" data-lang="de">Deklarative Sandbox-Profile zum Einschränken von KI-Agenten, exec, Dateisystem- und Netzwerkzugriff.</div>
+          <div class="ch-links">
+            <a class="en-link" href="https://github.com/MachuraHarry/pipe/blob/master/docs/en/22-sandbox-profiles.md" target="_blank">EN</a>
+            <a class="de-link" href="https://github.com/MachuraHarry/pipe/blob/master/docs/de/22-sandbox-profile.md" target="_blank">DE</a>
+          </div>
+        </div>
+
       </div>
     </div>
 
@@ -394,8 +437,8 @@ a[data-lang].active { display: inline-block; }
           <div class="ch-num">19</div>
           <div class="ch-title ch-title-en" data-lang="en" class="active">AI Builtins</div>
           <div class="ch-title-de ch-title" data-lang="de">KI-Builtins</div>
-          <div class="ch-desc" data-lang="en" class="active">All 25 AI functions in depth: summarize, translate, classify, embed, ai_tool, and more.</div>
-          <div class="ch-desc-de" data-lang="de">Alle 25 KI-Funktionen im Detail: summarize, translate, classify, embed, ai_tool und mehr.</div>
+          <div class="ch-desc" data-lang="en" class="active">All 23 AI functions in depth: summarize, translate, classify, embed, ai_tool, and more.</div>
+          <div class="ch-desc-de" data-lang="de">Alle 23 KI-Funktionen im Detail: summarize, translate, classify, embed, ai_tool und mehr.</div>
           <div class="ch-links">
             <a class="en-link" href="https://github.com/MachuraHarry/pipe/blob/master/docs/en/19-ai-builtins.md" target="_blank">EN</a>
             <a class="de-link" href="https://github.com/MachuraHarry/pipe/blob/master/docs/de/19-ki-builtins.md" target="_blank">DE</a>

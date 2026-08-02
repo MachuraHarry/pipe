@@ -3,6 +3,13 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="Pipe (SPR) examples: AI pipelines, RAG, parallel batch processing, test framework, and modern control flow — real programs you can run.">
+<meta property="og:title" content="Examples — Pipe (SPR)">
+<meta property="og:description" content="Real Pipe programs: AI pipelines, RAG, parallel batch, zero-setup tests, and the official GitHub Action.">
+<meta property="og:type" content="website">
+<meta property="og:image" content="https://pipe-lang.com/og-image.png">
+<meta property="og:url" content="https://pipe-lang.com/examples.html">
+<meta name="twitter:card" content="summary_large_image">
 <title>Examples — Pipe (SPR)</title>
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -377,6 +384,91 @@ a[data-lang].active { display: inline-block; }
       </div>
     </div>
 
+    <!-- Example 9 -->
+    <div class="example-card">
+      <div class="ex-num">09</div>
+      <h3 data-lang="en" class="active">Zero-Setup Test Framework</h3>
+      <h3 data-lang="de">Test-Framework ohne Setup</h3>
+      <p class="ex-desc" data-lang="en" class="active">Grouped <code>test</code> blocks with built-in assertions — no test runner, no config file, no dependency. Just <code>pipe -test</code>.</p>
+      <p class="ex-desc" data-lang="de">Gruppierte <code>test</code>-Blöcke mit eingebauten Assertions — kein Test-Runner, keine Config-Datei, keine Abhängigkeit. Einfach <code>pipe -test</code>.</p>
+      <pre class="example-code"><span class="cmt">-- math_test.pipe — run with: pipe -test</span>
+<span class="kw">test</span> <span class="str">"math"</span>
+    <span class="kw">fn</span> <span class="fn">add</span> a b
+        a + b
+    <span class="fn">assert_eq</span> (<span class="fn">add</span> <span class="num">2</span> <span class="num">3</span>) <span class="num">5</span>
+    <span class="fn">assert_lt</span> <span class="num">1</span> <span class="num">2</span>
+    <span class="fn">assert_gt</span> <span class="num">5</span> <span class="num">2</span>
+
+<span class="kw">test</span> <span class="str">"error handling"</span>
+    <span class="kw">fn</span> <span class="fn">boom</span>
+        <span class="str">"str"</span> * <span class="num">3</span>
+    <span class="fn">assert_error</span> boom</pre>
+      <div class="example-flow">
+        <h4 data-lang="en" class="active">Pipeline Flow</h4>
+        <h4 data-lang="de">Pipeline-Ablauf</h4>
+        <p data-lang="en" class="active"><code>test "name"</code> opens a grouped assertion block. Each <code>assert_*</code> builtin fails the whole file on a broken invariant — <code>assert_error</code> even verifies that a function raises. The runner auto-discovers <code>*_test.pipe</code> files, so <code>pipe -test</code> is the entire CI test story. No framework lock-in, no YAML test config.</p>
+        <p data-lang="de"><code>test "name"</code> öffnet einen gruppierten Assertion-Block. Jedes <code>assert_*</code>-Builtin lässt die gesamte Datei bei einer verletzten Invariante fehlschlagen — <code>assert_error</code> prüft sogar, dass eine Funktion einen Fehler wirft. Der Runner findet <code>*_test.pipe</code>-Dateien automatisch, also ist <code>pipe -test</code> die komplette CI-Test-Story. Kein Framework-Lock-in, keine YAML-Test-Config.</p>
+      </div>
+    </div>
+
+    <!-- Example 10 -->
+    <div class="example-card">
+      <div class="ex-num">10</div>
+      <h3 data-lang="en" class="active">Modern Control Flow</h3>
+      <h3 data-lang="de">Moderne Kontrollstrukturen</h3>
+      <p class="ex-desc" data-lang="en" class="active">C-style <code>for</code> loops, multi-pattern <code>match</code>, and a <code>not</code> keyword — small language, everyday scripting comfort.</p>
+      <p class="ex-desc" data-lang="de">C-Style-<code>for</code>-Schleifen, Multi-Pattern-<code>match</code> und ein <code>not</code>-Keyword — kleine Sprache, komfortables Alltags-Scripting.</p>
+      <pre class="example-code"><span class="cmt">-- C-style for loop</span>
+<span class="kw">for</span> i: <span class="num">0</span>; i &lt; <span class="num">5</span>; i: i + <span class="num">1</span>
+    <span class="fn">print</span> i
+
+<span class="cmt">-- Multi-pattern match</span>
+<span class="kw">match</span> <span class="num">3</span>
+    | <span class="num">1</span> | <span class="num">2</span> -&gt; <span class="fn">print</span> <span class="str">"low"</span>
+    | <span class="num">3</span> | <span class="num">4</span> -&gt; <span class="fn">print</span> <span class="str">"mid"</span>
+    | _ -&gt; <span class="fn">print</span> <span class="str">"other"</span>
+
+<span class="cmt">-- 'not' keyword instead of '!'</span>
+<span class="kw">if</span> <span class="kw">not</span> (<span class="num">2</span> <span class="op">&gt;</span> <span class="num">3</span>)
+    <span class="fn">print</span> <span class="str">"clearly true"</span></pre>
+      <div class="example-flow">
+        <h4 data-lang="en" class="active">Pipeline Flow</h4>
+        <h4 data-lang="de">Pipeline-Ablauf</h4>
+        <p data-lang="en" class="active">The C-style <code>for</code> takes three parts — init, condition, update — separated by semicolons, with the loop variable declared in the init. <code>match</code> collapses several patterns (<code>| 1 | 2</code>) into one body instead of repeating code. <code>not</code> reads naturally in conditions. All three compile to the bytecode VM with proper continue/break support.</p>
+        <p data-lang="de">Die C-Style-<code>for</code>-Schleife besteht aus drei Teilen — Init, Bedingung, Update — durch Semikolons getrennt, wobei die Schleifenvariable im Init deklariert wird. <code>match</code> fasst mehrere Patterns (<code>| 1 | 2</code>) zu einem Body zusammen, statt Code zu wiederholen. <code>not</code> liest sich in Bedingungen natürlich. Alle drei werden mit voller continue/break-Unterstützung in die Bytecode-VM kompiliert.</p>
+      </div>
+    </div>
+
+    <!-- Example 11 -->
+    <div class="example-card">
+      <div class="ex-num">11</div>
+      <h3 data-lang="en" class="active">Pipe in GitHub Actions</h3>
+      <h3 data-lang="de">Pipe in GitHub Actions</h3>
+      <p class="ex-desc" data-lang="en" class="active">The official pipe-action runs any Pipe script or test suite in CI — no setup, sandboxed by default, AI-enabled on demand.</p>
+      <p class="ex-desc" data-lang="de">Die offizielle pipe-action führt jedes Pipe-Skript oder jede Test-Suite in der CI aus — ohne Setup, standardmäßig sandboxed, KI bei Bedarf.</p>
+      <pre class="example-code"><span class="cmt"># .github/workflows/pipe.yml</span>
+<span class="kw">on</span>: [push]
+
+jobs:
+  pipe:
+    runs-on: ubuntu-latest
+    steps:
+      - <span class="kw">uses</span>: actions/checkout@v4
+      - <span class="kw">uses</span>: MachuraHarry/pipe/pipe-action@master
+        <span class="kw">with</span>:
+          <span class="fn">sandbox</span>: true
+          <span class="fn">script</span>: |
+            test "ci"
+                assert_eq (1 + 1) 2
+            print "CI passed"</pre>
+      <div class="example-flow">
+        <h4 data-lang="en" class="active">Pipeline Flow</h4>
+        <h4 data-lang="de">Pipeline-Ablauf</h4>
+        <p data-lang="en" class="active">The action downloads a prebuilt Pipe binary, runs your script or <code>test</code> blocks, and fails the job on any assertion error. <code>sandbox: true</code> blocks AI, exec, network, and filesystem writes; <code>allow-ai: true</code> plus a provider key re-enables AI builtins. The same action powers this project's own <code>live-demo.yml</code> — Pipe's CI is written in Pipe.</p>
+        <p data-lang="de">Die Action lädt eine vorgefertigte Pipe-Binary herunter, führt dein Skript oder deine <code>test</code>-Blöcke aus und lässt den Job bei jedem Assertion-Fehler fehlschlagen. <code>sandbox: true</code> blockiert KI, exec, Netzwerk und Dateisystem-Schreibzugriffe; <code>allow-ai: true</code> plus Provider-Key aktiviert die KI-Builtins wieder. Dieselbe Action betreibt auch das eigene <code>live-demo.yml</code> — Pipes CI ist in Pipe geschrieben.</p>
+      </div>
+    </div>
+
   </div>
 </section>
 
@@ -384,8 +476,8 @@ a[data-lang].active { display: inline-block; }
   <div class="container" style="text-align:center">
     <h3 data-lang="en" class="active">More Examples</h3>
     <h3 data-lang="de">Weitere Beispiele</h3>
-    <p data-lang="en" class="active">Find 23 example programs in the repository: <a href="https://github.com/MachuraHarry/pipe/tree/master/examples">github.com/MachuraHarry/pipe/examples</a></p>
-    <p data-lang="de">23 Beispielprogramme im Repository: <a href="https://github.com/MachuraHarry/pipe/tree/master/examples">github.com/MachuraHarry/pipe/examples</a></p>
+    <p data-lang="en" class="active">Find 42 example programs in the repository: <a href="https://github.com/MachuraHarry/pipe/tree/master/examples">github.com/MachuraHarry/pipe/examples</a></p>
+    <p data-lang="de">42 Beispielprogramme im Repository: <a href="https://github.com/MachuraHarry/pipe/tree/master/examples">github.com/MachuraHarry/pipe/examples</a></p>
   </div>
 </section>
 

@@ -383,12 +383,15 @@ text = open(<span class="str">"news.txt"</span>).read()
         <p data-lang="en" class="active"><code>>></code> starts any pipeline stage in the background — returning a Future that auto-resolves when needed. <code>ai_batch</code> handles hundreds of texts concurrently with built-in rate limiting. No async/await. No Promise.all.</p>
         <p data-lang="de"><code>>></code> startet jede Pipeline-Stufe im Hintergrund — und gibt einen Future zurück, der sich automatisch auflöst. <code>ai_batch</code> verarbeitet hunderte Texte parallel mit eingebautem Rate-Limiting. Kein async/await. Kein Promise.all.</p>
       </div>
-      <div class="feature-code"><div class="bar"><span class="dot" style="background:var(--red)"></span><span class="dot" style="background:var(--orange)"></span><span class="dot" style="background:var(--green)"></span></div><pre><span class="cmt">-- 3 AI calls — 3 seconds instead of 9</span>
-<span class="str">"Question A"</span> <span class="pipe">&gt;&gt;</span> <span class="fn">ask</span>
-<span class="str">"Question B"</span> <span class="pipe">&gt;&gt;</span> <span class="fn">ask</span>
-<span class="str">"Question C"</span> <span class="pipe">&gt;&gt;</span> <span class="fn">ask</span>
+      <div class="feature-code"><div class="bar"><span class="dot" style="background:var(--red)"></span><span class="dot" style="background:var(--orange)"></span><span class="dot" style="background:var(--green)"></span></div><pre><span class="cmt">-- 3 AI calls — ~1.5s instead of ~4s</span>
+a: <span class="str">"What is the capital of France?"</span>
+    <span class="pipe">&gt;&gt;</span> <span class="fn">ask</span>
+b: <span class="str">"What is the capital of Germany?"</span>
+    <span class="pipe">&gt;&gt;</span> <span class="fn">ask</span>
+c: <span class="str">"What is the capital of Italy?"</span>
+    <span class="pipe">&gt;&gt;</span> <span class="fn">ask</span>
 
-<span class="fn">print</span> a ++ b ++ c  <span class="cmt">-- Futures auto-resolve</span></pre></div>
+<span class="fn">print</span> a ++ <span class="str">" | "</span> ++ b ++ <span class="str">" | "</span> ++ c  <span class="cmt">-- futures auto-resolve</span></pre></div>
     </div>
 
     <div class="feature-row reveal">

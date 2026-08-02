@@ -252,14 +252,30 @@ func (g *Generator) genMap(depth int) ast.Expression {
 func (g *Generator) genPipeline(depth int) ast.Expression {
 	left := g.genExpr(TypeAny, depth-1)
 
-	fnName, _, ok := g.pickFunc()
+	fnName, entry, ok := g.pickFunc()
 	if !ok {
 		return left
 	}
-	arity := randInt(g.rng, 1, 3)
-	args := make([]ast.Expression, arity)
-	for i := 0; i < arity; i++ {
-		args[i] = g.genExpr(TypeAny, depth-2)
+	bi, isBuiltin := builtinInfos[fnName]
+	fnArity := entry.Arity
+	if fnArity == 0 {
+		fnArity = 1
+	}
+	pipedArgs := fnArity - 1
+	if pipedArgs < 0 {
+		pipedArgs = 0
+	}
+	if pipedArgs > 3 {
+		pipedArgs = 3
+	}
+
+	args := make([]ast.Expression, 0, pipedArgs)
+	for i := 0; i < pipedArgs; i++ {
+		argType := TypeAny
+		if isBuiltin {
+			argType = bi.argType(i + 1)
+		}
+		args = append(args, g.genTypedExpr(argType, depth-2))
 	}
 	return &ast.PipelineExpression{
 		Left: left,

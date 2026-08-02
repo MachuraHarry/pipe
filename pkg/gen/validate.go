@@ -92,7 +92,14 @@ func checkFull(prog *ast.Program, src string) bool {
 	}()
 	select {
 	case err := <-done:
-		return err == nil
+		if err != nil {
+			return false
+		}
+		res := machine.LastPoppedStackElem()
+		if res != nil && res.Type() == object.ERROR {
+			return false
+		}
+		return true
 	case <-time.After(2 * time.Second):
 		return false
 	}

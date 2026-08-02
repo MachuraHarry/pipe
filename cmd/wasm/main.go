@@ -58,12 +58,13 @@ func pipeGenerate(this js.Value, args []js.Value) interface{} {
 	opts.Seed = time.Now().UnixNano()
 	opts.MaxStmts = 10
 
-	_, src, err := gen.GenerateValid(opts)
+	prog, src, err := gen.GenerateValid(opts)
 	outputBuf.Reset()
 	if err != nil {
-		return "// generation failed: " + err.Error()
+		return "-- gen v2: " + err.Error()
 	}
-	return src
+	_ = prog
+	return "-- gen v2: runtime-valid\n" + src
 }
 
 func main() {

@@ -358,9 +358,9 @@ func (l *Lexer) scanToken() Token {
 }
 
 func (l *Lexer) readLine() {
-	l.readChar()
+	l.readChar() // consume the newline; l.ch is now the first char of the next line
 	l.line++
-	l.col = 0
+	l.col = 1 // that char sits in column 1, so following positions are 1-based
 	l.atLineStart = true
 }
 

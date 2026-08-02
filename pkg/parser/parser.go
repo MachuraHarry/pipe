@@ -358,7 +358,7 @@ func isCompoundAssign(t lexer.TokenType) bool {
 
 func (p *Parser) parseCompoundAssign() ast.Statement {
 	stmt := &ast.VarStatement{}
-	stmt.Name = &ast.Identifier{Value: p.curToken.Literal}
+	stmt.Name = &ast.Identifier{Value: p.curToken.Literal, Line: p.curToken.Line, Col: p.curToken.Col}
 
 	opToken := p.peekToken
 	op := ""
@@ -389,7 +389,7 @@ func (p *Parser) parseCompoundAssign() ast.Statement {
 
 func (p *Parser) parseVarStatement() *ast.VarStatement {
 	stmt := &ast.VarStatement{}
-	stmt.Name = &ast.Identifier{Value: p.curToken.Literal}
+	stmt.Name = &ast.Identifier{Value: p.curToken.Literal, Line: p.curToken.Line, Col: p.curToken.Col}
 
 	p.nextToken()
 	p.nextToken()
@@ -410,7 +410,7 @@ func (p *Parser) parseFnStatement() *ast.FnStatement {
 		p.error("expected function name after 'fn'")
 		return nil
 	}
-	stmt.Name = &ast.Identifier{Value: p.curToken.Literal}
+	stmt.Name = &ast.Identifier{Value: p.curToken.Literal, Line: p.curToken.Line, Col: p.curToken.Col}
 
 	p.nextToken()
 	stmt.Parameters = p.parseParameters()
@@ -424,7 +424,7 @@ func (p *Parser) parseParameters() []*ast.Identifier {
 	var params []*ast.Identifier
 
 	for p.curTokenIs(lexer.IDENT) && !p.peekTokenIs(lexer.COLON) {
-		params = append(params, &ast.Identifier{Value: p.curToken.Literal})
+		params = append(params, &ast.Identifier{Value: p.curToken.Literal, Line: p.curToken.Line, Col: p.curToken.Col})
 		p.nextToken()
 	}
 
@@ -581,7 +581,7 @@ func isValueToken(t lexer.TokenType) bool {
 // ---- Prefix parsers ----
 
 func (p *Parser) parseIdentifier() ast.Expression {
-	return &ast.Identifier{Value: p.curToken.Literal}
+	return &ast.Identifier{Value: p.curToken.Literal, Line: p.curToken.Line, Col: p.curToken.Col}
 }
 
 func (p *Parser) parseIntegerLiteral() ast.Expression {
@@ -943,11 +943,12 @@ func (p *Parser) parseForExpression() ast.Expression {
 		return nil
 	}
 	iterName := p.curToken.Literal
+	iterPos := ast.Position{Line: p.curToken.Line, Col: p.curToken.Col}
 
 	// for-in: for IDENT in expr
 	if p.peekTokenIs(lexer.IDENT) && p.peekToken.Literal == "in" {
 		expr.IsForIn = true
-		expr.Iterator = &ast.Identifier{Value: iterName}
+		expr.Iterator = &ast.Identifier{Value: iterName, Line: iterPos.Line, Col: iterPos.Col}
 		p.nextToken() // skip 'in'
 		p.nextToken() // move to iterable expression
 		expr.Iterable = p.parseExpression(PrecedenceLowest)
@@ -970,7 +971,7 @@ func (p *Parser) parseForExpression() ast.Expression {
 	p.nextToken() // skip ':'
 	p.nextToken() // move to init value
 	expr.Init = &ast.VarStatement{
-		Name:  &ast.Identifier{Value: iterName},
+		Name:  &ast.Identifier{Value: iterName, Line: iterPos.Line, Col: iterPos.Col},
 		Value: p.parseExpression(PrecedenceLowest),
 	}
 
@@ -999,10 +1000,11 @@ func (p *Parser) parseCStyleBody(expr *ast.ForExpression) ast.Expression {
 	if !p.curTokenIs(lexer.SEMICOLON) && !p.peekTokenIs(lexer.NEWLINE) && !p.peekTokenIs(lexer.INDENT) {
 		if p.curTokenIs(lexer.IDENT) && p.peekTokenIs(lexer.COLON) {
 			name := p.curToken.Literal
+			namePos := ast.Position{Line: p.curToken.Line, Col: p.curToken.Col}
 			p.nextToken() // skip ':'
 			p.nextToken() // move to value
 			expr.Update = &ast.VarStatement{
-				Name:  &ast.Identifier{Value: name},
+				Name:  &ast.Identifier{Value: name, Line: namePos.Line, Col: namePos.Col},
 				Value: p.parseExpression(PrecedenceLowest),
 			}
 		} else {
@@ -1067,6 +1069,8 @@ func (p *Parser) parseEnumStatement() ast.Statement {
 		return nil
 	}
 	stmt.Name = p.curToken.Literal
+	stmt.Line = p.curToken.Line
+	stmt.Col = p.curToken.Col
 
 	if !p.expectPeek(lexer.COLON) {
 		return nil
@@ -1076,6 +1080,7 @@ func (p *Parser) parseEnumStatement() ast.Statement {
 
 	for p.curTokenIs(lexer.IDENT) {
 		stmt.Values = append(stmt.Values, p.curToken.Literal)
+		stmt.ValuePos = append(stmt.ValuePos, ast.Position{Line: p.curToken.Line, Col: p.curToken.Col})
 		p.nextToken()
 		if p.curTokenIs(lexer.COMMA) {
 			p.nextToken() // skip comma
@@ -1108,7 +1113,7 @@ func (p *Parser) parseImportStatement() ast.Statement {
 		p.error("import expects a string path")
 		return nil
 	}
-	stmt := &ast.ImportStatement{Path: p.curToken.Literal}
+	stmt := &ast.ImportStatement{Path: p.curToken.Literal, Line: p.curToken.Line, Col: p.curToken.Col}
 
 	// Optional: as <alias>
 	if p.peekTokenIs(lexer.IDENT) && p.peekToken.Literal == "as" {
@@ -1123,7 +1128,7 @@ func (p *Parser) parseImportStatement() ast.Statement {
 }
 
 func (p *Parser) parseFnLiteral() ast.Expression {
-	lit := &ast.FnLiteral{}
+	lit := &ast.FnLiteral{Line: p.curToken.Line, Col: p.curToken.Col}
 
 	p.nextToken() // skip 'fn'
 
@@ -1204,7 +1209,7 @@ func (p *Parser) parseTryBase(aiFix bool) ast.Expression {
 	p.nextToken() // consume 'catch'
 	p.nextToken() // move to catch param name
 	if p.curTokenIs(lexer.IDENT) {
-		expr.CatchParam = &ast.Identifier{Value: p.curToken.Literal}
+		expr.CatchParam = &ast.Identifier{Value: p.curToken.Literal, Line: p.curToken.Line, Col: p.curToken.Col}
 	}
 	if p.peekTokenIs(lexer.NEWLINE) {
 		p.nextToken()

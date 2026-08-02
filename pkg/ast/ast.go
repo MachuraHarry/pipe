@@ -19,6 +19,12 @@ type Expression interface {
 	String() string
 }
 
+// Position is a source location: 1-based line, 1-based column.
+type Position struct {
+	Line int
+	Col  int
+}
+
 // Program is the root node of every Pipe AST.
 type Program struct {
 	Statements []Statement
@@ -113,11 +119,14 @@ type MatchCase struct {
 
 type Identifier struct {
 	Value string
+	Line  int
+	Col   int
 }
 
 func (i *Identifier) expressionNode()      {}
 func (i *Identifier) TokenLiteral() string { return i.Value }
 func (i *Identifier) String() string       { return i.Value }
+func (i *Identifier) Pos() Position        { return Position{Line: i.Line, Col: i.Col} }
 
 type IntegerLiteral struct {
 	Value int64
@@ -313,10 +322,13 @@ func (rs *ReturnStatement) TokenLiteral() string { return "return" }
 type ImportStatement struct {
 	Path  string
 	Alias string // optional namespace alias
+	Line  int
+	Col   int
 }
 
 func (is *ImportStatement) statementNode()       {}
 func (is *ImportStatement) TokenLiteral() string { return "import" }
+func (is *ImportStatement) Pos() Position        { return Position{Line: is.Line, Col: is.Col} }
 
 type DeferStatement struct {
 	Expression Expression
@@ -347,12 +359,16 @@ func (es *ExportStatement) ExportName() string {
 }
 
 type EnumStatement struct {
-	Name   string
-	Values []string
+	Name     string
+	Values   []string
+	ValuePos []Position
+	Line     int
+	Col      int
 }
 
 func (es *EnumStatement) statementNode()       {}
 func (es *EnumStatement) TokenLiteral() string { return "enum" }
+func (es *EnumStatement) Pos() Position        { return Position{Line: es.Line, Col: es.Col} }
 
 type TestStatement struct {
 	Name *StringLiteral
@@ -365,11 +381,14 @@ func (ts *TestStatement) TokenLiteral() string { return "test" }
 type FnLiteral struct {
 	Parameters []*Identifier
 	Body       *BlockStatement
+	Line       int
+	Col        int
 }
 
 func (fl *FnLiteral) expressionNode()      {}
 func (fl *FnLiteral) TokenLiteral() string { return "fn" }
 func (fl *FnLiteral) String() string       { return "fn(...)" }
+func (fl *FnLiteral) Pos() Position        { return Position{Line: fl.Line, Col: fl.Col} }
 
 type SliceExpression struct {
 	List  Expression

@@ -346,20 +346,24 @@ oninput="syncHighlight()" onscroll="syncScroll()"></textarea>
       <div class="feature-text">
         <h3 data-lang="en" class="active"><span>AI Agents</span> — Sandboxed & Parallel</h3>
         <h3 data-lang="de"><span>KI-Agenten</span> — Sandboxed & Parallel</h3>
-        <p data-lang="en" class="active">Define a tool, register it with the LLM, let the model call it autonomously. Sandbox profiles restrict what the agent can do. <code>>></code> runs multiple calls in parallel — ~1.5s instead of ~4s.</p>
-        <p data-lang="de">Ein Tool definieren, beim LLM registrieren, das Modell autonom aufrufen lassen. Sandbox-Profile beschränken, was der Agent darf. <code>>></code> führt mehrere Calls parallel aus — ~1,5s statt ~4s.</p>
+        <p data-lang="en" class="active">Define a tool, register it with the LLM, and let the model call it autonomously. Sandbox profiles lock down <code>exec</code>, <code>write_file</code>, and network access — safe by default. The same code swaps between OpenAI, DeepSeek, and Ollama with one line.</p>
+        <p data-lang="de">Ein Tool definieren, beim LLM registrieren und das Modell autonom aufrufen lassen. Sandbox-Profile sperren <code>exec</code>, <code>write_file</code> und Netzwerkzugriff — standardmäßig sicher. Derselbe Code wechselt mit einer Zeile zwischen OpenAI, DeepSeek und Ollama.</p>
       </div>
-      <div class="feature-code"><div class="bar"><span class="dot" style="background:var(--red)"></span><span class="dot" style="background:var(--orange)"></span><span class="dot" style="background:var(--green)"></span></div><pre><span class="fn">sandbox_profile</span> <span class="str">"agent"</span> {<span class="kw">fs</span>: <span class="str">"temp"</span>, <span class="kw">net</span>: <span class="kw">true</span>, <span class="kw">exec</span>: <span class="kw">false</span>}
+      <div class="feature-code"><div class="bar"><span class="dot" style="background:var(--red)"></span><span class="dot" style="background:var(--orange)"></span><span class="dot" style="background:var(--green)"></span></div><pre><span class="cmt">-- Declare a sandbox: temp files only, network ok, no exec</span>
+<span class="fn">sandbox_profile</span> <span class="str">"agent"</span> {<span class="kw">fs</span>: <span class="str">"temp-only"</span>, <span class="kw">network</span>: <span class="kw">true</span>, <span class="kw">exec</span>: <span class="kw">false</span>, <span class="kw">ai</span>: <span class="kw">true</span>}
 <span class="kw">set_sandbox</span> <span class="str">"agent"</span>
 
 <span class="kw">fn</span> <span class="fn">get_weather</span> city
-    <span class="fn">fetch</span> (<span class="str">"https://api.weather.com/"</span> <span class="op">++</span> city) <span class="pipe">&gt;</span> <span class="fn">json_parse</span> <span class="pipe">&gt;</span> <span class="fn">get</span> <span class="str">"current"</span>
+    <span class="kw">match</span> city
+        | <span class="str">"Berlin"</span> -> <span class="str">"22°C, sunny"</span>
+        | <span class="str">"London"</span> -> <span class="str">"15°C, rainy"</span>
+        | _ -> city <span class="op">++</span> <span class="str">": no data"</span>
 
-<span class="fn">ai_tool</span> <span class="str">"weather"</span> <span class="str">"Get weather for a city"</span> {<span class="fn">city</span>: <span class="str">"City name"</span>} get_weather
+<span class="fn">ai_tool</span> <span class="str">"get_weather"</span> <span class="str">"Get current weather for a city"</span> {<span class="kw">city</span>: <span class="str">"City name"</span>} get_weather
 
-<span class="str">"Berlin weather?"</span> <span class="pipe">&gt;&gt;</span> <span class="kw">ask</span>
-<span class="str">"London weather?"</span> <span class="pipe">&gt;&gt;</span> <span class="kw">ask</span>
-<span class="fn">print</span> antwortA <span class="op">++</span> <span class="str">" | "</span> <span class="op">++</span> antwortB   <span class="cmt">-- futures auto-resolve</span></pre></div>
+<span class="fn">ai_with_tools</span> <span class="str">"You are a weather assistant."</span>
+    <span class="str">"What's the weather in Berlin and London?"</span>
+    <span class="pipe">&gt;</span> <span class="fn">print</span></pre></div>
     </div>
   </div>
 </section>
@@ -562,9 +566,12 @@ oninput="syncHighlight()" onscroll="syncScroll()"></textarea>
         <p data-lang="de"><code>>></code> startet jede Pipeline-Stufe im Hintergrund — und gibt einen Future zurück, der sich automatisch auflöst. <code>ai_batch</code> verarbeitet hunderte Texte parallel mit eingebautem Rate-Limiting. Kein async/await. Kein Promise.all.</p>
       </div>
       <div class="feature-code"><div class="bar"><span class="dot" style="background:var(--red)"></span><span class="dot" style="background:var(--orange)"></span><span class="dot" style="background:var(--green)"></span></div><pre><span class="cmt">-- 3 AI calls — ~1.5s instead of ~4s</span>
-a: <span class="str">"Capital of France?"</span> <span class="pipe">&gt;&gt;</span> <span class="fn">ask</span>
-b: <span class="str">"Capital of Germany?"</span> <span class="pipe">&gt;&gt;</span> <span class="fn">ask</span>
-c: <span class="str">"Capital of Italy?"</span> <span class="pipe">&gt;&gt;</span> <span class="fn">ask</span>
+a: <span class="str">"Capital of France?"</span>
+    <span class="pipe">&gt;&gt;</span> <span class="fn">ask</span>
+b: <span class="str">"Capital of Germany?"</span>
+    <span class="pipe">&gt;&gt;</span> <span class="fn">ask</span>
+c: <span class="str">"Capital of Italy?"</span>
+    <span class="pipe">&gt;&gt;</span> <span class="fn">ask</span>
 
 <span class="fn">print</span> a <span class="op">++</span> <span class="str">" | "</span> <span class="op">++</span> b <span class="op">++</span> <span class="str">" | "</span> <span class="op">++</span> c</pre></div>
     </div>

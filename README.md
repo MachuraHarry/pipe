@@ -242,11 +242,14 @@ print result           -- 126
 
 ### Parallel Pipeline (`>>`)
 ```pipe
-"Frage A" >> ask
-"Frage B" >> ask
-"Frage C" >> ask
+a: "Frage A"
+    >> ask
+b: "Frage B"
+    >> ask
+c: "Frage C"
+    >> ask
 
-print antwortA ++ antwortB ++ antwortC   -- Future auto-resolution
+print a ++ b ++ c   -- Future auto-resolution
 ```
 
 ### Sandbox Profiles

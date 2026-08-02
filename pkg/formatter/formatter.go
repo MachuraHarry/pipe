@@ -194,6 +194,13 @@ func formatStatement(out *strings.Builder, stmt ast.Statement, depth int) {
 	case *ast.ContinueStatement:
 		out.WriteString(indent)
 		out.WriteString("continue\n")
+
+	case *ast.TestStatement:
+		out.WriteString(indent)
+		out.WriteString("test ")
+		out.WriteString(parser.QuoteString(s.Name.Value))
+		out.WriteByte('\n')
+		formatBlock(out, s.Body, depth+1)
 	}
 }
 
@@ -281,9 +288,30 @@ func formatExpr(out *strings.Builder, expr ast.Expression, depth int, prec int) 
 		if e.IsForIn {
 			out.WriteString("for ")
 			out.WriteString(e.Iterator.Value)
-			out.WriteString(" in (")
+			out.WriteString(" in ")
 			formatExpr(out, e.Iterable, depth, 0)
-			out.WriteString(")\n")
+			out.WriteByte('\n')
+			formatBlock(out, e.Body, depth+1)
+		} else if e.Init != nil || e.Condition != nil || e.Update != nil {
+			out.WriteString("for ")
+			if init, ok := e.Init.(*ast.VarStatement); ok {
+				out.WriteString(init.Name.Value)
+				out.WriteString(": ")
+				formatExpr(out, init.Value, depth, 0)
+			}
+			out.WriteString("; ")
+			if e.Condition != nil {
+				formatExpr(out, e.Condition, depth, 0)
+			}
+			out.WriteString("; ")
+			if upd, ok := e.Update.(*ast.VarStatement); ok {
+				out.WriteString(upd.Name.Value)
+				out.WriteString(": ")
+				formatExpr(out, upd.Value, depth, 0)
+			} else if updExpr, ok := e.Update.(*ast.ExpressionStatement); ok {
+				formatExpr(out, updExpr.Expression, depth, 0)
+			}
+			out.WriteByte('\n')
 			formatBlock(out, e.Body, depth+1)
 		}
 
@@ -352,17 +380,23 @@ func formatExpr(out *strings.Builder, expr ast.Expression, depth int, prec int) 
 		out.WriteByte(']')
 
 	case *ast.TryExpression:
-		out.WriteString("try\n")
-		formatBlock(out, e.TryBlock, depth+1)
-		indent := strings.Repeat("    ", depth)
-		out.WriteString(indent)
-		out.WriteString("catch")
-		if e.CatchParam != nil {
-			out.WriteByte(' ')
-			out.WriteString(e.CatchParam.Value)
+		if e.AIFix {
+			out.WriteString("try_ai\n")
+		} else {
+			out.WriteString("try\n")
 		}
-		out.WriteByte('\n')
-		formatBlock(out, e.CatchBlock, depth+1)
+		formatBlock(out, e.TryBlock, depth+1)
+		if e.CatchBlock != nil {
+			indent := strings.Repeat("    ", depth)
+			out.WriteString(indent)
+			out.WriteString("catch")
+			if e.CatchParam != nil {
+				out.WriteByte(' ')
+				out.WriteString(e.CatchParam.Value)
+			}
+			out.WriteByte('\n')
+			formatBlock(out, e.CatchBlock, depth+1)
+		}
 	}
 }
 

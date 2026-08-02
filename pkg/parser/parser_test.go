@@ -178,6 +178,33 @@ func TestMatchExpression(t *testing.T) {
 	}
 }
 
+func TestMatchMultiPattern(t *testing.T) {
+	input := "match x\n    | 1 | 2 | 3 -> \"small\"\n    | _ -> \"big\"\n"
+	program := parseProgram(t, input)
+
+	expr, ok := program.Statements[0].(*ast.ExpressionStatement).Expression.(*ast.MatchExpression)
+	if !ok {
+		t.Fatalf("expected MatchExpression, got %T", program.Statements[0])
+	}
+	if len(expr.Cases) != 4 {
+		t.Fatalf("expected 4 cases after multi-pattern expansion, got %d", len(expr.Cases))
+	}
+	// Every case must share the same body: "small" for 1, 2, 3; "big" for _
+	for i, c := range expr.Cases {
+		want := `"big"`
+		if i < 3 {
+			want = `"small"`
+		}
+		if c.Body.String() != want {
+			t.Errorf("case %d body = %s, want %s", i, c.Body.String(), want)
+		}
+	}
+	// Last case pattern must be the wildcard
+	if id, ok := expr.Cases[3].Pattern.(*ast.Identifier); !ok || id.Value != "_" {
+		t.Errorf("expected wildcard as last pattern, got %T", expr.Cases[3].Pattern)
+	}
+}
+
 func TestPipelineExpression(t *testing.T) {
 	input := "x\n    > f\n    > g\n"
 	program := parseProgram(t, input)

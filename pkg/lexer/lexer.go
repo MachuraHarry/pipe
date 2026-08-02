@@ -180,7 +180,7 @@ func (l *Lexer) scanToken() Token {
 	case '-':
 		if l.peekChar() == '>' {
 			l.readChar()
-			tok = Token{Type: MATCH, Literal: "->", Line: l.line, Col: l.col - 1}
+			tok = Token{Type: FAT_ARROW, Literal: "->", Line: l.line, Col: l.col - 1}
 		} else if l.peekChar() == '-' {
 			for l.ch != '\n' && l.ch != 0 {
 				l.readChar()
@@ -312,6 +312,9 @@ func (l *Lexer) scanToken() Token {
 
 	case ',':
 		tok = Token{Type: COMMA, Literal: ",", Line: l.line, Col: l.col}
+
+	case ';':
+		tok = Token{Type: SEMICOLON, Literal: ";", Line: l.line, Col: l.col}
 
 	case '.':
 		if l.peekChar() == '.' {

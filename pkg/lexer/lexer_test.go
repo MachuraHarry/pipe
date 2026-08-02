@@ -37,10 +37,10 @@ func TestMatchArrow(t *testing.T) {
 	tokens := New(input).TokenizeAll()
 
 	assertTokens(t, tokens, []TokenType{
-		MATCHKW, IDENT, NEWLINE,
+		MATCH_KW, IDENT, NEWLINE,
 		INDENT,
-		PIPE, INT, MATCH, STRING, NEWLINE,
-		PIPE, IDENT, MATCH, STRING, NEWLINE,
+		PIPE, INT, FAT_ARROW, STRING, NEWLINE,
+		PIPE, IDENT, FAT_ARROW, STRING, NEWLINE,
 		DEDENT, EOF,
 	})
 }

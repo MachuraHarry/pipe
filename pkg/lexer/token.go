@@ -40,21 +40,22 @@ const (
 	DOTDOT    // .. (slice range)
 
 	// Pipeline
-	PIPE   // |
-	ARROW  // >
-	ARROW2 // >>
-	MATCH  // ->
+	PIPE      // |
+	ARROW     // >
+	ARROW2    // >>
+	FAT_ARROW // ->
 
 	// Punctuation
-	LPAREN   // (
-	RPAREN   // )
-	LBRACKET // [
-	RBRACKET // ]
-	LBRACE   // {
-	RBRACE   // }
-	COMMA    // ,
-	DOT      // .
-	COLON    // :
+	LPAREN    // (
+	RPAREN    // )
+	LBRACKET  // [
+	RBRACKET  // ]
+	LBRACE    // {
+	RBRACE    // }
+	COMMA     // ,
+	SEMICOLON // ;
+	DOT       // .
+	COLON     // :
 
 	// Structure
 	NEWLINE
@@ -63,7 +64,7 @@ const (
 
 	// Keywords
 	FN       // fn
-	MATCHKW  // match
+	MATCH_KW // match
 	IF       // if
 	ELSE     // else
 	WHILE    // while
@@ -86,7 +87,7 @@ const (
 
 var keywords = map[string]TokenType{
 	"fn":       FN,
-	"match":    MATCHKW,
+	"match":    MATCH_KW,
 	"if":       IF,
 	"else":     ELSE,
 	"while":    WHILE,
@@ -105,6 +106,7 @@ var keywords = map[string]TokenType{
 	"false":    FALSE,
 	"nil":      NIL,
 	"test":     TEST,
+	"not":      BANG,
 }
 
 var tokenNames = map[TokenType]string{
@@ -140,7 +142,7 @@ var tokenNames = map[TokenType]string{
 	PIPE:      "|",
 	ARROW:     ">",
 	ARROW2:    ">>",
-	MATCH:     "->",
+	FAT_ARROW: "->",
 	LPAREN:    "(",
 	RPAREN:    ")",
 	LBRACKET:  "[",
@@ -148,13 +150,14 @@ var tokenNames = map[TokenType]string{
 	LBRACE:    "{",
 	RBRACE:    "}",
 	COMMA:     ",",
+	SEMICOLON: ";",
 	DOT:       ".",
 	COLON:     ":",
 	NEWLINE:   "NEWLINE",
 	INDENT:    "INDENT",
 	DEDENT:    "DEDENT",
 	FN:        "fn",
-	MATCHKW:   "match",
+	MATCH_KW:  "match",
 	IF:        "if",
 	ELSE:      "else",
 	WHILE:     "while",

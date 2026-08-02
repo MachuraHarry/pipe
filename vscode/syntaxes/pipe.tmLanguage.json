@@ -72,7 +72,7 @@
         },
         {
           "name": "keyword.control.pipe",
-          "match": "\\b(else|match|while|for|in|try|catch|return|break|continue|defer|import)\\b"
+          "match": "\\b(else|match|while|for|in|try|try_ai|catch|return|break|continue|defer|import|export|fn|enum|test|as|not)\\b"
         }
       ]
     },

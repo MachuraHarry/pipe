@@ -32,25 +32,25 @@ func main() {
 	}
 
 	var (
-		useVM      bool
-		quietVM    bool
-		showAST    bool
-		doFmt      bool
-		fmtCheck   bool
-		doBench    bool
-		doTest     bool
-		doBuild    bool
-		doGet      bool
-		doSearch   bool
-		searchTerm       string
-		sandbox          bool
-		sandboxProfile   string
-		allowAI          bool
-		aiProvider       string
-		timeoutSec int
-		buildOut   string
-		filePath   string
-		scriptArgs []string
+		useVM          bool
+		quietVM        bool
+		showAST        bool
+		doFmt          bool
+		fmtCheck       bool
+		doBench        bool
+		doTest         bool
+		doBuild        bool
+		doGet          bool
+		doSearch       bool
+		searchTerm     string
+		sandbox        bool
+		sandboxProfile string
+		allowAI        bool
+		aiProvider     string
+		timeoutSec     int
+		buildOut       string
+		filePath       string
+		scriptArgs     []string
 	)
 
 	foundFile := false

@@ -95,8 +95,9 @@ type Compiler struct {
 }
 
 type LoopContext struct {
-	continueTarget int   // position to jump to on continue (condition check)
-	breakPatches   []int // positions of break jump instructions to patch
+	continueTarget  int   // position to jump to on continue (condition check)
+	continuePatches []int // positions of continue jumps to patch (C-style for)
+	breakPatches    []int // positions of break jump instructions to patch
 }
 
 type CompilationScope struct {
@@ -385,7 +386,7 @@ func (c *Compiler) Compile(node ast.Node) error {
 		if n.IsForIn {
 			return c.compileForIn(n)
 		}
-		return fmt.Errorf("for loops not yet fully implemented (only for-in)")
+		return c.compileCStyleFor(n)
 
 	case *ast.BreakStatement:
 		c.addBreak()
@@ -790,6 +791,17 @@ func (c *Compiler) enterLoop(continueTarget int) {
 	})
 }
 
+// enterLoopPending registers a loop whose continue target (the update clause)
+// is only known after the body compiles. Continues are emitted as patchable
+// forward jumps and resolved with patchContinues.
+func (c *Compiler) enterLoopPending() {
+	c.loopStack = append(c.loopStack, LoopContext{
+		continueTarget:  -1,
+		continuePatches: []int{},
+		breakPatches:    []int{},
+	})
+}
+
 func (c *Compiler) leaveLoop() {
 	c.loopStack = c.loopStack[:len(c.loopStack)-1]
 }
@@ -818,7 +830,22 @@ func (c *Compiler) emitContinue() {
 		return
 	}
 	loop := &c.loopStack[len(c.loopStack)-1]
+	if loop.continueTarget < 0 {
+		loop.continuePatches = append(loop.continuePatches, c.emit(OpJump, 9999))
+		return
+	}
 	c.emit(OpJumpBackward, loop.continueTarget)
+}
+
+func (c *Compiler) patchContinues(target int) {
+	if len(c.loopStack) == 0 {
+		return
+	}
+	loop := &c.loopStack[len(c.loopStack)-1]
+	for _, pos := range loop.continuePatches {
+		c.patchJump(pos, target)
+	}
+	loop.continuePatches = nil
 }
 
 func (c *Compiler) compileForIn(fe *ast.ForExpression) error {
@@ -867,6 +894,46 @@ func (c *Compiler) compileForIn(fe *ast.ForExpression) error {
 	afterLoop := len(c.currentInstructions())
 	c.patchJump(jumpFalsePos, afterLoop)
 	c.patchBreaks(afterLoop)
+
+	return nil
+}
+
+func (c *Compiler) compileCStyleFor(fe *ast.ForExpression) error {
+	// Init clause: for i: 0; cond; update
+	if fe.Init != nil {
+		if err := c.Compile(fe.Init); err != nil {
+			return err
+		}
+	}
+
+	conditionPos := len(c.currentInstructions())
+	if fe.Condition != nil {
+		if err := c.Compile(fe.Condition); err != nil {
+			return err
+		}
+	} else {
+		c.emit(OpConstant, c.addInteger(1)) // no condition → infinite loop
+	}
+	jumpFalsePos := c.emit(OpJumpNotTruthy, 9999)
+
+	c.enterLoopPending()
+	if err := c.compileBlockLastReturn(fe.Body); err != nil {
+		return err
+	}
+
+	updatePos := len(c.currentInstructions())
+	if fe.Update != nil {
+		if err := c.Compile(fe.Update); err != nil {
+			return err
+		}
+	}
+	c.emit(OpJumpBackward, conditionPos)
+
+	afterLoop := len(c.currentInstructions())
+	c.patchJump(jumpFalsePos, afterLoop)
+	c.patchContinues(updatePos)
+	c.patchBreaks(afterLoop)
+	c.leaveLoop()
 
 	return nil
 }

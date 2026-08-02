@@ -281,7 +281,7 @@ func (we *WhileExpression) String() string {
 type ForExpression struct {
 	Init      Statement
 	Condition Expression
-	Update    Expression
+	Update    Statement
 	Body      *BlockStatement
 	// For-in variant:
 	Iterator *Identifier // loop variable name

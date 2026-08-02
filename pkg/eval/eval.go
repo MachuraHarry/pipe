@@ -746,6 +746,10 @@ func (ctx *EvalContext) evalTryExpression(te *ast.TryExpression, env *object.Env
 		}
 	}
 
+	if te.CatchBlock == nil {
+		return result
+	}
+
 	if te.CatchParam != nil {
 		env.Set(te.CatchParam.Value, result)
 	}
@@ -919,7 +923,49 @@ func (ctx *EvalContext) evalForExpression(fe *ast.ForExpression, env *object.Env
 	if fe.IsForIn {
 		return ctx.evalForInExpression(fe, env)
 	}
-	return ctx.newError("for loops not yet fully implemented")
+
+	// C-style for
+	if fe.Init != nil {
+		result := ctx.Eval(fe.Init, env)
+		if isError(result) {
+			return result
+		}
+	}
+
+	for {
+		if fe.Condition != nil {
+			cond := ctx.Eval(fe.Condition, env)
+			if isError(cond) {
+				return cond
+			}
+			if !object.IsTruthy(cond) {
+				break
+			}
+		}
+
+		result := ctx.Eval(fe.Body, env)
+		if result != nil {
+			switch result.Type() {
+			case "BREAK":
+				return object.NILOBJ
+			case "CONTINUE":
+				// fall through to update
+			case "RETURN":
+				return result
+			case object.ERROR:
+				return result
+			}
+		}
+
+		if fe.Update != nil {
+			updResult := ctx.Eval(fe.Update, env)
+			if isError(updResult) {
+				return updResult
+			}
+		}
+	}
+
+	return object.NILOBJ
 }
 
 func (ctx *EvalContext) evalForInExpression(fe *ast.ForExpression, env *object.Environment) object.Object {

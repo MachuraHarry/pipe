@@ -17,7 +17,9 @@ var outputBuf strings.Builder
 func init() {
 	object.PrintHook = func(args ...object.Object) {
 		for i, arg := range args {
-			if i > 0 { outputBuf.WriteByte(' ') }
+			if i > 0 {
+				outputBuf.WriteByte(' ')
+			}
 			outputBuf.WriteString(arg.Inspect())
 		}
 		outputBuf.WriteByte('\n')
@@ -34,7 +36,9 @@ func pipeRun(this js.Value, args []js.Value) interface{} {
 
 	if errs := p.Errors(); len(errs) > 0 {
 		result := "Parse errors:\n"
-		for _, e := range errs { result += "  " + e + "\n" }
+		for _, e := range errs {
+			result += "  " + e + "\n"
+		}
 		return result
 	}
 

@@ -54,10 +54,11 @@ var precedences = map[lexer.TokenType]int{
 }
 
 type Parser struct {
-	l         *lexer.Lexer
-	curToken  lexer.Token
-	peekToken lexer.Token
-	errors    []string
+	l          *lexer.Lexer
+	curToken   lexer.Token
+	peekToken  lexer.Token
+	peekToken2 lexer.Token
+	errors     []string
 
 	prefixParseFns map[lexer.TokenType]prefixParseFn
 	infixParseFns  map[lexer.TokenType]infixParseFn
@@ -84,7 +85,7 @@ func New(l *lexer.Lexer) *Parser {
 		lexer.LBRACKET: p.parseListLiteral,
 		lexer.LBRACE:   p.parseMapLiteral,
 		lexer.IF:       p.parseIfExpression,
-		lexer.MATCHKW:  p.parseMatchExpression,
+		lexer.MATCH_KW: p.parseMatchExpression,
 		lexer.WHILE:    p.parseWhileExpression,
 		lexer.FOR:      p.parseForExpression,
 		lexer.FN:       p.parseFnLiteral,
@@ -117,6 +118,7 @@ func New(l *lexer.Lexer) *Parser {
 
 	p.nextToken()
 	p.nextToken()
+	p.nextToken()
 
 	return p
 }
@@ -131,7 +133,8 @@ func (p *Parser) error(msg string) {
 
 func (p *Parser) nextToken() {
 	p.curToken = p.peekToken
-	p.peekToken = p.l.NextToken()
+	p.peekToken = p.peekToken2
+	p.peekToken2 = p.l.NextToken()
 }
 
 func (p *Parser) curTokenIs(t lexer.TokenType) bool {
@@ -140,6 +143,10 @@ func (p *Parser) curTokenIs(t lexer.TokenType) bool {
 
 func (p *Parser) peekTokenIs(t lexer.TokenType) bool {
 	return p.peekToken.Type == t
+}
+
+func (p *Parser) peekTokenIs2(t lexer.TokenType) bool {
+	return p.peekToken2.Type == t
 }
 
 func (p *Parser) expectPeek(t lexer.TokenType) bool {
@@ -225,7 +232,7 @@ func (p *Parser) noPrefixParseFnError(t lexer.TokenType) {
 	case lexer.INT, lexer.FLOAT, lexer.STRING, lexer.IDENT,
 		lexer.TRUE, lexer.FALSE, lexer.NIL, lexer.LPAREN,
 		lexer.LBRACKET, lexer.LBRACE, lexer.IF, lexer.FN,
-		lexer.MATCHKW, lexer.WHILE, lexer.FOR, lexer.MINUS, lexer.BANG:
+		lexer.MATCH_KW, lexer.WHILE, lexer.FOR, lexer.MINUS, lexer.BANG:
 		hint = fmt.Sprintf("unexpected '%s' here — check your expression order", lexer.TokenName(t))
 	default:
 		hint = fmt.Sprintf("unexpected token '%s'", p.curToken.Literal)
@@ -491,11 +498,17 @@ func (p *Parser) parseExpr(precedence int, allowSpaceCalls bool) ast.Expression 
 		return leftExp
 	}
 
-	// IfExpression, WhileExpression: don't continue (self-contained blocks)
+	// IfExpression, WhileExpression, MatchExpression, ForExpression: don't continue (self-contained blocks)
 	if _, ok := leftExp.(*ast.IfExpression); ok {
 		return leftExp
 	}
 	if _, ok := leftExp.(*ast.WhileExpression); ok {
+		return leftExp
+	}
+	if _, ok := leftExp.(*ast.MatchExpression); ok {
+		return leftExp
+	}
+	if _, ok := leftExp.(*ast.ForExpression); ok {
 		return leftExp
 	}
 
@@ -606,7 +619,11 @@ func (p *Parser) parseNilLiteral() ast.Expression {
 }
 
 func (p *Parser) parsePrefixExpression() ast.Expression {
-	expr := &ast.PrefixExpression{Operator: p.curToken.Literal}
+	op := p.curToken.Literal
+	if op == "not" {
+		op = "!"
+	}
+	expr := &ast.PrefixExpression{Operator: op}
 	p.nextToken()
 	expr.Right = p.parseExpression(PrecedencePrefix)
 	return expr
@@ -660,18 +677,25 @@ func (p *Parser) parseMatchExpression() ast.Expression {
 	p.nextToken() // skip INDENT
 
 	for p.curTokenIs(lexer.PIPE) {
-		c := ast.MatchCase{}
-
 		p.nextToken() // skip |
-		c.Pattern = p.parseExpression(PrecedenceLowest)
 
-		if !p.expectPeek(lexer.MATCH) { // ->
+		// Multi-pattern: | 1 | 2 | 3 -> body (each pattern shares the body)
+		patterns := []ast.Expression{p.parseExpression(PrecedenceLowest)}
+		for p.peekTokenIs(lexer.PIPE) {
+			p.nextToken() // consume '|'
+			p.nextToken() // move to next pattern
+			patterns = append(patterns, p.parseExpression(PrecedenceLowest))
+		}
+
+		if !p.expectPeek(lexer.FAT_ARROW) { // ->
 			return nil
 		}
 		p.nextToken() // skip ->
-		c.Body = p.parseExpression(PrecedenceLowest)
+		body := p.parseExpression(PrecedenceLowest)
 
-		expr.Cases = append(expr.Cases, c)
+		for _, pattern := range patterns {
+			expr.Cases = append(expr.Cases, ast.MatchCase{Pattern: pattern, Body: body})
+		}
 
 		for p.peekTokenIs(lexer.NEWLINE) {
 			p.nextToken()
@@ -771,7 +795,7 @@ func (p *Parser) parseInfixExpression(left ast.Expression) ast.Expression {
 }
 
 func (p *Parser) parsePipelineExpression(left ast.Expression) ast.Expression {
-	if isSimpleLiteral(p.peekToken.Type) {
+	if !p.isPipelineContext() {
 		return p.parseInfixExpression(left)
 	}
 
@@ -788,7 +812,7 @@ func (p *Parser) parsePipelineExpression(left ast.Expression) ast.Expression {
 }
 
 func (p *Parser) parseParallelPipelineExpression(left ast.Expression) ast.Expression {
-	if isSimpleLiteral(p.peekToken.Type) {
+	if !p.isPipelineContext() {
 		return p.parseInfixExpression(left)
 	}
 
@@ -805,6 +829,29 @@ func (p *Parser) parseParallelPipelineExpression(left ast.Expression) ast.Expres
 	return expr
 }
 
+func (p *Parser) isPipelineContext() bool {
+	switch p.peekToken.Type {
+	case lexer.INT, lexer.FLOAT, lexer.STRING, lexer.TRUE, lexer.FALSE, lexer.NIL:
+		return false
+	case lexer.LPAREN:
+		return false
+	case lexer.MINUS, lexer.BANG:
+		return false
+	case lexer.IDENT:
+		switch p.peekToken2.Type {
+		case lexer.IDENT, lexer.INT, lexer.FLOAT, lexer.STRING, lexer.TRUE, lexer.FALSE, lexer.NIL,
+			lexer.LPAREN, lexer.LBRACKET, lexer.LBRACE:
+			return true
+		default:
+			return false
+		}
+	case lexer.IF, lexer.WHILE, lexer.FOR, lexer.FN, lexer.MATCH_KW, lexer.TRY, lexer.TRYAI:
+		return true
+	default:
+		return false
+	}
+}
+
 func (p *Parser) insertPipelinePlaceholder(right ast.Expression, pipedValue ast.Expression) ast.Expression {
 	callExpr, ok := right.(*ast.CallExpression)
 	if !ok {
@@ -818,14 +865,6 @@ func (p *Parser) insertPipelinePlaceholder(right ast.Expression, pipedValue ast.
 		}
 	}
 	return right
-}
-
-func isSimpleLiteral(t lexer.TokenType) bool {
-	switch t {
-	case lexer.INT, lexer.FLOAT, lexer.STRING, lexer.TRUE, lexer.FALSE, lexer.NIL, lexer.IDENT, lexer.LPAREN:
-		return true
-	}
-	return false
 }
 
 func (p *Parser) parseDotExpression(left ast.Expression) ast.Expression {
@@ -894,37 +933,89 @@ func (p *Parser) parseForExpression() ast.Expression {
 	expr := &ast.ForExpression{}
 	p.nextToken() // skip 'for'
 
-	// Check for for-in: for IDENT in expr
-	if p.curTokenIs(lexer.IDENT) {
-		// Save the iterator name
-		iterName := p.curToken.Literal
-		if p.peekTokenIs(lexer.IDENT) {
-			// Check if the next token is 'in' (which is an IDENT)
-			p.nextToken()
-			if p.curToken.Literal == "in" {
-				// for-in loop
-				expr.IsForIn = true
-				expr.Iterator = &ast.Identifier{Value: iterName}
-				p.nextToken() // move to iterable expression
-				expr.Iterable = p.parseExpression(PrecedenceLowest)
+	// C-style: for ; cond ; update (empty init)
+	if p.curTokenIs(lexer.SEMICOLON) {
+		return p.parseCStyleBody(expr)
+	}
 
-				if p.peekTokenIs(lexer.NEWLINE) {
-					p.nextToken()
-				}
-				p.nextToken()
-				expr.Body = p.parseBlock()
-				p.closeBlock()
-				return expr
+	if !p.curTokenIs(lexer.IDENT) {
+		p.error("for expects an iterator variable or ';'")
+		return nil
+	}
+	iterName := p.curToken.Literal
+
+	// for-in: for IDENT in expr
+	if p.peekTokenIs(lexer.IDENT) && p.peekToken.Literal == "in" {
+		expr.IsForIn = true
+		expr.Iterator = &ast.Identifier{Value: iterName}
+		p.nextToken() // skip 'in'
+		p.nextToken() // move to iterable expression
+		expr.Iterable = p.parseExpression(PrecedenceLowest)
+
+		if p.peekTokenIs(lexer.NEWLINE) {
+			p.nextToken()
+		}
+		p.nextToken()
+		expr.Body = p.parseBlock()
+		p.closeBlock()
+		return expr
+	}
+
+	// C-style for: for IDENT : init ; cond ; update
+	if !p.peekTokenIs(lexer.COLON) {
+		p.error("expected 'in' or ':' after 'for' variable")
+		return nil
+	}
+
+	p.nextToken() // skip ':'
+	p.nextToken() // move to init value
+	expr.Init = &ast.VarStatement{
+		Name:  &ast.Identifier{Value: iterName},
+		Value: p.parseExpression(PrecedenceLowest),
+	}
+
+	if !p.expectPeek(lexer.SEMICOLON) {
+		return nil
+	}
+
+	return p.parseCStyleBody(expr)
+}
+
+func (p *Parser) parseCStyleBody(expr *ast.ForExpression) ast.Expression {
+	// Parse condition
+	p.nextToken() // move to condition start
+	if !p.curTokenIs(lexer.SEMICOLON) {
+		expr.Condition = p.parseExpression(PrecedenceLowest)
+		if !p.expectPeek(lexer.SEMICOLON) {
+			return nil
+		}
+	} else {
+		// empty condition: for ;; update → infinite loop
+		expr.Condition = nil
+	}
+
+	// Parse update clause
+	p.nextToken() // move to update start
+	if !p.curTokenIs(lexer.SEMICOLON) && !p.peekTokenIs(lexer.NEWLINE) && !p.peekTokenIs(lexer.INDENT) {
+		if p.curTokenIs(lexer.IDENT) && p.peekTokenIs(lexer.COLON) {
+			name := p.curToken.Literal
+			p.nextToken() // skip ':'
+			p.nextToken() // move to value
+			expr.Update = &ast.VarStatement{
+				Name:  &ast.Identifier{Value: name},
+				Value: p.parseExpression(PrecedenceLowest),
+			}
+		} else {
+			expr.Update = &ast.ExpressionStatement{
+				Expression: p.parseExpression(PrecedenceLowest),
 			}
 		}
 	}
 
-	// Simple for: just parse body
 	if p.peekTokenIs(lexer.NEWLINE) {
-		return nil
+		p.nextToken()
 	}
 	p.nextToken()
-
 	expr.Body = p.parseBlock()
 	p.closeBlock()
 	return expr
@@ -1079,9 +1170,22 @@ func (p *Parser) parseIndexOrSlice(left ast.Expression) ast.Expression {
 }
 
 func (p *Parser) parseTryExpression() ast.Expression {
+	return p.parseTryBase(false)
+}
+
+func (p *Parser) parseTryAIExpression() ast.Expression {
+	expr := p.parseTryBase(true)
+	if expr == nil {
+		return nil
+	}
+	expr.(*ast.TryExpression).AIFix = true
+	return expr
+}
+
+func (p *Parser) parseTryBase(aiFix bool) ast.Expression {
 	expr := &ast.TryExpression{}
 
-	p.nextToken() // skip 'try'
+	p.nextToken() // skip 'try' or 'try_ai'
 	if p.peekTokenIs(lexer.NEWLINE) {
 		p.nextToken()
 	}
@@ -1089,10 +1193,13 @@ func (p *Parser) parseTryExpression() ast.Expression {
 	expr.TryBlock = p.parseBlock()
 	p.closeBlock()
 
-	// Expect 'catch' keyword
+	// catch is optional for try_ai, required for try
 	if !p.peekTokenIs(lexer.CATCH) {
-		p.error("try without catch")
-		return nil
+		if !aiFix {
+			p.error("try without catch")
+			return nil
+		}
+		return expr
 	}
 	p.nextToken() // consume 'catch'
 	p.nextToken() // move to catch param name
@@ -1106,12 +1213,6 @@ func (p *Parser) parseTryExpression() ast.Expression {
 	expr.CatchBlock = p.parseBlock()
 	p.closeBlock()
 
-	return expr
-}
-
-func (p *Parser) parseTryAIExpression() ast.Expression {
-	expr := p.parseTryExpression().(*ast.TryExpression)
-	expr.AIFix = true
 	return expr
 }
 

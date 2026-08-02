@@ -276,6 +276,34 @@ func TestEvalForIn(t *testing.T) {
 	expectValue(t, input, "6")
 }
 
+func TestEvalCStyleFor(t *testing.T) {
+	input := "sum: 0\nfor i: 0; i < 5; i: i + 1\n    sum: sum + i\nsum"
+	expectValue(t, input, "10")
+}
+
+func TestEvalCStyleForContinue(t *testing.T) {
+	input := "sum: 0\nfor i: 0; i < 5; i: i + 1\n    if i == 3\n        continue\n    sum: sum + i\nsum"
+	expectValue(t, input, "7")
+}
+
+func TestEvalCStyleForInfinite(t *testing.T) {
+	input := "k: 0\nfor ; ; k: k + 1\n    if k >= 5\n        break\nk"
+	expectValue(t, input, "5")
+}
+
+func TestEvalNotKeyword(t *testing.T) {
+	expectValue(t, "not true", "false")
+	expectValue(t, "not false", "true")
+	expectValue(t, "not (1 > 2)", "true")
+}
+
+func TestEvalMatchMultiPattern(t *testing.T) {
+	input := "match 2\n    | 1 | 2 | 3 -> \"small\"\n    | _ -> \"big\""
+	expectValue(t, input, "small")
+	input2 := "match 9\n    | 1 | 2 | 3 -> \"small\"\n    | _ -> \"big\""
+	expectValue(t, input2, "big")
+}
+
 func TestEvalReturn(t *testing.T) {
 	input := "fn early x\n    if x < 0\n        return 0\n    x * 2\n\nearly 5"
 	expectValue(t, input, "10")

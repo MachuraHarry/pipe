@@ -10,7 +10,7 @@ import (
 type FSAccess int
 
 const (
-	FSNone     FSAccess = iota
+	FSNone FSAccess = iota
 	FSReadOnly
 	FSTempOnly
 	FSFull

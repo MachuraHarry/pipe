@@ -304,6 +304,25 @@ func TestCompileWhileLoop(t *testing.T) {
 	}
 }
 
+func TestCompileCStyleFor(t *testing.T) {
+	input := "for i: 0; i < 5; i: i + 1\n    print i"
+	bc := parseAndCompile(t, input)
+	if !hasOp(t, bc, OpJumpBackward) {
+		t.Error("expected OpJumpBackward for C-style for loop")
+	}
+	if !hasOp(t, bc, OpJumpNotTruthy) {
+		t.Error("expected OpJumpNotTruthy condition check in C-style for")
+	}
+}
+
+func TestCompileCStyleForInfinite(t *testing.T) {
+	input := "k: 0\nfor ; ; k: k + 1\n    if k >= 5\n        break"
+	bc := parseAndCompile(t, input)
+	if !hasOp(t, bc, OpJumpBackward) {
+		t.Error("expected OpJumpBackward for infinite C-style for loop")
+	}
+}
+
 func TestCompileMultiLine(t *testing.T) {
 	input := "x: 10\ny: x + 5\nprint y"
 	bc := parseAndCompile(t, input)

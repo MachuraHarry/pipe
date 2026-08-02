@@ -78,6 +78,11 @@ func checkFull(prog *ast.Program, src string) bool {
 	machine := vm.New(bc)
 	done := make(chan error, 1)
 	go func() {
+		defer func() {
+			if r := recover(); r != nil {
+				done <- fmt.Errorf("panic: %v", r)
+			}
+		}()
 		done <- machine.Run()
 	}()
 	select {

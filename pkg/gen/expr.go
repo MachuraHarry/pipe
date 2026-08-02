@@ -127,8 +127,13 @@ func (g *Generator) genCall(prefType PipeType, depth int) ast.Expression {
 	}
 
 	args := make([]ast.Expression, arity)
+	bi, isBuiltin := builtinInfos[name]
 	for i := 0; i < arity; i++ {
-		args[i] = g.genExpr(TypeAny, depth-1)
+		argType := TypeAny
+		if isBuiltin {
+			argType = bi.argType(i)
+		}
+		args[i] = g.genTypedExpr(argType, depth-1)
 	}
 	return &ast.CallExpression{
 		Function:  &ast.Identifier{Value: name},
@@ -203,6 +208,21 @@ func (g *Generator) genNumeric(depth int) ast.Expression {
 		return g.genInfix(TypeInt, depth)
 	}
 	return g.genLeaf(TypeInt)
+}
+
+func (g *Generator) genTypedExpr(prefType PipeType, depth int) ast.Expression {
+	switch prefType {
+	case TypeInt, TypeFloat:
+		return g.genNumeric(depth)
+	case TypeString:
+		return g.genLiteral(TypeString)
+	default:
+		return g.genExprNoPipeline(prefType, depth)
+	}
+}
+
+func (g *Generator) genStringish(depth int) ast.Expression {
+	return g.genLiteral(TypeString)
 }
 
 func (g *Generator) genList(depth int) ast.Expression {

@@ -41,7 +41,7 @@ func (c *context) resolve(name string) (ScopeEntry, bool) {
 }
 
 func (c *context) addBuiltins() {
-	for name, arity := range builtinArities {
-		c.define(name, ScopeEntry{Kind: KindBuiltin, Type: TypeAny, Arity: arity})
+	for name, bi := range builtinInfos {
+		c.define(name, ScopeEntry{Kind: KindBuiltin, Type: TypeAny, Arity: bi.arity})
 	}
 }

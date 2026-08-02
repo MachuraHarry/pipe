@@ -56,9 +56,10 @@ func pipeRun(this js.Value, args []js.Value) interface{} {
 func pipeGenerate(this js.Value, args []js.Value) interface{} {
 	opts := gen.DefaultOptions()
 	opts.Seed = time.Now().UnixNano()
-	opts.MaxStmts = 8
+	opts.MaxStmts = 10
 
-	_, src, err := gen.GenerateCompilable(opts)
+	_, src, err := gen.GenerateValid(opts)
+	outputBuf.Reset()
 	if err != nil {
 		return "// generation failed: " + err.Error()
 	}

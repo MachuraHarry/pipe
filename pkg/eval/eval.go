@@ -656,9 +656,10 @@ func (ctx *EvalContext) evalPipeline(pe *ast.PipelineExpression, left object.Obj
 
 func (ctx *EvalContext) evalParallelPipeline(pe *ast.PipelineExpression, left object.Object, env *object.Environment) object.Object {
 	future := object.NewFuture()
+	branchEnv := env.Clone()
 
 	go func() {
-		result := ctx.evalPipeline(pe, left, env)
+		result := ctx.evalPipeline(pe, left, branchEnv)
 		future.Val = result
 		close(future.Done)
 	}()

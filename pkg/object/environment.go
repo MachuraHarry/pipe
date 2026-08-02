@@ -53,3 +53,14 @@ func (e *Environment) Copy() *Environment {
 	}
 	return &Environment{store: s, outer: e.outer}
 }
+
+// Clone returns a snapshot of the whole environment chain. Used to isolate
+// parallel pipeline branches (>>) from concurrent writes to the caller's
+// environment.
+func (e *Environment) Clone() *Environment {
+	cp := e.Copy()
+	if e.outer != nil {
+		cp.outer = e.outer.Clone()
+	}
+	return cp
+}

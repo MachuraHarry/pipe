@@ -131,6 +131,7 @@ a{color:var(--accent);text-decoration:none}
       <div class="play-actions">
         <button class="icon-btn" onclick="downloadCode()" title="Download .pipe file">↓</button>
         <button id="share-btn" class="share-btn" onclick="sharePlay()">Share</button>
+        <button id="gen-btn" class="icon-btn" onclick="generatePlay()" disabled title="Generate random valid code">✦</button>
         <button id="play-btn" class="run-btn" disabled onclick="runPlay()">▶ Run</button>
       </div>
     </div>
@@ -196,6 +197,7 @@ fetch("pipe.wasm").then(r => {
   document.getElementById("play-status").textContent = "✓ ready";
   document.getElementById("sandbox-notice").classList.add("show");
   document.getElementById("play-btn").disabled = false;
+  document.getElementById("gen-btn").disabled = false;
   updateBar();
 }).catch(e => {
   document.getElementById("play-status").textContent = "✗ " + e.message;
@@ -209,6 +211,36 @@ function updateBar() {
   if (s.startsWith("✓")) { bar.className = "play-bar success"; }
   else if (s.startsWith("✗")) { bar.className = "play-bar error"; }
   else { bar.className = "play-bar"; }
+}
+
+function generatePlay() {
+  const btn = document.getElementById("gen-btn"), out = document.getElementById("play-out"), bar = document.getElementById("play-bar");
+  if (!pipeReady || btn.disabled) return;
+  btn.disabled = true;
+  btn.textContent = "⏳";
+  bar.className = "play-bar";
+  bar.innerHTML = '<span>generating…</span>';
+  out.className = "play-out";
+  out.textContent = "";
+  setTimeout(function () {
+    try {
+      const code = pipeGenerate();
+      document.getElementById("play-editor").value = code;
+      syncHighlight();
+      saveDraft();
+      btn.disabled = false;
+      btn.textContent = "✦";
+      bar.className = "play-bar success";
+      bar.innerHTML = '<span>✓ generated</span>';
+    } catch (e) {
+      btn.disabled = false;
+      btn.textContent = "✦";
+      bar.className = "play-bar error";
+      bar.innerHTML = '<span>✗ generate error</span>';
+      out.className = "play-out error";
+      out.textContent = "Error: " + e.message;
+    }
+  }, 50);
 }
 
 function runPlay() {

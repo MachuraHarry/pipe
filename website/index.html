@@ -242,7 +242,10 @@ span[data-lang].active{display:inline}a[data-lang].active{display:inline-block}
           <span class="play-dot" style="background:#fc5c7c"></span><span class="play-dot" style="background:#fc8c3c"></span><span class="play-dot" style="background:#3ce096"></span>
           <span class="play-label">pipe playground</span>
         </div>
+        <div>
+        <button id="gen-btn" class="play-run-btn" disabled onclick="generatePlayground()" style="background:var(--bg3);color:var(--fg);margin-right:6px">✦</button>
         <button id="play-btn" class="play-run-btn" disabled onclick="runPlayground()">▶ Run</button>
+        </div>
       </div>
       <div class="play-editor-wrap">
         <textarea id="play-editor" class="play-editor" placeholder="Write Pipe code..." spellcheck="false"
@@ -664,6 +667,31 @@ function pickPlayExample() {
   if (!ta) return;
   ta.value = playExamples[Math.floor(Math.random() * playExamples.length)];
   syncHighlight();
+}
+
+function generatePlayground() {
+  var btn = document.getElementById("gen-btn"), bar = document.getElementById("play-bar"), out = document.getElementById("play-out");
+  if (!btn || btn.disabled) return;
+  btn.disabled = true; btn.textContent = "⏳";
+  bar.className = "play-bar"; bar.innerHTML = '<span>generating…</span>';
+  out.textContent = "";
+  setTimeout(function () {
+    try {
+      var code = generatePipe();
+      document.getElementById("play-editor").value = code;
+      syncHighlight();
+      btn.disabled = false; btn.textContent = "✦";
+      bar.className = "play-bar success";
+      bar.innerHTML = '<span>✓ generated</span>';
+      bar.style.color = "var(--green)";
+    } catch (e) {
+      btn.disabled = false; btn.textContent = "✦";
+      bar.className = "play-bar error";
+      bar.innerHTML = '<span>✗ generate error</span>';
+      bar.style.color = "var(--red)";
+      out.textContent = "Error: " + e.message;
+    }
+  }, 50);
 }
 
 document.getElementById("play-editor").addEventListener("keydown",function(e){if((e.ctrlKey||e.metaKey)&&e.key==="Enter")runPlayground();});

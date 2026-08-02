@@ -16,6 +16,7 @@ import (
 	"github.com/harry/pipe/pkg/compiler"
 	"github.com/harry/pipe/pkg/eval"
 	"github.com/harry/pipe/pkg/formatter"
+	"github.com/harry/pipe/pkg/gen"
 	"github.com/harry/pipe/pkg/lexer"
 	"github.com/harry/pipe/pkg/object"
 	"github.com/harry/pipe/pkg/parser"
@@ -40,6 +41,10 @@ func main() {
 		doBench        bool
 		doTest         bool
 		doBuild        bool
+		doGen          bool
+		genCount       int
+		genRun         bool
+		genCheck       bool
 		doGet          bool
 		doSearch       bool
 		searchTerm     string
@@ -73,6 +78,14 @@ func main() {
 			doTest = true
 		case "-build":
 			doBuild = true
+		case "-gen":
+			doGen = true
+		case "-run":
+			genRun = true
+		case "-check":
+			genCheck = true
+		case "-n":
+			genCount = -1
 		case "-get":
 			doGet = true
 		case "-search":
@@ -103,6 +116,12 @@ func main() {
 				// --timeout <seconds>
 				if n, err := strconv.Atoi(arg); err == nil && n > 0 {
 					timeoutSec = n
+					continue
+				}
+			}
+			if genCount == -1 {
+				if n, err := strconv.Atoi(arg); err == nil && n > 0 {
+					genCount = n
 					continue
 				}
 			}
@@ -138,6 +157,53 @@ func main() {
 			os.Exit(1)
 		}
 		fmt.Printf("Built %s -> %s\n", filePath, outPath)
+		return
+	}
+
+	if doGen {
+		n := genCount
+		if n <= 0 {
+			n = 1
+		}
+		allOK := true
+		for i := 0; i < n; i++ {
+			opts := gen.DefaultOptions()
+			opts.Seed = time.Now().UnixNano() + int64(i)
+
+			var prog *ast.Program
+			var src string
+			var err error
+
+			if genCheck || genRun {
+				prog, src, err = gen.GenerateValid(opts)
+			} else {
+				prog, src, err = gen.GenerateCompilable(opts)
+			}
+			if err != nil {
+				allOK = false
+				fmt.Fprintf(os.Stderr, "gen: %s\n", err)
+				continue
+			}
+			if !strings.HasSuffix(src, "\n") {
+				src += "\n"
+			}
+
+			fmt.Print(src)
+
+			if genRun {
+				if err := runGenProgram(prog); err != nil {
+					allOK = false
+					fmt.Fprintf(os.Stderr, "run: %s\n", err)
+				}
+			}
+
+			if i < n-1 {
+				fmt.Println()
+			}
+		}
+		if genCheck && !allOK {
+			os.Exit(1)
+		}
 		return
 	}
 
@@ -393,6 +459,10 @@ Flags:
   --check       Check formatting without writing (requires -fmt)
   -test         Run all test files in current directory
   -bench        Run benchmarks (tree-walker vs VM)
+  -gen          Generate a random valid program
+  -run          Execute the generated program (use with -gen)
+  -check        Validate generated program, exit non-zero on failure (use with -gen)
+  -n N          Generate N programs (use with -gen)
   --sandbox              Restrict dangerous builtins (exec, tcp, http, ai, fs-write)
   --sandbox-profile <name>  Use a predefined sandbox profile (strict, networked, etc.)
   --allow-ai             In sandbox: re-enable AI builtins
@@ -427,6 +497,21 @@ func runEval(program *ast.Program, scriptArgs []string, filePath string) {
 		fmt.Fprintf(os.Stderr, "Runtime error: %s\n", result.Inspect())
 		os.Exit(1)
 	}
+}
+
+func checkProgram(program *ast.Program) error {
+	comp := compiler.New()
+	return comp.Compile(program)
+}
+
+func runGenProgram(program *ast.Program) error {
+	comp := compiler.New()
+	if err := comp.Compile(program); err != nil {
+		return err
+	}
+	bc := comp.Bytecode()
+	machine := vm.New(bc)
+	return machine.Run()
 }
 
 func runVM(program *ast.Program, quiet bool, filePath string) {

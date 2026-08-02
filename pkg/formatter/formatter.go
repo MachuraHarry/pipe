@@ -66,6 +66,10 @@ func fallbackFormat(src string) string {
 	return result
 }
 
+func FormatProgram(prog *ast.Program) string {
+	return formatProgram(prog)
+}
+
 func formatProgram(program *ast.Program) string {
 	var out strings.Builder
 	var lastWasDef bool
@@ -100,6 +104,9 @@ func formatStatement(out *strings.Builder, stmt ast.Statement, depth int) {
 
 	switch s := stmt.(type) {
 	case *ast.ExpressionStatement:
+		if _, isPipeline := s.Expression.(*ast.PipelineExpression); !isPipeline {
+			out.WriteString(indent)
+		}
 		formatExpr(out, s.Expression, depth, 0)
 		if !strings.HasSuffix(out.String(), "\n") {
 			out.WriteByte('\n')
@@ -109,7 +116,11 @@ func formatStatement(out *strings.Builder, stmt ast.Statement, depth int) {
 		out.WriteString(indent)
 		out.WriteString(s.Name.Value)
 		out.WriteString(": ")
-		formatExpr(out, s.Value, 0, 0)
+		if _, isPipeline := s.Value.(*ast.PipelineExpression); isPipeline {
+			formatPipelineTop(out, s.Value, 0)
+		} else {
+			formatExpr(out, s.Value, depth, 0)
+		}
 		out.WriteByte('\n')
 
 	case *ast.FnStatement:
@@ -249,22 +260,13 @@ func formatExpr(out *strings.Builder, expr ast.Expression, depth int, prec int) 
 
 	case *ast.CallExpression:
 		formatExpr(out, e.Function, depth, 0)
-		if len(e.Arguments) == 0 {
-			out.WriteString("()")
-		} else {
-			out.WriteString(" (")
-			for i, arg := range e.Arguments {
-				if i > 0 {
-					out.WriteString(", ")
-				}
-				formatExpr(out, arg, depth, 0)
-			}
-			out.WriteByte(')')
+		for _, arg := range e.Arguments {
+			out.WriteByte(' ')
+			formatCallArg(out, arg, depth)
 		}
 
 	case *ast.PipelineExpression:
-		out.WriteByte('\n')
-		formatPipeline(out, expr, depth+1)
+		formatPipelineTop(out, expr, depth)
 
 	case *ast.IfExpression:
 		out.WriteString("if ")
@@ -400,7 +402,24 @@ func formatExpr(out *strings.Builder, expr ast.Expression, depth int, prec int) 
 	}
 }
 
-func formatPipeline(out *strings.Builder, expr ast.Expression, depth int) {
+func formatCallArg(out *strings.Builder, expr ast.Expression, depth int) {
+	switch expr.(type) {
+	case *ast.IntegerLiteral, *ast.FloatLiteral, *ast.StringLiteral,
+		*ast.BooleanLiteral, *ast.NilLiteral, *ast.Identifier:
+		formatExpr(out, expr, depth, 0)
+	default:
+		// Pipe call arguments are parsed as value tokens; wrap complex
+		// expressions in parentheses so they reparse to the same AST.
+		out.WriteByte('(')
+		formatExpr(out, expr, depth, 0)
+		out.WriteByte(')')
+	}
+}
+
+// formatPipelineTop renders a pipeline that begins a logical line at the given
+// depth: the base value on its own line followed by one indented stage per
+// pipeline hop. Each line ends with a newline.
+func formatPipelineTop(out *strings.Builder, expr ast.Expression, depth int) {
 	pe, ok := expr.(*ast.PipelineExpression)
 	if !ok {
 		formatExpr(out, expr, depth, 0)
@@ -408,31 +427,49 @@ func formatPipeline(out *strings.Builder, expr ast.Expression, depth int) {
 	}
 	indent := strings.Repeat("    ", depth)
 
-	// Print the initial value first
-	if leftPE, isLeftPE := pe.Left.(*ast.PipelineExpression); isLeftPE {
-		formatPipeline(out, leftPE, depth)
-	} else {
-		formatExpr(out, pe.Left, depth-1, 0)
+	leftmost, stages := pipelineStages(pe)
+	out.WriteString(indent)
+	formatExpr(out, leftmost, depth, 0)
+	out.WriteByte('\n')
+
+	for _, stage := range stages {
+		out.WriteString(indent + "    ")
+		if stage.Parallel {
+			out.WriteString(">> ")
+		} else {
+			out.WriteString("> ")
+		}
+		if call, ok := stage.Right.(*ast.CallExpression); ok {
+			formatExpr(out, call.Function, depth, 0)
+			for _, arg := range call.Arguments {
+				out.WriteByte(' ')
+				formatCallArg(out, arg, depth)
+			}
+		} else {
+			formatExpr(out, stage.Right, depth, 0)
+		}
 		out.WriteByte('\n')
 	}
+}
 
-	// Print this stage
-	out.WriteString(indent)
-	if pe.Parallel {
-		out.WriteString(">> ")
-	} else {
-		out.WriteString("> ")
-	}
-	if call, ok := pe.Right.(*ast.CallExpression); ok {
-		formatExpr(out, call.Function, depth, 0)
-		for _, arg := range call.Arguments {
-			out.WriteByte(' ')
-			formatExpr(out, arg, depth, 0)
+// pipelineStages splits a left-nested pipeline into the base value and the
+// ordered list of stages from first to last.
+func pipelineStages(pe *ast.PipelineExpression) (ast.Expression, []*ast.PipelineExpression) {
+	var stages []*ast.PipelineExpression
+	leftmost := pe.Left
+	for cur := pe; cur != nil; {
+		stages = append(stages, cur)
+		inner, ok := cur.Left.(*ast.PipelineExpression)
+		if !ok {
+			leftmost = cur.Left
+			break
 		}
-	} else {
-		formatExpr(out, pe.Right, depth, 0)
+		cur = inner
 	}
-	out.WriteByte('\n')
+	for i, j := 0, len(stages)-1; i < j; i, j = i+1, j-1 {
+		stages[i], stages[j] = stages[j], stages[i]
+	}
+	return leftmost, stages
 }
 
 func precOf(op string) int {

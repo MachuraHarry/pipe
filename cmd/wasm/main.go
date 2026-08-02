@@ -5,8 +5,10 @@ package main
 import (
 	"strings"
 	"syscall/js"
+	"time"
 
 	"github.com/harry/pipe/pkg/eval"
+	"github.com/harry/pipe/pkg/gen"
 	"github.com/harry/pipe/pkg/lexer"
 	"github.com/harry/pipe/pkg/object"
 	"github.com/harry/pipe/pkg/parser"
@@ -51,9 +53,22 @@ func pipeRun(this js.Value, args []js.Value) interface{} {
 	return outputBuf.String()
 }
 
+func pipeGenerate(this js.Value, args []js.Value) interface{} {
+	opts := gen.DefaultOptions()
+	opts.Seed = time.Now().UnixNano()
+	opts.MaxStmts = 8
+
+	_, src, err := gen.GenerateCompilable(opts)
+	if err != nil {
+		return "// generation failed: " + err.Error()
+	}
+	return src
+}
+
 func main() {
 	object.SetSandbox(true)
 	js.Global().Set("pipeRun", js.FuncOf(pipeRun))
+	js.Global().Set("pipeGenerate", js.FuncOf(pipeGenerate))
 	js.Global().Set("pipeVersion", js.ValueOf("v0.7.0"))
 	select {}
 }

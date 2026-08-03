@@ -4,7 +4,7 @@ import (
 	"math/rand"
 	"sort"
 
-	"github.com/harry/pipe/pkg/ast"
+	"github.com/MachuraHarry/pipe/pkg/ast"
 )
 
 type Generator struct {

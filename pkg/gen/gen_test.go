@@ -3,10 +3,10 @@ package gen
 import (
 	"testing"
 
-	"github.com/harry/pipe/pkg/compiler"
-	"github.com/harry/pipe/pkg/formatter"
-	"github.com/harry/pipe/pkg/lexer"
-	"github.com/harry/pipe/pkg/parser"
+	"github.com/MachuraHarry/pipe/pkg/compiler"
+	"github.com/MachuraHarry/pipe/pkg/formatter"
+	"github.com/MachuraHarry/pipe/pkg/lexer"
+	"github.com/MachuraHarry/pipe/pkg/parser"
 )
 
 func TestGenerateComprehensive(t *testing.T) {

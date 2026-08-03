@@ -179,8 +179,9 @@ Using `reduce`:
 
 ```pipe
 nums: [1, 2, 3, 4, 5]
-result: reduce nums (fn a b
-    a + b) 0
+add: fn a b
+    a + b
+result: reduce nums add 0
 print result
 -- Output: 15
 ```

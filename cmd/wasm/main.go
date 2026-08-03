@@ -7,11 +7,11 @@ import (
 	"syscall/js"
 	"time"
 
-	"github.com/harry/pipe/pkg/eval"
-	"github.com/harry/pipe/pkg/gen"
-	"github.com/harry/pipe/pkg/lexer"
-	"github.com/harry/pipe/pkg/object"
-	"github.com/harry/pipe/pkg/parser"
+	"github.com/MachuraHarry/pipe/pkg/eval"
+	"github.com/MachuraHarry/pipe/pkg/gen"
+	"github.com/MachuraHarry/pipe/pkg/lexer"
+	"github.com/MachuraHarry/pipe/pkg/object"
+	"github.com/MachuraHarry/pipe/pkg/parser"
 )
 
 var outputBuf strings.Builder

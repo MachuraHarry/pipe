@@ -156,7 +156,7 @@ Pipe-Dateien haben die Endung **`.pipe`**.
 | `str` | `"Hallo"` | Unicode-String |
 | `list` | `[1, 2, 3]` | Dynamische, geordnete Liste |
 | `map` | `{name: "Anna"}` | Assoziative Map |
-| `fn` | `fn x: x * 2` | First-Class Function |
+| `fn` | `fn x` (body indented) | First-Class Function |
 
 ### Truthiness
 

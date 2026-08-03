@@ -11,8 +11,8 @@ This guide helps developers familiar with Python, Lua, Bash, or JavaScript under
 | Comments | `# comment` | `-- comment` |
 | Variables | `x = 42` | `x: 42` |
 | Constants | Convention only | No `const` keyword |
-| Functions | `def name(a, b):` | `fn name a b:` |
-| Anonymous functions | `lambda x: x * 2` | `fn x: x * 2` |
+| Functions | `def name(a, b):` | `fn name a b` |
+| Anonymous functions | `lambda x: x * 2` | `double: fn x`<br>`    x * 2` |
 | Blocks | Colons + indentation | Colons + indentation |
 | If/else | `if x: ... else: ...` | `if x: ... else: ...` |
 | Loops | `for i in range(10):` | `for i in range 10:` |
@@ -33,7 +33,7 @@ This guide helps developers familiar with Python, Lua, Bash, or JavaScript under
 | Pattern matching | `match x: case y:` (3.10+) | `match x \| val -> ...` |
 | Classes/OOP | Yes | No |
 | Decorators | `@decorator` | No |
-| Comprehensions | `[x*2 for x in lst]` | `map lst (fn x: x * 2)` |
+| Comprehensions | `[x*2 for x in lst]` | `map lst double` |
 | Generators | `yield` | No |
 | Async/await | `async/await` | No |
 | Type hints | Yes | No (planned) |
@@ -91,7 +91,7 @@ print fib 10
 | Block comments | `--[[ ... ]]` | Not supported |
 | Variables | `local x = 42` | `x: 42` (block-scoped) |
 | Global variables | Default scope | Top-level only |
-| Functions | `function name(a, b)` | `fn name a b:` |
+| Functions | `function name(a, b)` | `fn name a b` |
 | End blocks | `end` keyword | Indentation (DEDENT) |
 | If/else | `if x then ... else ... end` | `if x: ... else: ...` |
 | Loops | `for i=1,10 do ... end` | `for i in range 1 11:` |
@@ -157,7 +157,7 @@ print fib 10
 | Comments | `# comment` | `-- comment` |
 | Variables | `x=42` (no spaces) | `x: 42` |
 | Variable access | `$x` or `"${x}"` | `x` (direct) |
-| Functions | `name() { ... }` | `fn name:` |
+| Functions | `name() { ... }` | `fn name` |
 | If/else | `if [[ cond ]]; then ... fi` | `if cond: ... else: ...` |
 | Loops | `for i in {1..10}; do ... done` | `for i in range 1 11:` |
 | Arrays | `arr=(a b c)` | `["a", "b", "c"]` |
@@ -198,12 +198,12 @@ print fib 10
 |---------|------------|------|
 | Comments | `// comment`, `/* */` | `-- comment` |
 | Variables | `let x = 42`, `const x = 42` | `x: 42` |
-| Functions | `function name(a, b) {}` | `fn name a b:` |
-| Arrow functions | `(x) => x * 2` | `fn x: x * 2` |
+| Functions | `function name(a, b) {}` | `fn name a b` |
+| Arrow functions | `(x) => x * 2` | `double: fn x`<br>`    x * 2` |
 | Blocks | `{ ... }` | Indentation |
 | If/else | `if (x) { ... } else { ... }` | `if x: ... else: ...` |
 | Loops | `for (let i=0; i<10; i++)` | `for i in range 10:` |
-| Array methods | `arr.map(x => x*2)` | `map arr (fn x: x * 2)` |
+| Array methods | `arr.map(x => x*2)` | `map arr double` |
 | Objects | `{key: val}` | `{key: val}` |
 | Template strings | `` `hello ${name}` `` | `"hello " ++ name` |
 | String concat | `"a" + "b"` | `"a" ++ "b"` |

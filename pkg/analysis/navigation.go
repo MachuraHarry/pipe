@@ -3,7 +3,7 @@ package analysis
 import (
 	"errors"
 
-	"github.com/harry/pipe/pkg/ast"
+	"github.com/MachuraHarry/pipe/pkg/ast"
 )
 
 // Location is a source range, used for navigation results.

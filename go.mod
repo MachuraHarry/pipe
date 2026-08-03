@@ -1,3 +1,3 @@
-module github.com/harry/pipe
+module github.com/MachuraHarry/pipe
 
 go 1.21

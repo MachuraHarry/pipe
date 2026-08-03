@@ -326,8 +326,9 @@ for item in items
     print item
 
 -- Compatible with both:
-each items (fn item
-    print item)
+print_item: fn item
+    print item
+each items print_item
 
 -- Or with index:
 each range 0 (len items) fn i
@@ -338,8 +339,9 @@ each range 0 (len items) fn i
 
 ```pipe
 -- Tree-Walker only:
-doubled: map nums (fn x
-    x * 2)
+double: fn x
+    x * 2
+doubled: map nums double
 
 -- VM-compatible (manual loop approach):
 doubled: []

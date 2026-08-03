@@ -6,10 +6,10 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/harry/pipe/pkg/compiler"
-	"github.com/harry/pipe/pkg/lexer"
-	"github.com/harry/pipe/pkg/object"
-	"github.com/harry/pipe/pkg/parser"
+	"github.com/MachuraHarry/pipe/pkg/compiler"
+	"github.com/MachuraHarry/pipe/pkg/lexer"
+	"github.com/MachuraHarry/pipe/pkg/object"
+	"github.com/MachuraHarry/pipe/pkg/parser"
 )
 
 const (

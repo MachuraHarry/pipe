@@ -1,7 +1,7 @@
 package analysis
 
 import (
-	"github.com/harry/pipe/pkg/lexer"
+	"github.com/MachuraHarry/pipe/pkg/lexer"
 )
 
 // SignatureInfo is the LSP signature-help payload for a call site.

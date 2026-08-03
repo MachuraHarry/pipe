@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/harry/pipe/pkg/analysis"
-	"github.com/harry/pipe/pkg/ast"
+	"github.com/MachuraHarry/pipe/pkg/analysis"
+	"github.com/MachuraHarry/pipe/pkg/ast"
 )
 
 // ---- LSP protocol types (subset) ----

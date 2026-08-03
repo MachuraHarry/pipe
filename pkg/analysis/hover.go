@@ -3,7 +3,7 @@ package analysis
 import (
 	"strings"
 
-	"github.com/harry/pipe/pkg/ast"
+	"github.com/MachuraHarry/pipe/pkg/ast"
 )
 
 // HoverInfo is the LSP hover payload. Contents are markdown strings.

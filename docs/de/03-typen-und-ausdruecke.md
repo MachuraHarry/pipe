@@ -12,7 +12,7 @@ Pipe hat 7 eingebaute Datentypen:
 | `str` | Unicode-String | `"Hallo"`, `` `mehrzeilig` `` | `String` |
 | `list` | Dynamische Liste | `[1, 2, 3]` | `List` |
 | `map` | Assoziative Map | `{a: 1, b: 2}` | `Map` |
-| `fn` | First-Class Funktion | `fn x: x * 2` | `Function` / `CompiledFunction` / `Closure` |
+| `fn` | First-Class Funktion | `fn x` (body indented) | `Function` / `CompiledFunction` / `Closure` |
 
 ### nil
 

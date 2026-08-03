@@ -7,8 +7,8 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/harry/pipe/pkg/analysis"
-	"github.com/harry/pipe/pkg/formatter"
+	"github.com/MachuraHarry/pipe/pkg/analysis"
+	"github.com/MachuraHarry/pipe/pkg/formatter"
 )
 
 // Document is the state the server keeps for one open file.

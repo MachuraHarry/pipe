@@ -55,11 +55,14 @@ This reads naturally: "take 5, double it, square the result, convert to string."
 When a pipeline step needs arguments beyond the piped value, list them after the function name:
 
 ```pipe
+is_even: fn x
+    x % 2 == 0
+triple: fn x
+    x * 3
+
 [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
-    > filter (fn x
-        x % 2 == 0)
-    > map (fn x
-        x * 3)
+    > filter is_even
+    > map triple
     > sort
     > print
 
@@ -197,13 +200,15 @@ Without `_`, the value goes as the first argument. With `_`, the value goes exac
 A realistic example: reading a file, splitting into lines, filtering, sorting, and printing:
 
 ```pipe
+not_empty: fn line
+    (len line) > 0
+has_pipe: fn line
+    has line "pipe"
+
 read_file "data/words.txt"
     > split _ "\n"
-    -- remove blank lines
-    > filter (fn line
-        (len line) > 0)
-    > filter (fn line
-        has line "pipe")
+    > filter not_empty
+    > filter has_pipe
     > sort
     > for line in _
         print line
@@ -223,11 +228,13 @@ Breaking this down step by step:
 A multi-step number processing pipeline:
 
 ```pipe
+is_positive: fn n
+    (is_num n) && (n > 0)
+
 read_file "data/numbers.csv"
     > split _ ","
     > map _ to_num
-    > filter (fn n
-        (is_num n) && (n > 0))
+    > filter is_positive
     > sum _
     > print
 ```
@@ -281,16 +288,21 @@ Pipelines and nested function calls produce the same result, but pipelines are o
 ### Nested function calls:
 
 ```pipe
-print (sort (map (filter (split (read_file "data.txt") "\n") (fn x (len x) > 0)) upper))
+not_empty: fn x
+    (len x) > 0
+
+print (sort (map (filter (split (read_file "data.txt") "\n") not_empty) upper))
 ```
 
 ### The same with pipelines:
 
 ```pipe
+not_empty: fn x
+    (len x) > 0
+
 read_file "data.txt"
     > split _ "\n"
-    > filter (fn x
-        (len x) > 0)
+    > filter not_empty
     > map _ upper
     > sort
     > print
@@ -341,10 +353,12 @@ Pipe's pipeline design follows a simple principle: **data flows downward; transf
 This makes Pipe programs read like a description:
 
 ```pipe
+is_error: fn line
+    has line "ERROR"
+
 read_file "log.txt"
     > split _ "\n"
-    > filter (fn line
-        has line "ERROR")
+    > filter is_error
     > count
     > print
 ```

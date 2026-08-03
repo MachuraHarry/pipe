@@ -3,7 +3,7 @@ package gen
 import (
 	"fmt"
 
-	"github.com/harry/pipe/pkg/ast"
+	"github.com/MachuraHarry/pipe/pkg/ast"
 )
 
 const exprRetries = 5

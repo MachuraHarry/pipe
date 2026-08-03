@@ -1,9 +1,9 @@
 package analysis
 
 import (
-	"github.com/harry/pipe/pkg/ast"
-	"github.com/harry/pipe/pkg/lexer"
-	"github.com/harry/pipe/pkg/parser"
+	"github.com/MachuraHarry/pipe/pkg/ast"
+	"github.com/MachuraHarry/pipe/pkg/lexer"
+	"github.com/MachuraHarry/pipe/pkg/parser"
 )
 
 // Analyzer walks a Pipe AST and builds the symbol/scope model. The scope rules

@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"math"
 
-	"github.com/harry/pipe/pkg/compiler"
-	"github.com/harry/pipe/pkg/object"
+	"github.com/MachuraHarry/pipe/pkg/compiler"
+	"github.com/MachuraHarry/pipe/pkg/object"
 )
 
 const (

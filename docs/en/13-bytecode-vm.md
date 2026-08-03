@@ -220,7 +220,7 @@ InfixExpression {
 
 **Constant Pool**: `[0: 1, 1: 2]`
 
-### Example 2: `fn double x: x * 2`
+### Example 2: Function definition
 
 **AST**:
 ```

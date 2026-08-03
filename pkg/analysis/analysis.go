@@ -1,7 +1,7 @@
 package analysis
 
 import (
-	"github.com/harry/pipe/pkg/ast"
+	"github.com/MachuraHarry/pipe/pkg/ast"
 )
 
 // SymbolKind classifies a defined name.

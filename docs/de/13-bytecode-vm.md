@@ -150,7 +150,7 @@ Bytecode:
 Constant Pool: [1, 2]
 ```
 
-### Beispiel: `fn double x: x * 2`
+### Beispiel: Funktion `fn double x`
 
 ```
 Bytecode der main-Funktion:

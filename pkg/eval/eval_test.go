@@ -3,9 +3,9 @@ package eval
 import (
 	"testing"
 
-	"github.com/harry/pipe/pkg/lexer"
-	"github.com/harry/pipe/pkg/object"
-	"github.com/harry/pipe/pkg/parser"
+	"github.com/MachuraHarry/pipe/pkg/lexer"
+	"github.com/MachuraHarry/pipe/pkg/object"
+	"github.com/MachuraHarry/pipe/pkg/parser"
 )
 
 func parseAndEval(t *testing.T, input string) object.Object {

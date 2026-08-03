@@ -1,7 +1,7 @@
 package eval
 
 import (
-	"github.com/harry/pipe/pkg/object"
+	"github.com/MachuraHarry/pipe/pkg/object"
 )
 
 type Builtin struct {

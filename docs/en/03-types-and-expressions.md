@@ -201,8 +201,9 @@ some_fn: double
 some_fn 5
 
 -- anonymous functions as arguments
-result: (map ([1, 2, 3]) (fn x
-    x * 3))
+triple: fn x
+    x * 3
+result: (map ([1, 2, 3]) triple)
 ```
 
 ## Operators

@@ -5,9 +5,9 @@ import (
 	"os"
 	"strings"
 
-	"github.com/harry/pipe/pkg/ast"
-	"github.com/harry/pipe/pkg/lexer"
-	"github.com/harry/pipe/pkg/parser"
+	"github.com/MachuraHarry/pipe/pkg/ast"
+	"github.com/MachuraHarry/pipe/pkg/lexer"
+	"github.com/MachuraHarry/pipe/pkg/parser"
 )
 
 func Format(path string) error {

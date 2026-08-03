@@ -52,10 +52,12 @@ read_file "news.txt"
 ### Log Analysis → Incident Report
 
 ```pipe
+is_critical: fn line
+    contains line "critical"
+
 read_file "/var/log/app/errors.log"
     > split "\n"
-    > classify ["critical", "warning", "info"]
-    > filter (fn l: l == "critical")
+    > filter is_critical
     > summarize
     > translate "de"
     > save "incident_report.txt"
@@ -88,11 +90,9 @@ fn get_weather city
         | "London" -> "15°C, rainy"
         | _ -> city ++ ": no data"
 
-ai_tool "get_weather" "Get current weather for a city"
-    {city: "Name of the city"} get_weather
+ai_tool "get_weather" "Get current weather for a city" {city: "Name of the city"} get_weather
 
-ai_with_tools "You are a weather assistant."
-    "What's the weather in Berlin and London?"
+ai_with_tools "You are a weather assistant." "What's the weather in Berlin and London?"
     > print
 ```
 
@@ -143,8 +143,9 @@ No install needed — Pipe runs fully in your browser via WebAssembly:
 
 ```pipe
 -- Paste this into the playground and hit Run
+levels: ["error","warn","info"]
 read_file "server.log"
-    > classify ["error","warn","info"]
+    > classify levels
     > summarize
     > print
 ```

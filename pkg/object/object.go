@@ -19,8 +19,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/harry/pipe/pkg/ai"
-	"github.com/harry/pipe/pkg/ast"
+	"github.com/MachuraHarry/pipe/pkg/ai"
+	"github.com/MachuraHarry/pipe/pkg/ast"
 )
 
 type ObjectType string
@@ -311,7 +311,7 @@ var Builtins = []BuiltinInfo{
 	{"sort", bSort},
 	{"range", bRange},
 
-	// List — higher order (VM can't use these yet, added for completeness)
+	// List — higher order (works with named functions; inline lambdas not yet supported)
 	{"map", bMap},
 	{"filter", bFilter},
 	{"reduce", bReduce},

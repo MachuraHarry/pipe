@@ -5,7 +5,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/harry/pipe/pkg/ast"
+	"github.com/MachuraHarry/pipe/pkg/ast"
 )
 
 // Severity mirrors LSP DiagnosticSeverity.

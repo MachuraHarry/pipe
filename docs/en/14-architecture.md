@@ -172,7 +172,7 @@ The AST defines 34 node types implemented in ~417 lines: 12 statements, 20 expre
 | Node | Description |
 |------|-------------|
 | `ExpressionStatement` | Wraps an expression as a statement |
-| `FnStatement` | Named function definition: `fn name params: body` |
+| `FnStatement` | Named function definition (name, params, body block) |
 | `VarStatement` | Variable declaration: `name: value` |
 | `BlockStatement` | Sequence of statements (function body, if body, etc.) |
 | `ReturnStatement` | Early return from a function |

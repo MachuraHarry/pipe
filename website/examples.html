@@ -213,19 +213,21 @@ a[data-lang].active { display: inline-block; }
       <h3 data-lang="de">Log-Analyse &rarr; Incident-Report</h3>
       <p class="ex-desc" data-lang="en" class="active">Reads error logs, classifies each line by AI, filters for critical entries only, summarizes them into a coherent report, translates it to German, and saves the result.</p>
       <p class="ex-desc" data-lang="de">Liest Fehlerlogs, klassifiziert jede Zeile per KI, filtert kritische Einträge, fasst sie in einem Report zusammen, übersetzt ihn ins Deutsche und speichert das Ergebnis.</p>
-      <pre class="example-code"><span class="cmt">-- Read error logs, classify severity, summarize findings</span>
+      <pre class="example-code"><span class="cmt">-- Read error logs, filter critical lines, summarize findings</span>
+<span class="fn">is_critical</span>: <span class="kw">fn</span> line
+    <span class="fn">contains</span> line <span class="str">"critical"</span>
+
 <span class="fn">read_file</span> <span class="str">"/var/log/app/errors.log"</span>
     <span class="pipe">&gt;</span> <span class="fn">split</span> <span class="str">"\n"</span>
-    <span class="pipe">&gt;</span> <span class="fn">classify</span> [<span class="str">"critical"</span>, <span class="str">"warning"</span>, <span class="str">"info"</span>]
-    <span class="pipe">&gt;</span> <span class="fn">filter</span> (<span class="kw">fn</span> l: l <span class="op">==</span> <span class="str">"critical"</span>)
+    <span class="pipe">&gt;</span> <span class="fn">filter</span> is_critical
     <span class="pipe">&gt;</span> <span class="fn">summarize</span>
     <span class="pipe">&gt;</span> <span class="fn">translate</span> <span class="str">"de"</span>
     <span class="pipe">&gt;</span> <span class="fn">save</span> <span class="str">"incident_report.txt"</span></pre>
       <div class="example-flow">
         <h4 data-lang="en" class="active">Pipeline Flow</h4>
         <h4 data-lang="de">Pipeline-Ablauf</h4>
-        <p data-lang="en" class="active">Each log line is classified by AI into critical, warning, or info. Critical entries are filtered out with a lambda predicate, then AI summarizes the remaining critical logs into a coherent incident report. The summary is translated to German and saved to disk — all in a single pipeline with no intermediate files.</p>
-        <p data-lang="de">Jede Log-Zeile wird per KI als critical, warning oder info klassifiziert. Kritische Einträge werden mit einem Lambda-Prädikat herausgefiltert, dann fasst die KI die verbleibenden Logs in einem kohärenten Incident-Report zusammen. Die Zusammenfassung wird ins Deutsche übersetzt und gespeichert — alles in einer einzigen Pipeline ohne Zwischendateien.</p>
+        <p data-lang="en" class="active">A named <code>is_critical</code> function filters log lines containing "critical". AI summarizes the critical entries into a coherent incident report, translates it to German, and saves to disk — all in a single pipeline with no intermediate files.</p>
+        <p data-lang="de">Eine benannte <code>is_critical</code>-Funktion filtert Log-Zeilen, die "critical" enthalten. Die KI fasst die kritischen Einträge in einem kohärenten Incident-Report zusammen, übersetzt ihn ins Deutsche und speichert — alles in einer einzigen Pipeline ohne Zwischendateien.</p>
       </div>
     </div>
 
@@ -299,8 +301,7 @@ a[data-lang].active { display: inline-block; }
 <span class="fn">schema</span>: {city: <span class="str">"Name of the city"</span>}
 <span class="fn">ai_tool</span> <span class="str">"get_weather"</span> <span class="str">"Get current weather for a city"</span> schema get_weather
 
-<span class="fn">ai_with_tools</span> <span class="str">"You are a weather assistant."</span>
-    <span class="str">"What's the weather in Berlin and Paris?"</span>
+<span class="fn">ai_with_tools</span> <span class="str">"You are a weather assistant."</span> <span class="str">"What's the weather in Berlin and Paris?"</span>
     <span class="pipe">&gt;</span> <span class="fn">print</span></pre>
       <div class="example-flow">
         <h4 data-lang="en" class="active">Pipeline Flow</h4>
@@ -364,14 +365,14 @@ a[data-lang].active { display: inline-block; }
       <pre class="example-code"><span class="cmt">-- Pipe's own lexer written in Pipe (346 lines)</span>
 <span class="kw">import</span> <span class="str">"examples/selfhost/lexer.pipe"</span>
 
-<span class="fn">tokens</span>: <span class="fn">tokenize</span> <span class="str">"fn hello x: x + 1"</span>
+<span class="fn">tokens</span>: <span class="fn">tokenize</span> <span class="str">"print (2 + 2)"</span>
 <span class="kw">for</span> t <span class="kw">in</span> tokens
     <span class="fn">print</span> (<span class="fn">get</span> t <span class="str">"type"</span>)</pre>
       <div class="example-flow">
         <h4 data-lang="en" class="active">Pipeline Flow</h4>
         <h4 data-lang="de">Pipeline-Ablauf</h4>
-        <p data-lang="en" class="active">The self-hosted lexer is imported from a 346-line Pipe file — no C, no Go, pure Pipe. <code>tokenize</code> takes a string of Pipe source code and returns a list of token objects with type, value, and position. The loop iterates over each token and prints its type (e.g., <code>FN</code>, <code>IDENT</code>, <code>PLUS</code>, <code>NUMBER</code>). This is the same lexer used by Pipe's parser — the language can parse itself.</p>
-        <p data-lang="de">Der selbst-gehostete Lexer wird aus einer 346-zeiligen Pipe-Datei importiert — kein C, kein Go, reines Pipe. <code>tokenize</code> nimmt einen Pipe-Quelltext-String und gibt eine Liste von Token-Objekten mit Typ, Wert und Position zurück. Die Schleife iteriert über jedes Token und gibt seinen Typ aus (z. B. <code>FN</code>, <code>IDENT</code>, <code>PLUS</code>, <code>NUMBER</code>). Dies ist derselbe Lexer, den Pipes Parser verwendet — die Sprache kann sich selbst parsen.</p>
+        <p data-lang="en" class="active">The self-hosted lexer is imported from a 346-line Pipe file — no C, no Go, pure Pipe. <code>tokenize</code> takes a string of Pipe source code and returns a list of token objects with type, value, and position. The loop iterates over each token and prints its type (e.g., <code>PRINT</code>, <code>NUMBER</code>, <code>PLUS</code>). This is the same lexer used by Pipe's parser — the language can parse itself.</p>
+        <p data-lang="de">Der selbst-gehostete Lexer wird aus einer 346-zeiligen Pipe-Datei importiert — kein C, kein Go, reines Pipe. <code>tokenize</code> nimmt einen Pipe-Quelltext-String und gibt eine Liste von Token-Objekten mit Typ, Wert und Position zurück. Die Schleife iteriert über jedes Token und gibt seinen Typ aus (z. B. <code>PRINT</code>, <code>NUMBER</code>, <code>PLUS</code>). Dies ist derselbe Lexer, den Pipes Parser verwendet — die Sprache kann sich selbst parsen.</p>
       </div>
     </div>
 
@@ -385,8 +386,10 @@ a[data-lang].active { display: inline-block; }
       <pre class="example-code"><span class="cmt">-- Check GitHub Actions status and report failures</span>
 <span class="fn">ci_data</span>: <span class="fn">http_get_json</span> <span class="str">"https://api.github.com/repos/MachuraHarry/pipe/actions/runs"</span>
 
-<span class="fn">failed</span>: <span class="fn">filter</span> (<span class="fn">get</span> ci_data <span class="str">"workflow_runs"</span>)
-    (<span class="kw">fn</span> run: (<span class="fn">get</span> run <span class="str">"conclusion"</span>) <span class="op">==</span> <span class="str">"failure"</span>)
+<span class="fn">is_failed</span>: <span class="kw">fn</span> run
+    (<span class="fn">get</span> run <span class="str">"conclusion"</span>) <span class="op">==</span> <span class="str">"failure"</span>
+
+<span class="fn">failed</span>: <span class="fn">filter</span> (<span class="fn">get</span> ci_data <span class="str">"workflow_runs"</span>) is_failed
 
 <span class="kw">if</span> (<span class="fn">len</span> failed) <span class="op">&gt;</span> <span class="num">0</span>
     <span class="fn">report</span>: <span class="fn">summarize</span> (<span class="fn">to_json</span> failed)
@@ -397,8 +400,8 @@ a[data-lang].active { display: inline-block; }
       <div class="example-flow">
         <h4 data-lang="en" class="active">Pipeline Flow</h4>
         <h4 data-lang="de">Pipeline-Ablauf</h4>
-        <p data-lang="en" class="active"><code>http_get_json</code> fetches the GitHub Actions API response and parses it into a Pipe object. <code>filter</code> with a lambda predicate selects only workflow runs whose conclusion is "failure". If any failed runs exist, <code>to_json</code> serializes them, <code>summarize</code> uses AI to produce a human-readable summary, and it's printed. Otherwise, an all-clear message is shown. This replaces brittle scripts that grep log output with an intelligent CI monitor.</p>
-        <p data-lang="de"><code>http_get_json</code> holt die GitHub-Actions-API-Antwort und parst sie in ein Pipe-Objekt. <code>filter</code> mit einem Lambda-Prädikat wählt nur Workflow-Runs aus, deren conclusion "failure" ist. Falls fehlgeschlagene Runs existieren, serialisiert <code>to_json</code> sie, <code>summarize</code> erstellt per KI eine lesbare Zusammenfassung, die ausgegeben wird. Andernfalls erscheint eine Entwarnung. Dies ersetzt fehleranfällige Skripte, die Log-Ausgaben parsen, durch einen intelligenten CI-Monitor.</p>
+        <p data-lang="en" class="active"><code>http_get_json</code> fetches the GitHub Actions API response and parses it into a Pipe object. <code>filter</code> with a named <code>is_failed</code> function selects only workflow runs whose conclusion is "failure". If any failed runs exist, <code>to_json</code> serializes them, <code>summarize</code> uses AI to produce a human-readable summary, and it's printed. Otherwise, an all-clear message is shown. This replaces brittle scripts that grep log output with an intelligent CI monitor.</p>
+        <p data-lang="de"><code>http_get_json</code> holt die GitHub-Actions-API-Antwort und parst sie in ein Pipe-Objekt. <code>filter</code> mit einer benannten <code>is_failed</code>-Funktion wählt nur Workflow-Runs aus, deren conclusion "failure" ist. Falls fehlgeschlagene Runs existieren, serialisiert <code>to_json</code> sie, <code>summarize</code> erstellt per KI eine lesbare Zusammenfassung, die ausgegeben wird. Andernfalls erscheint eine Entwarnung. Dies ersetzt fehleranfällige Skripte, die Log-Ausgaben parsen, durch einen intelligenten CI-Monitor.</p>
       </div>
     </div>
 

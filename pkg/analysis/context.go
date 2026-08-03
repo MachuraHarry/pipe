@@ -3,7 +3,7 @@ package analysis
 import (
 	"unicode"
 
-	"github.com/harry/pipe/pkg/lexer"
+	"github.com/MachuraHarry/pipe/pkg/lexer"
 )
 
 // ctxToken is a lexed token with its source position.

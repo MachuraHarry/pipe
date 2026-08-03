@@ -20,7 +20,7 @@
 | Fehler | `try: ... except e:` | `try: ... catch e:` |
 | Module | `import x` | `import "x.pipe"` |
 | Klassen/OOP | ✅ | ❌ |
-| List Comprehension | `[x*2 for x in l]` | `map l (fn x: x*2)` |
+| List Comprehension | `[x*2 for x in l]` | `map l double` |
 | Decorators | ✅ | ❌ |
 | Async/Await | ✅ | ❌ (aber `go` für Nebenläufigkeit) |
 
@@ -131,7 +131,7 @@ print (fib 10)
 | Konzept | Bash | Pipe |
 |---------|------|------|
 | Datenstrukturen | Nur Strings/Arrays | Listen, Maps, Strings, Numbers |
-| Funktionen | `f() { ... }` | `fn f x: ...` |
+| Funktionen | `f() { ... }` | `fn f x` |
 | JSON | ❌ (braucht `jq`) | ✅ (`parse_json`) |
 | HTTP | ❌ (braucht `curl`) | ✅ (`http_get`) |
 | Regex | 🟡 (`grep`/`sed`) | ✅ (`regex_match`) |
@@ -162,8 +162,8 @@ print (fib 10)
 | Konzept | JavaScript | Pipe |
 |---------|-----------|------|
 | Variable | `let x = 42` | `x: 42` |
-| Funktion | `function f(x) { }` | `fn f x: ...` |
-| Arrow | `(x) => x * 2` | `fn x: x * 2` |
+| Funktion | `function f(x) { }` | `fn f x` |
+| Arrow | `(x) => x * 2` | `double: fn x`<br>`    x * 2` |
 | Objekte | `{a: 1, b: 2}` | `{a: 1, b: 2}` |
 | Pipeline | ❌ | `> f > g > print` |
 | Async | `async/await` | ❌ (`go` nur Tree-Walker) |

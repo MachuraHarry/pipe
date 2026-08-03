@@ -216,12 +216,14 @@ automatisch als **erstes Argument** eingefügt.
 ## 6.6 Datei-Pipeline (Praxisbeispiel)
 
 ```pipe
+is_error: fn l
+    contains l "ERROR"
+
 read_file "log.txt"
     -- Zeilenweise
     > split "\n"
     -- Nur ERROR-Zeilen
-    > filter (fn l
-        contains l "ERROR")
+    > filter is_error
     -- Sortieren
     > sort
     -- Ausgeben

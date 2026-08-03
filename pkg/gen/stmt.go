@@ -1,7 +1,7 @@
 package gen
 
 import (
-	"github.com/harry/pipe/pkg/ast"
+	"github.com/MachuraHarry/pipe/pkg/ast"
 )
 
 func (g *Generator) genFnDef() ast.Statement {

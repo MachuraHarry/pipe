@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/harry/pipe/pkg/analysis"
+	"github.com/MachuraHarry/pipe/pkg/analysis"
 )
 
 const testURI = "file:///test.pipe"

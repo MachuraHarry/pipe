@@ -311,10 +311,12 @@ oninput="syncHighlight()" onscroll="syncScroll()"></textarea>
         <p data-lang="en" class="active">Read server logs, classify severity with AI, filter critical entries, summarize findings, translate to German, and save — 5 lines. No intermediate files. No Python script.</p>
         <p data-lang="de">Server-Logs einlesen, Schweregrad per KI klassifizieren, kritische Einträge filtern, zusammenfassen, ins Deutsche übersetzen und speichern — 5 Zeilen. Keine Zwischendateien. Kein Python-Skript.</p>
       </div>
-      <div class="feature-code"><div class="bar"><span class="dot" style="background:var(--red)"></span><span class="dot" style="background:var(--orange)"></span><span class="dot" style="background:var(--green)"></span></div><pre><span class="fn">read_file</span> <span class="str">"/var/log/app/errors.log"</span>
+      <div class="feature-code"><div class="bar"><span class="dot" style="background:var(--red)"></span><span class="dot" style="background:var(--orange)"></span><span class="dot" style="background:var(--green)"></span></div><pre><span class="fn">is_critical</span>: <span class="kw">fn</span> line
+    <span class="fn">contains</span> line <span class="str">"critical"</span>
+
+<span class="fn">read_file</span> <span class="str">"/var/log/app/errors.log"</span>
     <span class="pipe">&gt;</span> <span class="fn">split</span> <span class="str">"\n"</span>
-    <span class="pipe">&gt;</span> <span class="fn">classify</span> [<span class="str">"critical"</span>, <span class="str">"warning"</span>, <span class="str">"info"</span>]
-    <span class="pipe">&gt;</span> <span class="fn">filter</span> (<span class="kw">fn</span> l: l <span class="op">==</span> <span class="str">"critical"</span>)
+    <span class="pipe">&gt;</span> <span class="fn">filter</span> is_critical
     <span class="pipe">&gt;</span> <span class="fn">summarize</span>
     <span class="pipe">&gt;</span> <span class="fn">translate</span> <span class="str">"de"</span>
     <span class="pipe">&gt;</span> <span class="fn">save</span> <span class="str">"incident_report.txt"</span></pre></div>
@@ -361,8 +363,7 @@ oninput="syncHighlight()" onscroll="syncScroll()"></textarea>
 
 <span class="fn">ai_tool</span> <span class="str">"get_weather"</span> <span class="str">"Get current weather for a city"</span> {<span class="kw">city</span>: <span class="str">"City name"</span>} get_weather
 
-<span class="fn">ai_with_tools</span> <span class="str">"You are a weather assistant."</span>
-    <span class="str">"What's the weather in Berlin and London?"</span>
+<span class="fn">ai_with_tools</span> <span class="str">"You are a weather assistant."</span> <span class="str">"What's the weather in Berlin and London?"</span>
     <span class="pipe">&gt;</span> <span class="fn">print</span></pre></div>
     </div>
   </div>

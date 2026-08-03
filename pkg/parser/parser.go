@@ -5,8 +5,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/harry/pipe/pkg/ast"
-	"github.com/harry/pipe/pkg/lexer"
+	"github.com/MachuraHarry/pipe/pkg/ast"
+	"github.com/MachuraHarry/pipe/pkg/lexer"
 )
 
 type (

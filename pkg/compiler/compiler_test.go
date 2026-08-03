@@ -3,8 +3,8 @@ package compiler
 import (
 	"testing"
 
-	"github.com/harry/pipe/pkg/lexer"
-	"github.com/harry/pipe/pkg/parser"
+	"github.com/MachuraHarry/pipe/pkg/lexer"
+	"github.com/MachuraHarry/pipe/pkg/parser"
 )
 
 func parseAndCompile(t *testing.T, input string) *Bytecode {

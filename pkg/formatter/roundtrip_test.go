@@ -5,9 +5,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/harry/pipe/pkg/formatter"
-	"github.com/harry/pipe/pkg/lexer"
-	"github.com/harry/pipe/pkg/parser"
+	"github.com/MachuraHarry/pipe/pkg/formatter"
+	"github.com/MachuraHarry/pipe/pkg/lexer"
+	"github.com/MachuraHarry/pipe/pkg/parser"
 )
 
 // TestExampleRoundtrip verifies that formatting any example program produces

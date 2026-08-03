@@ -125,9 +125,10 @@ nums: [1, 2, 3, 4, 5]
 map nums double
 
 -- Inline anonymous function
-map nums (fn x
-    -- [11, 12, 13, 14, 15]
-        x + 10)
+add_ten: fn x
+    x + 10
+-- [11, 12, 13, 14, 15]
+map nums add_ten
 ```
 
 #### `filter(list, fn)`
@@ -142,9 +143,11 @@ nums: [1, 2, 3, 4, 5, 6]
 -- [2, 4, 6]
 filter nums is_even
 
-filter nums (fn x
-    -- [4, 5, 6]
-        x > 3)
+above_three: fn x
+    x > 3
+
+-- [4, 5, 6]
+filter nums above_three
 ```
 
 #### `reduce(list, fn, initial)`
@@ -372,20 +375,26 @@ print sum nums
 data: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
 
 -- Get squares of even numbers
-evens: filter data (fn x
-    x % 2 == 0)
-even_squares: map evens (fn x
-    x * x)
+is_even: fn x
+    x % 2 == 0
+square: fn x
+    x * x
+
+evens: filter data is_even
+even_squares: map evens square
 
 -- [4, 16, 36, 64, 100]
 print even_squares
 
+above_three: fn x
+    x > 3
+double: fn x
+    x * 2
+
 -- Chained with pipeline style
 data
-    > filter (fn x
-        x > 3)
-    > map (fn x
-        x * 2)
+    > filter above_three
+    > map double
     > sort
     > print
 ```
@@ -412,8 +421,9 @@ first_user: at data.users 0
 print first_user.name
 
 -- Transform the data
-names: map data.users (fn u
-    u.name)
+get_name: fn u
+    u.name
+names: map data.users get_name
 -- ["Alice", "Bob"]
 print names
 
@@ -456,9 +466,11 @@ matrix: [[1, 2, 3], [4, 5, 6], [7, 8, 9]]
 at (at matrix 1) 2
 
 -- Sum of all elements
-flatten_sum: reduce matrix (fn acc row
-    acc + (reduce row (fn a x
-        a + x) 0)) 0
+sum_row: fn acc row
+    row_sum: fn a x
+        a + x
+    acc + (reduce row row_sum 0)
+flatten_sum: reduce matrix sum_row 0
 
 -- 45
 print flatten_sum

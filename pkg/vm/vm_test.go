@@ -4,9 +4,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/harry/pipe/pkg/compiler"
-	"github.com/harry/pipe/pkg/lexer"
-	"github.com/harry/pipe/pkg/parser"
+	"github.com/MachuraHarry/pipe/pkg/compiler"
+	"github.com/MachuraHarry/pipe/pkg/lexer"
+	"github.com/MachuraHarry/pipe/pkg/parser"
 )
 
 func parseAndCompile(t *testing.T, input string) *compiler.Bytecode {

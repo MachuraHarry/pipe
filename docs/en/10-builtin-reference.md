@@ -173,8 +173,9 @@ if t == "dir"
 **Returns:** `list` of strings
 ```pipe
 files: list_dir "."
-each files (fn f
-    print f)
+print_file: fn f
+    print f
+each files print_file
 ```
 
 ### `make_dir`
@@ -415,12 +416,15 @@ range 0 0
 **Description:** Applies `fn` to each element and returns a new list of results. In VM mode, only built-in functions are accepted.
 **Returns:** `list`
 ```pipe
-map ([1, 2, 3]) (fn x
+double: fn x
+    x * 2
+map ([1, 2, 3]) double
     -- [2, 4, 6]
-        x * 2)
-map (["a", "b"]) (fn s
+
+to_upper: fn s
+    upper s
+map (["a", "b"]) to_upper
     -- ["A", "B"]
-        upper s)
 ```
 
 ### `filter`
@@ -428,12 +432,16 @@ map (["a", "b"]) (fn s
 **Description:** Returns a new list containing only elements where `fn(element)` returns truthy. In VM mode, only built-in functions are accepted.
 **Returns:** `list`
 ```pipe
-filter ([1, 2, 3, 4]) (fn x
+above_two: fn x
+    x > 2
+
+filter ([1, 2, 3, 4]) above_two
     -- [3, 4]
-        x > 2)
-filter ([0, 1, 0, 3]) (fn x
+
+identity: fn x
+    x
+filter ([0, 1, 0, 3]) identity
     -- [1, 3] (truthy elements)
-        x)
 ```
 
 ### `reduce`
@@ -454,8 +462,9 @@ reduce ([2, 3, 4]) fn acc x
 **Description:** Calls `fn(element)` for each element in `list`. Used for side effects. Works with both built-in and user functions in all modes.
 **Returns:** `nil`
 ```pipe
-each ([1, 2, 3]) (fn x
-    print x)
+print_x: fn x
+    print x
+each ([1, 2, 3]) print_x
 -- 1
 -- 2
 -- 3
@@ -623,8 +632,9 @@ print resp
 ```pipe
 data: http_get_json "https://api.example.com/users"
 print data.count
-each data.users (fn u
-    print u.name)
+print_name: fn u
+    print u.name
+each data.users print_name
 ```
 
 ### `parse_json`

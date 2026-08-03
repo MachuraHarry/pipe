@@ -184,16 +184,19 @@ bench "fibonacci recursive"
             n
         else
             (fib (n - 1)) + (fib (n - 2))
-    each range 0 20 (fn _
-        fib 20)
+    noop: fn _
+        fib 20
+    each range 0 20 noop
 
 bench "list operations"
     each range 0 1000 fn _
         xs: range 0 100
-        mapped: map xs (fn x
-            x * 2)
-        filtered: filter mapped (fn x
-            x > 50)
+        double: fn x
+            x * 2
+        mapped: map xs double
+        above_fifty: fn x
+            x > 50
+        filtered: filter mapped above_fifty
 
 bench "string processing"
     each range 0 500 fn _
@@ -398,11 +401,14 @@ result: data
 
 After:
 ```pipe
+above_zero: fn x
+    x > 0
+square: fn x
+    x * x
+
 result: data
-    > filter (fn x
-        x > 0)
-    > map (fn x
-        x * x)
+    > filter above_zero
+    > map square
     > sort
 ```
 
@@ -517,15 +523,19 @@ bench "fibonacci(30)"
 **Benchmark 2: Data Transform — List pipeline**
 
 ```pipe
+    triple: fn x
+        x * 3
+    is_even: fn x
+        x % 2 == 0
+    half: fn x
+        x / 2
+
 bench "list pipeline 10k"
     data: range 0 10000
     result: data
-        > map (fn x
-            x * 3)
-        > filter (fn x
-            x % 2 == 0)
-        > map (fn x
-            x / 2)
+        > map triple
+        > filter is_even
+        > map half
     len result
 -- Typical: ~50ms per iteration (Tree-Walker), ~7ms (VM)
 ```
@@ -536,8 +546,9 @@ bench "list pipeline 10k"
 bench "read and parse JSON"
     raw: read_file "data.json"
     parsed: parse_json raw
-    names: map parsed.users (fn u
-        u.name)
+    get_name: fn u
+        u.name
+    names: map parsed.users get_name
     len names
 -- Typical: ~10ms per iteration (I/O dominated)
 ```

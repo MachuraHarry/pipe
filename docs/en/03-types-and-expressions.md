@@ -186,14 +186,20 @@ len person
 
 Functions are first-class values. They can be assigned to variables, passed as arguments, and returned from other functions.
 
+Pipe supports two forms: the indented **block form** for multi-statement bodies, and the **inline form** (`fn x: expr`) for single-expression bodies.
+
 ```
 Internal representation: compiled function reference or AST node
-Literal: fn params body
+Literal: fn params body (block form), fn params: expr (inline form)
 ```
 
 ```pipe
+-- Block form (multi-statement)
 double: fn x
   x * 2
+
+-- Inline form (single expression)
+square: fn x: x * x
 
 -- functions are values
 some_fn: double

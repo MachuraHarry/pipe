@@ -69,6 +69,36 @@ compute: fn a b
 result: compute 3 4
 ```
 
+### Inline Lambda Syntax (v0.8+)
+
+For single-expression functions, Pipe supports a compact inline syntax using a colon:
+
+```pipe
+-- Inline: fn param: expression
+double: fn x: x * 2
+
+-- Multi-parameter inline lambda
+add: fn a b: a + b
+
+-- As argument to filter
+filter [1, 2, 3, 4, 5] (fn x: x > 2)
+
+-- As argument to map
+map [1, 2, 3] (fn x: x * 10)
+
+-- In pipeline chains
+[1, 2, 3, 4, 5]
+    > filter (fn x: x % 2 == 0)
+    > map (fn x: x * 3)
+    > print
+```
+
+The inline form is equivalent to the multi-line block form but allows writing
+simple function literals on a single line. Parameters before the colon become
+function parameters; the expression after the colon is the function body.
+
+For multi-statement function bodies, use the indented block form (`fn params\n    body`).
+
 Anonymous functions are first-class values — the same as named functions, just without a name in scope.
 
 ## Closures

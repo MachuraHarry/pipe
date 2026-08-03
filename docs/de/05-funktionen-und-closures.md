@@ -68,6 +68,38 @@ verdreifacher: fn x
 print (verdreifacher 7)
 ```
 
+### Inline-Lambda-Syntax (v0.8+)
+
+Für einzeilige Funktionskörper unterstützt Pipe eine kompakte Inline-Syntax mit Doppelpunkt:
+
+```pipe
+-- Inline: fn param: ausdruck
+doppelt: fn x: x * 2
+
+-- Multi-Parameter Inline-Lambda
+addiere: fn a b: a + b
+
+-- Als Argument für filter
+filter [1, 2, 3, 4, 5] (fn x: x > 2)
+
+-- Als Argument für map
+map [1, 2, 3] (fn x: x * 10)
+
+-- In Pipeline-Ketten
+[1, 2, 3, 4, 5]
+    > filter (fn x: x % 2 == 0)
+    > map (fn x: x * 3)
+    > print
+```
+
+Die Inline-Form ist äquivalent zur mehrzeiligen Block-Form, erlaubt aber
+einfache Funktionsliterale in einer Zeile. Die Parameter vor dem Doppelpunkt
+werden zu Funktionsparametern; der Ausdruck nach dem Doppelpunkt ist der
+Funktionskörper.
+
+Für mehrzeilige Funktionskörper verwende die eingerückte Block-Form
+(`fn params\n    body`).
+
 Anonyme Funktionen sind **First-Class Citizens** — sie können als Argumente
 übergeben und von Funktionen zurückgegeben werden:
 

@@ -1,6 +1,6 @@
 # 18. Roadmap
 
-## Aktuelle Version: v0.7.0
+## Aktuelle Version: v0.8.0
 
 ---
 
@@ -44,6 +44,7 @@
 | 11 | **GitHub Action** | `pipe-action` für CI/CD | ✅ Erledigt |
 | 12 | **HTTP-API-Server** | `cmd/api-server` mit Fly.io-Deployment | ✅ Erledigt |
 | 13 | **WASM-Playground v2 + Blog** | Code-Sharing, Syntax-Highlighting, Bewertungen | ✅ Erledigt |
+| 14 | **Inline-Lambda-Syntax** | `fn x: ausdruck` — einzeilige anonyme Funktionen in TW + VM | ✅ Erledigt |
 
 ---
 
@@ -55,9 +56,9 @@
 | 11 | **Optionale Typannotationen** | `fn add(a: num, b: num) -> a + b` |
 | 12 | **Package-Registry 2.0** | `pipe publish`, `pipe install`; Basis (`-search`, `-get`, `@version`) existiert seit v0.6 |
 | 13 | **Bytecode-Optimierungen** | Peephole-Optimizer, Inline-Caching, Constant Folding |
-| 14 | **Web-Playground** | "Try Pipe in your Browser" via WASM |
+| 14 | **Web-Playground** | "Try Pipe in your Browser" via WASM | ✅ Erledigt |
 | 15 | **VSCode-Plugin 2.0** | Auto-Vervollständigung, Go-to-Definition, Debugger-Integration |
-| 16 | **LSP-Server** | Language Server Protocol für Editor-Unterstützung |
+| 16 | **LSP-Server** | Language Server Protocol für Editor-Unterstützung | ✅ Erledigt |
 | 17 | **Standard-Test-Framework** | `assert`, `test`, `assert_eq`, `assert_error`, `assert_lt`, `assert_gt` — `suite` fehlt noch |
 | 18 | **Dokumentations-Generator** | `pipe doc` — Dokumentation aus Quelltext-Kommentaren |
 
@@ -130,8 +131,9 @@
 | GitHub Action | | | ✅ | |
 | HTTP-API-Server | | | ✅ | |
 | Web Playground v2 + Blog | | | ✅ | |
+| Inline-Lambda (`fn x: expr`) | | | | ✅ |
 | Concurrency (go) | 🟡 (nur Tree) | | | ✅ |
 | Typannotationen | | | | ✅ |
 | Package Registry | | | ✅ | |
-| LSP Server | | | | ✅ |
+| LSP Server | | | ✅ | |
 | Web Playground (klassisch) | | | | ✅ |

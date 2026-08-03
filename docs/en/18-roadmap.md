@@ -2,9 +2,9 @@
 
 This document outlines the past, present, and future of the Pipe language. The roadmap is organized into phases, with completed features marked accordingly.
 
-## Current Version: v0.7.0
+## Current Version: v0.8.0
 
-Pipe is currently at version **v0.7.0**, which includes the foundational language features, dual execution models, a comprehensive standard library, AI primitives, developer tooling, and an emerging ecosystem.
+Pipe is currently at version **v0.8.0**, which introduces inline lambda syntax (`fn x: expr`), the most requested language feature.
 
 ---
 
@@ -26,6 +26,7 @@ Pipe is currently at version **v0.7.0**, which includes the foundational languag
 - [x] HTTP API server (`cmd/api-server`) with Fly.io deployment
 - [x] WASM playground v2 (code sharing, syntax highlighting, rating) + blog
 - [x] 230+ Go tests, 8 integration suites, 42 example programs
+- [x] Inline lambda syntax (`fn x: expr`) — single-expression anonymous functions in both Tree‑Walker and Bytecode VM
 
 ---
 
@@ -121,13 +122,13 @@ Pipe is currently at version **v0.7.0**, which includes the foundational languag
 - [ ] `PIPE_PATH` environment variable documentation and improvements
 
 ### Formatter Enhancements (`pipe fmt`)
-- [ ] `--check` flag (exit non-zero if formatting needed)
-- [ ] `--write` flag (overwrite files in-place)
-- [ ] Directory processing (`pipe fmt ./src/` for all `.pipe` files)
+- [x] `--check` flag (exit non-zero if formatting needed)
+- [x] `--write` flag (overwrite files in-place)
+- [x] Directory processing (`pipe fmt ./src/` for all `.pipe` files)
 - [ ] Whitespace-only mode for unparseable files
 
 ### REPL Improvements
-- [ ] Persistent history across sessions (save to `~/.pipe_history`)
+- [x] Persistent history across sessions (save to `~/.pipe_history`)
 - [ ] Tab completion for builtin function names
 - [ ] Multi-line editing improvements
 - [ ] Colored output for errors and values
@@ -135,7 +136,7 @@ Pipe is currently at version **v0.7.0**, which includes the foundational languag
 
 ### Better Error Messages
 - [ ] Source code snippets in error output (show the offending line)
-- [ ] Error code system (e.g., `E001: undefined variable`)
+- [x] Error code system (e.g., `E001: undefined variable`)
 - [ ] Suggestions for common mistakes (e.g., `=` instead of `:` for assignment)
 - [ ] Warning for unused variables
 
@@ -179,10 +180,10 @@ Pipe is currently at version **v0.7.0**, which includes the foundational languag
 - [ ] Bytecode serialization to/from `.pipec`
 
 ### Web Playground
-- [ ] Browser-based Pipe editor (compiled to WASM)
-- [ ] Interactive examples and tutorials
-- [ ] Code sharing via URLs
-- [ ] Syntax-highlighted editor with live execution
+- [x] Browser-based Pipe editor (compiled to WASM)
+- [x] Interactive examples and tutorials
+- [x] Code sharing via URLs
+- [x] Syntax-highlighted editor with live execution
 
 ### VSCode 2.0 Extension
 - [ ] Debugger support with breakpoints
@@ -192,19 +193,19 @@ Pipe is currently at version **v0.7.0**, which includes the foundational languag
 - [ ] Project-level configuration (`.vscode/pipe.json`)
 
 ### Language Server Protocol (LSP)
-- [ ] Go-to-definition for functions and variables
-- [ ] Find all references
-- [ ] Hover information with type and documentation
-- [ ] Inline diagnostics (parse errors, warnings)
-- [ ] Code completion suggestions
-- [ ] Rename symbol refactoring
+- [x] Go-to-definition for functions and variables
+- [x] Find all references
+- [x] Hover information with type and documentation
+- [x] Inline diagnostics (parse errors, warnings)
+- [x] Code completion suggestions
+- [x] Rename symbol refactoring
 - [ ] Workspace symbol search
 
 ### Test Framework
-- [ ] `test` keyword or `test` builtin function
+- [x] `test` keyword or `test` builtin function
 - [x] Assertion helpers: `assert`, `assert_eq`, `assert_not_eq`, `assert_lt`, `assert_gt`, `assert_error`
-- [ ] Test runner CLI (`pipe test`)
-- [ ] Test file discovery (`*_test.pipe`)
+- [x] Test runner CLI (`pipe test`)
+- [x] Test file discovery (`*_test.pipe`)
 - [ ] Setup/teardown hooks
 
 ### Documentation Generator
@@ -273,9 +274,10 @@ Pipe is currently at version **v0.7.0**, which includes the foundational languag
 | Type Annotations | 🔮 Future | v0.7+ | Optional typing |
 | Bytecode Opts | 🔮 Future | v0.7+ | Fold, inline, peephole |
 | Sets | 🔮 Future | v0.7+ | Unique collections |
+| Inline Lambdas | ✅ Done | v0.8 | `fn x: expr` in TW + VM |
 | Web Playground | ✅ Done | v0.7 | WASM-based + code sharing |
 | VSCode 2.0 | 🔮 Future | v0.7+ | Debugger, snippets |
-| LSP | 🔮 Future | v0.7+ | Full language server |
-| Test Framework | 🟡 Partial | v0.7 | test blocks + asserts; `pipe test` CLI open |
+| LSP | ✅ Done | v0.7 | Go-to-def, references, hover, completion, diagnostics, rename |
+| Test Framework | 🟡 Partial | v0.7 | test blocks + asserts + CLI; setup/teardown hooks open |
 | Doc Generator | 🔮 Future | v0.7+ | `pipe doc` |
 | Plugins | 🔮 Future | v0.8+ | Go/WASM extensions |

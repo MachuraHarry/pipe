@@ -596,110 +596,127 @@ c: <span class="str">"Capital of Italy?"</span>
   </div>
 </section>
 
-<!-- Why Pipe is Made for AI -->
+<!-- Why Pipe's Syntax is AI-Friendly -->
 <section id="ai-syntax" style="background:var(--bg)">
   <div class="container">
     <div class="section-head">
-      <h2 data-lang="en" class="active">Made for AI — <span>from the syntax up</span></h2>
-      <h2 data-lang="de">Gebaut für KI — <span>von der Syntax her</span></h2>
-      <p data-lang="en" class="active">Pipe is not a language that happens to call an API. AI is baked into the grammar itself — and that changes what your code can do.</p>
-      <p data-lang="de">Pipe ist keine Sprache, die nebenbei eine API aufruft. KI ist direkt in die Grammatik eingebacken — und das verändert, was dein Code kann.</p>
+      <h2 data-lang="en" class="active">Why Pipe's <span>syntax</span> was built for AI</h2>
+      <h2 data-lang="de">Warum die Pipe-<span>Syntax</span> für KI gebaut wurde</h2>
+      <p data-lang="en" class="active">Most languages were designed for humans and are awkward for models to read and write. Pipe's grammar is the opposite: small, regular, intent-based, and self-verifying. Here's why that makes it AI-friendly.</p>
+      <p data-lang="de">Die meisten Sprachen wurden für Menschen entworfen und sind für Modelle sperrig. Die Pipe-Grammatik ist das Gegenteil: klein, regelmäßig, absichtsbasiert und selbstverifizierend. Deshalb ist sie KI-freundlich.</p>
     </div>
 
     <div class="feature-row reveal">
       <div class="feature-text">
-        <h3 data-lang="en" class="active"><span>AI tasks are already pipelines</span> — Pipe makes that literal</h3>
-        <h3 data-lang="de"><span>KI-Aufgaben sind bereits Pipelines</span> — Pipe macht das wörtlich</h3>
-        <p data-lang="en" class="active">You don't build AI features with imperative glue — you decompose: <em>read → clean → classify → summarize → deliver</em>. In Pipe that decomposition <strong>is the code</strong>. Data flows top to bottom through <code>&gt;</code>, the same shape as your plan, readable by humans and debuggable line by line. No orchestrator, no DAG framework, no wiring.</p>
-        <p data-lang="de">KI-Features baut man nicht mit imperativem Kleber — man zerlegt: <em>lesen → bereinigen → klassifizieren → zusammenfassen → liefern</em>. In Pipe ist diese Zerlegung <strong>der Code selbst</strong>. Daten fließen von oben nach unten durch <code>&gt;</code> — dieselbe Form wie dein Plan, für Menschen lesbar und Zeile für Zeile debugbar. Kein Orchestrator, kein DAG-Framework, kein Verkabeln.</p>
+        <h3 data-lang="en" class="active"><span>Tiny grammar</span> — the whole language fits on a page</h3>
+        <h3 data-lang="de"><span>Winzige Grammatik</span> — die ganze Sprache passt auf eine Seite</h3>
+        <p data-lang="en" class="active">Around 20 keywords, 66 token types, 33 AST node types. No classes, no generics, no inheritance, no decorators, no <code>async</code> keyword. The smaller and more regular a grammar, the better an LLM can reproduce it — fewer constructs means fewer chances to generate something that isn't valid Pipe.</p>
+        <p data-lang="de">Rund 20 Keywords, 66 Token-Typen, 33 AST-Nodes. Keine Klassen, keine Generics, keine Vererbung, keine Dekoratoren, kein <code>async</code>-Keyword. Je kleiner und regelmäßiger eine Grammatik, desto besser kann ein LLM sie reproduzieren — weniger Konstrukte heißt weniger Chancen, etwas zu generieren, das kein gültiges Pipe ist.</p>
       </div>
-      <div class="feature-code"><div class="bar"><span class="dot" style="background:var(--red)"></span><span class="dot" style="background:var(--orange)"></span><span class="dot" style="background:var(--green)"></span></div><pre><span class="cmt">-- Your plan:</span>
-<span class="cmt">-- read → clean → classify → summarize → deliver</span>
+      <div class="feature-code"><div class="bar"><span class="dot" style="background:var(--red)"></span><span class="dot" style="background:var(--orange)"></span><span class="dot" style="background:var(--green)"></span></div><pre><span class="cmt">-- ~20 keywords · no classes · no types · no braces</span>
+<span class="kw">fn</span> <span class="fn">classify_ticket</span> t
+    <span class="kw">match</span> t
+        | <span class="str">"refund"</span> -> <span class="str">"billing"</span>
+        | <span class="str">"crash"</span>  -> <span class="str">"bug"</span>
+        | _        -> <span class="str">"other"</span>
 
-<span class="fn">read_file</span> <span class="str">"support_tickets.txt"</span>
-    <span class="pipe">&gt;</span> <span class="fn">split</span> <span class="str">"\n"</span>
-    <span class="pipe">&gt;</span> <span class="fn">filter</span> (<span class="kw">fn</span> t: t <span class="op">!=</span> <span class="str">""</span>)
-    <span class="pipe">&gt;</span> <span class="fn">classify</span> [<span class="str">"bug"</span>, <span class="str">"feature"</span>, <span class="str">"question"</span>]
-    <span class="pipe">&gt;</span> <span class="fn">summarize</span>
-    <span class="pipe">&gt;</span> <span class="fn">save</span> <span class="str">"report.md"</span></pre></div>
+<span class="cmt">-- implicit calls: no parentheses, no commas</span>
+<span class="fn">print</span> (<span class="fn">classify_ticket</span> <span class="str">"crash"</span>)
+<span class="fn">print</span> (<span class="fn">len</span> [<span class="num">1</span>, <span class="num">2</span>, <span class="num">3</span>])</pre></div>
     </div>
 
     <div class="feature-row reverse reveal">
       <div class="feature-text">
-        <h3 data-lang="en" class="active"><span>AI verbs are primitives</span> — same level as <code>len</code> or <code>sort</code></h3>
-        <h3 data-lang="de"><span>KI-Verben sind Primitive</span> — auf gleicher Ebene wie <code>len</code> oder <code>sort</code></h3>
-        <p data-lang="en" class="active">In Python an LLM call means a library import, a client object, and a <code>messages</code> dict. In Pipe, <code>summarize</code>, <code>translate</code> and <code>classify</code> are part of the language itself — no imports, no SDKs, no wrappers. They compose with <em>every</em> other builtin, chain inside pipelines, run in parallel with <code>&gt;&gt;</code>, and are sandboxed by the same machinery as <code>exec</code>.</p>
-        <p data-lang="de">In Python bedeutet ein LLM-Call einen Library-Import, ein Client-Objekt und ein <code>messages</code>-Dict. In Pipe sind <code>summarize</code>, <code>translate</code> und <code>classify</code> Teil der Sprache selbst — keine Imports, keine SDKs, keine Wrapper. Sie komponieren mit <em>jedem</em> anderen Builtin, verketten sich in Pipelines, laufen mit <code>&gt;&gt;</code> parallel und werden von derselben Sandbox-Maschinerie eingeschränkt wie <code>exec</code>.</p>
+        <h3 data-lang="en" class="active"><span>No delimiter bookkeeping</span> — the #1 LLM bug is designed out</h3>
+        <h3 data-lang="de"><span>Keine Klammern-Buchhaltung</span> — der häufigste LLM-Bug ist wegdesignt</h3>
+        <p data-lang="en" class="active">Models famously miscount parentheses, braces, commas, and semicolons. Pipe removes the problem instead of papering over it: calls are implicit space-separated words, blocks are indentation-based, and there are no commas or semicolons to balance. The tokens a model must track are exactly the words that matter.</p>
+        <p data-lang="de">Modelle verzählen sich bekanntermaßen bei Klammern, geschweiften Klammern, Kommas und Semikolons. Pipe beseitigt das Problem, statt es zu kaschieren: Aufrufe sind implizite, leerzeichengetrennte Wörter, Blöcke sind einrückungsbasiert, und es gibt keine Kommas oder Semikolons, die balanciert werden müssten. Die Tokens, die ein Modell verfolgen muss, sind genau die Wörter, die zählen.</p>
       </div>
-      <div class="feature-code"><div class="bar"><span class="dot" style="background:var(--red)"></span><span class="dot" style="background:var(--orange)"></span><span class="dot" style="background:var(--green)"></span></div><pre><span class="fn">ticket</span>: <span class="fn">read_file</span> <span class="str">"ticket_1024.txt"</span>
+      <div class="feature-code"><div class="bar"><span class="dot" style="background:var(--red)"></span><span class="dot" style="background:var(--orange)"></span><span class="dot" style="background:var(--green)"></span></div><pre><span class="cmt">-- Python: count the brackets, commas and colons:</span>
+<span class="kw">if</span> <span class="fn">len</span>(items) <span class="op">&gt;</span> <span class="num">3</span> <span class="kw">and</span> items[<span class="num">0</span>] <span class="op">!=</span> <span class="kw">nil</span>: ...
+<span class="cmt">--   () [] : , — four kinds of bookkeeping</span>
 
-<span class="fn">sentiment</span>: <span class="fn">classify</span> ticket [<span class="str">"angry"</span>, <span class="str">"neutral"</span>, <span class="str">"happy"</span>]
-<span class="fn">summary</span>:  <span class="fn">summarize</span> ticket
-<span class="fn">reply</span>:    <span class="fn">translate</span> summary <span class="str">"de"</span>
-
-<span class="fn">print</span> sentiment <span class="op">++</span> <span class="str">" | "</span> <span class="op">++</span> reply
-<span class="cmt">-- angry | "Die gute Nachricht: ..."</span></pre></div>
+<span class="cmt">-- Pipe: just words, one per line</span>
+<span class="kw">if</span> (<span class="fn">len</span> items) <span class="op">&gt;</span> <span class="num">3</span> <span class="op">&amp;&amp;</span> (<span class="fn">at</span> items <span class="num">0</span>) <span class="op">!=</span> <span class="kw">nil</span>
+    <span class="fn">print</span> <span class="str">"many items"</span></pre></div>
     </div>
 
     <div class="feature-row reveal">
       <div class="feature-text">
-        <h3 data-lang="en" class="active"><span>A syntax AI models can write</span> — and Pipe can verify</h3>
-        <h3 data-lang="de"><span>Eine Syntax, die KI-Modelle schreiben können</span> — und Pipe verifizieren kann</h3>
-        <p data-lang="en" class="active">Pipe is declarative, compact, and has almost no boilerplate: no classes, no type annotations, no dependency files. Five lines replace ~80 in Python+LangChain — less surface for a model to get wrong, fewer tokens to generate. And Pipe meets the model halfway: <code>try_ai</code> lets the language <strong>call the AI to fix its own runtime errors</strong>, and <code>pipe -gen</code> generates programs validated against both the compiler and the VM before they're ever shown to you.</p>
-        <p data-lang="de">Pipe ist deklarativ, kompakt und fast ohne Boilerplate: keine Klassen, keine Typannotationen, keine Dependency-Dateien. Fünf Zeilen ersetzen ~80 in Python+LangChain — weniger Angriffsfläche für ein Modell, weniger Tokens zu generieren. Und Pipe kommt dem Modell entgegen: <code>try_ai</code> lässt die Sprache <strong>die KI zur Fehlerbehebung anrufen</strong>, und <code>pipe -gen</code> erzeugt Programme, die gegen Compiler <em>und</em> VM validiert werden, bevor du sie je zu Gesicht bekommst.</p>
+        <h3 data-lang="en" class="active"><span>Intent over plumbing</span> — the model writes WHAT, not HOW</h3>
+        <h3 data-lang="de"><span>Absicht statt Klempnerei</span> — das Modell schreibt WAS, nicht WIE</h3>
+        <p data-lang="en" class="active"><code>summarize</code>, <code>translate</code>, <code>classify</code> are verbs of the language — no client objects, no <code>messages</code> dicts, no model IDs, no API-key handling in code. A model expresses what it wants in a few words, and providers are a setting (<code>ai_provider "ollama"</code>), not a rewrite. The syntax is as close to the description of the task as code can be.</p>
+        <p data-lang="de"><code>summarize</code>, <code>translate</code>, <code>classify</code> sind Verben der Sprache — keine Client-Objekte, keine <code>messages</code>-Dicts, keine Modell-IDs, kein API-Key-Handling im Code. Ein Modell drückt in wenigen Wörtern aus, was es will, und Provider sind eine Einstellung (<code>ai_provider "ollama"</code>), kein Rewrite. Die Syntax ist dem, was die Aufgabe beschreibt, so nah wie Code nur sein kann.</p>
       </div>
-      <div class="feature-code"><div class="bar"><span class="dot" style="background:var(--red)"></span><span class="dot" style="background:var(--orange)"></span><span class="dot" style="background:var(--green)"></span></div><pre><span class="cmt">-- Self-healing: the language fixes its own bugs</span>
-<span class="fn">result</span>: <span class="kw">try_ai</span>
-    <span class="str">"42"</span> * <span class="num">3</span>          <span class="cmt">-- E002: STRING * INTEGER</span>
-<span class="kw">catch</span> e
-    <span class="num">0</span>                  <span class="cmt">-- only reached if the AI fix fails</span>
+      <div class="feature-code"><div class="bar"><span class="dot" style="background:var(--red)"></span><span class="dot" style="background:var(--orange)"></span><span class="dot" style="background:var(--green)"></span></div><pre><span class="fn">ticket</span>:  <span class="fn">read_file</span> <span class="str">"ticket.txt"</span>
+<span class="fn">summary</span>: <span class="fn">summarize</span> ticket
+<span class="fn">reply</span>:   <span class="fn">translate</span> summary <span class="str">"de"</span>
 
-<span class="cmt">-- AI rewrites it → (to_num "42") * 3 → 126</span>
-<span class="fn">print</span> result</pre></div>
+<span class="fn">print</span> reply
+
+<span class="cmt">-- provider = one line, syntax unchanged</span>
+<span class="fn">ai_provider</span> <span class="str">"ollama"</span></pre></div>
+    </div>
+
+    <div class="feature-row reverse reveal">
+      <div class="feature-text">
+        <h3 data-lang="en" class="active"><span>Verifiable & self-healing</span> — safe to let a model run</h3>
+        <h3 data-lang="de"><span>Verifizierbar & selbstheilend</span> — sicher, ein Modell laufen zu lassen</h3>
+        <p data-lang="en" class="active">AI-generated code is not always right, and Pipe is built for that. <code>pipe -gen</code> validates generated programs against both the compiler and the VM before they run. <code>try_ai</code> lets the language call the model back to fix its own runtime errors. And <code>sandbox_profile</code> limits what generated code can touch. AI-friendly doesn't stop at generation — the syntax is safe to execute.</p>
+        <p data-lang="de">KI-generierter Code ist nicht immer richtig, und Pipe ist darauf gebaut. <code>pipe -gen</code> validiert generierte Programme gegen Compiler <em>und</em> VM, bevor sie laufen. <code>try_ai</code> lässt die Sprache das Modell zurufen, um eigene Laufzeitfehler zu beheben. Und <code>sandbox_profile</code> begrenzt, was generierter Code anfassen darf. KI-freundlich endet nicht beim Generieren — die Syntax ist sicher auszuführen.</p>
+      </div>
+      <div class="feature-code"><div class="bar"><span class="dot" style="background:var(--red)"></span><span class="dot" style="background:var(--orange)"></span><span class="dot" style="background:var(--green)"></span></div><pre><span class="cmt">-- self-healing: the language fixes the model's mistakes</span>
+<span class="fn">result</span>: <span class="kw">try_ai</span>
+    <span class="str">"42"</span> * <span class="num">3</span>          <span class="cmt">-- AI rewrites → (to_num "42") * 3</span>
+<span class="kw">catch</span> e
+    <span class="num">0</span>                  <span class="cmt">-- fallback if the fix fails</span>
+
+<span class="cmt">-- containment: restrict exec, writes, and network</span>
+<span class="fn">sandbox_profile</span> <span class="str">"safe"</span> {<span class="kw">fs</span>: <span class="str">"read-only"</span>, <span class="kw">network</span>: <span class="kw">false</span>, <span class="kw">exec</span>: <span class="kw">false</span>, <span class="kw">ai</span>: <span class="kw">true</span>}</pre></div>
     </div>
 
     <div class="grid-3 reveal" style="margin-top:56px">
       <div class="card">
-        <div class="icon">🧠</div>
-        <h4 data-lang="en" class="active">Chain-of-thought as code</h4>
-        <h4 data-lang="de">Chain-of-Thought als Code</h4>
-        <p data-lang="en" class="active">Every <code>&gt;</code> is a reasoning step. The structure of your pipeline <em>is</em> the structure of the task — no translation layer between plan and program.</p>
-        <p data-lang="de">Jedes <code>&gt;</code> ist ein Denkschritt. Die Struktur deiner Pipeline <em>ist</em> die Struktur der Aufgabe — keine Übersetzungsebene zwischen Plan und Programm.</p>
+        <div class="icon">🧩</div>
+        <h4 data-lang="en" class="active">Small grammar</h4>
+        <h4 data-lang="de">Kleine Grammatik</h4>
+        <p data-lang="en" class="active">~20 keywords, no OOP, no type system. A model can memorize the whole language — and stay inside it.</p>
+        <p data-lang="de">~20 Keywords, kein OOP, kein Typsystem. Ein Modell kann die ganze Sprache memorieren — und bleibt darin.</p>
       </div>
       <div class="card">
-        <div class="icon">✍️</div>
-        <h4 data-lang="en" class="active">Declarative & compact</h4>
-        <h4 data-lang="de">Deklarativ & kompakt</h4>
-        <p data-lang="en" class="active">~5 lines instead of ~80. Fewer tokens for a model to generate, fewer places to go wrong, and code that reads like a spec.</p>
-        <p data-lang="de">~5 Zeilen statt ~80. Weniger Tokens für ein Modell zu generieren, weniger Stellen für Fehler, und Code, der wie ein Spec liest.</p>
+        <div class="icon">🚫</div>
+        <h4 data-lang="en" class="active">No delimiter bugs</h4>
+        <h4 data-lang="de">Keine Klammern-Fehler</h4>
+        <p data-lang="en" class="active">Implicit calls and indentation blocks remove the most common LLM codegen failure: mismatched brackets.</p>
+        <p data-lang="de">Implizite Aufrufe und Einrückungsblöcke entfernen den häufigsten LLM-Codegen-Fehler: falsch balancierte Klammern.</p>
       </div>
       <div class="card">
-        <div class="icon">⚡</div>
-        <h4 data-lang="en" class="active">Parallelism by default</h4>
-        <h4 data-lang="de">Parallelität per Default</h4>
-        <p data-lang="en" class="active"><code>&gt;&gt;</code> runs any stage in the background; <code>ai_batch</code> fans out hundreds of calls. Latency falls with one character, not a refactor.</p>
-        <p data-lang="de"><code>&gt;&gt;</code> startet jede Stufe im Hintergrund; <code>ai_batch</code> fächert hunderte Calls auf. Latenz sinkt mit einem Zeichen, nicht mit einem Refactor.</p>
+        <div class="icon">🎯</div>
+        <h4 data-lang="en" class="active">Intent over plumbing</h4>
+        <h4 data-lang="de">Absicht statt Klempnerei</h4>
+        <p data-lang="en" class="active">AI verbs instead of SDK glue. The model states what it wants — providers and keys stay out of the code.</p>
+        <p data-lang="de">KI-Verben statt SDK-Kleber. Das Modell sagt, was es will — Provider und Keys bleiben außerhalb des Codes.</p>
       </div>
       <div class="card">
-        <div class="icon">🔒</div>
-        <h4 data-lang="en" class="active">Safety is grammar</h4>
-        <h4 data-lang="de">Sicherheit als Grammatik</h4>
-        <p data-lang="en" class="active"><code>sandbox_profile</code> restricts <code>exec</code>, <code>write_file</code> and network access at the language level — where every AI call can see it.</p>
-        <p data-lang="de"><code>sandbox_profile</code> beschränkt <code>exec</code>, <code>write_file</code> und Netzwerkzugriff auf Sprachebene — sichtbar für jeden KI-Call.</p>
+        <div class="icon">📉</div>
+        <h4 data-lang="en" class="active">Short & dense</h4>
+        <h4 data-lang="de">Kurz & dicht</h4>
+        <p data-lang="en" class="active">5 lines replace ~80. Fewer output tokens, less drift, fewer places for the model to go wrong.</p>
+        <p data-lang="de">5 Zeilen statt ~80. Weniger Output-Tokens, weniger Drift, weniger Stellen, an denen das Modell falschliegen kann.</p>
       </div>
       <div class="card">
-        <div class="icon">🔁</div>
-        <h4 data-lang="en" class="active">Portability in one line</h4>
-        <h4 data-lang="de">Portabilität in einer Zeile</h4>
-        <p data-lang="en" class="active"><code>ai_provider "deepseek"</code> swaps the whole backend. The syntax stays identical — providers are a setting, not a rewrite.</p>
-        <p data-lang="de"><code>ai_provider "deepseek"</code> tauscht das ganze Backend. Die Syntax bleibt identisch — Provider sind eine Einstellung, kein Rewrite.</p>
+        <div class="icon">📖</div>
+        <h4 data-lang="en" class="active">Top-to-bottom flow</h4>
+        <h4 data-lang="de">Top-to-Bottom-Flow</h4>
+        <p data-lang="en" class="active">Stateless <code>&gt;</code> pipelines read like a plan, so a model can hold the whole program in context.</p>
+        <p data-lang="de">Zustandslose <code>&gt;</code>-Pipelines lesen wie ein Plan, sodass ein Modell das ganze Programm im Kontext behalten kann.</p>
       </div>
       <div class="card">
-        <div class="icon">🩺</div>
-        <h4 data-lang="en" class="active">Self-verifying</h4>
-        <h4 data-lang="de">Selbstverifizierend</h4>
-        <p data-lang="en" class="active"><code>try_ai</code> self-heals runtime errors; <code>pipe -gen</code> validates generated code with compiler and VM. Trust what you ship.</p>
-        <p data-lang="de"><code>try_ai</code> heilt Laufzeitfehler selbst; <code>pipe -gen</code> validiert generierten Code mit Compiler und VM. Vertraue, was du auslieferst.</p>
+        <div class="icon">🛡️</div>
+        <h4 data-lang="en" class="active">Verifiable & contained</h4>
+        <h4 data-lang="de">Verifizierbar & eingekapselt</h4>
+        <p data-lang="en" class="active"><code>pipe -gen</code> validates, <code>try_ai</code> repairs, <code>sandbox_profile</code> contains. Generation without guardrails is not enough.</p>
+        <p data-lang="de"><code>pipe -gen</code> validiert, <code>try_ai</code> repariert, <code>sandbox_profile</code> kapselt ein. Generieren ohne Schutzmechanismen reicht nicht.</p>
       </div>
     </div>
   </div>

@@ -1,0 +1,50 @@
+-- Pipeline-Ketten mit Inline-Lambdas
+
+print "=== Zahlen-Pipeline ==="
+[1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+    > filter (fn x: x % 2 == 0)
+    > map (fn x: x * 3)
+    > sort
+    > print
+
+print "=== Text-Pipeline ==="
+words: ["hello", "world", "pipe", "programming", "language", "cool"]
+words
+    > filter (fn w: (len w) > 4)
+    > map (fn w: upper w)
+    > sort
+    > print
+
+print "=== Mehrstufige Transformation ==="
+[1, 2, 3, 4, 5]
+    > map (fn x: x * 10)
+    > filter (fn x: x >= 30)
+    > map (fn x: x / 2)
+    > print
+
+print "=== Bedingte Filter ==="
+scores: [45, 78, 92, 33, 67, 88, 55, 91]
+-- Alles über 80
+top: filter scores (fn s: s > 80)
+print top
+
+-- Zwischen 50 und 90
+mid: filter scores (fn s: (s >= 50) && (s <= 90))
+print mid
+
+print "=== Multi-Param Lambda ==="
+-- Zwei-Parameter Lambda für reduce
+nums: [1, 2, 3, 4, 5]
+product: reduce nums (fn a b: a * b) 1
+print product
+
+-- reduce mit Variable 
+nums2: [10, 20, 30]
+sum2: reduce nums2 (fn a b: a + b) 0
+print sum2
+
+print "=== Kombinierte Filter + Map ==="
+data: [2, 4, 6, 8, 10]
+-- Gerade Zahlen größer 4 halbieren
+transformed: map (filter data (fn x: x > 4)) (fn x: x / 2)
+print transformed

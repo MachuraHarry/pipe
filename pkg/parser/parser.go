@@ -401,22 +401,54 @@ func (p *Parser) parseVarStatement() *ast.VarStatement {
 	return stmt
 }
 
-func (p *Parser) parseFnStatement() *ast.FnStatement {
-	stmt := &ast.FnStatement{}
-
-	p.nextToken()
+func (p *Parser) parseFnStatement() ast.Statement {
+	p.nextToken() // skip 'fn'
 
 	if !p.curTokenIs(lexer.IDENT) {
+		p.error("expected function name or parameter after 'fn'")
+		return nil
+	}
+
+	firstLine := p.curToken.Line
+	firstCol := p.curToken.Col
+
+	var idents []*ast.Identifier
+	for p.curTokenIs(lexer.IDENT) {
+		idents = append(idents, &ast.Identifier{Value: p.curToken.Literal, Line: p.curToken.Line, Col: p.curToken.Col})
+		p.nextToken()
+	}
+
+	// Inline lambda: fn param...: expression
+	if p.curTokenIs(lexer.COLON) {
+		p.nextToken() // skip colon
+		expr := p.parseExpression(PrecedenceLowest)
+		if expr == nil {
+			return nil
+		}
+		return &ast.ExpressionStatement{
+			Expression: &ast.FnLiteral{
+				Parameters: idents,
+				Body: &ast.BlockStatement{
+					Statements: []ast.Statement{
+						&ast.ExpressionStatement{Expression: expr},
+					},
+				},
+				Line: firstLine,
+				Col:  firstCol,
+			},
+		}
+	}
+
+	// Named function: first ident is name, rest are params
+	if len(idents) == 0 {
 		p.error("expected function name after 'fn'")
 		return nil
 	}
-	stmt.Name = &ast.Identifier{Value: p.curToken.Literal, Line: p.curToken.Line, Col: p.curToken.Col}
-
-	p.nextToken()
-	stmt.Parameters = p.parseParameters()
-
+	stmt := &ast.FnStatement{
+		Name:       idents[0],
+		Parameters: idents[1:],
+	}
 	stmt.Body = p.parseBlock()
-
 	return stmt
 }
 
@@ -1038,10 +1070,11 @@ func (p *Parser) parseExportStatement() ast.Statement {
 
 	switch p.curToken.Type {
 	case lexer.FN:
-		fnStmt := p.parseFnStatement()
-		if fnStmt != nil {
+		stmt := p.parseFnStatement()
+		if fnStmt, ok := stmt.(*ast.FnStatement); ok {
 			return &ast.ExportStatement{FnName: fnStmt.Name.Value, Fn: fnStmt}
 		}
+		p.error("cannot export inline lambda; use a named function")
 	case lexer.IDENT:
 		if p.peekTokenIs(lexer.COLON) {
 			varStmt := p.parseVarStatement()
@@ -1132,10 +1165,27 @@ func (p *Parser) parseFnLiteral() ast.Expression {
 
 	p.nextToken() // skip 'fn'
 
-	// Parameters
-	lit.Parameters = p.parseParameters()
+	// Collect all identifiers as parameters
+	for p.curTokenIs(lexer.IDENT) {
+		lit.Parameters = append(lit.Parameters, &ast.Identifier{Value: p.curToken.Literal, Line: p.curToken.Line, Col: p.curToken.Col})
+		p.nextToken()
+	}
 
-	// Body
+	// Inline form: fn params...: expression
+	if p.curTokenIs(lexer.COLON) {
+		p.nextToken() // skip colon
+		expr := p.parseExpression(PrecedenceLowest)
+		if expr != nil {
+			lit.Body = &ast.BlockStatement{
+				Statements: []ast.Statement{
+					&ast.ExpressionStatement{Expression: expr},
+				},
+			}
+		}
+		return lit
+	}
+
+	// Body (indented block form)
 	lit.Body = p.parseBlock()
 	p.closeBlock()
 	return lit

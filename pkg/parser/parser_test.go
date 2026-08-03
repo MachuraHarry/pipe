@@ -117,6 +117,70 @@ func TestVariableDef(t *testing.T) {
 	testIntegerLiteral(t, stmt.Value, 42)
 }
 
+func TestInlineLambda(t *testing.T) {
+	input := "fn x: x + 1"
+	program := parseProgram(t, input)
+
+	expr, ok := program.Statements[0].(*ast.ExpressionStatement)
+	if !ok {
+		t.Fatalf("expected ExpressionStatement, got %T", program.Statements[0])
+	}
+	lit, ok := expr.Expression.(*ast.FnLiteral)
+	if !ok {
+		t.Fatalf("expected FnLiteral, got %T", expr.Expression)
+	}
+	if len(lit.Parameters) != 1 {
+		t.Errorf("expected 1 param, got %d", len(lit.Parameters))
+	}
+	if lit.Parameters[0].Value != "x" {
+		t.Errorf("expected param 'x', got %q", lit.Parameters[0].Value)
+	}
+	if len(lit.Body.Statements) != 1 {
+		t.Fatalf("expected 1 body statement, got %d", len(lit.Body.Statements))
+	}
+}
+
+func TestInlineLambdaMultiParam(t *testing.T) {
+	input := "fn a b: a + b"
+	program := parseProgram(t, input)
+
+	expr, ok := program.Statements[0].(*ast.ExpressionStatement)
+	if !ok {
+		t.Fatalf("expected ExpressionStatement, got %T", program.Statements[0])
+	}
+	lit, ok := expr.Expression.(*ast.FnLiteral)
+	if !ok {
+		t.Fatalf("expected FnLiteral, got %T", expr.Expression)
+	}
+	if len(lit.Parameters) != 2 {
+		t.Errorf("expected 2 params, got %d", len(lit.Parameters))
+	}
+}
+
+func TestInlineLambdaAsArgument(t *testing.T) {
+	input := "filter list (fn x: x > 0)"
+	program := parseProgram(t, input)
+
+	expr, ok := program.Statements[0].(*ast.ExpressionStatement)
+	if !ok {
+		t.Fatalf("expected ExpressionStatement, got %T", program.Statements[0])
+	}
+	call, ok := expr.Expression.(*ast.CallExpression)
+	if !ok {
+		t.Fatalf("expected CallExpression, got %T", expr.Expression)
+	}
+	if len(call.Arguments) != 2 {
+		t.Fatalf("expected 2 args, got %d", len(call.Arguments))
+	}
+	lit, ok := call.Arguments[1].(*ast.FnLiteral)
+	if !ok {
+		t.Fatalf("expected FnLiteral as second arg, got %T", call.Arguments[1])
+	}
+	if len(lit.Parameters) != 1 || lit.Parameters[0].Value != "x" {
+		t.Errorf("expected param [x], got %v", paramsToSlice(lit.Parameters))
+	}
+}
+
 func TestFunctionDef(t *testing.T) {
 	input := "fn greet name\n    \"Hallo \" ++ name\n"
 	program := parseProgram(t, input)

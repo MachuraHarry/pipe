@@ -333,9 +333,19 @@ func formatExpr(out *strings.Builder, expr ast.Expression, depth int, prec int) 
 
 	case *ast.FnLiteral:
 		out.WriteString("fn ")
-		for _, p := range e.Parameters {
+		for i, p := range e.Parameters {
+			if i > 0 {
+				out.WriteByte(' ')
+			}
 			out.WriteString(p.Value)
-			out.WriteByte(' ')
+		}
+		// Inline form: fn x: expression (single-expression body)
+		if len(e.Body.Statements) == 1 {
+			if exprStmt, ok := e.Body.Statements[0].(*ast.ExpressionStatement); ok {
+				out.WriteString(": ")
+				formatExpr(out, exprStmt.Expression, depth, 0)
+				break
+			}
 		}
 		out.WriteByte('\n')
 		formatBlock(out, e.Body, depth+1)

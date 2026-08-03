@@ -311,7 +311,7 @@ var Builtins = []BuiltinInfo{
 	{"sort", bSort},
 	{"range", bRange},
 
-	// List — higher order (works with named functions; inline lambdas not yet supported)
+	// List — higher order (all modes, including inline lambdas)
 	{"map", bMap},
 	{"filter", bFilter},
 	{"reduce", bReduce},

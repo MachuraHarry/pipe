@@ -1,0 +1,23 @@
+nums: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+print "=== filter ==="
+even: filter nums (fn x: x % 2 == 0)
+print even
+big: filter nums (fn x: x > 5)
+print big
+print "=== map ==="
+double: map nums (fn x: x * 2)
+print double
+squares: map nums (fn x: x * x)
+print squares
+print "=== reduce ==="
+sum: reduce nums (fn a b: a + b) 0
+print sum
+product: reduce nums (fn a b: a * b) 1
+print product
+print "=== String-Filter ==="
+words: ["pipe", "python", "pipeline", "rust", "pytest"]
+pipe_words: filter words (fn w: contains w "pipe")
+print pipe_words
+print "=== Verschachtelt ==="
+odd_squares: map (filter nums (fn x: x % 2 != 0)) (fn x: x * x)
+print odd_squares

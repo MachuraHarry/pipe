@@ -602,16 +602,31 @@ c: <span class="str">"Capital of Italy?"</span>
     <div class="section-head">
       <h2 data-lang="en" class="active">AI models learn Pipe <span>in seconds</span></h2>
       <h2 data-lang="de">KI-Modelle lernen Pipe <span>in Sekunden</span></h2>
-      <p data-lang="en" class="active">The Pipe syntax is AI-friendly by design. The grammar is tiny, the shapes are familiar, the verbs are self-describing, and mistakes are fixable. Here's why models pick it up faster than almost any language.</p>
-      <p data-lang="de">Die Pipe-Syntax ist von Haus aus KI-freundlich. Die Grammatik ist winzig, die Formen sind vertraut, die Verben sind selbstbeschreibend, und Fehler sind reparierbar. Deshalb erlernen Modelle sie schneller als fast jede andere Sprache.</p>
+      <p data-lang="en" class="active">The Pipe syntax is AI-friendly by design. Its heart is the pipeline: data flows top to bottom through <code>&gt;</code>, step by step — the same way AI models reason about a task. Here's why models understand and learn Pipe so quickly.</p>
+      <p data-lang="de">Die Pipe-Syntax ist von Haus aus KI-freundlich. Ihr Herzstück ist die Pipeline: Daten fließen von oben nach unten durch <code>&gt;</code>, Schritt für Schritt — genauso, wie KI-Modelle über eine Aufgabe nachdenken. Deshalb verstehen und erlernen Modelle Pipe so schnell.</p>
     </div>
 
     <div class="feature-row reveal">
       <div class="feature-text">
+        <h3 data-lang="en" class="active"><span>Pipelines read like reasoning</span> — step by step, top to bottom</h3>
+        <h3 data-lang="de"><span>Pipelines lesen sich wie Denken</span> — Schritt für Schritt, von oben nach unten</h3>
+        <p data-lang="en" class="active">An AI task is a sequence of steps: <em>read → clean → classify → summarize → deliver</em>. Pipe writes that sequence literally — every <code>&gt;</code> is one transformation, top to bottom. A model doesn't have to reverse-engineer control flow or hunt for side effects; the code is a straight line from input to result, exactly the shape of a reasoning chain.</p>
+        <p data-lang="de">Eine KI-Aufgabe ist eine Folge von Schritten: <em>lesen → bereinigen → klassifizieren → zusammenfassen → liefern</em>. Pipe schreibt diese Folge wörtlich — jedes <code>&gt;</code> ist eine Transformation, von oben nach unten. Ein Modell muss keinen Kontrollfluss rekonstruieren und keine Seiteneffekte suchen; der Code ist eine gerade Linie vom Input zum Ergebnis — exakt die Form einer Denkkette.</p>
+      </div>
+      <div class="feature-code"><div class="bar"><span class="dot" style="background:var(--red)"></span><span class="dot" style="background:var(--orange)"></span><span class="dot" style="background:var(--green)"></span></div><pre><span class="cmt">-- one step per line, top to bottom — like a reasoning chain</span>
+<span class="fn">read_file</span> <span class="str">"tickets.txt"</span>
+    <span class="pipe">&gt;</span> <span class="fn">split</span> <span class="str">"\n"</span>
+    <span class="pipe">&gt;</span> <span class="fn">classify</span> [<span class="str">"bug"</span>, <span class="str">"feature"</span>, <span class="str">"question"</span>]
+    <span class="pipe">&gt;</span> <span class="fn">summarize</span>
+    <span class="pipe">&gt;</span> <span class="fn">save</span> <span class="str">"report.md"</span></pre></div>
+    </div>
+
+    <div class="feature-row reverse reveal">
+      <div class="feature-text">
         <h3 data-lang="en" class="active"><span>Tiny grammar</span> — learnable in a single pass</h3>
         <h3 data-lang="de"><span>Winzige Grammatik</span> — in einem Durchgang lernbar</h3>
-        <p data-lang="en" class="active">Around 20 keywords, 66 token types, 33 AST node types. No classes, no generics, no decorators, no <code>async</code> model to absorb. The whole language fits on a page — so a model can memorize it in one glance and stays <em>inside</em> the grammar instead of drifting out of it.</p>
-        <p data-lang="de">Rund 20 Keywords, 66 Token-Typen, 33 AST-Nodes. Keine Klassen, keine Generics, keine Dekoratoren, kein <code>async</code>-Modell zum Aufnehmen. Die ganze Sprache passt auf eine Seite — ein Modell kann sie auf einen Blick erfassen und bleibt <em>innerhalb</em> der Grammatik, statt herauszudriften.</p>
+        <p data-lang="en" class="active">Around 20 keywords, 66 token types, 33 AST node types. No classes, no generics, no decorators, no <code>async</code> model to absorb. The whole language fits on a page — so a model memorizes it in one glance and stays <em>inside</em> the grammar instead of drifting out of it.</p>
+        <p data-lang="de">Rund 20 Keywords, 66 Token-Typen, 33 AST-Nodes. Keine Klassen, keine Generics, keine Dekoratoren, kein <code>async</code>-Modell zum Aufnehmen. Die ganze Sprache passt auf eine Seite — ein Modell erfasst sie auf einen Blick und bleibt <em>innerhalb</em> der Grammatik, statt herauszudriften.</p>
       </div>
       <div class="feature-code"><div class="bar"><span class="dot" style="background:var(--red)"></span><span class="dot" style="background:var(--orange)"></span><span class="dot" style="background:var(--green)"></span></div><pre><span class="cmt">-- ~20 keywords · no classes · no types · no braces</span>
 <span class="kw">fn</span> <span class="fn">classify_ticket</span> t
@@ -621,11 +636,10 @@ c: <span class="str">"Capital of Italy?"</span>
         | _        -> <span class="str">"other"</span>
 
 <span class="cmt">-- implicit calls: no parentheses, no commas</span>
-<span class="fn">print</span> (<span class="fn">classify_ticket</span> <span class="str">"crash"</span>)
-<span class="fn">print</span> (<span class="fn">len</span> [<span class="num">1</span>, <span class="num">2</span>, <span class="num">3</span>])</pre></div>
+<span class="fn">print</span> (<span class="fn">classify_ticket</span> <span class="str">"crash"</span>)</pre></div>
     </div>
 
-    <div class="feature-row reverse reveal">
+    <div class="feature-row reveal">
       <div class="feature-text">
         <h3 data-lang="en" class="active"><span>Familiar shapes</span> — nothing a model has to unlearn</h3>
         <h3 data-lang="de"><span>Vertraute Formen</span> — nichts, das ein Modell verlernt</h3>
@@ -640,7 +654,7 @@ c: <span class="str">"Capital of Italy?"</span>
     <span class="fn">print</span> <span class="str">"many items"</span></pre></div>
     </div>
 
-    <div class="feature-row reveal">
+    <div class="feature-row reverse reveal">
       <div class="feature-text">
         <h3 data-lang="en" class="active"><span>Self-describing verbs</span> — the syntax reads like instructions</h3>
         <h3 data-lang="de"><span>Selbstbeschreibende Verben</span> — die Syntax liest sich wie Anweisungen</h3>
@@ -652,43 +666,37 @@ c: <span class="str">"Capital of Italy?"</span>
 <span class="fn">summary</span>: <span class="fn">summarize</span> ticket
 <span class="fn">reply</span>:   <span class="fn">translate</span> summary <span class="str">"de"</span>
 
-<span class="fn">print</span> reply
-
-<span class="cmt">-- provider = one line, syntax unchanged</span>
-<span class="fn">ai_provider</span> <span class="str">"ollama"</span></pre></div>
-    </div>
-
-    <div class="feature-row reverse reveal">
-      <div class="feature-text">
-        <h3 data-lang="en" class="active"><span>Mistakes are fixable</span> — the syntax heals itself</h3>
-        <h3 data-lang="de"><span>Fehler sind reparierbar</span> — die Syntax heilt sich selbst</h3>
-        <p data-lang="en" class="active">A model will sometimes guess wrong — Pipe is built for that. <code>pipe -gen</code> validates generated programs against the compiler and the VM before they run, <code>try_ai</code> calls the model back to repair its own runtime errors, and <code>sandbox_profile</code> limits what generated code can touch. AI-friendly by design — all the way to execution.</p>
-        <p data-lang="de">Ein Modell rät manchmal falsch — Pipe ist darauf gebaut. <code>pipe -gen</code> validiert generierte Programme gegen Compiler <em>und</em> VM, bevor sie laufen, <code>try_ai</code> ruft das Modell zurück, um eigene Laufzeitfehler zu reparieren, und <code>sandbox_profile</code> begrenzt, was generierter Code anfassen darf. Von Haus aus KI-freundlich — bis zur Ausführung.</p>
-      </div>
-      <div class="feature-code"><div class="bar"><span class="dot" style="background:var(--red)"></span><span class="dot" style="background:var(--orange)"></span><span class="dot" style="background:var(--green)"></span></div><pre><span class="cmt">-- self-healing: the language fixes the model's mistakes</span>
-<span class="fn">result</span>: <span class="kw">try_ai</span>
-    <span class="str">"42"</span> * <span class="num">3</span>          <span class="cmt">-- AI rewrites → (to_num "42") * 3</span>
-<span class="kw">catch</span> e
-    <span class="num">0</span>                  <span class="cmt">-- fallback if the fix fails</span>
-
-<span class="cmt">-- containment: restrict exec, writes, and network</span>
-<span class="fn">sandbox_profile</span> <span class="str">"safe"</span> {<span class="kw">fs</span>: <span class="str">"read-only"</span>, <span class="kw">network</span>: <span class="kw">false</span>, <span class="kw">exec</span>: <span class="kw">false</span>, <span class="kw">ai</span>: <span class="kw">true</span>}</pre></div>
+<span class="fn">print</span> reply</pre></div>
     </div>
 
     <div class="grid-3 reveal" style="margin-top:56px">
       <div class="card">
         <div class="icon">🧠</div>
-        <h4 data-lang="en" class="active">Learnable in one pass</h4>
-        <h4 data-lang="de">In einem Durchgang lernbar</h4>
-        <p data-lang="en" class="active">The whole grammar fits on a page — a model memorizes it in one glance and stays inside it.</p>
-        <p data-lang="de">Die ganze Grammatik passt auf eine Seite — ein Modell erfasst sie auf einen Blick und bleibt darin.</p>
+        <h4 data-lang="en" class="active">Chain-of-thought syntax</h4>
+        <h4 data-lang="de">Chain-of-Thought-Syntax</h4>
+        <p data-lang="en" class="active">Every <code>&gt;</code> is one reasoning step. The pipeline <em>is</em> the plan — models read intent directly from the shape.</p>
+        <p data-lang="de">Jedes <code>&gt;</code> ist ein Denkschritt. Die Pipeline <em>ist</em> der Plan — Modelle lesen die Absicht direkt aus der Form.</p>
+      </div>
+      <div class="card">
+        <div class="icon">📖</div>
+        <h4 data-lang="en" class="active">Linear & stateless</h4>
+        <h4 data-lang="de">Linear & zustandslos</h4>
+        <p data-lang="en" class="active">No control-flow maze, no mutable state to track. The whole program stays in context.</p>
+        <p data-lang="de">Kein Kontrollfluss-Labyrinth, kein veränderlicher Zustand zu verfolgen. Das ganze Programm bleibt im Kontext.</p>
       </div>
       <div class="card">
         <div class="icon">🚫</div>
         <h4 data-lang="en" class="active">Nothing to unlearn</h4>
         <h4 data-lang="de">Nichts zu verlernen</h4>
-        <p data-lang="en" class="active">Indentation like Python, implicit calls instead of brackets — the structures models already handle best.</p>
-        <p data-lang="de">Einrückung wie in Python, implizite Aufrufe statt Klammern — die Strukturen, die Modelle ohnehin am besten beherrschen.</p>
+        <p data-lang="en" class="active">Indentation like Python, implicit calls instead of brackets — structures models already handle best.</p>
+        <p data-lang="de">Einrückung wie in Python, implizite Aufrufe statt Klammern — Strukturen, die Modelle ohnehin am besten beherrschen.</p>
+      </div>
+      <div class="card">
+        <div class="icon">🧩</div>
+        <h4 data-lang="en" class="active">Small grammar</h4>
+        <h4 data-lang="de">Kleine Grammatik</h4>
+        <p data-lang="en" class="active">The whole language fits on a page — learnable in one glance, easy to stay inside.</p>
+        <p data-lang="de">Die ganze Sprache passt auf eine Seite — auf einen Blick lernbar, leicht darin zu bleiben.</p>
       </div>
       <div class="card">
         <div class="icon">🗣️</div>
@@ -703,20 +711,6 @@ c: <span class="str">"Capital of Italy?"</span>
         <h4 data-lang="de">Kurzer Output</h4>
         <p data-lang="en" class="active">5 lines replace ~80. Fewer tokens to generate, less room for the model to drift.</p>
         <p data-lang="de">5 Zeilen statt ~80. Weniger Tokens zu generieren, weniger Raum für Drift.</p>
-      </div>
-      <div class="card">
-        <div class="icon">📖</div>
-        <h4 data-lang="en" class="active">Linear flow</h4>
-        <h4 data-lang="de">Linearer Fluss</h4>
-        <p data-lang="en" class="active">Top-to-bottom <code>&gt;</code> pipelines, no state to track — the whole program stays in context.</p>
-        <p data-lang="de">Top-to-Bottom-<code>&gt;</code>-Pipelines, kein Zustand zu verfolgen — das ganze Programm bleibt im Kontext.</p>
-      </div>
-      <div class="card">
-        <div class="icon">🛡️</div>
-        <h4 data-lang="en" class="active">Mistakes are fixable</h4>
-        <h4 data-lang="de">Fehler sind reparierbar</h4>
-        <p data-lang="en" class="active"><code>try_ai</code> repairs, <code>pipe -gen</code> verifies, <code>sandbox_profile</code> contains. Safe to let a model run.</p>
-        <p data-lang="de"><code>try_ai</code> repariert, <code>pipe -gen</code> verifiziert, <code>sandbox_profile</code> kapselt ein. Sicher, ein Modell laufen zu lassen.</p>
       </div>
     </div>
   </div>

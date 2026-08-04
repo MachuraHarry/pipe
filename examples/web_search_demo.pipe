@@ -1,0 +1,51 @@
+-- Web Search Demo: DuckDuckGo Instant Answer API (free, no key required)
+ai_provider "deepseek"
+
+print "═══ WEB SEARCH DEMO ═══"
+print ""
+
+-- Basic search
+print "─── 1. Basic Search ───"
+results: web_search "Rust programming language"
+r: at results 0
+
+print "First result:"
+(get r "title")
+    > print
+(get r "snippet")
+    > print
+print ""
+
+-- Search with RAG pipeline
+print "─── 2. RAG with Web Search ───"
+results2: web_search "What is the Pipe SPR language?"
+context: ""
+for r in results2
+    context: context ++ (get r "title") ++ "\n" ++ (get r "snippet") ++ "\n---\n"
+
+ask ("Context:\n" ++ context ++ "\nQuestion: What is the Pipe SPR language?")
+    > print
+print ""
+
+-- Search for facts
+print "─── 3. Fact Lookup ───"
+results3: web_search "current president of Germany"
+for r in results3
+    (get r "title")
+        > print
+    (get r "snippet")
+        > print
+    print ""
+
+-- Use search + AI to answer complex questions
+print "─── 4. Complex Q&A ───"
+search_results: web_search "quantum computing explained simply"
+context2: ""
+for r in search_results
+    context2: context2 ++ (get r "snippet") ++ "\n---\n"
+
+ask ("Explain quantum computing in 2 sentences based on this:\n" ++ context2)
+    > print
+print ""
+
+print "═══ DONE ═══"

@@ -374,6 +374,9 @@ var Builtins = []BuiltinInfo{
 	{"ai_host", bAiHost},
 	{"ai_cache", bAiCache},
 
+	// AI — Retrieval
+	{"web_search", bWebSearch},
+
 	// AI — Low-level Chat
 	{"ai_chat", bAiChat},
 	{"ai_chat_json", bAiChatJSON},
@@ -2078,6 +2081,38 @@ func bAiCache(args ...Object) Object {
 	default:
 		return err("ai_cache expects true/false, a number (minutes), or 'on'/'off'/'clear'/'stats'")
 	}
+}
+
+func bWebSearch(args ...Object) Object {
+	if ActiveProfile.Name != "none" {
+		if canErr := ActiveProfile.CanNetwork(); canErr != nil {
+			return err(canErr.Error())
+		}
+	}
+
+	if len(args) < 1 {
+		return err("web_search expects 1 argument (query)")
+	}
+
+	query, ok := args[0].(*String)
+	if !ok {
+		return err("web_search: argument must be a string")
+	}
+
+	results, searchErr := ai.WebSearch(query.Value)
+	if searchErr != nil {
+		return err(searchErr.Error())
+	}
+
+	elems := make([]Object, len(results))
+	for i, r := range results {
+		elems[i] = &Map{Pairs: map[string]Object{
+			"title":   &String{Value: r.Title},
+			"snippet": &String{Value: r.Snippet},
+			"url":     &String{Value: r.URL},
+		}}
+	}
+	return &List{Elements: elems}
 }
 
 func bAiChat(args ...Object) Object {

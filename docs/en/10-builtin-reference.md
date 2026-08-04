@@ -1416,7 +1416,43 @@ nearest q docs 2
 
 ---
 
-## 10.23 Sandbox (3 functions)
+## 10.23 AI — Search (1 function)
+
+### `web_search`
+
+**Signature:** `web_search(query)`
+
+**Description:** Searches the web using DuckDuckGo's free Instant Answer API. No API key required. Returns a list of result maps, each with `title`, `snippet`, and `url` keys.
+
+**Returns:** `list` of `map` (each map has keys: `title`, `snippet`, `url`)
+
+```pipe
+results: web_search "Go programming language"
+
+first: at results 0
+(get first "title")
+    > print
+(get first "snippet")
+    > print
+```
+
+**Example — RAG with web search:**
+```pipe
+ai_provider "deepseek"
+
+results: web_search "How does a quantum computer work?"
+
+context: ""
+for r in results
+    context: context ++ (get r "title") ++ "\n" ++ (get r "snippet") ++ "\n---\n"
+
+ask ("Context:\n" ++ context ++ "\nQuestion: Explain quantum computing simply")
+    > print
+```
+
+---
+
+## 10.24 Sandbox (3 functions)
 
 ### `sandbox_profile`
 **Signature:** `sandbox_profile(name)`
@@ -1445,7 +1481,7 @@ with_sandbox "noexec" (fn
 
 ---
 
-## 10.24 Test Assertions (6 functions)
+## 10.25 Test Assertions (6 functions)
 
 **Note:** `test` blocks and assert builtins are available in all execution modes, but are designed for use with `pipe -test`.
 
@@ -1534,7 +1570,7 @@ test "addition"
 
 ---
 
-## 10.25 Summary Table
+## 10.26 Summary Table
 
 ### IO & System (6)
 
@@ -1753,25 +1789,31 @@ test "addition"
 | 106 | `dot_product` | `dot_product(vec_a, vec_b)` |  |
 | 107 | `nearest` | `nearest(query_vec, doc_vectors, k)` |  |
 
+### AI — Search (1)
+
+| # | Function | Signature | Returns |
+|---|----------|-----------|---------|
+| 108 | `web_search` | `web_search(query)` | `list` |
+
 ### Sandbox (3)
 
 | # | Function | Signature | Returns |
 |---|----------|-----------|---------|
-| 108 | `sandbox_profile` | `sandbox_profile(name)` | `string` |
-| 109 | `set_sandbox` | `set_sandbox(profile)` | `string` |
-| 110 | `with_sandbox` | `with_sandbox(profile, fn)` | `any` |
+| 109 | `sandbox_profile` | `sandbox_profile(name)` | `string` |
+| 110 | `set_sandbox` | `set_sandbox(profile)` | `string` |
+| 111 | `with_sandbox` | `with_sandbox(profile, fn)` | `any` |
 
 ### Test Assertions (6)
 
 | # | Function | Signature | Returns |
 |---|----------|-----------|---------|
-| 111 | `assert` | `assert(condition)` |  |
-| 112 | `assert_eq` | `assert_eq(expected, actual)` |  |
-| 113 | `assert_not_eq` | `assert_not_eq(unexpected, actual)` |  |
-| 114 | `assert_lt` | `assert_lt(a, b)` |  |
-| 115 | `assert_gt` | `assert_gt(a, b)` |  |
-| 116 | `assert_error` | `assert_error(fn)` |  |
+| 112 | `assert` | `assert(condition)` |  |
+| 113 | `assert_eq` | `assert_eq(expected, actual)` |  |
+| 114 | `assert_not_eq` | `assert_not_eq(unexpected, actual)` |  |
+| 115 | `assert_lt` | `assert_lt(a, b)` |  |
+| 116 | `assert_gt` | `assert_gt(a, b)` |  |
+| 117 | `assert_error` | `assert_error(fn)` |  |
 
 ---
 
-**Total: 116 built-in functions**
+**Total: 117 built-in functions**

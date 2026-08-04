@@ -1096,10 +1096,13 @@ with_sandbox "noexec" (fn
 ### KI — Embeddings (5)
 `embed`, `embed_batch`, `cosine_sim`, `dot_product`, `nearest`
 
+### KI — Suche (1)
+`web_search`
+
 ### Test-Assertions (6)
 `assert`, `assert_eq`, `assert_not_eq`, `assert_lt`, `assert_gt`, `assert_error`
 
 ### Sandbox (3)
 `sandbox_profile`, `set_sandbox`, `with_sandbox`
 
-**Gesamt: 116 Builtins**
+**Gesamt: 117 Builtins**

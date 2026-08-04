@@ -40,6 +40,7 @@ const (
 	CatAIPar    = "AI Parallel"
 	CatAITool   = "AI Tool Calling"
 	CatAIEmbed  = "AI Embeddings"
+	CatAISearch = "AI Search"
 	CatSandbox  = "Sandbox"
 	CatTest     = "Test Assertions"
 )
@@ -305,6 +306,10 @@ var builtinDocs = []BuiltinDoc{
 		Description: "Computes the dot product of two vectors.", Category: CatAIEmbed},
 	{Name: "nearest", Signature: "nearest(query_vec, doc_vectors, k)", Params: []Param{p("query_vec", "list"), p("doc_vectors", "list"), p("k", "number")}, ReturnType: "list",
 		Description: "Finds the k nearest neighbors to query_vec among doc_vectors using cosine similarity.", Category: CatAIEmbed},
+
+	// ---- AI Search ----
+	{Name: "web_search", Signature: "web_search(query)", Params: []Param{p("query", "string")}, ReturnType: "list",
+		Description: "Searches the web via DuckDuckGo Instant Answer API (free, no key needed). Returns a list of maps with title, snippet, url.", Category: CatAISearch},
 
 	// ---- Sandbox ----
 	{Name: "sandbox_profile", Signature: "sandbox_profile(name)", Params: []Param{p("name", "string")}, ReturnType: "string",

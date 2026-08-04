@@ -1378,7 +1378,66 @@ ai_with_tools "You have weather data" "What is the weather in Berlin?"
 
 ---
 
-## 10.22 AI — Embeddings (5 functions)
+## 10.22 AI — Agents (3 functions)
+
+### `agent`
+
+**Signature:** `agent(name, system_prompt)`
+
+**Description:** Creates a stateful agent with the given name and system prompt. Agents maintain their own conversation history across calls. Multiple agents can coexist independently.
+
+**Returns:** `string` (confirmation message)
+
+```pipe
+agent "helper" "You are a helpful assistant. Keep answers short."
+agent "poet" "You are a poet. Respond in rhyming couplets."
+```
+
+### `agent_ask`
+
+**Signature:** `agent_ask(name, message)`
+
+**Description:** Sends a message to the named agent. The agent remembers all previous messages (conversation history), allowing for multi-turn conversations with context.
+
+**Returns:** `string` (agent response)
+
+```pipe
+agent_ask "helper" "What is the capital of France?"
+    > print
+
+-- Agent remembers context from previous message
+agent_ask "helper" "What's its population?"
+    > print
+```
+
+### `agent_clear`
+
+**Signature:** `agent_clear(name)`
+
+**Description:** Clears the conversation history of the named agent, keeping its system prompt. The agent will not remember previous messages.
+
+**Returns:** `string` (confirmation message)
+
+```pipe
+agent_clear "helper"
+```
+
+**Example — multi-agent conversation:**
+```pipe
+ai_provider "deepseek"
+agent "de" "Du bist ein deutscher Assistent."
+agent "eng" "You are an English assistant."
+
+agent_ask "de" "Was ist die Hauptstadt von Frankreich?"
+    > print
+
+agent_ask "eng" "What is the capital of France?"
+    > print
+```
+
+---
+
+## 10.23 AI — Embeddings (5 functions)
 
 ### `embed`
 
@@ -1442,7 +1501,7 @@ nearest q docs 2
 
 ---
 
-## 10.23 AI — Search (1 function)
+## 10.24 AI — Search (1 function)
 
 ### `web_search`
 
@@ -1478,7 +1537,7 @@ ask ("Context:\n" ++ context ++ "\nQuestion: Explain quantum computing simply")
 
 ---
 
-## 10.24 Sandbox (3 functions)
+## 10.25 Sandbox (3 functions)
 
 ### `sandbox_profile`
 **Signature:** `sandbox_profile(name)`
@@ -1507,7 +1566,7 @@ with_sandbox "noexec" (fn
 
 ---
 
-## 10.25 Test Assertions (6 functions)
+## 10.26 Test Assertions (6 functions)
 
 **Note:** `test` blocks and assert builtins are available in all execution modes, but are designed for use with `pipe -test`.
 
@@ -1596,7 +1655,7 @@ test "addition"
 
 ---
 
-## 10.26 Summary Table
+## 10.27 Summary Table
 
 ### IO & System (6)
 
@@ -1806,41 +1865,49 @@ test "addition"
 | 102 | `ai_tool` | `ai_tool(name, description, parameters, function)` |  |
 | 103 | `ai_with_tools` | `ai_with_tools(system_prompt, user_prompt, max_rounds?)` |  |
 
+### AI — Agents (3)
+
+| # | Function | Signature | Returns |
+|---|----------|-----------|---------|
+| 104 | `agent` | `agent(name, system_prompt)` | `string` |
+| 105 | `agent_ask` | `agent_ask(name, message)` | `string` |
+| 106 | `agent_clear` | `agent_clear(name)` | `string` |
+
 ### AI — Embeddings (5)
 
 | # | Function | Signature | Returns |
 |---|----------|-----------|---------|
-| 104 | `embed` | `embed(text)` |  |
-| 105 | `embed_batch` | `embed_batch(items)` |  |
-| 106 | `cosine_sim` | `cosine_sim(vec_a, vec_b)` |  |
-| 107 | `dot_product` | `dot_product(vec_a, vec_b)` |  |
-| 108 | `nearest` | `nearest(query_vec, doc_vectors, k)` |  |
+| 107 | `embed` | `embed(text)` |  |
+| 108 | `embed_batch` | `embed_batch(items)` |  |
+| 109 | `cosine_sim` | `cosine_sim(vec_a, vec_b)` |  |
+| 110 | `dot_product` | `dot_product(vec_a, vec_b)` |  |
+| 111 | `nearest` | `nearest(query_vec, doc_vectors, k)` |  |
 
 ### AI — Search (1)
 
 | # | Function | Signature | Returns |
 |---|----------|-----------|---------|
-| 109 | `web_search` | `web_search(query)` | `list` |
+| 112 | `web_search` | `web_search(query)` | `list` |
 
 ### Sandbox (3)
 
 | # | Function | Signature | Returns |
 |---|----------|-----------|---------|
-| 110 | `sandbox_profile` | `sandbox_profile(name)` | `string` |
-| 111 | `set_sandbox` | `set_sandbox(profile)` | `string` |
-| 112 | `with_sandbox` | `with_sandbox(profile, fn)` | `any` |
+| 113 | `sandbox_profile` | `sandbox_profile(name)` | `string` |
+| 114 | `set_sandbox` | `set_sandbox(profile)` | `string` |
+| 115 | `with_sandbox` | `with_sandbox(profile, fn)` | `any` |
 
 ### Test Assertions (6)
 
 | # | Function | Signature | Returns |
 |---|----------|-----------|---------|
-| 113 | `assert` | `assert(condition)` |  |
-| 114 | `assert_eq` | `assert_eq(expected, actual)` |  |
-| 115 | `assert_not_eq` | `assert_not_eq(unexpected, actual)` |  |
-| 116 | `assert_lt` | `assert_lt(a, b)` |  |
-| 117 | `assert_gt` | `assert_gt(a, b)` |  |
-| 118 | `assert_error` | `assert_error(fn)` |  |
+| 116 | `assert` | `assert(condition)` |  |
+| 117 | `assert_eq` | `assert_eq(expected, actual)` |  |
+| 118 | `assert_not_eq` | `assert_not_eq(unexpected, actual)` |  |
+| 119 | `assert_lt` | `assert_lt(a, b)` |  |
+| 120 | `assert_gt` | `assert_gt(a, b)` |  |
+| 121 | `assert_error` | `assert_error(fn)` |  |
 
 ---
 
-**Total: 118 built-in functions**
+**Total: 121 built-in functions**

@@ -414,6 +414,11 @@ var Builtins = []BuiltinInfo{
 	{"ai_tool", bAiTool},
 	{"ai_with_tools", bAiWithTools},
 
+	// AI — Agents
+	{"agent", bAgent},
+	{"agent_ask", bAgentAsk},
+	{"agent_clear", bAgentClear},
+
 	// Test Assertions
 	{"assert", bAssert},
 	{"assert_eq", bAssertEq},
@@ -2890,6 +2895,75 @@ func bAiWithTools(args ...Object) Object {
 	}
 
 	return &String{Value: result}
+}
+
+// ---- AI — Agents ----
+
+func bAgent(args ...Object) Object {
+	if len(args) < 2 {
+		return err("agent expects 2 arguments (name, system_prompt)")
+	}
+	name, ok := args[0].(*String)
+	if !ok {
+		return err("agent: first argument must be a string (name)")
+	}
+	prompt, ok := args[1].(*String)
+	if !ok {
+		return err("agent: second argument must be a string (system prompt)")
+	}
+
+	ai.CreateAgent(name.Value, prompt.Value)
+	return &String{Value: "agent '" + name.Value + "' created"}
+}
+
+func bAgentAsk(args ...Object) Object {
+	if ActiveProfile.Name != "none" {
+		if canErr := ActiveProfile.CanAI(); canErr != nil {
+			return err(canErr.Error())
+		}
+	}
+
+	if len(args) < 2 {
+		return err("agent_ask expects 2 arguments (name, message)")
+	}
+	name, ok := args[0].(*String)
+	if !ok {
+		return err("agent_ask: first argument must be a string (agent name)")
+	}
+	msg, ok := args[1].(*String)
+	if !ok {
+		return err("agent_ask: second argument must be a string (message)")
+	}
+
+	ag, exists := ai.GetAgent(name.Value)
+	if !exists {
+		return err("agent_ask: agent '" + name.Value + "' not found. Create it with agent first.")
+	}
+
+	resp, askErr := ag.Ask(msg.Value)
+	if askErr != nil {
+		return err("agent_ask: " + askErr.Error())
+	}
+
+	return &String{Value: resp}
+}
+
+func bAgentClear(args ...Object) Object {
+	if len(args) < 1 {
+		return err("agent_clear expects 1 argument (name)")
+	}
+	name, ok := args[0].(*String)
+	if !ok {
+		return err("agent_clear: argument must be a string (agent name)")
+	}
+
+	ag, exists := ai.GetAgent(name.Value)
+	if !exists {
+		return err("agent_clear: agent '" + name.Value + "' not found")
+	}
+
+	ag.Clear()
+	return &String{Value: "agent '" + name.Value + "' history cleared"}
 }
 
 // ---- Test Assertions ----

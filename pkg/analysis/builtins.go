@@ -39,6 +39,7 @@ const (
 	CatAIStream = "AI Streaming"
 	CatAIPar    = "AI Parallel"
 	CatAITool   = "AI Tool Calling"
+	CatAIAgent  = "AI Agents"
 	CatAIEmbed  = "AI Embeddings"
 	CatAISearch = "AI Search"
 	CatSandbox  = "Sandbox"
@@ -296,6 +297,14 @@ var builtinDocs = []BuiltinDoc{
 		Description: "Registers a tool the AI can call. parameters is a JSON schema map.", Category: CatAITool},
 	{Name: "ai_with_tools", Signature: "ai_with_tools(system_prompt, user_prompt, max_rounds?)", Params: []Param{p("system_prompt", "string"), p("user_prompt", "string"), p("max_rounds", "number")}, ReturnType: "string",
 		Description: "Sends a chat request with tool-calling enabled. max_rounds defaults to 5.", Category: CatAITool},
+
+	// ---- AI Agents ----
+	{Name: "agent", Signature: "agent(name, system_prompt)", Params: []Param{p("name", "string"), p("system_prompt", "string")}, ReturnType: "string",
+		Description: "Creates a stateful agent with the given name and system prompt. Agents maintain conversation history across calls.", Category: CatAIAgent},
+	{Name: "agent_ask", Signature: "agent_ask(name, message)", Params: []Param{p("name", "string"), p("message", "string")}, ReturnType: "string",
+		Description: "Sends a message to the named agent. The agent remembers all previous messages (conversation history).", Category: CatAIAgent},
+	{Name: "agent_clear", Signature: "agent_clear(name)", Params: []Param{p("name", "string")}, ReturnType: "string",
+		Description: "Clears the conversation history of the named agent, keeping the system prompt.", Category: CatAIAgent},
 
 	// ---- AI Embeddings ----
 	{Name: "embed", Signature: "embed(text)", Params: []Param{p("text", "string")}, ReturnType: "list",

@@ -1,0 +1,62 @@
+-- Agent Demo: stateful AI agents with conversation memory
+ai_provider "deepseek"
+
+print "═══ AGENT DEMO ═══"
+print ""
+
+-- Example 1: Create an agent with memory
+print "─── 1. Single Agent with Memory ───"
+agent "helper" "You are a helpful assistant. Keep answers short."
+print ""
+
+agent_ask "helper" "What is the capital of France?"
+    > print
+print ""
+
+agent_ask "helper" "What's its population?"
+    > print
+print ""
+
+-- Example 2: Multiple independent agents
+print "─── 2. Multi-Agent ───"
+agent "eng" "Always respond in English, 1 sentence only."
+agent "de" "Antworte immer auf Deutsch, nur 1 Satz."
+agent "poet" "You are a poet. Respond in rhyming couplets."
+print ""
+
+agent_ask "eng" "What is the moon?"
+    > print
+agent_ask "de" "Was ist der Mond?"
+    > print
+agent_ask "poet" "Describe the moon"
+    > print
+print ""
+
+-- Example 3: Agent with personality (code reviewer)
+print "─── 3. Code Reviewer Agent ───"
+agent "reviewer" "You are a senior code reviewer. Be constructive and specific. Respond in 2-3 bullet points."
+print ""
+
+agent_ask "reviewer" "Review this: for i: 0; i < len(items); i: i + 1\n    print (at items i)"
+    > print
+print ""
+
+-- Example 4: Clear agent history
+print "─── 4. Clear History ───"
+agent "memory" "Remember what I tell you."
+print ""
+
+agent_ask "memory" "My name is Harry."
+    > print
+agent_ask "memory" "What is my name?"
+    > print
+print ""
+
+agent_clear "memory"
+    > print
+
+agent_ask "memory" "What is my name?"
+    > print
+
+print ""
+print "═══ DONE ═══"

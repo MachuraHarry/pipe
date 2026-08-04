@@ -1093,6 +1093,9 @@ with_sandbox "noexec" (fn
 ### KI — Tool Calling (2)
 `ai_tool`, `ai_with_tools`
 
+### KI — Agenten (3)
+`agent`, `agent_ask`, `agent_clear`
+
 ### KI — Embeddings (5)
 `embed`, `embed_batch`, `cosine_sim`, `dot_product`, `nearest`
 
@@ -1105,4 +1108,4 @@ with_sandbox "noexec" (fn
 ### Sandbox (3)
 `sandbox_profile`, `set_sandbox`, `with_sandbox`
 
-**Gesamt: 118 Builtins**
+**Gesamt: 121 Builtins**

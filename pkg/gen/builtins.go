@@ -89,6 +89,7 @@ var builtinInfos = map[string]builtinInfo{
 	"agent":          {2, strs(TypeString, TypeString)},
 	"agent_ask":      {2, strs(TypeString, TypeString)},
 	"agent_clear":    {1, strs(TypeString)},
+	"try_ai_log":     {0, nil},
 	"ai_chat":        {2, strs(TypeString, TypeAny)},
 	"embed":          {1, strs(TypeString)},
 	"cosine_sim":     {2, strs(TypeAny, TypeAny)},

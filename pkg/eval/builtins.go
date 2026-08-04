@@ -5,7 +5,8 @@ import (
 )
 
 type Builtin struct {
-	Fn func(args ...object.Object) object.Object
+	Fn    func(args ...object.Object) object.Object
+	Arity int
 }
 
 func (b *Builtin) Type() object.ObjectType { return "BUILTIN" }
@@ -13,17 +14,28 @@ func (b *Builtin) Inspect() string         { return "builtin function" }
 
 var builtins = map[string]*Builtin{}
 
+var zeroArityBuiltins = map[string]bool{
+	"now":         true,
+	"random":      true,
+	"try_ai_log":  true,
+}
+
 func init() {
 	for _, bi := range object.Builtins {
 		bi := bi
-		builtins[bi.Name] = &Builtin{Fn: bi.Fn}
+		builtins[bi.Name] = &Builtin{Fn: bi.Fn, Arity: -1}
+	}
+	for name := range zeroArityBuiltins {
+		if b, ok := builtins[name]; ok {
+			b.Arity = 0
+		}
 	}
 
-	builtins["map"] = &Builtin{Fn: bMap}
-	builtins["filter"] = &Builtin{Fn: bFilter}
-	builtins["reduce"] = &Builtin{Fn: bReduce}
-	builtins["each"] = &Builtin{Fn: bEach}
-	builtins["go"] = &Builtin{Fn: bGo}
+	builtins["map"] = &Builtin{Fn: bMap, Arity: 2}
+	builtins["filter"] = &Builtin{Fn: bFilter, Arity: 2}
+	builtins["reduce"] = &Builtin{Fn: bReduce, Arity: 3}
+	builtins["each"] = &Builtin{Fn: bEach, Arity: 2}
+	builtins["go"] = &Builtin{Fn: bGo, Arity: 1}
 }
 
 func bMap(args ...object.Object) object.Object {

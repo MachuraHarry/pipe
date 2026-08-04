@@ -285,6 +285,9 @@ func (ctx *EvalContext) evalIdentifier(node *ast.Identifier, env *object.Environ
 		return val
 	}
 	if builtin, ok := builtins[node.Value]; ok {
+		if builtin.Arity == 0 {
+			return builtin.Fn()
+		}
 		return builtin
 	}
 	return ctx.newErrorCode("E001", "undefined variable: %s", node.Value)
@@ -746,7 +749,7 @@ func (ctx *EvalContext) evalTryExpression(te *ast.TryExpression, env *object.Env
 			return fixed
 		}
 		if te.CatchBlock == nil {
-			fmt.Fprintln(os.Stderr, "✗ try_ai: unfixable error — " + err.Message)
+			ai.LogTryAIFix(extractErrorCode(err.Message), blockSource(te.TryBlock), err.Message, 0, false)
 		}
 	}
 
@@ -788,18 +791,18 @@ func (ctx *EvalContext) tryAIFix(err *object.Error, block *ast.BlockStatement, e
 
 		fix := strings.TrimSpace(resp.Content)
 		if fix == "" || strings.HasPrefix(fix, "UNFIXABLE") || strings.HasPrefix(fix, "unfixable") {
+			ai.LogTryAIFix(code, src, fix, attempt, false)
 			return nil
 		}
 
-		fmt.Fprintf(os.Stderr, "⚡ try_ai: attempt %d — \"%s\" → \"%s\"\n", attempt, src, fix)
-
 		result := ctx.validateAndApply(fix, env)
 		if result != nil && result.Type() != object.ERROR {
-			fmt.Fprintf(os.Stderr, "✓ try_ai: fixed!\n")
+			ai.LogTryAIFix(code, src, fix, attempt, true)
 			return result
 		}
 
-		// Update err with the new error for the next attempt
+		ai.LogTryAIFix(code, src, fix, attempt, false)
+
 		if errObj, ok := result.(*object.Error); ok {
 			err = errObj
 		}

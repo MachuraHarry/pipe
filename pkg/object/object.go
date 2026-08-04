@@ -428,6 +428,7 @@ var Builtins = []BuiltinInfo{
 	{"agent", bAgent},
 	{"agent_ask", bAgentAsk},
 	{"agent_clear", bAgentClear},
+	{"try_ai_log", bTryAILog},
 
 	// Test Assertions
 	{"assert", bAssert},
@@ -3022,6 +3023,22 @@ func bAgentClear(args ...Object) Object {
 
 	ag.Clear()
 	return &String{Value: "agent '" + name.Value + "' history cleared"}
+}
+
+func bTryAILog(args ...Object) Object {
+	logs := ai.GetTryAILog()
+	elems := make([]Object, len(logs))
+	for i, entry := range logs {
+		elems[i] = &Map{Pairs: map[string]Object{
+			"time":     &Integer{Value: entry.Time},
+			"code":     &String{Value: entry.Code},
+			"original": &String{Value: entry.Original},
+			"fixed":    &String{Value: entry.Fixed},
+			"attempt":  &Integer{Value: int64(entry.Attempt)},
+			"success":  &Boolean{Value: entry.Success},
+		}}
+	}
+	return &List{Elements: elems}
 }
 
 // ---- Test Assertions ----

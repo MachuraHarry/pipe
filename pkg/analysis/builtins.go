@@ -316,6 +316,8 @@ var builtinDocs = []BuiltinDoc{
 		Description: "Sends a message to the named agent. The agent remembers all previous messages (conversation history).", Category: CatAIAgent},
 	{Name: "agent_clear", Signature: "agent_clear(name)", Params: []Param{p("name", "string")}, ReturnType: "string",
 		Description: "Clears the conversation history of the named agent, keeping the system prompt.", Category: CatAIAgent},
+	{Name: "try_ai_log", Signature: "try_ai_log()", Params: nil, ReturnType: "list",
+		Description: "Returns the log of all try_ai fix attempts as a list of maps (time, code, original, fixed, attempt, success).", Category: CatAIAgent},
 
 	// ---- AI Embeddings ----
 	{Name: "embed", Signature: "embed(text)", Params: []Param{p("text", "string")}, ReturnType: "list",

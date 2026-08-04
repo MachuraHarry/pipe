@@ -745,6 +745,9 @@ func (ctx *EvalContext) evalTryExpression(te *ast.TryExpression, env *object.Env
 		if fixed := ctx.tryAIFix(err, te.TryBlock, env); fixed != nil && fixed.Type() != object.ERROR {
 			return fixed
 		}
+		if te.CatchBlock == nil {
+			fmt.Fprintln(os.Stderr, "✗ try_ai: unfixable error — " + err.Message)
+		}
 	}
 
 	if te.CatchBlock == nil {
@@ -764,39 +767,98 @@ func (ctx *EvalContext) tryAIFix(err *object.Error, block *ast.BlockStatement, e
 	}
 
 	src := blockSource(block)
-	prompt := fmt.Sprintf("Error: %s\nExpression: %s\nFix it.", err.Message, src)
 
-	resp, aiErr := ai.Chat(ai.ChatRequest{
-		Messages: []ai.Message{
-			{Role: "system", Content: `You are a Pipe expression fixer. Pipe is a pipeline language with space-separated args.
+	for attempt := 1; attempt <= 3; attempt++ {
+		var prompt string
+		if attempt == 1 {
+			prompt = fmt.Sprintf("Error: %s\nExpression: %s\nFix it.", err.Message, src)
+		} else {
+			prompt = fmt.Sprintf("Error: %s\nExpression: %s\nPrevious fix failed. Try a different approach.\nFix it.", err.Message, src)
+		}
+
+		resp, aiErr := ai.Chat(ai.ChatRequest{
+			Messages: []ai.Message{
+				{Role: "system", Content: aiFixSystemPrompt},
+				{Role: "user", Content: prompt},
+			},
+		})
+		if aiErr != nil {
+			return nil
+		}
+
+		fix := strings.TrimSpace(resp.Content)
+		if fix == "" || strings.HasPrefix(fix, "UNFIXABLE") || strings.HasPrefix(fix, "unfixable") {
+			return nil
+		}
+
+		fmt.Fprintf(os.Stderr, "⚡ try_ai: attempt %d — \"%s\" → \"%s\"\n", attempt, src, fix)
+
+		result := ctx.validateAndApply(fix, env)
+		if result != nil && result.Type() != object.ERROR {
+			fmt.Fprintf(os.Stderr, "✓ try_ai: fixed!\n")
+			return result
+		}
+
+		// Update err with the new error for the next attempt
+		if errObj, ok := result.(*object.Error); ok {
+			err = errObj
+		}
+	}
+
+	return nil
+}
+
+var aiFixSystemPrompt = `You are a Pipe expression fixer. Pipe is a pipeline language with space-separated args.
 
 RULES:
-1. Return ONLY the corrected expression, no explanation
-2. ALWAYS wrap in (parentheses): (to_num "42") * 3
-3. Pipe builtins: to_num, to_str, abs, min, max, len, upper, lower, trim, split, join, push, pop, get, set, keys, values, sort, range, type_of, is_num, is_str, is_list, is_map, is_nil, parse_json, to_json, now, format_time
-4. Pipe keywords: fn, match, if, else, while, for, break, continue, import, export, enum, defer, return, try, catch, true, false, nil
-5. Pipe operators: + - * / % ** ++ == != < > <= >= && || ! >> > >>
-6. Pipe syntax: args after function are space-separated: fn arg1 arg2
-7. Pipe lists: [a, b, c]. Maps: {key: val}
-8. Pipe dot-access: map.field. Index: list[0]
-9. For type errors: if string looks numeric, use to_num. If number should be string, use to_str
-10. For division by zero: replace divisor with max(divisor, 1) or (if divisor != 0 then divisor else 1)
-11. For index errors: use get with default: get map "key" "default"
-12. If truly unfixable (missing data), return: UNFIXABLE`},
-			{Role: "user", Content: prompt},
-		},
-	})
-	if aiErr != nil {
-		return nil
-	}
+1. Return ONLY the corrected expression, no explanation, no markdown.
+2. ALWAYS wrap the result in (parentheses): (to_num "42") * 3
+3. If the fix is multi-statement, write each statement on its own line.
+4. Do NOT add comments or explanations.
 
-	fix := strings.TrimSpace(resp.Content)
-	if fix == "" || strings.HasPrefix(fix, "UNFIXABLE") || strings.HasPrefix(fix, "unfixable") {
-		return nil
-	}
+PIPE BUILTINS:
+  Conversion: to_num, to_str
+  Math: abs, min, max, pow, sqrt, round
+  String: len, upper, lower, trim, split, join, contains, at
+  List: len, push, pop, at, sort, range, map, filter, reduce, each, slice_list
+  Map: get, set, keys, values
+  Type: type_of, is_num, is_str, is_list, is_map, is_nil
+  JSON: parse_json, to_json
+  Regex: regex_match, regex_replace
+  Time: now, format_time
+  Random: random, random_range
+  Hash: sha256, md5, sha1, sha512
+  Encoding: base64_encode, base64_decode
 
-	return ctx.validateAndApply(fix, env)
-}
+PIPE KEYWORDS:
+  fn, match, if, else, elif, while, for, break, continue, return, defer
+  import, export, enum, true, false, nil, try, catch, try_ai, test, assert, assert_eq
+
+PIPE OPERATORS:
+  Arithmetic: + - * / % **
+  Comparison: == != < > <= >=
+  Logic: && || ! not
+  String: ++ (concat)
+  Pipeline: > (pipe) >> (parallel)
+
+PIPE SYNTAX:
+  Function call: fn_name arg1 arg2       (space-separated, no commas)
+  Wrap in parens if nested: (fn arg1 arg2)
+  Lists: [elem1, elem2, elem3]           (comma-separated)
+  Maps: {key1: val1, key2: val2}         (key: value, comma-separated)
+  Index access: list[index]  or  map["key"]
+  Assignment: name: value
+  Strings: "double-quoted only"
+
+ERROR FIXING STRATEGIES:
+  Type errors (E002): If string looks numeric, use to_num. If number should be string, use to_str.
+  Division by zero (E003): Replace divisor with max(divisor, 1) or guard with if.
+  Not a function (E004): Wrap in parentheses or use a builtin instead.
+  Operator not supported (E005): Convert one operand to the other's type.
+  Cannot index (E006): Check list length with len first, or use get with map.
+  Undefined variable (E001): Use a literal default value like 0, "", nil, or [].
+
+If truly impossible to fix, return exactly: UNFIXABLE`
 
 func (ctx *EvalContext) validateAndApply(fix string, env *object.Environment) object.Object {
 	fix = strings.TrimSpace(fix)
@@ -838,13 +900,16 @@ func extractErrorCode(msg string) string {
 
 func isAIFixable(code string) bool {
 	switch code {
-	case "E002", "E003", "E006":
+	case "E001", "E002", "E003", "E004", "E005", "E006":
 		return true
 	}
 	return false
 }
 
 func blockSource(block *ast.BlockStatement) string {
+	if len(block.Statements) == 0 {
+		return "(empty)"
+	}
 	if len(block.Statements) == 1 {
 		if es, ok := block.Statements[0].(*ast.ExpressionStatement); ok {
 			s := es.Expression.String()
@@ -853,12 +918,14 @@ func blockSource(block *ast.BlockStatement) string {
 			}
 			return s
 		}
+		// Handle non-expression statements (if, for, etc.)
+		return fmt.Sprintf("%s", block.Statements[0])
 	}
 	var parts []string
-	for _, s := range block.Statements {
-		parts = append(parts, fmt.Sprintf("%s", s))
+	for _, stmt := range block.Statements {
+		parts = append(parts, fmt.Sprintf("%s", stmt))
 	}
-	return strings.Join(parts, "; ")
+	return strings.Join(parts, "\n")
 }
 
 func (ctx *EvalContext) evalEnumStatement(es *ast.EnumStatement, env *object.Environment) object.Object {

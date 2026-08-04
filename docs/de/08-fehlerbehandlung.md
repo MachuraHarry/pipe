@@ -87,37 +87,54 @@ analysiert und repariert die KI den Ausdruck — ohne Eingriff des Entwicklers.
 ai_provider "deepseek"
 
 try_ai
-    -- Type Error -> KI wrappt mit to_num -> 126
         "42" * 3
 catch e
-    -- Fallback wenn KI nicht fixen kann
         0
+```
+
+**`catch` ist optional** — ohne catch wird ein unfixbarer Fehler normal weitergegeben:
+
+```pipe
+try_ai
+    "42" * 3
+-- Ergebnis: 126 (KI hat Typfehler stillschweigend behoben)
 ```
 
 #### Ablauf
 
 1. **Fehler** tritt im `try_ai`-Block auf
-2. **Error-Code** wird geprüft — nur E002, E003, E006 sind KI-fixbar
+2. **Error-Code** wird geprüft — E001-E006 sind alle KI-fixbar
 3. **KI-Aufruf** mit Fehlerkontext und Quellcode
-4. **3-Ring-Validierung** — Parse → Sandbox-Test → Typ-Check
-5. **Fix übernommen** oder **Fallback zum catch**
+4. **Bis zu 3 Wiederholungsversuche** — schlägt der Fix fehl, wird mit mehr Kontext erneut versucht
+5. **Feedback auf stderr** — jeder Versuch mit Diff: `⚡ try_ai: attempt 1 — "42" * 3 → "(to_num "42") * 3"`
+6. **3-Ring-Validierung** — Parse → Sandbox-Test → echte Ausführung
+7. **Fix übernommen** oder **Fallback zum catch**
 
-#### Fixbar vs. unfixbar
+#### Fixbare Error-Codes
 
 | Fehler | Code | KI-Strategie |
 |--------|------|-------------|
+| Undefinierte Variable | E001 | Literale Default-Werte |
 | Typ-Fehler | E002 | `to_num`, `to_str` wrapping |
 | Division durch Null | E003 | Guard: `max(x, 1)` oder if-Ausdruck |
-| Index auf falschem Typ | E006 | Fallback via `get` mit Default |
-| Undefinierte Variable | E001 | **Nicht fixbar** → direkt catch |
-| Nicht aufrufbar | E004 | **Nicht fixbar** → direkt catch |
+| Keine Funktion | E004 | Klammern oder Builtin |
+| Operator nicht unterstützt | E005 | Typ-Konvertierung |
+| Ungültiger Index | E006 | Guard mit `len` oder `get` |
 
 #### Ausführungsmodi
 
 | Modus | `try_ai` Verhalten |
 |-------|-------------------|
-| Tree-Walker (`./bin/pipe`) | Vollständige KI-Selbstheilung |
-| Bytecode-VM (`./bin/pipe -vm`) | Fallback zu normalem `try`/`catch` |
+| Tree-Walker (`./bin/pipe`) | Vollständige KI-Selbstheilung mit Retry |
+| Bytecode-VM (`./bin/pipe -vm`) | Fallback zu normalem `try`/`catch` (kein AI — VM ist für Produktion) |
+
+#### Ausgabe-Beispiel
+
+```
+⚡ try_ai: attempt 1 — "42" * 3 → "( (to_num "42") * 3 )"
+✓ try_ai: fixed!
+126
+```
 
 ## 8.4 Result-Typ (Ok / Err)
 

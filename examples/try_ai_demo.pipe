@@ -1,0 +1,60 @@
+-- try_ai Demo: AI-powered self-healing code
+-- try_ai catches runtime errors and asks AI to repair the broken expression.
+-- No API call is made if there's no error (zero-cost safety net).
+
+ai_provider "deepseek"
+
+print "═══ TRY_AI DEMO ═══"
+print ""
+
+-- Example 1: Type mismatch E002
+print "─── 1. Type Mismatch (E002) ───"
+result1: try_ai
+    "42" * 3
+catch e
+    0
+print ("Result: " ++ (to_str result1))
+print ""
+
+-- Example 2: Division by zero E003
+print "─── 2. Division by Zero (E003) ───"
+result2: try_ai
+    100 / 0
+catch e
+    0
+print ("Result: " ++ (to_str result2))
+print ""
+
+-- Example 3: Undefined variable E001
+print "─── 3. Undefined Variable (E001) ───"
+result3: try_ai
+    undefined + 10
+catch e
+    0
+print ("Result: " ++ (to_str result3))
+print ""
+
+-- Example 4: Safe pipeline with fallback
+print "─── 4. Safe Pipeline ───"
+fn divide a b
+    a / b
+
+safe_result: try_ai
+    divide 100 0
+catch e
+    -1
+
+print ("Safe result: " ++ (to_str safe_result))
+print ""
+
+-- Example 5: Working code costs nothing
+print "─── 5. No Error = No API Call ───"
+good: try_ai
+    2 + 2
+catch e
+    0
+print ("Result: " ++ (to_str good))
+print "(No AI call was made — code was already valid)"
+print ""
+
+print "═══ DONE ═══"

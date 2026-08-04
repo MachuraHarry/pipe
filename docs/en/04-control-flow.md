@@ -304,26 +304,37 @@ The catch parameter (`err` in the example) receives the error value. If no error
 
 ### try_ai — AI Self-Healing
 
-`try_ai` works like `try`, but before falling through to the catch block, Pipe asks an AI provider to fix the error and retries the fixed code automatically.
+`try_ai` works like `try`, but before falling through to the catch block, Pipe asks an AI provider to fix the error and retries the fixed code automatically (up to 3 attempts).
+
+All runtime error codes (E001–E006) are fixable: undefined variables, type mismatches, division by zero, missing functions, unsupported operators, and index errors.
 
 ```pipe
--- AI can fix type errors: string "42" + number -> converts to number first
-try_ai
-  result: "42" + 10
-  print result
+ai_provider "deepseek"
+
+-- AI fixes type errors: wraps "42" in to_num → 126
+r: try_ai
+    "42" * 3
 catch err
-  print "Even AI couldn't fix it"
+    0
+
+print r    -- 126
 ```
 
-The `catch` block is **optional** for `try_ai` — if omitted and the AI fix fails, the error propagates normally:
+The AI fix process prints diagnostics to stderr:
+```
+⚡ try_ai: attempt 1 — "42" * 3 → "( (to_num "42") * 3 )"
+✓ try_ai: fixed!
+```
+
+The `catch` block is **optional** for `try_ai` — if omitted and the AI fix fails after all retries, the error propagates normally:
 
 ```pipe
 try_ai
-  bad: 10 / 0
--- if AI can't fix division by zero, error propagates
+    10 / 0
+-- if unfixable, error propagates; otherwise result is safe
 ```
 
-Requires an AI provider and API key to be configured.
+Requires an AI provider and API key to be configured. Valid code incurs no API call (zero overhead).
 
 ## return
 

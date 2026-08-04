@@ -109,37 +109,54 @@ Common operations that produce errors:
 ai_provider "deepseek"
 
 try_ai
-    -- Type Error: STRING * INTEGER
         "42" * 3
 catch e
-    -- fallback if AI cannot fix
         0
+```
+
+**`catch` is optional** — if omitted, an unfixable error propagates normally:
+
+```pipe
+try_ai
+    "42" * 3
+-- result: 126 (AI fixed type error silently)
 ```
 
 #### How It Works
 
 1. **Error occurs** inside `try_ai` block
-2. **Error code checked** — only E002 (type), E003 (div/0), E006 (index) are AI-fixable
+2. **Error code checked** — E001-E006 are all AI-fixable
 3. **AI called** with error context and expression source
-4. **3-ring validation** — parse check → sandbox test → type check
-5. **Fix applied** in real environment, or **falls to catch** if unfixable
+4. **Up to 3 retry attempts** — if the AI fix fails or produces another error, it tries again with additional context
+5. **Feedback on stderr** — each attempt and its result are printed: `⚡ try_ai: attempt 1 — "42" * 3 → "(to_num "42") * 3"`
+6. **3-ring validation** — parse check → sandbox test → real evaluation
+7. **Fix applied** in real environment, or **falls to catch** if unfixable
 
-#### Fixable vs Unfixable
+#### Fixable Error Codes
 
 | Error | Code | AI Strategy | Example |
 |-------|------|-------------|---------|
+| Undefined variable | E001 | Use literal default | `x + 5` → `0 + 5` |
 | Type mismatch | E002 | `to_num`, `to_str` wrapping | `"42" * 3` → `(to_num "42") * 3` |
 | Division by zero | E003 | Guard: `max(x, 1)` or if-expression | `100 / 0` → `100 / (max 0 1)` |
-| Index on wrong type | E006 | Fallback via `get` with default | `map.key` when not a map |
-| Undefined variable | E001 | **Not fixable** — skips AI | Falls directly to catch |
-| Not callable | E004 | **Not fixable** — skips AI | Falls directly to catch |
+| Not a function | E004 | Wrap in parens or use builtin | `42(x)` → `42` |
+| Unsupported operator | E005 | Convert operand type | `"hi" - 1` → type fix |
+| Invalid index | E006 | Guard with `len` or use `get` | `list[99]` → guarded access |
 
 #### Execution Modes
 
 | Mode | `try_ai` Behavior |
 |------|------------------|
-| Tree-Walker (`./bin/pipe`) | Full AI self-healing with 3-ring validation |
-| Bytecode VM (`./bin/pipe -vm`) | Falls back to basic `try`/`catch` (no AI) |
+| Tree-Walker (`./bin/pipe`) | Full AI self-healing with retry + validation |
+| Bytecode VM (`./bin/pipe -vm`) | Falls back to basic `try`/`catch` (no AI — VM is for production speed) |
+
+#### Output Example
+
+```
+⚡ try_ai: attempt 1 — "42" * 3 → "( (to_num "42") * 3 )"
+✓ try_ai: fixed!
+126
+```
 
 ---
 

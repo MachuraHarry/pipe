@@ -79,6 +79,7 @@ var builtinInfos = map[string]builtinInfo{
 	"ai_model":       {1, strs(TypeString)},
 	"ai_timeout":     {1, strs(TypeInt)},
 	"ai_host":        {1, strs(TypeString)},
+	"ai_cache":       {1, strs(TypeAny)},
 	"ai_chat":        {2, strs(TypeString, TypeAny)},
 	"embed":          {1, strs(TypeString)},
 	"cosine_sim":     {2, strs(TypeAny, TypeAny)},

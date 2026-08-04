@@ -253,6 +253,8 @@ var builtinDocs = []BuiltinDoc{
 		Description: "Sets a custom API host URL, e.g. for local proxies or Ollama.", Category: CatAIConf},
 	{Name: "ai_timeout", Signature: "ai_timeout(seconds)", Params: []Param{p("seconds", "number")}, ReturnType: "nil",
 		Description: "Sets the AI request timeout in seconds.", Category: CatAIConf},
+	{Name: "ai_cache", Signature: "ai_cache(on_off|ttl|'clear'|'stats')", Params: []Param{p("arg", "bool|number|string")}, ReturnType: "string",
+		Description: "Enables/disables AI response caching. Pass true/on/ttl-minutes to enable, false/off to disable, 'clear' to flush, 'stats' for hit/miss count.", Category: CatAIConf},
 
 	// ---- AI Chat ----
 	{Name: "ai_chat", Signature: "ai_chat(system_prompt, user_prompt)", Params: []Param{p("system_prompt", "string"), p("user_prompt", "string")}, ReturnType: "string",

@@ -79,18 +79,46 @@ func SetTimeout(seconds int) {
 }
 
 func Chat(req ChatRequest) (ChatResponse, error) {
+	systemPrompt, userPrompt := extractPromptStrings(req)
+	key := cacheKey(ActiveConfig.Provider, ActiveConfig.Model, systemPrompt, userPrompt)
+
+	if cached, ok := cacheGet(key); ok {
+		return ChatResponse{Content: cached}, nil
+	}
+
+	var resp ChatResponse
+	var err error
+
 	switch ActiveConfig.Provider {
 	case "openai":
-		return openAIChat(ActiveConfig, req)
+		resp, err = openAIChat(ActiveConfig, req)
 	case "anthropic":
-		return anthropicChat(ActiveConfig, req)
+		resp, err = anthropicChat(ActiveConfig, req)
 	case "deepseek":
-		return deepSeekChat(ActiveConfig, req)
+		resp, err = deepSeekChat(ActiveConfig, req)
 	case "ollama":
-		return ollamaChat(ActiveConfig, req)
+		resp, err = ollamaChat(ActiveConfig, req)
 	default:
 		return ChatResponse{}, fmt.Errorf("unknown AI provider: %s", ActiveConfig.Provider)
 	}
+
+	if err == nil {
+		cacheSet(key, resp.Content)
+	}
+
+	return resp, err
+}
+
+func extractPromptStrings(req ChatRequest) (systemPrompt, userPrompt string) {
+	for _, m := range req.Messages {
+		switch m.Role {
+		case "system":
+			systemPrompt = m.Content
+		case "user":
+			userPrompt = m.Content
+		}
+	}
+	return
 }
 
 // StreamCallback receives each token as it arrives from the model.

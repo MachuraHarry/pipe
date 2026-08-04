@@ -372,6 +372,7 @@ var Builtins = []BuiltinInfo{
 	{"ai_model", bAiModel},
 	{"ai_timeout", bAiTimeout},
 	{"ai_host", bAiHost},
+	{"ai_cache", bAiCache},
 
 	// AI — Low-level Chat
 	{"ai_chat", bAiChat},
@@ -2033,6 +2034,50 @@ func bAiHost(args ...Object) Object {
 	}
 	ai.SetHost(s.Value)
 	return &String{Value: "host set to " + s.Value}
+}
+
+func bAiCache(args ...Object) Object {
+	if len(args) < 1 {
+		return err("ai_cache expects 1 argument (on|off|ttl in minutes)")
+	}
+
+	switch v := args[0].(type) {
+	case *Boolean:
+		ai.SetCacheEnabled(v.Value)
+		if v.Value {
+			return &String{Value: "ai cache enabled (ttl: 10 min)"}
+		}
+		return &String{Value: "ai cache disabled"}
+	case *Integer:
+		ttl := int(v.Value)
+		if ttl <= 0 {
+			ai.SetCacheEnabled(false)
+			return &String{Value: "ai cache disabled"}
+		}
+		ai.SetCacheEnabled(true)
+		ai.SetCacheTTL(ttl)
+		return &String{Value: fmt.Sprintf("ai cache enabled (ttl: %d min)", ttl)}
+	case *String:
+		if v.Value == "clear" {
+			ai.ClearCache()
+			return &String{Value: "ai cache cleared"}
+		}
+		if v.Value == "stats" {
+			h, m := ai.CacheStats()
+			return &String{Value: fmt.Sprintf("cache hits: %d, misses: %d", h, m)}
+		}
+		if v.Value == "on" {
+			ai.SetCacheEnabled(true)
+			return &String{Value: "ai cache enabled (ttl: 10 min)"}
+		}
+		if v.Value == "off" {
+			ai.SetCacheEnabled(false)
+			return &String{Value: "ai cache disabled"}
+		}
+		return err("ai_cache: unknown option '" + v.Value + "'. Use 'on', 'off', 'clear', 'stats', or a number (minutes)")
+	default:
+		return err("ai_cache expects true/false, a number (minutes), or 'on'/'off'/'clear'/'stats'")
+	}
 }
 
 func bAiChat(args ...Object) Object {

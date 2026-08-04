@@ -2,9 +2,12 @@ package ai
 
 import (
 	"fmt"
+	"hash/fnv"
 	"math"
 	"sort"
+	"strings"
 	"sync"
+	"unicode"
 )
 
 // ---- Embedding API ----
@@ -18,18 +21,69 @@ type EmbeddingResponse struct {
 	Vector []float64
 }
 
+const localEmbedDim = 128
+
+func localEmbed(text string) []float64 {
+	vec := make([]float64, localEmbedDim)
+	text = strings.ToLower(text)
+	runes := []rune(text)
+
+	for i := 0; i <= len(runes)-3; i++ {
+		trigram := string(runes[i : i+3])
+		h := fnv.New64a()
+		h.Write([]byte(trigram))
+		idx := h.Sum64() % uint64(localEmbedDim)
+		vec[idx] += 1.0
+	}
+
+	words := strings.FieldsFunc(text, func(r rune) bool {
+		return !unicode.IsLetter(r) && !unicode.IsDigit(r)
+	})
+	for _, word := range words {
+		if len(word) == 0 {
+			continue
+		}
+		h := fnv.New64a()
+		h.Write([]byte(word))
+		idx := h.Sum64() % uint64(localEmbedDim)
+		vec[idx] += 1.0
+	}
+
+	norm := 0.0
+	for _, v := range vec {
+		norm += v * v
+	}
+	if norm > 0 {
+		norm = math.Sqrt(norm)
+		for i := range vec {
+			vec[i] /= norm
+		}
+	}
+
+	return vec
+}
+
+func providerSupportsEmbeddings() bool {
+	switch ActiveConfig.Provider {
+	case "openai", "ollama":
+		return true
+	default:
+		return false
+	}
+}
+
 func Embed(text string) ([]float64, error) {
+	if !providerSupportsEmbeddings() {
+		return localEmbed(text), nil
+	}
+
 	model := ActiveConfig.Model
 
 	switch ActiveConfig.Provider {
 	case "openai":
 		model = "text-embedding-3-small"
-	case "deepseek":
-		model = "text-embedding-3-small"
 	case "ollama":
 		// Uses user-configured model, e.g., "nomic-embed-text"
-	case "anthropic":
-		return nil, fmt.Errorf("Anthropic does not support embeddings yet")
 	}
 
 	apiKey := getProviderKey()

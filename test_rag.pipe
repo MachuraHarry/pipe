@@ -1,0 +1,14 @@
+ai_provider "deepseek"
+docs: read_lines "knowledge_base.txt"
+vectors: embed_batch docs
+
+question: "How does the bytecode VM work?"
+q_vec: embed question
+top: nearest q_vec vectors 3
+
+context: ""
+for idx in top
+    context: context ++ (at docs idx) ++ "\n---\n"
+
+ask ("Context:\n" ++ context ++ "\nQuestion: " ++ question)
+    > print

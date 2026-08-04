@@ -326,18 +326,21 @@ oninput="syncHighlight()" onscroll="syncScroll()"></textarea>
       <div class="feature-text">
         <h3 data-lang="en" class="active"><span>RAG Pipeline</span> — Context-aware Q&amp;A</h3>
         <h3 data-lang="de"><span>RAG-Pipeline</span> — Kontextbezogene Q&amp;A</h3>
-        <p data-lang="en" class="active">Read documents, ask context-aware questions — pass files directly to the AI. Works with every provider: OpenAI, DeepSeek, Anthropic, Ollama. No vector DB setup. No Pinecone.</p>
-        <p data-lang="de">Dokumente einlesen, kontextbezogene Fragen stellen — Dateien direkt an die KI übergeben. Funktioniert mit jedem Provider: OpenAI, DeepSeek, Anthropic, Ollama. Keine Vektor-DB. Kein Pinecone.</p>
+        <p data-lang="en" class="active">Vectorize documents, find matches by meaning — not keywords. Built-in <code>embed</code>, <code>nearest</code>, <code>cosine_sim</code>. Works with every provider: OpenAI, DeepSeek, Anthropic, Ollama. No vector DB setup.</p>
+        <p data-lang="de">Dokumente vektorisieren, Treffer nach Bedeutung finden — nicht nach Stichwörtern. Eingebaute <code>embed</code>, <code>nearest</code>, <code>cosine_sim</code>. Funktioniert mit jedem Provider: OpenAI, DeepSeek, Anthropic, Ollama. Keine Vektor-DB.</p>
       </div>
       <div class="feature-code"><div class="bar"><span class="dot" style="background:var(--red)"></span><span class="dot" style="background:var(--orange)"></span><span class="dot" style="background:var(--green)"></span></div><pre><span class="fn">ai_provider</span> <span class="str">"deepseek"</span>
 
 <span class="fn">docs</span>: <span class="fn">read_lines</span> <span class="str">"knowledge_base.txt"</span>
+<span class="fn">vectors</span>: <span class="fn">embed_batch</span> docs
 
 <span class="fn">question</span>: <span class="str">"How does the bytecode VM work?"</span>
+<span class="fn">q_vec</span>: <span class="fn">embed</span> question
+<span class="fn">top</span>: <span class="fn">nearest</span> q_vec vectors <span class="num">3</span>
 
 <span class="fn">context</span>: <span class="str">""</span>
-<span class="kw">for</span> line <span class="kw">in</span> docs
-    <span class="fn">context</span>: context <span class="op">++</span> line <span class="op">++</span> <span class="str">"\n---\n"</span>
+<span class="kw">for</span> idx <span class="kw">in</span> top
+    <span class="fn">context</span>: context <span class="op">++</span> (<span class="fn">at</span> docs idx) <span class="op">++</span> <span class="str">"\n---\n"</span>
 
 <span class="fn">ask</span> (<span class="str">"Context:\n"</span> <span class="op">++</span> context <span class="op">++</span> <span class="str">"\nQuestion: "</span> <span class="op">++</span> question)
     <span class="pipe">&gt;</span> <span class="fn">print</span></pre></div>

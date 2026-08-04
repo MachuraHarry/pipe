@@ -870,7 +870,59 @@ base64_decode "UGlwZQ=="
 
 ---
 
-## 10.13 Type Checks (6 functions)
+## 10.13 Hashing (4 functions)
+
+### `sha256`
+
+**Signature:** `sha256(text)`
+
+**Description:** Computes the SHA-256 hash of `text` and returns it as a 64-character hexadecimal string.
+
+**Returns:** `string`
+```pipe
+sha256 "hello"
+-- 2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824
+```
+
+### `md5`
+
+**Signature:** `md5(text)`
+
+**Description:** Computes the MD5 hash of `text` and returns it as a 32-character hex string. Useful for fast non-cryptographic checksums.
+
+**Returns:** `string`
+```pipe
+md5 "hello"
+-- 5d41402abc4b2a76b9719d911017c592
+```
+
+### `sha1`
+
+**Signature:** `sha1(text)`
+
+**Description:** Computes the SHA-1 hash of `text` and returns it as a 40-character hex string. Used by git.
+
+**Returns:** `string`
+```pipe
+sha1 "hello"
+-- aaf4c61ddcc5e8a2dabede0f3b482cd9aea9434d
+```
+
+### `sha512`
+
+**Signature:** `sha512(text)`
+
+**Description:** Computes the SHA-512 hash of `text` and returns it as a 128-character hex string.
+
+**Returns:** `string`
+```pipe
+sha512 "hello"
+-- 9b71d224bd62f3785d96d46ad3ea3d73319bfbc2890caadae2dff72519673ca7...
+```
+
+---
+
+## 10.14 Type Checks (6 functions)
 
 ### `type_of`
 **Signature:** `type_of(value)`
@@ -966,7 +1018,7 @@ is_nil false
 
 ---
 
-## 10.14 Conversion (2 functions)
+## 10.15 Conversion (2 functions)
 
 ### `to_str`
 **Signature:** `to_str(value)`
@@ -1002,7 +1054,7 @@ to_num "0xFF"
 
 ---
 
-## 10.15 Result Type (6 functions)
+## 10.16 Result Type (6 functions)
 
 ### `Ok`
 **Signature:** `Ok(value)`
@@ -1075,7 +1127,7 @@ unwrap_or (Ok "hi") ""
 ```
 ---
 
-## 10.16 AI — Configuration (5 functions)
+## 10.17 AI — Configuration (5 functions)
 
 ### `ai_provider`
 
@@ -1173,7 +1225,7 @@ ask "What is the capital of France?"
 
 ---
 
-## 10.17 AI — Low-level Chat (2 functions)
+## 10.18 AI — Low-level Chat (2 functions)
 
 ### `ai_chat`
 
@@ -1200,7 +1252,7 @@ data: ai_chat_json "Return JSON" "List 3 colors as JSON array"
 
 ---
 
-## 10.18 AI — Streaming (1 function)
+## 10.19 AI — Streaming (1 function)
 
 ### `ai_stream`
 
@@ -1216,7 +1268,7 @@ full: ai_stream "Explain" "How does AI work?"
 
 ---
 
-## 10.19 AI — High-level Convenience (7 functions)
+## 10.20 AI — High-level Convenience (7 functions)
 
 ### `summarize`
 
@@ -1312,7 +1364,7 @@ ask "What is the meaning of life?"
 
 ---
 
-## 10.20 AI — Parallel (3 functions)
+## 10.21 AI — Parallel (3 functions)
 
 ### `ai_batch`
 
@@ -1351,7 +1403,7 @@ ai_rate_limit 5
 
 ---
 
-## 10.21 AI — Tool Calling (2 functions)
+## 10.22 AI — Tool Calling (2 functions)
 
 ### `ai_tool`
 
@@ -1378,7 +1430,7 @@ ai_with_tools "You have weather data" "What is the weather in Berlin?"
 
 ---
 
-## 10.22 AI — Agents (3 functions)
+## 10.23 AI — Agents (3 functions)
 
 ### `agent`
 
@@ -1437,7 +1489,7 @@ agent_ask "eng" "What is the capital of France?"
 
 ---
 
-## 10.23 AI — Embeddings (5 functions)
+## 10.24 AI — Embeddings (5 functions)
 
 ### `embed`
 
@@ -1501,7 +1553,7 @@ nearest q docs 2
 
 ---
 
-## 10.24 AI — Search (1 function)
+## 10.25 AI — Search (1 function)
 
 ### `web_search`
 
@@ -1537,7 +1589,7 @@ ask ("Context:\n" ++ context ++ "\nQuestion: Explain quantum computing simply")
 
 ---
 
-## 10.25 Sandbox (3 functions)
+## 10.26 Sandbox (3 functions)
 
 ### `sandbox_profile`
 **Signature:** `sandbox_profile(name)`
@@ -1566,7 +1618,7 @@ with_sandbox "noexec" (fn
 
 ---
 
-## 10.26 Test Assertions (6 functions)
+## 10.27 Test Assertions (6 functions)
 
 **Note:** `test` blocks and assert builtins are available in all execution modes, but are designed for use with `pipe -test`.
 
@@ -1655,7 +1707,7 @@ test "addition"
 
 ---
 
-## 10.27 Summary Table
+## 10.28 Summary Table
 
 ### IO & System (6)
 
@@ -1786,128 +1838,137 @@ test "addition"
 | 68 | `base64_encode` | `base64_encode(str)` | `string` |
 | 69 | `base64_decode` | `base64_decode(str)` | `string` |
 
+### Hashing (4)
+
+| # | Function | Signature | Returns |
+|---|----------|-----------|---------|
+| 70 | `sha256` | `sha256(text)` | `string` |
+| 71 | `md5` | `md5(text)` | `string` |
+| 72 | `sha1` | `sha1(text)` | `string` |
+| 73 | `sha512` | `sha512(text)` | `string` |
+
 ### Type Checks (6)
 
 | # | Function | Signature | Returns |
 |---|----------|-----------|---------|
-| 70 | `type_of` | `type_of(value)` | `string` — one of `"number"`, `"string"`, `"list"`, `"map"`, `"nil"`, `"function"`, `"boolean"`, `"result"` |
-| 71 | `is_num` | `is_num(value)` | `boolean` |
-| 72 | `is_str` | `is_str(value)` | `boolean` |
-| 73 | `is_list` | `is_list(value)` | `boolean` |
-| 74 | `is_map` | `is_map(value)` | `boolean` |
-| 75 | `is_nil` | `is_nil(value)` | `boolean` |
+| 74 | `type_of` | `type_of(value)` | `string` — one of `"number"`, `"string"`, `"list"`, `"map"`, `"nil"`, `"function"`, `"boolean"`, `"result"` |
+| 75 | `is_num` | `is_num(value)` | `boolean` |
+| 76 | `is_str` | `is_str(value)` | `boolean` |
+| 77 | `is_list` | `is_list(value)` | `boolean` |
+| 78 | `is_map` | `is_map(value)` | `boolean` |
+| 79 | `is_nil` | `is_nil(value)` | `boolean` |
 
 ### Conversion (2)
 
 | # | Function | Signature | Returns |
 |---|----------|-----------|---------|
-| 76 | `to_str` | `to_str(value)` | `string` |
-| 77 | `to_num` | `to_num(str)` | `number` or `nil` |
+| 80 | `to_str` | `to_str(value)` | `string` |
+| 81 | `to_num` | `to_num(str)` | `number` or `nil` |
 
 ### Result Type (6)
 
 | # | Function | Signature | Returns |
 |---|----------|-----------|---------|
-| 78 | `Ok` | `Ok(value)` | `Result` (Ok variant) |
-| 79 | `Err` | `Err(message)` | `Result` (Err variant) |
-| 80 | `is_ok` | `is_ok(result)` | `boolean` |
-| 81 | `is_err` | `is_err(result)` | `boolean` |
-| 82 | `unwrap` | `unwrap(result)` | `any` |
-| 83 | `unwrap_or` | `unwrap_or(result, default)` | `any` |
+| 82 | `Ok` | `Ok(value)` | `Result` (Ok variant) |
+| 83 | `Err` | `Err(message)` | `Result` (Err variant) |
+| 84 | `is_ok` | `is_ok(result)` | `boolean` |
+| 85 | `is_err` | `is_err(result)` | `boolean` |
+| 86 | `unwrap` | `unwrap(result)` | `any` |
+| 87 | `unwrap_or` | `unwrap_or(result, default)` | `any` |
 
 ### AI — Configuration (5)
 
 | # | Function | Signature | Returns |
 |---|----------|-----------|---------|
-| 84 | `ai_provider` | `ai_provider(name)` |  |
-| 85 | `ai_model` | `ai_model(name)` |  |
-| 86 | `ai_host` | `ai_host(url)` |  |
-| 87 | `ai_timeout` | `ai_timeout(seconds)` |  |
+| 89 | `ai_provider` | `ai_provider(name)` |  |
+| 90 | `ai_model` | `ai_model(name)` |  |
+| 91 | `ai_host` | `ai_host(url)` |  |
+| 92 | `ai_timeout` | `ai_timeout(seconds)` |  |
 | 88 | `ai_cache` | `ai_cache(option)` | `string` |
 
 ### AI — Low-level Chat (2)
 
 | # | Function | Signature | Returns |
 |---|----------|-----------|---------|
-| 89 | `ai_chat` | `ai_chat(system_prompt, user_prompt)` |  |
-| 90 | `ai_chat_json` | `ai_chat_json(system_prompt, user_prompt)` |  |
+| 93 | `ai_chat` | `ai_chat(system_prompt, user_prompt)` |  |
+| 94 | `ai_chat_json` | `ai_chat_json(system_prompt, user_prompt)` |  |
 
 ### AI — Streaming (1)
 
 | # | Function | Signature | Returns |
 |---|----------|-----------|---------|
-| 91 | `ai_stream` | `ai_stream(system_prompt, user_prompt)` |  |
+| 95 | `ai_stream` | `ai_stream(system_prompt, user_prompt)` |  |
 
 ### AI — High-level Convenience (7)
 
 | # | Function | Signature | Returns |
 |---|----------|-----------|---------|
-| 92 | `summarize` | `summarize(text)` |  |
-| 93 | `translate` | `translate(text, target_language)` |  |
-| 94 | `classify` | `classify(text, categories)` |  |
-| 95 | `extract` | `extract(text, schema)` |  |
-| 96 | `generate` | `generate(prompt)` |  |
+| 96 | `summarize` | `summarize(text)` |  |
+| 98 | `translate` | `translate(text, target_language)` |  |
+| 99 | `classify` | `classify(text, categories)` |  |
+| 100 | `extract` | `extract(text, schema)` |  |
+| 101 | `generate` | `generate(prompt)` |  |
 | 97 | `generate_json` | `generate_json(instruction, schema)` |  |
-| 98 | `ask` | `ask(question)` |  |
+| 102 | `ask` | `ask(question)` |  |
 
 ### AI — Parallel (3)
 
 | # | Function | Signature | Returns |
 |---|----------|-----------|---------|
-| 99 | `ai_batch` | `ai_batch(system_prompt, items)` |  |
-| 100 | `ai_parallel` | `ai_parallel(concurrency, system_prompt, items)` |  |
-| 101 | `ai_rate_limit` | `ai_rate_limit(calls_per_second)` |  |
+| 103 | `ai_batch` | `ai_batch(system_prompt, items)` |  |
+| 104 | `ai_parallel` | `ai_parallel(concurrency, system_prompt, items)` |  |
+| 105 | `ai_rate_limit` | `ai_rate_limit(calls_per_second)` |  |
 
 ### AI — Tool Calling (2)
 
 | # | Function | Signature | Returns |
 |---|----------|-----------|---------|
-| 102 | `ai_tool` | `ai_tool(name, description, parameters, function)` |  |
-| 103 | `ai_with_tools` | `ai_with_tools(system_prompt, user_prompt, max_rounds?)` |  |
+| 106 | `ai_tool` | `ai_tool(name, description, parameters, function)` |  |
+| 107 | `ai_with_tools` | `ai_with_tools(system_prompt, user_prompt, max_rounds?)` |  |
 
 ### AI — Agents (3)
 
 | # | Function | Signature | Returns |
 |---|----------|-----------|---------|
-| 104 | `agent` | `agent(name, system_prompt)` | `string` |
-| 105 | `agent_ask` | `agent_ask(name, message)` | `string` |
-| 106 | `agent_clear` | `agent_clear(name)` | `string` |
+| 108 | `agent` | `agent(name, system_prompt)` | `string` |
+| 109 | `agent_ask` | `agent_ask(name, message)` | `string` |
+| 110 | `agent_clear` | `agent_clear(name)` | `string` |
 
 ### AI — Embeddings (5)
 
 | # | Function | Signature | Returns |
 |---|----------|-----------|---------|
-| 107 | `embed` | `embed(text)` |  |
-| 108 | `embed_batch` | `embed_batch(items)` |  |
-| 109 | `cosine_sim` | `cosine_sim(vec_a, vec_b)` |  |
-| 110 | `dot_product` | `dot_product(vec_a, vec_b)` |  |
-| 111 | `nearest` | `nearest(query_vec, doc_vectors, k)` |  |
+| 111 | `embed` | `embed(text)` |  |
+| 112 | `embed_batch` | `embed_batch(items)` |  |
+| 113 | `cosine_sim` | `cosine_sim(vec_a, vec_b)` |  |
+| 114 | `dot_product` | `dot_product(vec_a, vec_b)` |  |
+| 115 | `nearest` | `nearest(query_vec, doc_vectors, k)` |  |
 
 ### AI — Search (1)
 
 | # | Function | Signature | Returns |
 |---|----------|-----------|---------|
-| 112 | `web_search` | `web_search(query)` | `list` |
+| 116 | `web_search` | `web_search(query)` | `list` |
 
 ### Sandbox (3)
 
 | # | Function | Signature | Returns |
 |---|----------|-----------|---------|
-| 113 | `sandbox_profile` | `sandbox_profile(name)` | `string` |
-| 114 | `set_sandbox` | `set_sandbox(profile)` | `string` |
-| 115 | `with_sandbox` | `with_sandbox(profile, fn)` | `any` |
+| 117 | `sandbox_profile` | `sandbox_profile(name)` | `string` |
+| 118 | `set_sandbox` | `set_sandbox(profile)` | `string` |
+| 119 | `with_sandbox` | `with_sandbox(profile, fn)` | `any` |
 
 ### Test Assertions (6)
 
 | # | Function | Signature | Returns |
 |---|----------|-----------|---------|
-| 116 | `assert` | `assert(condition)` |  |
-| 117 | `assert_eq` | `assert_eq(expected, actual)` |  |
-| 118 | `assert_not_eq` | `assert_not_eq(unexpected, actual)` |  |
-| 119 | `assert_lt` | `assert_lt(a, b)` |  |
-| 120 | `assert_gt` | `assert_gt(a, b)` |  |
-| 121 | `assert_error` | `assert_error(fn)` |  |
+| 120 | `assert` | `assert(condition)` |  |
+| 121 | `assert_eq` | `assert_eq(expected, actual)` |  |
+| 122 | `assert_not_eq` | `assert_not_eq(unexpected, actual)` |  |
+| 123 | `assert_lt` | `assert_lt(a, b)` |  |
+| 124 | `assert_gt` | `assert_gt(a, b)` |  |
+| 125 | `assert_error` | `assert_error(fn)` |  |
 
 ---
 
-**Total: 121 built-in functions**
+**Total: 125 built-in functions**

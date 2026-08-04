@@ -30,6 +30,7 @@ const (
 	CatDate     = "Date & Time"
 	CatRandom   = "Random"
 	CatEncode   = "Encoding"
+	CatHash     = "Hashing"
 	CatType     = "Type Checks"
 	CatConv     = "Conversion"
 	CatResult   = "Result"
@@ -211,6 +212,16 @@ var builtinDocs = []BuiltinDoc{
 		Description: "Encodes a string to Base64.", Category: CatEncode},
 	{Name: "base64_decode", Signature: "base64_decode(str)", Params: []Param{p("str", "string")}, ReturnType: "string",
 		Description: "Decodes a Base64-encoded string.", Category: CatEncode},
+
+	// ---- Hashing ----
+	{Name: "sha256", Signature: "sha256(text)", Params: []Param{p("text", "string")}, ReturnType: "string",
+		Description: "Computes the SHA-256 hash of text and returns it as a hex string.", Category: CatHash},
+	{Name: "md5", Signature: "md5(text)", Params: []Param{p("text", "string")}, ReturnType: "string",
+		Description: "Computes the MD5 hash of text and returns it as a hex string.", Category: CatHash},
+	{Name: "sha1", Signature: "sha1(text)", Params: []Param{p("text", "string")}, ReturnType: "string",
+		Description: "Computes the SHA-1 hash of text and returns it as a hex string.", Category: CatHash},
+	{Name: "sha512", Signature: "sha512(text)", Params: []Param{p("text", "string")}, ReturnType: "string",
+		Description: "Computes the SHA-512 hash of text and returns it as a hex string.", Category: CatHash},
 
 	// ---- Type Checks ----
 	{Name: "type_of", Signature: "type_of(value)", Params: []Param{p("value", "any")}, ReturnType: "string",

@@ -1066,6 +1066,9 @@ with_sandbox "noexec" (fn
 ### Encoding (2)
 `base64_encode`, `base64_decode`
 
+### Hashing (4)
+`sha256`, `md5`, `sha1`, `sha512`
+
 ### Typ-Prüfung (6)
 `type_of`, `is_num`, `is_str`, `is_list`, `is_map`, `is_nil`
 
@@ -1108,4 +1111,4 @@ with_sandbox "noexec" (fn
 ### Sandbox (3)
 `sandbox_profile`, `set_sandbox`, `with_sandbox`
 
-**Gesamt: 121 Builtins**
+**Gesamt: 125 Builtins**

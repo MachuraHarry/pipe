@@ -1,0 +1,44 @@
+-- Hashing Demo: SHA-256, MD5, SHA-1, SHA-512
+
+print "═══ HASHING DEMO ═══"
+print ""
+
+-- SHA-256: 64 hex chars, most common secure hash
+print "─── SHA-256 ───"
+print (sha256 "hello")
+print (sha256 "Hello World")
+print ""
+
+-- MD5: 32 hex chars, fast checksums
+print "─── MD5 ───"
+print (md5 "hello")
+print (md5 "Hello World")
+print ""
+
+-- SHA-1: 40 hex chars, legacy (git uses this)
+print "─── SHA-1 ───"
+print (sha1 "hello")
+print (sha1 "Hello World")
+print ""
+
+-- SHA-512: 128 hex chars, highest security
+print "─── SHA-512 ───"
+print (sha512 "hello")
+print ""
+
+-- Use case: content deduplication
+print "─── Deduplication ───"
+files: ["doc1.txt", "doc2.txt", "doc3.txt"]
+contents: ["hello world", "foo bar", "hello world"]
+seen: {}
+for i in (range 0 (len files))
+    key: sha256 (at contents i)
+    if (get seen key) == nil
+        (set seen key true)
+            > print
+        print "New: " ++ (at files i)
+    else
+        print "Dup: " ++ (at files i)
+
+print ""
+print "═══ DONE ═══"

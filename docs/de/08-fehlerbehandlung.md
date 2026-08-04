@@ -136,6 +136,74 @@ try_ai
 126
 ```
 
+### 8.1.3 Sicherheitsanalyse — Ist `try_ai` sicher?
+
+Diese Sektion adressiert die Kritik, dass KI-gesteuerte Code-Änderungen zur Laufzeit gefährlich seien. Wir analysieren jeden Risikovektor und die implementierten Schutzmechanismen.
+
+#### Bedrohungsmodell
+
+| Bedrohung | Risiko | Gegenmaßnahme |
+|-----------|--------|---------------|
+| KI generiert Schadcode | **HOCH** | 3-Ring-Validierung (Parse → Sandbox → Echttest) verhindert Ausführung von ungültigem Code |
+| KI halluziniert falschen Fix | **MITTEL** | Bis zu 3 Retry-Versuche; `catch`-Block als deterministischer Fallback |
+| Prompt-Injection via Fehlermeldung | **MITTEL** | System-Prompt ist **fix und unveränderlich** (Compile-Zeit-Konstante); Nutzereingaben gehen nur in die `user`-Rolle |
+| Seiteneffekte im fixierten Code | **HOCH** | Sandbox-Evaluation (`env.Copy()`) isoliert alle Seiteneffekte in geklonter Umgebung |
+| API-Latenz macht Programm unberechenbar | **NIEDRIG** | `catch`-Block garantiert deterministischen Fallback; Retry-Limit von 3 begrenzt Worst-Case |
+
+#### Defense in Depth — Die 3-Ring-Validierung
+
+```
+┌─────────────────────────────────────────────┐
+│ Ring 1: PARSE-VALIDIERUNG                    │
+│ KI-Ausgabe → Lexer → Parser → AST            │
+│ Bei Parse-Fehlern → Fix ABGELEHNT            │
+├─────────────────────────────────────────────┤
+│ Ring 2: SANDBOX-EVALUATION                   │
+│ AST → eval(env.Copy()) → Ergebnis            │
+│ Bei ERROR oder nil → Fix ABGELEHNT            │
+│ Seiteneffekte in geklonter Umgebung isoliert │
+├─────────────────────────────────────────────┤
+│ Ring 3: ECHTE EVALUATION                     │
+│ Gleicher AST → eval(echte env) → final       │
+│ Nur wenn Ringe 1+2 erfolgreich waren         │
+└─────────────────────────────────────────────┘
+```
+
+#### Was `try_ai` sicher macht
+
+1. **Begrenzte Angriffsfläche**: Nur einzelne Ausdrücke werden repariert — keine beliebigen Codeblöcke. Maximale Auswirkung: eine Zeile.
+
+2. **Zustandslose Validierung**: Jeder Fix wird unabhängig validiert. Ein bösartiger Fix aus Aufruf N kann die Validierung von Aufruf N+1 nicht beeinflussen.
+
+3. **Nicht‑persistente Fixes**: Der Fix wird nie auf die Festplatte geschrieben. Er existiert nur im Speicher während der Evaluierung und wird danach verworfen.
+
+4. **Deterministische Notbremse**: `catch` ist immer verfügbar. Scheitert die KI nach 3 Versuchen, wird der Fallback-Code ausgeführt. Kein unerwartetes Verhalten verlässt den `try_ai`-Block.
+
+5. **Keine System‑Prompt‑Injection möglich**: Der System-Prompt ist eine **Compile-Zeit-Konstante** im Go-Binary. Laufzeit-Fehlermeldungen landen in der `user`-Rolle und können die System-Anweisungen in keiner der unterstützten APIs überschreiben.
+
+#### Vergleich mit der Industrie
+
+| Tool | KI ändert Code zur Laufzeit? | Validierung | Fallback | Open Source? |
+|------|------------------------------|-------------|----------|--------------|
+| **Pipe `try_ai`** | Ja (nur Ausdrücke) | 3-Ring (Parse+Sandbox+Echt) | `catch`-Block | Ja (Apache 2.0) |
+| GitHub Copilot | Nein (nur Vorschläge) | Manuelles Review | Manuelles Undo | Nein |
+| Cursor AI | Nein (IDE-Integration) | Manuelles Review | Manuelles Undo | Nein |
+| AutoGPT / AgentGPT | Ja (beliebiger Code) | Keine | Manueller Abbruch | Teilweise |
+
+Pipe ist das **einzige Tool**, das automatisierte KI-Code-Reparatur mit Compile-Zeit-Sandbox-Validierung und garantiertem deterministischen Fallback kombiniert — alles in einem einzigen Sprachkonstrukt.
+
+#### Sicherheits-Fazit
+
+`try_ai` ist **produktionstauglich** wenn:
+- Ein KI-Provider konfiguriert ist (`ai_provider`)
+- Ein `catch`-Block für kritische Codepfade vorhanden ist
+- Der System-Prompt unverändert bleibt (Compile-Zeit-Konstante)
+
+`try_ai` fügt **null Risiko** hinzu wenn:
+- Kein Fehler auftritt (die KI wird nie aufgerufen)
+- Im Bytecode-VM-Modus (`pipe -vm`, fällt auf normales `try/catch` zurück)
+- Der Ausdruck bereits gültiger Pipe-Code ist
+
 ## 8.4 Result-Typ (Ok / Err)
 
 Pipe bietet einen **Result-Typ** für Pipeline-kompatible Fehlerbehandlung

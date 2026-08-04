@@ -1,8 +1,0 @@
-The Pipe bytecode VM compiles source code into 40 opcodes executed on a stack machine.
-The VM uses automatic caching to speed up repeated executions.
-Tree-walker mode is used for development, while VM mode is used for production.
-The bytecode compiler transforms AST nodes into compact instructions.
-Stack-based execution means no register allocation is needed.
-The VM supports tail call optimization for recursive functions.
-Garbage collection is handled automatically by the runtime.
-Each opcode is a single byte, making the bytecode compact and efficient.

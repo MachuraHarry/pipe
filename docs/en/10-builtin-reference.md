@@ -1075,7 +1075,7 @@ unwrap_or (Ok "hi") ""
 ```
 ---
 
-## 10.16 AI — Configuration (4 functions)
+## 10.16 AI — Configuration (5 functions)
 
 ### `ai_provider`
 
@@ -1122,6 +1122,53 @@ ai_host "http://localhost:11434/v1"
 **Returns:** `nil`
 ```pipe
 ai_timeout 30
+```
+
+### `ai_cache`
+
+**Signature:** `ai_cache(option)`
+
+**Description:** Controls AI response caching. Cached responses are stored in memory and expire after the configured TTL (default 10 minutes). The cache key is a SHA-256 hash of provider + model + system prompt + user prompt.
+
+`option` can be:
+- `true` / `"on"` — enable cache (default TTL: 10 minutes)
+- `false` / `"off"` — disable cache
+- A number — enable cache with custom TTL in minutes
+- `"clear"` — flush all cached entries
+- `"stats"` — return hit/miss counts
+
+**Returns:** `string` (status message or stats)
+
+```pipe
+-- Enable with default 10 min TTL
+ai_cache on
+
+-- Enable with 30 minute TTL
+ai_cache 30
+
+-- Check cache statistics
+ai_cache "stats"
+    > print
+
+-- Disable caching
+ai_cache off
+
+-- Clear all cached entries
+ai_cache "clear"
+```
+
+**Example:**
+```pipe
+ai_provider "deepseek"
+ai_cache 10
+
+-- API call (miss)
+ask "What is the capital of France?"
+    > print
+
+-- Instant response from cache (hit)
+ask "What is the capital of France?"
+    > print
 ```
 
 ---
@@ -1647,7 +1694,7 @@ test "addition"
 | 82 | `unwrap` | `unwrap(result)` | `any` |
 | 83 | `unwrap_or` | `unwrap_or(result, default)` | `any` |
 
-### AI — Configuration (4)
+### AI — Configuration (5)
 
 | # | Function | Signature | Returns |
 |---|----------|-----------|---------|
@@ -1655,75 +1702,76 @@ test "addition"
 | 85 | `ai_model` | `ai_model(name)` |  |
 | 86 | `ai_host` | `ai_host(url)` |  |
 | 87 | `ai_timeout` | `ai_timeout(seconds)` |  |
+| 88 | `ai_cache` | `ai_cache(option)` | `string` |
 
 ### AI — Low-level Chat (2)
 
 | # | Function | Signature | Returns |
 |---|----------|-----------|---------|
-| 88 | `ai_chat` | `ai_chat(system_prompt, user_prompt)` |  |
-| 89 | `ai_chat_json` | `ai_chat_json(system_prompt, user_prompt)` |  |
+| 89 | `ai_chat` | `ai_chat(system_prompt, user_prompt)` |  |
+| 90 | `ai_chat_json` | `ai_chat_json(system_prompt, user_prompt)` |  |
 
 ### AI — Streaming (1)
 
 | # | Function | Signature | Returns |
 |---|----------|-----------|---------|
-| 90 | `ai_stream` | `ai_stream(system_prompt, user_prompt)` |  |
+| 91 | `ai_stream` | `ai_stream(system_prompt, user_prompt)` |  |
 
 ### AI — High-level Convenience (6)
 
 | # | Function | Signature | Returns |
 |---|----------|-----------|---------|
-| 91 | `summarize` | `summarize(text)` |  |
-| 92 | `translate` | `translate(text, target_language)` |  |
-| 93 | `classify` | `classify(text, categories)` |  |
-| 94 | `extract` | `extract(text, schema)` |  |
-| 95 | `generate` | `generate(prompt)` |  |
-| 96 | `ask` | `ask(question)` |  |
+| 92 | `summarize` | `summarize(text)` |  |
+| 93 | `translate` | `translate(text, target_language)` |  |
+| 94 | `classify` | `classify(text, categories)` |  |
+| 95 | `extract` | `extract(text, schema)` |  |
+| 96 | `generate` | `generate(prompt)` |  |
+| 97 | `ask` | `ask(question)` |  |
 
 ### AI — Parallel (3)
 
 | # | Function | Signature | Returns |
 |---|----------|-----------|---------|
-| 97 | `ai_batch` | `ai_batch(system_prompt, items)` |  |
-| 98 | `ai_parallel` | `ai_parallel(concurrency, system_prompt, items)` |  |
-| 99 | `ai_rate_limit` | `ai_rate_limit(calls_per_second)` |  |
+| 98 | `ai_batch` | `ai_batch(system_prompt, items)` |  |
+| 99 | `ai_parallel` | `ai_parallel(concurrency, system_prompt, items)` |  |
+| 100 | `ai_rate_limit` | `ai_rate_limit(calls_per_second)` |  |
 
 ### AI — Tool Calling (2)
 
 | # | Function | Signature | Returns |
 |---|----------|-----------|---------|
-| 100 | `ai_tool` | `ai_tool(name, description, parameters, function)` |  |
-| 101 | `ai_with_tools` | `ai_with_tools(system_prompt, user_prompt, max_rounds?)` |  |
+| 101 | `ai_tool` | `ai_tool(name, description, parameters, function)` |  |
+| 102 | `ai_with_tools` | `ai_with_tools(system_prompt, user_prompt, max_rounds?)` |  |
 
 ### AI — Embeddings (5)
 
 | # | Function | Signature | Returns |
 |---|----------|-----------|---------|
-| 102 | `embed` | `embed(text)` |  |
-| 103 | `embed_batch` | `embed_batch(items)` |  |
-| 104 | `cosine_sim` | `cosine_sim(vec_a, vec_b)` |  |
-| 105 | `dot_product` | `dot_product(vec_a, vec_b)` |  |
-| 106 | `nearest` | `nearest(query_vec, doc_vectors, k)` |  |
+| 103 | `embed` | `embed(text)` |  |
+| 104 | `embed_batch` | `embed_batch(items)` |  |
+| 105 | `cosine_sim` | `cosine_sim(vec_a, vec_b)` |  |
+| 106 | `dot_product` | `dot_product(vec_a, vec_b)` |  |
+| 107 | `nearest` | `nearest(query_vec, doc_vectors, k)` |  |
 
 ### Sandbox (3)
 
 | # | Function | Signature | Returns |
 |---|----------|-----------|---------|
-| 107 | `sandbox_profile` | `sandbox_profile(name)` | `string` |
-| 108 | `set_sandbox` | `set_sandbox(profile)` | `string` |
-| 109 | `with_sandbox` | `with_sandbox(profile, fn)` | `any` |
+| 108 | `sandbox_profile` | `sandbox_profile(name)` | `string` |
+| 109 | `set_sandbox` | `set_sandbox(profile)` | `string` |
+| 110 | `with_sandbox` | `with_sandbox(profile, fn)` | `any` |
 
 ### Test Assertions (6)
 
 | # | Function | Signature | Returns |
 |---|----------|-----------|---------|
-| 110 | `assert` | `assert(condition)` |  |
-| 111 | `assert_eq` | `assert_eq(expected, actual)` |  |
-| 112 | `assert_not_eq` | `assert_not_eq(unexpected, actual)` |  |
-| 113 | `assert_lt` | `assert_lt(a, b)` |  |
-| 114 | `assert_gt` | `assert_gt(a, b)` |  |
-| 115 | `assert_error` | `assert_error(fn)` |  |
+| 111 | `assert` | `assert(condition)` |  |
+| 112 | `assert_eq` | `assert_eq(expected, actual)` |  |
+| 113 | `assert_not_eq` | `assert_not_eq(unexpected, actual)` |  |
+| 114 | `assert_lt` | `assert_lt(a, b)` |  |
+| 115 | `assert_gt` | `assert_gt(a, b)` |  |
+| 116 | `assert_error` | `assert_error(fn)` |  |
 
 ---
 
-**Total: 115 built-in functions**
+**Total: 116 built-in functions**

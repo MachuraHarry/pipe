@@ -1,0 +1,58 @@
+-- AI Cache Demo: ai_cache reduces API cost by caching identical prompts
+ai_provider "deepseek"
+
+print "═══ AI CACHE DEMO ═══"
+print ""
+
+-- Enable cache with 10 minute TTL
+ai_cache 10
+
+-- First call: API request (cache miss)
+print "─── 1. First call (API) ───"
+ask "What is the capital of France?"
+    > print
+
+-- Check stats
+print ""
+ai_cache "stats"
+    > print
+print ""
+
+-- Second call: identical prompt (cache hit, no API cost)
+print "─── 2. Second call (cached) ───"
+ask "What is the capital of France?"
+    > print
+
+print ""
+ai_cache "stats"
+    > print
+print ""
+
+-- Different prompt: new API request (cache miss)
+print "─── 3. Different prompt (API) ───"
+ask "What is the capital of Italy?"
+    > print
+print ""
+
+-- Clear the cache
+print "─── 4. Clear cache ───"
+ai_cache "clear"
+    > print
+
+ai_cache "stats"
+    > print
+print ""
+
+-- Change TTL: 30 minutes
+print "─── 5. Change TTL to 30 min ───"
+ai_cache 30
+    > print
+print ""
+
+-- Disable cache
+print "─── 6. Disable cache ───"
+ai_cache off
+    > print
+print ""
+
+print "═══ DONE ═══"

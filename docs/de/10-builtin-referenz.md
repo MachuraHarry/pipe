@@ -1075,8 +1075,8 @@ with_sandbox "noexec" (fn
 ### Result-Typ (6)
 `Ok`, `Err`, `is_ok`, `is_err`, `unwrap`, `unwrap_or`
 
-### KI — Konfiguration (4)
-`ai_provider`, `ai_model`, `ai_host`, `ai_timeout`
+### KI — Konfiguration (5)
+`ai_provider`, `ai_model`, `ai_host`, `ai_timeout`, `ai_cache`
 
 ### KI — Chat (2)
 `ai_chat`, `ai_chat_json`
@@ -1102,4 +1102,4 @@ with_sandbox "noexec" (fn
 ### Sandbox (3)
 `sandbox_profile`, `set_sandbox`, `with_sandbox`
 
-**Gesamt: 115 Builtins**
+**Gesamt: 116 Builtins**

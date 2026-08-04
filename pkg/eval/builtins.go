@@ -36,6 +36,8 @@ func init() {
 	builtins["reduce"] = &Builtin{Fn: bReduce, Arity: 3}
 	builtins["each"] = &Builtin{Fn: bEach, Arity: 2}
 	builtins["go"] = &Builtin{Fn: bGo, Arity: 1}
+
+	object.TryAIEvalFn = tryAIEvalFromSource
 }
 
 func bMap(args ...object.Object) object.Object {

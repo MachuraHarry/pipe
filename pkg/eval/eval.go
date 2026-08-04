@@ -1275,3 +1275,28 @@ func isError(obj object.Object) bool {
 	}
 	return false
 }
+
+func tryAIEvalFromSource(source string) object.Object {
+	l := lexer.New(source)
+	p := parser.New(l)
+	program := p.ParseProgram()
+	if len(p.Errors()) > 0 || len(program.Statements) == 0 {
+		return &object.Error{Message: "_try_ai_eval: parse error"}
+	}
+
+	es, ok := program.Statements[0].(*ast.ExpressionStatement)
+	if !ok {
+		return &object.Error{Message: "_try_ai_eval: expected expression"}
+	}
+
+	tryExpr := &ast.TryExpression{
+		AIFix:    true,
+		TryBlock: &ast.BlockStatement{Statements: []ast.Statement{es}},
+	}
+
+	ctx := NewEvalContext("<try_ai_vm>")
+	ctx.SourceFile = "<try_ai_vm>"
+	env := object.NewEnvironment()
+
+	return ctx.Eval(tryExpr, env)
+}

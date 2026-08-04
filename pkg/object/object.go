@@ -429,6 +429,7 @@ var Builtins = []BuiltinInfo{
 	{"agent_ask", bAgentAsk},
 	{"agent_clear", bAgentClear},
 	{"try_ai_log", bTryAILog},
+	{"_try_ai_eval", bTryAIEval},
 
 	// Test Assertions
 	{"assert", bAssert},
@@ -442,6 +443,22 @@ var Builtins = []BuiltinInfo{
 // ---- IO ----
 
 var PrintHook func(args ...Object)
+
+var TryAIEvalFn func(source string) Object
+
+func bTryAIEval(args ...Object) Object {
+	if len(args) < 1 {
+		return &Error{Message: "_try_ai_eval expects 1 argument (source)"}
+	}
+	src, ok := args[0].(*String)
+	if !ok {
+		return &Error{Message: "_try_ai_eval: argument must be a string"}
+	}
+	if TryAIEvalFn == nil {
+		return &Error{Message: "_try_ai_eval: not available (requires tree-walker)"}
+	}
+	return TryAIEvalFn(src.Value)
+}
 
 func bPrint(args ...Object) Object {
 	if PrintHook != nil {

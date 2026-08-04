@@ -232,6 +232,16 @@ func (vm *VM) Run() error {
 				vm.push(object.FALSE)
 			}
 
+		case compiler.OpTryAIFix:
+			src := vm.pop()
+			srcStr, isStr := src.(*object.String)
+			if !isStr || object.TryAIEvalFn == nil {
+				vm.push(object.NILOBJ)
+				continue
+			}
+			fixed := object.TryAIEvalFn(srcStr.Value)
+			vm.push(fixed)
+
 		case compiler.OpCall:
 			numArgs := int(compiler.ReadUint16(ins, frame.ip))
 			frame.ip += 2
@@ -699,6 +709,16 @@ func (vm *VM) executeFrame() object.Object {
 			} else {
 				vm.push(object.FALSE)
 			}
+
+		case compiler.OpTryAIFix:
+			src := vm.pop()
+			srcStr, isStr := src.(*object.String)
+			if !isStr || object.TryAIEvalFn == nil {
+				vm.push(object.NILOBJ)
+				continue
+			}
+			fixed := object.TryAIEvalFn(srcStr.Value)
+			vm.push(fixed)
 
 		case compiler.OpCall:
 			numArgs := int(compiler.ReadUint16(ins, frame.ip))

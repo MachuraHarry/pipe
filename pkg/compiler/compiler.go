@@ -250,6 +250,9 @@ func (c *Compiler) Compile(node ast.Node) error {
 			return fmt.Errorf("undefined variable: %s", n.Value)
 		}
 		c.loadSymbol(symbol)
+		if symbol.Scope == BuiltinScope && isZeroArityBuiltin(n.Value) {
+			c.emit(OpCall, 0)
+		}
 
 	case *ast.PrefixExpression:
 		if err := c.Compile(n.Right); err != nil {
@@ -700,6 +703,17 @@ func (c *Compiler) compileTryExpression(te *ast.TryExpression) error {
 
 	c.emit(OpCheckError)
 
+	if te.AIFix {
+		skipFixPos := c.emit(OpJumpNotTruthy, 9999)
+		c.emit(OpPop)
+		src := blockSourceFromStatements(te.TryBlock.Statements)
+		c.emit(OpConstant, c.addConstant(&object.String{Value: src}))
+		c.emit(OpTryAIFix)
+		c.emit(OpCheckError)
+		afterFix := len(c.currentInstructions())
+		c.patchJump(skipFixPos, afterFix)
+	}
+
 	skipCatchPos := c.emit(OpJumpNotTruthy, 9999)
 
 	if catchSym.Scope == GlobalScope {
@@ -709,9 +723,22 @@ func (c *Compiler) compileTryExpression(te *ast.TryExpression) error {
 	}
 	c.emit(OpPop)
 
-	for _, stmt := range te.CatchBlock.Statements {
+	for _, stmt := range te.CatchBlock.Statements[:len(te.CatchBlock.Statements)-1] {
 		if err := c.Compile(stmt); err != nil {
 			return err
+		}
+	}
+	if len(te.CatchBlock.Statements) > 0 {
+		last := te.CatchBlock.Statements[len(te.CatchBlock.Statements)-1]
+		if es, ok := last.(*ast.ExpressionStatement); ok {
+			if err := c.Compile(es.Expression); err != nil {
+				return err
+			}
+		} else {
+			if err := c.Compile(last); err != nil {
+				return err
+			}
+			c.emit(OpPop)
 		}
 	}
 
@@ -719,11 +746,30 @@ func (c *Compiler) compileTryExpression(te *ast.TryExpression) error {
 
 	afterCatch := len(c.currentInstructions())
 	c.patchJump(skipCatchPos, afterCatch)
-	c.emit(OpPop)
 
 	c.patchJump(endPos, len(c.currentInstructions()))
 
 	return nil
+}
+
+func blockSourceFromStatements(stmts []ast.Statement) string {
+	if len(stmts) == 0 {
+		return "(empty)"
+	}
+	if len(stmts) == 1 {
+		if es, ok := stmts[0].(*ast.ExpressionStatement); ok {
+			s := es.Expression.String()
+			if len(s) > 2 && s[0] == '(' && s[len(s)-1] == ')' {
+				s = s[1 : len(s)-1]
+			}
+			return s
+		}
+	}
+	var parts []string
+	for _, stmt := range stmts {
+		parts = append(parts, fmt.Sprintf("%s", stmt))
+	}
+	return strings.Join(parts, "; ")
 }
 
 func (c *Compiler) compilePipeline(pe *ast.PipelineExpression) error {
@@ -1181,4 +1227,14 @@ func (ins Instructions) String() string {
 func ParseFloat(s string) float64 {
 	f, _ := strconv.ParseFloat(s, 64)
 	return f
+}
+
+var zeroArityBuiltins = map[string]bool{
+	"now":         true,
+	"random":      true,
+	"try_ai_log":  true,
+}
+
+func isZeroArityBuiltin(name string) bool {
+	return zeroArityBuiltins[name]
 }

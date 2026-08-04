@@ -126,7 +126,7 @@ try_ai
 | Modus | `try_ai` Verhalten |
 |-------|-------------------|
 | Tree-Walker (`./bin/pipe`) | Vollständige KI-Selbstheilung mit Retry |
-| Bytecode-VM (`./bin/pipe -vm`) | Fallback zu normalem `try`/`catch` (kein AI — VM ist für Produktion) |
+| Bytecode-VM (`./bin/pipe -vm`) | Vollständige KI-Selbstheilung mit Retry (via Tree-Walker-Bridge) |
 
 #### Ausgabe-Beispiel
 
@@ -201,7 +201,7 @@ Pipe ist das **einzige Tool**, das automatisierte KI-Code-Reparatur mit Compile-
 
 `try_ai` fügt **null Risiko** hinzu wenn:
 - Kein Fehler auftritt (die KI wird nie aufgerufen)
-- Im Bytecode-VM-Modus (`pipe -vm`, fällt auf normales `try/catch` zurück)
+- Im Bytecode-VM-Modus (`pipe -vm`, try_ai funktioniert vollständig via Tree-Walker-Bridge)
 - Der Ausdruck bereits gültiger Pipe-Code ist
 
 ## 8.4 Result-Typ (Ok / Err)

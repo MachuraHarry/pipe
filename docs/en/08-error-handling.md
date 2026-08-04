@@ -148,7 +148,7 @@ try_ai
 | Mode | `try_ai` Behavior |
 |------|------------------|
 | Tree-Walker (`./bin/pipe`) | Full AI self-healing with retry + validation |
-| Bytecode VM (`./bin/pipe -vm`) | Falls back to basic `try`/`catch` (no AI — VM is for production speed) |
+| Bytecode VM (`./bin/pipe -vm`) | Full AI self-healing with retry + validation (via Tree-Walker bridge) |
 
 #### Output Example
 
@@ -240,7 +240,7 @@ Pipe is the **only tool** that combines automated AI code fixes with compile‑t
 
 `try_ai` adds **zero risk** when:
 - No error occurs (the AI is never called)
-- Running in bytecode VM mode (`pipe -vm`, falls back to plain `try/catch`)
+- Running the Bytecode VM (`pipe -vm`, try_ai works fully via Tree-Walker bridge, no feature gap)
 - The expression is already valid Pipe code
 
 ---

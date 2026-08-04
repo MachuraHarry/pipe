@@ -154,7 +154,7 @@ pipe -vm large_app.pipe
 | `>>` parallel pipeline | Yes (builtins only) |
 | Tail-Call Optimization (TCO) | No |
 
-2. **No Goroutines:** Concurrency via `go` is not implemented in the VM. However, the `>>` parallel pipeline operator works for builtins (AI calls, I/O) — user-defined closures fall back to synchronous execution.
+2. **AI Builtins:** All AI operations (`ask`, `summarize`, `try_ai`, `embed`, agents, etc.) are fully supported via Tree-Walker bridge integration. Bytecode VM performance with Tree-Walker AI capabilities.
 
 3. **Limited Tail Calls:** Deep recursion without TCO can cause stack overflow in the VM.
 

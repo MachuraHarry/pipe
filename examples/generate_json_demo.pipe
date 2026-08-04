@@ -1,0 +1,58 @@
+-- Generate JSON Demo: create structured data from natural language instructions
+ai_provider "deepseek"
+
+print "═══ GENERATE JSON DEMO ═══"
+print ""
+
+-- Example 1: Generate user profiles
+print "─── 1. User Profiles ───"
+users: generate_json "Create 3 fake user profiles" "name: string, email: string, age: number, role: string"
+
+for user in users
+    print "---"
+    (get user "name")
+        > print
+    (get user "email")
+        > print
+    (get user "role")
+        > print
+print ""
+
+-- Example 2: Generate product catalog
+print "─── 2. Product Catalog ───"
+products: generate_json "Create 2 product entries" "name: string, price: number, category: string, in_stock: boolean"
+
+for p in products
+    (get p "name")
+        > print
+    (get p "category")
+        > print
+    (get p "price")
+        > print
+print ""
+
+-- Example 3: Generate a configuration
+print "─── 3. Configuration ───"
+config: generate_json "Define a server config" "host: string, port: number, debug: boolean, allowed_origins: list of strings"
+
+(get config "host")
+    > print
+(get config "port")
+    > print
+(get config "debug")
+    > print
+print ""
+
+-- Example 4: Use generated data in pipeline
+print "─── 4. Pipeline with generated data ───"
+tasks: generate_json "Create 2 tasks" "title: string, priority: string, done: boolean"
+
+context: ""
+for t in tasks
+    context: context ++ (get t "title") ++ " (priority: " ++ (get t "priority") ++ ")\n"
+
+ask ("Given these tasks:\n" ++ context ++ "\nWhich task should be done first and why?")
+    > print
+
+print ""
+print "═══ DONE ═══"

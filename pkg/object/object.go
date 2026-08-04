@@ -387,6 +387,7 @@ var Builtins = []BuiltinInfo{
 	{"classify", bClassify},
 	{"extract", bExtract},
 	{"generate", bGenerate},
+	{"generate_json", bGenerateJSON},
 	{"ask", bAsk},
 
 	// AI — Streaming
@@ -2360,6 +2361,45 @@ func bGenerate(args ...Object) Object {
 		return err("generate: " + respErr.Error())
 	}
 	return &String{Value: resp.Content}
+}
+
+func bGenerateJSON(args ...Object) Object {
+	if ActiveProfile.Name != "none" {
+		if canErr := ActiveProfile.CanAI(); canErr != nil {
+			return err(canErr.Error())
+		}
+	}
+	if len(args) < 2 {
+		return err("generate_json expects 2 arguments (instruction, schema)")
+	}
+	instruction, ok := args[0].(*String)
+	if !ok {
+		return err("generate_json: first argument must be a string (instruction)")
+	}
+	schema, ok := args[1].(*String)
+	if !ok {
+		return err("generate_json: second argument must be a string (schema)")
+	}
+
+	sysPrompt := "You are a JSON generator. Generate data matching the schema. Respond ONLY with valid JSON. No markdown, no explanation, no extra text.\nSchema: " + schema.Value
+
+	req := ai.ChatRequest{
+		Messages: []ai.Message{
+			{Role: "system", Content: sysPrompt},
+			{Role: "user", Content: instruction.Value},
+		},
+	}
+
+	resp, respErr := ai.Chat(req)
+	if respErr != nil {
+		return err("generate_json: " + respErr.Error())
+	}
+
+	var parsed interface{}
+	if jsonErr := json.Unmarshal([]byte(resp.Content), &parsed); jsonErr != nil {
+		return err("generate_json: invalid JSON response: " + resp.Content)
+	}
+	return convertJSON(parsed)
 }
 
 func bAsk(args ...Object) Object {

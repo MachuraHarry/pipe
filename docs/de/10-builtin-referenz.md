@@ -1084,8 +1084,8 @@ with_sandbox "noexec" (fn
 ### KI — Streaming (1)
 `ai_stream`
 
-### KI — Convenience (6)
-`summarize`, `translate`, `classify`, `extract`, `generate`, `ask`
+### KI — Convenience (7)
+`summarize`, `translate`, `classify`, `extract`, `generate`, `generate_json`, `ask`
 
 ### KI — Parallel (3)
 `ai_batch`, `ai_parallel`, `ai_rate_limit`
@@ -1105,4 +1105,4 @@ with_sandbox "noexec" (fn
 ### Sandbox (3)
 `sandbox_profile`, `set_sandbox`, `with_sandbox`
 
-**Gesamt: 117 Builtins**
+**Gesamt: 118 Builtins**

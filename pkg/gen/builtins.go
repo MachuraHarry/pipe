@@ -75,6 +75,7 @@ var builtinInfos = map[string]builtinInfo{
 	"classify":       {2, strs(TypeString, TypeString)},
 	"extract":        {2, strs(TypeString, TypeString)},
 	"generate":       {1, strs(TypeString)},
+	"generate_json":  {2, strs(TypeString, TypeString)},
 	"ai_provider":    {1, strs(TypeString)},
 	"ai_model":       {1, strs(TypeString)},
 	"ai_timeout":     {1, strs(TypeInt)},

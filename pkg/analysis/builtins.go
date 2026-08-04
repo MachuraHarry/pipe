@@ -274,6 +274,8 @@ var builtinDocs = []BuiltinDoc{
 		Description: "Extracts structured data from text according to a schema description. Returns parsed JSON.", Category: CatAIHi},
 	{Name: "generate", Signature: "generate(prompt)", Params: []Param{p("prompt", "string")}, ReturnType: "string",
 		Description: "Generates text from a single prompt (no system message).", Category: CatAIHi},
+	{Name: "generate_json", Signature: "generate_json(instruction, schema)", Params: []Param{p("instruction", "string"), p("schema", "string")}, ReturnType: "any",
+		Description: "Generates structured JSON data matching a schema description. Returns parsed JSON as native Pipe types.", Category: CatAIHi},
 	{Name: "ask", Signature: "ask(question)", Params: []Param{p("question", "string")}, ReturnType: "string",
 		Description: "Answers a single question conversationally.", Category: CatAIHi},
 

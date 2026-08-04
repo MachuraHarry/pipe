@@ -1216,7 +1216,7 @@ full: ai_stream "Explain" "How does AI work?"
 
 ---
 
-## 10.19 AI — High-level Convenience (6 functions)
+## 10.19 AI — High-level Convenience (7 functions)
 
 ### `summarize`
 
@@ -1271,6 +1271,32 @@ data: extract "Alice is 30 and lives in Paris" "Extract name, age, city as JSON"
 **Returns:** `string`
 ```pipe
 generate "Write a haiku about programming"
+```
+
+### `generate_json`
+
+**Signature:** `generate_json(instruction, schema)`
+
+**Description:** Generates structured JSON data matching a schema description using AI. The model is instructed to respond with valid JSON only — no markdown, no explanation.
+
+**Returns:** `any` — parsed JSON as native Pipe types (map, list, number, string, boolean)
+
+```pipe
+users: generate_json "Create 3 fake users" "name: string, email: string, age: number"
+
+-- Access fields
+first: at users 0
+(get first "name")
+    > print
+(get first "email")
+    > print
+```
+
+**Example — generate config:**
+```pipe
+config: generate_json "Define a web server config" "host: string, port: number, debug: boolean"
+print (get config "host")
+print (get config "port")
 ```
 
 ### `ask`
@@ -1753,7 +1779,7 @@ test "addition"
 |---|----------|-----------|---------|
 | 91 | `ai_stream` | `ai_stream(system_prompt, user_prompt)` |  |
 
-### AI — High-level Convenience (6)
+### AI — High-level Convenience (7)
 
 | # | Function | Signature | Returns |
 |---|----------|-----------|---------|
@@ -1762,58 +1788,59 @@ test "addition"
 | 94 | `classify` | `classify(text, categories)` |  |
 | 95 | `extract` | `extract(text, schema)` |  |
 | 96 | `generate` | `generate(prompt)` |  |
-| 97 | `ask` | `ask(question)` |  |
+| 97 | `generate_json` | `generate_json(instruction, schema)` |  |
+| 98 | `ask` | `ask(question)` |  |
 
 ### AI — Parallel (3)
 
 | # | Function | Signature | Returns |
 |---|----------|-----------|---------|
-| 98 | `ai_batch` | `ai_batch(system_prompt, items)` |  |
-| 99 | `ai_parallel` | `ai_parallel(concurrency, system_prompt, items)` |  |
-| 100 | `ai_rate_limit` | `ai_rate_limit(calls_per_second)` |  |
+| 99 | `ai_batch` | `ai_batch(system_prompt, items)` |  |
+| 100 | `ai_parallel` | `ai_parallel(concurrency, system_prompt, items)` |  |
+| 101 | `ai_rate_limit` | `ai_rate_limit(calls_per_second)` |  |
 
 ### AI — Tool Calling (2)
 
 | # | Function | Signature | Returns |
 |---|----------|-----------|---------|
-| 101 | `ai_tool` | `ai_tool(name, description, parameters, function)` |  |
-| 102 | `ai_with_tools` | `ai_with_tools(system_prompt, user_prompt, max_rounds?)` |  |
+| 102 | `ai_tool` | `ai_tool(name, description, parameters, function)` |  |
+| 103 | `ai_with_tools` | `ai_with_tools(system_prompt, user_prompt, max_rounds?)` |  |
 
 ### AI — Embeddings (5)
 
 | # | Function | Signature | Returns |
 |---|----------|-----------|---------|
-| 103 | `embed` | `embed(text)` |  |
-| 104 | `embed_batch` | `embed_batch(items)` |  |
-| 105 | `cosine_sim` | `cosine_sim(vec_a, vec_b)` |  |
-| 106 | `dot_product` | `dot_product(vec_a, vec_b)` |  |
-| 107 | `nearest` | `nearest(query_vec, doc_vectors, k)` |  |
+| 104 | `embed` | `embed(text)` |  |
+| 105 | `embed_batch` | `embed_batch(items)` |  |
+| 106 | `cosine_sim` | `cosine_sim(vec_a, vec_b)` |  |
+| 107 | `dot_product` | `dot_product(vec_a, vec_b)` |  |
+| 108 | `nearest` | `nearest(query_vec, doc_vectors, k)` |  |
 
 ### AI — Search (1)
 
 | # | Function | Signature | Returns |
 |---|----------|-----------|---------|
-| 108 | `web_search` | `web_search(query)` | `list` |
+| 109 | `web_search` | `web_search(query)` | `list` |
 
 ### Sandbox (3)
 
 | # | Function | Signature | Returns |
 |---|----------|-----------|---------|
-| 109 | `sandbox_profile` | `sandbox_profile(name)` | `string` |
-| 110 | `set_sandbox` | `set_sandbox(profile)` | `string` |
-| 111 | `with_sandbox` | `with_sandbox(profile, fn)` | `any` |
+| 110 | `sandbox_profile` | `sandbox_profile(name)` | `string` |
+| 111 | `set_sandbox` | `set_sandbox(profile)` | `string` |
+| 112 | `with_sandbox` | `with_sandbox(profile, fn)` | `any` |
 
 ### Test Assertions (6)
 
 | # | Function | Signature | Returns |
 |---|----------|-----------|---------|
-| 112 | `assert` | `assert(condition)` |  |
-| 113 | `assert_eq` | `assert_eq(expected, actual)` |  |
-| 114 | `assert_not_eq` | `assert_not_eq(unexpected, actual)` |  |
-| 115 | `assert_lt` | `assert_lt(a, b)` |  |
-| 116 | `assert_gt` | `assert_gt(a, b)` |  |
-| 117 | `assert_error` | `assert_error(fn)` |  |
+| 113 | `assert` | `assert(condition)` |  |
+| 114 | `assert_eq` | `assert_eq(expected, actual)` |  |
+| 115 | `assert_not_eq` | `assert_not_eq(unexpected, actual)` |  |
+| 116 | `assert_lt` | `assert_lt(a, b)` |  |
+| 117 | `assert_gt` | `assert_gt(a, b)` |  |
+| 118 | `assert_error` | `assert_error(fn)` |  |
 
 ---
 
-**Total: 117 built-in functions**
+**Total: 118 built-in functions**

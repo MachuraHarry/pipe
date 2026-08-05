@@ -25,7 +25,6 @@ import (
 
 	"github.com/MachuraHarry/pipe/pkg/ai"
 	"github.com/MachuraHarry/pipe/pkg/ast"
-	"github.com/MachuraHarry/pipe/pkg/db"
 )
 
 type ObjectType string
@@ -367,12 +366,6 @@ var Builtins = []BuiltinInfo{
 	{"md5", bMd5},
 	{"sha1", bSha1},
 	{"sha512", bSha512},
-
-	// Database (SQLite)
-	{"db_open", bDbOpen},
-	{"db_close", bDbClose},
-	{"db_exec", bDbExec},
-	{"db_query", bDbQuery},
 
 	// Regex
 	{"regex_match", bRegexMatch},
@@ -2080,91 +2073,6 @@ func bSha512(args ...Object) Object {
 	}
 	h := sha512.Sum512([]byte(s.Value))
 	return &String{Value: fmt.Sprintf("%x", h)}
-}
-
-func bDbOpen(args ...Object) Object {
-	if len(args) != 1 {
-		return err("db_open expects 1 argument (path)")
-	}
-	path, ok := args[0].(*String)
-	if !ok {
-		return err("db_open: argument must be a string (file path)")
-	}
-	handle, openErr := db.Open(path.Value)
-	if openErr != nil {
-		return err(openErr.Error())
-	}
-	return &Integer{Value: int64(handle)}
-}
-
-func bDbClose(args ...Object) Object {
-	if len(args) != 1 {
-		return err("db_close expects 1 argument (handle)")
-	}
-	h, ok := ToInt(args[0])
-	if !ok {
-		return err("db_close: argument must be a number (database handle)")
-	}
-	if closeErr := db.Close(int(h)); closeErr != nil {
-		return err(closeErr.Error())
-	}
-	return NILOBJ
-}
-
-func bDbExec(args ...Object) Object {
-	if len(args) < 2 {
-		return err("db_exec expects 2 arguments (handle, sql)")
-	}
-	h, ok := ToInt(args[0])
-	if !ok {
-		return err("db_exec: first argument must be a number (database handle)")
-	}
-	sqlStr, ok := args[1].(*String)
-	if !ok {
-		return err("db_exec: second argument must be a string (SQL)")
-	}
-	rows, execErr := db.Exec(int(h), sqlStr.Value)
-	if execErr != nil {
-		return err(execErr.Error())
-	}
-	return &Integer{Value: rows}
-}
-
-func bDbQuery(args ...Object) Object {
-	if len(args) < 2 {
-		return err("db_query expects 2 arguments (handle, sql)")
-	}
-	h, ok := ToInt(args[0])
-	if !ok {
-		return err("db_query: first argument must be a number (database handle)")
-	}
-	sqlStr, ok := args[1].(*String)
-	if !ok {
-		return err("db_query: second argument must be a string (SQL)")
-	}
-	rows, queryErr := db.Query(int(h), sqlStr.Value)
-	if queryErr != nil {
-		return err(queryErr.Error())
-	}
-
-	elems := make([]Object, len(rows))
-	for i, row := range rows {
-		pairs := make(map[string]Object)
-		for k, v := range row {
-			switch val := v.(type) {
-			case float64:
-				pairs[k] = &Float{Value: val}
-			case string:
-				pairs[k] = &String{Value: val}
-			case nil:
-				pairs[k] = NILOBJ
-			default:
-				pairs[k] = &String{Value: fmt.Sprintf("%v", val)}
-			}
-		}
-		elems[i] = &Map{Pairs: pairs}
-	}
-	return &List{Elements: elems}
 }
 
 func strArg(args []Object, name string) (*String, bool) {

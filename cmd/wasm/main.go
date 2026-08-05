@@ -69,6 +69,8 @@ func pipeGenerate(this js.Value, args []js.Value) interface{} {
 
 func main() {
 	object.SetSandbox(true)
+	object.SetSandboxAllowAI(true)
+	object.SetSandboxAllowNet(true)
 	js.Global().Set("pipeRun", js.FuncOf(pipeRun))
 	js.Global().Set("pipeGenerate", js.FuncOf(pipeGenerate))
 	js.Global().Set("pipeVersion", js.ValueOf("v0.7.0"))

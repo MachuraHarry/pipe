@@ -321,8 +321,8 @@ a[data-lang].active { display: inline-block; }
       <p class="ex-desc" data-lang="en" class="active">Translate text and see the output appear in real time as tokens arrive. The collected text is then uppercased and printed — streaming and post-processing in one pipeline.</p>
       <p class="ex-desc" data-lang="de">Text übersetzen und die Ausgabe in Echtzeit erscheinen sehen, während Tokens ankommen. Der gesammelte Text wird dann in Großbuchstaben umgewandelt und ausgegeben — Streaming und Nachverarbeitung in einer Pipeline.</p>
       <pre class="example-code"><span class="cmt">-- Translate text and see output in real time</span>
-<span class="fn">ai_stream</span> <span class="str">"You are a translator. Translate precisely."</span>
-    <span class="str">"Artificial intelligence is reshaping how we interact with computers."</span>
+<span class="fn">text</span>: <span class="str">"Artificial intelligence is reshaping how we interact with computers."</span>
+<span class="fn">ai_stream</span> <span class="str">"You are a translator. Translate precisely."</span> text
     <span class="pipe">&gt;</span> <span class="fn">upper</span>
     <span class="pipe">&gt;</span> <span class="fn">print</span></pre>
       <div class="example-flow">
@@ -344,7 +344,7 @@ a[data-lang].active { display: inline-block; }
 <span class="fn">emails</span>: <span class="fn">read_lines</span> <span class="str">"inbox.txt"</span>
 
 <span class="kw">for</span> email <span class="kw">in</span> emails
-    <span class="fn">category</span>: <span class="fn">classify</span> email [<span class="str">"urgent"</span>, <span class="str">"important"</span>, <span class="str">"newsletter"</span>, <span class="str">"spam"</span>]
+    <span class="fn">category</span>: <span class="fn">classify</span> email ([<span class="str">"urgent"</span>, <span class="str">"important"</span>, <span class="str">"newsletter"</span>, <span class="str">"spam"</span>])
     <span class="fn">info</span>: <span class="fn">extract</span> email <span class="str">"{sender, subject, deadline}"</span>
 
     <span class="kw">if</span> category <span class="op">==</span> <span class="str">"urgent"</span>

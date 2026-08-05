@@ -730,7 +730,7 @@ c: <span class="str">"Capital of Italy?"</span>
       <div class="feature-code"><div class="bar"><span class="dot" style="background:var(--red)"></span><span class="dot" style="background:var(--orange)"></span><span class="dot" style="background:var(--green)"></span></div><pre><span class="cmt">-- one step per line, top to bottom — like a reasoning chain</span>
 <span class="fn">read_file</span> <span class="str">"tickets.txt"</span>
     <span class="pipe">&gt;</span> <span class="fn">split</span> <span class="str">"\n"</span>
-    <span class="pipe">&gt;</span> <span class="fn">classify</span> [<span class="str">"bug"</span>, <span class="str">"feature"</span>, <span class="str">"question"</span>]
+    <span class="pipe">&gt;</span> <span class="fn">classify</span> ([<span class="str">"bug"</span>, <span class="str">"feature"</span>, <span class="str">"question"</span>])
     <span class="pipe">&gt;</span> <span class="fn">summarize</span>
     <span class="pipe">&gt;</span> <span class="fn">save</span> <span class="str">"report.md"</span></pre></div>
     </div>

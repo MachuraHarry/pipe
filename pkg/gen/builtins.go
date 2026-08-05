@@ -30,6 +30,8 @@ var builtinInfos = map[string]builtinInfo{
 	"split":          {2, strs(TypeString, TypeString)},
 	"join":           {2, strs(TypeString, TypeString)},
 	"contains":       {2, strs(TypeString, TypeString)},
+	"csv_parse":      {1, strs(TypeString)},
+	"csv_format":     {1, strs(TypeAny)},
 	"len":            {1, strs(TypeAny)},
 	"push":           {2, strs(TypeAny, TypeAny)},
 	"pop":            {1, strs(TypeAny)},

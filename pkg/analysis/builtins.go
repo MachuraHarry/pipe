@@ -21,6 +21,7 @@ const (
 	CatIO       = "IO & System"
 	CatFile     = "File System"
 	CatString   = "String"
+	CatCSV      = "CSV"
 	CatList     = "List"
 	CatMap      = "Map"
 	CatMath     = "Math"
@@ -119,6 +120,12 @@ var builtinDocs = []BuiltinDoc{
 		Description: "Joins list elements into a string with delimiter between each element.", Category: CatString},
 	{Name: "contains", Signature: "contains(haystack, needle)", Params: []Param{p("haystack", "string|list"), p("needle", "any")}, ReturnType: "boolean",
 		Description: "For strings: checks if needle is a substring. For lists: checks if needle is an element.", Category: CatString},
+
+	// ---- CSV ----
+	{Name: "csv_parse", Signature: "csv_parse(text)", Params: []Param{p("text", "string")}, ReturnType: "list",
+		Description: "Parses CSV text into a list of maps. First row is treated as headers.", Category: CatCSV},
+	{Name: "csv_format", Signature: "csv_format(data, headers?)", Params: []Param{p("data", "list"), p("headers", "list")}, ReturnType: "string",
+		Description: "Formats a list of maps into a CSV string. Optional headers list for column order.", Category: CatCSV},
 
 	// ---- List ----
 	{Name: "len", Signature: "len(value)", Params: []Param{p("value", "string|list|map")}, ReturnType: "number",

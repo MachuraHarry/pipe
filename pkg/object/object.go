@@ -25,6 +25,7 @@ import (
 
 	"github.com/MachuraHarry/pipe/pkg/ai"
 	"github.com/MachuraHarry/pipe/pkg/ast"
+	"github.com/MachuraHarry/pipe/pkg/util"
 )
 
 type ObjectType string
@@ -307,6 +308,10 @@ var Builtins = []BuiltinInfo{
 	{"split", bSplit},
 	{"join", bJoin},
 	{"contains", bContains},
+
+	// CSV
+	{"csv_parse", bCsvParse},
+	{"csv_format", bCsvFormat},
 
 	// List
 	{"len", bLen},
@@ -953,6 +958,75 @@ func bContains(args ...Object) Object {
 		return FALSE
 	}
 	return err("contains expects string or list")
+}
+
+func bCsvParse(args ...Object) Object {
+	if len(args) != 1 {
+		return err("csv_parse expects 1 argument (text)")
+	}
+	text, ok := args[0].(*String)
+	if !ok {
+		return err("csv_parse: argument must be a string")
+	}
+	rows, parseErr := util.ParseCSV(text.Value)
+	if parseErr != nil {
+		return err(parseErr.Error())
+	}
+
+	elems := make([]Object, len(rows))
+	for i, row := range rows {
+		pairs := make(map[string]Object)
+		for k, v := range row {
+			pairs[k] = &String{Value: v}
+		}
+		elems[i] = &Map{Pairs: pairs}
+	}
+	return &List{Elements: elems}
+}
+
+func bCsvFormat(args ...Object) Object {
+	if len(args) < 1 {
+		return err("csv_format expects at least 1 argument (list of maps)")
+	}
+	list, ok := args[0].(*List)
+	if !ok {
+		return err("csv_format: first argument must be a list of maps")
+	}
+
+	var headers []string
+	if len(args) >= 2 {
+		headerList, ok := args[1].(*List)
+		if ok {
+			for _, h := range headerList.Elements {
+				if s, ok := h.(*String); ok {
+					headers = append(headers, s.Value)
+				}
+			}
+		}
+	}
+
+	if len(headers) == 0 && len(list.Elements) > 0 {
+		if first, ok := list.Elements[0].(*Map); ok {
+			for k := range first.Pairs {
+				headers = append(headers, k)
+			}
+		}
+	}
+
+	rows := make([]map[string]string, len(list.Elements))
+	for i, elem := range list.Elements {
+		m, ok := elem.(*Map)
+		if !ok {
+			return err("csv_format: all elements must be maps")
+		}
+		row := make(map[string]string)
+		for k, v := range m.Pairs {
+			row[k] = v.Inspect()
+		}
+		rows[i] = row
+	}
+
+	return &String{Value: util.FormatCSV(rows, headers)}
 }
 
 // ---- List ----

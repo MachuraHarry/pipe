@@ -958,6 +958,8 @@ var playExamples = [
   '-- 🤖 Extract structured data\nai_provider "deepseek"\n\nextract "Alice is 28, works at Google as an engineer. Her email is alice@google.com" "name, age, company, role, email"\n    > print',
   '-- 🤖 map function with numbers\nai_provider "deepseek"\n\nfn double x\n    x * 2\nnums: [1, 2, 3, 4, 5]\nresult: map nums double\nprint result',
   '-- 🤖 Agent counselor with follow-up\nai_provider "deepseek"\n\nagent "counselor" "You are a compassionate career counselor. Give short, actionable advice."\n\nagent_ask "counselor" "I feel stuck in my job, what should I do?"\n    > print\n\nagent_ask "counselor" "How do I prepare for an interview?"\n    > print',
+  '-- Pipe: CSV parse → iterate rows\ncsv_parse "name,country\nAlice,France\nBob,Germany"\n    > print',
+  '-- Pipe: CSV round-trip\ndata: csv_parse "item,price\nApple,1.5\nBanana,0.8"\ncsv: csv_format data\nprint csv',
 ];
 
 function pickPlayExample() {

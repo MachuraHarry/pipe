@@ -77,7 +77,10 @@ pre.play-editor::-webkit-scrollbar{display:none}
 .rating-info{font-size:.78rem;color:var(--fg2)}
 a{color:var(--accent);text-decoration:none}
 .ft{color:var(--fg3);font-size:.72rem;text-align:center;margin:22px 0 0}
-.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--bg3);color:var(--fg);padding:10px 22px;border-radius:8px;font-size:.82rem;border:1px solid var(--border);z-index:100;opacity:0;transition:opacity .25s;pointer-events:none;font-family:var(--sans)}
+.play-api-row{padding:4px 16px;background:var(--bg3);display:flex;gap:6px;align-items:center;border-top:1px solid var(--border);font-size:0.62rem}
+.play-api-row select{background:var(--bg);color:var(--fg2);border:1px solid var(--border);border-radius:4px;padding:1px 3px;font-size:0.6rem}
+.play-api-row input{flex:1;background:var(--bg);color:var(--fg2);border:1px solid var(--border);border-radius:4px;padding:1px 6px;font-size:0.6rem;font-family:var(--mono)}
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--bg3);color:var(--fg);padding:10px 22px;border-radius:8px;font-size:.82rem;border:1px solid var(--border);z-index:100;opacity:0;transition:opacity .25s;pointer-events:none;font-family:var(--sans);max-width:calc(100vw - 48px);text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .toast.show{opacity:1}
 .top-panel{margin-top:24px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden}
 .top-header{padding:14px 18px;background:var(--bg3);border-bottom:1px solid var(--border);font-size:.82rem;font-weight:700;display:flex;align-items:center;gap:8px}
@@ -123,33 +126,79 @@ a{color:var(--accent);text-decoration:none}
   .view-split .split-right{max-width:100%}
   .graph-card{position:static}
   .view-split.graph-only .split-right{max-width:100%}
+  .graph-body{min-height:140px;padding:14px 8px}
+  .graph-legend{gap:4px;padding:6px 10px}
+  .graph-legend-item{font-size:.58rem}
 }
 @media(max-width:600px){
-  body{padding:12px}
-  h1{font-size:1.1rem;margin:10px 0 2px}
-  h1 img{height:22px!important}
-  .sub{font-size:.78rem;margin-bottom:10px}
-  .view-toggle{margin-bottom:12px}
-  .view-btn{font-size:.7rem;padding:5px 10px}
-  .play-top{padding:8px 10px;flex-wrap:wrap;gap:4px}
-  .play-label{font-size:.65rem}
-  .play-actions{gap:4px;flex-wrap:wrap;justify-content:flex-end}
-  .icon-btn,.share-btn,.run-btn{font-size:.72rem;padding:4px 8px}
-  textarea.play-editor,pre.play-editor{font:13px/1.6 var(--mono);padding:12px 14px;min-height:160px}
-  .play-editor-wrap{min-height:160px}
-  .play-out{padding:10px 14px;font:12px/1.5 var(--mono);min-height:36px;max-height:150px}
-  .play-bar{padding:5px 10px;font-size:.65rem;flex-wrap:wrap;gap:4px}
-  .rating-section{padding:10px 12px;flex-wrap:wrap}
-  .rating-stars{font-size:1.2rem}
-  .rating-info{font-size:.72rem}
-  .top-header{padding:10px 12px;font-size:.76rem}
-  .top-item{padding:7px 12px;gap:6px}
-  .top-rank{font-size:.62rem;min-width:12px}
-  .top-stars{font-size:.72rem;min-width:40px}
-  .top-preview{font-size:.68rem}
-  .sandbox-notice{font-size:.58rem}
-  .ft{font-size:.65rem}
-  .graph-body{padding:10px 8px;min-height:120px}
+  body{padding:8px}
+  h1{font-size:1.05rem;margin:8px 0 1px}
+  h1 img{height:20px!important}
+  .sub{font-size:.74rem;margin-bottom:8px}
+  .view-toggle{gap:2px;margin-bottom:10px;width:100%}
+  .view-btn{font-size:.7rem;padding:7px 0;flex:1;text-align:center;min-height:36px;border-radius:5px}
+  .view-toggle .view-btn.active{border-radius:5px}
+
+  .play-top{padding:8px 10px;flex-wrap:wrap;gap:4px;flex-direction:column;align-items:flex-start}
+  .play-top-left{align-self:stretch}
+  .play-actions{align-self:stretch;justify-content:space-between;gap:6px}
+  .play-label{font-size:.62rem}
+  .icon-btn,.share-btn{font-size:.7rem;padding:5px 10px;min-height:32px}
+  .run-btn{font-size:.72rem;padding:5px 14px;min-height:32px}
+
+  textarea.play-editor,pre.play-editor{font:12px/1.5 var(--mono);padding:10px 12px;min-height:140px}
+  .play-editor-wrap{min-height:140px}
+  .play-out{padding:8px 12px;font:11px/1.4 var(--mono);min-height:32px;max-height:120px}
+  .play-bar{padding:5px 8px;font-size:.6rem;flex-wrap:wrap;gap:3px}
+
+  .rating-section{padding:8px 10px;flex-wrap:wrap;gap:6px}
+  .rating-stars{font-size:1.2rem;gap:1px}
+  .rating-info{font-size:.68rem}
+
+  .top-header{padding:8px 10px;font-size:.72rem}
+  .top-item{padding:6px 10px;gap:5px}
+  .top-rank{font-size:.6rem;min-width:10px}
+  .top-stars{font-size:.68rem;min-width:36px}
+  .top-preview{font-size:.64rem}
+
+  .sandbox-notice{font-size:.55rem;display:none!important}
+  .ft{font-size:.6rem}
+  .play-api-row{flex-wrap:wrap;padding:6px 10px;gap:4px}
+  .play-api-row select,.play-api-row input{min-height:26px}
+  .graph-body{padding:8px 4px;min-height:100px}
+  .graph-card .play-dot{width:7px;height:7px}
+  .graph-label{font-size:.62rem}
+  .graph-legend{gap:3px;padding:5px 8px;overflow-x:auto}
+  .graph-legend-item{font-size:.55rem;white-space:nowrap}
+  .graph-legend-dot{width:6px;height:6px}
+  .graph-empty{font-size:.7rem;padding:14px}
+  .graph-empty .icon{font-size:1.5rem;margin-bottom:6px}
+}
+@media(max-width:400px){
+  body{padding:6px}
+  h1{font-size:.95rem}
+  h1 img{height:18px!important}
+  .sub{font-size:.68rem;margin-bottom:6px}
+
+  .view-toggle{gap:1px;border-radius:6px}
+  .view-btn{font-size:.64rem;padding:6px 0;min-height:32px;border-radius:4px}
+
+  .play-top{padding:6px 8px;gap:3px}
+  .play-actions{gap:3px}
+  .icon-btn,.share-btn{font-size:.64rem;padding:4px 7px;min-height:28px}
+  .run-btn{font-size:.66rem;padding:4px 10px;min-height:28px}
+
+  textarea.play-editor,pre.play-editor{font:11px/1.45 var(--mono);padding:8px 10px;min-height:120px}
+  .play-editor-wrap{min-height:120px}
+  .play-out{padding:6px 8px;font:10px/1.35 var(--mono);min-height:28px;max-height:100px}
+  .play-bar{font-size:.56rem}
+
+  .graph-body{padding:6px 2px;min-height:80px}
+  .graph-top{padding:6px 10px}
+  .graph-legend{padding:4px 6px}
+  .graph-empty{font-size:.64rem;padding:10px}
+  .graph-empty .icon{font-size:1.2rem}
+  .rating-stars{font-size:1rem}
 }
 </style>
 </head>
@@ -186,14 +235,14 @@ oninput="onEdit()" onscroll="syncScroll()">print (2 + 2)</textarea>
         <pre id="play-hl" class="play-editor language-pipe" aria-hidden="true"></pre>
       </div>
       <div class="play-bar" id="play-bar"><span id="play-status">loading wasm…</span><span class="sandbox-notice" id="sandbox-notice">sandbox mode · AI-ready</span></div>
-      <div style="padding:4px 16px;background:var(--bg3);display:flex;gap:6px;align-items:center;border-top:1px solid var(--border);font-size:0.62rem">
-        <select id="api-provider" style="background:var(--bg);color:var(--fg2);border:1px solid var(--border);border-radius:4px;padding:1px 3px;font-size:0.6rem">
+      <div class="play-api-row">
+        <select id="api-provider">
           <option value="">API Key (optional)</option>
           <option value="deepseek">DeepSeek</option>
           <option value="openai">OpenAI</option>
           <option value="anthropic">Anthropic</option>
         </select>
-        <input id="api-key" type="password" autocomplete="off" placeholder="sk-..." style="flex:1;background:var(--bg);color:var(--fg2);border:1px solid var(--border);border-radius:4px;padding:1px 6px;font-size:0.6rem;font-family:var(--mono)" oninput="setAPIKey(document.getElementById('api-provider').value,this.value)">
+        <input id="api-key" type="password" autocomplete="off" placeholder="sk-..." oninput="setAPIKey(document.getElementById('api-provider').value,this.value)">
       </div>
       <div class="play-out-wrap">
         <div class="play-out" id="play-out"></div>
@@ -525,12 +574,19 @@ function renderGraph() {
     return;
   }
 
-  var width = container.clientWidth - 16;
-  if (width < 200) width = 200;
+  var width = container.clientWidth - 10;
+  if (width < 160) width = 160;
 
-  var nodeW = 210;
-  var nodeH = 38;
-  var vGap = 22;
+  var nodeW, nodeH, vGap, fontSize, fsSmall;
+  if (width < 250) {
+    nodeW = width - 12; nodeH = 28; vGap = 14; fontSize = '9'; fsSmall = '8';
+  } else if (width < 380) {
+    nodeW = width - 32; nodeH = 30; vGap = 16; fontSize = '10'; fsSmall = '9';
+  } else if (width < 500) {
+    nodeW = 190; nodeH = 32; vGap = 18; fontSize = '10'; fsSmall = '9';
+  } else {
+    nodeW = 210; nodeH = 38; vGap = 22; fontSize = '11'; fsSmall = '10';
+  }
   var paddingTop = 16;
   var paddingBot = 16;
 
@@ -617,7 +673,7 @@ function renderGraph() {
       labelEl.setAttribute('y', ny + nodeH / 2 + 4);
       labelEl.setAttribute('fill', col.text);
       labelEl.setAttribute('font-family', '"JetBrains Mono", "Fira Code", monospace');
-      labelEl.setAttribute('font-size', '11');
+      labelEl.setAttribute('font-size', fontSize);
       labelEl.setAttribute('font-weight', '600');
       labelEl.textContent = s.label;
       g.appendChild(labelEl);
@@ -626,14 +682,15 @@ function renderGraph() {
         var argsDisplay = s.args.map(function(a) {
           return a.replace(/^"(.*)"$/, '$1');
         }).join(' ');
-        if (argsDisplay.length > 20) argsDisplay = argsDisplay.substring(0, 18) + '…';
+        var maxArgs = width < 300 ? 10 : width < 450 ? 15 : 20;
+        if (argsDisplay.length > maxArgs) argsDisplay = argsDisplay.substring(0, maxArgs - 2) + '…';
         var argsEl = document.createElementNS(svgNS, 'text');
         argsEl.setAttribute('x', nx + 12 + (s.label.length * 6.5) + 4);
         argsEl.setAttribute('y', ny + nodeH / 2 + 4);
         argsEl.setAttribute('fill', col.text);
         argsEl.setAttribute('fill-opacity', '0.55');
         argsEl.setAttribute('font-family', '"JetBrains Mono", "Fira Code", monospace');
-        argsEl.setAttribute('font-size', '10');
+        argsEl.setAttribute('font-size', fsSmall);
         argsEl.textContent = argsDisplay;
         g.appendChild(argsEl);
       }
@@ -646,7 +703,7 @@ function renderGraph() {
       badge.setAttribute('y', ny + nodeH / 2 + 4);
       badge.setAttribute('fill', col.badge);
       badge.setAttribute('font-family', '"JetBrains Mono", "Fira Code", monospace');
-      badge.setAttribute('font-size', '8');
+      badge.setAttribute('font-size', fsSmall);
       badge.setAttribute('font-weight', '700');
       badge.setAttribute('text-anchor', 'end');
       badge.textContent = typeLabel;

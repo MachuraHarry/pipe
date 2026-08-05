@@ -953,6 +953,11 @@ var playExamples = [
   '-- 🤖 Email classifier + responder\nai_provider "deepseek"\n\nemail: "URGENT: Server down, database timeout in production. Need immediate fix."\n\ncat: classify email "urgent, bug, feature, spam"\nprint ("Category: " ++ cat)\n\nprint "AI response:"\ngenerate ("Reply to this support ticket:\n" ++ email)\n    > print',
   '-- 🤖 AI: Wikipedia search (CORS-safe!)\nai_provider "deepseek"\n\nresults: wiki_search "quantum computing"\n\nprint "Wikipedia:"\nfor r in results\n    (get r "title")\n        > print',
   '-- 🤖 AI: RAG with Wikipedia\nai_provider "deepseek"\n\nresults: wiki_search "machine learning"\ncontext: ""\nfor r in results\n    context: context ++ (get r "snippet") ++ "\n"\n\nask ("Based on Wikipedia:\n" ++ context ++ "\n\nExplain ML in 1 sentence.")\n    > print',
+  '-- 🤖 Stream AI response token by token\nai_provider "deepseek"\n\nai_stream "You are a poet" "Write a short poem about code"\n    > print',
+  '-- 🤖 Filter + summarize long texts\nai_provider "deepseek"\n\nfn is_long x\n    len x > 50\n\ntexts: ["Hello world", "The Rust programming language was created by Graydon Hoare at Mozilla Research. It focuses on memory safety without garbage collection, using a borrow checker to manage resources."]\nlong: filter texts is_long\n\nfor t in long\n    summarize t\n        > print',
+  '-- 🤖 Extract structured data\nai_provider "deepseek"\n\nextract "Alice is 28, works at Google as an engineer. Her email is alice@google.com" "name, age, company, role, email"\n    > print',
+  '-- 🤖 map function with numbers\nai_provider "deepseek"\n\nfn double x\n    x * 2\nnums: [1, 2, 3, 4, 5]\nresult: map nums double\nprint result',
+  '-- 🤖 Agent counselor with follow-up\nai_provider "deepseek"\n\nagent "counselor" "You are a compassionate career counselor. Give short, actionable advice."\n\nagent_ask "counselor" "I feel stuck in my job, what should I do?"\n    > print\n\nagent_ask "counselor" "How do I prepare for an interview?"\n    > print',
 ];
 
 function pickPlayExample() {

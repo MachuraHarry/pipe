@@ -1233,6 +1233,8 @@ var zeroArityBuiltins = map[string]bool{
 	"now":         true,
 	"random":      true,
 	"try_ai_log":  true,
+	"args":        true,
+	"read_stdin":  true,
 }
 
 func isZeroArityBuiltin(name string) bool {

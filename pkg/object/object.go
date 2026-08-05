@@ -283,6 +283,8 @@ var Builtins = []BuiltinInfo{
 	{"path_ext", bPathExt},
 	{"env", bEnv},
 	{"sleep", bSleep},
+	{"args", bArgs},
+	{"read_stdin", bReadStdin},
 
 	// Network
 	{"http_get", bHttpGet},
@@ -453,6 +455,8 @@ var PrintHook func(args ...Object)
 
 var TryAIEvalFn func(source string) Object
 
+var ScriptArgs []string
+
 func bTryAIEval(args ...Object) Object {
 	if len(args) < 1 {
 		return &Error{Message: "_try_ai_eval expects 1 argument (source)"}
@@ -553,6 +557,22 @@ func bSleep(args ...Object) Object {
 	}
 	time.Sleep(time.Duration(ms) * time.Millisecond)
 	return NILOBJ
+}
+
+func bArgs(args ...Object) Object {
+	elems := make([]Object, len(ScriptArgs))
+	for i, a := range ScriptArgs {
+		elems[i] = &String{Value: a}
+	}
+	return &List{Elements: elems}
+}
+
+func bReadStdin(args ...Object) Object {
+	b, readErr := io.ReadAll(os.Stdin)
+	if readErr != nil {
+		return err("read_stdin: " + readErr.Error())
+	}
+	return &String{Value: string(b)}
 }
 
 func bExec(args ...Object) Object {

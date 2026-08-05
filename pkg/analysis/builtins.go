@@ -65,6 +65,10 @@ var builtinDocs = []BuiltinDoc{
 		Description: "Returns the value of the environment variable name, or an empty string if unset.", Category: CatIO},
 	{Name: "sleep", Signature: "sleep(ms)", Params: []Param{p("ms", "number")}, ReturnType: "nil",
 		Description: "Pauses execution for ms milliseconds.", Category: CatIO},
+	{Name: "args", Signature: "args()", Params: nil, ReturnType: "list",
+		Description: "Returns CLI arguments passed to the script as a list of strings.", Category: CatIO},
+	{Name: "read_stdin", Signature: "read_stdin()", Params: nil, ReturnType: "string",
+		Description: "Reads the entire standard input and returns it as a string.", Category: CatIO},
 
 	// ---- File System ----
 	{Name: "read_file", Signature: "read_file(path)", Params: []Param{p("path", "string")}, ReturnType: "string",

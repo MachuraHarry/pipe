@@ -331,7 +331,7 @@ func main() {
 	}
 
 	if useVM {
-		runVM(program, quietVM, filePath)
+		runVM(program, quietVM, filePath, scriptArgs)
 	} else {
 		runEval(program, scriptArgs, filePath)
 	}
@@ -475,13 +475,9 @@ Examples:
 }
 
 func runEval(program *ast.Program, scriptArgs []string, filePath string) {
-	env := object.NewEnvironment()
+	object.ScriptArgs = scriptArgs
 
-	argObjs := make([]object.Object, len(scriptArgs))
-	for i, a := range scriptArgs {
-		argObjs[i] = &object.String{Value: a}
-	}
-	env.Set("args", &object.List{Elements: argObjs})
+	env := object.NewEnvironment()
 
 	ctx := eval.NewEvalContext(filePath)
 	result := ctx.Eval(program, env)
@@ -506,7 +502,9 @@ func runGenProgram(program *ast.Program) error {
 	return machine.Run()
 }
 
-func runVM(program *ast.Program, quiet bool, filePath string) {
+func runVM(program *ast.Program, quiet bool, filePath string, scriptArgs []string) {
+	object.ScriptArgs = scriptArgs
+
 	comp := compiler.NewWithFile(filePath)
 	if err := comp.Compile(program); err != nil {
 		fmt.Fprintf(os.Stderr, "Compiler error: %s\n", err)

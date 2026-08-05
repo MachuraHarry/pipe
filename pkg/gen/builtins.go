@@ -22,6 +22,8 @@ var builtinInfos = map[string]builtinInfo{
 	"path_ext":       {1, strs(TypeString)},
 	"env":            {1, strs(TypeString)},
 	"sleep":          {1, strs(TypeInt)},
+	"args":           {0, nil},
+	"read_stdin":     {0, nil},
 	"upper":          {1, strs(TypeString)},
 	"lower":          {1, strs(TypeString)},
 	"trim":           {1, strs(TypeString)},

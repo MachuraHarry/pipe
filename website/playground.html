@@ -150,7 +150,7 @@ oninput="onEdit()" onscroll="syncScroll()">print (2 + 2)</textarea>
         <option value="openai">OpenAI</option>
         <option value="anthropic">Anthropic</option>
       </select>
-      <input id="api-key" type="password" placeholder="sk-..." style="flex:1;background:var(--bg);color:var(--fg2);border:1px solid var(--border);border-radius:4px;padding:1px 6px;font-size:0.6rem;font-family:var(--mono)" oninput="setAPIKey(document.getElementById('api-provider').value,this.value)">
+      <input id="api-key" type="password" autocomplete="off" placeholder="sk-..." style="flex:1;background:var(--bg);color:var(--fg2);border:1px solid var(--border);border-radius:4px;padding:1px 6px;font-size:0.6rem;font-family:var(--mono)" oninput="setAPIKey(document.getElementById('api-provider').value,this.value)">
     </div>
 
     <div class="play-out-wrap">

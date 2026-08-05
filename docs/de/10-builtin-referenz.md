@@ -1036,7 +1036,7 @@ with_sandbox "noexec" (fn
 `list_dir`, `make_dir`, `remove_dir`, `path_join`, `path_base`, `path_dir`, `path_ext`
 
 ### Strings (6)
-`upper`, `lower`, `trim`, `split`, `join`, `contains`
+`upper`, `lower`, `trim`, `split`, `join`, `contains`, `repeat`
 
 ### Listen (11)
 `len`, `push`, `pop`, `at`, `slice_list`, `sort`, `range`,
@@ -1117,4 +1117,4 @@ with_sandbox "noexec" (fn
 ### Sandbox (3)
 `sandbox_profile`, `set_sandbox`, `with_sandbox`
 
-**Gesamt: 135 Builtins**
+**Gesamt: 136 Builtins**

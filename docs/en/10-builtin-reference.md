@@ -268,7 +268,7 @@ path_ext "Makefile"
 
 ---
 
-## 10.3 String (6 functions)
+## 10.3 String (7 functions)
 
 ### `upper`
 **Signature:** `upper(str)`
@@ -327,6 +327,22 @@ join (["a", "b", "c"]) ","
 join (["one", "two"]) " - "
 -- "123"
 join ([1, 2, 3]) ""
+```
+
+
+### `repeat`
+
+**Signature:** `repeat(str, count)`
+
+**Description:** Repeats `str` `count` times. Much faster than while-loop string concatenation for large counts (O(n) vs O(n²)).
+
+**Returns:** `string`
+```pipe
+repeat "abc" 3
+-- "abcabcabc"
+
+repeat "-" 10
+-- "----------"
 ```
 
 ### `contains`
@@ -1921,186 +1937,187 @@ test "addition"
 | 29 | `join` | `join(list, delimiter)` | `string` |
 | 30 | `csv_parse` | `csv_parse(text)` | `list` |
 | 31 | `contains` | `contains(haystack, needle)` | `boolean` |
+| 32 | `repeat` | `repeat(str, count)` | `string` |
 
 ### List (11)
 
 | # | Function | Signature | Returns |
 |---|----------|-----------|---------|
-| 32 | `len` | `len(value)` | `number` |
-| 33 | `push` | `push(list, value)` | The mutated `list` |
-| 34 | `pop` | `pop(list)` | The removed element, or `nil` if empty |
-| 35 | `at` | `at(collection, index)` | `any` or `nil` |
-| 36 | `slice_list` | `slice_list(list, range)` | `list` |
-| 37 | `sort` | `sort(list)` | The mutated `list` |
-| 38 | `range` | `range(start, end)` | `list` of numbers |
-| 39 | `map` | `map(list, fn)` | `list` |
-| 40 | `filter` | `filter(list, fn)` | `list` |
-| 41 | `reduce` | `reduce(list, fn, initial)` | `any` |
-| 42 | `each` | `each(list, fn)` | `nil` |
+| 33 | `len` | `len(value)` | `number` |
+| 34 | `push` | `push(list, value)` | The mutated `list` |
+| 35 | `pop` | `pop(list)` | The removed element, or `nil` if empty |
+| 36 | `at` | `at(collection, index)` | `any` or `nil` |
+| 37 | `slice_list` | `slice_list(list, range)` | `list` |
+| 38 | `sort` | `sort(list)` | The mutated `list` |
+| 39 | `range` | `range(start, end)` | `list` of numbers |
+| 40 | `map` | `map(list, fn)` | `list` |
+| 41 | `filter` | `filter(list, fn)` | `list` |
+| 42 | `reduce` | `reduce(list, fn, initial)` | `any` |
+| 43 | `each` | `each(list, fn)` | `nil` |
 
 ### Map (4)
 
 | # | Function | Signature | Returns |
 |---|----------|-----------|---------|
-| 43 | `get` | `get(map, key)` | `any` or `nil` |
-| 44 | `set` | `set(map, key, value)` | The mutated `map` |
-| 45 | `keys` | `keys(map)` | `list` of strings |
-| 46 | `values` | `values(map)` | `list` |
+| 44 | `get` | `get(map, key)` | `any` or `nil` |
+| 45 | `set` | `set(map, key, value)` | The mutated `map` |
+| 46 | `keys` | `keys(map)` | `list` of strings |
+| 47 | `values` | `values(map)` | `list` |
 
 ### Math (6)
 
 | # | Function | Signature | Returns |
 |---|----------|-----------|---------|
-| 47 | `abs` | `abs(x)` | `number` |
-| 48 | `min` | `min(a, b)` | `number` |
-| 49 | `max` | `max(a, b)` | `number` |
-| 50 | `pow` | `pow(base, exp)` | `number` |
-| 51 | `sqrt` | `sqrt(x)` | `number` |
-| 52 | `round` | `round(x)` | `number` |
+| 48 | `abs` | `abs(x)` | `number` |
+| 49 | `min` | `min(a, b)` | `number` |
+| 50 | `max` | `max(a, b)` | `number` |
+| 51 | `pow` | `pow(base, exp)` | `number` |
+| 52 | `sqrt` | `sqrt(x)` | `number` |
+| 53 | `round` | `round(x)` | `number` |
 
 ### Network & HTTP (5)
 
 | # | Function | Signature | Returns |
 |---|----------|-----------|---------|
-| 53 | `http_get` | `http_get(url)` | `string` |
-| 54 | `http_post` | `http_post(url, body)` | `string` |
-| 55 | `http_get_json` | `http_get_json(url)` | `any` (map, list, number, string, boolean, or nil) |
-| 56 | `parse_json` | `parse_json(json_string)` | `any` or `nil` on parse error |
-| 57 | `to_json` | `to_json(value)` | `string` |
+| 54 | `http_get` | `http_get(url)` | `string` |
+| 55 | `http_post` | `http_post(url, body)` | `string` |
+| 56 | `http_get_json` | `http_get_json(url)` | `any` (map, list, number, string, boolean, or nil) |
+| 57 | `parse_json` | `parse_json(json_string)` | `any` or `nil` on parse error |
+| 58 | `to_json` | `to_json(value)` | `string` |
 
 ### TCP (6)
 
 | # | Function | Signature | Returns |
 |---|----------|-----------|---------|
-| 58 | `tcp_listen` | `tcp_listen(address)` | `listener handle` |
-| 59 | `tcp_connect` | `tcp_connect(address)` | `connection handle` |
-| 60 | `tcp_accept` | `tcp_accept(listener)` | `connection handle` |
-| 61 | `tcp_read` | `tcp_read(conn, max_bytes)` | `string` |
-| 62 | `tcp_write` | `tcp_write(conn, data)` | `nil` |
-| 63 | `tcp_close` | `tcp_close(handle)` | `nil` |
+| 59 | `tcp_listen` | `tcp_listen(address)` | `listener handle` |
+| 60 | `tcp_connect` | `tcp_connect(address)` | `connection handle` |
+| 61 | `tcp_accept` | `tcp_accept(listener)` | `connection handle` |
+| 62 | `tcp_read` | `tcp_read(conn, max_bytes)` | `string` |
+| 63 | `tcp_write` | `tcp_write(conn, data)` | `nil` |
+| 64 | `tcp_close` | `tcp_close(handle)` | `nil` |
 
 ### Regex (2)
 
 | # | Function | Signature | Returns |
 |---|----------|-----------|---------|
-| 64 | `regex_match` | `regex_match(pattern, str)` | `boolean` |
-| 65 | `regex_replace` | `regex_replace(pattern, replacement, str)` | `string` |
+| 65 | `regex_match` | `regex_match(pattern, str)` | `boolean` |
+| 66 | `regex_replace` | `regex_replace(pattern, replacement, str)` | `string` |
 
 ### Date & Time (2)
 
 | # | Function | Signature | Returns |
 |---|----------|-----------|---------|
-| 66 | `now` | `now()` | `number` |
-| 67 | `format_time` | `format_time(timestamp, layout)` |  |
+| 67 | `now` | `now()` | `number` |
+| 68 | `format_time` | `format_time(timestamp, layout)` |  |
 
 ### Random (2)
 
 | # | Function | Signature | Returns |
 |---|----------|-----------|---------|
-| 68 | `random` | `random()` | `number` |
-| 69 | `random_range` | `random_range(min, max)` | `number` (integer) |
+| 69 | `random` | `random()` | `number` |
+| 70 | `random_range` | `random_range(min, max)` | `number` (integer) |
 
 ### Encoding (2)
 
 | # | Function | Signature | Returns |
 |---|----------|-----------|---------|
-| 70 | `base64_encode` | `base64_encode(str)` | `string` |
-| 71 | `base64_decode` | `base64_decode(str)` | `string` |
+| 71 | `base64_encode` | `base64_encode(str)` | `string` |
+| 72 | `base64_decode` | `base64_decode(str)` | `string` |
 
 ### Hashing (4)
 
 | # | Function | Signature | Returns |
 |---|----------|-----------|---------|
-| 72 | `sha256` | `sha256(text)` | `string` |
-| 73 | `md5` | `md5(text)` | `string` |
-| 74 | `db_open` | `db_open(path)` | `number` |
-| 75 | `sha1` | `sha1(text)` | `string` |
-| 76 | `sha512` | `sha512(text)` | `string` |
+| 73 | `sha256` | `sha256(text)` | `string` |
+| 74 | `md5` | `md5(text)` | `string` |
+| 75 | `db_open` | `db_open(path)` | `number` |
+| 76 | `sha1` | `sha1(text)` | `string` |
+| 77 | `sha512` | `sha512(text)` | `string` |
 
 ### Type Checks (6)
 
 | # | Function | Signature | Returns |
 |---|----------|-----------|---------|
-| 77 | `type_of` | `type_of(value)` | `string` — one of `"number"`, `"string"`, `"list"`, `"map"`, `"nil"`, `"function"`, `"boolean"`, `"result"` |
-| 78 | `is_num` | `is_num(value)` | `boolean` |
-| 79 | `is_str` | `is_str(value)` | `boolean` |
-| 80 | `is_list` | `is_list(value)` | `boolean` |
-| 81 | `is_map` | `is_map(value)` | `boolean` |
-| 82 | `is_nil` | `is_nil(value)` | `boolean` |
+| 78 | `type_of` | `type_of(value)` | `string` — one of `"number"`, `"string"`, `"list"`, `"map"`, `"nil"`, `"function"`, `"boolean"`, `"result"` |
+| 79 | `is_num` | `is_num(value)` | `boolean` |
+| 80 | `is_str` | `is_str(value)` | `boolean` |
+| 81 | `is_list` | `is_list(value)` | `boolean` |
+| 82 | `is_map` | `is_map(value)` | `boolean` |
+| 83 | `is_nil` | `is_nil(value)` | `boolean` |
 
 ### Conversion (2)
 
 | # | Function | Signature | Returns |
 |---|----------|-----------|---------|
-| 83 | `to_str` | `to_str(value)` | `string` |
-| 84 | `to_num` | `to_num(str)` | `number` or `nil` |
+| 84 | `to_str` | `to_str(value)` | `string` |
+| 85 | `to_num` | `to_num(str)` | `number` or `nil` |
 
 ### Result Type (6)
 
 | # | Function | Signature | Returns |
 |---|----------|-----------|---------|
-| 85 | `Ok` | `Ok(value)` | `Result` (Ok variant) |
-| 86 | `Err` | `Err(message)` | `Result` (Err variant) |
-| 87 | `is_ok` | `is_ok(result)` | `boolean` |
-| 89 | `is_err` | `is_err(result)` | `boolean` |
-| 90 | `unwrap` | `unwrap(result)` | `any` |
-| 91 | `unwrap_or` | `unwrap_or(result, default)` | `any` |
+| 86 | `Ok` | `Ok(value)` | `Result` (Ok variant) |
+| 87 | `Err` | `Err(message)` | `Result` (Err variant) |
+| 89 | `is_ok` | `is_ok(result)` | `boolean` |
+| 90 | `is_err` | `is_err(result)` | `boolean` |
+| 91 | `unwrap` | `unwrap(result)` | `any` |
+| 92 | `unwrap_or` | `unwrap_or(result, default)` | `any` |
 
 ### AI — Configuration (5)
 
 | # | Function | Signature | Returns |
 |---|----------|-----------|---------|
-| 92 | `ai_provider` | `ai_provider(name)` |  |
-| 93 | `ai_model` | `ai_model(name)` |  |
-| 94 | `ai_set_key` | `ai_set_key(provider, key)` | `string` |
-| 95 | `ai_host` | `ai_host(url)` |  |
-| 96 | `ai_timeout` | `ai_timeout(seconds)` |  |
+| 93 | `ai_provider` | `ai_provider(name)` |  |
+| 94 | `ai_model` | `ai_model(name)` |  |
+| 95 | `ai_set_key` | `ai_set_key(provider, key)` | `string` |
+| 96 | `ai_host` | `ai_host(url)` |  |
+| 98 | `ai_timeout` | `ai_timeout(seconds)` |  |
 | 88 | `ai_cache` | `ai_cache(option)` | `string` |
 
 ### AI — Low-level Chat (2)
 
 | # | Function | Signature | Returns |
 |---|----------|-----------|---------|
-| 98 | `ai_chat` | `ai_chat(system_prompt, user_prompt)` |  |
-| 99 | `ai_chat_json` | `ai_chat_json(system_prompt, user_prompt)` |  |
+| 99 | `ai_chat` | `ai_chat(system_prompt, user_prompt)` |  |
+| 100 | `ai_chat_json` | `ai_chat_json(system_prompt, user_prompt)` |  |
 
 ### AI — Streaming (1)
 
 | # | Function | Signature | Returns |
 |---|----------|-----------|---------|
-| 100 | `ai_stream` | `ai_stream(system_prompt, user_prompt)` |  |
+| 101 | `ai_stream` | `ai_stream(system_prompt, user_prompt)` |  |
 
 ### AI — High-level Convenience (7)
 
 | # | Function | Signature | Returns |
 |---|----------|-----------|---------|
-| 101 | `summarize` | `summarize(text)` |  |
+| 102 | `summarize` | `summarize(text)` |  |
 | 97 | `generate_json` | `generate_json(instruction, schema)` | `any` |
-| 102 | `translate` | `translate(text, target_language)` |  |
-| 103 | `classify` | `classify(text, categories)` |  |
-| 104 | `extract` | `extract(text, schema)` |  |
-| 105 | `generate` | `generate(prompt)` |  |
+| 103 | `translate` | `translate(text, target_language)` |  |
+| 104 | `classify` | `classify(text, categories)` |  |
+| 105 | `extract` | `extract(text, schema)` |  |
+| 106 | `generate` | `generate(prompt)` |  |
 | 97 | `generate_json` | `generate_json(instruction, schema)` |  |
-| 106 | `ask` | `ask(question)` |  |
+| 107 | `ask` | `ask(question)` |  |
 
 ### AI — Parallel (3)
 
 | # | Function | Signature | Returns |
 |---|----------|-----------|---------|
-| 107 | `ai_batch` | `ai_batch(system_prompt, items)` |  |
-| 111 | `ai_parallel` | `ai_parallel(concurrency, system_prompt, items)` |  |
-| 112 | `ai_rate_limit` | `ai_rate_limit(calls_per_second)` |  |
+| 111 | `ai_batch` | `ai_batch(system_prompt, items)` |  |
+| 112 | `ai_parallel` | `ai_parallel(concurrency, system_prompt, items)` |  |
+| 113 | `ai_rate_limit` | `ai_rate_limit(calls_per_second)` |  |
 
 ### AI — Tool Calling (2)
 
 | # | Function | Signature | Returns |
 |---|----------|-----------|---------|
-| 113 | `ai_tool` | `ai_tool(name, description, parameters, function)` |  |
-| 114 | `ai_with_tools` | `ai_with_tools(system_prompt, user_prompt, max_rounds?)` |  |
+| 114 | `ai_tool` | `ai_tool(name, description, parameters, function)` |  |
+| 115 | `ai_with_tools` | `ai_with_tools(system_prompt, user_prompt, max_rounds?)` |  |
 
 ### AI — Agents (3)
 
-| 115 | `try_ai_log` | `try_ai_log()` | `list` |
+| 117 | `try_ai_log` | `try_ai_log()` | `list` |
 | # | Function | Signature | Returns |
 |---|----------|-----------|---------|
 | 108 | `agent` | `agent(name, system_prompt)` | `string` |
@@ -2111,12 +2128,12 @@ test "addition"
 
 | # | Function | Signature | Returns |
 |---|----------|-----------|---------|
-| 117 | `embed` | `embed(text)` |  |
-| 118 | `embed_batch` | `embed_batch(items)` |  |
-| 119 | `cosine_sim` | `cosine_sim(vec_a, vec_b)` |  |
-| 120 | `dot_product` | `dot_product(vec_a, vec_b)` |  |
-| 121 | `nearest` | `nearest(query_vec, doc_vectors, k)` |  |
-| 122 | `wiki_search` | `wiki_search(query)` | `list` |
+| 118 | `embed` | `embed(text)` |  |
+| 119 | `embed_batch` | `embed_batch(items)` |  |
+| 120 | `cosine_sim` | `cosine_sim(vec_a, vec_b)` |  |
+| 121 | `dot_product` | `dot_product(vec_a, vec_b)` |  |
+| 122 | `nearest` | `nearest(query_vec, doc_vectors, k)` |  |
+| 123 | `wiki_search` | `wiki_search(query)` | `list` |
 
 ### AI — Search (1)
 
@@ -2128,21 +2145,21 @@ test "addition"
 
 | # | Function | Signature | Returns |
 |---|----------|-----------|---------|
-| 123 | `sandbox_profile` | `sandbox_profile(name)` | `string` |
-| 124 | `set_sandbox` | `set_sandbox(profile)` | `string` |
-| 125 | `with_sandbox` | `with_sandbox(profile, fn)` | `any` |
+| 124 | `sandbox_profile` | `sandbox_profile(name)` | `string` |
+| 125 | `set_sandbox` | `set_sandbox(profile)` | `string` |
+| 126 | `with_sandbox` | `with_sandbox(profile, fn)` | `any` |
 
 ### Test Assertions (6)
 
 | # | Function | Signature | Returns |
 |---|----------|-----------|---------|
-| 126 | `assert` | `assert(condition)` |  |
-| 127 | `assert_eq` | `assert_eq(expected, actual)` |  |
-| 128 | `assert_not_eq` | `assert_not_eq(unexpected, actual)` |  |
-| 129 | `assert_lt` | `assert_lt(a, b)` |  |
-| 130 | `assert_gt` | `assert_gt(a, b)` |  |
-| 131 | `assert_error` | `assert_error(fn)` |  |
+| 127 | `assert` | `assert(condition)` |  |
+| 128 | `assert_eq` | `assert_eq(expected, actual)` |  |
+| 129 | `assert_not_eq` | `assert_not_eq(unexpected, actual)` |  |
+| 130 | `assert_lt` | `assert_lt(a, b)` |  |
+| 131 | `assert_gt` | `assert_gt(a, b)` |  |
+| 132 | `assert_error` | `assert_error(fn)` |  |
 
 ---
 
-**Total: 131 built-in functions**
+**Total: 132 built-in functions**

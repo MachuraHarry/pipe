@@ -58,13 +58,22 @@ function pipeFetchSync(url, opts) {
   var body = (opts && opts.body) || undefined;
   var headers = (opts && opts.headers) || {};
 
+  console.log('pipeFetchSync:', method, url);
+  console.log('headers keys:', Object.keys(headers));
+  console.log('Authorization:', headers['Authorization']);
+  console.log('Content-Type:', headers['Content-Type']);
+
   var xhr = new XMLHttpRequest();
   xhr.open(method, url, false);
 
   try {
     if (headers && typeof headers === 'object') {
       Object.keys(headers).forEach(function(k) {
-        try { xhr.setRequestHeader(k, headers[k]); } catch(e) { console.warn('skip header', k, e); }
+        try {
+          var val = headers[k];
+          console.log('setHeader:', k, '=', val);
+          xhr.setRequestHeader(k, ['Content-Type','Authorization'].indexOf(k) >= 0 ? String(val) : '');
+        } catch(e) { console.warn('skip header', k, e.message); }
       });
     }
   } catch(e) {
@@ -73,8 +82,11 @@ function pipeFetchSync(url, opts) {
 
   try {
     xhr.send(body);
+    console.log('XHR status:', xhr.status);
+    console.log('XHR response:', xhr.responseText.substring(0, 150));
     return { body: xhr.responseText, error: xhr.status >= 400 ? "HTTP " + xhr.status + ": " + xhr.statusText : "" };
   } catch(e) {
+    console.error('XHR error:', e.message);
     return { body: "", error: "network error: " + e.message };
   }
 }

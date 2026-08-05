@@ -243,22 +243,21 @@ function pipeFetchSync(url, opts) {
   var method = (opts && opts.method) || "GET";
   var body = (opts && opts.body) || undefined;
   var headers = (opts && opts.headers) || {};
+  console.log('pipeFetchSync:', method, url.substring(0,80));
+  console.log('header keys:', Object.keys(headers));
+  console.log('Auth val:', headers['Authorization']);
   var xhr = new XMLHttpRequest();
   xhr.open(method, url, false);
-  if (headers && typeof headers === 'object') {
+  try {
     Object.keys(headers).forEach(function(k) {
-      if (k === 'Content-Type' || k === 'Authorization')
-        xhr.setRequestHeader(k, headers[k]);
+      try { xhr.setRequestHeader(k, String(headers[k])); } catch(e) { console.warn('skip', k, e.message); }
     });
-  }
+  } catch(e) { console.error(e); }
   try {
     xhr.send(body);
-    if (xhr.status >= 200 && xhr.status < 300)
-      return { body: xhr.responseText, error: "" };
-    return { body: xhr.responseText, error: "HTTP " + xhr.status };
-  } catch(e) {
-    return { body: "", error: "network error: " + e.message };
-  }
+    console.log('status:', xhr.status, 'resp:', xhr.responseText.substring(0,120));
+    return { body: xhr.responseText, error: xhr.status >= 400 ? "HTTP " + xhr.status : "" };
+  } catch(e) { return { body: "", error: "error: " + e.message }; }
 }
 
 function updateBar() {

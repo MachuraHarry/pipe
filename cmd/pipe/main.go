@@ -488,7 +488,8 @@ Examples:
   pipe -search log              # Search for "log" modules
   pipe -get log-analyzer        # Install a module
   pipe --sandbox script.pipe
-  pipe -build my.pipe -o my_prog`)
+  pipe -build my.pipe -o my_prog
+  pipe -build my.pipe -o my_prog -upx  # UPX-compressed (~60% smaller)`)
 }
 
 func runEval(program *ast.Program, scriptArgs []string, filePath string) {

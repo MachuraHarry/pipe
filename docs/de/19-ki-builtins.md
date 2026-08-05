@@ -1,6 +1,6 @@
 # 19. KI-Builtins
 
-Pipe bietet **23 KI-Builtins** für die Arbeit mit Large Language Models.
+Pipe bietet **27 KI-Builtins** für die Arbeit mit Large Language Models.
 Die Kommunikation läuft über REST-APIs zu OpenAI, Anthropic oder DeepSeek.
 
 ---
@@ -69,6 +69,10 @@ schlägt die Anfrage mit einem Fehler fehl.
 | `extract` | Daten extrahieren | `extract text schema` |
 | `generate` | Freitext generieren | `generate prompt` |
 | `ask` | Frage beantworten | `ask frage` |
+| `ai_cost` | Kosten-Metriken | `ai_cost` |
+| `ai_tokens` | Gesamte Tokens | `ai_tokens` |
+| `ai_cache_hits` | Cache-Treffer | `ai_cache_hits` |
+| `ai_cache_misses` | Cache-Fehltreffer | `ai_cache_misses` |
 
 ---
 
@@ -627,7 +631,7 @@ ask "Was ist eine Pipeline?" > print
 - Keine Daten verlassen dein System (DSGVO/Compliance)
 - Funktioniert komplett offline
 - Kostenlos, unbegrenzte Nutzung
-- Alle 23 KI-Builtins funktionieren mit Ollama
+- Alle 27 KI-Builtins funktionieren mit Ollama
 
 **Remote Ollama** (z.B. im Firmennetzwerk):
 ```pipe
@@ -638,7 +642,103 @@ ai_model "qwen2[5]-coder:7b"
 
 ---
 
-## 19.12 Beispiel: Vollständiger Workflow
+## 19.12 Kosten-Tracking & Token-Verbrauch
+
+Pipe verfolgt **Kosten und Token-Verbrauch** für jeden KI-Aufruf. Das ist
+wichtig für den Betrieb von Agenten im großen Stil, für Budgets oder den
+Vergleich von Providern.
+
+### ai_cost
+
+```
+ai_cost
+```
+
+Gibt eine Map mit den kumulierten Metriken des aktuellen Laufs zurück:
+
+| Key | Typ | Beschreibung |
+|-----|------|-------------|
+| `cost_usd` | num | Gesamtkosten in USD |
+| `calls` | int | Anzahl der KI-API-Aufrufe |
+| `cache_hits` | int | Antworten aus dem Cache |
+| `cache_misses` | int | Antworten vom Provider geladen |
+
+`ai_cost "reset"` setzt alle Metriken zurück.
+
+```pipe
+print (ai_cost)
+-- -> {calls: 1, cost_usd: 0.000045, cache_hits: 0, cache_misses: 1}
+```
+
+### ai_tokens
+
+```
+ai_tokens
+```
+
+Gibt die Gesamtzahl der Tokens zurück, die KI-Aufrufe im aktuellen Lauf
+verbraucht haben.
+
+### ai_cache_hits / ai_cache_misses
+
+```
+ai_cache_hits
+ai_cache_misses
+```
+
+Liefern die Zahl der Cache-Treffer bzw. Fehltreffer. Wiederholte identische
+Prompts werden aus dem Antwort-Cache bedient – das spart Geld und Latenz:
+
+```pipe
+ask "Was ist ein Monad?" > print
+-- -> Cache-Miss
+ask "Was ist ein Monad?" > print
+-- -> Cache-Hit (gleicher Prompt, aus dem Cache)
+
+print (ai_cache_hits)   -- 1
+print (ai_cache_misses) -- 1
+```
+
+### Kosten-Trace (CLI)
+
+Nach einem Lauf gibt das CLI einen **Kosten-Trace** auf stderr aus, sobald
+KI-Aufrufe stattgefunden haben:
+
+```
+═══ Cost Trace ═══
+Total cost:    $0.000045
+Total tokens:  50
+API calls:     1
+Cache hits:    0 | misses: 0
+  #1 deepseek/deepseek-chat | 50 Tokens | $0.000045
+══════════════════════════
+```
+
+### Budget-Durchsetzung
+
+KI-Budgets lassen sich über Sandbox-Profile durchsetzen – siehe
+[22. Sandbox-Profile](22-sandbox-profile.md) (der `budget`-Key und das
+`budget_spent`-Builtin).
+
+### Preise (Schätz-Fallback)
+
+Liefert der Provider keine Kosten, schätzt Pipe sie aus den Token-Zahlen mit
+folgenden Preisen pro 1K Tokens:
+
+| Provider / Modell | Prompt ($ / 1K Tokens) | Completion ($ / 1K Tokens) |
+|------------------|------------------------|----------------------------|
+| OpenAI `gpt-4o-mini` | 0.00015 | 0.0006 |
+| OpenAI `gpt-4` | 0.03 | 0.06 |
+| OpenAI (andere) | 0.005 | 0.015 |
+| DeepSeek | 0.0009 | 0.0009 |
+| Anthropic Claude Haiku | 0.0008 | 0.004 |
+| Anthropic Claude Sonnet | 0.003 | 0.015 |
+| Anthropic Claude Opus | 0.015 | 0.075 |
+| Ollama | 0 | 0 |
+
+---
+
+## 19.13 Beispiel: Vollständiger Workflow
 
 Dieser Workflow demonstriert alle KI-Builtins in einer praktischen Anwendung:
 

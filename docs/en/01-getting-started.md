@@ -142,13 +142,13 @@ Inside `script.pipe`:
 
 ```pipe
 print args
--- Output: ["script.pipe", "foo", "bar", "baz"]
+-- Output: ["foo", "bar", "baz"]
 
 for arg in args
   print arg
 ```
 
-`args` contains the script filename as its first element, followed by all user-supplied arguments.
+`args` contains the user-supplied arguments only — the script filename is not included.
 
 ## The `-h` Flag
 

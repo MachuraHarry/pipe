@@ -1119,6 +1119,16 @@ func runEmbedded(src []byte) {
 	object.ScriptArgs = os.Args[1:]
 	ai.ResetCostMetrics()
 
+	if dir, err := build.ExtractFiles(os.Args[0]); err != nil {
+		fmt.Fprintf(os.Stderr, "pipe: extracting embedded files: %s\n", err)
+		os.Exit(1)
+	} else if dir != "" {
+		if err := os.Chdir(dir); err != nil {
+			fmt.Fprintf(os.Stderr, "pipe: changing to embedded files dir: %s\n", err)
+			os.Exit(1)
+		}
+	}
+
 	l := lexer.New(string(src))
 	p := parser.New(l)
 	program := p.ParseProgram()

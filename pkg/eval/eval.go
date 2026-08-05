@@ -159,7 +159,15 @@ func (ctx *EvalContext) Eval(node ast.Node, env *object.Environment) object.Obje
 		return ctx.evalFnLiteral(n, env)
 
 	case *ast.CallExpression:
-		fn := ctx.Eval(n.Function, env)
+		var fn object.Object
+		if ident, ok := n.Function.(*ast.Identifier); ok && len(n.Arguments) > 0 {
+			if builtin, ok := builtins[ident.Value]; ok && builtin.Arity == 0 {
+				fn = builtin
+			}
+		}
+		if fn == nil {
+			fn = ctx.Eval(n.Function, env)
+		}
 		if isError(fn) {
 			return fn
 		}
@@ -686,6 +694,12 @@ func (ctx *EvalContext) evalMapLiteral(ml *ast.MapLiteral, env *object.Environme
 
 func (ctx *EvalContext) evalDotExpression(de *ast.DotExpression, env *object.Environment) object.Object {
 	left := ctx.Eval(de.Left, env)
+	if err, ok := left.(*object.Error); ok {
+		if de.Field == "message" {
+			return &object.String{Value: err.Message}
+		}
+		return left
+	}
 	if isError(left) {
 		return left
 	}

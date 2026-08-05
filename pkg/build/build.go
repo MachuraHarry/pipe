@@ -93,10 +93,17 @@ func LoadEmbeddedFiles(path string) (src []byte, files map[string][]byte, ok boo
 		return nil, nil, false
 	}
 
-	filesData := extractSection(data, filesMarker)
+	filesData := extractFilesSection(data)
 	files = make(map[string][]byte)
 	if filesData != nil {
 		pos := 0
+
+		nl := indexByte(filesData, '\n')
+		if nl < 0 {
+			return nil, nil, false
+		}
+		pos = nl + 1
+
 		for pos < len(filesData) {
 			nl := indexByte(filesData[pos:], '\n')
 			if nl < 0 {
@@ -154,6 +161,18 @@ func extractSection(data []byte, markerName string) []byte {
 	return nil
 }
 
+func extractFilesSection(data []byte) []byte {
+	markerStr := "\n" + filesMarker + "\n"
+	markerLen := len(markerStr)
+
+	for i := len(data) - 1; i >= markerLen; i-- {
+		if string(data[i-markerLen+1:i+1]) == markerStr {
+			return data[i+1:]
+		}
+	}
+	return nil
+}
+
 func indexByte(data []byte, b byte) int {
 	for i, c := range data {
 		if c == b {
@@ -181,11 +200,13 @@ func ExtractFiles(path string) (string, error) {
 		return "", nil
 	}
 
-	dir := filepath.Join(os.TempDir(), "pipe_embedded")
-	os.MkdirAll(dir, 0755)
+	dir, err := os.MkdirTemp("", "pipe_embedded_")
+	if err != nil {
+		return "", err
+	}
 
 	for name, data := range files {
-		dst := filepath.Join(dir, name)
+		dst := filepath.Join(dir, filepath.Base(name))
 		if err := os.WriteFile(dst, data, 0644); err != nil {
 			return dir, err
 		}

@@ -993,7 +993,7 @@ print "Hauptprogramm"
 
 ---
 
-## 10.17 Sandbox (3 Funktionen)
+## 10.17 Sandbox (5 Funktionen)
 
 ### sandbox_profile
 ```
@@ -1023,9 +1023,83 @@ with_sandbox "noexec" (fn
     print "isoliert")
 ```
 
+### audit_log
+```
+audit_log()
+```
+Gibt den Audit-Trail des aktiven Profils als Liste von Maps zurück. Wird nur
+gefüllt, wenn das Profil mit `audit_log: true` definiert wurde.
+```pipe
+sandbox_profile "audited" {fs: "full", network: true, exec: false, ai: true, audit_log: true}
+set_sandbox "audited"
+
+http_get "https://example.com"
+for eintrag in audit_log
+    print eintrag.event ++ " -> " ++ eintrag.detail
+-- -> http_get -> https://example.com
+```
+
+### budget_spent
+```
+budget_spent()
+```
+Gibt die insgesamt für das aktive Profil verbuchten KI-Kosten in USD zurück.
+Wird zusammen mit dem `budget`-Schlüssel zur Überwachung oder Durchsetzung von
+Ausgabelimits verwendet.
+```pipe
+sandbox_profile "budgeted" {fs: "full", network: false, exec: false, ai: true, budget: 0.01}
+set_sandbox "budgeted"
+
+ask "Hallo"
+print (budget_spent)
+-- -> 0.000079 (ca.)
+```
+
 ---
 
-## 10.18 Übersicht aller Builtins
+## 10.18 KI — Kosten-Tracking (4 Funktionen)
+
+### ai_cost
+```
+ai_cost()
+```
+Gibt die kumulierten Kosten-Metriken des aktuellen Laufs als Map zurück. Mit
+dem String `"reset"` werden alle Metriken zurückgesetzt.
+```pipe
+print (ai_cost)
+-- -> {cache_hits: 0, calls: 2, cost_usd: 0.00012, cache_misses: 1}
+
+ai_cost "reset"   -- alle Metriken zurücksetzen
+```
+
+### ai_tokens
+```
+ai_tokens()
+```
+Gibt die Gesamtzahl der Tokens zurück, die alle KI-Aufrufe im aktuellen Lauf
+verbraucht haben.
+
+### ai_cache_hits
+```
+ai_cache_hits()
+```
+Gibt zurück, wie viele KI-Antworten aus dem Antwort-Cache bedient wurden.
+
+### ai_cache_misses
+```
+ai_cache_misses()
+```
+Gibt zurück, wie viele KI-Antworten vom Provider geladen wurden (Cache-Miss).
+```pipe
+ask "Was ist ein Monad?" > print
+ask "Was ist ein Monad?" > print
+print (ai_cache_hits)   -- 1
+print (ai_cache_misses) -- 1
+```
+
+---
+
+## 10.19 Übersicht aller Builtins
 
 ### IO & System (8)
 `print`, `input`, `exec`, `env`, `sleep`, `go`
@@ -1111,10 +1185,13 @@ with_sandbox "noexec" (fn
 ### KI — Suche (2)
 `web_search`
 
+### KI — Kosten-Tracking (4)
+`ai_cost`, `ai_tokens`, `ai_cache_hits`, `ai_cache_misses`
+
 ### Test-Assertions (6)
 `assert`, `assert_eq`, `assert_not_eq`, `assert_lt`, `assert_gt`, `assert_error`
 
-### Sandbox (3)
-`sandbox_profile`, `set_sandbox`, `with_sandbox`
+### Sandbox (5)
+`sandbox_profile`, `set_sandbox`, `with_sandbox`, `audit_log`, `budget_spent`
 
-**Gesamt: 136 Builtins**
+**Gesamt: 142 Builtins**

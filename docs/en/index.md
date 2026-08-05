@@ -9,7 +9,7 @@ Welcome to the complete documentation for the **Pipe** scripting language.
 | 🚀 **Try it in 5 minutes** | → [Getting Started](01-getting-started.md) — install, hello world, first pipeline |
 | 🐍 **I know Python/Bash/JS** | → [Language Tour](02-language-tour.md) — key differences in 10 minutes |
 | ⚙️ **Understand the VM** | → [Architecture](14-architecture.md) — lexer → parser → bytecode VM |
-| 🤖 **Use AI features** | → [AI Builtins](19-ai-builtins.md) — 32 AI operations as language primitives |
+| 🤖 **Use AI features** | → [AI Builtins](19-ai-builtins.md) — 36 AI operations as language primitives |
 
 ## Table of Contents
 
@@ -22,7 +22,7 @@ Welcome to the complete documentation for the **Pipe** scripting language.
 7. [Data Structures](07-data-structures.md) — Lists, slicing, maps, dot access, higher-order functions
 8. [Error Handling](08-error-handling.md) — try/catch, stack traces, Result type
 9. [Modules and Imports](09-modules-and-imports.md) — import, export, namespaces, PIPE\_PATH
-10. [Builtin Reference](10-builtin-reference.md) — All 136 built-in functions
+10. [Builtin Reference](10-builtin-reference.md) — All 142 built-in functions
 11. [Tooling](11-tooling.md) — CLI flags, REPL, formatter, test runner, build
 12. [Execution Models](12-execution-models.md) — Tree-walker vs Bytecode VM
 13. [Bytecode VM](13-bytecode-vm.md) — 40 opcodes, stack machine, symbol table

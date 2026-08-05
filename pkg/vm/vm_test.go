@@ -242,3 +242,10 @@ func TestMapLiteral(t *testing.T) {
 		t.Errorf("expected map-like output, got %s", result)
 	}
 }
+
+func TestVMZeroArityBuiltinWithArgs(t *testing.T) {
+	bc := parseAndCompile(t, `ai_cost "reset"`)
+	if got := runVM(t, bc); got != "cost metrics reset" {
+		t.Errorf("ai_cost \"reset\": got %q", got)
+	}
+}

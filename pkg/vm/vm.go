@@ -329,6 +329,12 @@ func (vm *VM) Run() error {
 				} else {
 					vm.push(object.NILOBJ)
 				}
+			case *object.Error:
+				if field == "message" {
+					vm.push(&object.String{Value: m.Message})
+				} else {
+					vm.push(m)
+				}
 			default:
 				return fmt.Errorf(". only on map: %s", obj.Type())
 			}
@@ -769,6 +775,12 @@ func (vm *VM) executeFrame() object.Object {
 					vm.push(val)
 				} else {
 					vm.push(object.NILOBJ)
+				}
+			case *object.Error:
+				if field == "message" {
+					vm.push(&object.String{Value: m.Message})
+				} else {
+					vm.push(m)
 				}
 			default:
 				return &object.Error{Message: fmt.Sprintf(". only on map: %s", obj.Type())}

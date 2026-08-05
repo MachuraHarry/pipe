@@ -25,7 +25,7 @@ Pipe combines **Python-like readability** (indentation-based, no braces) with **
 - **License**: MIT
 - **Binary size**: ~11–16 MB (statically linked, ~2.4 MB UPX-compressed)
 - **Tests**: 300+ (across 14 packages)
-- **Builtins**: 136 (32 AI + 104 Standard)
+- **Builtins**: 142 (36 AI + 106 Standard)
 - **Opcodes**: 40
 - **AST node types**: 34
 - **Example programs**: 70+

@@ -1,6 +1,6 @@
 # 19. AI Builtins
 
-Pipe provides **23 AI builtins** for working with Large Language Models.
+Pipe provides **27 AI builtins** for working with Large Language Models.
 Communication happens via REST APIs to OpenAI, Anthropic, or DeepSeek.
 
 ---
@@ -69,6 +69,10 @@ is missing, the request fails with an error.
 | `extract` | Extract data | `extract text schema` |
 | `generate` | Generate free text | `generate prompt` |
 | `ask` | Answer question | `ask question` |
+| `ai_cost` | Cost metrics | `ai_cost` |
+| `ai_tokens` | Total tokens used | `ai_tokens` |
+| `ai_cache_hits` | Cache hits | `ai_cache_hits` |
+| `ai_cache_misses` | Cache misses | `ai_cache_misses` |
 
 ---
 
@@ -608,7 +612,7 @@ ask "What is a pipeline?" > print
 - No data leaves your system (GDPR/compliance)
 - Works completely offline
 - Free, unlimited usage
-- All 23 AI builtins work with Ollama
+- All 27 AI builtins work with Ollama
 
 **Remote Ollama** (e.g., on a local network):
 ```pipe
@@ -619,7 +623,101 @@ ai_model "qwen2[5]-coder:7b"
 
 ---
 
-## 19.12 Example: Complete Workflow
+## 19.12 Cost Tracking & Token Usage
+
+Pipe tracks **cost and token usage** for every AI call. This is essential when
+running agents at scale, enforcing budgets, or comparing providers.
+
+### ai_cost
+
+```
+ai_cost
+```
+
+Returns a map with the cumulative metrics of the current run:
+
+| Key | Type | Description |
+|-----|------|-------------|
+| `cost_usd` | num | Total cost in USD |
+| `calls` | int | Number of AI API calls made |
+| `cache_hits` | int | Responses served from the cache |
+| `cache_misses` | int | Responses fetched from the provider |
+
+Calling `ai_cost "reset"` zeroes all metrics.
+
+```pipe
+print (ai_cost)
+-- -> {calls: 1, cost_usd: 0.000045, cache_hits: 0, cache_misses: 1}
+```
+
+### ai_tokens
+
+```
+ai_tokens
+```
+
+Returns the total number of tokens consumed by AI calls in the current run.
+
+### ai_cache_hits / ai_cache_misses
+
+```
+ai_cache_hits
+ai_cache_misses
+```
+
+Return the number of cache hits and misses. Repeated identical prompts are
+served from the response cache — saving both money and latency:
+
+```pipe
+ask "What is a monad?" > print
+-- -> Cache miss
+ask "What is a monad?" > print
+-- -> Cache hit (same prompt, served from cache)
+
+print (ai_cache_hits)   -- 1
+print (ai_cache_misses) -- 1
+```
+
+### Cost Trace (CLI)
+
+After a script finishes, the CLI prints a **cost trace** to stderr whenever AI
+calls were made:
+
+```
+═══ Cost Trace ═══
+Total cost:    $0.000045
+Total tokens:  50
+API calls:     1
+Cache hits:    0 | misses: 0
+  #1 deepseek/deepseek-chat | 50 tokens | $0.000045
+══════════════════════════
+```
+
+### Budget Enforcement
+
+AI budgets can be enforced via sandbox profiles — see
+[22. Sandbox Profiles](22-sandbox-profiles.md) (the `budget` key and the
+`budget_spent` builtin).
+
+### Pricing (estimation fallback)
+
+When a provider does not return a cost, Pipe estimates it from the token counts
+using the provider's per-1K-token pricing:
+
+| Provider / Model | Prompt ($ / 1K tokens) | Completion ($ / 1K tokens) |
+|------------------|------------------------|----------------------------|
+| OpenAI `gpt-4o-mini` | 0.00015 | 0.0006 |
+| OpenAI `gpt-4` | 0.03 | 0.06 |
+| OpenAI (other) | 0.005 | 0.015 |
+| DeepSeek | 0.0009 | 0.0009 |
+| Anthropic Claude Haiku | 0.0008 | 0.004 |
+| Anthropic Claude Sonnet | 0.003 | 0.015 |
+| Anthropic Claude Opus | 0.015 | 0.075 |
+| Ollama | 0 | 0 |
+
+---
+
+## 19.13 Example: Complete Workflow
 
 This workflow demonstrates all AI builtins in a practical application:
 

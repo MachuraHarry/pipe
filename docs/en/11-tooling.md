@@ -239,13 +239,61 @@ The resulting binary contains:
 
 When executed, the binary reads everything after the `PIPEBUILD` marker, compiles it with the Bytecode VM, and runs the program.
 
-```bash
-# Build the binary
-pipe -build server.pipe
+**Passing arguments to a built binary:**
 
-# Run it directly
-./server
+Arguments given on the command line are available inside the script via the
+`args` builtin — exactly like when running `pipe script.pipe ...`:
+
+```bash
+# Build a CLI tool
+pipe -build greet.pipe
+
+# Run it with arguments
+./greet Alice Bob
 ```
+
+```pipe
+-- greet.pipe
+for name in args
+    print "Hello, " ++ name
+-- ./greet Alice Bob
+-- -> Hello, Alice
+-- -> Hello, Bob
+```
+
+**Embedding extra files (`--embed-file`):**
+
+The `--embed-file` flag embeds additional files (data, config, prompts, …) into
+the binary. At runtime the binary extracts them to a fresh temporary directory
+and changes its working directory to that location — so the script can simply
+read them by name with `read_file`.
+
+```bash
+# Bundle a script with its data
+pipe -build agent.pipe -o agent --embed-file prompts.txt --embed-file config.json
+```
+
+```pipe
+-- agent.pipe — reads the embedded files by name
+system_prompt: read_file "prompts.txt"
+settings: parse_json (read_file "config.json")
+
+print system_prompt
+print settings.model
+```
+
+```bash
+# Run the self-contained artifact from anywhere
+cp agent /opt/tools/
+/opt/tools/agent
+```
+
+**How it works (details):**
+
+1. The binary is the native Pipe interpreter followed by the `PIPEBUILD` source section.
+2. An optional `PIPEFILES` section stores each embedded file as `name + size + bytes`.
+3. At startup the binary extracts the files to a fresh `pipe_embedded_*` directory
+   under the system temp directory and changes its working directory to it.
 
 **Binary structure:**
 
@@ -256,6 +304,10 @@ pipe -build server.pipe
 │  PIPEBUILD\n            │  <- Magic marker
 ├─────────────────────────┤
 │  Source Code            │  <- Embedded Pipe source
+├─────────────────────────┤
+│  PIPEFILES\n            │  <- Optional marker (only with --embed-file)
+├─────────────────────────┤
+│  name + size + bytes    │  <- Embedded data files
 └─────────────────────────┘
 ```
 

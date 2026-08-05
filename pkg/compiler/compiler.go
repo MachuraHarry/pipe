@@ -492,7 +492,13 @@ func (c *Compiler) Compile(node ast.Node) error {
 		c.emit(OpCall, 3)
 
 	case *ast.CallExpression:
-		if err := c.Compile(n.Function); err != nil {
+		if ident, ok := n.Function.(*ast.Identifier); ok && len(n.Arguments) > 0 && isZeroArityBuiltin(ident.Value) {
+			if symbol, ok := c.symbolTable.Resolve(ident.Value); ok && symbol.Scope == BuiltinScope {
+				c.loadSymbol(symbol)
+			} else if err := c.Compile(n.Function); err != nil {
+				return err
+			}
+		} else if err := c.Compile(n.Function); err != nil {
 			return err
 		}
 		for _, arg := range n.Arguments {

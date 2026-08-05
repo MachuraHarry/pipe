@@ -3162,6 +3162,10 @@ func bAiWithTools(args ...Object) Object {
 			if canErr := profile.CanExec(); canErr != nil {
 				return "", fmt.Errorf("E_SANDBOX: tool '%s' execution blocked by profile '%s'", toolName, profile.Name)
 			}
+			if canErr := profile.CanToolCall(); canErr != nil {
+				return "", fmt.Errorf("E_SANDBOX: %s", canErr.Error())
+			}
+			profile.Audit("tool_call", toolName)
 		}
 
 		argObjects := make([]Object, 0, len(args))

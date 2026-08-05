@@ -227,6 +227,75 @@ Beim Start erkennt die Binary den eingebetteten Code und führt ihn aus —
 ./mein-server 8080            -- Führt server.pipe aus
 ```
 
+**Argumente an die Binary übergeben:**
+
+Argumente auf der Kommandozeile sind im Skript über das `args`-Builtin
+verfügbar – genau wie bei `pipe skript.pipe ...`:
+
+```bash
+./bin/pipe -build begruessung.pipe
+./begruessung Alice Bob
+```
+
+```pipe
+-- begruessung.pipe
+for name in args
+    print "Hallo, " ++ name
+-- ./begruessung Alice Bob
+-- -> Hallo, Alice
+-- -> Hallo, Bob
+```
+
+**Dateien einbetten (`--embed-file`):**
+
+Mit `--embed-file` lassen sich zusätzliche Dateien (Daten, Configs, Prompts, …)
+in die Binary einbetten. Zur Laufzeit entpackt die Binary sie in ein frisches
+temporäres Verzeichnis und wechselt ihr Arbeitsverzeichnis dorthin — das Skript
+kann sie also einfach per Namen mit `read_file` lesen.
+
+```bash
+# Skript mit seinen Daten bündeln
+./bin/pipe -build agent.pipe -o agent --embed-file prompts.txt --embed-file config.json
+```
+
+```pipe
+-- agent.pipe — liest die eingebetteten Dateien per Namen
+system_prompt: read_file "prompts.txt"
+einstellungen: parse_json (read_file "config.json")
+
+print system_prompt
+print einstellungen.model
+```
+
+```bash
+# Das selbstständige Artefakt von überall ausführen
+cp agent /opt/tools/
+/opt/tools/agent
+```
+
+**So funktioniert es:**
+
+1. Die Binary ist der native Pipe-Interpreter, gefolgt von der `PIPEBUILD`-Quellsektion.
+2. Eine optionale `PIPEFILES`-Sektion speichert jede Datei als `Name + Größe + Bytes`.
+3. Beim Start entpackt die Binary die Dateien in ein frisches `pipe_embedded_*`-Verzeichnis
+   unter dem System-Temp-Verzeichnis und wechselt das Arbeitsverzeichnis dorthin.
+
+**Binary-Struktur:**
+
+```
+┌─────────────────────────┐
+│  Pipe-Interpreter (ELF) │  <- Natives ausführbares Programm
+├─────────────────────────┤
+│  PIPEBUILD\n            │  <- Magic-Marker
+├─────────────────────────┤
+│  Quellcode              │  <- Eingebetteter Pipe-Quellcode
+├─────────────────────────┤
+│  PIPEFILES\n            │  <- Optionaler Marker (nur mit --embed-file)
+├─────────────────────────┤
+│  Name + Größe + Bytes   │  <- Eingebettete Datendateien
+└─────────────────────────┘
+```
+
 ## 11.8 Bytecode-Cache (`.pipec`)
 
 Im VM-Modus erzeugt Pipe automatisch einen **Bytecode-Cache**:

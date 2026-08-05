@@ -1,7 +1,7 @@
 let pipeReady = false;
 const pipeGo = new Go();
 
-WebAssembly.instantiateStreaming(fetch("pipe.wasm?v=11"), pipeGo.importObject).then(r => {
+WebAssembly.instantiateStreaming(fetch("pipe.wasm?v=12"), pipeGo.importObject).then(r => {
   pipeGo.run(r.instance);
   pipeReady = true;
   const bar = document.getElementById("play-bar");

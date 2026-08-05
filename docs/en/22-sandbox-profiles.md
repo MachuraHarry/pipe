@@ -72,6 +72,10 @@ Define profiles with the `sandbox_profile` builtin. The config is a map with the
 | `timeout` | int | Max seconds per tool call (0 = no limit) |
 | `env` | map | Injected environment variables |
 | `work_dir` | string | Working directory for sandbox |
+| `budget` | num | Max AI spend in USD (0 = unlimited). AI calls are blocked once the spent cost reaches this limit |
+| `network_whitelist` | list | List of URL substrings. When set, `http_get`/`http_post` only allow URLs containing at least one entry |
+| `max_tool_calls` | int | Max number of tool executions per `ai_with_tools` session (0 = unlimited) |
+| `audit_log` | bool | Record all sandbox events (http, AI calls, tool calls) into an audit trail |
 
 ### Examples
 
@@ -87,6 +91,11 @@ sandbox_profile "local-only" {fs: "full", network: false, exec: true, ai: false}
 
 -- Totally locked down
 sandbox_profile "prison" {fs: "none", network: false, exec: false, ai: false}
+
+-- AI agent with a $0.10 budget, restricted network, and full auditing
+sandbox_profile "guarded-agent"
+    {fs: "read-only", network: true, network_whitelist: ["api.github.com", "api.openai.com"],
+     exec: false, ai: true, budget: 0.1, max_tool_calls: 10, audit_log: true}
 ```
 
 ---
@@ -180,6 +189,80 @@ The LLM can call `get_weather` successfully, but `delete_logs` returns a sandbox
 
 ---
 
-## 22.9 Backward Compatibility
+## 22.9 Budget, Network Whitelist & Audit Log
+
+### Budget Enforcement (`budget`, `budget_spent`)
+
+The `budget` key caps the **total AI spend** of a profile in USD. Every AI call
+records its cost into the active profile. Once the accumulated cost reaches the
+budget, further AI calls are blocked with an `E_SANDBOX: budget exceeded` error.
+
+```pipe
+sandbox_profile "agent" {fs: "full", network: false, exec: false, ai: true, budget: 0.01}
+set_sandbox "agent"
+
+print (ask "Hello")                -- first call: allowed
+print (budget_spent)               -- e.g. 0.000079
+
+-- Later, once the accumulated cost reaches $0.01:
+try
+    print (ask "Still working?")
+catch e
+    print e.message
+    -- -> E_SANDBOX: budget exceeded (0.0100 USD) in profile 'agent'
+```
+
+`budget_spent` returns the total cost recorded for the active profile.
+
+### Network Whitelist (`network_whitelist`)
+
+`network_whitelist` restricts `http_get` / `http_post` to URLs that contain at
+least one of the given substrings. This is more precise than the coarse
+`network` on/off switch and allows fine-grained allow-listing.
+
+```pipe
+sandbox_profile "web-agent" {fs: "full", network: true, network_whitelist: ["api.github.com", "openai.com"], exec: false, ai: true}
+set_sandbox "web-agent"
+
+http_get "https://api.github.com/repos/MachuraHarry/pipe"   -- allowed
+-- http_get "https://example.com"                           -- E_SANDBOX: not in whitelist
+```
+
+### Tool Call Limits (`max_tool_calls`)
+
+`max_tool_calls` limits how many times an LLM may invoke tools during an
+`ai_with_tools` session. When the limit is reached, further tool executions are
+blocked with an `E_SANDBOX` error, which the LLM receives as a tool result.
+
+```pipe
+sandbox_profile "agent" {fs: "full", network: true, exec: false, ai: true, max_tool_calls: 3}
+```
+
+### Audit Log (`audit_log`, `audit_log()`)
+
+With `audit_log: true`, the profile records every security-relevant event:
+`http_get` / `http_post` requests, `ai_call` events (provider, model, tokens,
+cost, cache status), and `tool_call` executions.
+
+```pipe
+sandbox_profile "audited" {fs: "read-only", network: true, exec: false, ai: true, audit_log: true}
+set_sandbox "audited"
+
+http_get "https://example.com"
+ask "Hello" > print
+
+for entry in audit_log
+    print entry.time ++ " | " ++ entry.event ++ " | " ++ entry.detail
+-- -> ... | http_get | https://example.com
+-- -> ... | ai_call | provider=deepseek model=deepseek-chat tokens=50 cost=0.000045 cached=false
+-- -> ... | tool_call | my_tool
+```
+
+Each audit entry is a map with the fields `time` (RFC 3339), `event`,
+`detail`, and `profile`.
+
+---
+
+## 22.10 Backward Compatibility
 
 The old `--sandbox` / `--allow-ai` CLI flags continue to work. When no profile is active (`"none"`), the old sandbox flags are checked as before. Custom profiles take priority over the legacy system when `ActiveProfile.Name != "none"`.

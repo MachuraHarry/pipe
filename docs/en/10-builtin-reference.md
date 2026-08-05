@@ -1772,7 +1772,7 @@ for r in results
 
 ---
 
-## 10.28 Sandbox (3 functions)
+## 10.28 Sandbox (5 functions)
 
 ### `sandbox_profile`
 **Signature:** `sandbox_profile(name)`
@@ -1799,9 +1799,75 @@ with_sandbox "noexec" (fn
     print "isolated")
 ```
 
+### `audit_log`
+**Signature:** `audit_log()`
+**Description:** Returns the audit trail of the active profile as a list of maps. Only populated when the profile was defined with `audit_log: true`.
+**Returns:** `list` of `{time, event, detail, profile}`
+```pipe
+sandbox_profile "audited" {fs: "full", network: true, exec: false, ai: true, audit_log: true}
+set_sandbox "audited"
+
+http_get "https://example.com"
+for entry in audit_log
+    print entry.event ++ " -> " ++ entry.detail
+-- -> http_get -> https://example.com
+```
+
+### `budget_spent`
+**Signature:** `budget_spent()`
+**Description:** Returns the total AI cost (in USD) recorded for the active profile. Used together with the `budget` key to monitor or enforce spending limits.
+**Returns:** `number`
+```pipe
+sandbox_profile "budgeted" {fs: "full", network: false, exec: false, ai: true, budget: 0.01}
+set_sandbox "budgeted"
+
+ask "Hello"
+print (budget_spent)
+-- -> 0.000079 (approx.)
+```
+
 ---
 
-## 10.29 Test Assertions (6 functions)
+## 10.29 AI — Cost Tracking (4 functions)
+
+### `ai_cost`
+**Signature:** `ai_cost()`
+**Description:** Returns the cumulative cost metrics of the current run as a map. Pass the string `"reset"` to zero out all metrics.
+**Returns:** `map` of `{cost_usd, calls, cache_hits, cache_misses}`
+```pipe
+print (ai_cost)
+-- -> {cache_hits: 0, calls: 2, cost_usd: 0.00012, cache_misses: 1}
+
+ai_cost "reset"   -- reset all metrics
+```
+
+### `ai_tokens`
+**Signature:** `ai_tokens()`
+**Description:** Returns the total number of tokens consumed by all AI calls in the current run.
+**Returns:** `number`
+```pipe
+print (ai_tokens)
+```
+
+### `ai_cache_hits`
+**Signature:** `ai_cache_hits()`
+**Description:** Returns how many AI responses were served from the response cache.
+**Returns:** `number`
+
+### `ai_cache_misses`
+**Signature:** `ai_cache_misses()`
+**Description:** Returns how many AI responses were fetched from the provider (cache misses).
+**Returns:** `number`
+```pipe
+ask "What is a monad?" > print
+ask "What is a monad?" > print
+print (ai_cache_hits)   -- 1
+print (ai_cache_misses) -- 1
+```
+
+---
+
+## 10.30 Test Assertions (6 functions)
 
 **Note:** `test` blocks and assert builtins are available in all execution modes, but are designed for use with `pipe -test`.
 
@@ -1890,7 +1956,7 @@ test "addition"
 
 ---
 
-## 10.30 Summary Table
+## 10.31 Summary Table
 
 ### IO & System (6)
 
@@ -2141,13 +2207,24 @@ test "addition"
 |---|----------|-----------|---------|
 | 116 | `web_search` | `web_search(query)` | `list` |
 
-### Sandbox (3)
+### AI — Cost Tracking (4)
+
+| # | Function | Signature | Returns |
+|---|----------|-----------|---------|
+| 133 | `ai_cost` | `ai_cost()` | `map` — `{cost_usd, calls, cache_hits, cache_misses}` |
+| 134 | `ai_tokens` | `ai_tokens()` | `number` |
+| 135 | `ai_cache_hits` | `ai_cache_hits()` | `number` |
+| 136 | `ai_cache_misses` | `ai_cache_misses()` | `number` |
+
+### Sandbox (5)
 
 | # | Function | Signature | Returns |
 |---|----------|-----------|---------|
 | 124 | `sandbox_profile` | `sandbox_profile(name)` | `string` |
 | 125 | `set_sandbox` | `set_sandbox(profile)` | `string` |
 | 126 | `with_sandbox` | `with_sandbox(profile, fn)` | `any` |
+| 137 | `audit_log` | `audit_log()` | `list` |
+| 138 | `budget_spent` | `budget_spent()` | `number` |
 
 ### Test Assertions (6)
 
@@ -2162,4 +2239,4 @@ test "addition"
 
 ---
 
-**Total: 132 built-in functions**
+**Total: 142 built-in functions**

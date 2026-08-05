@@ -72,6 +72,10 @@ Profile werden mit dem `sandbox_profile`-Builtin definiert. Die Konfiguration is
 | `timeout` | Int | Max. Sekunden pro Tool-Call (0 = unbegrenzt) |
 | `env` | Map | Injizierte Umgebungsvariablen |
 | `work_dir` | String | Arbeitsverzeichnis für den Sandbox |
+| `budget` | Num | Max. KI-Ausgaben in USD (0 = unbegrenzt). KI-Aufrufe werden blockiert, sobald die Ausgaben diesen Betrag erreichen |
+| `network_whitelist` | List | Liste von URL-Teilzeichenketten. Wenn gesetzt, erlauben `http_get`/`http_post` nur URLs, die mindestens einen Eintrag enthalten |
+| `max_tool_calls` | Int | Max. Anzahl Tool-Ausführungen pro `ai_with_tools`-Sitzung (0 = unbegrenzt) |
+| `audit_log` | Bool | Alle Sandbox-Ereignisse (http, KI-Aufrufe, Tool-Aufrufe) im Audit-Trail protokollieren |
 
 ### Beispiele
 
@@ -87,6 +91,11 @@ sandbox_profile "local-only" {fs: "full", network: false, exec: true, ai: false}
 
 -- Komplett eingeschränkt
 sandbox_profile "prison" {fs: "none", network: false, exec: false, ai: false}
+
+-- KI-Agent mit $0,10-Budget, eingeschränktem Netzwerk und vollständigem Audit
+sandbox_profile "guarded-agent"
+    {fs: "read-only", network: true, network_whitelist: ["api.github.com", "api.openai.com"],
+     exec: false, ai: true, budget: 0.1, max_tool_calls: 10, audit_log: true}
 ```
 
 ---
@@ -180,6 +189,81 @@ Das LLM kann `get_weather` erfolgreich aufrufen, aber `delete_logs` gibt einen S
 
 ---
 
-## 22.9 Rückwärtskompatibilität
+## 22.9 Budget, Netzwerk-Whitelist & Audit-Log
+
+### Budget-Durchsetzung (`budget`, `budget_spent`)
+
+Der `budget`-Schlüssel begrenzt die **gesamten KI-Ausgaben** eines Profils in USD.
+Jeder KI-Aufruf verbucht seine Kosten im aktiven Profil. Sobald die
+aufsummierten Kosten das Budget erreichen, werden weitere KI-Aufrufe mit einem
+`E_SANDBOX: budget exceeded`-Fehler blockiert.
+
+```pipe
+sandbox_profile "agent" {fs: "full", network: false, exec: false, ai: true, budget: 0.01}
+set_sandbox "agent"
+
+print (ask "Hallo")                -- erster Aufruf: erlaubt
+print (budget_spent)               -- z.B. 0.000079
+
+-- Später, sobald die Kosten $0,01 erreicht haben:
+try
+    print (ask "Funktioniert es noch?")
+catch e
+    print e.message
+    -- -> E_SANDBOX: budget exceeded (0.0100 USD) in profile 'agent'
+```
+
+`budget_spent` liefert die im aktiven Profil verbuchten Gesamtkosten.
+
+### Netzwerk-Whitelist (`network_whitelist`)
+
+`network_whitelist` beschränkt `http_get` / `http_post` auf URLs, die
+mindestens eine der angegebenen Teilzeichenketten enthalten. Das ist präziser
+als der grobe `network`-Schalter und erlaubt feingranulares Allow-Listing.
+
+```pipe
+sandbox_profile "web-agent" {fs: "full", network: true, network_whitelist: ["api.github.com", "openai.com"], exec: false, ai: true}
+set_sandbox "web-agent"
+
+http_get "https://api.github.com/repos/MachuraHarry/pipe"   -- erlaubt
+-- http_get "https://example.com"                           -- E_SANDBOX: nicht in Whitelist
+```
+
+### Tool-Call-Limit (`max_tool_calls`)
+
+`max_tool_calls` begrenzt, wie oft ein LLM während einer `ai_with_tools`-Sitzung
+Tools ausführen darf. Wird das Limit erreicht, werden weitere Tool-Ausführungen
+mit einem `E_SANDBOX`-Fehler blockiert, den das LLM als Tool-Ergebnis erhält.
+
+```pipe
+sandbox_profile "agent" {fs: "full", network: true, exec: false, ai: true, max_tool_calls: 3}
+```
+
+### Audit-Log (`audit_log`, `audit_log()`)
+
+Mit `audit_log: true` protokolliert das Profil jedes sicherheitsrelevante
+Ereignis: `http_get` / `http_post`-Requests, `ai_call`-Ereignisse (Provider,
+Modell, Tokens, Kosten, Cache-Status) und `tool_call`-Ausführungen.
+
+```pipe
+sandbox_profile "audited" {fs: "read-only", network: true, exec: false, ai: true, audit_log: true}
+set_sandbox "audited"
+
+http_get "https://example.com"
+ask "Hallo" > print
+
+for eintrag in audit_log
+    print eintrag.time ++ " | " ++ eintrag.event ++ " | " ++ eintrag.detail
+-- -> ... | http_get | https://example.com
+-- -> ... | ai_call | provider=deepseek model=deepseek-chat tokens=50 cost=0.000045 cached=false
+-- -> ... | tool_call | mein_tool
+```
+
+Jeder Audit-Eintrag ist eine Map mit den Feldern `time` (RFC 3339), `event`,
+`detail` und `profile`.
+
+---
+
+## 22.10 Rückwärtskompatibilität
 
 Die alten `--sandbox` / `--allow-ai` CLI-Flags funktionieren weiterhin. Wenn kein Profil aktiv ist (`"none"`), werden die alten Sandbox-Flags wie zuvor geprüft. Benutzerdefinierte Profile haben Vorrang vor dem Legacy-System, wenn `ActiveProfile.Name != "none"` ist.

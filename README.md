@@ -105,13 +105,13 @@ ai_with_tools "You are a weather assistant." "What's the weather in Berlin and L
 | **Switch AI provider**   | Rewrite SDK calls              | `ai_provider "deepseek"`       |
 | **Deploy to server**     | Docker + venv + pip            | `scp pipe binary`              |
 | **Parallel LLM calls**   | `asyncio.gather()` boilerplate | `>>` operator, `ai_batch`      |
-| **Binary size**          | ~500 MB (with deps)            | ~10 MB                         |
+| **Binary size**          | ~500 MB (with deps)            | ~11–16 MB                      |
 
 ## Features
 
-- **Ship AI pipelines 10× faster** — 23 AI builtins: no imports, no SDKs, no API wrappers
+- **Ship AI pipelines 10× faster** — 32 AI builtins: no imports, no SDKs, no API wrappers
 - **Lock down AI agents in one line** — Declarative sandbox profiles: restrict `exec`, `write_file`, `http_get` with a single block
-- **Deploy in seconds** — One statically-linked ~10 MB binary. No venv, no pip, no Docker. Linux, macOS, Windows, Raspberry Pi, or your browser via WebAssembly
+- **Deploy in seconds** — One statically-linked ~11 MB binary (or 2.4 MB UPX-compressed). No venv, no pip, no Docker. Linux, macOS, Windows, Raspberry Pi, or your browser via WebAssembly
 - **3 LLM calls in 1.5s, not 4s** — `>>` starts any pipeline stage in the background. Futures auto-resolve. `ai_batch` handles hundreds of texts concurrently with built-in rate limiting
 - **No vendor lock-in** — OpenAI, Anthropic (Claude), DeepSeek, Ollama. Switch with one line. Same code works everywhere
 - **Pipeline-native syntax** — `>` sequential, `>>` parallel. Data flows top to bottom — readable, composable, debuggable
@@ -207,25 +207,25 @@ ask_many ["What is Paris?", "What is Berlin?"]
 | Tree-Walker | `./bin/pipe script.pipe` | Baseline |
 | Bytecode VM | `./bin/pipe -vm -q script.pipe` | ~7× faster |
 
-## 23 AI Builtins
+## 32 AI Builtins
 
 ### Understanding
-`summarize`, `translate`, `classify`, `extract`, `ask`, `generate`
+`summarize`, `translate`, `classify`, `extract`, `ask`, `generate`, `generate_json`
 
 ### Speed & Control
 `ai_stream`, `ai_batch`, `ai_parallel`, `ai_rate_limit`, `ai_chat`, `ai_chat_json`
 
-### Search & Semantics
-`embed`, `embed_batch`, `cosine_sim`, `dot_product`, `nearest`
+### Search & Retrieval
+`web_search`, `wiki_search`, `embed`, `embed_batch`, `cosine_sim`, `dot_product`, `nearest`
 
-### Agency & Tools
-`ai_tool`, `ai_with_tools`, `ai_provider`, `ai_model`, `ai_timeout`
+### Agents & Tools
+`agent`, `agent_ask`, `agent_clear`, `ai_tool`, `ai_with_tools`
 
 ### Configuration
-`ai_provider`, `ai_model`, `ai_timeout`
+`ai_provider`, `ai_model`, `ai_timeout`, `ai_host`, `ai_cache`, `ai_set_key`
 
-### Sandbox
-`sandbox_profile`, `set_sandbox`, `with_sandbox`
+### Self-Healing
+`try_ai`, `try_ai_log`
 
 ## Advanced Features
 
@@ -268,11 +268,11 @@ write_file "/etc/config"    -- ❌ E_SANDBOX blocked
 ```
 Source (.pipe) → Lexer → Parser → AST → [ Tree-Walker | Compiler + VM ]
                                           ↓
-                              Builtins (92 stdlib + 23 AI)
+                              Builtins (104 stdlib + 32 AI = 136 total)
 ```
 
 - 66 token types, 34 AST node types, 40 opcodes
-- ~15,000 LoC Go, 230+ tests, 42 example programs
+- ~18,000 LoC Go, 300+ tests, 70+ example programs
 
 ## Documentation
 

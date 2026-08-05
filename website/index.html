@@ -214,7 +214,7 @@ span[data-lang].active{display:inline}a[data-lang].active{display:inline-block}
   <div class="badge"><strong>SPR</strong> v0.7.0 · Semantic Pipeline Runtime</div>
 
   <h1 id="hero-headline"><span class="grad">The runtime for</span><br>AI-native infrastructure</h1>
-  <p id="hero-sub" class="sub">Build, sandbox, and deploy LLM pipelines with a single ~10 MB binary. No Python. No dependencies. No vendor lock-in.</p>
+  <p id="hero-sub" class="sub">Build, sandbox, and deploy LLM pipelines with a single ~11–16 MB binary. No Python. No dependencies. No vendor lock-in.</p>
 
   <div class="stats-inline">
     <div class="stat"><span class="stat-num">32</span><div class="stat-label">AI Builtins</div></div>
@@ -401,7 +401,7 @@ oninput="syncHighlight()" onscroll="syncScroll()"></textarea>
         <tr><td><span data-lang="en" class="active">Switch AI provider</span><span data-lang="de">KI-Provider wechseln</span></td><td><span data-lang="en" class="active">Rewrite SDK calls</span><span data-lang="de">SDK-Calls umschreiben</span></td><td style="font-family:var(--mono);color:var(--green)">ai_provider "deepseek"</td></tr>
         <tr><td><span data-lang="en" class="active">Deploy to server</span><span data-lang="de">Auf Server deployen</span></td><td><span data-lang="en" class="active">Docker + venv + pip</span><span data-lang="de">Docker + venv + pip</span></td><td><span data-lang="en" class="active">scp pipe binary</span><span data-lang="de">scp pipe binary</span></td></tr>
         <tr><td><span data-lang="en" class="active">Parallel LLM calls</span><span data-lang="de">Parallele LLM-Calls</span></td><td><span data-lang="en" class="active">asyncio.gather() boilerplate</span><span data-lang="de">asyncio.gather()-Boilerplate</span></td><td style="font-family:var(--mono);color:var(--green)">>> operator, ai_batch</td></tr>
-        <tr><td><span data-lang="en" class="active">Binary size (with deps)</span><span data-lang="de">Binary-Größe (mit Deps)</span></td><td><span data-lang="en" class="active">~500 MB</span><span data-lang="de">~500 MB</span></td><td><span data-lang="en" class="active">~10 MB</span><span data-lang="de">~10 MB</span></td></tr>
+        <tr><td><span data-lang="en" class="active">Binary size (with deps)</span><span data-lang="de">Binary-Größe (mit Deps)</span></td><td><span data-lang="en" class="active">~500 MB</span><span data-lang="de">~500 MB</span></td><td><span data-lang="en" class="active">~11–16 MB</span><span data-lang="de">~11–16 MB</span></td></tr>
       </table>
     </div>
   </div>
@@ -433,8 +433,8 @@ oninput="syncHighlight()" onscroll="syncScroll()"></textarea>
         <div class="icon">🚀</div>
         <h4 data-lang="en" class="active">Deploy in seconds</h4>
         <h4 data-lang="de">In Sekunden deployen</h4>
-        <p data-lang="en" class="active">One statically-linked ~10 MB binary. No venv, no pip, no Docker. Linux, macOS, Windows, Raspberry Pi — or your browser via WebAssembly.</p>
-        <p data-lang="de">Eine statisch gelinkte ~10 MB Binary. Kein venv, kein pip, kein Docker. Linux, macOS, Windows, Raspberry Pi — oder dein Browser per WebAssembly.</p>
+        <p data-lang="en" class="active">One statically-linked ~11–16 MB binary. No venv, no pip, no Docker. Linux, macOS, Windows, Raspberry Pi — or your browser via WebAssembly.</p>
+        <p data-lang="de">Eine statisch gelinkte ~11–16 MB Binary. Kein venv, kein pip, kein Docker. Linux, macOS, Windows, Raspberry Pi — oder dein Browser per WebAssembly.</p>
       </div>
       <div class="card">
         <div class="icon">⚡⚡</div>
@@ -807,7 +807,7 @@ function setLang(l) {
 var heroTexts = {
   en: [
     {h:'<span class="grad">The runtime for</span><br>AI-native infrastructure',
-     s:'Build, sandbox, and deploy LLM pipelines with a single ~10 MB binary. No Python. No dependencies. No vendor lock-in.'},
+     s:'Build, sandbox, and deploy LLM pipelines with a single ~11–16 MB binary. No Python. No dependencies. No vendor lock-in.'},
     {h:'<span class="grad">Sandbox AI agents.</span><br>Declarative. Safe by default.',
      s:'<code>sandbox_profile</code> restricts exec, write_file, and http_get with one block. Keep LLMs on a leash — essential for <code>ai_with_tools</code>.'},
     {h:'<span class="grad">One binary. Zero dependencies.</span><br>4 providers. No lock-in.',
@@ -815,7 +815,7 @@ var heroTexts = {
   ],
   de: [
     {h:'<span class="grad">Die Runtime für</span><br>KI-native Infrastruktur',
-     s:'Baue, sandboxe und deploye LLM-Pipelines mit einer einzigen ~10 MB Binary. Kein Python. Keine Abhängigkeiten. Kein Vendor-Lock-in.'},
+     s:'Baue, sandboxe und deploye LLM-Pipelines mit einer einzigen ~11–16 MB Binary. Kein Python. Keine Abhängigkeiten. Kein Vendor-Lock-in.'},
     {h:'<span class="grad">KI-Agenten sandboxen.</span><br>Deklarativ. Standardmäßig sicher.',
      s:'<code>sandbox_profile</code> beschränkt exec, write_file und http_get mit einem Block. LLMs an die Leine nehmen — essentiell für <code>ai_with_tools</code>.'},
     {h:'<span class="grad">Eine Binary. Null Abhängigkeiten.</span><br>4 Provider. Kein Lock-in.',

@@ -3,14 +3,24 @@ description: 'Run Pipe scripts in CI/CD — Semantic Pipeline Runtime with built
 
 inputs:
   script:
-    description: 'Pipe script to execute'
-    required: true
+    description: 'Inline Pipe script to execute'
+    required: false
+  file:
+    description: 'Path to a .pipe file in the repo to execute (instead of an inline script)'
+    required: false
+  args:
+    description: 'Additional arguments passed to the Pipe script (available as $args)'
+    required: false
   flags:
     description: 'Additional flags'
     required: false
     default: '-vm -q'
+  version:
+    description: 'Pipe version to use (latest or a release tag like v0.7.0)'
+    required: false
+    default: 'latest'
   provider:
-    description: 'AI provider'
+    description: 'AI provider (injected via --ai-provider when a file is used)'
     required: false
 
 runs:
@@ -20,5 +30,8 @@ runs:
       run: bash "$GITHUB_ACTION_PATH/run.sh"
       env:
         PIPE_SCRIPT: ${{ inputs.script }}
+        PIPE_FILE: ${{ inputs.file }}
+        PIPE_ARGS: ${{ inputs.args }}
         PIPE_FLAGS: ${{ inputs.flags }}
+        PIPE_VERSION: ${{ inputs.version }}
         PIPE_PROVIDER: ${{ inputs.provider }}

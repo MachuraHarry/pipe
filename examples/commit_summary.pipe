@@ -1,0 +1,97 @@
+-- ============================================================
+-- commit_summary.pipe — fasst Git-Commits auf Deutsch zusammen
+-- ============================================================
+-- Voraussetzungen:
+--   export DEEPSEEK_API_KEY="sk-..."
+--   Aufruf innerhalb eines Git-Repos
+--
+-- Ausführung:
+--   ./bin/pipe -vm -q examples/commit_summary.pipe [anzahl] [ausgabedatei]
+--     anzahl:       letzte N Commits (Standard: 10)
+--     all:          alle Commits (Achtung: Kosten!)
+--     ausgabedatei: Markdown-Ziel; ohne Angabe wird auf die Konsole geschrieben
+--
+-- Hinweis: Zeilen werden als hash|datum|autor|betreff geparst.
+--   Betreffe mit "|" oder mehrzeilige Betreffe werden übersprungen.
+-- ============================================================
+
+ai_provider "deepseek"
+
+count: 10
+all_mode: false
+if (len (args)) >= 1
+    first: at (args) 0
+    if first == "all"
+        all_mode: true
+    else
+        count: to_num first
+
+outfile: ""
+if (len (args)) >= 2
+    outfile: at (args) 1
+
+cmd: "git log --no-merges --date=short --pretty=format:'%h|%ad|%an|%s'"
+if all_mode == false
+    cmd: cmd ++ " -" ++ (to_str count)
+
+result: exec cmd
+log: get result "output"
+lines: split log "\n"
+
+texts: []
+for line in lines
+    t: trim line
+    if (len t) > 0
+        parts: split t "|"
+        if (len parts) >= 4
+            push texts t
+
+if (len texts) == 0
+    print "Keine Commits gefunden. Läuft das Skript in einem Git-Repo?"
+else
+    key: env "DEEPSEEK_API_KEY"
+    if (len key) == 0
+        print "Kein API-Key gesetzt. Bitte setze:"
+        print "  export DEEPSEEK_API_KEY=\"sk-...\""
+    else
+        print ("⏳ Fasse " ++ (to_str (len texts)) ++ " Commit(s) auf Deutsch zusammen …")
+
+        try
+            sys: "Du bist ein erfahrener Release-Autor. Fasse den folgenden Git-Commit auf Deutsch in 1–2 Sätzen zusammen: nenne das Hauptthema und die wichtigste Änderung. Antworte NUR mit der Zusammenfassung auf Deutsch, ohne Präfix und ohne Formatierung."
+
+            results: ai_batch sys texts
+
+            md: "# Commit-Zusammenfassung\n\n"
+            md: md ++ "Die letzten " ++ (to_str (len texts)) ++ " Commits, automatisch auf Deutsch zusammengefasst.\n\n"
+
+            for i in (range 0 (len texts))
+                parts: split (at texts i) "|"
+                h: at parts 0
+                d: at parts 1
+                a: at parts 2
+                s: at parts 3
+                md: md ++ "## " ++ h ++ " — " ++ d ++ " — " ++ a ++ "\n\n"
+                md: md ++ "**Betreff:** " ++ s ++ "\n\n"
+                summary: at results i
+                if is_str summary
+                    md: md ++ summary ++ "\n\n"
+                else
+                    md: md ++ "_Keine Zusammenfassung verfügbar._\n\n"
+
+            ts: now 0
+            md: md ++ "---\n\n"
+            md: md ++ "_Automatisch generiert mit Pipe am " ++ (format_time ts "2006-01-02 15:04") ++ "._\n"
+
+            if (len outfile) > 0
+                write_file outfile md
+                print ""
+                print ("✓ Zusammenfassung gespeichert: " ++ outfile)
+            else
+                print ""
+                print md
+        catch e
+            print "═══ FEHLER ═══"
+            print ("Fehler: " ++ e)
+            print ""
+            print "Bitte prüfe deinen API-Key:"
+            print "  export DEEPSEEK_API_KEY=\"sk-...\""

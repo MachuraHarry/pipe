@@ -1,0 +1,43 @@
+name: Commit-Digest (Deutsch)
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [master]
+  pull_request:
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  digest:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Deutsche Commit-Zusammenfassung generieren
+        uses: ./.github/actions/pipe-action
+        with:
+          file: examples/commit_summary.pipe
+          args: '20 commit-summary.md'
+        env:
+          DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
+
+      - name: Zusammenfassung als Artefakt hochladen
+        if: hashFiles('commit-summary.md') != ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: commit-summary-de
+          path: commit-summary.md
+
+      - name: Zusammenfassung als PR-Kommentar
+        if: github.event_name == 'pull_request' && hashFiles('commit-summary.md') != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.number }}
+        run: |
+          { echo "## Commit-Zusammenfassung (Deutsch)"; echo; cat commit-summary.md; } > /tmp/commit-digest.md
+          gh pr comment "$PR_NUMBER" --body-file /tmp/commit-digest.md

@@ -30,14 +30,15 @@ print "Hello, " ++ name
 
 ### `exec`
 **Signature:** `exec(command)`
-**Description:** Executes a system command via the shell and returns the combined stdout/stderr output.
-**Returns:** `string`
+**Description:** Executes a system command via the shell and returns a map with the combined stdout/stderr output, error message (empty on success) and exit status.
+**Returns:** `map` with keys `output`, `error`, `status`
 ```pipe
-files: exec "ls -la"
-print files
+result: exec "ls -la"
+print (get result "output")
+print (get result "status")
 
-version: exec "git --version"
-print version
+result: exec "git --version"
+print (get result "output")
 ```
 
 ### `env`

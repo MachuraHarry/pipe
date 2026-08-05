@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url><loc>https://pipe-lang.com/</loc><priority>1.0</priority><changefreq>weekly</changefreq></url>
+  <url><loc>https://pipe-lang.com/playground.html</loc><priority>0.9</priority><changefreq>weekly</changefreq></url>
+  <url><loc>https://pipe-lang.com/install.html</loc><priority>0.9</priority><changefreq>monthly</changefreq></url>
+  <url><loc>https://pipe-lang.com/docs.html</loc><priority>0.8</priority><changefreq>weekly</changefreq></url>
+  <url><loc>https://pipe-lang.com/examples.html</loc><priority>0.8</priority><changefreq>weekly</changefreq></url>
+  <url><loc>https://pipe-lang.com/benchmarks.html</loc><priority>0.7</priority><changefreq>monthly</changefreq></url>
+  <url><loc>https://pipe-lang.com/blog.html</loc><priority>0.7</priority><changefreq>weekly</changefreq></url>
+</urlset>

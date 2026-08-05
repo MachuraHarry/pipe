@@ -61,6 +61,15 @@ pre.inline { background: var(--bg2); border: 1px solid var(--border); border-rad
 .install-card { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 28px 32px; margin-bottom: 20px; }
 .install-card h3 { color: var(--accent2); font-size: 1.2rem; margin-bottom: 12px; }
 
+/* Download grid */
+.dl-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; margin-top: 18px; }
+.dl-card { background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px; }
+.dl-card .dl-head { font-weight: 700; font-size: 0.95rem; margin-bottom: 10px; }
+.dl-arch { display: flex; gap: 8px; margin-bottom: 12px; }
+.dl-btn { display: inline-block; background: var(--bg3); color: var(--fg); border: 1px solid var(--border); border-radius: 6px; padding: 6px 14px; font-size: 0.8rem; font-weight: 600; text-decoration: none; transition: all .2s; }
+.dl-btn:hover { border-color: var(--green); color: var(--green); }
+.dl-card pre.inline { margin-bottom: 0; padding: 12px 14px; font-size: 0.74rem; line-height: 1.6; }
+
 /* Divider */
 .section-divider { border-top: 1px solid var(--border); margin: 10px 0 30px; }
 
@@ -109,6 +118,7 @@ a[data-lang].active { display: inline-block; }
       <a href="docs.html" onclick="closeMenu()"><span data-lang="en" class="active">Docs</span><span data-lang="de">Doku</span></a>
       <a href="examples.html" onclick="closeMenu()"><span data-lang="en" class="active">Examples</span><span data-lang="de">Beispiele</span></a>
       <a href="install.html" onclick="closeMenu()"><span data-lang="en" class="active">Install</span><span data-lang="de">Installation</span></a>
+      <a href="benchmarks.html" onclick="closeMenu()">Benchmarks</a>
       <a href="playground.html" onclick="closeMenu()">Playground</a>
       <a href="blog.html" onclick="closeMenu()">Blog</a>
       <a href="https://github.com/MachuraHarry/pipe" onclick="closeMenu()">GitHub</a>
@@ -136,55 +146,45 @@ a[data-lang].active { display: inline-block; }
 <section style="background: var(--bg2);">
   <div class="container">
 
-    <!-- Requirements -->
+    <!-- Quick Install -->
     <div class="install-card">
-      <h3 data-lang="en" class="active">Requirements</h3>
-      <h3 data-lang="de">Voraussetzungen</h3>
-      <ul>
-        <li data-lang="en" class="active">Go 1.21 or newer (for building from source)</li>
-        <li data-lang="de">Go 1.21 oder neuer (zum Bauen aus dem Quellcode)</li>
-        <li data-lang="en" class="active">Git (for cloning the repository)</li>
-        <li data-lang="de">Git (zum Klonen des Repositorys)</li>
-      </ul>
-    </div>
+      <h3 data-lang="en" class="active">Quick Install</h3>
+      <h3 data-lang="de">Schnellinstallation</h3>
+      <p data-lang="en" class="active">Download a pre-built static binary — no Go, no Git, no dependencies. On Apple Silicon use the <strong>arm64</strong> build.</p>
+      <p data-lang="de">Lade eine vorkompilierte statische Binary herunter — kein Go, kein Git, keine Abhängigkeiten. Auf Apple Silicon den <strong>arm64</strong>-Build verwenden.</p>
 
-    <!-- From Source -->
-    <div class="install-card">
-      <h3 data-lang="en" class="active">From Source (all platforms)</h3>
-      <h3 data-lang="de">Aus dem Quellcode (alle Plattformen)</h3>
-      <pre class="inline">git clone https://github.com/MachuraHarry/pipe && cd pipe && make build</pre>
-      <p data-lang="en" class="active">The binary is at <code>bin/pipe</code>. Copy it anywhere — it's statically linked.</p>
-      <p data-lang="de">Die Binary liegt unter <code>bin/pipe</code>. Kopiere sie beliebig — sie ist statisch gelinkt.</p>
-    </div>
-
-    <!-- Linux -->
-    <div class="install-card">
-      <h3 data-lang="en" class="active">Linux</h3>
-      <h3 data-lang="de">Linux</h3>
-      <p data-lang="en" class="active">From source + optionally move to PATH:</p>
-      <p data-lang="de">Aus dem Quellcode + optional in den PATH verschieben:</p>
-      <pre class="inline">sudo cp bin/pipe /usr/local/bin/</pre>
-      <p data-lang="en" class="active">Or download pre-built binary from <a href="https://github.com/MachuraHarry/pipe/releases" target="_blank">GitHub Releases</a>.</p>
-      <p data-lang="de">Oder lade eine vorkompilierte Binary von <a href="https://github.com/MachuraHarry/pipe/releases" target="_blank">GitHub Releases</a> herunter.</p>
-    </div>
-
-    <!-- macOS -->
-    <div class="install-card">
-      <h3 data-lang="en" class="active">macOS</h3>
-      <h3 data-lang="de">macOS</h3>
-      <p data-lang="en" class="active">From source (requires Xcode Command Line Tools for Go):</p>
-      <p data-lang="de">Aus dem Quellcode (erfordert Xcode Command Line Tools für Go):</p>
-      <pre class="inline">xcode-select --install</pre>
-      <p data-lang="en" class="active">Then build from source or download from <a href="https://github.com/MachuraHarry/pipe/releases" target="_blank">Releases</a>.</p>
-      <p data-lang="de">Dann aus dem Quellcode bauen oder von <a href="https://github.com/MachuraHarry/pipe/releases" target="_blank">Releases</a> herunterladen.</p>
-    </div>
-
-    <!-- Windows -->
-    <div class="install-card">
-      <h3 data-lang="en" class="active">Windows</h3>
-      <h3 data-lang="de">Windows</h3>
-      <p data-lang="en" class="active">From source with Go installed, or download <code>pipe.exe</code> from <a href="https://github.com/MachuraHarry/pipe/releases" target="_blank">Releases</a>.</p>
-      <p data-lang="de">Aus dem Quellcode mit installiertem Go, oder lade <code>pipe.exe</code> von <a href="https://github.com/MachuraHarry/pipe/releases" target="_blank">Releases</a> herunter.</p>
+      <div class="dl-grid">
+        <div class="dl-card">
+          <div class="dl-head">🐧 Linux</div>
+          <div class="dl-arch">
+            <a href="https://github.com/MachuraHarry/pipe/releases/latest/download/pipe-linux-amd64.tar.gz" class="dl-btn">⬇ amd64</a>
+            <a href="https://github.com/MachuraHarry/pipe/releases/latest/download/pipe-linux-arm64.tar.gz" class="dl-btn">⬇ arm64</a>
+          </div>
+          <pre class="inline">curl -L -o pipe.tar.gz https://github.com/MachuraHarry/pipe/releases/latest/download/pipe-linux-amd64.tar.gz
+tar xzf pipe.tar.gz && sudo mv pipe /usr/local/bin/ && rm pipe.tar.gz</pre>
+        </div>
+        <div class="dl-card">
+          <div class="dl-head">🍎 macOS</div>
+          <div class="dl-arch">
+            <a href="https://github.com/MachuraHarry/pipe/releases/latest/download/pipe-darwin-amd64.tar.gz" class="dl-btn">⬇ amd64</a>
+            <a href="https://github.com/MachuraHarry/pipe/releases/latest/download/pipe-darwin-arm64.tar.gz" class="dl-btn">⬇ arm64</a>
+          </div>
+          <pre class="inline">curl -L -o pipe.tar.gz https://github.com/MachuraHarry/pipe/releases/latest/download/pipe-darwin-arm64.tar.gz
+tar xzf pipe.tar.gz && sudo mv pipe /usr/local/bin/ && rm pipe.tar.gz</pre>
+        </div>
+        <div class="dl-card">
+          <div class="dl-head">🪟 Windows</div>
+          <div class="dl-arch">
+            <a href="https://github.com/MachuraHarry/pipe/releases/latest/download/pipe-windows-amd64.tar.gz" class="dl-btn">⬇ amd64</a>
+          </div>
+          <pre class="inline">curl.exe -L -o pipe.tar.gz https://github.com/MachuraHarry/pipe/releases/latest/download/pipe-windows-amd64.tar.gz
+tar -xf pipe.tar.gz</pre>
+          <p data-lang="en" class="active" style="font-size:0.82rem;margin-bottom:0">Move <code>pipe.exe</code> to a folder in your <code>PATH</code>.</p>
+          <p data-lang="de" style="font-size:0.82rem;margin-bottom:0">Verschiebe <code>pipe.exe</code> in einen Ordner in deinem <code>PATH</code>.</p>
+        </div>
+      </div>
+      <p data-lang="en" class="active" style="margin-top:14px;margin-bottom:0">Older versions and checksums: <a href="https://github.com/MachuraHarry/pipe/releases" target="_blank">GitHub Releases</a>.</p>
+      <p data-lang="de" style="margin-top:14px;margin-bottom:0">Ältere Versionen und Prüfsummen: <a href="https://github.com/MachuraHarry/pipe/releases" target="_blank">GitHub Releases</a>.</p>
     </div>
 
     <!-- Verify -->
@@ -198,11 +198,11 @@ a[data-lang].active { display: inline-block; }
     <div class="install-card">
       <h3 data-lang="en" class="active">API Key Setup</h3>
       <h3 data-lang="de">API-Key einrichten</h3>
-      <p data-lang="en" class="active">Pipe supports OpenAI, Anthropic, and DeepSeek:</p>
-      <p data-lang="de">Pipe unterstützt OpenAI, Anthropic und DeepSeek:</p>
+      <p data-lang="en" class="active">Pipe supports OpenAI, Anthropic, DeepSeek, and local Ollama:</p>
+      <p data-lang="de">Pipe unterstützt OpenAI, Anthropic, DeepSeek und lokales Ollama:</p>
       <pre class="inline">export DEEPSEEK_API_KEY="sk-..."</pre>
-      <p data-lang="en" class="active">Or for local AI (coming soon): Ollama support with zero API keys.</p>
-      <p data-lang="de">Oder für lokale KI (in Kürze): Ollama-Unterstützung ohne API-Keys.</p>
+      <p data-lang="en" class="active" style="margin-bottom:0">No API key needed for <code>ollama</code> — it runs fully local. Switch providers at runtime with <code>ai_provider "openai"</code>.</p>
+      <p data-lang="de" style="margin-bottom:0">Für <code>ollama</code> ist kein API-Key nötig — es läuft vollständig lokal. Provider zur Laufzeit wechseln mit <code>ai_provider "openai"</code>.</p>
     </div>
 
     <!-- First Pipeline -->
@@ -212,6 +212,23 @@ a[data-lang].active { display: inline-block; }
       <pre class="inline">pipe -vm -q -c 'ai_provider "deepseek"; ask "Hello!" > print'</pre>
       <p data-lang="en" class="active">This sets DeepSeek as the provider, asks the model "Hello!", and prints the response.</p>
       <p data-lang="de">Das setzt DeepSeek als Provider, fragt das Modell "Hello!" und gibt die Antwort aus.</p>
+    </div>
+
+    <!-- From Source -->
+    <div class="install-card">
+      <h3 data-lang="en" class="active">Build from Source</h3>
+      <h3 data-lang="de">Aus dem Quellcode bauen</h3>
+      <p data-lang="en" class="active">For developers who want the latest master or to hack on Pipe itself:</p>
+      <p data-lang="de">Für Entwickler, die den neuesten Master wollen oder an Pipe selbst mitarbeiten:</p>
+      <ul>
+        <li data-lang="en" class="active">Go 1.21 or newer</li>
+        <li data-lang="de">Go 1.21 oder neuer</li>
+        <li data-lang="en" class="active">Git (for cloning the repository)</li>
+        <li data-lang="de">Git (zum Klonen des Repositorys)</li>
+      </ul>
+      <pre class="inline">git clone https://github.com/MachuraHarry/pipe && cd pipe && make build</pre>
+      <p data-lang="en" class="active" style="margin-bottom:0">The binary is at <code>bin/pipe</code>. Copy it anywhere — it's statically linked.</p>
+      <p data-lang="de" style="margin-bottom:0">Die Binary liegt unter <code>bin/pipe</code>. Kopiere sie beliebig — sie ist statisch gelinkt.</p>
     </div>
 
     <!-- Editor Setup -->
@@ -273,11 +290,14 @@ vim.lsp.start({
         <h5>Resources</h5>
         <a href="docs.html">Documentation</a>
         <a href="https://github.com/MachuraHarry/pipe-modules">Modules</a>
+        <a href="benchmarks.html">Benchmarks</a>
+        <a href="https://github.com/MachuraHarry/pipe/releases">Releases</a>
         <a href="blog.html">Blog</a>
         <a href="https://github.com/MachuraHarry/pipe">GitHub</a>
       </div>
       <div class="footer-col">
         <h5>Community</h5>
+        <a href="https://github.com/MachuraHarry/pipe/discussions">Discussions</a>
         <a href="https://github.com/MachuraHarry/pipe/blob/master/SECURITY.md">Security</a>
         <a href="https://github.com/MachuraHarry/pipe/blob/master/CONTRIBUTING.md">Contribute</a>
         <a href="https://github.com/MachuraHarry/pipe-modules/blob/master/CONTRIBUTING.md">Submit Module</a>

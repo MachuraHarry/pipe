@@ -54,6 +54,9 @@ nav a:hover{color:var(--fg)}
 .cta-primary:hover{background:#8e72fc;transform:translateY(-1px);box-shadow:0 8px 32px rgba(124,92,252,0.4)}
 .cta-secondary{background:var(--bg3);color:var(--fg);padding:12px 28px;border-radius:var(--radius);font-weight:600;font-size:0.9rem;text-decoration:none;border:1px solid var(--border);transition:all .2s}
 .cta-secondary:hover{border-color:var(--accent)}
+.cta-download{background:var(--green);color:#04210f;padding:12px 28px;border-radius:var(--radius);font-weight:700;font-size:0.9rem;text-decoration:none;transition:all .2s;box-shadow:0 4px 20px rgba(60,224,150,0.22);display:inline-flex;align-items:center;gap:6px}
+.cta-download:hover{transform:translateY(-1px);box-shadow:0 8px 32px rgba(60,224,150,0.35)}
+.hero .version-note{font-size:0.72rem;color:var(--fg3);margin-top:12px}
 
 /* Stats inline bar */
 .stats-inline{display:flex;gap:32px;justify-content:center;flex-wrap:wrap;margin-bottom:20px}
@@ -172,6 +175,27 @@ footer{background:var(--bg2);border-top:1px solid var(--border);padding:50px 0 2
 .hero h1,.hero .sub,.hero .cta{animation:fadeUp .8s ease-out both}
 .hero .sub{animation-delay:.1s}.hero .cta{animation-delay:.2s}
 
+/* Terminal demo */
+.term-demo{max-width:640px;margin:0 auto;text-align:left;background:#0b0b14;border:1px solid var(--border);border-radius:12px;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.5)}
+.term-titlebar{display:flex;align-items:center;gap:8px;padding:10px 14px;background:rgba(255,255,255,.04);border-bottom:1px solid var(--border)}
+.term-dot{width:10px;height:10px;border-radius:50%}
+.term-title{font-size:.7rem;color:var(--fg3);font-family:var(--mono);margin-left:6px}
+.term-body{padding:16px 18px;font-family:var(--mono);font-size:.8rem;line-height:1.7;min-height:230px;overflow-x:auto;white-space:pre}
+.term-line{color:var(--fg2)}
+.term-prompt{color:#3ce096;font-weight:700}
+.term-cmt{color:#666;font-style:italic}
+.term-arrow{color:#a78bfa}
+.term-ok{color:#3ce096}
+.term-cursor{display:inline-block;width:7px;height:14px;background:#3ce096;vertical-align:middle;animation:blink 1s steps(1) infinite;margin-left:2px}
+@keyframes blink{50%{opacity:0}}
+.term-cap{margin-top:12px;font-size:.75rem;color:var(--fg3)}
+.term-cap a{color:var(--accent);text-decoration:none}
+.term-cap a:hover{text-decoration:underline}
+@media(max-width:768px){
+  .term-body{font-size:.68rem;padding:12px 14px;min-height:200px}
+  .term-demo{margin-top:24px}
+}
+
 /* Lang */
 [data-lang]{display:none}[data-lang].active{display:inline}
 span[data-lang].active,p[data-lang].active,h1[data-lang].active,h2[data-lang].active,h3[data-lang].active,h4[data-lang].active,a[data-lang].active,th[data-lang].active,td[data-lang].active,li[data-lang].active,div[data-lang].active{display:block}
@@ -228,6 +252,7 @@ span[data-lang].active{display:inline}a[data-lang].active{display:inline-block}
       <a href="docs.html" onclick="closeMenu()"><span data-lang="en" class="active">Docs</span><span data-lang="de">Doku</span></a>
       <a href="examples.html" onclick="closeMenu()"><span data-lang="en" class="active">Examples</span><span data-lang="de">Beispiele</span></a>
       <a href="install.html" onclick="closeMenu()"><span data-lang="en" class="active">Install</span><span data-lang="de">Installation</span></a>
+      <a href="benchmarks.html" onclick="closeMenu()">Benchmarks</a>
       <a href="playground.html" onclick="closeMenu()">Playground</a>
       <a href="blog.html" onclick="closeMenu()">Blog</a>
       <a href="https://github.com/MachuraHarry/pipe" onclick="closeMenu()">GitHub</a>
@@ -255,7 +280,26 @@ span[data-lang].active{display:inline}a[data-lang].active{display:inline-block}
   </div>
   <div class="cta">
     <a href="#play" class="cta-primary">▶ Try in Browser</a>
+    <a id="download-btn" href="https://github.com/MachuraHarry/pipe/releases/latest" class="cta-download">⬇ Download <span id="dl-os">for Linux</span></a>
     <a href="docs.html" class="cta-secondary">Read the Docs →</a>
+  </div>
+  <p class="version-note">v0.7.0 · ~16 MB single binary · Linux · macOS · Windows · Raspberry Pi</p>
+</section>
+
+<!-- Terminal demo -->
+<section id="demo" style="background:var(--bg2);padding-top:8px;padding-bottom:0">
+  <div class="container" style="text-align:center">
+    <div class="term-demo reveal" aria-hidden="true">
+      <div class="term-titlebar">
+        <span class="term-dot" style="background:#fc5c7c"></span>
+        <span class="term-dot" style="background:#fc8c3c"></span>
+        <span class="term-dot" style="background:#3ce096"></span>
+        <span class="term-title">pipe — demo</span>
+      </div>
+      <div class="term-body" id="term-body"></div>
+    </div>
+    <p class="term-cap" data-lang="en" class="active">A real pipeline: classify → summarize → translate → save. <a href="#play">Run it yourself below ↓</a></p>
+    <p class="term-cap" data-lang="de">Eine echte Pipeline: klassifizieren → zusammenfassen → übersetzen → speichern. <a href="#play">Probier sie unten selbst aus ↓</a></p>
   </div>
 </section>
 
@@ -286,7 +330,6 @@ oninput="syncHighlight();scheduleRenderGraph()" onscroll="syncScroll()"></textar
         <pre id="play-hl" class="play-editor language-pipe" aria-hidden="true"></pre>
       </div>
        <div class="play-bar" id="play-bar"><span style="color:#fc8c3c">Loading WASM...</span></div>
-      </div>
 
       <div style="padding:6px 14px;background:var(--bg3);display:flex;gap:8px;align-items:center;border-top:1px solid var(--border);font-size:0.68rem">
         <select id="api-provider" style="background:var(--bg);color:var(--fg2);border:1px solid var(--border);border-radius:4px;padding:1px 4px;font-size:0.65rem">
@@ -569,8 +612,8 @@ oninput="syncHighlight();scheduleRenderGraph()" onscroll="syncScroll()"></textar
         <div style="font-size:2rem;margin-bottom:8px">💻</div>
         <h4 data-lang="en" class="active">Local Install</h4>
         <h4 data-lang="de">Lokal installieren</h4>
-        <p data-lang="en" class="active"><code>git clone</code> + <code>make build</code>. One binary. Set your API key. Done.</p>
-        <p data-lang="de"><code>git clone</code> + <code>make build</code>. Eine Binary. API-Key setzen. Fertig.</p>
+        <p data-lang="en" class="active">Pre-built binaries for Linux, macOS &amp; Windows — or build from source with <code>git clone</code> + <code>make build</code>.</p>
+        <p data-lang="de">Fertige Binaries für Linux, macOS &amp; Windows — oder aus dem Quellcode mit <code>git clone</code> + <code>make build</code>.</p>
         <a href="install.html" class="cta-secondary" style="display:inline-block;margin-top:12px;font-size:0.8rem;padding:10px 22px">Install Guide</a>
       </div>
       <div class="card" style="text-align:center;padding:28px 18px">
@@ -808,11 +851,14 @@ c: <span class="str">"Capital of Italy?"</span>
         <h5>Resources</h5>
         <a href="docs.html">Documentation</a>
         <a href="https://github.com/MachuraHarry/pipe-modules">Modules</a>
+        <a href="benchmarks.html">Benchmarks</a>
+        <a href="https://github.com/MachuraHarry/pipe/releases">Releases</a>
         <a href="blog.html">Blog</a>
         <a href="https://github.com/MachuraHarry/pipe">GitHub</a>
       </div>
       <div class="footer-col">
         <h5>Community</h5>
+        <a href="https://github.com/MachuraHarry/pipe/discussions">Discussions</a>
         <a href="https://github.com/MachuraHarry/pipe/blob/master/SECURITY.md">Security</a>
         <a href="https://github.com/MachuraHarry/pipe/blob/master/CONTRIBUTING.md">Contribute</a>
         <a href="https://github.com/MachuraHarry/pipe-modules/blob/master/CONTRIBUTING.md">Submit Module</a>
@@ -920,6 +966,16 @@ setLang = function(l) {
 };
 
 setTimeout(cycleHero, 6000);
+
+// Download CTA — detect OS and label the button
+(function(){
+  var ua = navigator.userAgent;
+  var os = 'Linux';
+  if (/Windows/i.test(ua)) os = 'Windows';
+  else if (/Macintosh|Mac OS X|iPhone|iPad/i.test(ua)) os = 'macOS';
+  var el = document.getElementById('dl-os');
+  if (el) el.textContent = 'for ' + os;
+})();
 
 var playExamples = [
   'print (2 + 2)',
@@ -1195,6 +1251,74 @@ function renderGraph(){
   });
   container.innerHTML='';container.appendChild(svg);
 }
+</script>
+
+<script>
+// Terminal demo animation
+(function(){
+  var body = document.getElementById('term-body');
+  if (!body) return;
+  var lines = [
+    {t:'in',  s:'pipe run incident.pipe'},
+    {t:'txt', s:'-- classify log lines, summarize critical ones'},
+    {t:'txt', s:'read_file "/var/log/app/errors.log"'},
+    {t:'txt', s:'  > split "\\n"'},
+    {t:'txt', s:'  > filter is_critical'},
+    {t:'txt', s:'  > summarize'},
+    {t:'txt', s:'  > translate "de"'},
+    {t:'txt', s:'  > save "incident_report.txt"'},
+    {t:'out', s:'\u2713 compiled 5 stages in 0.02s'},
+    {t:'out', s:'\u2192 1/5 read_file   4.2 MB loaded'},
+    {t:'out', s:'\u2192 2/5 split       128 lines'},
+    {t:'out', s:'\u2192 3/5 filter      7 critical'},
+    {t:'out', s:'\u2192 4/5 summarize   done'},
+    {t:'out', s:'\u2192 5/5 save        incident_report.txt'},
+    {t:'out', s:'\u2713 done in 1.4s \u00b7 3 AI calls \u00b7 exit 0'}
+  ];
+  var idx = 0, timer = null;
+
+  function esc(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;');}
+  function decorate(s){
+    s = esc(s);
+    s = s.replace(/>/g, '<span class="term-arrow">&gt;</span>');
+    s = s.replace(/\u2713/g, '<span class="term-ok">\u2713</span>');
+    return s;
+  }
+  function typeLine(d, pre, text, i, speed, done){
+    if (i > text.length) { done(); return; }
+    d.innerHTML = pre + '<span class="term-type">' + esc(text.substring(0,i)) + '</span><span class="term-cursor"></span>';
+    timer = setTimeout(function(){ typeLine(d, pre, text, i+1, speed, done); }, speed);
+  }
+  function next(){
+    if (idx >= lines.length) { idx = 0; timer = setTimeout(next, 4200); return; }
+    var l = lines[idx], d = document.createElement('div');
+    d.className = 'term-line';
+    body.appendChild(d);
+    if (l.t === 'out') {
+      d.innerHTML = decorate(l.s);
+      idx++;
+      timer = setTimeout(next, 230);
+    } else {
+      var pre = l.t === 'in' ? '<span class="term-prompt">$</span> ' : '';
+      typeLine(d, pre, l.s, 0, l.t === 'in' ? 30 : 22, function(){
+        d.innerHTML = pre + '<span class="term-type">' + decorate(l.s) + '</span>';
+        if (l.t === 'in') { var sp = document.createElement('div'); sp.innerHTML = '&nbsp;'; body.appendChild(sp); }
+        idx++;
+        timer = setTimeout(next, 130);
+      });
+    }
+  }
+  if ('IntersectionObserver' in window) {
+    var io = new IntersectionObserver(function(entries){
+      entries.forEach(function(e){
+        if (e.isIntersecting) { io.disconnect(); next(); }
+      });
+    }, {threshold: 0.3});
+    io.observe(body);
+  } else {
+    next();
+  }
+})();
 </script>
 </body>
 </html>

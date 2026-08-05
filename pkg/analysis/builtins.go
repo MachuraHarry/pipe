@@ -351,6 +351,8 @@ var builtinDocs = []BuiltinDoc{
 	// ---- AI Search ----
 	{Name: "web_search", Signature: "web_search(query)", Params: []Param{p("query", "string")}, ReturnType: "list",
 		Description: "Searches the web via DuckDuckGo Instant Answer API (free, no key needed). Returns a list of maps with title, snippet, url.", Category: CatAISearch},
+	{Name: "wiki_search", Signature: "wiki_search(query)", Params: []Param{p("query", "string")}, ReturnType: "list",
+		Description: "Searches Wikipedia (supports CORS for browser/WASM). Returns a list of maps with title, snippet, url.", Category: CatAISearch},
 
 	// ---- Sandbox ----
 	{Name: "sandbox_profile", Signature: "sandbox_profile(name)", Params: []Param{p("name", "string")}, ReturnType: "string",

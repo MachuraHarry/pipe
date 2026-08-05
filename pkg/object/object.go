@@ -389,6 +389,7 @@ var Builtins = []BuiltinInfo{
 
 	// AI — Retrieval
 	{"web_search", bWebSearch},
+	{"wiki_search", bWikiSearch},
 
 	// AI — Low-level Chat
 	{"ai_chat", bAiChat},
@@ -2229,6 +2230,38 @@ func bWebSearch(args ...Object) Object {
 	}
 
 	results, searchErr := ai.WebSearch(query.Value)
+	if searchErr != nil {
+		return err(searchErr.Error())
+	}
+
+	elems := make([]Object, len(results))
+	for i, r := range results {
+		elems[i] = &Map{Pairs: map[string]Object{
+			"title":   &String{Value: r.Title},
+			"snippet": &String{Value: r.Snippet},
+			"url":     &String{Value: r.URL},
+		}}
+	}
+	return &List{Elements: elems}
+}
+
+func bWikiSearch(args ...Object) Object {
+	if ActiveProfile.Name != "none" {
+		if canErr := ActiveProfile.CanNetwork(); canErr != nil {
+			return err(canErr.Error())
+		}
+	}
+
+	if len(args) < 1 {
+		return err("wiki_search expects 1 argument (query)")
+	}
+
+	query, ok := args[0].(*String)
+	if !ok {
+		return err("wiki_search: argument must be a string")
+	}
+
+	results, searchErr := ai.WikiSearch(query.Value)
 	if searchErr != nil {
 		return err(searchErr.Error())
 	}

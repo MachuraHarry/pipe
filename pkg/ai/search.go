@@ -147,6 +147,7 @@ func httpGetStringNative(url string) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
+	req.Header.Set("User-Agent", "Pipe/0.7 (https://pipe-lang.com)")
 
 	client := &http.Client{Timeout: 10 * time.Second}
 	resp, err := client.Do(req)
@@ -160,4 +161,72 @@ func httpGetStringNative(url string) ([]byte, error) {
 	}
 
 	return io.ReadAll(resp.Body)
+}
+
+type wikiResponse struct {
+	Query struct {
+		Search []struct {
+			Title   string `json:"title"`
+			Snippet string `json:"snippet"`
+			PageID  int    `json:"pageid"`
+		} `json:"search"`
+	} `json:"query"`
+}
+
+func WikiSearch(query string) ([]SearchResult, error) {
+	encoded := url.QueryEscape(strings.TrimSpace(query))
+	apiURL := fmt.Sprintf("https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=%s&format=json&origin=*&srlimit=10", encoded)
+
+	body, err := httpGetString(apiURL)
+	if err != nil {
+		return nil, fmt.Errorf("wiki_search: %w", err)
+	}
+
+	var resp wikiResponse
+	if err := json.Unmarshal(body, &resp); err != nil {
+		return nil, fmt.Errorf("wiki_search: parse error: %w", err)
+	}
+
+	var results []SearchResult
+	for _, r := range resp.Query.Search {
+		snippet := strings.TrimSpace(r.Snippet)
+		snippet = stripHTML(snippet)
+		if len(snippet) > 300 {
+			snippet = snippet[:300] + "..."
+		}
+		results = append(results, SearchResult{
+			Title:   r.Title,
+			Snippet: snippet,
+			URL:     fmt.Sprintf("https://en.wikipedia.org/?curid=%d", r.PageID),
+		})
+	}
+
+	if len(results) == 0 {
+		return []SearchResult{{
+			Title:   "No results",
+			Snippet: fmt.Sprintf("No Wikipedia results for \"%s\".", query),
+			URL:     fmt.Sprintf("https://en.wikipedia.org/wiki/Special:Search?search=%s", encoded),
+		}}, nil
+	}
+
+	return results, nil
+}
+
+func stripHTML(s string) string {
+	var result strings.Builder
+	inTag := false
+	for _, r := range s {
+		if r == '<' {
+			inTag = true
+			continue
+		}
+		if r == '>' {
+			inTag = false
+			continue
+		}
+		if !inTag {
+			result.WriteRune(r)
+		}
+	}
+	return result.String()
 }

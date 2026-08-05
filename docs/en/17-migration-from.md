@@ -38,7 +38,7 @@ This guide helps developers familiar with Python, Lua, Bash, or JavaScript under
 | Async/await | `async/await` | No |
 | Type hints | Yes | No (planned) |
 | Package manager | `pip` | None (single binary) |
-| Binary size | ~30MB+ (interpreter) | ~10MB (statically linked) |
+| Binary size | ~30MB+ (interpreter) | ~16MB (statically linked) |
 
 ### Side-by-Side: Fibonacci
 
@@ -69,7 +69,7 @@ print fib 10
 - You need a single, self-contained binary with no runtime dependencies
 - You're writing scripts for system administration or automation
 - You want pipeline-centric data processing with `>`
-- You need a small footprint (~10MB vs Python's ~30MB+)
+- You need a small footprint (~16MB vs Python's ~30MB+)
 - You're embedding a scripting language in a Go application
 - You want instant startup time for CLI tools
 
@@ -106,7 +106,7 @@ print fib 10
 | Error handling | `pcall(fn)` | `try: catch e:` |
 | Metatables | Yes | No |
 | Coroutines | Yes | No (planned) |
-| Binary size | ~300KB | ~10MB |
+| Binary size | ~300KB | ~16MB |
 
 ### Side-by-Side: Fibonacci
 
@@ -171,7 +171,7 @@ print fib 10
 | String manipulation | `${var#prefix}` | `split`, `regex_replace` |
 | JSON | Needs `jq` | Built-in `parse_json`/`to_json` |
 | HTTP | Needs `curl`/`wget` | Built-in `http_get`/`http_post` |
-| Binary size | ~1MB (bash itself) | ~10MB |
+| Binary size | ~1MB (bash itself) | ~16MB |
 
 ### When to Use Pipe vs Bash
 
@@ -216,7 +216,7 @@ print fib 10
 | Async | `async/await`, Promises | Not supported |
 | Classes | `class X {}` | No |
 | Arrow pipeline | `x \|> f \|> g` (proposal) | `x > f > g` (native) |
-| Runtime | Node.js (~60MB+) | ~10MB binary |
+| Runtime | Node.js (~60MB+) | ~16MB binary |
 | Package manager | npm (~1M+ packages) | None |
 
 ### When to Use Pipe vs Node.js
@@ -248,7 +248,7 @@ print fib 10
 | **Runtime performance** | ★★★☆☆ | ★★★☆☆ | ★★★★★ | ★★☆☆☆ | ★★★★★ |
 | **Portability** | ★★★★★ | ★★★★☆ | ★★★★★ | ★★☆☆☆ | ★★★★☆ |
 | **Ecosystem** | ★☆☆☆☆ | ★★★★★ | ★★☆☆☆ | ★★★★☆ | ★★★★★ |
-| **Binary size** | ~10MB | ~30MB+ | ~300KB | ~1MB | ~60MB+ |
+| **Binary size** | ~16MB | ~30MB+ | ~300KB | ~1MB | ~60MB+ |
 | **Data structures** | Lists, Maps | Lists, Dicts, Sets, Tuples | Tables only | Strings only | Arrays, Objects, Maps, Sets |
 | **Pipeline operator** | Native `>` | No (method chains) | No | Process pipe `\|` | Proposal `\|>` |
 | **Error handling** | try/catch + Result | try/except | pcall | trap / exit codes | try/catch |

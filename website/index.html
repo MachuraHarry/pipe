@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <link rel="icon" type="image/svg+xml" href="logo.svg">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="description" content="Pipe — The runtime for AI-native infrastructure. Build, sandbox, and deploy LLM pipelines with a single 10 MB binary. No Python. No dependencies. No vendor lock-in.">
+<meta name="description" content="Pipe — The runtime for AI-native infrastructure. Build, sandbox, and deploy LLM pipelines with a single ~16 MB binary. No Python. No dependencies. No vendor lock-in.">
 <meta property="og:title" content="Pipe — The runtime for AI-native infrastructure">
 <meta property="og:description" content="Build, sandbox, and deploy LLM pipelines. 32 AI builtins, 4 providers, single ~16 MB binary. No Python required.">
 <meta property="og:type" content="website">
@@ -266,7 +266,7 @@ span[data-lang].active{display:inline}a[data-lang].active{display:inline-block}
 
 <!-- Hero -->
 <section class="hero">
-  <div class="badge"><strong>SPR</strong> v0.7.0 · Semantic Pipeline Runtime</div>
+  <div class="badge"><strong>SPR</strong> v0.8.0 · Semantic Pipeline Runtime</div>
 
   <h1 id="hero-headline"><span class="grad">The runtime for</span><br>AI-native infrastructure</h1>
   <p id="hero-sub" class="sub">Build, sandbox, and deploy LLM pipelines with a single ~11–16 MB binary. No Python. No dependencies. No vendor lock-in.</p>
@@ -283,7 +283,7 @@ span[data-lang].active{display:inline}a[data-lang].active{display:inline-block}
     <a id="download-btn" href="https://github.com/MachuraHarry/pipe/releases/latest" class="cta-download">⬇ Download <span id="dl-os">for Linux</span></a>
     <a href="docs.html" class="cta-secondary">Read the Docs →</a>
   </div>
-  <p class="version-note">v0.7.0 · ~16 MB single binary · Linux · macOS · Windows · Raspberry Pi</p>
+  <p class="version-note">v0.8.0 · ~16 MB single binary · Linux · macOS · Windows · Raspberry Pi</p>
 </section>
 
 <!-- Terminal demo -->
@@ -567,12 +567,12 @@ oninput="syncHighlight();scheduleRenderGraph()" onscroll="syncScroll()"></textar
       <h2 data-lang="de">Gebaut für <span>Produktions</span>-KI-Workloads</h2>
     </div>
     <div class="stats-inline reveal" style="gap:48px;margin-bottom:0">
-      <div class="stat"><span class="stat-num">300+</span><div class="stat-label" data-lang="en" class="active">Tests</div><div class="stat-label" data-lang="de">Tests</div></div>
-      <div class="stat"><span class="stat-num">~17k</span><div class="stat-label" data-lang="en" class="active">LoC Go</div><div class="stat-label" data-lang="de">LoC Go</div></div>
-      <div class="stat"><span class="stat-num">70+</span><div class="stat-label" data-lang="en" class="active">Example Programs</div><div class="stat-label" data-lang="de">Beispielprogramme</div></div>
+      <div class="stat"><span class="stat-num">290+</span><div class="stat-label" data-lang="en" class="active">Tests</div><div class="stat-label" data-lang="de">Tests</div></div>
+      <div class="stat"><span class="stat-num">~19k</span><div class="stat-label" data-lang="en" class="active">LoC Go</div><div class="stat-label" data-lang="de">LoC Go</div></div>
+      <div class="stat"><span class="stat-num">52</span><div class="stat-label" data-lang="en" class="active">Example Programs</div><div class="stat-label" data-lang="de">Beispielprogramme</div></div>
       <div class="stat"><span class="stat-num">4</span><div class="stat-label" data-lang="en" class="active">AI Providers</div><div class="stat-label" data-lang="de">KI-Provider</div></div>
       <div class="stat"><span class="stat-num">~16 MB</span><div class="stat-label" data-lang="en" class="active">Binary</div><div class="stat-label" data-lang="de">Binary</div></div>
-      <div class="stat"><span class="stat-num">135</span><div class="stat-label" data-lang="en" class="active">Builtins</div><div class="stat-label" data-lang="de">Builtins</div></div>
+      <div class="stat"><span class="stat-num">143</span><div class="stat-label" data-lang="en" class="active">Builtins</div><div class="stat-label" data-lang="de">Builtins</div></div>
     </div>
   </div>
 </section>
@@ -580,7 +580,7 @@ oninput="syncHighlight();scheduleRenderGraph()" onscroll="syncScroll()"></textar
 <!-- Builtins -->
 <section id="builtins" style="background:var(--bg2)">
   <div class="container">
-    <div class="section-head"><h2 data-lang="en" class="active"><span>32 AI Builtins</span> + 103 Standard Builtins = 135 Total</h2><h2 data-lang="de"><span>32 KI-Builtins</span> + 103 Standard-Builtins = 135 Gesamt</h2></div>
+    <div class="section-head"><h2 data-lang="en" class="active"><span>32 AI Builtins</span> + 111 Standard Builtins = 143 Total</h2><h2 data-lang="de"><span>32 KI-Builtins</span> + 111 Standard-Builtins = 143 Gesamt</h2></div>
     <div class="builtins-grid reveal">
       <div class="builtin-group"><h4>🧠 Understanding</h4><table><tr><td>summarize</td><td>Text summarization</td></tr><tr><td>translate</td><td>Translation</td></tr><tr><td>classify</td><td>Classification</td></tr><tr><td>extract</td><td>Data extraction (JSON)</td></tr><tr><td>ask</td><td>Question answering</td></tr><tr><td>generate</td><td>Free-text generation</td></tr></table></div>
       <div class="builtin-group"><h4>⚡ Speed & Parallel</h4><table><tr><td>ai_stream</td><td>Real-time token streaming</td></tr><tr><td>ai_batch</td><td>Auto-parallel batch</td></tr><tr><td>ai_parallel</td><td>Concurrency control</td></tr><tr><td>ai_rate_limit</td><td>Rate limiting</td></tr><tr><td>ai_chat</td><td>Low-level chat</td></tr><tr><td>ai_chat_json</td><td>Chat → structured JSON</td></tr></table></div>

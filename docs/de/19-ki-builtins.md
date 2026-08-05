@@ -91,7 +91,7 @@ summarize text
 text: "Pipe ist eine moderne Skriptsprache mit Fokus auf..."
 print (summarize text)
 -- -> Pipe ist eine Skriptsprache mit Pipeline-Operator und Bytecode-VM.
---   Sie unterstützt 115 Builtins und ist für Datenverarbeitung optimiert.
+--   Sie unterstützt 143 Builtins und ist für Datenverarbeitung optimiert.
 ```
 
 ### translate

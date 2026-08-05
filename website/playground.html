@@ -315,7 +315,7 @@ Prism.languages.pipe={
 let pipeReady = false;
 const pipeGo = new Go();
 
-fetch("pipe.wasm?v=12").then(r => {
+fetch("pipe.wasm?v=13").then(r => {
   if (!r.ok) throw new Error("HTTP " + r.status);
   return WebAssembly.instantiateStreaming(r, pipeGo.importObject);
 }).then(r => {

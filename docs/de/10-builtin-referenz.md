@@ -1,6 +1,6 @@
 # 10. Builtin-Referenz
 
-Pipe hat **115 eingebaute Funktionen** — keine externen Abhängigkeiten
+Pipe hat **143 eingebaute Funktionen** — keine externen Abhängigkeiten
 (alle in Go implementiert, nutzen nur die Standardbibliothek).
 
 Die Builtins sind in **allen Ausführungsmodi** verfügbar (Tree-Walker und VM).

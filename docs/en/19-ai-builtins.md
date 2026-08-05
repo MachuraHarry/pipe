@@ -91,7 +91,7 @@ summarize text
 text: "Pipe is a modern scripting language focused on..."
 print (summarize text)
 -- -> Pipe is a scripting language with a pipeline operator and bytecode VM.
---   It supports 115 builtins and is optimized for data processing.
+--   It supports 143 builtins and is optimized for data processing.
 ```
 
 ### translate

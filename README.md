@@ -2,10 +2,10 @@
 
 [![CI](https://github.com/MachuraHarry/pipe/actions/workflows/ci.yml/badge.svg)](https://github.com/MachuraHarry/pipe/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-purple.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-0.7.0-blue.svg)](https://github.com/MachuraHarry/pipe/releases)
+[![Version](https://img.shields.io/badge/version-0.8.0-blue.svg)](https://github.com/MachuraHarry/pipe/releases)
 [![SPR](https://img.shields.io/badge/SPR-Semantic%20Pipeline%20Runtime-7c5cfc.svg)](#)
 
-> **Build, sandbox, and deploy LLM pipelines with a single 10 MB binary. No Python. No dependencies. No vendor lock-in.**
+> **Build, sandbox, and deploy LLM pipelines with a single ~16 MB binary. No Python. No dependencies. No vendor lock-in.**
 
 ## The Problem
 
@@ -105,13 +105,13 @@ ai_with_tools "You are a weather assistant." "What's the weather in Berlin and L
 | **Switch AI provider**   | Rewrite SDK calls              | `ai_provider "deepseek"`       |
 | **Deploy to server**     | Docker + venv + pip            | `scp pipe binary`              |
 | **Parallel LLM calls**   | `asyncio.gather()` boilerplate | `>>` operator, `ai_batch`      |
-| **Binary size**          | ~500 MB (with deps)            | ~11–16 MB                      |
+| **Binary size**          | ~500 MB (with deps)            | ~16 MB                         |
 
 ## Features
 
 - **Ship AI pipelines 10× faster** — 32 AI builtins: no imports, no SDKs, no API wrappers
 - **Lock down AI agents in one line** — Declarative sandbox profiles: restrict `exec`, `write_file`, `http_get` with a single block
-- **Deploy in seconds** — One statically-linked ~11 MB binary (or 2.4 MB UPX-compressed). No venv, no pip, no Docker. Linux, macOS, Windows, Raspberry Pi, or your browser via WebAssembly
+- **Deploy in seconds** — One statically-linked ~16 MB binary (or ~7 MB lite build). No venv, no pip, no Docker. Linux, macOS, Windows, Raspberry Pi, or your browser via WebAssembly
 - **3 LLM calls in 1.5s, not 4s** — `>>` starts any pipeline stage in the background. Futures auto-resolve. `ai_batch` handles hundreds of texts concurrently with built-in rate limiting
 - **No vendor lock-in** — OpenAI, Anthropic (Claude), DeepSeek, Ollama. Switch with one line. Same code works everywhere
 - **Pipeline-native syntax** — `>` sequential, `>>` parallel. Data flows top to bottom — readable, composable, debuggable
@@ -268,11 +268,11 @@ write_file "/etc/config"    -- ❌ E_SANDBOX blocked
 ```
 Source (.pipe) → Lexer → Parser → AST → [ Tree-Walker | Compiler + VM ]
                                           ↓
-                              Builtins (104 stdlib + 32 AI = 136 total)
+                               Builtins (111 stdlib + 32 AI = 143 total)
 ```
 
 - 66 token types, 34 AST node types, 40 opcodes
-- ~18,000 LoC Go, 300+ tests, 70+ example programs
+- ~19,000 LoC Go, 290+ tests, 52 example programs
 
 ## Documentation
 
@@ -327,7 +327,7 @@ pipe/
 │   └── vm/                    # Bytecode VM
 │       ├── vm.go
 │       └── vm_test.go
-├── examples/                  # 42 example programs
+├── examples/                  # 52 example programs
 │   ├── ai_demo.pipe
 │   ├── ai_embedding_demo.pipe
 │   ├── ai_parallel_demo.pipe

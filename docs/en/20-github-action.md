@@ -26,7 +26,7 @@ jobs:
 | `script` | one of `script`/`file` | — | Inline Pipe code to execute |
 | `file` | one of `script`/`file` | — | Path to a `.pipe` file in the repo to execute |
 | `flags` | ❌ | `-vm -q` | Extra CLI flags (e.g. `--sandbox`, `--sandbox-profile networked`) |
-| `version` | ❌ | `latest` | Pipe version (release tag like `v0.7.0`) to download |
+| `version` | ❌ | `latest` | Pipe version (release tag like `v0.8.0`) to download |
 | `provider` | ❌ | — | AI provider (`openai`, `anthropic`, `deepseek`, `ollama`); injected via `--ai-provider` when `file` is used |
 
 Script parameters are passed via environment variables (e.g. `SUMMARY_COUNT`, `SUMMARY_OUTPUT`) instead of CLI arguments, since the current release binary does not support `args` in VM mode.

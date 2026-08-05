@@ -69,7 +69,7 @@
 - ✅ Lexer + Parser + AST (15 + 20 + 29 Tests)
 - ✅ Tree-Walk Interpreter (42 Tests)
 - ✅ Bytecode Compiler + Stack-VM (47 Opcodes, 29 + 18 + 28 Tests)
-- ✅ 115 Builtins (IO, FS, HTTP, JSON, TCP, Regex, DateTime, ...)
+- ✅ 143 Builtins (IO, FS, HTTP, JSON, TCP, Regex, DateTime, ...)
 - ✅ while, break, continue, return
 - ✅ for-in Schleifen
 - ✅ try/catch mit Stack-Traces

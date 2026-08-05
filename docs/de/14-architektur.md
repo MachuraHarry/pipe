@@ -261,13 +261,13 @@ Body:
 
 | Metrik | Wert |
 |--------|------|
-| Go-Zeilen | ~19.500 (ohne Tests ~15.100) |
+| Go-Zeilen | ~23.600 (ohne Tests ~19.000) |
 | Go-Packages | 13 |
 | Externe Abhängigkeiten | 0 |
-| Binary-Größe | ~10 MB |
-| Tests | 287 (in 12 Paketen) |
-| Beispiel-Programme | 42 |
-| Builtins | 115 |
+| Binary-Größe | ~16 MB |
+| Tests | 290 (in 12 Paketen) |
+| Beispiel-Programme | 52 |
+| Builtins | 143 |
 | Opcodes | 40 |
 | AST-Knotentypen | 34 |
 | Token-Typen | 66 |

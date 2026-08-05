@@ -48,7 +48,7 @@ Die Extension erkennt und färbt:
 - **Strings:** `"..."` und `` `...` `` (orange)
 - **Keywords:** `fn`, `match`, `if`, `else`, `while`, `for`, `in`, `try`, `catch`, `return`, `break`, `continue`, `defer`, `import`, `export`, `enum`
 - **Konstanten:** `true`, `false`, `nil`, `_` (blau)
-- **Builtins:** Alle 115 Funktionen in Kategorien:
+- **Builtins:** Alle 143 Funktionen in Kategorien:
   - IO: `print`, `input`
   - Dateisystem: `read_file`, `write_file`, `append_file`, `read_lines`, `file_exists`, `file_delete`, `file_move`, `file_copy`, `file_size`, `file_type`, `list_dir`, `make_dir`, `remove_dir`
   - Pfad: `path_join`, `path_base`, `path_dir`, `path_ext`

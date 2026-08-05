@@ -2,14 +2,14 @@
 
 ## What is Pipe?
 
-Pipe is an indentation-based pipeline scripting language written in Go. It compiles to a single statically-linked binary of approximately 10MB, with no external dependencies. The language centers around the pipeline operator (`>`), allowing data transformations to be expressed as a clear, top-to-bottom flow of operations.
+Pipe is an indentation-based pipeline scripting language written in Go. It compiles to a single statically-linked binary of approximately 16MB, with no external dependencies. The language centers around the pipeline operator (`>`), allowing data transformations to be expressed as a clear, top-to-bottom flow of operations.
 
 Key characteristics:
 
 - **Indentation-based**: blocks are defined by consistent whitespace, not braces or keywords
 - **Pipeline-centric**: the `>` operator makes data flow the primary metaphor
 - **Dual execution modes**: a tree-walking interpreter for development and a bytecode VM for performance
-- **Single binary**: self-contained ~10MB executable
+- **Single binary**: self-contained ~16MB executable
 - **First-class functions**: closures, higher-order functions, and tail-call optimization
 - **REPL included**: interactive read-eval-print loop for experimentation
 

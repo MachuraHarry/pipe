@@ -199,12 +199,21 @@ Prism.languages.pipe={
 let pipeReady = false;
 const pipeGo = new Go();
 
-fetch("pipe.wasm?v=7").then(r => {
-  if (!r.ok) throw new Error("HTTP " + r.status);
-  return WebAssembly.instantiateStreaming(r, pipeGo.importObject);
-}).then(r => {
-  document.getElementById("play-status").textContent = "starting…";
-  pipeGo.run(r.instance);
+async function loadWasm() {
+  const resp = await fetch("pipe.wasm?v=8");
+  if (!resp.ok) throw new Error("HTTP " + resp.status);
+  try {
+    const r = await WebAssembly.instantiateStreaming(resp, pipeGo.importObject);
+    return r.instance;
+  } catch(e) {
+    const buf = await resp.arrayBuffer();
+    const r = await WebAssembly.instantiate(buf, pipeGo.importObject);
+    return r.instance;
+  }
+}
+
+loadWasm().then(instance => {
+  pipeGo.run(instance);
   pipeReady = true;
   restoreAPIKey();
   document.getElementById("play-status").textContent = "✓ ready";

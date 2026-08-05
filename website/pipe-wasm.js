@@ -1,8 +1,21 @@
 let pipeReady = false;
 const pipeGo = new Go();
 
-WebAssembly.instantiateStreaming(fetch("pipe.wasm?v=7"), pipeGo.importObject).then(r => {
-  pipeGo.run(r.instance);
+async function loadWasm() {
+  const resp = await fetch("pipe.wasm?v=8");
+  if (!resp.ok) throw new Error("HTTP " + resp.status);
+  try {
+    const r = await WebAssembly.instantiateStreaming(resp, pipeGo.importObject);
+    return r.instance;
+  } catch(e) {
+    const buf = await resp.arrayBuffer();
+    const r = await WebAssembly.instantiate(buf, pipeGo.importObject);
+    return r.instance;
+  }
+}
+
+loadWasm().then(instance => {
+  pipeGo.run(instance);
   pipeReady = true;
   const bar = document.getElementById("play-bar");
   if (bar) bar.innerHTML = '<span style="color:var(--green)">✓ ready</span>';
@@ -12,10 +25,6 @@ WebAssembly.instantiateStreaming(fetch("pipe.wasm?v=7"), pipeGo.importObject).th
   if (gb) gb.disabled = false;
   restoreAPIKey();
 }).catch(e => {
-  const bar = document.getElementById("play-bar");
-  if (bar) bar.innerHTML = '<span style="color:var(--red)">✗ failed: ' + e.message + '</span>';
-  console.error("WASM load error:", e);
-});
 
 function runPipe(code) {
   if (!pipeReady) return "WASM not loaded";

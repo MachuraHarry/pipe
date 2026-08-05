@@ -385,6 +385,7 @@ var Builtins = []BuiltinInfo{
 	{"ai_timeout", bAiTimeout},
 	{"ai_host", bAiHost},
 	{"ai_cache", bAiCache},
+	{"ai_set_key", bAiSetKey},
 
 	// AI — Retrieval
 	{"web_search", bWebSearch},
@@ -2183,6 +2184,32 @@ func bAiCache(args ...Object) Object {
 	default:
 		return err("ai_cache expects true/false, a number (minutes), or 'on'/'off'/'clear'/'stats'")
 	}
+}
+
+func bAiSetKey(args ...Object) Object {
+	if len(args) < 2 {
+		return err("ai_set_key expects 2 arguments (provider, key)")
+	}
+	provider, ok := args[0].(*String)
+	if !ok {
+		return err("ai_set_key: first argument must be a string (provider: 'openai', 'deepseek', 'anthropic')")
+	}
+	key, ok := args[1].(*String)
+	if !ok {
+		return err("ai_set_key: second argument must be a string (API key)")
+	}
+
+	switch provider.Value {
+	case "openai":
+		ai.SetAPIKey("OPENAI_API_KEY", key.Value)
+	case "deepseek":
+		ai.SetAPIKey("DEEPSEEK_API_KEY", key.Value)
+	case "anthropic":
+		ai.SetAPIKey("ANTHROPIC_API_KEY", key.Value)
+	default:
+		return err("ai_set_key: unknown provider '" + provider.Value + "'. Use 'openai', 'deepseek', or 'anthropic'.")
+	}
+	return &String{Value: "key set for " + provider.Value}
 }
 
 func bWebSearch(args ...Object) Object {

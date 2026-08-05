@@ -91,6 +91,7 @@ var builtinInfos = map[string]builtinInfo{
 	"ai_timeout":     {1, strs(TypeInt)},
 	"ai_host":        {1, strs(TypeString)},
 	"ai_cache":       {1, strs(TypeAny)},
+	"ai_set_key":     {2, strs(TypeString, TypeString)},
 	"web_search":     {1, strs(TypeString)},
 	"agent":          {2, strs(TypeString, TypeString)},
 	"agent_ask":      {2, strs(TypeString, TypeString)},

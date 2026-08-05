@@ -170,11 +170,11 @@ func extractEmbedding(result map[string]interface{}) ([]float64, error) {
 func getProviderKey() string {
 	switch ActiveConfig.Provider {
 	case "openai":
-		return getKey("OPENAI_API_KEY")
+		return getKeyWithOverride("OPENAI_API_KEY")
 	case "anthropic":
-		return getKey("ANTHROPIC_API_KEY")
+		return getKeyWithOverride("ANTHROPIC_API_KEY")
 	case "deepseek":
-		return getKey("DEEPSEEK_API_KEY")
+		return getKeyWithOverride("DEEPSEEK_API_KEY")
 	case "ollama":
 		return "ollama"
 	}

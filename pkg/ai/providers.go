@@ -16,8 +16,21 @@ func getKey(envVar string) string {
 	return os.Getenv(envVar)
 }
 
+var apiKeyOverrides = map[string]string{}
+
+func SetAPIKey(name, key string) {
+	apiKeyOverrides[name] = key
+}
+
+func getKeyWithOverride(envVar string) string {
+	if key, ok := apiKeyOverrides[envVar]; ok && key != "" {
+		return key
+	}
+	return os.Getenv(envVar)
+}
+
 func openAIChat(cfg Config, req ChatRequest) (ChatResponse, error) {
-	apiKey := getKey("OPENAI_API_KEY")
+	apiKey := getKeyWithOverride("OPENAI_API_KEY")
 	if apiKey == "" {
 		return ChatResponse{}, fmt.Errorf("OPENAI_API_KEY not set")
 	}
@@ -66,7 +79,7 @@ func extractOpenAIResult(result map[string]interface{}) (ChatResponse, error) {
 }
 
 func deepSeekChat(cfg Config, req ChatRequest) (ChatResponse, error) {
-	apiKey := getKey("DEEPSEEK_API_KEY")
+	apiKey := getKeyWithOverride("DEEPSEEK_API_KEY")
 	if apiKey == "" {
 		return ChatResponse{}, fmt.Errorf("DEEPSEEK_API_KEY not set")
 	}
@@ -98,7 +111,7 @@ func deepSeekChat(cfg Config, req ChatRequest) (ChatResponse, error) {
 }
 
 func anthropicChat(cfg Config, req ChatRequest) (ChatResponse, error) {
-	apiKey := getKey("ANTHROPIC_API_KEY")
+	apiKey := getKeyWithOverride("ANTHROPIC_API_KEY")
 	if apiKey == "" {
 		return ChatResponse{}, fmt.Errorf("ANTHROPIC_API_KEY not set")
 	}
@@ -163,7 +176,7 @@ func anthropicChat(cfg Config, req ChatRequest) (ChatResponse, error) {
 // ---- Streaming Implementations ----
 
 func openAIStream(cfg Config, req ChatRequest, onToken StreamCallback) error {
-	apiKey := getKey("OPENAI_API_KEY")
+	apiKey := getKeyWithOverride("OPENAI_API_KEY")
 	if apiKey == "" {
 		return fmt.Errorf("OPENAI_API_KEY not set")
 	}
@@ -187,7 +200,7 @@ func openAIStream(cfg Config, req ChatRequest, onToken StreamCallback) error {
 }
 
 func deepSeekStream(cfg Config, req ChatRequest, onToken StreamCallback) error {
-	apiKey := getKey("DEEPSEEK_API_KEY")
+	apiKey := getKeyWithOverride("DEEPSEEK_API_KEY")
 	if apiKey == "" {
 		return fmt.Errorf("DEEPSEEK_API_KEY not set")
 	}
@@ -211,7 +224,7 @@ func deepSeekStream(cfg Config, req ChatRequest, onToken StreamCallback) error {
 }
 
 func anthropicStream(cfg Config, req ChatRequest, onToken StreamCallback) error {
-	apiKey := getKey("ANTHROPIC_API_KEY")
+	apiKey := getKeyWithOverride("ANTHROPIC_API_KEY")
 	if apiKey == "" {
 		return fmt.Errorf("ANTHROPIC_API_KEY not set")
 	}

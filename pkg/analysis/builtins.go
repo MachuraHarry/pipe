@@ -283,6 +283,8 @@ var builtinDocs = []BuiltinDoc{
 		Description: "Sets the AI request timeout in seconds.", Category: CatAIConf},
 	{Name: "ai_cache", Signature: "ai_cache(on_off|ttl|'clear'|'stats')", Params: []Param{p("arg", "bool|number|string")}, ReturnType: "string",
 		Description: "Enables/disables AI response caching. Pass true/on/ttl-minutes to enable, false/off to disable, 'clear' to flush, 'stats' for hit/miss count.", Category: CatAIConf},
+	{Name: "ai_set_key", Signature: "ai_set_key(provider, key)", Params: []Param{p("provider", "string"), p("key", "string")}, ReturnType: "string",
+		Description: "Sets API key for the given provider ('openai', 'deepseek', 'anthropic'). Useful when env vars aren't available (browser, CI).", Category: CatAIConf},
 
 	// ---- AI Chat ----
 	{Name: "ai_chat", Signature: "ai_chat(system_prompt, user_prompt)", Params: []Param{p("system_prompt", "string"), p("user_prompt", "string")}, ReturnType: "string",

@@ -169,7 +169,7 @@ This section addresses the concern that AI-generated code modification at runtim
 | AI generates malicious code | **HIGH** | 3-ring validation (parse → isolated eval → real) prevents execution of anything that doesn't parse, errors in isolation, or produces unexpected types |
 | AI hallucinates a wrong fix | **MEDIUM** | Retry mechanism (up to 3 attempts); `catch` block provides deterministic fallback |
 | Prompt injection via error message | **MEDIUM** | System prompt is **fixed and immutable** — the attacker's input goes into the `user` message only, separated from system instructions by the chat API boundary |
-| Side effects in fixed code | **HIGH** | Variable-isolated evaluation (`env.Copy()`) ensures variable mutations happen in a **cloned** scope first. I/O protection relies on the system prompt's builtin whitelist (no `write_file`, `exec`, `http_get`). |
+| Side effects in fixed code | **HIGH** | Variable-isolated evaluation (`env.Copy()`) and **real sandbox activation** in Ring 2: `FSNone`, `Network: false`, `Exec: false` blocks all I/O during fix validation. AI allowed for nested builtins. |
 | AI fix introduces performance degradation | **LOW** | Fixes are local expression rewrites (max ~1 token change); no structural code generation |
 | API latency makes program unpredictable | **LOW** | `catch` block guarantees deterministic fallback; retry limit of 3 bounds worst-case latency |
 | Supply chain risk via AI provider | **LOW** | `try_ai` respects `ai_provider` configuration; can use local Ollama for zero-network self-healing |
@@ -182,11 +182,11 @@ This section addresses the concern that AI-generated code modification at runtim
 │ AI output → lexer → parser → AST             │
 │ If parser produces errors → fix REJECTED     │
 ├─────────────────────────────────────────────┤
-│ Ring 2: ISOLATED EVALUATION                  │
+│ Ring 2: SANDBOX EVALUATION                   │
 │ AST → eval(env.Copy()) → result              │
 │ If result is ERROR or nil → fix REJECTED     │
-│ Variable mutations isolated (env.Copy())      │
-│ I/O safe via system-prompt builtin whitelist  │
+│ Sandbox active: no I/O, no exec, no network  │
+│ Variable mutations isolated via env.Copy()    │
 ├─────────────────────────────────────────────┤
 │ Ring 3: REAL EVALUATION                      │
 │ Same AST → eval(real env) → final result     │
@@ -223,13 +223,13 @@ This means the AI-generated code must:
 
 | Tool | AI modifies code at runtime? | Validation | Fallback | Open source? |
 |------|------------------------------|------------|----------|--------------|
-| **Pipe `try_ai`** | Yes (expressions only) | 3-ring (parse+isolated+real) | `catch` block | Yes (Apache 2.0) |
+| **Pipe `try_ai`** | Yes (expressions only) | 3-ring incl. real sandbox | `catch` block | Yes (Apache 2.0) |
 | GitHub Copilot | No (suggestions only) | Human review required | Manual undo | No |
 | Cursor AI | No (IDE integration) | Human review required | Manual undo | No |
 | AutoGPT / AgentGPT | Yes (arbitrary code execution) | None | Manual termination | Partially |
 | LLM-as-judge pipelines | Yes (unconstrained) | Ad-hoc | Manual | Varies |
 
-Pipe is the **only tool** that combines automated AI code fixes with variable‑isolated evaluation and a guaranteed deterministic fallback — all in a single language construct.
+Pipe is the **only tool** that combines automated AI code fixes with real sandbox validation (no I/O, no exec, no network) and a guaranteed deterministic fallback — all in a single language construct.
 
 #### Safety Summary
 

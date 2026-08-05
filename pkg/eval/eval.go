@@ -883,6 +883,16 @@ func (ctx *EvalContext) validateAndApply(fix string, env *object.Environment) ob
 		return nil
 	}
 
+	prevProfile := object.ActiveProfile
+	object.ActiveProfile = &object.SandboxProfile{
+		Name:     "try_ai_ring2",
+		FSAccess: object.FSNone,
+		Network:  false,
+		Exec:     false,
+		AI:       true,
+	}
+	defer func() { object.ActiveProfile = prevProfile }()
+
 	sandbox := env.Copy()
 	result := ctx.Eval(es.Expression, sandbox)
 	if result == nil || result.Type() == object.ERROR {

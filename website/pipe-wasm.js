@@ -1,7 +1,7 @@
 let pipeReady = false;
 const pipeGo = new Go();
 
-WebAssembly.instantiateStreaming(fetch("pipe.wasm?v=4"), pipeGo.importObject).then(r => {
+WebAssembly.instantiateStreaming(fetch("pipe.wasm?v=5"), pipeGo.importObject).then(r => {
   pipeGo.run(r.instance);
   pipeReady = true;
   const bar = document.getElementById("play-bar");
@@ -61,20 +61,19 @@ function pipeFetchSync(url, opts) {
   var xhr = new XMLHttpRequest();
   xhr.open(method, url, false);
 
-  if (headers && typeof headers === 'object') {
-    Object.keys(headers).forEach(function(k) {
-      if (k === 'Content-Type' || k === 'Authorization') {
-        xhr.setRequestHeader(k, headers[k]);
-      }
-    });
+  try {
+    if (headers && typeof headers === 'object') {
+      Object.keys(headers).forEach(function(k) {
+        try { xhr.setRequestHeader(k, headers[k]); } catch(e) { console.warn('skip header', k, e); }
+      });
+    }
+  } catch(e) {
+    console.error('pipeFetchSync: header error', e);
   }
 
   try {
     xhr.send(body);
-    if (xhr.status >= 200 && xhr.status < 300) {
-      return { body: xhr.responseText, error: "" };
-    }
-    return { body: xhr.responseText, error: "HTTP " + xhr.status + ": " + xhr.statusText };
+    return { body: xhr.responseText, error: xhr.status >= 400 ? "HTTP " + xhr.status + ": " + xhr.statusText : "" };
   } catch(e) {
     return { body: "", error: "network error: " + e.message };
   }

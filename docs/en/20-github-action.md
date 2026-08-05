@@ -25,10 +25,11 @@ jobs:
 |-------|----------|---------|-------------|
 | `script` | one of `script`/`file` | — | Inline Pipe code to execute |
 | `file` | one of `script`/`file` | — | Path to a `.pipe` file in the repo to execute |
-| `args` | ❌ | — | Additional arguments passed to the script (available as `$args`) |
 | `flags` | ❌ | `-vm -q` | Extra CLI flags (e.g. `--sandbox`, `--sandbox-profile networked`) |
 | `version` | ❌ | `latest` | Pipe version (release tag like `v0.7.0`) to download |
 | `provider` | ❌ | — | AI provider (`openai`, `anthropic`, `deepseek`, `ollama`); injected via `--ai-provider` when `file` is used |
+
+Script parameters are passed via environment variables (e.g. `SUMMARY_COUNT`, `SUMMARY_OUTPUT`) instead of CLI arguments, since the current release binary does not support `args` in VM mode.
 
 Sandbox flags (`--sandbox`, `--sandbox-profile networked`, `--allow-ai`) are passed via the `flags` input.
 
@@ -91,15 +92,16 @@ Sandbox flags (`--sandbox`, `--sandbox-profile networked`, `--allow-ai`) are pas
     flags: '--sandbox'
 ```
 
-### Run a Script from the Repo with Arguments
+### Run a Script from the Repo
 
 ```yaml
 - uses: ./.github/actions/pipe-action
   with:
     file: examples/commit_summary.pipe
-    args: '20 commit-summary.md'
   env:
     DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
+    SUMMARY_COUNT: '20'
+    SUMMARY_OUTPUT: commit-summary.md
 ```
 
 ### German Commit Digest on Every Push
@@ -124,9 +126,10 @@ jobs:
       - uses: ./.github/actions/pipe-action
         with:
           file: examples/commit_summary.pipe
-          args: '20 commit-summary.md'
         env:
           DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
+          SUMMARY_COUNT: '20'
+          SUMMARY_OUTPUT: commit-summary.md
       - uses: actions/upload-artifact@v4
         with:
           name: commit-summary-de

@@ -6,10 +6,11 @@
 --   Aufruf innerhalb eines Git-Repos
 --
 -- Ausführung:
---   ./bin/pipe -vm -q examples/commit_summary.pipe [anzahl] [ausgabedatei]
---     anzahl:       letzte N Commits (Standard: 10)
---     all:          alle Commits (Achtung: Kosten!)
---     ausgabedatei: Markdown-Ziel; ohne Angabe wird auf die Konsole geschrieben
+--   ./bin/pipe -vm -q examples/commit_summary.pipe
+--   optional über Umgebungsvariablen:
+--     SUMMARY_COUNT=20           letzte N Commits (Standard: 10)
+--     SUMMARY_COUNT=all          alle Commits (Achtung: Kosten!)
+--     SUMMARY_OUTPUT=pfad.md     Markdown-Ziel (Standard: Konsole)
 --
 -- Hinweis: Zeilen werden als hash|datum|autor|betreff geparst.
 --   Betreffe mit "|" oder mehrzeilige Betreffe werden übersprungen.
@@ -19,16 +20,14 @@ ai_provider "deepseek"
 
 count: 10
 all_mode: false
-if (len (args)) >= 1
-    first: at (args) 0
-    if first == "all"
+cnt: env "SUMMARY_COUNT"
+if (len cnt) > 0
+    if cnt == "all"
         all_mode: true
     else
-        count: to_num first
+        count: to_num cnt
 
-outfile: ""
-if (len (args)) >= 2
-    outfile: at (args) 1
+outfile: env "SUMMARY_OUTPUT"
 
 cmd: "git log --no-merges --date=short --pretty=format:'%h|%ad|%an|%s'"
 if all_mode == false

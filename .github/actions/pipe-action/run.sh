@@ -88,9 +88,6 @@ if [ -n "$PIPE_FILE" ]; then
 else
   cmd="$cmd /tmp/pipe-script"
 fi
-if [ -n "$PIPE_ARGS" ]; then
-  cmd="$cmd $PIPE_ARGS"
-fi
 
 echo "=== Pipe command ==="
 echo "$cmd"

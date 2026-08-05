@@ -22,9 +22,10 @@ jobs:
         uses: ./.github/actions/pipe-action
         with:
           file: examples/commit_summary.pipe
-          args: '20 commit-summary.md'
         env:
           DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
+          SUMMARY_COUNT: '20'
+          SUMMARY_OUTPUT: commit-summary.md
 
       - name: Zusammenfassung als Artefakt hochladen
         if: hashFiles('commit-summary.md') != ''

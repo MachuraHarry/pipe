@@ -8,9 +8,6 @@ inputs:
   file:
     description: 'Path to a .pipe file in the repo to execute (instead of an inline script)'
     required: false
-  args:
-    description: 'Additional arguments passed to the Pipe script (available as $args)'
-    required: false
   flags:
     description: 'Additional flags'
     required: false
@@ -31,7 +28,6 @@ runs:
       env:
         PIPE_SCRIPT: ${{ inputs.script }}
         PIPE_FILE: ${{ inputs.file }}
-        PIPE_ARGS: ${{ inputs.args }}
         PIPE_FLAGS: ${{ inputs.flags }}
         PIPE_VERSION: ${{ inputs.version }}
         PIPE_PROVIDER: ${{ inputs.provider }}

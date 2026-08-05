@@ -1088,6 +1088,8 @@ func astToString(out *strings.Builder, node ast.Node, depth int) {
 }
 
 func runEmbedded(src []byte) {
+	object.ScriptArgs = os.Args[1:]
+
 	l := lexer.New(string(src))
 	p := parser.New(l)
 	program := p.ParseProgram()

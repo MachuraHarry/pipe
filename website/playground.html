@@ -26,11 +26,23 @@
 body{background:var(--bg);color:var(--fg);font-family:var(--sans);display:flex;flex-direction:column;align-items:center;min-height:100vh;padding:24px}
 h1{font-size:1.5rem;margin:14px 0 2px;font-weight:800;letter-spacing:-0.5px}
 h1 span{background:linear-gradient(135deg,var(--accent),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
-.sub{color:var(--fg2);font-size:.85rem;margin-bottom:20px}
-.wrap{width:100%;max-width:900px}
+.sub{color:var(--fg2);font-size:.85rem;margin-bottom:10px}
+
+.view-toggle{display:flex;gap:4px;margin-bottom:18px;background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:3px;width:fit-content}
+.view-btn{background:transparent;color:var(--fg2);border:none;padding:6px 14px;font-size:.76rem;font-weight:600;cursor:pointer;border-radius:6px;transition:all .15s;font-family:var(--sans)}
+.view-btn.active{background:var(--accent);color:#fff}
+.view-btn:hover:not(.active){color:var(--fg);background:var(--bg3)}
+.view-split{display:flex;gap:14px;width:100%;max-width:1400px;align-items:flex-start}
+.view-split .split-left{flex:1;min-width:0;max-width:900px}
+.view-split .split-right{flex:1;min-width:0;display:none}
+.view-split.split .split-right{display:block}
+.view-split.graph-only{max-width:900px}
+.view-split.graph-only .split-left{display:none}
+.view-split.graph-only .split-right{display:block;flex:1}
+
 .play-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);box-shadow:0 0 0 1px rgba(168,85,247,0.04),0 16px 48px rgba(0,0,0,0.4)}
-.play-card > :first-child{border-radius:var(--radius) var(--radius) 0 0;overflow:hidden}
-.play-card > :last-child{border-radius:0 0 var(--radius) var(--radius);overflow:hidden}
+.play-card>:first-child{border-radius:var(--radius) var(--radius) 0 0;overflow:hidden}
+.play-card>:last-child{border-radius:0 0 var(--radius) var(--radius);overflow:hidden}
 .play-top{display:flex;justify-content:space-between;align-items:center;padding:10px 16px;background:var(--bg3);border-bottom:1px solid var(--border)}
 .play-top-left{display:flex;align-items:center;gap:8px}
 .play-dot{display:inline-block;width:10px;height:10px;border-radius:50%}
@@ -45,7 +57,6 @@ h1 span{background:linear-gradient(135deg,var(--accent),var(--accent2));-webkit-
 .run-btn{background:var(--accent);color:#fff;border:none;border-radius:6px;padding:5px 14px;font-weight:600;font-size:.78rem;cursor:pointer;transition:all .15s;line-height:1}
 .run-btn:hover:not(:disabled){background:#8e72fc}
 .run-btn:disabled{opacity:0.4;cursor:not-allowed}
-
 .play-editor-wrap{display:grid;min-height:220px}
 .play-editor-wrap>*{grid-area:1/1}
 textarea.play-editor{width:100%;min-height:220px;padding:16px 18px;font:14px/1.7 var(--mono);background:transparent;border:none;color:transparent;caret-color:var(--fg);resize:vertical;outline:none;white-space:pre-wrap;tab-size:4;overflow:auto;z-index:2}
@@ -78,6 +89,17 @@ a{color:var(--accent);text-decoration:none}
 .top-stars{font-size:.82rem;color:#fbbf24;min-width:55px}
 .top-preview{font-family:var(--mono);font-size:.74rem;color:var(--fg2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1}
 .top-count{font-size:.66rem;color:var(--fg3);white-space:nowrap}
+.graph-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);box-shadow:0 0 0 1px rgba(168,85,247,0.04),0 16px 48px rgba(0,0,0,0.4);position:sticky;top:24px}
+.graph-top{display:flex;align-items:center;gap:6px;padding:10px 16px;background:var(--bg3);border-bottom:1px solid var(--border);border-radius:var(--radius) var(--radius) 0 0}
+.graph-label{color:var(--fg3);font-size:.7rem;font-family:var(--mono);text-transform:uppercase;letter-spacing:.4px}
+.graph-body{padding:18px 14px;min-height:200px;display:flex;align-items:center;justify-content:center;overflow:auto}
+.graph-body svg{max-width:100%}
+.graph-empty{color:var(--fg3);font-size:.8rem;font-family:var(--mono);text-align:center;padding:20px}
+.graph-empty .icon{font-size:2rem;display:block;margin-bottom:10px;opacity:.4}
+.graph-error{color:var(--red);font-size:.75rem;font-family:var(--mono);text-align:center;padding:12px}
+.graph-legend{display:flex;flex-wrap:wrap;gap:6px;padding:8px 14px;border-top:1px solid var(--border);background:var(--bg3);border-radius:0 0 var(--radius) var(--radius)}
+.graph-legend-item{display:flex;align-items:center;gap:4px;font-size:.62rem;color:var(--fg3);font-family:var(--sans)}
+.graph-legend-dot{width:8px;height:8px;border-radius:2px;flex-shrink:0}
 .token.comment{color:var(--fg3);font-style:italic}
 .token.string,.token.char,.token.builtin{color:var(--green)}
 .token.number,.token.boolean,.token.constant{color:var(--orange)}
@@ -90,11 +112,25 @@ a{color:var(--accent);text-decoration:none}
 .sandbox-notice a{color:var(--fg3);text-decoration:underline;text-underline-offset:2px}
 .sandbox-notice a:hover{color:var(--accent)}
 .sandbox-notice.show{display:inline-flex}
+.graph-badge{display:inline-block;padding:1px 6px;border-radius:3px;font-size:9px;font-weight:700;font-family:var(--mono);letter-spacing:.3px;vertical-align:middle}
+@media(max-width:1200px){
+  .view-split .split-left{max-width:550px}
+  .view-split .split-right{max-width:450px}
+}
+@media(max-width:900px){
+  .view-split{flex-direction:column}
+  .view-split .split-left{max-width:100%}
+  .view-split .split-right{max-width:100%}
+  .graph-card{position:static}
+  .view-split.graph-only .split-right{max-width:100%}
+}
 @media(max-width:600px){
   body{padding:12px}
   h1{font-size:1.1rem;margin:10px 0 2px}
   h1 img{height:22px!important}
-  .sub{font-size:.78rem;margin-bottom:14px}
+  .sub{font-size:.78rem;margin-bottom:10px}
+  .view-toggle{margin-bottom:12px}
+  .view-btn{font-size:.7rem;padding:5px 10px}
   .play-top{padding:8px 10px;flex-wrap:wrap;gap:4px}
   .play-label{font-size:.65rem}
   .play-actions{gap:4px;flex-wrap:wrap;justify-content:flex-end}
@@ -113,71 +149,102 @@ a{color:var(--accent);text-decoration:none}
   .top-preview{font-size:.68rem}
   .sandbox-notice{font-size:.58rem}
   .ft{font-size:.65rem}
+  .graph-body{padding:10px 8px;min-height:120px}
 }
 </style>
 </head>
 <body>
 <h1><img src="logo.svg" alt="" style="height:28px;vertical-align:middle;margin-right:6px">Pipe <span>Playground</span></h1>
-<p class="sub">Write code. Run in browser. <a href="index.html">home</a></p>
+<p class="sub">Write code. Run in browser. See your pipeline. <a href="index.html">home</a></p>
 
-<div class="wrap">
-  <div class="play-card">
-    <div class="play-top">
-      <div class="play-top-left">
-        <span class="play-dot" style="background:var(--red)"></span>
-        <span class="play-dot" style="background:var(--orange)"></span>
-        <span class="play-dot" style="background:var(--green)"></span>
-        <span class="play-label">pipe playground</span>
+<div class="view-toggle">
+  <button class="view-btn active" data-view="code" onclick="setView('code')">Code</button>
+  <button class="view-btn" data-view="split" onclick="setView('split')">Split</button>
+  <button class="view-btn" data-view="graph" onclick="setView('graph')">Graph</button>
+</div>
+
+<div class="view-split" id="view-split">
+  <div class="split-left" id="split-left">
+    <div class="play-card">
+      <div class="play-top">
+        <div class="play-top-left">
+          <span class="play-dot" style="background:var(--red)"></span>
+          <span class="play-dot" style="background:var(--orange)"></span>
+          <span class="play-dot" style="background:var(--green)"></span>
+          <span class="play-label">pipe playground</span>
+        </div>
+        <div class="play-actions">
+          <button class="icon-btn" onclick="downloadCode()" title="Download .pipe file">↓</button>
+          <button id="share-btn" class="share-btn" onclick="sharePlay()">Share</button>
+          <button id="gen-btn" class="icon-btn" onclick="generatePlay()" disabled title="Generate random valid code">✦</button>
+          <button id="play-btn" class="run-btn" disabled onclick="runPlay()">▶ Run</button>
+        </div>
       </div>
-      <div class="play-actions">
-        <button class="icon-btn" onclick="downloadCode()" title="Download .pipe file">↓</button>
-        <button id="share-btn" class="share-btn" onclick="sharePlay()">Share</button>
-        <button id="gen-btn" class="icon-btn" onclick="generatePlay()" disabled title="Generate random valid code">✦</button>
-        <button id="play-btn" class="run-btn" disabled onclick="runPlay()">▶ Run</button>
-      </div>
-    </div>
-    <div class="play-editor-wrap">
-      <textarea id="play-editor" class="play-editor" placeholder="Write Pipe code..." spellcheck="false"
+      <div class="play-editor-wrap">
+        <textarea id="play-editor" class="play-editor" placeholder="Write Pipe code..." spellcheck="false"
 oninput="onEdit()" onscroll="syncScroll()">print (2 + 2)</textarea>
-      <pre id="play-hl" class="play-editor language-pipe" aria-hidden="true"></pre>
-    </div>
-    <div class="play-bar" id="play-bar"><span id="play-status">loading wasm…</span><span class="sandbox-notice" id="sandbox-notice">🔒 sandbox mode · AI-ready</span></div>
-
-    <div style="padding:4px 16px;background:var(--bg3);display:flex;gap:6px;align-items:center;border-top:1px solid var(--border);font-size:0.62rem">
-      <select id="api-provider" style="background:var(--bg);color:var(--fg2);border:1px solid var(--border);border-radius:4px;padding:1px 3px;font-size:0.6rem">
-        <option value="">API Key (optional)</option>
-        <option value="deepseek">DeepSeek</option>
-        <option value="openai">OpenAI</option>
-        <option value="anthropic">Anthropic</option>
-      </select>
-      <input id="api-key" type="password" autocomplete="off" placeholder="sk-..." style="flex:1;background:var(--bg);color:var(--fg2);border:1px solid var(--border);border-radius:4px;padding:1px 6px;font-size:0.6rem;font-family:var(--mono)" oninput="setAPIKey(document.getElementById('api-provider').value,this.value)">
-    </div>
-
-    <div class="play-out-wrap">
-      <div class="play-out" id="play-out"></div>
-    </div>
-    <div class="rating-section" id="rating-section" style="display:none">
-      <div class="rating-stars" id="rating-stars">
-        <span data-val="1">☆</span>
-        <span data-val="2">☆</span>
-        <span data-val="3">☆</span>
-        <span data-val="4">☆</span>
-        <span data-val="5">☆</span>
+        <pre id="play-hl" class="play-editor language-pipe" aria-hidden="true"></pre>
       </div>
-      <div class="rating-info" id="rating-info"></div>
+      <div class="play-bar" id="play-bar"><span id="play-status">loading wasm…</span><span class="sandbox-notice" id="sandbox-notice">sandbox mode · AI-ready</span></div>
+      <div style="padding:4px 16px;background:var(--bg3);display:flex;gap:6px;align-items:center;border-top:1px solid var(--border);font-size:0.62rem">
+        <select id="api-provider" style="background:var(--bg);color:var(--fg2);border:1px solid var(--border);border-radius:4px;padding:1px 3px;font-size:0.6rem">
+          <option value="">API Key (optional)</option>
+          <option value="deepseek">DeepSeek</option>
+          <option value="openai">OpenAI</option>
+          <option value="anthropic">Anthropic</option>
+        </select>
+        <input id="api-key" type="password" autocomplete="off" placeholder="sk-..." style="flex:1;background:var(--bg);color:var(--fg2);border:1px solid var(--border);border-radius:4px;padding:1px 6px;font-size:0.6rem;font-family:var(--mono)" oninput="setAPIKey(document.getElementById('api-provider').value,this.value)">
+      </div>
+      <div class="play-out-wrap">
+        <div class="play-out" id="play-out"></div>
+      </div>
+      <div class="rating-section" id="rating-section" style="display:none">
+        <div class="rating-stars" id="rating-stars">
+          <span data-val="1">☆</span>
+          <span data-val="2">☆</span>
+          <span data-val="3">☆</span>
+          <span data-val="4">☆</span>
+          <span data-val="5">☆</span>
+        </div>
+        <div class="rating-info" id="rating-info"></div>
+      </div>
+    </div>
+    <div class="top-panel" id="top-panel" style="display:none">
+      <div class="top-header">🔥 Top Rated Snippets</div>
+      <div class="top-list" id="top-list"><div style="padding:14px 18px;font-size:.78rem;color:var(--fg3)">loading…</div></div>
     </div>
   </div>
 
-  <div class="top-panel" id="top-panel" style="display:none">
-    <div class="top-header">🔥 Top Rated Snippets</div>
-    <div class="top-list" id="top-list"><div style="padding:14px 18px;font-size:.78rem;color:var(--fg3)">loading…</div></div>
+  <div class="split-right" id="split-right">
+    <div class="graph-card">
+      <div class="graph-top">
+        <span class="play-dot" style="background:var(--accent)"></span>
+        <span class="play-dot" style="background:#5ce0fc"></span>
+        <span class="play-dot" style="background:var(--green)"></span>
+        <span class="graph-label">pipeline graph</span>
+      </div>
+      <div class="graph-body" id="graph-body">
+        <div class="graph-empty">
+          <span class="icon">◧</span>
+          <span>pipeline will appear here</span>
+        </div>
+      </div>
+      <div class="graph-legend">
+        <div class="graph-legend-item"><span class="graph-legend-dot" style="background:var(--accent)"></span>AI</div>
+        <div class="graph-legend-item"><span class="graph-legend-dot" style="background:var(--green)"></span>Builtin</div>
+        <div class="graph-legend-item"><span class="graph-legend-dot" style="background:#5ce0fc"></span>HOF</div>
+        <div class="graph-legend-item"><span class="graph-legend-dot" style="background:var(--orange)"></span>IO</div>
+        <div class="graph-legend-item"><span class="graph-legend-dot" style="background:#666"></span>Var</div>
+        <div class="graph-legend-item"><span style="color:#c084fc">⇢</span> parallel</div>
+      </div>
+    </div>
   </div>
 </div>
 
 <p class="ft"><a href="index.html">home</a> · <a href="https://github.com/MachuraHarry/pipe">github</a></p>
 <div class="toast" id="toast"></div>
 
-<script src="wasm_exec.js?v=1"></script>
+<script src="wasm_exec.js?v=2"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-database-compat.js"></script>
@@ -199,7 +266,7 @@ Prism.languages.pipe={
 let pipeReady = false;
 const pipeGo = new Go();
 
-fetch("pipe.wasm?v=10").then(r => {
+fetch("pipe.wasm?v=11").then(r => {
   if (!r.ok) throw new Error("HTTP " + r.status);
   return WebAssembly.instantiateStreaming(r, pipeGo.importObject);
 }).then(r => {
@@ -211,6 +278,7 @@ fetch("pipe.wasm?v=10").then(r => {
   document.getElementById("play-btn").disabled = false;
   document.getElementById("gen-btn").disabled = false;
   updateBar();
+  renderGraph();
 }).catch(e => {
   document.getElementById("play-status").textContent = "✗ " + e.message;
   console.error("WASM:", e);
@@ -285,6 +353,7 @@ function generatePlay() {
       btn.textContent = "✦";
       bar.className = "play-bar success";
       bar.innerHTML = '<span>✓ generated ' + (hasV2 ? '(v2)' : '(v1)') + '</span>';
+      renderGraph();
     } catch (e) {
       btn.disabled = false;
       btn.textContent = "✦";
@@ -352,6 +421,7 @@ const STORAGE_KEY = "pipe-playground-code";
 function onEdit() {
   syncHighlight();
   saveDraft();
+  scheduleRenderGraph();
 }
 
 function saveDraft() {
@@ -381,6 +451,249 @@ function downloadCode() {
   a.click();
   document.body.removeChild(a);
   URL.revokeObjectURL(a.href);
+}
+
+// ---------- View Toggle ----------
+
+function setView(mode) {
+  document.querySelectorAll('.view-btn').forEach(function(b) {
+    b.classList.toggle('active', b.dataset.view === mode);
+  });
+  var container = document.getElementById('view-split');
+  container.classList.remove('split', 'graph-only');
+  if (mode === 'split') container.classList.add('split');
+  if (mode === 'graph') container.classList.add('graph-only');
+  renderGraph();
+}
+
+// ---------- Pipeline Graph ----------
+
+var renderGraphTimer = null;
+
+function scheduleRenderGraph() {
+  if (renderGraphTimer) clearTimeout(renderGraphTimer);
+  renderGraphTimer = setTimeout(renderGraph, 400);
+}
+
+function getNodeColor(type) {
+  switch (type) {
+    case 'ai':       return {fill:'rgba(168,85,247,0.18)', stroke:'var(--accent)', text:'#c084fc', badge:'#a855f7'};
+    case 'builtin':  return {fill:'rgba(60,224,150,0.14)', stroke:'var(--green)', text:'#3ce096', badge:'#3ce096'};
+    case 'hof':      return {fill:'rgba(92,224,252,0.14)', stroke:'#5ce0fc', text:'#5ce0fc', badge:'#5ce0fc'};
+    case 'io':       return {fill:'rgba(252,140,60,0.14)', stroke:'var(--orange)', text:'#fc8c3c', badge:'#fc8c3c'};
+    case 'sandbox':  return {fill:'rgba(251,191,36,0.14)', stroke:'#fbbf24', text:'#fbbf24', badge:'#fbbf24'};
+    case 'function': return {fill:'rgba(160,120,240,0.10)', stroke:'#7c7c9c', text:'#b0b0c0', badge:'#9090a8'};
+    case 'string':   return {fill:'rgba(255,255,255,0.04)', stroke:'#3a3a50', text:'#3ce096', badge:'#888'};
+    case 'number':   return {fill:'rgba(255,255,255,0.04)', stroke:'#3a3a50', text:'#fc8c3c', badge:'#888'};
+    case 'variable': return {fill:'rgba(255,255,255,0.04)', stroke:'#3a3a50', text:'#e0e0e8', badge:'#888'};
+    default:         return {fill:'rgba(255,255,255,0.03)', stroke:'#2a2a3c', text:'#888', badge:'#666'};
+  }
+}
+
+function renderGraph() {
+  var container = document.getElementById('graph-body');
+  if (!container) return;
+
+  if (!pipeReady) {
+    container.innerHTML = '<div class="graph-empty"><span class="icon">⏳</span><span>loading runtime…</span></div>';
+    return;
+  }
+
+  var code = document.getElementById('play-editor').value;
+  if (!code.trim()) {
+    container.innerHTML = '<div class="graph-empty"><span class="icon">◧</span><span>pipeline will appear here</span></div>';
+    return;
+  }
+
+  try {
+    var json = pipeParse(code);
+    var data = JSON.parse(json);
+  } catch (e) {
+    container.innerHTML = '<div class="graph-error">parse error</div>';
+    return;
+  }
+
+  if (data.errors && data.errors.length > 0) {
+    container.innerHTML = '<div class="graph-error">' +
+      data.errors.map(function(e){ return escapeHtml(e); }).join('<br>') +
+      '</div>';
+    return;
+  }
+
+  if (!data.pipelines || data.pipelines.length === 0) {
+    container.innerHTML = '<div class="graph-empty"><span class="icon">◧</span><span>no pipeline detected</span></div>';
+    return;
+  }
+
+  var width = container.clientWidth - 16;
+  if (width < 200) width = 200;
+
+  var nodeW = 210;
+  var nodeH = 38;
+  var vGap = 22;
+  var paddingTop = 16;
+  var paddingBot = 16;
+
+  var totalH = paddingTop + paddingBot;
+  data.pipelines.forEach(function(p) {
+    totalH += p.stages.length * (nodeH + vGap);
+    if (p.stages.length > 1) totalH += 8;
+  });
+  if (totalH < 160) totalH = 160;
+
+  var svgNS = 'http://www.w3.org/2000/svg';
+  var svg = document.createElementNS(svgNS, 'svg');
+  svg.setAttribute('width', width);
+  svg.setAttribute('height', totalH);
+  svg.setAttribute('viewBox', '0 0 ' + width + ' ' + totalH);
+
+  var defs = document.createElementNS(svgNS, 'defs');
+
+  var marker = document.createElementNS(svgNS, 'marker');
+  marker.setAttribute('id', 'arrowhead');
+  marker.setAttribute('markerWidth', '8');
+  marker.setAttribute('markerHeight', '6');
+  marker.setAttribute('refX', '8');
+  marker.setAttribute('refY', '3');
+  marker.setAttribute('orient', 'auto');
+  var mp = document.createElementNS(svgNS, 'polygon');
+  mp.setAttribute('points', '0 0, 8 3, 0 6');
+  mp.setAttribute('fill', '#555');
+  marker.appendChild(mp);
+  defs.appendChild(marker);
+
+  var markerP = document.createElementNS(svgNS, 'marker');
+  markerP.setAttribute('id', 'arrowhead-p');
+  markerP.setAttribute('markerWidth', '8');
+  markerP.setAttribute('markerHeight', '6');
+  markerP.setAttribute('refX', '8');
+  markerP.setAttribute('refY', '3');
+  markerP.setAttribute('orient', 'auto');
+  var mpp = document.createElementNS(svgNS, 'polygon');
+  mpp.setAttribute('points', '0 0, 8 3, 0 6');
+  mpp.setAttribute('fill', '#c084fc');
+  markerP.appendChild(mpp);
+  defs.appendChild(markerP);
+
+  svg.appendChild(defs);
+
+  var yOff = paddingTop;
+  var cx = width / 2;
+
+  data.pipelines.forEach(function(pipeline, pidx) {
+    var stages = pipeline.stages;
+    if (stages.length === 0) return;
+
+    for (var i = 0; i < stages.length; i++) {
+      var s = stages[i];
+      var nx = cx - nodeW / 2;
+      var ny = yOff + i * (nodeH + vGap);
+
+      var g = document.createElementNS(svgNS, 'g');
+
+      var rect = document.createElementNS(svgNS, 'rect');
+      rect.setAttribute('x', nx);
+      rect.setAttribute('y', ny);
+      rect.setAttribute('width', nodeW);
+      rect.setAttribute('height', nodeH);
+      rect.setAttribute('rx', '8');
+      rect.setAttribute('ry', '8');
+
+      var col = getNodeColor(s.type);
+      rect.setAttribute('fill', col.fill);
+      rect.setAttribute('stroke', col.stroke);
+      rect.setAttribute('stroke-width', '1.5');
+      g.appendChild(rect);
+
+      var display = s.label;
+      if (s.args && s.args.length > 0) {
+        var argsStr = s.args.join(' ').replace(/^"(.*)"$/, '$1');
+        if (argsStr.length > 18) argsStr = argsStr.substring(0, 16) + '…';
+        display = s.label + argsStr ? '<tspan fill="' + col.text + '" fill-opacity="0.7" font-size="10"> ' + argsStr + '</tspan>' : display;
+      }
+
+      var labelEl = document.createElementNS(svgNS, 'text');
+      labelEl.setAttribute('x', nx + 12);
+      labelEl.setAttribute('y', ny + nodeH / 2 + 4);
+      labelEl.setAttribute('fill', col.text);
+      labelEl.setAttribute('font-family', '"JetBrains Mono", "Fira Code", monospace');
+      labelEl.setAttribute('font-size', '11');
+      labelEl.setAttribute('font-weight', '600');
+      labelEl.textContent = s.label;
+      g.appendChild(labelEl);
+
+      if (s.args && s.args.length > 0) {
+        var argsDisplay = s.args.map(function(a) {
+          return a.replace(/^"(.*)"$/, '$1');
+        }).join(' ');
+        if (argsDisplay.length > 20) argsDisplay = argsDisplay.substring(0, 18) + '…';
+        var argsEl = document.createElementNS(svgNS, 'text');
+        argsEl.setAttribute('x', nx + 12 + (s.label.length * 6.5) + 4);
+        argsEl.setAttribute('y', ny + nodeH / 2 + 4);
+        argsEl.setAttribute('fill', col.text);
+        argsEl.setAttribute('fill-opacity', '0.55');
+        argsEl.setAttribute('font-family', '"JetBrains Mono", "Fira Code", monospace');
+        argsEl.setAttribute('font-size', '10');
+        argsEl.textContent = argsDisplay;
+        g.appendChild(argsEl);
+      }
+
+      var typeLabel = s.type === 'variable' ? 'var' :
+                      s.type === 'expression' ? 'expr' : s.type;
+      if (typeLabel.length > 3) typeLabel = typeLabel.substring(0, 3);
+      var badge = document.createElementNS(svgNS, 'text');
+      badge.setAttribute('x', nx + nodeW - 10);
+      badge.setAttribute('y', ny + nodeH / 2 + 4);
+      badge.setAttribute('fill', col.badge);
+      badge.setAttribute('font-family', '"JetBrains Mono", "Fira Code", monospace');
+      badge.setAttribute('font-size', '8');
+      badge.setAttribute('font-weight', '700');
+      badge.setAttribute('text-anchor', 'end');
+      badge.textContent = typeLabel;
+      g.appendChild(badge);
+
+      svg.appendChild(g);
+    }
+
+    for (var i = 0; i < stages.length - 1; i++) {
+      var sy = yOff + i * (nodeH + vGap) + nodeH;
+      var ey = yOff + (i + 1) * (nodeH + vGap);
+
+      var line = document.createElementNS(svgNS, 'line');
+      line.setAttribute('x1', cx);
+      line.setAttribute('y1', sy);
+      line.setAttribute('x2', cx);
+      line.setAttribute('y2', ey - 6);
+
+      if (stages[i + 1].parallel) {
+        line.setAttribute('stroke', '#c084fc');
+        line.setAttribute('stroke-dasharray', '6,4');
+        line.setAttribute('stroke-width', '2');
+        line.setAttribute('marker-end', 'url(#arrowhead-p)');
+      } else {
+        line.setAttribute('stroke', '#4a4a5e');
+        line.setAttribute('stroke-width', '2');
+        line.setAttribute('marker-end', 'url(#arrowhead)');
+      }
+      svg.appendChild(line);
+
+      if (stages[i + 1].parallel) {
+        var plb = document.createElementNS(svgNS, 'text');
+        plb.setAttribute('x', cx + 6);
+        plb.setAttribute('y', sy + (ey - sy) / 2);
+        plb.setAttribute('fill', '#c084fc');
+        plb.setAttribute('font-family', '"JetBrains Mono", "Fira Code", monospace');
+        plb.setAttribute('font-size', '8');
+        plb.textContent = '∥';
+        svg.appendChild(plb);
+      }
+    }
+
+    yOff += stages.length * (nodeH + vGap) + 12;
+  });
+
+  container.innerHTML = '';
+  container.appendChild(svg);
 }
 
 // ---------- Firebase Code-Sharing ----------
@@ -573,9 +886,6 @@ async function loadTopSnippets() {
       return;
     }
 
-    const countSnap = await db.ref("shared/" + items[0].hash + "/rating_count").once("value");
-    const firstCount = countSnap.val() || 0;
-
     panel.style.display = "block";
     list.innerHTML = items.map((item, i) => {
       const firstLine = item.code.trim().split("\n")[0];
@@ -615,6 +925,7 @@ async function loadSharedCode() {
     if (data && data.code) {
       editor.value = data.code;
       syncHighlight();
+      renderGraph();
       if (pipeReady) {
         statusEl.textContent = "✓ shared code loaded";
       } else {
@@ -623,6 +934,7 @@ async function loadSharedCode() {
             clearInterval(check);
             statusEl.textContent = "✓ shared code loaded";
             updateBar();
+            renderGraph();
           }
         }, 100);
       }

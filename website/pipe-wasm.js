@@ -1,7 +1,7 @@
 let pipeReady = false;
 const pipeGo = new Go();
 
-WebAssembly.instantiateStreaming(fetch("pipe.wasm?v=10"), pipeGo.importObject).then(r => {
+WebAssembly.instantiateStreaming(fetch("pipe.wasm?v=11"), pipeGo.importObject).then(r => {
   pipeGo.run(r.instance);
   pipeReady = true;
   const bar = document.getElementById("play-bar");
@@ -11,6 +11,7 @@ WebAssembly.instantiateStreaming(fetch("pipe.wasm?v=10"), pipeGo.importObject).t
   const gb = document.getElementById("gen-btn");
   if (gb) gb.disabled = false;
   restoreAPIKey();
+  if (typeof renderGraph === 'function') renderGraph();
 }).catch(e => {
   const bar = document.getElementById("play-bar");
   if (bar) bar.innerHTML = '<span style="color:var(--red)">✗ failed: ' + e.message + '</span>';

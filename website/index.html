@@ -134,6 +134,14 @@ section{padding:70px 0}
 @keyframes spin{to{transform:rotate(360deg)}}
 .play-output{padding:12px 16px;font-family:var(--mono);font-size:0.8rem;color:var(--green);min-height:36px;max-height:200px;overflow-y:auto;white-space:pre-wrap}
 .play-output.error{color:var(--red)}
+.play-graph-wrap{display:none;background:var(--bg);border-top:1px solid var(--border)}
+.play-graph-wrap.show{display:block}
+.play-graph{padding:18px 16px;min-height:80px;display:flex;align-items:center;justify-content:center;overflow:auto}
+.play-graph svg{max-width:100%}
+.play-graph-empty{color:var(--fg3);font-size:.74rem;font-family:var(--mono);text-align:center}
+.play-graph-btn{background:transparent;color:var(--fg2);border:1px solid var(--border);border-radius:5px;padding:2px 8px;font-size:.65rem;cursor:pointer;transition:all .12s;font-family:var(--sans);white-space:nowrap}
+.play-graph-btn:hover{color:var(--accent);border-color:var(--accent)}
+.play-graph-btn.active{background:rgba(168,85,247,0.15);color:var(--accent);border-color:var(--accent)}
 
 /* Footer */
 footer{background:var(--bg2);border-top:1px solid var(--border);padding:50px 0 25px}
@@ -245,13 +253,14 @@ span[data-lang].active{display:inline}a[data-lang].active{display:inline-block}
           <span class="play-label">pipe playground</span>
         </div>
         <div>
+        <button class="play-graph-btn" id="graph-btn" onclick="toggleGraph()">Graph</button>
         <button id="gen-btn" class="play-run-btn" disabled onclick="generatePlayground()" style="background:var(--bg3);color:var(--fg);margin-right:6px">✦</button>
         <button id="play-btn" class="play-run-btn" disabled onclick="runPlayground()">▶ Run</button>
         </div>
       </div>
       <div class="play-editor-wrap">
         <textarea id="play-editor" class="play-editor" placeholder="Write Pipe code..." spellcheck="false"
-oninput="syncHighlight()" onscroll="syncScroll()"></textarea>
+oninput="syncHighlight();scheduleRenderGraph()" onscroll="syncScroll()"></textarea>
         <pre id="play-hl" class="play-editor language-pipe" aria-hidden="true"></pre>
       </div>
        <div class="play-bar" id="play-bar"><span style="color:#fc8c3c">Loading WASM...</span></div>
@@ -268,6 +277,9 @@ oninput="syncHighlight()" onscroll="syncScroll()"></textarea>
       </div>
 
       <div class="play-output" id="play-out"></div>
+      <div class="play-graph-wrap" id="play-graph-wrap">
+        <div class="play-graph" id="play-graph"><div class="play-graph-empty">pipeline graph</div></div>
+      </div>
     </div>
   </div>
 </section>
@@ -967,6 +979,7 @@ function pickPlayExample() {
   if (!ta) return;
   ta.value = playExamples[Math.floor(Math.random() * playExamples.length)];
   syncHighlight();
+  scheduleRenderGraph();
 }
 
 function generatePlayground() {
@@ -985,6 +998,7 @@ function generatePlayground() {
       bar.className = "play-bar success";
       bar.innerHTML = '<span>✓ generated ' + (hasV2 ? '(v2)' : '(v1)') + '</span>';
       bar.style.color = "var(--green)";
+      if(typeof renderGraph==='function')renderGraph();
     } catch (e) {
       btn.disabled = false; btn.textContent = "✦";
       bar.className = "play-bar error";
@@ -1044,6 +1058,116 @@ function syncScroll(){
 
 var observer=new IntersectionObserver(e=>{e.forEach(e=>{if(e.isIntersecting)e.target.classList.add('visible')})},{threshold:0.1});
 document.querySelectorAll('.reveal').forEach(e=>observer.observe(e));
+
+function toggleGraph(){
+  var wrap=document.getElementById('play-graph-wrap'),btn=document.getElementById('graph-btn');
+  var show=!wrap.classList.contains('show');
+  wrap.classList.toggle('show',show);
+  btn.classList.toggle('active',show);
+  if(show)renderGraph();
+}
+
+function scheduleRenderGraph(){
+  if(window._rgTimer)clearTimeout(window._rgTimer);
+  window._rgTimer=setTimeout(renderGraph,400);
+}
+
+var _gColors={
+  ai:{fill:'rgba(168,85,247,0.18)',stroke:'#a855f7',text:'#c084fc',badge:'#a855f7'},
+  builtin:{fill:'rgba(60,224,150,0.14)',stroke:'#3ce096',text:'#3ce096',badge:'#3ce096'},
+  hof:{fill:'rgba(92,224,252,0.14)',stroke:'#5ce0fc',text:'#5ce0fc',badge:'#5ce0fc'},
+  io:{fill:'rgba(252,140,60,0.14)',stroke:'#fc8c3c',text:'#fc8c3c',badge:'#fc8c3c'},
+  sandbox:{fill:'rgba(251,191,36,0.14)',stroke:'#fbbf24',text:'#fbbf24',badge:'#fbbf24'},
+  function:{fill:'rgba(160,120,240,0.10)',stroke:'#7c7c9c',text:'#b0b0c0',badge:'#9090a8'},
+  variable:{fill:'rgba(255,255,255,0.04)',stroke:'#3a3a50',text:'#e0e0e8',badge:'#888'},
+  string:{fill:'rgba(255,255,255,0.04)',stroke:'#3a3a50',text:'#3ce096',badge:'#888'},
+  number:{fill:'rgba(255,255,255,0.04)',stroke:'#3a3a50',text:'#fc8c3c',badge:'#888'}
+};
+
+function renderGraph(){
+  var container=document.getElementById('play-graph');
+  if(!container||!document.getElementById('play-graph-wrap').classList.contains('show'))return;
+  if(!pipeReady||typeof pipeParse==='undefined'){
+    container.innerHTML='<div class="play-graph-empty">loading runtime…</div>';
+    return;
+  }
+  var code=document.getElementById('play-editor').value;
+  if(!code.trim()){
+    container.innerHTML='<div class="play-graph-empty">pipeline graph</div>';
+    return;
+  }
+  try{
+    var data=JSON.parse(pipeParse(code));
+  }catch(e){
+    container.innerHTML='<div class="play-graph-empty">parse error</div>';
+    return;
+  }
+  if(data.errors&&data.errors.length>0){
+    container.innerHTML='<div class="play-graph-empty" style="color:var(--red)">'+data.errors[0].replace(/</g,'&lt;')+'</div>';
+    return;
+  }
+  if(!data.pipelines||data.pipelines.length===0){
+    container.innerHTML='<div class="play-graph-empty">no pipeline detected</div>';
+    return;
+  }
+  var w=container.clientWidth-10;if(w<180)w=180;
+  var nW=180,nH=32,vG=18,pt=12,pb=12;
+  var tH=pt+pb;data.pipelines.forEach(function(p){tH+=p.stages.length*(nH+vG);if(p.stages.length>1)tH+=6;});
+  if(tH<80)tH=80;
+  var svg=document.createElementNS('http://www.w3.org/2000/svg','svg');
+  svg.setAttribute('width',w);svg.setAttribute('height',tH);
+  svg.setAttribute('viewBox','0 0 '+w+' '+tH);
+  var defs=document.createElementNS('http://www.w3.org/2000/svg','defs');
+  var mk=document.createElementNS('http://www.w3.org/2000/svg','marker');
+  mk.setAttribute('id','igh');mk.setAttribute('markerWidth','7');mk.setAttribute('markerHeight','5');
+  mk.setAttribute('refX','7');mk.setAttribute('refY','2.5');mk.setAttribute('orient','auto');
+  var mp=document.createElementNS('http://www.w3.org/2000/svg','polygon');
+  mp.setAttribute('points','0 0, 7 2.5, 0 5');mp.setAttribute('fill','#555');
+  mk.appendChild(mp);defs.appendChild(mk);
+  svg.appendChild(defs);
+  var yO=pt,cx=w/2;
+  data.pipelines.forEach(function(pl){
+    var ss=pl.stages;if(ss.length===0)return;
+    for(var i=0;i<ss.length;i++){
+      var s=ss[i],nx=cx-nW/2,ny=yO+i*(nH+vG);
+      var g=document.createElementNS('http://www.w3.org/2000/svg','g');
+      var r=document.createElementNS('http://www.w3.org/2000/svg','rect');
+      r.setAttribute('x',nx);r.setAttribute('y',ny);r.setAttribute('width',nW);r.setAttribute('height',nH);
+      r.setAttribute('rx','6');r.setAttribute('ry','6');
+      var c=_gColors[s.type]||_gColors.variable;
+      r.setAttribute('fill',c.fill);r.setAttribute('stroke',c.stroke);r.setAttribute('stroke-width','1.2');
+      g.appendChild(r);
+      var lt=document.createElementNS('http://www.w3.org/2000/svg','text');
+      lt.setAttribute('x',nx+10);lt.setAttribute('y',ny+nH/2+4);
+      lt.setAttribute('fill',c.text);lt.setAttribute('font-family','"JetBrains Mono",monospace');
+      lt.setAttribute('font-size','10');lt.setAttribute('font-weight','600');
+      lt.textContent=s.label;g.appendChild(lt);
+      if(s.args&&s.args.length>0){
+        var ad=s.args.map(function(a){return a.replace(/^"(.*)"$/,'$1');}).join(' ');
+        if(ad.length>16)ad=ad.substring(0,14)+'…';
+        var ae=document.createElementNS('http://www.w3.org/2000/svg','text');
+        ae.setAttribute('x',nx+10+(s.label.length*5.5)+2);
+        ae.setAttribute('y',ny+nH/2+4);
+        ae.setAttribute('fill',c.text);ae.setAttribute('fill-opacity','0.5');
+        ae.setAttribute('font-family','"JetBrains Mono",monospace');ae.setAttribute('font-size','9');
+        ae.textContent=ad;g.appendChild(ae);
+      }
+      svg.appendChild(g);
+    }
+    for(var i=0;i<ss.length-1;i++){
+      var sy=yO+i*(nH+vG)+nH,ey=yO+(i+1)*(nH+vG);
+      var ln=document.createElementNS('http://www.w3.org/2000/svg','line');
+      ln.setAttribute('x1',cx);ln.setAttribute('y1',sy);ln.setAttribute('x2',cx);ln.setAttribute('y2',ey-5);
+      ln.setAttribute('stroke',ss[i+1].parallel?'#c084fc':'#4a4a5e');
+      ln.setAttribute('stroke-width','2');
+      if(ss[i+1].parallel)ln.setAttribute('stroke-dasharray','5,3');
+      ln.setAttribute('marker-end','url(#igh)');
+      svg.appendChild(ln);
+    }
+    yO+=ss.length*(nH+vG)+8;
+  });
+  container.innerHTML='';container.appendChild(svg);
+}
 </script>
 </body>
 </html>

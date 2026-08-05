@@ -935,7 +935,7 @@ var playExamples = [
   '-- 🤖 AI: generate creative text\nai_provider "deepseek"\n\ngenerate "Write a haiku about programming"\n    > print',
   '-- 🤖 AI: fact checker agent\nai_provider "deepseek"\n\nagent "qc" "You are a quiz champion. Answer concisely with verified facts only."\n\nagent_ask "qc" "What is the capital of Australia?"\n    > print\n\nagent_ask "qc" "What is its population?"\n    > print',
   '-- 🤖 AI: low-level chat with system prompt\nai_provider "deepseek"\n\nai_chat "You are a pirate. Keep it short." "Where is the treasure?"\n    > print',
-  '-- 🤖 AI: parallel batch processing\nai_provider "deepseek"\n\nai_batch "Summarize in one word:" ["Go", "Python", "Rust", "Zig"]\n    > print',
+  '-- 🤖 AI: parallel batch processing\nai_provider "deepseek"\n\nai_batch "Summarize in one word:" (["Go", "Python", "Rust", "Zig"])\n    > print',
   '-- 🤖 AI: self-healing code (try_ai)\nai_provider "deepseek"\n\ntry_ai\n    "42" * 3\ncatch e\n    0',
   '-- 🤖 AI: semantic similarity (cosine_sim)\nai_provider "deepseek"\n\nv1: embed "cat"\nv2: embed "kitten"\nv3: embed "car"\n\nprint "cat-kitten: "\nprint (cosine_sim v1 v2)\nprint "cat-car: "\nprint (cosine_sim v1 v3)',
   '-- 🤖 AI: vector search (nearest)\nai_provider "deepseek"\n\nitems: embed_batch (["cat", "dog", "bird", "fish"])\nq: embed "pet"\ntop: nearest q items 2\n\nprint "Top matches (indices):"\nprint top',

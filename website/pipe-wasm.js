@@ -19,7 +19,12 @@ WebAssembly.instantiateStreaming(fetch("pipe.wasm?v=5"), pipeGo.importObject).th
 
 function runPipe(code) {
   if (!pipeReady) return "WASM not loaded";
-  try { return pipeRun(code) || "(no output)"; }
+  try { 
+    var result = pipeRun(code) || "(no output)";
+    var dbg = getDebug();
+    if (dbg) result = "--- HTTP DEBUG ---\n" + dbg + "\n---\n" + result;
+    return result;
+  }
   catch(e) { return "Error: " + e.message; }
 }
 
@@ -53,15 +58,15 @@ function restoreAPIKey() {
   }
 }
 
+var _dbg = [];
+
 function pipeFetchSync(url, opts) {
   var method = (opts && opts.method) || "GET";
   var body = (opts && opts.body) || undefined;
   var headers = (opts && opts.headers) || {};
-
-  console.log('pipeFetchSync:', method, url);
-  console.log('headers keys:', Object.keys(headers));
-  console.log('Authorization:', headers['Authorization']);
-  console.log('Content-Type:', headers['Content-Type']);
+  _dbg.push(method + ' ' + url.substring(0, 100));
+  _dbg.push('headers: ' + Object.keys(headers).join(', '));
+  _dbg.push('Authorization: ' + (headers['Authorization'] || '(missing)').substring(0, 30) + '...');
 
   var xhr = new XMLHttpRequest();
   xhr.open(method, url, false);
@@ -69,24 +74,20 @@ function pipeFetchSync(url, opts) {
   try {
     if (headers && typeof headers === 'object') {
       Object.keys(headers).forEach(function(k) {
-        try {
-          var val = headers[k];
-          console.log('setHeader:', k, '=', val);
-          xhr.setRequestHeader(k, ['Content-Type','Authorization'].indexOf(k) >= 0 ? String(val) : '');
-        } catch(e) { console.warn('skip header', k, e.message); }
+        try { xhr.setRequestHeader(k, String(headers[k])); } catch(e) {}
       });
     }
-  } catch(e) {
-    console.error('pipeFetchSync: header error', e);
-  }
+  } catch(e) {}
 
   try {
     xhr.send(body);
-    console.log('XHR status:', xhr.status);
-    console.log('XHR response:', xhr.responseText.substring(0, 150));
-    return { body: xhr.responseText, error: xhr.status >= 400 ? "HTTP " + xhr.status + ": " + xhr.statusText : "" };
+    _dbg.push('status: ' + xhr.status + ' ' + xhr.statusText);
+    _dbg.push('response: ' + xhr.responseText.substring(0, 200));
+    return { body: xhr.responseText, error: xhr.status >= 400 ? "HTTP " + xhr.status : "" };
   } catch(e) {
-    console.error('XHR error:', e.message);
-    return { body: "", error: "network error: " + e.message };
+    _dbg.push('ERROR: ' + e.message);
+    return { body: "", error: "error: " + e.message };
   }
 }
+
+function getDebug() { var s = _dbg.join('\n'); _dbg = []; return s; }

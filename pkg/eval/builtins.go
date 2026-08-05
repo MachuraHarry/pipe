@@ -15,11 +15,17 @@ func (b *Builtin) Inspect() string         { return "builtin function" }
 var builtins = map[string]*Builtin{}
 
 var zeroArityBuiltins = map[string]bool{
-	"now":         true,
-	"random":      true,
-	"try_ai_log":  true,
-	"args":        true,
-	"read_stdin":  true,
+	"now":           true,
+	"random":        true,
+	"try_ai_log":    true,
+	"args":          true,
+	"read_stdin":    true,
+	"ai_cost":       true,
+	"ai_tokens":     true,
+	"ai_cache_hits": true,
+	"ai_cache_misses": true,
+	"audit_log":     true,
+	"budget_spent":  true,
 }
 
 func init() {

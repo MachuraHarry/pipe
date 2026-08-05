@@ -75,7 +75,19 @@ func extractOpenAIResult(result map[string]interface{}) (ChatResponse, error) {
 	if !ok {
 		return ChatResponse{}, fmt.Errorf("no content in message")
 	}
-	return ChatResponse{Content: content}, nil
+	resp := ChatResponse{Content: content}
+	if usage, ok := result["usage"].(map[string]interface{}); ok {
+		if pt, ok := usage["prompt_tokens"].(float64); ok {
+			resp.PromptTokens = int(pt)
+		}
+		if ct, ok := usage["completion_tokens"].(float64); ok {
+			resp.CompletionTokens = int(ct)
+		}
+		if tt, ok := usage["total_tokens"].(float64); ok {
+			resp.TotalTokens = int(tt)
+		}
+	}
+	return resp, nil
 }
 
 func deepSeekChat(cfg Config, req ChatRequest) (ChatResponse, error) {
@@ -170,7 +182,17 @@ func anthropicChat(cfg Config, req ChatRequest) (ChatResponse, error) {
 	if !ok {
 		return ChatResponse{}, fmt.Errorf("no text in Anthropic content")
 	}
-	return ChatResponse{Content: text}, nil
+	resp := ChatResponse{Content: text}
+	if usage, ok := result["usage"].(map[string]interface{}); ok {
+		if it, ok := usage["input_tokens"].(float64); ok {
+			resp.PromptTokens = int(it)
+		}
+		if ot, ok := usage["output_tokens"].(float64); ok {
+			resp.CompletionTokens = int(ot)
+		}
+		resp.TotalTokens = resp.PromptTokens + resp.CompletionTokens
+	}
+	return resp, nil
 }
 
 // ---- Streaming Implementations ----

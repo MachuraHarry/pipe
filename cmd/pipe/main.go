@@ -56,6 +56,7 @@ func main() {
 		timeoutSec     int
 		buildOut       string
 		useUPX         bool
+		embedFiles     []string
 		filePath       string
 		scriptArgs     []string
 	)
@@ -107,6 +108,8 @@ func main() {
 			aiProvider = "-" // marker to read next arg
 		case "--timeout":
 			timeoutSec = -1 // marker to read next arg
+		case "--embed-file":
+			embedFiles = append(embedFiles, "-") // marker to read next arg
 		default:
 			if aiProvider == "-" {
 				aiProvider = arg
@@ -128,6 +131,10 @@ func main() {
 					genCount = n
 					continue
 				}
+			}
+			if len(embedFiles) > 0 && embedFiles[len(embedFiles)-1] == "-" {
+				embedFiles[len(embedFiles)-1] = arg
+				continue
 			}
 			if doBuild && !strings.HasPrefix(arg, "-") {
 				if filePath == "" {
@@ -156,9 +163,25 @@ func main() {
 		if outPath == "" {
 			outPath = strings.TrimSuffix(filePath, ".pipe")
 		}
-		if err := build.Build(filePath, outPath); err != nil {
-			fmt.Fprintf(os.Stderr, "pipe build: %s\n", err)
-			os.Exit(1)
+		if len(embedFiles) > 0 {
+			efs := make([]build.EmbedFile, len(embedFiles))
+			for i, fp := range embedFiles {
+				data, err := os.ReadFile(fp)
+				if err != nil {
+					fmt.Fprintf(os.Stderr, "pipe: embed-file '%s': %s\n", fp, err)
+					os.Exit(1)
+				}
+				efs[i] = build.EmbedFile{Path: fp, Data: data}
+			}
+			if err := build.BuildWithFiles(filePath, outPath, efs); err != nil {
+				fmt.Fprintf(os.Stderr, "pipe build: %s\n", err)
+				os.Exit(1)
+			}
+		} else {
+			if err := build.Build(filePath, outPath); err != nil {
+				fmt.Fprintf(os.Stderr, "pipe build: %s\n", err)
+				os.Exit(1)
+			}
 		}
 		if useUPX {
 			if upxPath, err := exec.LookPath("upx"); err == nil {
@@ -494,6 +517,7 @@ Examples:
 
 func runEval(program *ast.Program, scriptArgs []string, filePath string) {
 	object.ScriptArgs = scriptArgs
+	ai.ResetCostMetrics()
 
 	env := object.NewEnvironment()
 
@@ -503,6 +527,8 @@ func runEval(program *ast.Program, scriptArgs []string, filePath string) {
 		fmt.Fprintf(os.Stderr, "Runtime error: %s\n", result.Inspect())
 		os.Exit(1)
 	}
+
+	printCostTrace()
 }
 
 func checkProgram(program *ast.Program) error {
@@ -522,6 +548,7 @@ func runGenProgram(program *ast.Program) error {
 
 func runVM(program *ast.Program, quiet bool, filePath string, scriptArgs []string) {
 	object.ScriptArgs = scriptArgs
+	ai.ResetCostMetrics()
 
 	comp := compiler.NewWithFile(filePath)
 	if err := comp.Compile(program); err != nil {
@@ -554,6 +581,7 @@ func runVM(program *ast.Program, quiet bool, filePath string, scriptArgs []strin
 	if !quiet {
 		fmt.Fprintf(os.Stderr, "--- VM: %v ---\n", elapsed)
 	}
+	printCostTrace()
 }
 
 func runVMWithCache(filePath string, quiet bool) {
@@ -1089,6 +1117,7 @@ func astToString(out *strings.Builder, node ast.Node, depth int) {
 
 func runEmbedded(src []byte) {
 	object.ScriptArgs = os.Args[1:]
+	ai.ResetCostMetrics()
 
 	l := lexer.New(string(src))
 	p := parser.New(l)
@@ -1112,5 +1141,30 @@ func runEmbedded(src []byte) {
 	if err := machine.Run(); err != nil {
 		fmt.Fprintf(os.Stderr, "Error: %s\n", err)
 		os.Exit(1)
+	}
+	printCostTrace()
+}
+
+func printCostTrace() {
+	cost, tokens, calls, hits, misses := ai.GetCostMetrics()
+	history := ai.GetCostHistory()
+	if calls == 0 && hits == 0 {
+		return
+	}
+	fmt.Fprintf(os.Stderr, "\n═══ Cost Trace ═══\n")
+	fmt.Fprintf(os.Stderr, "Total cost:    $%.6f\n", cost)
+	fmt.Fprintf(os.Stderr, "Total tokens:  %d\n", tokens)
+	fmt.Fprintf(os.Stderr, "API calls:     %d\n", calls)
+	fmt.Fprintf(os.Stderr, "Cache hits:    %d | misses: %d\n", hits, misses)
+	for i, h := range history {
+		cached := ""
+		if h.Cached {
+			cached = " [CACHE]"
+		}
+		fmt.Fprintf(os.Stderr, "  #%d %s/%s | %d tokens | $%.6f%s\n",
+			i+1, h.Provider, h.Model, h.TotalTokens, h.CostUSD, cached)
+	}
+	if cost > 0 {
+		fmt.Fprintf(os.Stderr, "══════════════════\n")
 	}
 }

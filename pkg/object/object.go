@@ -393,6 +393,12 @@ var Builtins = []BuiltinInfo{
 	{"ai_cache", bAiCache},
 	{"ai_set_key", bAiSetKey},
 
+	// AI — Cost & Observability
+	{"ai_cost", bAiCost},
+	{"ai_tokens", bAiTokens},
+	{"ai_cache_hits", bAiCacheHits},
+	{"ai_cache_misses", bAiCacheMisses},
+
 	// AI — Retrieval
 	{"web_search", bWebSearch},
 	{"wiki_search", bWikiSearch},
@@ -429,6 +435,8 @@ var Builtins = []BuiltinInfo{
 	{"sandbox_profile", bSandboxProfile},
 	{"set_sandbox", bSetSandbox},
 	{"with_sandbox", bWithSandbox},
+	{"audit_log", bAuditLog},
+	{"budget_spent", bBudgetSpent},
 
 	// AI — Tool Calling
 	{"ai_tool", bAiTool},
@@ -457,6 +465,19 @@ var PrintHook func(args ...Object)
 var TryAIEvalFn func(source string) Object
 
 var ScriptArgs []string
+
+func init() {
+	ai.SetCostHook(func(entry ai.CostEntry) {
+		if ActiveProfile != nil {
+			ActiveProfile.RecordCost(entry.CostUSD)
+			if ActiveProfile.AuditLog {
+				ActiveProfile.Audit("ai_call",
+					fmt.Sprintf("provider=%s model=%s tokens=%d cost=%.6f cached=%v",
+						entry.Provider, entry.Model, entry.TotalTokens, entry.CostUSD, entry.Cached))
+			}
+		}
+	})
+}
 
 func bTryAIEval(args ...Object) Object {
 	if len(args) < 1 {
@@ -1617,6 +1638,10 @@ func bHttpGet(args ...Object) Object {
 	if !ok {
 		return err("http_get: URL must be a string")
 	}
+	if whitelistErr := ActiveProfile.CanNetworkTo(url.Value); whitelistErr != nil {
+		return err(whitelistErr.Error())
+	}
+	ActiveProfile.Audit("http_get", url.Value)
 	client := &http.Client{Timeout: 10 * time.Second}
 	resp, e := client.Get(url.Value)
 	if e != nil {
@@ -1646,6 +1671,10 @@ func bHttpPost(args ...Object) Object {
 	if !ok {
 		return err("http_post: URL must be a string")
 	}
+	if whitelistErr := ActiveProfile.CanNetworkTo(url.Value); whitelistErr != nil {
+		return err(whitelistErr.Error())
+	}
+	ActiveProfile.Audit("http_post", url.Value)
 	var bodyStr string
 	if len(args) >= 2 {
 		if b, ok := args[1].(*String); ok {
@@ -2365,6 +2394,37 @@ func bWikiSearch(args ...Object) Object {
 		}}
 	}
 	return &List{Elements: elems}
+}
+
+func bAiCost(args ...Object) Object {
+	cost, _, calls, hits, misses := ai.GetCostMetrics()
+	if len(args) > 0 {
+		if str, ok := args[0].(*String); ok && str.Value == "reset" {
+			ai.ResetCostMetrics()
+			return &String{Value: "cost metrics reset"}
+		}
+	}
+	return &Map{Pairs: map[string]Object{
+		"cost_usd":    &Float{Value: cost},
+		"calls":       &Integer{Value: int64(calls)},
+		"cache_hits":  &Integer{Value: int64(hits)},
+		"cache_misses": &Integer{Value: int64(misses)},
+	}}
+}
+
+func bAiTokens(args ...Object) Object {
+	_, tokens, _, _, _ := ai.GetCostMetrics()
+	return &Integer{Value: int64(tokens)}
+}
+
+func bAiCacheHits(args ...Object) Object {
+	_, _, _, hits, _ := ai.GetCostMetrics()
+	return &Integer{Value: int64(hits)}
+}
+
+func bAiCacheMisses(args ...Object) Object {
+	_, _, _, _, misses := ai.GetCostMetrics()
+	return &Integer{Value: int64(misses)}
 }
 
 func bAiChat(args ...Object) Object {
@@ -3417,6 +3477,42 @@ func bSandboxProfile(args ...Object) Object {
 			}
 			profile.WorkDir = s.Value
 
+		case "budget":
+			switch v := val.(type) {
+			case *Float:
+				profile.Budget = v.Value
+			case *Integer:
+				profile.Budget = float64(v.Value)
+			default:
+				return err("sandbox_profile: budget must be a number")
+			}
+
+		case "network_whitelist":
+			lst, ok := val.(*List)
+			if !ok {
+				return err("sandbox_profile: network_whitelist must be a list of strings")
+			}
+			profile.NetworkWhitelist = make([]string, 0, len(lst.Elements))
+			for _, e := range lst.Elements {
+				if s, ok := e.(*String); ok {
+					profile.NetworkWhitelist = append(profile.NetworkWhitelist, s.Value)
+				}
+			}
+
+		case "max_tool_calls":
+			i, ok := val.(*Integer)
+			if !ok {
+				return err("sandbox_profile: max_tool_calls must be a number")
+			}
+			profile.MaxToolCalls = int(i.Value)
+
+		case "audit_log":
+			b, ok := val.(*Boolean)
+			if !ok {
+				return err("sandbox_profile: audit_log must be a bool")
+			}
+			profile.AuditLog = b.Value
+
 		default:
 			return err("sandbox_profile: unknown config key '" + key + "'")
 		}
@@ -3474,4 +3570,23 @@ func bWithSandbox(args ...Object) Object {
 	default:
 		return err("with_sandbox: second argument must be a function/block")
 	}
+}
+
+func bAuditLog(args ...Object) Object {
+	entries := ActiveProfile.GetAuditLog()
+	elems := make([]Object, len(entries))
+	for i, e := range entries {
+		elems[i] = &Map{Pairs: map[string]Object{
+			"time":    &String{Value: e.Time.Format(time.RFC3339)},
+			"event":   &String{Value: e.Event},
+			"detail":  &String{Value: e.Detail},
+			"profile": &String{Value: e.Profile},
+		}}
+	}
+	return &List{Elements: elems}
+}
+
+func bBudgetSpent(args ...Object) Object {
+	spent := ActiveProfile.GetSpentBudget()
+	return &Float{Value: spent}
 }

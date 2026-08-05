@@ -5,6 +5,8 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
+	"time"
 )
 
 type FSAccess int
@@ -125,26 +127,36 @@ func (p *defaultPathPolicy) AllowWrite(path string) bool {
 }
 
 type SandboxProfile struct {
-	Name       string
-	FSAccess   FSAccess
-	Network    bool
-	Exec       bool
-	AI         bool
-	Timeout    int
-	Env        map[string]string
-	WorkDir    string
-	PathPolicy PathPolicy
+	Name             string
+	FSAccess         FSAccess
+	Network          bool
+	NetworkWhitelist []string
+	Exec             bool
+	AI               bool
+	Timeout          int
+	MaxToolCalls     int
+	Budget           float64
+	AuditLog         bool
+	Env              map[string]string
+	WorkDir          string
+	PathPolicy       PathPolicy
+
+	mu         sync.Mutex
+	toolCalls  int
+	auditTrail []AuditEntry
+	spentCost  float64
 }
 
 func NewSandboxProfile(name string) *SandboxProfile {
 	return &SandboxProfile{
-		Name:     name,
-		FSAccess: FSFull,
-		Network:  true,
-		Exec:     true,
-		AI:       true,
-		Env:      make(map[string]string),
-		WorkDir:  ".",
+		Name:       name,
+		FSAccess:   FSFull,
+		Network:    true,
+		Exec:       true,
+		AI:         true,
+		Budget:     0,
+		Env:        make(map[string]string),
+		WorkDir:    ".",
 	}
 }
 
@@ -180,7 +192,86 @@ func (p *SandboxProfile) CanAI() error {
 	if !p.AI {
 		return fmt.Errorf("E_SANDBOX: AI calls blocked by profile '%s'", p.Name)
 	}
+	if p.Budget > 0 {
+		p.mu.Lock()
+		spent := p.spentCost
+		p.mu.Unlock()
+		if spent >= p.Budget {
+			return fmt.Errorf("E_SANDBOX: budget exceeded (%.4f USD) in profile '%s'", p.Budget, p.Name)
+		}
+	}
 	return nil
+}
+
+func (p *SandboxProfile) RecordCost(costUSD float64) {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	p.spentCost += costUSD
+}
+
+func (p *SandboxProfile) CanToolCall() error {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	if p.MaxToolCalls > 0 && p.toolCalls >= p.MaxToolCalls {
+		return fmt.Errorf("E_SANDBOX: max tool calls (%d) exceeded in profile '%s'", p.MaxToolCalls, p.Name)
+	}
+	p.toolCalls++
+	return nil
+}
+
+func (p *SandboxProfile) CanNetworkTo(url string) error {
+	if !p.Network {
+		return fmt.Errorf("E_SANDBOX: network access blocked by profile '%s'", p.Name)
+	}
+	if len(p.NetworkWhitelist) == 0 {
+		return nil
+	}
+	allowed := false
+	for _, pattern := range p.NetworkWhitelist {
+		if strings.Contains(url, pattern) {
+			allowed = true
+			break
+		}
+	}
+	if !allowed {
+		return fmt.Errorf("E_SANDBOX: network url '%s' not in whitelist of profile '%s'", url, p.Name)
+	}
+	return nil
+}
+
+func (p *SandboxProfile) Audit(event, detail string) {
+	if !p.AuditLog {
+		return
+	}
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	p.auditTrail = append(p.auditTrail, AuditEntry{
+		Time:      time.Now(),
+		Event:     event,
+		Detail:    detail,
+		Profile:   p.Name,
+	})
+}
+
+func (p *SandboxProfile) GetAuditLog() []AuditEntry {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	cp := make([]AuditEntry, len(p.auditTrail))
+	copy(cp, p.auditTrail)
+	return cp
+}
+
+func (p *SandboxProfile) GetSpentBudget() float64 {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	return p.spentCost
+}
+
+type AuditEntry struct {
+	Time    time.Time
+	Event   string
+	Detail  string
+	Profile string
 }
 
 func (p *SandboxProfile) ensureTempDir() string {

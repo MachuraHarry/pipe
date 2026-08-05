@@ -24,7 +24,11 @@ type ChatRequest struct {
 }
 
 type ChatResponse struct {
-	Content string `json:"content"`
+	Content          string  `json:"content"`
+	PromptTokens     int     `json:"prompt_tokens,omitempty"`
+	CompletionTokens int     `json:"completion_tokens,omitempty"`
+	TotalTokens      int     `json:"total_tokens,omitempty"`
+	CostUSD          float64 `json:"cost_usd,omitempty"`
 }
 
 type Provider interface {
@@ -83,7 +87,9 @@ func Chat(req ChatRequest) (ChatResponse, error) {
 	key := cacheKey(ActiveConfig.Provider, ActiveConfig.Model, systemPrompt, userPrompt)
 
 	if cached, ok := cacheGet(key); ok {
-		return ChatResponse{Content: cached}, nil
+		resp := ChatResponse{Content: cached}
+		recordCostHit()
+		return resp, nil
 	}
 
 	var resp ChatResponse
@@ -104,6 +110,9 @@ func Chat(req ChatRequest) (ChatResponse, error) {
 
 	if err == nil {
 		cacheSet(key, resp.Content)
+		recordCost(resp)
+	} else {
+		recordCostMiss()
 	}
 
 	return resp, err
@@ -330,4 +339,142 @@ func ChatParallel(requests []ChatRequest, concurrency int) ([]ChatResponse, []er
 
 	wg.Wait()
 	return results, errs
+}
+
+// ---- Cost Tracking ----
+
+var (
+	costMu            sync.Mutex
+	totalCost         float64
+	totalTokens       int
+	totalPromptTokens int
+	totalCompTokens   int
+	costHits          int
+	costMisses        int
+	callsRecorded     int
+	costHistory       []CostEntry
+)
+
+type CostEntry struct {
+	Provider         string
+	Model            string
+	PromptTokens     int
+	CompletionTokens int
+	TotalTokens      int
+	CostUSD          float64
+	Cached           bool
+}
+
+var costHook func(CostEntry)
+
+func SetCostHook(fn func(CostEntry)) {
+	costMu.Lock()
+	defer costMu.Unlock()
+	costHook = fn
+}
+
+func recordCost(resp ChatResponse) {
+	costMu.Lock()
+	defer costMu.Unlock()
+
+	tokens := resp.TotalTokens
+	if tokens == 0 {
+		tokens = resp.PromptTokens + resp.CompletionTokens
+	}
+	totalTokens += tokens
+	totalPromptTokens += resp.PromptTokens
+	totalCompTokens += resp.CompletionTokens
+	callsRecorded++
+
+	cost := resp.CostUSD
+	if cost == 0 {
+		cost = estimateCost(ActiveConfig.Provider, ActiveConfig.Model, resp.PromptTokens, resp.CompletionTokens)
+	}
+	totalCost += cost
+
+	entry := CostEntry{
+		Provider:         ActiveConfig.Provider,
+		Model:            ActiveConfig.Model,
+		PromptTokens:     resp.PromptTokens,
+		CompletionTokens: resp.CompletionTokens,
+		TotalTokens:      tokens,
+		CostUSD:          cost,
+	}
+	costHistory = append(costHistory, entry)
+
+	if costHook != nil {
+		costHook(entry)
+	}
+}
+
+func recordCostHit() {
+	costMu.Lock()
+	defer costMu.Unlock()
+	costHits++
+}
+
+func recordCostMiss() {
+	costMu.Lock()
+	defer costMu.Unlock()
+	costMisses++
+}
+
+func GetCostMetrics() (totalCostUSD float64, totalTokensUsed int, calls int, hits int, misses int) {
+	costMu.Lock()
+	defer costMu.Unlock()
+	return totalCost, totalTokens, callsRecorded, costHits, costMisses
+}
+
+func GetCostHistory() []CostEntry {
+	costMu.Lock()
+	defer costMu.Unlock()
+	cp := make([]CostEntry, len(costHistory))
+	copy(cp, costHistory)
+	return cp
+}
+
+func GetTotalCost() float64 {
+	costMu.Lock()
+	defer costMu.Unlock()
+	return totalCost
+}
+
+func ResetCostMetrics() {
+	costMu.Lock()
+	defer costMu.Unlock()
+	totalCost = 0
+	totalTokens = 0
+	totalPromptTokens = 0
+	totalCompTokens = 0
+	costHits = 0
+	costMisses = 0
+	callsRecorded = 0
+	costHistory = nil
+}
+
+func estimateCost(provider, model string, promptTokens, completionTokens int) float64 {
+	switch provider {
+	case "openai":
+		if strings.Contains(model, "gpt-4o-mini") {
+			return float64(promptTokens)*0.00015/1000 + float64(completionTokens)*0.0006/1000
+		}
+		if strings.Contains(model, "gpt-4") {
+			return float64(promptTokens)*0.03/1000 + float64(completionTokens)*0.06/1000
+		}
+		return float64(promptTokens)*0.005/1000 + float64(completionTokens)*0.015/1000
+	case "deepseek":
+		return float64(promptTokens)*0.0009/1000 + float64(completionTokens)*0.0009/1000
+	case "anthropic":
+		if strings.Contains(model, "haiku") {
+			return float64(promptTokens)*0.0008/1000 + float64(completionTokens)*0.004/1000
+		}
+		if strings.Contains(model, "sonnet") {
+			return float64(promptTokens)*0.003/1000 + float64(completionTokens)*0.015/1000
+		}
+		return float64(promptTokens)*0.015/1000 + float64(completionTokens)*0.075/1000
+	case "ollama":
+		return 0
+	default:
+		return 0
+	}
 }

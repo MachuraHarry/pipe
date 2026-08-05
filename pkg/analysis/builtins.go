@@ -120,6 +120,8 @@ var builtinDocs = []BuiltinDoc{
 		Description: "Joins list elements into a string with delimiter between each element.", Category: CatString},
 	{Name: "contains", Signature: "contains(haystack, needle)", Params: []Param{p("haystack", "string|list"), p("needle", "any")}, ReturnType: "boolean",
 		Description: "For strings: checks if needle is a substring. For lists: checks if needle is an element.", Category: CatString},
+	{Name: "repeat", Signature: "repeat(str, count)", Params: []Param{p("str", "string"), p("count", "number")}, ReturnType: "string",
+		Description: "Repeats str count times. Much faster than while-loop concat for large counts.", Category: CatString},
 
 	// ---- CSV ----
 	{Name: "csv_parse", Signature: "csv_parse(text)", Params: []Param{p("text", "string")}, ReturnType: "list",

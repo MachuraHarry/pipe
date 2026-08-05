@@ -308,6 +308,7 @@ var Builtins = []BuiltinInfo{
 	{"split", bSplit},
 	{"join", bJoin},
 	{"contains", bContains},
+	{"repeat", bRepeat},
 
 	// CSV
 	{"csv_parse", bCsvParse},
@@ -958,6 +959,21 @@ func bContains(args ...Object) Object {
 		return FALSE
 	}
 	return err("contains expects string or list")
+}
+
+func bRepeat(args ...Object) Object {
+	if len(args) != 2 {
+		return err("repeat expects 2 arguments (string, count)")
+	}
+	str, ok := args[0].(*String)
+	if !ok {
+		return err("repeat: first argument must be a string")
+	}
+	count, ok := ToInt(args[1])
+	if !ok || count < 0 {
+		return err("repeat: count must be a non-negative number")
+	}
+	return &String{Value: strings.Repeat(str.Value, int(count))}
 }
 
 func bCsvParse(args ...Object) Object {

@@ -11,14 +11,27 @@ async function loadWasm() {
 
 loadWasm().then(instance => {
   pipeGo.run(instance);
-  pipeReady = true;
-  const bar = document.getElementById("play-bar");
-  if (bar) bar.innerHTML = '<span style="color:var(--green)">✓ ready</span>';
-  const btn = document.getElementById("play-btn");
-  if (btn) btn.disabled = false;
-  const gb = document.getElementById("gen-btn");
-  if (gb) gb.disabled = false;
-  restoreAPIKey();
+  // Wait for Go main() to register pipeRun before marking ready
+  var maxWait = 50;
+  function checkReady() {
+    if (typeof pipeRun === 'function') {
+      pipeReady = true;
+      const bar = document.getElementById("play-bar");
+      if (bar) bar.innerHTML = '<span style="color:var(--green)">✓ ready</span>';
+      const btn = document.getElementById("play-btn");
+      if (btn) btn.disabled = false;
+      const gb = document.getElementById("gen-btn");
+      if (gb) gb.disabled = false;
+      restoreAPIKey();
+    } else if (--maxWait > 0) {
+      setTimeout(checkReady, 50);
+    } else {
+      const bar = document.getElementById("play-bar");
+      if (bar) bar.innerHTML = '<span style="color:var(--red)">✗ init timeout</span>';
+      console.error("WASM init timeout: pipeRun not registered");
+    }
+  }
+  checkReady();
 }).catch(e => {
 
 function runPipe(code) {

@@ -209,13 +209,23 @@ async function loadWasm() {
 
 loadWasm().then(instance => {
   pipeGo.run(instance);
-  pipeReady = true;
-  restoreAPIKey();
-  document.getElementById("play-status").textContent = "✓ ready";
-  document.getElementById("sandbox-notice").classList.add("show");
-  document.getElementById("play-btn").disabled = false;
-  document.getElementById("gen-btn").disabled = false;
-  updateBar();
+  var maxWait = 50;
+  function checkReady() {
+    if (typeof pipeRun === 'function') {
+      pipeReady = true;
+      restoreAPIKey();
+      document.getElementById("play-status").textContent = "✓ ready";
+      document.getElementById("sandbox-notice").classList.add("show");
+      document.getElementById("play-btn").disabled = false;
+      document.getElementById("gen-btn").disabled = false;
+      updateBar();
+    } else if (--maxWait > 0) {
+      setTimeout(checkReady, 50);
+    } else {
+      document.getElementById("play-status").textContent = "✗ init timeout";
+    }
+  }
+  checkReady();
 }).catch(e => {
   document.getElementById("play-status").textContent = "✗ " + e.message;
   console.error("WASM:", e);

@@ -24,7 +24,7 @@ else
 fi
 
 install_pipe() {
-  local os arch url version="${PIPE_VERSION:-latest}"
+  local os arch url version="${PIPE_VERSION:-latest}" artifact
 
   case "${RUNNER_OS:-$(uname -s)}" in
     Linux)        os=linux ;;
@@ -39,18 +39,19 @@ install_pipe() {
     *) echo "pipe-action: unsupported architecture: ${RUNNER_ARCH:-$(uname -m)}" >&2; exit 1 ;;
   esac
 
+  artifact="pipe-${os}-${arch}.tar.gz"
   if [ "$version" = "latest" ]; then
-    url="https://github.com/MachuraHarry/pipe/releases/latest/download/pipe-${os}-${arch}.tar.gz"
+    url="https://github.com/MachuraHarry/pipe/releases/latest/download/${artifact}"
   else
-    url="https://github.com/MachuraHarry/pipe/releases/download/${version}/pipe-${os}-${arch}.tar.gz"
+    url="https://github.com/MachuraHarry/pipe/releases/download/${version}/${artifact}"
   fi
 
   echo "pipe-action: downloading Pipe ${version} (${os}/${arch})"
-  curl -fsSL -o /tmp/pipe.tar.gz "$url"
+  curl -fsSL -o "/tmp/${artifact}" "$url"
 
   # Verify SHA256 when the release ships one (releases after v0.7.0 do); warn and continue otherwise.
-  if curl -fsSL -o /tmp/pipe.tar.gz.sha256 "$url.sha256" 2>/dev/null; then
-    (cd /tmp && sha256sum -c pipe.tar.gz.sha256 >/dev/null) || {
+  if curl -fsSL -o "/tmp/${artifact}.sha256" "$url.sha256" 2>/dev/null; then
+    (cd /tmp && sha256sum -c "${artifact}.sha256" >/dev/null) || {
       echo "pipe-action: SHA256 verification failed" >&2
       exit 1
     }
@@ -59,7 +60,7 @@ install_pipe() {
     echo "pipe-action: warning — no SHA256 checksum available, skipping verification"
   fi
 
-  tar -xzf /tmp/pipe.tar.gz -C /tmp
+  tar -xzf "/tmp/${artifact}" -C /tmp
 
   mkdir -p "$HOME/.local/bin"
   if [ -f /tmp/pipe.exe ]; then

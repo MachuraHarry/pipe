@@ -937,7 +937,7 @@ var playExamples = [
   '-- 🤖 AI: parallel batch processing\nai_provider "deepseek"\n\nai_batch "Summarize in one word:" ["Go", "Python", "Rust", "Zig"]\n    > print',
   '-- 🤖 AI: self-healing code (try_ai)\nai_provider "deepseek"\n\ntry_ai\n    "42" * 3\ncatch e\n    0',
   '-- 🤖 AI: semantic similarity (cosine_sim)\nai_provider "deepseek"\n\nv1: embed "cat"\nv2: embed "kitten"\nv3: embed "car"\n\nprint "cat-kitten: "\nprint (cosine_sim v1 v2)\nprint "cat-car: "\nprint (cosine_sim v1 v3)',
-  '-- 🤖 AI: vector search (nearest)\nai_provider "deepseek"\n\nitems: embed_batch ["cat", "dog", "bird", "fish"]\nq: embed "pet"\ntop: nearest q items 2\n\nprint "Top matches (indices):"\nprint top',
+  '-- 🤖 AI: vector search (nearest)\nai_provider "deepseek"\n\nitems: embed_batch (["cat", "dog", "bird", "fish"])\nq: embed "pet"\ntop: nearest q items 2\n\nprint "Top matches (indices):"\nprint top',
   '-- 🤖 AI: pipeline filter with AI\nai_provider "deepseek"\n\nnums: [10, -5, 3, -8, 12]\npositive: filter nums (fn x: x > 0)\n\nprint "Positive numbers:"\nprint positive\n\nclassify (join positive ", ") "small, medium, large"\n    > print',
   '-- 🤖 AI: agent multi-turn conversation\nai_provider "deepseek"\n\nagent "chef" "You are a chef. Give short cooking advice."\n\nagent_ask "chef" "How do I boil an egg?"\n    > print\n\nagent_ask "chef" "How long?"\n    > print',
   '-- 🤖 AI: extract structured data\nai_provider "deepseek"\n\nextract "The meeting with John is on Friday at 3pm in Room 4B" "person, day, time, room"\n    > print',

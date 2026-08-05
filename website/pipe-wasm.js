@@ -19,12 +19,7 @@ WebAssembly.instantiateStreaming(fetch("pipe.wasm?v=5"), pipeGo.importObject).th
 
 function runPipe(code) {
   if (!pipeReady) return "WASM not loaded";
-  try { 
-    var result = pipeRun(code) || "(no output)";
-    var dbg = getDebug();
-    if (dbg) result = "--- HTTP DEBUG ---\n" + dbg + "\n---\n" + result;
-    return result;
-  }
+  try { return pipeRun(code) || "(no output)"; }
   catch(e) { return "Error: " + e.message; }
 }
 
@@ -58,15 +53,10 @@ function restoreAPIKey() {
   }
 }
 
-var _dbg = [];
-
 function pipeFetchSync(url, opts) {
   var method = (opts && opts.method) || "GET";
   var body = (opts && opts.body) || undefined;
   var headers = (opts && opts.headers) || {};
-  _dbg.push(method + ' ' + url.substring(0, 100));
-  _dbg.push('headers: ' + Object.keys(headers).join(', '));
-  _dbg.push('Authorization: ' + (headers['Authorization'] || '(missing)').substring(0, 30) + '...');
 
   var xhr = new XMLHttpRequest();
   xhr.open(method, url, false);
@@ -81,13 +71,8 @@ function pipeFetchSync(url, opts) {
 
   try {
     xhr.send(body);
-    _dbg.push('status: ' + xhr.status + ' ' + xhr.statusText);
-    _dbg.push('response: ' + xhr.responseText.substring(0, 200));
     return { body: xhr.responseText, error: xhr.status >= 400 ? "HTTP " + xhr.status : "" };
   } catch(e) {
-    _dbg.push('ERROR: ' + e.message);
     return { body: "", error: "error: " + e.message };
   }
 }
-
-function getDebug() { var s = _dbg.join('\n'); _dbg = []; return s; }

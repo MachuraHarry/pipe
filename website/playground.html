@@ -239,15 +239,10 @@ function restoreAPIKey() {
   }
 }
 
-var _dbg = [];
-
 function pipeFetchSync(url, opts) {
   var method = (opts && opts.method) || "GET";
   var body = (opts && opts.body) || undefined;
   var headers = (opts && opts.headers) || {};
-  _dbg.push(method + ' ' + url.substring(0, 100));
-  _dbg.push('headers: ' + Object.keys(headers).join(', '));
-  _dbg.push('Authorization: ' + (headers['Authorization'] || '(MISSING)').substring(0, 40) + '...');
   var xhr = new XMLHttpRequest();
   xhr.open(method, url, false);
   try {
@@ -257,11 +252,8 @@ function pipeFetchSync(url, opts) {
   } catch(e) {}
   try {
     xhr.send(body);
-    _dbg.push('status: ' + xhr.status + ' ' + xhr.statusText);
-    _dbg.push('response: ' + xhr.responseText.substring(0, 200));
     return { body: xhr.responseText, error: xhr.status >= 400 ? "HTTP " + xhr.status : "" };
   } catch(e) {
-    _dbg.push('ERROR: ' + e.message);
     return { body: "", error: "error: " + e.message };
   }
 }
@@ -318,15 +310,13 @@ function runPlay() {
       const t0=performance.now();
       const result=pipeRun(code);
       const t1=performance.now();
-      var debugInfo = '';
-      if (_dbg.length > 0) { debugInfo = _dbg.join('\n') + '\n---\n'; _dbg = []; }
       btn.disabled=false;btn.textContent="▶ Run";
       const elapsed=((t1-t0)/1000).toFixed(2);
       if(result&&(result.includes("Error:")||result.includes("Parse error"))){
         bar.className="play-bar error";
         bar.innerHTML='<span>✗ error ('+elapsed+'s)</span>';
         out.className="play-out error";
-        out.textContent = debugInfo + (result||"(no output)");
+        out.textContent = result||"(no output)";
       }else{
         bar.className="play-bar success";
         bar.innerHTML='<span>✓ done ('+elapsed+'s)</span>';

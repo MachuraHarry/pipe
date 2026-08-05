@@ -925,7 +925,14 @@ var playExamples = [
   'found: nil\nnums: [10, 20, 30, 40, 50]\n\nfor n in nums\n    if n > 25\n        found: n\n        break\n\nprint found',
   'm: {a: 1, b: 2, c: 3}\nprint (keys m)\nprint (values m)',
   'print (regex_match "^[0-9]+$" "12345")\nprint (regex_match "^[0-9]+$" "abc")',
-  'print "1 " ++ "2 " ++ "3"'
+  'print "1 " ++ "2 " ++ "3"',
+  '-- 🤖 AI: needs API key in field above\nai_provider "deepseek"\n\nask "What is the meaning of life?"\n    > print',
+  '-- 🤖 AI: translate text\nai_provider "deepseek"\n\ntranslate "Hello, how are you today?" "German"\n    > print',
+  '-- 🤖 AI: summarize a paragraph\nai_provider "deepseek"\n\nsummarize "Pipe is a semantic pipeline runtime language. It compiles to bytecode and runs on a stack-based VM. It has 23 AI builtins for LLM operations."\n    > print',
+  '-- 🤖 AI: classify text\nai_provider "deepseek"\n\nclassify "The app crashes on startup after update" "bug, feature, question, complaint"\n    > print',
+  '-- 🤖 AI: agent with memory\nai_provider "deepseek"\n\nagent "poet" "You are a poet. Respond in rhyming couplets. Keep it short."\n\nagent_ask "poet" "Describe the moon"\n    > print',
+  '-- 🤖 AI: structured JSON\nai_provider "deepseek"\n\ndata: generate_json "Create 2 cars" "make: string, model: string, year: number, electric: boolean"\n\nfor car in data\n    (get car "make") ++ " " ++ (get car "model")\n        > print',
+  '-- 🤖 AI: web search + RAG\nai_provider "deepseek"\n\nresults: web_search "What is quantum computing?"\n\nfor r in results\n    (get r "snippet")\n        > print'
 ];
 
 function pickPlayExample() {

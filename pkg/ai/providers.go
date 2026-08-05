@@ -274,7 +274,6 @@ func httpPostStreamAnthropic(url, apiKey string, reqBody interface{}, timeout ti
 	}
 	httpReq.Header.Set("Content-Type", "application/json")
 	httpReq.Header.Set("Accept", "text/event-stream")
-	httpReq.Header.Set("js.fetch:mode", "cors")
 	httpReq.Header.Set("x-api-key", apiKey)
 	httpReq.Header.Set("anthropic-version", "2023-06-01")
 

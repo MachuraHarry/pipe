@@ -133,12 +133,20 @@ func extractTitle(text string) string {
 	return text
 }
 
+var httpGetStringFn func(string) ([]byte, error)
+
 func httpGetString(url string) ([]byte, error) {
+	if httpGetStringFn != nil {
+		return httpGetStringFn(url)
+	}
+	return httpGetStringNative(url)
+}
+
+func httpGetStringNative(url string) ([]byte, error) {
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		return nil, err
 	}
-	req.Header.Set("js.fetch:mode", "cors")
 
 	client := &http.Client{Timeout: 10 * time.Second}
 	resp, err := client.Do(req)

@@ -141,6 +141,15 @@ func Stream(req ChatRequest, onToken StreamCallback) error {
 }
 
 func httpPostJSON(url, apiKey string, reqBody interface{}, timeout time.Duration) (map[string]interface{}, error) {
+	if httpPostJSONFn != nil {
+		return httpPostJSONFn(url, apiKey, reqBody, timeout)
+	}
+	return httpPostJSONNative(url, apiKey, reqBody, timeout)
+}
+
+var httpPostJSONFn func(string, string, interface{}, time.Duration) (map[string]interface{}, error)
+
+func httpPostJSONNative(url, apiKey string, reqBody interface{}, timeout time.Duration) (map[string]interface{}, error) {
 	body, err := json.Marshal(reqBody)
 	if err != nil {
 		return nil, fmt.Errorf("marshal request: %w", err)
@@ -151,7 +160,6 @@ func httpPostJSON(url, apiKey string, reqBody interface{}, timeout time.Duration
 		return nil, fmt.Errorf("create request: %w", err)
 	}
 	httpReq.Header.Set("Content-Type", "application/json")
-	httpReq.Header.Set("js.fetch:mode", "cors")
 	if apiKey != "" {
 		httpReq.Header.Set("Authorization", "Bearer "+apiKey)
 	}
@@ -191,7 +199,6 @@ func httpPostStream(url, apiKey string, reqBody interface{}, timeout time.Durati
 	}
 	httpReq.Header.Set("Content-Type", "application/json")
 	httpReq.Header.Set("Accept", "text/event-stream")
-	httpReq.Header.Set("js.fetch:mode", "cors")
 	if apiKey != "" {
 		httpReq.Header.Set("Authorization", "Bearer "+apiKey)
 	}

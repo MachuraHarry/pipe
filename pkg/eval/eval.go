@@ -745,11 +745,13 @@ func (ctx *EvalContext) evalTryExpression(te *ast.TryExpression, env *object.Env
 	}
 
 	if te.AIFix {
-		if fixed := ctx.tryAIFix(err, te.TryBlock, env); fixed != nil && fixed.Type() != object.ERROR {
+		fixed := ctx.tryAIFix(err, te.TryBlock, env)
+		if fixed != nil && fixed.Type() != object.ERROR {
 			return fixed
 		}
+		ai.LogTryAIFix(extractErrorCode(err.Message), blockSource(te.TryBlock), err.Message, 0, false)
 		if te.CatchBlock == nil {
-			ai.LogTryAIFix(extractErrorCode(err.Message), blockSource(te.TryBlock), err.Message, 0, false)
+			return result
 		}
 	}
 

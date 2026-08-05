@@ -566,15 +566,15 @@ oninput="syncHighlight()" onscroll="syncScroll()"></textarea>
       <div class="feature-text">
         <h3 data-lang="en" class="active"><span>How We Made AI Code Execution Safe</span></h3>
         <h3 data-lang="de"><span>Warum KI-Code-Ausführung sicher ist</span></h3>
-        <p data-lang="en" class="active"><code>try_ai</code> raised a natural concern: <em>“AI modifying code at runtime — isn't that dangerous?”</em> We invested in a <strong>3-ring defense-in-depth validation</strong> that makes <code>try_ai</code> safe even in production. Every AI fix must pass parse-checking, sandbox evaluation in an isolated environment, and re-execution — or it is silently discarded. There is no path for AI-generated code to escape validation.</p>
-        <p data-lang="de"><code>try_ai</code> warf eine berechtigte Frage auf: <em>„KI ändert Code zur Laufzeit — ist das nicht gefährlich?"</em> Wir haben in eine <strong>3-Ring-Defense-in-Depth-Validierung</strong> investiert, die <code>try_ai</code> auch in Produktion sicher macht. Jeder KI-Fix muss Parse-Check, Sandbox-Evaluation in isolierter Umgebung und Wiederausführung bestehen — oder wird verworfen. Es gibt keinen Weg für KI-generierten Code, die Validierung zu umgehen.</p>
+<p data-lang="en" class="active"><code>try_ai</code> raised a natural concern: <em>AI modifying code at runtime — isn't that dangerous?</em> We invested in <strong>3-ring defense-in-depth validation</strong> that makes <code>try_ai</code> safe even in production. Every AI fix must pass parse-checking, evaluation in a variable‑isolated environment, and re-execution — or it is silently discarded. The system prompt restricts AI fixes to safe builtins only, providing an additional architectural barrier.</p>
+<p data-lang="de"><code>try_ai</code> warf eine berechtigte Frage auf: <em>KI ändert Code zur Laufzeit — ist das nicht gefährlich?</em> Wir haben in eine <strong>3-Ring-Defense-in-Depth-Validierung</strong> investiert, die <code>try_ai</code> auch in Produktion sicher macht. Jeder KI-Fix muss Parse-Check, Evaluation in variablen‑isolierter Umgebung und Wiederausführung bestehen — oder wird verworfen. Der System-Prompt beschränkt KI-Fixes auf sichere Builtins und bietet eine zusätzliche architektonische Barriere.</p>
       </div>
       <div class="feature-code"><div class="bar"><span class="dot" style="background:var(--green)"></span><span class="dot" style="background:var(--green)"></span><span class="dot" style="background:var(--green)"></span></div><pre><span class="cmt">Defense in Depth — 3 validation rings:</span>
 <span class="cmt">┌─────────────────────────────────┐</span>
 <span class="cmt">│ RING 1: Parse → valid syntax?   │</span>
 <span class="cmt">├─────────────────────────────────┤</span>
-<span class="cmt">│ RING 2: Sandbox → no errors?    │</span>
-<span class="cmt">│   isolated env.Copy(), no I/O   │</span>
+<span class="cmt">│ RING 2: Isolated eval → safe?   │</span>
+<span class="cmt">│   env.Copy() + safe-builtins only│</span>
 <span class="cmt">├─────────────────────────────────┤</span>
 <span class="cmt">│ RING 3: Real eval → final check │</span>
 <span class="cmt">├─────────────────────────────────┤</span>

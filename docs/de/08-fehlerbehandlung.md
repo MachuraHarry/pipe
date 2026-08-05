@@ -107,7 +107,7 @@ try_ai
 3. **KI-Aufruf** mit Fehlerkontext und Quellcode
 4. **Bis zu 3 Wiederholungsversuche** — schlägt der Fix fehl, wird mit mehr Kontext erneut versucht
 5. **Feedback auf stderr** — jeder Versuch mit Diff: `⚡ try_ai: attempt 1 — "42" * 3 → "(to_num "42") * 3"`
-6. **3-Ring-Validierung** — Parse → Sandbox-Test → echte Ausführung
+6. **3-Ring-Validierung** — Parse → Isolierte Eval → echte Ausführung
 7. **Fix übernommen** oder **Fallback zum catch**
 
 #### Fixbare Error-Codes
@@ -144,10 +144,10 @@ Diese Sektion adressiert die Kritik, dass KI-gesteuerte Code-Änderungen zur Lau
 
 | Bedrohung | Risiko | Gegenmaßnahme |
 |-----------|--------|---------------|
-| KI generiert Schadcode | **HOCH** | 3-Ring-Validierung (Parse → Sandbox → Echttest) verhindert Ausführung von ungültigem Code |
+| KI generiert Schadcode | **HOCH** | 3-Ring-Validierung (Parse → Isolierte Eval → Echttest) verhindert Ausführung von ungültigem Code |
 | KI halluziniert falschen Fix | **MITTEL** | Bis zu 3 Retry-Versuche; `catch`-Block als deterministischer Fallback |
 | Prompt-Injection via Fehlermeldung | **MITTEL** | System-Prompt ist **fix und unveränderlich** (Compile-Zeit-Konstante); Nutzereingaben gehen nur in die `user`-Rolle |
-| Seiteneffekte im fixierten Code | **HOCH** | Sandbox-Evaluation (`env.Copy()`) isoliert alle Seiteneffekte in geklonter Umgebung |
+| Seiteneffekte im fixierten Code | **HOCH** | Variablen‑isolierte Evaluation (`env.Copy()`) isoliert Variablen‑Mutationen in geklonter Umgebung. I/O-Schutz erfolgt über die System-Prompt-Builtin-Whitelist (kein `write_file`, `exec`, `http_get`). |
 | API-Latenz macht Programm unberechenbar | **NIEDRIG** | `catch`-Block garantiert deterministischen Fallback; Retry-Limit von 3 begrenzt Worst-Case |
 
 #### Defense in Depth — Die 3-Ring-Validierung
@@ -158,10 +158,11 @@ Diese Sektion adressiert die Kritik, dass KI-gesteuerte Code-Änderungen zur Lau
 │ KI-Ausgabe → Lexer → Parser → AST            │
 │ Bei Parse-Fehlern → Fix ABGELEHNT            │
 ├─────────────────────────────────────────────┤
-│ Ring 2: SANDBOX-EVALUATION                   │
+│ Ring 2: ISOLIERTE EVALUATION                 │
 │ AST → eval(env.Copy()) → Ergebnis            │
 │ Bei ERROR oder nil → Fix ABGELEHNT            │
-│ Seiteneffekte in geklonter Umgebung isoliert │
+│ Variablen in geklonter Umgebung isoliert      │
+│ I/O-sicher via System-Prompt-Builtin-Whitelist│
 ├─────────────────────────────────────────────┤
 │ Ring 3: ECHTE EVALUATION                     │
 │ Gleicher AST → eval(echte env) → final       │
@@ -185,12 +186,12 @@ Diese Sektion adressiert die Kritik, dass KI-gesteuerte Code-Änderungen zur Lau
 
 | Tool | KI ändert Code zur Laufzeit? | Validierung | Fallback | Open Source? |
 |------|------------------------------|-------------|----------|--------------|
-| **Pipe `try_ai`** | Ja (nur Ausdrücke) | 3-Ring (Parse+Sandbox+Echt) | `catch`-Block | Ja (Apache 2.0) |
+| **Pipe `try_ai`** | Ja (nur Ausdrücke) | 3-Ring (Parse+Isoliert+Echt) | `catch`-Block | Ja (Apache 2.0) |
 | GitHub Copilot | Nein (nur Vorschläge) | Manuelles Review | Manuelles Undo | Nein |
 | Cursor AI | Nein (IDE-Integration) | Manuelles Review | Manuelles Undo | Nein |
 | AutoGPT / AgentGPT | Ja (beliebiger Code) | Keine | Manueller Abbruch | Teilweise |
 
-Pipe ist das **einzige Tool**, das automatisierte KI-Code-Reparatur mit Compile-Zeit-Sandbox-Validierung und garantiertem deterministischen Fallback kombiniert — alles in einem einzigen Sprachkonstrukt.
+Pipe ist das **einzige Tool**, das automatisierte KI-Code-Reparatur mit variablen‑isolierter Evaluation und garantiertem deterministischen Fallback kombiniert — alles in einem einzigen Sprachkonstrukt.
 
 #### Sicherheits-Fazit
 

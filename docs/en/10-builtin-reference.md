@@ -4,7 +4,7 @@ Pipe includes 115 built-in functions organized by category. This chapter documen
 
 ---
 
-## 10.1 IO & System (6 functions)
+## 10.1 IO & System (8 functions)
 
 ### `print`
 **Signature:** `print(value ...)`
@@ -50,6 +50,33 @@ print "Home directory: " ++ home
 
 path: env "PATH"
 print path
+```
+
+
+### `args`
+
+**Signature:** `args()`
+
+**Description:** Returns the CLI arguments passed to the script as a list of strings.
+
+**Returns:** `list` of `string`
+```pipe
+-- pipe script.pipe hello world
+args
+-- ["hello", "world"]
+```
+
+### `read_stdin`
+
+**Signature:** `read_stdin()`
+
+**Description:** Reads the entire standard input and returns it as a string.
+
+**Returns:** `string`
+```pipe
+-- echo "hello" | pipe script.pipe
+data: read_stdin
+print data   -- "hello\n"
 ```
 
 ### `sleep`
@@ -472,7 +499,42 @@ each ([1, 2, 3]) print_x
 
 ---
 
-## 10.5 Map (4 functions)
+## 10.5 CSV (2 functions)
+
+### `csv_parse`
+
+**Signature:** `csv_parse(text)`
+
+**Description:** Parses CSV-formatted text into a list of maps. The first row is treated as column headers. Handles multi-line CSV strings.
+
+**Returns:** `list` of `map`
+```pipe
+data: csv_parse "name,age
+Alice,30
+Bob,25"
+
+print (len data)                -- 2
+print (get (at data 0) "name")  -- "Alice"
+```
+
+### `csv_format`
+
+**Signature:** `csv_format(data, headers?)`
+
+**Description:** Formats a list of maps into a CSV string. Optional second argument specifies column order (list of strings).
+
+**Returns:** `string`
+```pipe
+rows: [{name: "Alice", age: 30}, {name: "Bob", age: 25}]
+csv: csv_format rows
+print csv
+-- name,age
+-- Alice,30
+-- Bob,25
+```
+
+
+## 10.6 Map (4 functions)
 
 ### `get`
 **Signature:** `get(map, key)`
@@ -521,7 +583,7 @@ values m
 
 ---
 
-## 10.6 Math (6 functions)
+## 10.7 Math (6 functions)
 
 ### `abs`
 **Signature:** `abs(x)`
@@ -605,7 +667,7 @@ round 4[7]
 
 ---
 
-## 10.7 Network & HTTP (5 functions)
+## 10.8 Network & HTTP (5 functions)
 
 ### `http_get`
 **Signature:** `http_get(url)`
@@ -662,7 +724,7 @@ print json_str
 
 ---
 
-## 10.8 TCP (6 functions)
+## 10.9 TCP (6 functions)
 
 ### `tcp_listen`
 **Signature:** `tcp_listen(address)`
@@ -736,7 +798,7 @@ tcp_close listener
 
 ---
 
-## 10.9 Regex (2 functions)
+## 10.10 Regex (2 functions)
 
 ### `regex_match`
 **Signature:** `regex_match(pattern, str)`
@@ -766,7 +828,7 @@ regex_replace "\\d" "#" "abc123xyz"
 
 ---
 
-## 10.10 Date & Time (2 functions)
+## 10.11 Date & Time (2 functions)
 
 ### `now`
 **Signature:** `now()`
@@ -819,7 +881,7 @@ format_time t "Monday, January 2, 2006"
 
 ---
 
-## 10.11 Random (2 functions)
+## 10.12 Random (2 functions)
 
 ### `random`
 **Signature:** `random()`
@@ -844,7 +906,7 @@ coin: random_range 0 1
 
 ---
 
-## 10.12 Encoding (2 functions)
+## 10.13 Encoding (2 functions)
 
 ### `base64_encode`
 **Signature:** `base64_encode(str)`
@@ -870,7 +932,7 @@ base64_decode "UGlwZQ=="
 
 ---
 
-## 10.13 Hashing (4 functions)
+## 10.14 Hashing (4 functions)
 
 ### `sha256`
 
@@ -922,7 +984,58 @@ sha512 "hello"
 
 ---
 
-## 10.14 Type Checks (6 functions)
+## 10.15 Database — SQLite (4 functions)
+
+### `db_open`
+
+**Signature:** `db_open(path)`
+
+**Description:** Opens or creates an SQLite database file. Use `":memory:"` for an in-memory database. Returns an integer handle for use with `db_query`, `db_exec`, `db_close`.
+
+**Returns:** `number` (database handle)
+```pipe
+h: db_open ":memory:"
+h: db_open "data.sqlite"
+```
+
+### `db_close`
+
+**Signature:** `db_close(handle)`
+
+**Description:** Closes an SQLite database connection.
+
+**Returns:** `nil`
+```pipe
+db_close h
+```
+
+### `db_exec`
+
+**Signature:** `db_exec(handle, sql)`
+
+**Description:** Executes a non-query SQL statement (INSERT, UPDATE, DELETE, CREATE TABLE, etc.). Returns the number of rows affected.
+
+**Returns:** `number` (rows affected)
+```pipe
+db_exec h "CREATE TABLE users (id INTEGER, name TEXT)"
+db_exec h "INSERT INTO users VALUES (1, 'Alice')"
+```
+
+### `db_query`
+
+**Signature:** `db_query(handle, sql)`
+
+**Description:** Executes a SELECT query and returns the results as a list of maps. Each map represents one row with column names as keys.
+
+**Returns:** `list` of `map`
+```pipe
+rows: db_query h "SELECT * FROM users"
+for row in rows
+    print (get row "name")
+```
+
+
+## 10.16 Type Checks (6 functions)
 
 ### `type_of`
 **Signature:** `type_of(value)`
@@ -1018,7 +1131,7 @@ is_nil false
 
 ---
 
-## 10.15 Conversion (2 functions)
+## 10.17 Conversion (2 functions)
 
 ### `to_str`
 **Signature:** `to_str(value)`
@@ -1054,7 +1167,7 @@ to_num "0xFF"
 
 ---
 
-## 10.16 Result Type (6 functions)
+## 10.18 Result Type (6 functions)
 
 ### `Ok`
 **Signature:** `Ok(value)`
@@ -1127,7 +1240,7 @@ unwrap_or (Ok "hi") ""
 ```
 ---
 
-## 10.17 AI — Configuration (5 functions)
+## 10.19 AI — Configuration (7 functions)
 
 ### `ai_provider`
 
@@ -1164,6 +1277,18 @@ ai_model "claude-3-5-sonnet-20241022"
 -- Ollama
 ai_host "http://localhost:11434/v1"
 ```
+
+### `ai_set_key`
+
+**Signature:** `ai_set_key(provider, key)`
+
+**Description:** Sets the API key for the given provider in memory. Use when environment variables are not available (browser, CI/CD). Supported providers: `"openai"`, `"deepseek"`, `"anthropic"`.
+
+**Returns:** `string` (confirmation message)
+```pipe
+ai_set_key "deepseek" "sk-your-key-here"
+```
+
 
 ### `ai_timeout`
 
@@ -1225,7 +1350,7 @@ ask "What is the capital of France?"
 
 ---
 
-## 10.18 AI — Low-level Chat (2 functions)
+## 10.20 AI — Low-level Chat (2 functions)
 
 ### `ai_chat`
 
@@ -1252,7 +1377,7 @@ data: ai_chat_json "Return JSON" "List 3 colors as JSON array"
 
 ---
 
-## 10.19 AI — Streaming (1 function)
+## 10.21 AI — Streaming (1 function)
 
 ### `ai_stream`
 
@@ -1268,7 +1393,7 @@ full: ai_stream "Explain" "How does AI work?"
 
 ---
 
-## 10.20 AI — High-level Convenience (7 functions)
+## 10.22 AI — High-level Convenience (8 functions)
 
 ### `summarize`
 
@@ -1313,6 +1438,20 @@ classify "The app crashes on submit" (["bug", "feature", "question"])
 ```pipe
 data: extract "Alice is 30 and lives in Paris" "Extract name, age, city as JSON"
 ```
+
+### `generate_json`
+
+**Signature:** `generate_json(instruction, schema)`
+
+**Description:** Generates structured JSON data matching a schema description using AI. Responds with valid JSON only — no markdown, no explanation. Returns parsed JSON as native Pipe types.
+
+**Returns:** `any` — parsed JSON as map, list, number, string, or boolean
+```pipe
+users: generate_json "Create 2 fake users" "name: string, age: number"
+for user in users
+    print (get user "name")
+```
+
 
 ### `generate`
 
@@ -1364,7 +1503,7 @@ ask "What is the meaning of life?"
 
 ---
 
-## 10.21 AI — Parallel (3 functions)
+## 10.23 AI — Parallel (3 functions)
 
 ### `ai_batch`
 
@@ -1403,7 +1542,7 @@ ai_rate_limit 5
 
 ---
 
-## 10.22 AI — Tool Calling (2 functions)
+## 10.24 AI — Tool Calling (2 functions)
 
 ### `ai_tool`
 
@@ -1430,7 +1569,7 @@ ai_with_tools "You have weather data" "What is the weather in Berlin?"
 
 ---
 
-## 10.23 AI — Agents (3 functions)
+## 10.25 AI — Agents (4 functions)
 
 ### `agent`
 
@@ -1489,7 +1628,21 @@ agent_ask "eng" "What is the capital of France?"
 
 ---
 
-## 10.24 AI — Embeddings (5 functions)
+### `try_ai_log`
+
+**Signature:** `try_ai_log()`
+
+**Description:** Returns the log of all `try_ai` fix attempts. Each entry is a map with keys: `time` (Unix timestamp), `code` (error code), `original` (expression), `fixed` (fix expression), `attempt` (1-3), `success` (boolean).
+
+**Returns:** `list` of `map`
+```pipe
+log: try_ai_log
+for entry in log
+    print (get entry "code") ++ ": " ++ (get entry "original") ++ " → " ++ (get entry "fixed")
+```
+
+
+## 10.26 AI — Embeddings (5 functions)
 
 ### `embed`
 
@@ -1553,7 +1706,7 @@ nearest q docs 2
 
 ---
 
-## 10.25 AI — Search (1 function)
+## 10.27 AI — Search (2 functions)
 
 ### `web_search`
 
@@ -1587,9 +1740,23 @@ ask ("Context:\n" ++ context ++ "\nQuestion: Explain quantum computing simply")
     > print
 ```
 
+
+### `wiki_search`
+
+**Signature:** `wiki_search(query)`
+
+**Description:** Searches Wikipedia (supports CORS for browser/WASM). Free, no API key required. Returns list of maps with `title`, `snippet`, and `url`.
+
+**Returns:** `list` of `map`
+```pipe
+results: wiki_search "quantum computing"
+for r in results
+    print (get r "title")
+```
+
 ---
 
-## 10.26 Sandbox (3 functions)
+## 10.28 Sandbox (3 functions)
 
 ### `sandbox_profile`
 **Signature:** `sandbox_profile(name)`
@@ -1618,7 +1785,7 @@ with_sandbox "noexec" (fn
 
 ---
 
-## 10.27 Test Assertions (6 functions)
+## 10.29 Test Assertions (6 functions)
 
 **Note:** `test` blocks and assert builtins are available in all execution modes, but are designed for use with `pipe -test`.
 
@@ -1707,7 +1874,7 @@ test "addition"
 
 ---
 
-## 10.28 Summary Table
+## 10.30 Summary Table
 
 ### IO & System (6)
 
@@ -1718,216 +1885,222 @@ test "addition"
 | 3 | `exec` | `exec(command)` | `string` |
 | 4 | `env` | `env(name)` | `string` or `nil` |
 | 5 | `sleep` | `sleep(ms)` | `nil` |
-| 6 | `go` | `go(fn, args...)` | `nil` |
+| 6 | `args` | `args()` | `list` |
+| 7 | `go` | `go(fn, args...)` | `nil` |
 
 ### File System (17)
 
 | # | Function | Signature | Returns |
 |---|----------|-----------|---------|
-| 7 | `read_file` | `read_file(path)` | `string` |
-| 8 | `write_file` | `write_file(path, content)` | `nil` |
-| 9 | `append_file` | `append_file(path, content)` | `nil` |
-| 10 | `read_lines` | `read_lines(path)` | `list` of strings |
-| 11 | `file_exists` | `file_exists(path)` | `boolean` |
-| 12 | `file_delete` | `file_delete(path)` | `boolean` |
-| 13 | `file_move` | `file_move(src, dst)` | `nil` |
-| 14 | `file_copy` | `file_copy(src, dst)` | `nil` |
-| 15 | `file_size` | `file_size(path)` | `number` |
-| 16 | `file_type` | `file_type(path)` | `string` or `nil` |
-| 17 | `list_dir` | `list_dir(path)` | `list` of strings |
-| 18 | `make_dir` | `make_dir(path)` | `nil` |
-| 19 | `remove_dir` | `remove_dir(path)` | `nil` |
-| 20 | `path_join` | `path_join(base, part)` | `string` |
-| 21 | `path_base` | `path_base(path)` | `string` |
-| 22 | `path_dir` | `path_dir(path)` | `string` |
-| 23 | `path_ext` | `path_ext(path)` | `string` |
+| 8 | `read_file` | `read_file(path)` | `string` |
+| 9 | `write_file` | `write_file(path, content)` | `nil` |
+| 10 | `append_file` | `append_file(path, content)` | `nil` |
+| 11 | `read_lines` | `read_lines(path)` | `list` of strings |
+| 12 | `file_exists` | `file_exists(path)` | `boolean` |
+| 13 | `file_delete` | `file_delete(path)` | `boolean` |
+| 14 | `file_move` | `file_move(src, dst)` | `nil` |
+| 15 | `file_copy` | `file_copy(src, dst)` | `nil` |
+| 16 | `file_size` | `file_size(path)` | `number` |
+| 17 | `file_type` | `file_type(path)` | `string` or `nil` |
+| 18 | `list_dir` | `list_dir(path)` | `list` of strings |
+| 19 | `make_dir` | `make_dir(path)` | `nil` |
+| 20 | `remove_dir` | `remove_dir(path)` | `nil` |
+| 21 | `path_join` | `path_join(base, part)` | `string` |
+| 22 | `path_base` | `path_base(path)` | `string` |
+| 23 | `path_dir` | `path_dir(path)` | `string` |
+| 24 | `path_ext` | `path_ext(path)` | `string` |
 
 ### String (6)
 
 | # | Function | Signature | Returns |
 |---|----------|-----------|---------|
-| 24 | `upper` | `upper(str)` | `string` |
-| 25 | `lower` | `lower(str)` | `string` |
-| 26 | `trim` | `trim(str)` | `string` |
-| 27 | `split` | `split(str, delimiter)` | `list` of strings |
-| 28 | `join` | `join(list, delimiter)` | `string` |
-| 29 | `contains` | `contains(haystack, needle)` | `boolean` |
+| 25 | `upper` | `upper(str)` | `string` |
+| 26 | `lower` | `lower(str)` | `string` |
+| 27 | `trim` | `trim(str)` | `string` |
+| 28 | `split` | `split(str, delimiter)` | `list` of strings |
+| 29 | `join` | `join(list, delimiter)` | `string` |
+| 30 | `csv_parse` | `csv_parse(text)` | `list` |
+| 31 | `contains` | `contains(haystack, needle)` | `boolean` |
 
 ### List (11)
 
 | # | Function | Signature | Returns |
 |---|----------|-----------|---------|
-| 30 | `len` | `len(value)` | `number` |
-| 31 | `push` | `push(list, value)` | The mutated `list` |
-| 32 | `pop` | `pop(list)` | The removed element, or `nil` if empty |
-| 33 | `at` | `at(collection, index)` | `any` or `nil` |
-| 34 | `slice_list` | `slice_list(list, range)` | `list` |
-| 35 | `sort` | `sort(list)` | The mutated `list` |
-| 36 | `range` | `range(start, end)` | `list` of numbers |
-| 37 | `map` | `map(list, fn)` | `list` |
-| 38 | `filter` | `filter(list, fn)` | `list` |
-| 39 | `reduce` | `reduce(list, fn, initial)` | `any` |
-| 40 | `each` | `each(list, fn)` | `nil` |
+| 32 | `len` | `len(value)` | `number` |
+| 33 | `push` | `push(list, value)` | The mutated `list` |
+| 34 | `pop` | `pop(list)` | The removed element, or `nil` if empty |
+| 35 | `at` | `at(collection, index)` | `any` or `nil` |
+| 36 | `slice_list` | `slice_list(list, range)` | `list` |
+| 37 | `sort` | `sort(list)` | The mutated `list` |
+| 38 | `range` | `range(start, end)` | `list` of numbers |
+| 39 | `map` | `map(list, fn)` | `list` |
+| 40 | `filter` | `filter(list, fn)` | `list` |
+| 41 | `reduce` | `reduce(list, fn, initial)` | `any` |
+| 42 | `each` | `each(list, fn)` | `nil` |
 
 ### Map (4)
 
 | # | Function | Signature | Returns |
 |---|----------|-----------|---------|
-| 41 | `get` | `get(map, key)` | `any` or `nil` |
-| 42 | `set` | `set(map, key, value)` | The mutated `map` |
-| 43 | `keys` | `keys(map)` | `list` of strings |
-| 44 | `values` | `values(map)` | `list` |
+| 43 | `get` | `get(map, key)` | `any` or `nil` |
+| 44 | `set` | `set(map, key, value)` | The mutated `map` |
+| 45 | `keys` | `keys(map)` | `list` of strings |
+| 46 | `values` | `values(map)` | `list` |
 
 ### Math (6)
 
 | # | Function | Signature | Returns |
 |---|----------|-----------|---------|
-| 45 | `abs` | `abs(x)` | `number` |
-| 46 | `min` | `min(a, b)` | `number` |
-| 47 | `max` | `max(a, b)` | `number` |
-| 48 | `pow` | `pow(base, exp)` | `number` |
-| 49 | `sqrt` | `sqrt(x)` | `number` |
-| 50 | `round` | `round(x)` | `number` |
+| 47 | `abs` | `abs(x)` | `number` |
+| 48 | `min` | `min(a, b)` | `number` |
+| 49 | `max` | `max(a, b)` | `number` |
+| 50 | `pow` | `pow(base, exp)` | `number` |
+| 51 | `sqrt` | `sqrt(x)` | `number` |
+| 52 | `round` | `round(x)` | `number` |
 
 ### Network & HTTP (5)
 
 | # | Function | Signature | Returns |
 |---|----------|-----------|---------|
-| 51 | `http_get` | `http_get(url)` | `string` |
-| 52 | `http_post` | `http_post(url, body)` | `string` |
-| 53 | `http_get_json` | `http_get_json(url)` | `any` (map, list, number, string, boolean, or nil) |
-| 54 | `parse_json` | `parse_json(json_string)` | `any` or `nil` on parse error |
-| 55 | `to_json` | `to_json(value)` | `string` |
+| 53 | `http_get` | `http_get(url)` | `string` |
+| 54 | `http_post` | `http_post(url, body)` | `string` |
+| 55 | `http_get_json` | `http_get_json(url)` | `any` (map, list, number, string, boolean, or nil) |
+| 56 | `parse_json` | `parse_json(json_string)` | `any` or `nil` on parse error |
+| 57 | `to_json` | `to_json(value)` | `string` |
 
 ### TCP (6)
 
 | # | Function | Signature | Returns |
 |---|----------|-----------|---------|
-| 56 | `tcp_listen` | `tcp_listen(address)` | `listener handle` |
-| 57 | `tcp_connect` | `tcp_connect(address)` | `connection handle` |
-| 58 | `tcp_accept` | `tcp_accept(listener)` | `connection handle` |
-| 59 | `tcp_read` | `tcp_read(conn, max_bytes)` | `string` |
-| 60 | `tcp_write` | `tcp_write(conn, data)` | `nil` |
-| 61 | `tcp_close` | `tcp_close(handle)` | `nil` |
+| 58 | `tcp_listen` | `tcp_listen(address)` | `listener handle` |
+| 59 | `tcp_connect` | `tcp_connect(address)` | `connection handle` |
+| 60 | `tcp_accept` | `tcp_accept(listener)` | `connection handle` |
+| 61 | `tcp_read` | `tcp_read(conn, max_bytes)` | `string` |
+| 62 | `tcp_write` | `tcp_write(conn, data)` | `nil` |
+| 63 | `tcp_close` | `tcp_close(handle)` | `nil` |
 
 ### Regex (2)
 
 | # | Function | Signature | Returns |
 |---|----------|-----------|---------|
-| 62 | `regex_match` | `regex_match(pattern, str)` | `boolean` |
-| 63 | `regex_replace` | `regex_replace(pattern, replacement, str)` | `string` |
+| 64 | `regex_match` | `regex_match(pattern, str)` | `boolean` |
+| 65 | `regex_replace` | `regex_replace(pattern, replacement, str)` | `string` |
 
 ### Date & Time (2)
 
 | # | Function | Signature | Returns |
 |---|----------|-----------|---------|
-| 64 | `now` | `now()` | `number` |
-| 65 | `format_time` | `format_time(timestamp, layout)` |  |
+| 66 | `now` | `now()` | `number` |
+| 67 | `format_time` | `format_time(timestamp, layout)` |  |
 
 ### Random (2)
 
 | # | Function | Signature | Returns |
 |---|----------|-----------|---------|
-| 66 | `random` | `random()` | `number` |
-| 67 | `random_range` | `random_range(min, max)` | `number` (integer) |
+| 68 | `random` | `random()` | `number` |
+| 69 | `random_range` | `random_range(min, max)` | `number` (integer) |
 
 ### Encoding (2)
 
 | # | Function | Signature | Returns |
 |---|----------|-----------|---------|
-| 68 | `base64_encode` | `base64_encode(str)` | `string` |
-| 69 | `base64_decode` | `base64_decode(str)` | `string` |
+| 70 | `base64_encode` | `base64_encode(str)` | `string` |
+| 71 | `base64_decode` | `base64_decode(str)` | `string` |
 
 ### Hashing (4)
 
 | # | Function | Signature | Returns |
 |---|----------|-----------|---------|
-| 70 | `sha256` | `sha256(text)` | `string` |
-| 71 | `md5` | `md5(text)` | `string` |
-| 72 | `sha1` | `sha1(text)` | `string` |
-| 73 | `sha512` | `sha512(text)` | `string` |
+| 72 | `sha256` | `sha256(text)` | `string` |
+| 73 | `md5` | `md5(text)` | `string` |
+| 74 | `db_open` | `db_open(path)` | `number` |
+| 75 | `sha1` | `sha1(text)` | `string` |
+| 76 | `sha512` | `sha512(text)` | `string` |
 
 ### Type Checks (6)
 
 | # | Function | Signature | Returns |
 |---|----------|-----------|---------|
-| 74 | `type_of` | `type_of(value)` | `string` — one of `"number"`, `"string"`, `"list"`, `"map"`, `"nil"`, `"function"`, `"boolean"`, `"result"` |
-| 75 | `is_num` | `is_num(value)` | `boolean` |
-| 76 | `is_str` | `is_str(value)` | `boolean` |
-| 77 | `is_list` | `is_list(value)` | `boolean` |
-| 78 | `is_map` | `is_map(value)` | `boolean` |
-| 79 | `is_nil` | `is_nil(value)` | `boolean` |
+| 77 | `type_of` | `type_of(value)` | `string` — one of `"number"`, `"string"`, `"list"`, `"map"`, `"nil"`, `"function"`, `"boolean"`, `"result"` |
+| 78 | `is_num` | `is_num(value)` | `boolean` |
+| 79 | `is_str` | `is_str(value)` | `boolean` |
+| 80 | `is_list` | `is_list(value)` | `boolean` |
+| 81 | `is_map` | `is_map(value)` | `boolean` |
+| 82 | `is_nil` | `is_nil(value)` | `boolean` |
 
 ### Conversion (2)
 
 | # | Function | Signature | Returns |
 |---|----------|-----------|---------|
-| 80 | `to_str` | `to_str(value)` | `string` |
-| 81 | `to_num` | `to_num(str)` | `number` or `nil` |
+| 83 | `to_str` | `to_str(value)` | `string` |
+| 84 | `to_num` | `to_num(str)` | `number` or `nil` |
 
 ### Result Type (6)
 
 | # | Function | Signature | Returns |
 |---|----------|-----------|---------|
-| 82 | `Ok` | `Ok(value)` | `Result` (Ok variant) |
-| 83 | `Err` | `Err(message)` | `Result` (Err variant) |
-| 84 | `is_ok` | `is_ok(result)` | `boolean` |
-| 85 | `is_err` | `is_err(result)` | `boolean` |
-| 86 | `unwrap` | `unwrap(result)` | `any` |
-| 87 | `unwrap_or` | `unwrap_or(result, default)` | `any` |
+| 85 | `Ok` | `Ok(value)` | `Result` (Ok variant) |
+| 86 | `Err` | `Err(message)` | `Result` (Err variant) |
+| 87 | `is_ok` | `is_ok(result)` | `boolean` |
+| 89 | `is_err` | `is_err(result)` | `boolean` |
+| 90 | `unwrap` | `unwrap(result)` | `any` |
+| 91 | `unwrap_or` | `unwrap_or(result, default)` | `any` |
 
 ### AI — Configuration (5)
 
 | # | Function | Signature | Returns |
 |---|----------|-----------|---------|
-| 89 | `ai_provider` | `ai_provider(name)` |  |
-| 90 | `ai_model` | `ai_model(name)` |  |
-| 91 | `ai_host` | `ai_host(url)` |  |
-| 92 | `ai_timeout` | `ai_timeout(seconds)` |  |
+| 92 | `ai_provider` | `ai_provider(name)` |  |
+| 93 | `ai_model` | `ai_model(name)` |  |
+| 94 | `ai_set_key` | `ai_set_key(provider, key)` | `string` |
+| 95 | `ai_host` | `ai_host(url)` |  |
+| 96 | `ai_timeout` | `ai_timeout(seconds)` |  |
 | 88 | `ai_cache` | `ai_cache(option)` | `string` |
 
 ### AI — Low-level Chat (2)
 
 | # | Function | Signature | Returns |
 |---|----------|-----------|---------|
-| 93 | `ai_chat` | `ai_chat(system_prompt, user_prompt)` |  |
-| 94 | `ai_chat_json` | `ai_chat_json(system_prompt, user_prompt)` |  |
+| 98 | `ai_chat` | `ai_chat(system_prompt, user_prompt)` |  |
+| 99 | `ai_chat_json` | `ai_chat_json(system_prompt, user_prompt)` |  |
 
 ### AI — Streaming (1)
 
 | # | Function | Signature | Returns |
 |---|----------|-----------|---------|
-| 95 | `ai_stream` | `ai_stream(system_prompt, user_prompt)` |  |
+| 100 | `ai_stream` | `ai_stream(system_prompt, user_prompt)` |  |
 
 ### AI — High-level Convenience (7)
 
 | # | Function | Signature | Returns |
 |---|----------|-----------|---------|
-| 96 | `summarize` | `summarize(text)` |  |
-| 98 | `translate` | `translate(text, target_language)` |  |
-| 99 | `classify` | `classify(text, categories)` |  |
-| 100 | `extract` | `extract(text, schema)` |  |
-| 101 | `generate` | `generate(prompt)` |  |
+| 101 | `summarize` | `summarize(text)` |  |
+| 97 | `generate_json` | `generate_json(instruction, schema)` | `any` |
+| 102 | `translate` | `translate(text, target_language)` |  |
+| 103 | `classify` | `classify(text, categories)` |  |
+| 104 | `extract` | `extract(text, schema)` |  |
+| 105 | `generate` | `generate(prompt)` |  |
 | 97 | `generate_json` | `generate_json(instruction, schema)` |  |
-| 102 | `ask` | `ask(question)` |  |
+| 106 | `ask` | `ask(question)` |  |
 
 ### AI — Parallel (3)
 
 | # | Function | Signature | Returns |
 |---|----------|-----------|---------|
-| 103 | `ai_batch` | `ai_batch(system_prompt, items)` |  |
-| 104 | `ai_parallel` | `ai_parallel(concurrency, system_prompt, items)` |  |
-| 105 | `ai_rate_limit` | `ai_rate_limit(calls_per_second)` |  |
+| 107 | `ai_batch` | `ai_batch(system_prompt, items)` |  |
+| 111 | `ai_parallel` | `ai_parallel(concurrency, system_prompt, items)` |  |
+| 112 | `ai_rate_limit` | `ai_rate_limit(calls_per_second)` |  |
 
 ### AI — Tool Calling (2)
 
 | # | Function | Signature | Returns |
 |---|----------|-----------|---------|
-| 106 | `ai_tool` | `ai_tool(name, description, parameters, function)` |  |
-| 107 | `ai_with_tools` | `ai_with_tools(system_prompt, user_prompt, max_rounds?)` |  |
+| 113 | `ai_tool` | `ai_tool(name, description, parameters, function)` |  |
+| 114 | `ai_with_tools` | `ai_with_tools(system_prompt, user_prompt, max_rounds?)` |  |
 
 ### AI — Agents (3)
 
+| 115 | `try_ai_log` | `try_ai_log()` | `list` |
 | # | Function | Signature | Returns |
 |---|----------|-----------|---------|
 | 108 | `agent` | `agent(name, system_prompt)` | `string` |
@@ -1938,11 +2111,12 @@ test "addition"
 
 | # | Function | Signature | Returns |
 |---|----------|-----------|---------|
-| 111 | `embed` | `embed(text)` |  |
-| 112 | `embed_batch` | `embed_batch(items)` |  |
-| 113 | `cosine_sim` | `cosine_sim(vec_a, vec_b)` |  |
-| 114 | `dot_product` | `dot_product(vec_a, vec_b)` |  |
-| 115 | `nearest` | `nearest(query_vec, doc_vectors, k)` |  |
+| 117 | `embed` | `embed(text)` |  |
+| 118 | `embed_batch` | `embed_batch(items)` |  |
+| 119 | `cosine_sim` | `cosine_sim(vec_a, vec_b)` |  |
+| 120 | `dot_product` | `dot_product(vec_a, vec_b)` |  |
+| 121 | `nearest` | `nearest(query_vec, doc_vectors, k)` |  |
+| 122 | `wiki_search` | `wiki_search(query)` | `list` |
 
 ### AI — Search (1)
 
@@ -1954,21 +2128,21 @@ test "addition"
 
 | # | Function | Signature | Returns |
 |---|----------|-----------|---------|
-| 117 | `sandbox_profile` | `sandbox_profile(name)` | `string` |
-| 118 | `set_sandbox` | `set_sandbox(profile)` | `string` |
-| 119 | `with_sandbox` | `with_sandbox(profile, fn)` | `any` |
+| 123 | `sandbox_profile` | `sandbox_profile(name)` | `string` |
+| 124 | `set_sandbox` | `set_sandbox(profile)` | `string` |
+| 125 | `with_sandbox` | `with_sandbox(profile, fn)` | `any` |
 
 ### Test Assertions (6)
 
 | # | Function | Signature | Returns |
 |---|----------|-----------|---------|
-| 120 | `assert` | `assert(condition)` |  |
-| 121 | `assert_eq` | `assert_eq(expected, actual)` |  |
-| 122 | `assert_not_eq` | `assert_not_eq(unexpected, actual)` |  |
-| 123 | `assert_lt` | `assert_lt(a, b)` |  |
-| 124 | `assert_gt` | `assert_gt(a, b)` |  |
-| 125 | `assert_error` | `assert_error(fn)` |  |
+| 126 | `assert` | `assert(condition)` |  |
+| 127 | `assert_eq` | `assert_eq(expected, actual)` |  |
+| 128 | `assert_not_eq` | `assert_not_eq(unexpected, actual)` |  |
+| 129 | `assert_lt` | `assert_lt(a, b)` |  |
+| 130 | `assert_gt` | `assert_gt(a, b)` |  |
+| 131 | `assert_error` | `assert_error(fn)` |  |
 
 ---
 
-**Total: 125 built-in functions**
+**Total: 131 built-in functions**

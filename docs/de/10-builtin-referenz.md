@@ -1027,7 +1027,7 @@ with_sandbox "noexec" (fn
 
 ## 10.18 Übersicht aller Builtins
 
-### IO & System (6)
+### IO & System (8)
 `print`, `input`, `exec`, `env`, `sleep`, `go`
 
 ### Dateisystem (17)
@@ -1064,9 +1064,15 @@ with_sandbox "noexec" (fn
 `random`, `random_range`
 
 ### Encoding (2)
+
+### CSV (2)
+`csv_parse`, `csv_format`
 `base64_encode`, `base64_decode`
 
 ### Hashing (4)
+
+### Datenbank — SQLite (4)
+`db_open`, `db_close`, `db_exec`, `db_query`
 `sha256`, `md5`, `sha1`, `sha512`
 
 ### Typ-Prüfung (6)
@@ -1078,7 +1084,7 @@ with_sandbox "noexec" (fn
 ### Result-Typ (6)
 `Ok`, `Err`, `is_ok`, `is_err`, `unwrap`, `unwrap_or`
 
-### KI — Konfiguration (5)
+### KI — Konfiguration (7)
 `ai_provider`, `ai_model`, `ai_host`, `ai_timeout`, `ai_cache`
 
 ### KI — Chat (2)
@@ -1087,7 +1093,7 @@ with_sandbox "noexec" (fn
 ### KI — Streaming (1)
 `ai_stream`
 
-### KI — Convenience (7)
+### KI — Convenience (8)
 `summarize`, `translate`, `classify`, `extract`, `generate`, `generate_json`, `ask`
 
 ### KI — Parallel (3)
@@ -1096,13 +1102,13 @@ with_sandbox "noexec" (fn
 ### KI — Tool Calling (2)
 `ai_tool`, `ai_with_tools`
 
-### KI — Agenten (3)
+### KI — Agenten (4)
 `agent`, `agent_ask`, `agent_clear`
 
 ### KI — Embeddings (5)
 `embed`, `embed_batch`, `cosine_sim`, `dot_product`, `nearest`
 
-### KI — Suche (1)
+### KI — Suche (2)
 `web_search`
 
 ### Test-Assertions (6)
@@ -1111,4 +1117,4 @@ with_sandbox "noexec" (fn
 ### Sandbox (3)
 `sandbox_profile`, `set_sandbox`, `with_sandbox`
 
-**Gesamt: 125 Builtins**
+**Gesamt: 135 Builtins**

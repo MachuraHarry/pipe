@@ -4,6 +4,29 @@
 
 The pipeline is the defining feature of Pipe. It allows data to flow through a sequence of transformations, expressed as a top-to-bottom chain of operations. This design makes data processing scripts read like a description of the data's journey rather than a sequence of nested function calls.
 
+```
+┌──────────────────────────────────────────────────────┐
+│                  PIPE DATA FLOW                       │
+│                                                      │
+│  input_value                                         │
+│       │                                              │
+│       ▼                                              │
+│  ┌─────────┐    ┌──────────┐    ┌──────────┐        │
+│  │ stage 1 │───▶│ stage 2  │───▶│ stage 3  │──▶ out │
+│  │ > split │    │ > filter │    │ > print  │        │
+│  └─────────┘    └──────────┘    └──────────┘        │
+│       │              │               │               │
+│  Sequential          │               │               │
+│  (same thread)       ▼               ▼               │
+│                 >> parallel    >> parallel            │
+│                 (background)   (background)          │
+│                                                      │
+│  >  : top-to-bottom, one after another              │
+│  >> : start in background, return Future            │
+│  _  : placeholder for piped value                   │
+└──────────────────────────────────────────────────────┘
+```
+
 ## Vertical Pipeline Syntax (Recommended)
 
 The vertical pipeline uses indented lines, each starting with `>` followed by a function call:

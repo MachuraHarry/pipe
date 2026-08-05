@@ -4,6 +4,29 @@ Die Pipeline ist das **zentrale Sprach-Feature** von Pipe. Sie erlaubt es,
 Werte durch eine Kette von Transformationen zu leiten — von oben nach unten,
 in Leserichtung des Datenflusses.
 
+```
+┌──────────────────────────────────────────────────────┐
+│                  PIPE DATENFLUSS                       │
+│                                                      │
+│  eingabe                                             │
+│       │                                              │
+│       ▼                                              │
+│  ┌─────────┐    ┌──────────┐    ┌──────────┐        │
+│  │ Stufe 1 │───▶│ Stufe 2  │───▶│ Stufe 3  │──▶ aus│
+│  │ > split │    │ > filter │    │ > print  │        │
+│  └─────────┘    └──────────┘    └──────────┘        │
+│       │              │               │               │
+│  Sequentiell         │               │               │
+│  (gleicher Thread)   ▼               ▼               │
+│                 >> parallel    >> parallel            │
+│                 (Hintergrund)  (Hintergrund)         │
+│                                                      │
+│  >  : von oben nach unten, eins nach dem anderen    │
+│  >> : im Hintergrund starten, Future zurückgeben   │
+│  _  : Platzhalter für den Pipeline-Wert             │
+└──────────────────────────────────────────────────────┘
+```
+
 ## 6.1 Grundprinzip
 
 Statt Funktionen ineinander zu verschachteln:

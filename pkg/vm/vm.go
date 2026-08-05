@@ -196,7 +196,7 @@ func (vm *VM) Run() error {
 		case compiler.OpSetGlobal:
 			idx := compiler.ReadUint16(ins, frame.ip)
 			frame.ip += 2
-			vm.globals[idx] = vm.peek()
+			vm.globals[idx] = vm.pop()
 
 		case compiler.OpGetLocal:
 			idx := compiler.ReadUint16(ins, frame.ip)
@@ -206,7 +206,7 @@ func (vm *VM) Run() error {
 		case compiler.OpSetLocal:
 			idx := compiler.ReadUint16(ins, frame.ip)
 			frame.ip += 2
-			vm.stack[frame.basePointer+int(idx)] = vm.peek()
+			vm.stack[frame.basePointer+int(idx)] = vm.pop()
 
 		case compiler.OpGetBuiltin:
 			idx := compiler.ReadUint16(ins, frame.ip)
@@ -674,7 +674,7 @@ func (vm *VM) executeFrame() object.Object {
 		case compiler.OpSetGlobal:
 			idx := compiler.ReadUint16(ins, frame.ip)
 			frame.ip += 2
-			vm.globals[idx] = vm.peek()
+			vm.globals[idx] = vm.pop()
 
 		case compiler.OpGetLocal:
 			idx := compiler.ReadUint16(ins, frame.ip)
@@ -684,7 +684,7 @@ func (vm *VM) executeFrame() object.Object {
 		case compiler.OpSetLocal:
 			idx := compiler.ReadUint16(ins, frame.ip)
 			frame.ip += 2
-			vm.stack[frame.basePointer+int(idx)] = vm.peek()
+			vm.stack[frame.basePointer+int(idx)] = vm.pop()
 
 		case compiler.OpGetBuiltin:
 			idx := int(compiler.ReadUint16(ins, frame.ip))

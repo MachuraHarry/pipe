@@ -1290,7 +1290,7 @@ function renderGraph(){
     timer = setTimeout(function(){ typeLine(d, pre, text, i+1, speed, done); }, speed);
   }
   function next(){
-    if (idx >= lines.length) { idx = 0; timer = setTimeout(next, 4200); return; }
+    if (idx >= lines.length) { return; }
     var l = lines[idx], d = document.createElement('div');
     d.className = 'term-line';
     body.appendChild(d);

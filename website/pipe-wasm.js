@@ -52,3 +52,30 @@ function restoreAPIKey() {
     if (envVar) pipeSetKey(envVar, key);
   }
 }
+
+function pipeFetchSync(url, opts) {
+  var method = (opts && opts.method) || "GET";
+  var body = (opts && opts.body) || undefined;
+  var headers = (opts && opts.headers) || {};
+
+  var xhr = new XMLHttpRequest();
+  xhr.open(method, url, false);
+
+  if (headers && typeof headers === 'object') {
+    Object.keys(headers).forEach(function(k) {
+      if (k === 'Content-Type' || k === 'Authorization') {
+        xhr.setRequestHeader(k, headers[k]);
+      }
+    });
+  }
+
+  try {
+    xhr.send(body);
+    if (xhr.status >= 200 && xhr.status < 300) {
+      return { body: xhr.responseText, error: "" };
+    }
+    return { body: xhr.responseText, error: "HTTP " + xhr.status + ": " + xhr.statusText };
+  } catch(e) {
+    return { body: "", error: "network error: " + e.message };
+  }
+}

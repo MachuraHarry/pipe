@@ -950,39 +950,9 @@ var playExamples = [
   '-- 🤖 Code review agent\nai_provider "deepseek"\n\nagent "reviewer" "You are a senior code reviewer. Find bugs."\n\nagent_ask "reviewer" "Review this code:\nfor i: 0; i < len items; i: i + 1\n    print (at items i)"\n    > print',
   '-- 🤖 try_ai safe math\nai_provider "deepseek"\n\nfn safe_div a b\n    try_ai\n        a / b\n    catch e\n        -1\n\nprint (safe_div 100 5)\nprint (safe_div 100 0)',
   '-- 🤖 Temperature converter agent\nai_provider "deepseek"\n\nagent "conv" "You convert temperatures. Reply with the number only."\n\nprint "0°C in Fahrenheit:"\nagent_ask "conv" "0 Celsius to Fahrenheit"\n    > print\n\nprint "212°F in Celsius:"\nagent_ask "conv" "212 Fahrenheit to Celsius"\n    > print',
-  '-- 🤖 Email classifier + responder\nai_provider "deepseek"\n\nemail: "URGENT: Server down, database timeout in production. Need immediate fix."\n\ncat: classify email "urgent, bug, feature, spam"\nprint ("Category: " ++ cat)\n\nprint "AI response:"\ngenerate ("Reply to this support ticket:\n" ++ email)\n    > print'
-  '-- 🤖 AI: Wikipedia search (CORS-safe!)
-ai_provider "deepseek"
-
-results: wiki_search "quantum computing"
-
-print "Wikipedia:"
-for r in results
-    (get r "title")
-        > print',
-  '-- 🤖 AI: Wikipedia search (CORS-safe!)
-ai_provider "deepseek"
-
-results: wiki_search "quantum computing"
-
-print "Wikipedia:"
-for r in results
-    (get r "title")
-        > print',
-  '-- 🤖 AI: RAG with Wikipedia
-ai_provider "deepseek"
-
-results: wiki_search "machine learning"
-context: ""
-for r in results
-    context: context ++ (get r "snippet") ++ "
-"
-
-ask ("Based on Wikipedia:
-" ++ context ++ "
-
-Explain ML in 1 sentence.")
-    > print',
+  '-- 🤖 Email classifier + responder\nai_provider "deepseek"\n\nemail: "URGENT: Server down, database timeout in production. Need immediate fix."\n\ncat: classify email "urgent, bug, feature, spam"\nprint ("Category: " ++ cat)\n\nprint "AI response:"\ngenerate ("Reply to this support ticket:\n" ++ email)\n    > print',
+  '-- 🤖 AI: Wikipedia search (CORS-safe!)\nai_provider "deepseek"\n\nresults: wiki_search "quantum computing"\n\nprint "Wikipedia:"\nfor r in results\n    (get r "title")\n        > print',
+  '-- 🤖 AI: RAG with Wikipedia\nai_provider "deepseek"\n\nresults: wiki_search "machine learning"\ncontext: ""\nfor r in results\n    context: context ++ (get r "snippet") ++ "\n"\n\nask ("Based on Wikipedia:\n" ++ context ++ "\n\nExplain ML in 1 sentence.")\n    > print',
 ];
 
 function pickPlayExample() {

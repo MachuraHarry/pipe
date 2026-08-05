@@ -177,7 +177,7 @@ oninput="onEdit()" onscroll="syncScroll()">print (2 + 2)</textarea>
 <p class="ft"><a href="index.html">home</a> · <a href="https://github.com/MachuraHarry/pipe">github</a></p>
 <div class="toast" id="toast"></div>
 
-<script src="wasm_exec.js"></script>
+<script src="wasm_exec.js?v=1"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-database-compat.js"></script>
@@ -199,7 +199,7 @@ Prism.languages.pipe={
 let pipeReady = false;
 const pipeGo = new Go();
 
-fetch("pipe.wasm?v=5").then(r => {
+fetch("pipe.wasm?v=6").then(r => {
   if (!r.ok) throw new Error("HTTP " + r.status);
   return WebAssembly.instantiateStreaming(r, pipeGo.importObject);
 }).then(r => {

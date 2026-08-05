@@ -2,16 +2,11 @@ let pipeReady = false;
 const pipeGo = new Go();
 
 async function loadWasm() {
-  const resp = await fetch("pipe.wasm?v=8");
+  const resp = await fetch("pipe.wasm?v=9");
   if (!resp.ok) throw new Error("HTTP " + resp.status);
-  try {
-    const r = await WebAssembly.instantiateStreaming(resp, pipeGo.importObject);
-    return r.instance;
-  } catch(e) {
-    const buf = await resp.arrayBuffer();
-    const r = await WebAssembly.instantiate(buf, pipeGo.importObject);
-    return r.instance;
-  }
+  const buf = await resp.arrayBuffer();
+  const r = await WebAssembly.instantiate(buf, pipeGo.importObject);
+  return r.instance;
 }
 
 loadWasm().then(instance => {

@@ -6,7 +6,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="description" content="Pipe — The runtime for AI-native infrastructure. Build, sandbox, and deploy LLM pipelines with a single 10 MB binary. No Python. No dependencies. No vendor lock-in.">
 <meta property="og:title" content="Pipe — The runtime for AI-native infrastructure">
-<meta property="og:description" content="Build, sandbox, and deploy LLM pipelines. 23 AI builtins, 4 providers, single ~10 MB binary. No Python required.">
+<meta property="og:description" content="Build, sandbox, and deploy LLM pipelines. 32 AI builtins, 4 providers, single ~16 MB binary. No Python required.">
 <meta property="og:type" content="website">
 <meta property="og:image" content="https://pipe-lang.com/og-image.png">
 <meta property="og:url" content="https://pipe-lang.com/">
@@ -217,9 +217,9 @@ span[data-lang].active{display:inline}a[data-lang].active{display:inline-block}
   <p id="hero-sub" class="sub">Build, sandbox, and deploy LLM pipelines with a single ~10 MB binary. No Python. No dependencies. No vendor lock-in.</p>
 
   <div class="stats-inline">
-    <div class="stat"><span class="stat-num">23</span><div class="stat-label">AI Builtins</div></div>
-    <div class="stat"><span class="stat-num">230+</span><div class="stat-label">Tests</div></div>
-    <div class="stat"><span class="stat-num">~10 MB</span><div class="stat-label">Binary Size</div></div>
+    <div class="stat"><span class="stat-num">32</span><div class="stat-label">AI Builtins</div></div>
+    <div class="stat"><span class="stat-num">300+</span><div class="stat-label">Tests</div></div>
+    <div class="stat"><span class="stat-num">~16 MB</span><div class="stat-label">Binary Size</div></div>
     <div class="stat"><span class="stat-num">4</span><div class="stat-label">Providers</div></div>
     <div class="stat"><span class="stat-num">9</span><div class="stat-label">Modules</div></div>
   </div>
@@ -419,8 +419,8 @@ oninput="syncHighlight()" onscroll="syncScroll()"></textarea>
         <div class="icon">⚡</div>
         <h4 data-lang="en" class="active">Ship AI pipelines 10× faster</h4>
         <h4 data-lang="de">KI-Pipelines 10× schneller bauen</h4>
-        <p data-lang="en" class="active">23 AI operations are language primitives — not library calls. <code>summarize</code>, <code>translate</code>, <code>classify</code> work without imports, SDKs, or API wrappers.</p>
-        <p data-lang="de">23 KI-Operationen sind Sprach-Primitives — keine Library-Calls. <code>summarize</code>, <code>translate</code>, <code>classify</code> funktionieren ohne Imports, SDKs oder API-Wrapper.</p>
+<p data-lang="en" class="active">32 AI operations are language primitives — not library calls. <code>summarize</code>, <code>translate</code>, <code>classify</code> work without imports, SDKs, or API wrappers.</p>
+<p data-lang="de">32 KI-Operationen sind Sprach-Primitives — keine Library-Calls. <code>summarize</code>, <code>translate</code>, <code>classify</code> funktionieren ohne Imports, SDKs oder API-Wrapper.</p>
       </div>
       <div class="card">
         <div class="icon">🔒</div>
@@ -490,12 +490,12 @@ oninput="syncHighlight()" onscroll="syncScroll()"></textarea>
       <h2 data-lang="de">Gebaut für <span>Produktions</span>-KI-Workloads</h2>
     </div>
     <div class="stats-inline reveal" style="gap:48px;margin-bottom:0">
-      <div class="stat"><span class="stat-num">230+</span><div class="stat-label" data-lang="en" class="active">Tests</div><div class="stat-label" data-lang="de">Tests</div></div>
-      <div class="stat"><span class="stat-num">~15k</span><div class="stat-label" data-lang="en" class="active">LoC Go</div><div class="stat-label" data-lang="de">LoC Go</div></div>
-      <div class="stat"><span class="stat-num">42</span><div class="stat-label" data-lang="en" class="active">Example Programs</div><div class="stat-label" data-lang="de">Beispielprogramme</div></div>
+      <div class="stat"><span class="stat-num">300+</span><div class="stat-label" data-lang="en" class="active">Tests</div><div class="stat-label" data-lang="de">Tests</div></div>
+      <div class="stat"><span class="stat-num">~17k</span><div class="stat-label" data-lang="en" class="active">LoC Go</div><div class="stat-label" data-lang="de">LoC Go</div></div>
+      <div class="stat"><span class="stat-num">70+</span><div class="stat-label" data-lang="en" class="active">Example Programs</div><div class="stat-label" data-lang="de">Beispielprogramme</div></div>
       <div class="stat"><span class="stat-num">4</span><div class="stat-label" data-lang="en" class="active">AI Providers</div><div class="stat-label" data-lang="de">KI-Provider</div></div>
-      <div class="stat"><span class="stat-num">~10 MB</span><div class="stat-label" data-lang="en" class="active">Binary</div><div class="stat-label" data-lang="de">Binary</div></div>
-      <div class="stat"><span class="stat-num">0</span><div class="stat-label" data-lang="en" class="active">Dependencies</div><div class="stat-label" data-lang="de">Abhängigkeiten</div></div>
+      <div class="stat"><span class="stat-num">~16 MB</span><div class="stat-label" data-lang="en" class="active">Binary</div><div class="stat-label" data-lang="de">Binary</div></div>
+      <div class="stat"><span class="stat-num">135</span><div class="stat-label" data-lang="en" class="active">Builtins</div><div class="stat-label" data-lang="de">Builtins</div></div>
     </div>
   </div>
 </section>
@@ -503,7 +503,7 @@ oninput="syncHighlight()" onscroll="syncScroll()"></textarea>
 <!-- Builtins -->
 <section id="builtins" style="background:var(--bg2)">
   <div class="container">
-    <div class="section-head"><h2 data-lang="en" class="active"><span>23 AI Builtins</span> + 91 Standard Builtins</h2><h2 data-lang="de"><span>23 KI-Builtins</span> + 91 Standard-Builtins</h2></div>
+    <div class="section-head"><h2 data-lang="en" class="active"><span>32 AI Builtins</span> + 103 Standard Builtins = 135 Total</h2><h2 data-lang="de"><span>32 KI-Builtins</span> + 103 Standard-Builtins = 135 Gesamt</h2></div>
     <div class="builtins-grid reveal">
       <div class="builtin-group"><h4>🧠 Understanding</h4><table><tr><td>summarize</td><td>Text summarization</td></tr><tr><td>translate</td><td>Translation</td></tr><tr><td>classify</td><td>Classification</td></tr><tr><td>extract</td><td>Data extraction (JSON)</td></tr><tr><td>ask</td><td>Question answering</td></tr><tr><td>generate</td><td>Free-text generation</td></tr></table></div>
       <div class="builtin-group"><h4>⚡ Speed & Parallel</h4><table><tr><td>ai_stream</td><td>Real-time token streaming</td></tr><tr><td>ai_batch</td><td>Auto-parallel batch</td></tr><tr><td>ai_parallel</td><td>Concurrency control</td></tr><tr><td>ai_rate_limit</td><td>Rate limiting</td></tr><tr><td>ai_chat</td><td>Low-level chat</td></tr><tr><td>ai_chat_json</td><td>Chat → structured JSON</td></tr></table></div>
@@ -928,7 +928,7 @@ var playExamples = [
   'print "1 " ++ "2 " ++ "3"',
   '-- 🤖 AI: needs API key in field above\nai_provider "deepseek"\n\nask "What is the meaning of life?"\n    > print',
   '-- 🤖 AI: translate text\nai_provider "deepseek"\n\ntranslate "Hello, how are you today?" "German"\n    > print',
-  '-- 🤖 AI: summarize a paragraph\nai_provider "deepseek"\n\nsummarize "Pipe is a semantic pipeline runtime language. It compiles to bytecode and runs on a stack-based VM. It has 23 AI builtins for LLM operations."\n    > print',
+  '-- 🤖 AI: summarize a paragraph\nai_provider "deepseek"\n\nsummarize "Pipe is a semantic pipeline runtime language. It compiles to bytecode and runs on a stack-based VM. It has 135 builtins for data and AI operations."\n    > print',
   '-- 🤖 AI: classify text\nai_provider "deepseek"\n\nclassify "The app crashes on startup after update" "bug, feature, question, complaint"\n    > print',
   '-- 🤖 AI: agent with memory\nai_provider "deepseek"\n\nagent "poet" "You are a poet. Respond in rhyming couplets. Keep it short."\n\nagent_ask "poet" "Describe the moon"\n    > print',
   '-- 🤖 AI: structured JSON\nai_provider "deepseek"\n\ndata: generate_json "Create 2 cars" "make: string, model: string, year: number, electric: boolean"\n\nfor car in data\n    (get car "make") ++ " " ++ (get car "model")\n        > print',

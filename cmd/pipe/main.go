@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -54,6 +55,7 @@ func main() {
 		aiProvider     string
 		timeoutSec     int
 		buildOut       string
+		useUPX         bool
 		filePath       string
 		scriptArgs     []string
 	)
@@ -78,6 +80,8 @@ func main() {
 			doTest = true
 		case "-build":
 			doBuild = true
+		case "-upx":
+			useUPX = true
 		case "-gen":
 			doGen = true
 		case "-run":
@@ -155,6 +159,19 @@ func main() {
 		if err := build.Build(filePath, outPath); err != nil {
 			fmt.Fprintf(os.Stderr, "pipe build: %s\n", err)
 			os.Exit(1)
+		}
+		if useUPX {
+			if upxPath, err := exec.LookPath("upx"); err == nil {
+				cmd := exec.Command(upxPath, "-q", outPath, "-o", outPath)
+				cmd.Stdout = os.Stdout
+				cmd.Stderr = os.Stderr
+				if err := cmd.Run(); err != nil {
+					fmt.Fprintf(os.Stderr, "UPX failed: %s\n", err)
+				}
+			} else {
+				fmt.Fprintln(os.Stderr, "UPX not found in PATH — install with: apt install upx-ucl")
+				fmt.Fprintln(os.Stderr, "Binary built without compression")
+			}
 		}
 		fmt.Printf("Built %s -> %s\n", filePath, outPath)
 		return

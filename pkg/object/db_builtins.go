@@ -1,4 +1,4 @@
-//go:build !js
+//go:build !js && !pipe_lite
 
 package object
 

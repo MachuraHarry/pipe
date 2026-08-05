@@ -1,4 +1,4 @@
-//go:build js
+//go:build js || pipe_lite
 
 package object
 
@@ -14,17 +14,17 @@ func init() {
 }
 
 func bDbOpenStub(args ...Object) Object {
-	return &Error{Message: "db_open: SQLite not available in WASM"}
+	return &Error{Message: "db_open: SQLite not available in this build (use full build: make build)"}
 }
 
 func bDbCloseStub(args ...Object) Object {
-	return &Error{Message: "db_close: SQLite not available in WASM"}
+	return &Error{Message: "db_close: SQLite not available in this build (use full build: make build)"}
 }
 
 func bDbExecStub(args ...Object) Object {
-	return &Error{Message: "db_exec: SQLite not available in WASM"}
+	return &Error{Message: "db_exec: SQLite not available in this build (use full build: make build)"}
 }
 
 func bDbQueryStub(args ...Object) Object {
-	return &Error{Message: "db_query: SQLite not available in WASM"}
+	return &Error{Message: "db_query: SQLite not available in this build (use full build: make build)"}
 }

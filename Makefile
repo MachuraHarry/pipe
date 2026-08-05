@@ -1,7 +1,10 @@
 .PHONY: build run test clean repl api lsp vsix fmt
 
 build:
-	go build -o bin/pipe ./cmd/pipe
+	go build -ldflags="-s -w" -o bin/pipe ./cmd/pipe
+
+build-lite:
+	go build -tags pipe_lite -ldflags="-s -w" -o bin/pipe-lite ./cmd/pipe
 
 api:
 	go build -o bin/pipe-api ./cmd/api-server

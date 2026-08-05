@@ -1,38 +1,21 @@
 let pipeReady = false;
 const pipeGo = new Go();
 
-async function loadWasm() {
-  const resp = await fetch("pipe.wasm?v=9");
-  if (!resp.ok) throw new Error("HTTP " + resp.status);
-  const buf = await resp.arrayBuffer();
-  const r = await WebAssembly.instantiate(buf, pipeGo.importObject);
-  return r.instance;
-}
-
-loadWasm().then(instance => {
-  pipeGo.run(instance);
-  // Wait for Go main() to register pipeRun before marking ready
-  var maxWait = 50;
-  function checkReady() {
-    if (typeof pipeRun === 'function') {
-      pipeReady = true;
-      const bar = document.getElementById("play-bar");
-      if (bar) bar.innerHTML = '<span style="color:var(--green)">✓ ready</span>';
-      const btn = document.getElementById("play-btn");
-      if (btn) btn.disabled = false;
-      const gb = document.getElementById("gen-btn");
-      if (gb) gb.disabled = false;
-      restoreAPIKey();
-    } else if (--maxWait > 0) {
-      setTimeout(checkReady, 50);
-    } else {
-      const bar = document.getElementById("play-bar");
-      if (bar) bar.innerHTML = '<span style="color:var(--red)">✗ init timeout</span>';
-      console.error("WASM init timeout: pipeRun not registered");
-    }
-  }
-  checkReady();
+WebAssembly.instantiateStreaming(fetch("pipe.wasm?v=10"), pipeGo.importObject).then(r => {
+  pipeGo.run(r.instance);
+  pipeReady = true;
+  const bar = document.getElementById("play-bar");
+  if (bar) bar.innerHTML = '<span style="color:var(--green)">✓ ready</span>';
+  const btn = document.getElementById("play-btn");
+  if (btn) btn.disabled = false;
+  const gb = document.getElementById("gen-btn");
+  if (gb) gb.disabled = false;
+  restoreAPIKey();
 }).catch(e => {
+  const bar = document.getElementById("play-bar");
+  if (bar) bar.innerHTML = '<span style="color:var(--red)">✗ failed: ' + e.message + '</span>';
+  console.error("WASM load error:", e);
+});
 
 function runPipe(code) {
   if (!pipeReady) return "WASM not loaded";
@@ -74,18 +57,13 @@ function pipeFetchSync(url, opts) {
   var method = (opts && opts.method) || "GET";
   var body = (opts && opts.body) || undefined;
   var headers = (opts && opts.headers) || {};
-
   var xhr = new XMLHttpRequest();
   xhr.open(method, url, false);
-
   try {
-    if (headers && typeof headers === 'object') {
-      Object.keys(headers).forEach(function(k) {
-        try { xhr.setRequestHeader(k, String(headers[k])); } catch(e) {}
-      });
-    }
+    Object.keys(headers).forEach(function(k) {
+      try { xhr.setRequestHeader(k, String(headers[k])); } catch(e) {}
+    });
   } catch(e) {}
-
   try {
     xhr.send(body);
     return { body: xhr.responseText, error: xhr.status >= 400 ? "HTTP " + xhr.status : "" };

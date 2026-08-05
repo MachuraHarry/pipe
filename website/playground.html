@@ -141,7 +141,18 @@ a{color:var(--accent);text-decoration:none}
 oninput="onEdit()" onscroll="syncScroll()">print (2 + 2)</textarea>
       <pre id="play-hl" class="play-editor language-pipe" aria-hidden="true"></pre>
     </div>
-    <div class="play-bar" id="play-bar"><span id="play-status">loading wasm…</span><span class="sandbox-notice" id="sandbox-notice">🔒 <a href="https://github.com/MachuraHarry/pipe?tab=security-ov-file" target="_blank">sandbox mode</a> · AI disabled</span></div>
+    <div class="play-bar" id="play-bar"><span id="play-status">loading wasm…</span><span class="sandbox-notice" id="sandbox-notice">🔒 sandbox mode · AI-ready</span></div>
+
+    <div style="padding:4px 16px;background:var(--bg3);display:flex;gap:6px;align-items:center;border-top:1px solid var(--border);font-size:0.62rem">
+      <select id="api-provider" style="background:var(--bg);color:var(--fg2);border:1px solid var(--border);border-radius:4px;padding:1px 3px;font-size:0.6rem">
+        <option value="">API Key (optional)</option>
+        <option value="deepseek">DeepSeek</option>
+        <option value="openai">OpenAI</option>
+        <option value="anthropic">Anthropic</option>
+      </select>
+      <input id="api-key" type="password" placeholder="sk-..." style="flex:1;background:var(--bg);color:var(--fg2);border:1px solid var(--border);border-radius:4px;padding:1px 6px;font-size:0.6rem;font-family:var(--mono)" onchange="setAPIKey(document.getElementById('api-provider').value,this.value)">
+    </div>
+
     <div class="play-out-wrap">
       <div class="play-out" id="play-out"></div>
     </div>
@@ -195,6 +206,7 @@ fetch("pipe.wasm?v=2").then(r => {
   document.getElementById("play-status").textContent = "starting…";
   pipeGo.run(r.instance);
   pipeReady = true;
+  restoreAPIKey();
   document.getElementById("play-status").textContent = "✓ ready";
   document.getElementById("sandbox-notice").classList.add("show");
   document.getElementById("play-btn").disabled = false;
@@ -205,6 +217,27 @@ fetch("pipe.wasm?v=2").then(r => {
   console.error("WASM:", e);
   updateBar();
 });
+
+function setAPIKey(provider, key) {
+  if (!pipeReady || !provider || !key) return;
+  try {
+    var envVar = {"deepseek":"DEEPSEEK_API_KEY","openai":"OPENAI_API_KEY","anthropic":"ANTHROPIC_API_KEY"}[provider];
+    if (!envVar) return;
+    pipeSetKey(envVar, key);
+    localStorage.setItem("pipe-provider", provider);
+    localStorage.setItem("pipe-key", key);
+    document.getElementById("play-status").textContent = "✓ key set for " + provider;
+  } catch(e) { console.error(e); }
+}
+
+function restoreAPIKey() {
+  var provider = localStorage.getItem("pipe-provider");
+  var key = localStorage.getItem("pipe-key");
+  if (provider && key) {
+    var envVar = {"deepseek":"DEEPSEEK_API_KEY","openai":"OPENAI_API_KEY","anthropic":"ANTHROPIC_API_KEY"}[provider];
+    if (envVar && pipeReady) pipeSetKey(envVar, key);
+  }
+}
 
 function updateBar() {
   const bar = document.getElementById("play-bar");

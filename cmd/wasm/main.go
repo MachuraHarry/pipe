@@ -7,6 +7,7 @@ import (
 	"syscall/js"
 	"time"
 
+	"github.com/MachuraHarry/pipe/pkg/ai"
 	"github.com/MachuraHarry/pipe/pkg/eval"
 	"github.com/MachuraHarry/pipe/pkg/gen"
 	"github.com/MachuraHarry/pipe/pkg/lexer"
@@ -67,12 +68,23 @@ func pipeGenerate(this js.Value, args []js.Value) interface{} {
 	return "-- gen v2: runtime-valid\n" + src
 }
 
+func pipeSetKey(this js.Value, args []js.Value) interface{} {
+	if len(args) < 2 {
+		return "ai_set_key expects 2 arguments (provider, key)"
+	}
+	provider := args[0].String()
+	key := args[1].String()
+	ai.SetAPIKey(provider, key)
+	return "key set for " + provider
+}
+
 func main() {
 	object.SetSandbox(true)
 	object.SetSandboxAllowAI(true)
 	object.SetSandboxAllowNet(true)
 	js.Global().Set("pipeRun", js.FuncOf(pipeRun))
 	js.Global().Set("pipeGenerate", js.FuncOf(pipeGenerate))
+	js.Global().Set("pipeSetKey", js.FuncOf(pipeSetKey))
 	js.Global().Set("pipeVersion", js.ValueOf("v0.7.0"))
 	select {}
 }

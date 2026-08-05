@@ -254,7 +254,19 @@ span[data-lang].active{display:inline}a[data-lang].active{display:inline-block}
 oninput="syncHighlight()" onscroll="syncScroll()"></textarea>
         <pre id="play-hl" class="play-editor language-pipe" aria-hidden="true"></pre>
       </div>
-      <div class="play-bar" id="play-bar"><span style="color:#fc8c3c">Loading WASM...</span></div>
+       <div class="play-bar" id="play-bar"><span style="color:#fc8c3c">Loading WASM...</span></div>
+      </div>
+
+      <div style="padding:6px 14px;background:var(--bg3);display:flex;gap:8px;align-items:center;border-top:1px solid var(--border);font-size:0.68rem">
+        <select id="api-provider" style="background:var(--bg);color:var(--fg2);border:1px solid var(--border);border-radius:4px;padding:1px 4px;font-size:0.65rem">
+          <option value="">API Key (optional)</option>
+          <option value="deepseek">DeepSeek</option>
+          <option value="openai">OpenAI</option>
+          <option value="anthropic">Anthropic</option>
+        </select>
+        <input id="api-key" type="password" placeholder="sk-..." style="flex:1;background:var(--bg);color:var(--fg2);border:1px solid var(--border);border-radius:4px;padding:1px 6px;font-size:0.65rem;font-family:var(--mono)" onchange="setAPIKey(document.getElementById('api-provider').value,this.value)">
+      </div>
+
       <div class="play-output" id="play-out"></div>
     </div>
   </div>

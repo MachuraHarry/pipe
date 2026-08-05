@@ -31,6 +31,7 @@ const (
 	CatRandom   = "Random"
 	CatEncode   = "Encoding"
 	CatHash     = "Hashing"
+	CatDB       = "Database"
 	CatType     = "Type Checks"
 	CatConv     = "Conversion"
 	CatResult   = "Result"
@@ -222,6 +223,16 @@ var builtinDocs = []BuiltinDoc{
 		Description: "Computes the SHA-1 hash of text and returns it as a hex string.", Category: CatHash},
 	{Name: "sha512", Signature: "sha512(text)", Params: []Param{p("text", "string")}, ReturnType: "string",
 		Description: "Computes the SHA-512 hash of text and returns it as a hex string.", Category: CatHash},
+
+	// ---- Database ----
+	{Name: "db_open", Signature: "db_open(path)", Params: []Param{p("path", "string")}, ReturnType: "number",
+		Description: "Opens an SQLite database file. Returns a handle for use with db_query/db_exec/db_close.", Category: CatDB},
+	{Name: "db_close", Signature: "db_close(handle)", Params: []Param{p("handle", "number")}, ReturnType: "nil",
+		Description: "Closes an SQLite database connection.", Category: CatDB},
+	{Name: "db_exec", Signature: "db_exec(handle, sql)", Params: []Param{p("handle", "number"), p("sql", "string")}, ReturnType: "number",
+		Description: "Executes an INSERT/UPDATE/DELETE/CREATE statement. Returns rows affected.", Category: CatDB},
+	{Name: "db_query", Signature: "db_query(handle, sql)", Params: []Param{p("handle", "number"), p("sql", "string")}, ReturnType: "list",
+		Description: "Executes a SELECT query. Returns a list of maps (one map per row, column name → value).", Category: CatDB},
 
 	// ---- Type Checks ----
 	{Name: "type_of", Signature: "type_of(value)", Params: []Param{p("value", "any")}, ReturnType: "string",

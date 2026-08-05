@@ -1,0 +1,62 @@
+-- SQLite Demo: embedded database with db_open, db_exec, db_query, db_close
+
+print "═══ SQLITE DEMO ═══"
+print ""
+
+-- Open in-memory database (use a file path for persistent storage)
+h: db_open ":memory:"
+
+-- Create table
+db_exec h "CREATE TABLE tasks (
+    id INTEGER PRIMARY KEY,
+    title TEXT,
+    priority TEXT,
+    done INTEGER DEFAULT 0
+)"
+print "Table created."
+print ""
+
+-- Insert data
+db_exec h "INSERT INTO tasks (title, priority) VALUES ('Fix login bug', 'high')"
+db_exec h "INSERT INTO tasks (title, priority) VALUES ('Update docs', 'medium')"
+db_exec h "INSERT INTO tasks (title, priority, done) VALUES ('Old task', 'low', 1)"
+db_exec h "INSERT INTO tasks (title, priority) VALUES ('Ship v2.0', 'high')"
+print "4 rows inserted."
+print ""
+
+-- Query all tasks
+print "─── All Tasks ───"
+rows: db_query h "SELECT * FROM tasks"
+for row in rows
+    print ("#" ++ (to_str (get row "id")) ++ " " ++ (get row "title") ++ " [" ++ (get row "priority") ++ "]")
+
+print ""
+
+-- Filtered query
+print "─── High Priority ───"
+high: db_query h "SELECT title FROM tasks WHERE priority = 'high'"
+for row in high
+    print ("  ⚡ " ++ (get row "title"))
+
+print ""
+
+-- Aggregate query
+print "─── Stats ───"
+stats: db_query h "SELECT priority, COUNT(*) as cnt FROM tasks GROUP BY priority"
+for row in stats
+    print ((get row "priority") ++ ": " ++ (to_str (get row "cnt")))
+
+print ""
+
+-- Update
+db_exec h "UPDATE tasks SET done = 1 WHERE title = 'Fix login bug'"
+updated: db_query h "SELECT title, done FROM tasks WHERE title = 'Fix login bug'"
+for row in updated
+    print ((get row "title") ++ " → done: " ++ (to_str (get row "done")))
+
+print ""
+
+-- Close
+db_close h
+
+print "═══ DONE ═══"

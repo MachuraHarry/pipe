@@ -95,11 +95,35 @@ func (ctx *EvalContext) Eval(node ast.Node, env *object.Environment) object.Obje
 		if isError(left) {
 			return left
 		}
+		left = object.EnsureResolved(left)
+
+		if n.Operator == "&&" {
+			if !object.IsTruthy(left) {
+				return left
+			}
+			right := ctx.Eval(n.Right, env)
+			if isError(right) {
+				return right
+			}
+			right = object.EnsureResolved(right)
+			return right
+		}
+		if n.Operator == "||" {
+			if object.IsTruthy(left) {
+				return left
+			}
+			right := ctx.Eval(n.Right, env)
+			if isError(right) {
+				return right
+			}
+			right = object.EnsureResolved(right)
+			return right
+		}
+
 		right := ctx.Eval(n.Right, env)
 		if isError(right) {
 			return right
 		}
-		left = object.EnsureResolved(left)
 		right = object.EnsureResolved(right)
 		return evalInfixExpression(n.Operator, left, right)
 
@@ -643,7 +667,11 @@ func extendFunctionEnv(fn *object.Function, args []object.Object) *object.Enviro
 	env := object.NewEnclosedEnvironment(fn.Env)
 
 	for i, param := range fn.Parameters {
-		env.Set(param.Value, args[i])
+		if i < len(args) {
+			env.Set(param.Value, args[i])
+		} else {
+			env.Set(param.Value, object.NILOBJ)
+		}
 	}
 
 	return env

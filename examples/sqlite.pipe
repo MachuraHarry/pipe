@@ -390,13 +390,9 @@ fn add_column table col
 
 fn get_col_index table colname
   names: table.colnames
-  nt: type_of names
-  print nt
   n: len names
-  print n
   i: 0
   while i < n
-    print i
     name_i: at names i
     if name_i == colname
       return i
@@ -1014,7 +1010,9 @@ fn parse_expr_prec ps min_prec
 fn parse_select_item ps
   if parse_match_op ps "*"
     parse_advance ps
-    n: parse_make_node "star"
+    expr: parse_make_node "star"
+    n: parse_make_node "selitem"
+    ast_set n "expr" expr
     n
   else
     expr: parse_expr ps
@@ -1138,7 +1136,8 @@ fn parse_select ps
   if parse_match_kw ps "GROUP"
     parse_advance ps
     parse_expect_kw ps "BY"
-    ast_set n "group_by" (parse_group_by ps)
+    gb: parse_group_by ps
+    ast_set n "group_by" gb
 
   -- ORDER BY
   if parse_match_kw ps "ORDER"
@@ -1718,18 +1717,14 @@ fn exec_insert db node
   value_rows: ast_get node "values"
   rows: table.rows
   affected: 0
-  affected: 0
 
   -- Resolve column indices
   col_indices: []
   if cols != nil
     ncols: len cols
-    print ncols
     i: 0
     while i < ncols
-      print i
       col_name: at cols i
-      print col_name
       ci: get_col_index table col_name
       if ci < 0
         db_raise ("Column not found: " ++ (at cols i))
@@ -1737,7 +1732,8 @@ fn exec_insert db node
       i: i + 1
   else
     i: 0
-    while i < (len (table.cols))
+    ncols: len (table.cols)
+    while i < ncols
         push col_indices i
         i: i + 1
 
@@ -1746,7 +1742,6 @@ fn exec_insert db node
   vi: 0
   while vi < (len value_rows)
     vals: at value_rows vi
-    print vi
     -- Build row as list aligned with colnames
     ncols: len (table.cols)
     row: []
@@ -1907,7 +1902,9 @@ fn exec_select db node
   else
     -- Build base rows from first table
     first_ref: at from_list 0
-    first_table: get_table db (ast_get first_ref "name")
+    frn: ast_get first_ref "name"
+    first_table: get_table db frn
+    ftt: type_of first_table
     if first_table == nil
       db_raise ("Table not found: " ++ (ast_get first_ref "name"))
     first_alias: ast_get first_ref "alias"
@@ -1916,7 +1913,11 @@ fn exec_select db node
 
     -- Build row maps from base table
     rows_list: first_table.rows
+    rlt: type_of rows_list
+    lrl: len rows_list
     colnames: first_table.colnames
+    cnt: type_of colnames
+    lcn: len colnames
     base_aliases: []
     push base_aliases (mk_map_alias (ast_get first_ref "name") first_alias)
 
@@ -2394,6 +2395,7 @@ export fn db_exec handle sql
   stmts: parse_sql sql
   result: 0
   i: 0
+  while i < (len stmts)
     stmt: at stmts i
     tp: ast_type stmt
     if tp == "empty"

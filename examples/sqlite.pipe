@@ -29,7 +29,8 @@ fn alloc_handle
   h
 
 fn get_db h
-  at registry h
+  v: at registry h
+  v
 
 fn set_db h db
   set registry h db
@@ -100,10 +101,11 @@ fn repeat_char c n
 -- All SQL keywords (used for case-insensitive match by lowering via char loop)
 -- We pre-build the search list once
 fn is_sql_keyword w
-  kws: split "CREATE,DROP,TABLE,INSERT,INTO,VALUES,SELECT,FROM,WHERE,AND,OR,NOT,LIKE,IN,BETWEEN,UPDATE,SET,DELETE,BEGIN,COMMIT,ROLLBACK,TRANSACTION,JOIN,INNER,LEFT,RIGHT,OUTER,ON,GROUP,BY,ORDER,ASC,DESC,LIMIT,OFFSET,COUNT,SUM,AVG,MIN,MAX,AS,DISTINCT,PRIMARY,KEY,INTEGER,TEXT,REAL,BLOB,BOOLEAN,NULL,DEFAULT,UNIQUE,AUTOINCREMENT,INDEX,IS,EXISTS" ","
+  wl: str_lower w
+  kws: split "create,drop,table,insert,into,values,select,from,where,and,or,not,like,in,between,update,set,delete,begin,commit,rollback,transaction,join,inner,left,right,outer,on,group,by,order,asc,desc,limit,offset,count,sum,avg,min,max,as,distinct,primary,key,integer,text,real,blob,boolean,null,default,unique,autoincrement,index,is,exists" ","
   ki: 0
   while ki < (len kws)
-    if (at kws ki) == w
+    if (at kws ki) == wl
       return true
     ki: ki + 1
   false
@@ -557,7 +559,7 @@ fn sql_read_ident st
     ch: sql_lex_next st
     text: text ++ ch
   if is_sql_keyword text
-    sql_lex_emit st "kw" text
+    sql_lex_emit st "kw" (str_lower text)
   else
     sql_lex_emit st "id" text
 
@@ -840,17 +842,17 @@ fn parse_expr_primary ps
     else if kw == "false"
       parse_advance ps
       parse_make_lit false
-    else if kw == "NOT"
+    else if kw == "not"
       parse_advance ps
-      parse_make_unary "NOT" (parse_expr_primary ps)
-    else if kw == "exists" || kw == "COUNT" || kw == "sum" || kw == "avg" || kw == "min" || kw == "max"
+      parse_make_unary "not" (parse_expr_primary ps)
+    else if kw == "exists" || kw == "count" || kw == "sum" || kw == "avg" || kw == "min" || kw == "max"
       -- aggregate function call
       fname: (get (parse_consume ps) "text")
       parse_expect_op ps "("
       if parse_match_op ps "*"
         parse_advance ps
         args: [parse_make_id "*"]
-      else if parse_match_kw ps "DISTINCT"
+      else if parse_match_kw ps "distinct"
         parse_advance ps
         args: [parse_make_id "distinct", parse_expr ps]
       else
@@ -874,19 +876,19 @@ fn is_expr_op tok
   (txt == "=") || (txt == "<") || (txt == ">") || (txt == "<=") || (txt == ">=") || (txt == "!=") || (txt == "+") || (txt == "-") || (txt == "*") || (txt == "/") || (txt == "%")
 
 fn is_expr_kw_and tok
-  (tok.type) == "kw" && (tok.text) == "AND"
+  (tok.type) == "kw" && (tok.text) == "and"
 
 fn is_expr_kw_or tok
-  (tok.type) == "kw" && (tok.text) == "OR"
+  (tok.type) == "kw" && (tok.text) == "or"
 
 fn is_expr_kw_like tok
-  (tok.type) == "kw" && (tok.text) == "LIKE"
+  (tok.type) == "kw" && (tok.text) == "like"
 
 fn is_expr_kw_in tok
-  (tok.type) == "kw" && (tok.text) == "IN"
+  (tok.type) == "kw" && (tok.text) == "in"
 
 fn is_expr_kw_between tok
-  (tok.type) == "kw" && (tok.text) == "BETWEEN"
+  (tok.type) == "kw" && (tok.text) == "between"
 
 fn is_expr_kw_is tok
   (tok.type) == "kw" && (tok.text) == "is"
@@ -926,11 +928,11 @@ fn get_expr_op_text tok
     ""
 
 fn expr_infix_prec ps op_text
-  if op_text == "AND"
+  if op_text == "and"
     3
-  else if op_text == "OR"
+  else if op_text == "or"
     2
-  else if op_text == "LIKE" || op_text == "IN" || op_text == "BETWEEN"
+  else if op_text == "like" || op_text == "in" || op_text == "between"
     5
   else if op_text == "is"
     5
@@ -985,7 +987,7 @@ fn parse_expr_prec ps min_prec
     else if is_expr_kw_between tok
       parse_advance ps
       lo: parse_expr ps
-      parse_expect_kw ps "AND"
+      parse_expect_kw ps "and"
       hi: parse_expr ps
       n: parse_make_node "between"
       ast_set n "expr" left
@@ -994,7 +996,7 @@ fn parse_expr_prec ps min_prec
       left: n
     else if is_expr_kw_is tok
       parse_advance ps
-      if parse_match_kw ps "NOT"
+      if parse_match_kw ps "not"
         parse_advance ps
         parse_expect_kw ps "null"
         left: parse_make_binop "isnot" left nil
@@ -1043,22 +1045,22 @@ fn parse_table_ref ps
 fn parse_join ps
   -- inner/left/right join table on cond
   join_type: ""
-  if parse_match_kw ps "INNER"
+  if parse_match_kw ps "inner"
     join_type: "inner"
     parse_advance ps
-  else if parse_match_kw ps "LEFT"
+  else if parse_match_kw ps "left"
     join_type: "left"
     parse_advance ps
-    if parse_match_kw ps "OUTER"
+    if parse_match_kw ps "outer"
       parse_advance ps
-  else if parse_match_kw ps "RIGHT"
+  else if parse_match_kw ps "right"
     join_type: "right"
     parse_advance ps
-    if parse_match_kw ps "OUTER"
+    if parse_match_kw ps "outer"
       parse_advance ps
-  parse_expect_kw ps "JOIN"
+  parse_expect_kw ps "join"
   tab: parse_table_ref ps
-  if parse_match_kw ps "ON"
+  if parse_match_kw ps "on"
     parse_advance ps
     on_expr: parse_expr ps
   else
@@ -1084,10 +1086,10 @@ fn parse_order_by ps
   while true
     expr: parse_expr ps
     dir: "asc"
-    if parse_match_kw ps "ASC"
+    if parse_match_kw ps "asc"
       dir: "asc"
       parse_advance ps
-    else if parse_match_kw ps "DESC"
+    else if parse_match_kw ps "desc"
       dir: "desc"
       parse_advance ps
     item: parse_make_node "orderitem"
@@ -1101,10 +1103,10 @@ fn parse_order_by ps
 
 fn parse_select ps
   n: parse_make_node "select"
-  parse_expect_kw ps "SELECT"
+  parse_expect_kw ps "select"
 
   -- DISTINCT
-  distinct: parse_match_kw ps "DISTINCT"
+  distinct: parse_match_kw ps "distinct"
   if distinct
     ast_set n "distinct" true
     parse_advance ps
@@ -1119,39 +1121,39 @@ fn parse_select ps
   ast_set n "items" items
 
   -- FROM
-  if parse_match_kw ps "FROM"
+  if parse_match_kw ps "from"
     parse_advance ps
     tables: [parse_table_ref ps]
     -- JOINs
-    while (parse_match_kw ps "JOIN") || (parse_match_kw ps "INNER") || (parse_match_kw ps "LEFT") || (parse_match_kw ps "RIGHT")
+    while (parse_match_kw ps "join") || (parse_match_kw ps "inner") || (parse_match_kw ps "left") || (parse_match_kw ps "right")
       push tables (parse_join ps)
     ast_set n "from" tables
 
   -- WHERE
-  if parse_match_kw ps "WHERE"
+  if parse_match_kw ps "where"
     parse_advance ps
     ast_set n "where" (parse_expr ps)
 
   -- GROUP BY
-  if parse_match_kw ps "GROUP"
+  if parse_match_kw ps "group"
     parse_advance ps
-    parse_expect_kw ps "BY"
+    parse_expect_kw ps "by"
     gb: parse_group_by ps
     ast_set n "group_by" gb
 
   -- ORDER BY
-  if parse_match_kw ps "ORDER"
+  if parse_match_kw ps "order"
     parse_advance ps
-    parse_expect_kw ps "BY"
+    parse_expect_kw ps "by"
     ast_set n "order_by" (parse_order_by ps)
 
   -- LIMIT
-  if parse_match_kw ps "LIMIT"
+  if parse_match_kw ps "limit"
     parse_advance ps
     ast_set n "limit" (parse_expr ps)
 
   -- OFFSET
-  if parse_match_kw ps "OFFSET"
+  if parse_match_kw ps "offset"
     parse_advance ps
     ast_set n "offset" (parse_expr ps)
 
@@ -1159,8 +1161,8 @@ fn parse_select ps
 
 fn parse_insert ps
   n: parse_make_node "insert"
-  parse_expect_kw ps "INSERT"
-  parse_expect_kw ps "INTO"
+  parse_expect_kw ps "insert"
+  parse_expect_kw ps "into"
 
   -- Table
   tab_name: get (parse_consume ps) "text"
@@ -1178,7 +1180,7 @@ fn parse_insert ps
     parse_expect_op ps ")"
     ast_set n "columns" cols
 
-  parse_expect_kw ps "VALUES"
+  parse_expect_kw ps "values"
 
   -- Value rows
   rows: []
@@ -1200,9 +1202,9 @@ fn parse_insert ps
 
 fn parse_update ps
   n: parse_make_node "update"
-  parse_expect_kw ps "UPDATE"
+  parse_expect_kw ps "update"
   ast_set n "table" (get (parse_consume ps) "text")
-  parse_expect_kw ps "SET"
+  parse_expect_kw ps "set"
 
   sets: []
   while true
@@ -1218,7 +1220,7 @@ fn parse_update ps
     parse_advance ps
   ast_set n "sets" sets
 
-  if parse_match_kw ps "WHERE"
+  if parse_match_kw ps "where"
     parse_advance ps
     ast_set n "where" (parse_expr ps)
 
@@ -1226,19 +1228,19 @@ fn parse_update ps
 
 fn parse_delete ps
   n: parse_make_node "delete"
-  parse_expect_kw ps "DELETE"
-  parse_expect_kw ps "FROM"
+  parse_expect_kw ps "delete"
+  parse_expect_kw ps "from"
   ast_set n "table" (get (parse_consume ps) "text")
 
-  if parse_match_kw ps "WHERE"
+  if parse_match_kw ps "where"
     parse_advance ps
     ast_set n "where" (parse_expr ps)
 
   n
 
 fn parse_create ps
-  parse_expect_kw ps "CREATE"
-  if parse_match_kw ps "TABLE"
+  parse_expect_kw ps "create"
+  if parse_match_kw ps "table"
     parse_advance ps
     name: get (parse_consume ps) "text"
     parse_expect_op ps "("
@@ -1248,16 +1250,16 @@ fn parse_create ps
       ctype: get (parse_consume ps) "text"
       pk: false
       autoi: false
-      if parse_match_kw ps "PRIMARY"
+      if parse_match_kw ps "primary"
         parse_advance ps
-        parse_expect_kw ps "KEY"
+        parse_expect_kw ps "key"
         pk: true
-        if parse_match_kw ps "AUTOINCREMENT"
+        if parse_match_kw ps "autoincrement"
           parse_advance ps
           autoi: true
       -- Skip other constraints (DEFAULT, NOT NULL, UNIQUE, CHECK, etc.)
       while (parse_cur_type ps) == "kw" && (parse_cur_text ps) != "primary"
-        if (parse_cur_text ps) == "DEFAULT"
+        if (parse_cur_text ps) == "default"
           parse_advance ps
           dummy: parse_expr ps
           continue
@@ -1273,10 +1275,10 @@ fn parse_create ps
     ast_set n "name" name
     ast_set n "columns" cols
     n
-  else if parse_match_kw ps "INDEX"
+  else if parse_match_kw ps "index"
     parse_advance ps
     idx_name: get (parse_consume ps) "text"
-    parse_expect_kw ps "ON"
+    parse_expect_kw ps "on"
     tab_name: get (parse_consume ps) "text"
     parse_expect_op ps "("
     col_names: []
@@ -1296,8 +1298,8 @@ fn parse_create ps
     db_raise "Expected TABLE || INDEX after CREATE"
 
 fn parse_drop ps
-  parse_expect_kw ps "DROP"
-  if parse_match_kw ps "TABLE"
+  parse_expect_kw ps "drop"
+  if parse_match_kw ps "table"
     parse_advance ps
     if parse_match_kw ps "if"
       parse_advance ps
@@ -1305,7 +1307,7 @@ fn parse_drop ps
     n: parse_make_node "drop_table"
     ast_set n "name" (get (parse_consume ps) "text")
     n
-  else if parse_match_kw ps "INDEX"
+  else if parse_match_kw ps "index"
     parse_advance ps
     if parse_match_kw ps "if"
       parse_advance ps
@@ -1320,31 +1322,31 @@ fn parse_statement ps
   t: parse_cur_type ps
   if t == "kw"
     kw: parse_cur_text ps
-    if kw == "SELECT"
+    if kw == "select"
       parse_select ps
-    else if kw == "INSERT"
+    else if kw == "insert"
       parse_insert ps
-    else if kw == "UPDATE"
+    else if kw == "update"
       parse_update ps
-    else if kw == "DELETE"
+    else if kw == "delete"
       parse_delete ps
-    else if kw == "CREATE"
+    else if kw == "create"
       parse_create ps
-    else if kw == "DROP"
+    else if kw == "drop"
       parse_drop ps
-    else if kw == "BEGIN"
+    else if kw == "begin"
       parse_advance ps
-      if parse_match_kw ps "TRANSACTION"
+      if parse_match_kw ps "transaction"
         parse_advance ps
       parse_make_node "begin"
-    else if kw == "COMMIT"
+    else if kw == "commit"
       parse_advance ps
-      if parse_match_kw ps "TRANSACTION"
+      if parse_match_kw ps "transaction"
         parse_advance ps
       parse_make_node "commit"
-    else if kw == "ROLLBACK"
+    else if kw == "rollback"
       parse_advance ps
-      if parse_match_kw ps "TRANSACTION"
+      if parse_match_kw ps "transaction"
         parse_advance ps
       parse_make_node "rollback"
     else
@@ -1448,11 +1450,11 @@ fn eval_expr node db table row aliases
     if op == "isnot"
       return left != nil
     -- AND/OR short-circuit
-    if op == "AND"
+    if op == "and"
       return eval_truthy left && eval_truthy right
-    if op == "OR"
+    if op == "or"
       return eval_truthy left || eval_truthy right
-    if op == "IN"
+    if op == "in"
       -- right should be a list of values
       vals: right
       if is_list vals
@@ -1464,7 +1466,7 @@ fn eval_expr node db table row aliases
         false
       else
         false
-    if op == "LIKE"
+    if op == "like"
       return eval_like (to_str right) (to_str left)
     eval_compare op left right
 
@@ -1475,33 +1477,33 @@ fn eval_expr node db table row aliases
       if val == nil
         return nil
       return 0 - val
-    if op == "NOT"
+    if op == "not"
       return !(eval_truthy val)
     val
 
   else if tp == "func"
     fname: ast_get node "name"
     args: ast_get node "args"
-    if fname == "COUNT"
+    if fname == "count"
       count_arg: at args 0
       if (ast_type count_arg) == "id" && (ast_get count_arg "name") == "*"
         return 1 -- mark for counting; actual count is done by accumulating
       else
         val: eval_expr count_arg db table row aliases
         return 1
-    if fname == "SUM"
+    if fname == "sum"
       if (len args) > 0
         return eval_expr (at args 0) db table row aliases
       return 0
-    if fname == "AVG"
+    if fname == "avg"
       if (len args) > 0
         return eval_expr (at args 0) db table row aliases
       return 0
-    if fname == "MIN"
+    if fname == "min"
       if (len args) > 0
         return eval_expr (at args 0) db table row aliases
       return nil
-    if fname == "MAX"
+    if fname == "max"
       if (len args) > 0
         return eval_expr (at args 0) db table row aliases
       return nil
@@ -1510,7 +1512,7 @@ fn eval_expr node db table row aliases
       return eval_expr (at args 0) db table row aliases
     nil
 
-  else if tp == "BETWEEN"
+  else if tp == "between"
     val: eval_expr (ast_get node "expr") db table row aliases
     lo: eval_expr (ast_get node "lo") db table row aliases
     hi: eval_expr (ast_get node "hi") db table row aliases
@@ -1938,7 +1940,7 @@ fn exec_select db node
     ji: 1
     while ji < (len from_list)
       join_node: at from_list ji
-      if (ast_type join_node) == "JOIN"
+      if (ast_type join_node) == "join"
         tab_ref: ast_get join_node "table"
         jtable: get_table db (ast_get tab_ref "name")
         if jtable == nil
@@ -1980,9 +1982,9 @@ fn exec_select db node
 
             if ok
               push new_result combined
-            else if jtype == "LEFT" || jtype == "RIGHT"
+            else if jtype == "left" || jtype == "right"
               -- LEFT JOIN: keep left row with NULLs for right
-              if jtype == "LEFT"
+              if jtype == "left"
                 jc: 0
                 while jc < (len jcolnames)
                   cname: at jcolnames jc
@@ -2001,7 +2003,7 @@ fn exec_select db node
   i: 0
   while i < (len result_rows)
     row: at result_rows i
-    if eval_where db nil nil base_aliases where_clause row
+    if eval_where db nil row base_aliases where_clause
       push filtered row
     i: i + 1
 
@@ -2063,9 +2065,9 @@ fn exec_select db node
         else if tp == "func"
           fname: ast_get expr "name"
           args: ast_get expr "args"
-          if fname == "COUNT"
+          if fname == "count"
             set out_row label (len group_rows)
-          else if fname == "SUM"
+          else if fname == "sum"
             sum: 0
             g: 0
             while g < (len group_rows)
@@ -2074,7 +2076,7 @@ fn exec_select db node
                 sum: sum + v
               g: g + 1
             set out_row label sum
-          else if fname == "AVG"
+          else if fname == "avg"
             sum: 0
             cnt: 0
             g: 0
@@ -2088,7 +2090,7 @@ fn exec_select db node
               set out_row label (sum / cnt)
             else
               set out_row label nil
-          else if fname == "MIN"
+          else if fname == "min"
             min_val: nil
             g: 0
             while g < (len group_rows)
@@ -2097,7 +2099,7 @@ fn exec_select db node
                 min_val: v
               g: g + 1
             set out_row label min_val
-          else if fname == "MAX"
+          else if fname == "max"
             max_val: nil
             g: 0
             while g < (len group_rows)
@@ -2122,7 +2124,7 @@ fn exec_select db node
       expr: ast_get item "expr"
       if (ast_type expr) == "func"
         fname: ast_get expr "name"
-        if fname == "COUNT" || fname == "SUM" || fname == "AVG" || fname == "MIN" || fname == "MAX"
+        if fname == "count" || fname == "sum" || fname == "avg" || fname == "min" || fname == "max"
           has_agg: true
       s: s + 1
 
@@ -2136,7 +2138,7 @@ fn exec_select db node
         expr: ast_get item "expr"
         if (ast_type expr) == "func"
           fname: ast_get expr "name"
-          if fname == "COUNT"
+          if fname == "count"
             set out_row label 0
           else
             set out_row label nil
@@ -2161,9 +2163,9 @@ fn exec_select db node
         else if tp == "func"
           fname: ast_get expr "name"
           args: ast_get expr "args"
-          if fname == "COUNT"
+          if fname == "count"
             set out_row label (len filtered)
-          else if fname == "SUM"
+          else if fname == "sum"
             sum: 0
             g: 0
             while g < (len filtered)
@@ -2172,7 +2174,7 @@ fn exec_select db node
                 sum: sum + v
               g: g + 1
             set out_row label sum
-          else if fname == "AVG"
+          else if fname == "avg"
             sum: 0
             cnt: 0
             g: 0
@@ -2186,7 +2188,7 @@ fn exec_select db node
               set out_row label (sum / cnt)
             else
               set out_row label nil
-          else if fname == "MIN"
+          else if fname == "min"
             min_val: nil
             g: 0
             while g < (len filtered)
@@ -2195,7 +2197,7 @@ fn exec_select db node
                 min_val: v
               g: g + 1
             set out_row label min_val
-          else if fname == "MAX"
+          else if fname == "max"
             max_val: nil
             g: 0
             while g < (len filtered)
@@ -2305,7 +2307,7 @@ fn order_row_key row order_by aliases
       dir: "asc"
     val: eval_expr expr nil nil row aliases
     val_str: to_str val
-    if dir == "DESC"
+    if dir == "desc"
       -- Invert string for descending sort
       inv: ""
       j: 0
@@ -2401,11 +2403,11 @@ export fn db_exec handle sql
     if tp == "empty"
       i: i + 1
       continue
-    if tp == "BEGIN"
+    if tp == "begin"
       exec_begin db
-    else if tp == "COMMIT"
+    else if tp == "commit"
       exec_commit db
-    else if tp == "ROLLBACK"
+    else if tp == "rollback"
       exec_rollback db
     else if tp == "create_table"
       exec_create_table db stmt

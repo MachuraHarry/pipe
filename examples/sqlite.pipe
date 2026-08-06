@@ -1,0 +1,2440 @@
+-- ============================================================
+-- sqlite - Pure-Pipe relational database module
+-- Exports: db_open, db_close, db_exec, db_query
+-- ============================================================
+
+-- Internal: pair list for multi-return values
+fn pair a b
+  [a, b]
+
+fn first p
+  at p 0
+
+fn second p
+  at p 1
+
+-- Constants
+PAGE_SIZE: 4096
+MAGIC: to_bytes "PIPESQLT"
+DB_VERSION: 1
+
+-- Database registry (handle → db, stored as list by index)
+registry: []
+next_handle: 0
+
+fn alloc_handle
+  h: next_handle
+  next_handle: next_handle + 1
+  push registry (nil)
+  h
+
+fn get_db h
+  at registry h
+
+fn set_db h db
+  set registry h db
+
+fn drop_db h
+  set registry h nil
+
+--- String utilities ---
+
+fn str_lower s
+  r: ""
+  i: 0
+  while i < (len s)
+    ch: at s i
+    r: r ++ (lower_char ch)
+    i: i + 1
+  r
+
+fn lower_char ch
+  idx: index_of "ABCDEFGHIJKLMNOPQRSTUVWXYZ" ch
+  if idx != -1
+    at "abcdefghijklmnopqrstuvwxyz" idx
+  else
+    ch
+
+--- Type tests ---
+
+fn is_bool v
+  (type_of v) == "BOOLEAN"
+
+fn is_bytes v
+  (type_of v) == "BYTES"
+
+fn db_raise msg
+  raise msg
+
+--- String utilities ---
+
+fn str_ends_with s suffix
+  ls: len s
+  lsuf: len suffix
+  if ls < lsuf
+    false
+  else
+    (substring s (ls - lsuf) ls) == suffix
+
+fn str_starts_with s prefix
+  lp: len prefix
+  if (len s) < lp
+    false
+  else
+    (substring s 0 lp) == prefix
+
+fn str_contains s sub
+  (index_of s sub) != -1
+
+fn repeat_char c n
+  -- c: single-char string, n: count
+  s: ""
+  i: 0
+  while i < n
+    s: s ++ c
+    i: i + 1
+  s
+
+--- SQL Keywords set (case-insensitive, stored lowercase) ---
+
+-- All SQL keywords (used for case-insensitive match by lowering via char loop)
+-- We pre-build the search list once
+fn is_sql_keyword w
+  kws: split "CREATE,DROP,TABLE,INSERT,INTO,VALUES,SELECT,FROM,WHERE,AND,OR,NOT,LIKE,IN,BETWEEN,UPDATE,SET,DELETE,BEGIN,COMMIT,ROLLBACK,TRANSACTION,JOIN,INNER,LEFT,RIGHT,OUTER,ON,GROUP,BY,ORDER,ASC,DESC,LIMIT,OFFSET,COUNT,SUM,AVG,MIN,MAX,AS,DISTINCT,PRIMARY,KEY,INTEGER,TEXT,REAL,BLOB,BOOLEAN,NULL,DEFAULT,UNIQUE,AUTOINCREMENT,INDEX,IS,EXISTS" ","
+  ki: 0
+  while ki < (len kws)
+    if (at kws ki) == w
+      return true
+    ki: ki + 1
+  false
+
+--- === SECTION: Encoding / Decoding === ---
+
+fn enc_u32 n
+  int_to_bytes n 4
+
+fn enc_u64 n
+  int_to_bytes n 8
+
+fn enc_str s
+  bytes_append (enc_u32 (len (to_bytes s))) (to_bytes s)
+
+fn dec_uint bytes off
+  -- returns [int64_value, new_offset]
+  pair (bytes_to_int bytes off 1) (off + 1)
+
+fn dec_u32 bytes off
+  pair (bytes_to_int bytes off 4) (off + 4)
+
+fn dec_u64 bytes off
+  pair (bytes_to_int bytes off 8) (off + 8)
+
+fn dec_str bytes off
+  r: dec_u32 bytes off
+  n: first r
+  new_off: second r
+  s: from_bytes (slice bytes new_off (new_off + n))
+  pair s (new_off + n)
+
+fn enc_value v
+  t: type_of v
+  if t == "NIL"
+    (int_to_bytes 0 1)
+  else if t == "BOOLEAN"
+    if v
+      (int_to_bytes 2 1)
+    else
+      (int_to_bytes 1 1)
+  else if t == "STRING"
+    bytes_append (int_to_bytes 3 1) (enc_str v)
+  else if (t == "INTEGER") || (t == "FLOAT")
+    bytes_append (int_to_bytes 4 1) (enc_str (to_str v))
+  else if t == "BYTES"
+    bytes_append (int_to_bytes 5 1) (enc_str (from_bytes v))
+  else if t == "LIST"
+    items: v
+    b: (int_to_bytes 6 1)
+    b: bytes_append b (enc_u32 (len items))
+    i: 0
+    while i < (len items)
+      b: bytes_append b (enc_value (at items i))
+      i: i + 1
+    b
+  else if t == "MAP"
+    keys_list: keys v
+    b: (int_to_bytes 7 1)
+    b: bytes_append b (enc_u32 (len keys_list))
+    for k in keys_list
+      b: bytes_append b (enc_str k)
+      b: bytes_append b (enc_value (get v k))
+    b
+  else
+    db_raise ("Cannot encode type: " ++ t)
+
+fn dec_value bytes off
+  r: dec_uint bytes off
+  tag: first r
+  new_off: second r
+  if tag == 0
+    pair nil new_off
+  else if tag == 1
+    pair false new_off
+  else if tag == 2
+    pair true new_off
+  else if tag == 3
+    r2: dec_str bytes new_off
+    pair (first r2) (second r2)
+  else if tag == 4
+    r2: dec_str bytes new_off
+    pair (to_num (first r2)) (second r2)
+  else if tag == 5
+    r2: dec_str bytes new_off
+    pair (to_bytes (first r2)) (second r2)
+  else if tag == 6
+    r3: dec_u32 bytes new_off
+    count: first r3
+    noff: second r3
+    items: []
+    i: 0
+    while i < count
+      rv: dec_value bytes noff
+      push items (first rv)
+      noff: second rv
+      i: i + 1
+    pair items noff
+  else if tag == 7
+    r3: dec_u32 bytes new_off
+    count: first r3
+    noff: second r3
+    m: {}
+    i: 0
+    while i < count
+      rk: dec_str bytes noff
+      key_name: first rk
+      noff: second rk
+      rv: dec_value bytes noff
+      set m key_name (first rv)
+      noff: second rv
+      i: i + 1
+    pair m noff
+  else
+    db_raise ("Unknown decode tag: " ++ (to_str tag))
+
+fn enc_state state
+  enc_value state
+
+fn dec_state bytes
+  r: dec_value bytes 0
+  first r
+
+--- === SECTION: Paged File I/O === ---
+
+fn compute_crc bytes
+  crc32 bytes
+
+fn make_page payload
+  plen: len payload
+  need: PAGE_SIZE - 4 - plen
+  if need > 0
+    i: 0
+    zero: (int_to_bytes 0 1)
+    while i < need
+      payload: bytes_append payload zero
+      i: i + 1
+  crc: compute_crc payload
+  bytes_append payload (enc_u32 crc)
+
+fn check_page page_bytes
+  payload: slice page_bytes 0 (PAGE_SIZE - 4)
+  stored_crc: bytes_to_int page_bytes (PAGE_SIZE - 4) 4
+  actual_crc: compute_crc payload
+  stored_crc == actual_crc
+
+fn write_db_file path state_bytes
+  data_len: len state_bytes
+  payload_cap: PAGE_SIZE - 4
+  header_size: 24
+
+  -- Build page 0 header + data
+  header: bytes_append MAGIC (enc_u32 DB_VERSION)
+  header: bytes_append header (enc_u32 PAGE_SIZE)
+  header: bytes_append header (enc_u64 data_len)
+
+  -- Compute pages
+  first_cap: payload_cap - header_size
+  if data_len <= first_cap
+    page0_payload: bytes_append header state_bytes
+    page0: make_page page0_payload
+    total_pages: 1
+  else
+    chunk: slice state_bytes 0 first_cap
+    page0_payload: bytes_append header chunk
+    page0: make_page page0_payload
+    pages: [page0]
+    off: first_cap
+    while off < data_len
+      end: off + payload_cap
+      if end > data_len
+        end: data_len
+      c: slice state_bytes off end
+      push pages (make_page c)
+      off: end
+    total_pages: len pages
+
+  -- Write tmp file, then move atomically
+  tmp_path: path ++ ".tmp"
+  h: file_open tmp_path "w"
+  if h == nil
+    db_raise "file_open failed"
+  file_write h 0 page0
+  if total_pages > 1
+    i: 1
+    while i < (len pages)
+      file_write h (i * PAGE_SIZE) (at pages i)
+      i: i + 1
+  file_truncate h (total_pages * PAGE_SIZE)
+  file_sync h
+  file_close h
+  file_move tmp_path path
+
+fn read_db_file path
+  if !file_exists path
+    db_raise ("Database file not found: " ++ path)
+  fsize: file_size path
+  total_pages: fsize / PAGE_SIZE
+  if total_pages == 0
+    return {}
+  h: file_open path "r"
+  if h == nil
+    db_raise "file_open failed"
+  page0: file_read h 0 PAGE_SIZE
+  if !(check_page page0)
+    file_close h
+    db_raise "Page 0 CRC mismatch"
+
+  -- Extract header
+  p0payload: slice page0 0 (PAGE_SIZE - 4)
+  magic_read: slice p0payload 0 8
+  if (bytes_compare magic_read MAGIC) != 0
+    file_close h
+    db_raise "Invalid magic (not a PipeSQL database)"
+
+  version: bytes_to_int p0payload 8 4
+  page_size: bytes_to_int p0payload 12 4
+  data_len: bytes_to_int p0payload 16 8
+
+  -- Read data across pages
+  header_size: 24
+  first_cap: page_size - 4 - header_size
+  state_bytes: slice p0payload header_size (header_size + first_cap)
+
+  if (len state_bytes) > data_len
+    state_bytes: slice state_bytes 0 data_len
+
+  if data_len > first_cap
+    remaining: data_len - first_cap
+    off: first_cap
+    page_num: 1
+    while remaining > 0
+      page_b: file_read h (page_num * page_size) page_size
+      if !(check_page page_b)
+        file_close h
+        db_raise ("Page " ++ (to_str page_num) ++ " CRC mismatch")
+      payload: slice page_b 0 (page_size - 4)
+      chunk: slice payload 0 remaining
+      state_bytes: bytes_append state_bytes chunk
+      remaining: remaining - (len chunk)
+      page_num: page_num + 1
+
+  file_close h
+  dec_state state_bytes
+
+--- === SECTION: State management === ---
+
+fn new_db path in_mem
+  db: {}
+  set db "path" path
+  set db "in_memory" in_mem
+  set db "tables" {}
+  set db "txn" nil
+  db
+
+fn new_table name
+  t: {}
+  set t "name" name
+  c1: []
+  set t "cols" c1
+  c2: []
+  set t "colnames" c2
+  c3: []
+  set t "rows" c3
+  em: {}
+  set t "indexes" em
+  set t "next_rowid" 1
+  t
+
+fn new_column name coltype pk auto
+  c: {}
+  set c "name" name
+  set c "coltype" coltype
+  set c "pk" pk
+  set c "auto" auto
+  c
+
+fn add_column table col
+  tcols: table.cols
+  push tcols col
+  tcolnames: table.colnames
+  colname: col.name
+  push tcolnames colname
+
+fn get_col_index table colname
+  names: table.colnames
+  nt: type_of names
+  print nt
+  n: len names
+  print n
+  i: 0
+  while i < n
+    print i
+    name_i: at names i
+    if name_i == colname
+      return i
+    i: i + 1
+  -1
+
+fn row_to_map table row
+  -- row: list of values, aligned with colnames
+  -- returns: map colname→value
+  m: {}
+  cols: table.colnames
+  i: 0
+  while i < (len cols)
+    set m (at cols i) (at row i)
+    i: i + 1
+  m
+
+fn make_row table vals
+  -- vals: list of values (in column order, || a map)
+  -- returns: list of values aligned with colnames
+  cols: table.cols
+  colnames: table.colnames
+  ncols: len cols
+  row: []
+  i: 0
+  while i < ncols
+    push row nil
+    i: i + 1
+  if is_map vals
+    for k in (keys vals)
+      ci: get_col_index table k
+      if ci >= 0
+        set row ci (get vals k)
+  else if is_list vals
+    i: 0
+    while i < (len vals)
+      if i < ncols
+        set row i (at vals i)
+      i: i + 1
+  row
+
+fn clone_value v
+  t: type_of v
+  if t == "MAP"
+    m: {}
+    for k in (keys v)
+      set m k (clone_value (get v k))
+    m
+  else if t == "LIST"
+    l: []
+    i: 0
+    while i < (len v)
+      push l (clone_value (at v i))
+      i: i + 1
+    l
+  else
+    v
+
+fn clone_db db
+  clone_value db
+
+fn get_table db name
+  tbls: db.tables
+  return get tbls name
+
+fn set_table db name table
+  tbls: db.tables
+  return set tbls name table
+
+--- === SECTION: SQL Lexer === ---
+
+fn is_digit_sql c
+  (c >= "0") && (c <= "9")
+
+fn is_alpha_sql c
+  if (c >= "a") && (c <= "z")
+    return true
+  if (c >= "A") && (c <= "Z")
+    return true
+  if c == "_"
+    return true
+  false
+
+fn is_alnum c
+  if is_alpha_sql c
+    return true
+  is_digit_sql c
+
+fn is_space_sql c
+  if c == " "
+    return true
+  if c == "\t"
+    return true
+  if c == "\r"
+    return true
+  c == "\n"
+
+fn lexer_state source
+  s: {}
+  set s "src" source
+  set s "pos" 0
+  set s "tokens" ([])
+  s
+
+fn sql_lex_peek st
+  p: st.pos
+  src: st.sql_src
+  if p >= (len src)
+    ""
+  else
+    at src p
+
+fn sql_lex_next st
+  c: sql_lex_peek st
+  p: st.pos
+  set st "pos" (p + 1)
+  c
+
+fn sql_lex_make_token typ text
+  t: {}
+  set t "type" typ
+  set t "text" text
+  t
+
+fn sql_lex_emit st typ text
+  tok: sql_lex_make_token typ text
+  tkl: st.tokens
+  push tkl tok
+  tok
+
+fn sql_lex_all st
+  tokens: st.tokens
+  tokens
+
+fn sql_lex_token_type tok
+  tok.type
+
+fn sql_lex_token_text tok
+  tok.text
+
+fn sql_read_number st
+  text: ""
+  while is_digit_sql (sql_lex_peek st)
+    ch: sql_lex_next st
+    text: text ++ ch
+  if (sql_lex_peek st) == "."
+    text: text ++ (sql_lex_next st)
+    while is_digit_sql (sql_lex_peek st)
+      text: text ++ (sql_lex_next st)
+  if ((sql_lex_peek st) == "e") || ((sql_lex_peek st) == "E")
+    text: text ++ (sql_lex_next st)
+    if ((sql_lex_peek st) == "+") || ((sql_lex_peek st) == "-")
+      text: text ++ (sql_lex_next st)
+    while is_digit_sql (sql_lex_peek st)
+      text: text ++ (sql_lex_next st)
+  sql_lex_emit st "num" text
+
+fn sql_read_ident st
+  text: ""
+  first: sql_lex_peek st
+  while is_alnum (sql_lex_peek st)
+    ch: sql_lex_next st
+    text: text ++ ch
+  if is_sql_keyword text
+    sql_lex_emit st "kw" text
+  else
+    sql_lex_emit st "id" text
+
+fn sql_read_string st quote
+  sql_lex_next st
+  text: ""
+  while true
+    c: sql_lex_peek st
+    if c == ""
+      db_raise "Unterminated string"
+    if c == quote
+      sql_lex_next st
+      if (sql_lex_peek st) == quote
+        text: text ++ quote
+        sql_lex_next st
+      else
+        break
+    else
+      text: text ++ (sql_lex_next st)
+  sql_lex_emit st "str" text
+
+fn sql_tokenize input_str
+  st: {}
+  set st "sql_src" input_str
+  set st "pos" 0
+  set st "tokens" ([])
+  while true
+    c: sql_lex_peek st
+    if c == ""
+      break
+    if is_space_sql c
+      sql_lex_next st
+      continue
+    if c == "-"
+      nxt: at (st.sql_src) ((st.pos) + 1)
+      if nxt == "-"
+        while ((sql_lex_peek st) != "") && ((sql_lex_peek st) != "\n")
+          sql_lex_next st
+        continue
+      sql_lex_next st
+      sql_lex_emit st "op" "-"
+      continue
+    if c == "'"
+      sql_read_string st "'"
+      continue
+    if c == "\""
+      sql_read_string st "\""
+      -- double-quoted is an identifier in standard SQL, but treat as string for simplicity
+      -- Overwrite token type from str to id:
+      toks: st.tokens
+      if (len toks) > 0
+        last: at toks ((len toks) - 1)
+        if (last.type) == "str"
+          set last "type" "id"
+      continue
+    if is_digit_sql c
+      sql_read_number st
+      continue
+    if is_alpha_sql c
+      sql_read_ident st
+      continue
+    sql_lex_next st
+    if c == "("
+      sql_lex_emit st "op" "("
+      continue
+    if c == ")"
+      sql_lex_emit st "op" ")"
+      continue
+    if c == ","
+      sql_lex_emit st "op" ","
+      continue
+    if c == ";"
+      sql_lex_emit st "op" ";"
+      continue
+    if c == "*"
+      sql_lex_emit st "op" "*"
+      continue
+    if c == "+"
+      sql_lex_emit st "op" "+"
+      continue
+    if c == "/"
+      sql_lex_emit st "op" "/"
+      continue
+    if c == "%"
+      sql_lex_emit st "op" "%"
+      continue
+    if c == "="
+      sql_lex_emit st "op" "="
+      continue
+    if c == "<"
+      if (sql_lex_peek st) == "="
+        sql_lex_next st
+        sql_lex_emit st "op" "<="
+      else if (sql_lex_peek st) == ">"
+        sql_lex_next st
+        sql_lex_emit st "op" "!="
+      else
+        sql_lex_emit st "op" "<"
+      continue
+    if c == ">"
+      if (sql_lex_peek st) == "="
+        sql_lex_next st
+        sql_lex_emit st "op" ">="
+      else
+        sql_lex_emit st "op" ">"
+      continue
+    if c == "!"
+      if (sql_lex_peek st) == "="
+        sql_lex_next st
+        sql_lex_emit st "op" "!="
+      else
+        sql_lex_emit st "op" "!"
+      continue
+    if c == "."
+      sql_lex_emit st "op" "."
+      continue
+    sql_lex_emit st "op" c
+
+  sql_lex_emit st "eof" ""
+  sql_lex_all st
+
+--- === SECTION: SQL Parser === ---
+
+fn parse_state tokens
+  s: {}
+  set s "tokens" tokens
+  set s "pos" 0
+  s
+
+fn parse_cur ps
+  toks: ps.tokens
+  idx: ps.pos
+  r: at toks idx
+  r
+
+fn parse_cur_type ps
+  t: parse_cur ps
+  if t == nil
+    "eof"
+  else
+    typ: t.type
+    typ
+
+fn parse_cur_text ps
+  t: parse_cur ps
+  if t == nil
+    ""
+  else
+    t.text
+
+fn parse_advance ps
+  p: ps.pos
+  set ps "pos" (p + 1)
+  parse_cur ps
+
+fn parse_match_type ps typ
+  (parse_cur_type ps) == typ
+
+fn parse_match_kw ps kw
+  (parse_cur_type ps) == "kw" && (parse_cur_text ps) == kw
+
+fn parse_match_op ps op
+  (parse_cur_type ps) == "op" && (parse_cur_text ps) == op
+
+fn parse_expect ps typ text
+  if (parse_cur_type ps) == typ && (parse_cur_text ps) == text
+    parse_advance ps
+    true
+  else
+    false
+
+fn parse_expect_kw ps kw
+  parse_expect ps "kw" kw
+
+fn parse_expect_op ps op
+  parse_expect ps "op" op
+
+fn parse_consume ps
+  tok: parse_cur ps
+  parse_advance ps
+  tok
+
+fn parse_make_node typ
+  n: {}
+  set n "type" typ
+  n
+
+-- AST node helpers
+fn ast_type n
+  n.type
+
+fn ast_set n k v
+  set n k v
+
+fn ast_get n k
+  get n k
+
+fn parse_identifier ps
+  if parse_match_type ps "id"
+    tok: parse_consume ps
+    parse_make_id (tok.text)
+  else
+    nil
+
+fn parse_make_id name
+  n: parse_make_node "id"
+  ast_set n "name" name
+  n
+
+fn parse_make_lit val
+  n: parse_make_node "lit"
+  ast_set n "value" val
+  n
+
+fn parse_make_column tbl name
+  n: parse_make_node "col"
+  if tbl != nil
+    ast_set n "table" tbl
+  ast_set n "name" name
+  n
+
+fn parse_make_binop op left right
+  n: parse_make_node "binop"
+  ast_set n "op" op
+  ast_set n "left" left
+  ast_set n "right" right
+  n
+
+fn parse_make_unary op expr
+  n: parse_make_node "unary"
+  ast_set n "op" op
+  ast_set n "expr" expr
+  n
+
+fn parse_make_func name args
+  n: parse_make_node "func"
+  ast_set n "name" name
+  ast_set n "args" args
+  n
+
+-- Primary expression
+fn parse_expr_primary ps
+  t: parse_cur_type ps
+  if t == "num"
+    toks: parse_consume ps
+    parse_make_lit (to_num (toks.text))
+  else if t == "str"
+    toks: parse_consume ps
+    parse_make_lit (toks.text)
+  else if t == "id"
+    name: get (parse_consume ps) "text"
+    if parse_match_op ps "."
+      -- qualified: tbl.col || functions
+      parse_advance ps
+      sub: get (parse_consume ps) "text"
+      parse_make_column name sub
+    else if parse_match_op ps "("
+      -- function call || expression
+      parse_advance ps
+      args: []
+      if !(parse_match_op ps ")")
+        while true
+          push args (parse_expr ps)
+          if !(parse_match_op ps ",")
+            break
+          parse_advance ps
+      parse_expect_op ps ")"
+      parse_make_func name args
+    else
+      -- bare identifier — could be column || function in SELECT context
+      parse_make_id name
+  else if t == "kw"
+    kw: parse_cur_text ps
+    if kw == "null"
+      parse_advance ps
+      parse_make_lit nil
+    else if kw == "true"
+      parse_advance ps
+      parse_make_lit true
+    else if kw == "false"
+      parse_advance ps
+      parse_make_lit false
+    else if kw == "NOT"
+      parse_advance ps
+      parse_make_unary "NOT" (parse_expr_primary ps)
+    else if kw == "exists" || kw == "COUNT" || kw == "sum" || kw == "avg" || kw == "min" || kw == "max"
+      -- aggregate function call
+      fname: (get (parse_consume ps) "text")
+      parse_expect_op ps "("
+      if parse_match_op ps "*"
+        parse_advance ps
+        args: [parse_make_id "*"]
+      else if parse_match_kw ps "DISTINCT"
+        parse_advance ps
+        args: [parse_make_id "distinct", parse_expr ps]
+      else
+        args: [parse_expr ps]
+      parse_expect_op ps ")"
+      parse_make_func fname args
+    else
+      db_raise ("Unexpected keyword in expression: " ++ kw)
+  else if parse_match_op ps "("
+    parse_advance ps
+    sub: parse_expr ps
+    parse_expect_op ps ")"
+    sub
+  else
+    db_raise ("Unexpected token in expression: " ++ (parse_cur_type ps))
+
+fn is_expr_op tok
+  if (tok.type) != "op"
+    return false
+  txt: tok.text
+  (txt == "=") || (txt == "<") || (txt == ">") || (txt == "<=") || (txt == ">=") || (txt == "!=") || (txt == "+") || (txt == "-") || (txt == "*") || (txt == "/") || (txt == "%")
+
+fn is_expr_kw_and tok
+  (tok.type) == "kw" && (tok.text) == "AND"
+
+fn is_expr_kw_or tok
+  (tok.type) == "kw" && (tok.text) == "OR"
+
+fn is_expr_kw_like tok
+  (tok.type) == "kw" && (tok.text) == "LIKE"
+
+fn is_expr_kw_in tok
+  (tok.type) == "kw" && (tok.text) == "IN"
+
+fn is_expr_kw_between tok
+  (tok.type) == "kw" && (tok.text) == "BETWEEN"
+
+fn is_expr_kw_is tok
+  (tok.type) == "kw" && (tok.text) == "is"
+
+fn expr_prec op
+  match op
+    | "or" -> 1
+    | "and" -> 2
+    | "not" -> 3
+    | "=" -> 4
+    | "!=" -> 4
+    | "<" -> 4
+    | ">" -> 4
+    | "<=" -> 4
+    | ">=" -> 4
+    | "like" -> 4
+    | "in" -> 4
+    | "between" -> 4
+    | "is" -> 4
+    | "+" -> 5
+    | "-" -> 5
+    | "*" -> 6
+    | "/" -> 6
+    | "%" -> 6
+    | _ -> 0
+
+fn parse_expr ps
+  parse_expr_prec ps 0
+
+fn expr_is_right_assoc op
+  false
+
+fn get_expr_op_text tok
+  if (tok.type) == "kw" || (tok.type) == "op"
+    tok.text
+  else
+    ""
+
+fn expr_infix_prec ps op_text
+  if op_text == "AND"
+    3
+  else if op_text == "OR"
+    2
+  else if op_text == "LIKE" || op_text == "IN" || op_text == "BETWEEN"
+    5
+  else if op_text == "is"
+    5
+  else
+    expr_prec op_text
+
+fn parse_expr_prec ps min_prec
+  left: parse_expr_primary ps
+
+  while true
+    tok: parse_cur ps
+    if tok == nil
+      break
+    txt: get_expr_op_text tok
+    t: tok.type
+
+    next_prec: expr_infix_prec ps txt
+    if next_prec <= min_prec
+      break
+
+    if is_expr_op tok
+      parse_advance ps
+      rprec: next_prec
+      if !(expr_is_right_assoc txt)
+        rprec: next_prec + 1
+      right: parse_expr_prec ps rprec
+      left: parse_make_binop txt left right
+    else if is_expr_kw_and tok
+      parse_advance ps
+      right: parse_expr_prec ps 3
+      left: parse_make_binop "and" left right
+    else if is_expr_kw_or tok
+      parse_advance ps
+      right: parse_expr_prec ps 2
+      left: parse_make_binop "or" left right
+    else if is_expr_kw_like tok
+      parse_advance ps
+      right: parse_expr_prec ps 6
+      left: parse_make_binop "like" left right
+    else if is_expr_kw_in tok
+      parse_advance ps
+      parse_expect_op ps "("
+      vals: []
+      if !(parse_match_op ps ")")
+        while true
+          push vals (parse_expr ps)
+          if !(parse_match_op ps ",")
+            break
+          parse_advance ps
+      parse_expect_op ps ")"
+      left: parse_make_binop "in" left (parse_make_lit vals)
+    else if is_expr_kw_between tok
+      parse_advance ps
+      lo: parse_expr ps
+      parse_expect_kw ps "AND"
+      hi: parse_expr ps
+      n: parse_make_node "between"
+      ast_set n "expr" left
+      ast_set n "lo" lo
+      ast_set n "hi" hi
+      left: n
+    else if is_expr_kw_is tok
+      parse_advance ps
+      if parse_match_kw ps "NOT"
+        parse_advance ps
+        parse_expect_kw ps "null"
+        left: parse_make_binop "isnot" left nil
+      else
+        parse_expect_kw ps "null"
+        left: parse_make_binop "isnull" left nil
+    else
+      break
+
+  left
+
+-- Parse SELECT list item
+fn parse_select_item ps
+  if parse_match_op ps "*"
+    parse_advance ps
+    n: parse_make_node "star"
+    n
+  else
+    expr: parse_expr ps
+    alias: nil
+    if parse_match_kw ps "as"
+      parse_advance ps
+      alias: get (parse_consume ps) "text"
+    else if parse_match_type ps "id"
+      -- bare identifier after expression could be alias
+      alias: get (parse_consume ps) "text"
+    n: parse_make_node "selitem"
+    ast_set n "expr" expr
+    if alias != nil
+      ast_set n "alias" alias
+    n
+
+fn parse_table_ref ps
+  name: get (parse_consume ps) "text"
+  alias: nil
+  if parse_match_type ps "id"
+    alias: get (parse_consume ps) "text"
+  n: parse_make_node "table"
+  ast_set n "name" name
+  if alias != nil
+    ast_set n "alias" alias
+  n
+
+fn parse_join ps
+  -- inner/left/right join table on cond
+  join_type: ""
+  if parse_match_kw ps "INNER"
+    join_type: "inner"
+    parse_advance ps
+  else if parse_match_kw ps "LEFT"
+    join_type: "left"
+    parse_advance ps
+    if parse_match_kw ps "OUTER"
+      parse_advance ps
+  else if parse_match_kw ps "RIGHT"
+    join_type: "right"
+    parse_advance ps
+    if parse_match_kw ps "OUTER"
+      parse_advance ps
+  parse_expect_kw ps "JOIN"
+  tab: parse_table_ref ps
+  if parse_match_kw ps "ON"
+    parse_advance ps
+    on_expr: parse_expr ps
+  else
+    on_expr: nil
+  n: parse_make_node "join"
+  ast_set n "type" join_type
+  ast_set n "table" tab
+  if on_expr != nil
+    ast_set n "on" on_expr
+  n
+
+fn parse_group_by ps
+  cols: []
+  while true
+    push cols (parse_expr ps)
+    if !(parse_match_op ps ",")
+      break
+    parse_advance ps
+  cols
+
+fn parse_order_by ps
+  items: []
+  while true
+    expr: parse_expr ps
+    dir: "asc"
+    if parse_match_kw ps "ASC"
+      dir: "asc"
+      parse_advance ps
+    else if parse_match_kw ps "DESC"
+      dir: "desc"
+      parse_advance ps
+    item: parse_make_node "orderitem"
+    ast_set item "expr" expr
+    ast_set item "dir" dir
+    push items item
+    if !(parse_match_op ps ",")
+      break
+    parse_advance ps
+  items
+
+fn parse_select ps
+  n: parse_make_node "select"
+  parse_expect_kw ps "SELECT"
+
+  -- DISTINCT
+  distinct: parse_match_kw ps "DISTINCT"
+  if distinct
+    ast_set n "distinct" true
+    parse_advance ps
+
+  -- SELECT items
+  items: []
+  while true
+    push items (parse_select_item ps)
+    if !(parse_match_op ps ",")
+      break
+    parse_advance ps
+  ast_set n "items" items
+
+  -- FROM
+  if parse_match_kw ps "FROM"
+    parse_advance ps
+    tables: [parse_table_ref ps]
+    -- JOINs
+    while (parse_match_kw ps "JOIN") || (parse_match_kw ps "INNER") || (parse_match_kw ps "LEFT") || (parse_match_kw ps "RIGHT")
+      push tables (parse_join ps)
+    ast_set n "from" tables
+
+  -- WHERE
+  if parse_match_kw ps "WHERE"
+    parse_advance ps
+    ast_set n "where" (parse_expr ps)
+
+  -- GROUP BY
+  if parse_match_kw ps "GROUP"
+    parse_advance ps
+    parse_expect_kw ps "BY"
+    ast_set n "group_by" (parse_group_by ps)
+
+  -- ORDER BY
+  if parse_match_kw ps "ORDER"
+    parse_advance ps
+    parse_expect_kw ps "BY"
+    ast_set n "order_by" (parse_order_by ps)
+
+  -- LIMIT
+  if parse_match_kw ps "LIMIT"
+    parse_advance ps
+    ast_set n "limit" (parse_expr ps)
+
+  -- OFFSET
+  if parse_match_kw ps "OFFSET"
+    parse_advance ps
+    ast_set n "offset" (parse_expr ps)
+
+  n
+
+fn parse_insert ps
+  n: parse_make_node "insert"
+  parse_expect_kw ps "INSERT"
+  parse_expect_kw ps "INTO"
+
+  -- Table
+  tab_name: get (parse_consume ps) "text"
+  ast_set n "table" tab_name
+
+  -- Optional columns
+  if parse_match_op ps "("
+    parse_advance ps
+    cols: []
+    while true
+      push cols (get (parse_consume ps) "text")
+      if !(parse_match_op ps ",")
+        break
+      parse_advance ps
+    parse_expect_op ps ")"
+    ast_set n "columns" cols
+
+  parse_expect_kw ps "VALUES"
+
+  -- Value rows
+  rows: []
+  while true
+    parse_expect_op ps "("
+    vals: []
+    while true
+      push vals (parse_expr ps)
+      if !(parse_match_op ps ",")
+        break
+      parse_advance ps
+    parse_expect_op ps ")"
+    push rows vals
+    if !(parse_match_op ps ",")
+      break
+    parse_advance ps
+  ast_set n "values" rows
+  n
+
+fn parse_update ps
+  n: parse_make_node "update"
+  parse_expect_kw ps "UPDATE"
+  ast_set n "table" (get (parse_consume ps) "text")
+  parse_expect_kw ps "SET"
+
+  sets: []
+  while true
+    col: get (parse_consume ps) "text"
+    parse_expect_op ps "="
+    val: parse_expr ps
+    s: parse_make_node "assign"
+    ast_set s "col" col
+    ast_set s "value" val
+    push sets s
+    if !(parse_match_op ps ",")
+      break
+    parse_advance ps
+  ast_set n "sets" sets
+
+  if parse_match_kw ps "WHERE"
+    parse_advance ps
+    ast_set n "where" (parse_expr ps)
+
+  n
+
+fn parse_delete ps
+  n: parse_make_node "delete"
+  parse_expect_kw ps "DELETE"
+  parse_expect_kw ps "FROM"
+  ast_set n "table" (get (parse_consume ps) "text")
+
+  if parse_match_kw ps "WHERE"
+    parse_advance ps
+    ast_set n "where" (parse_expr ps)
+
+  n
+
+fn parse_create ps
+  parse_expect_kw ps "CREATE"
+  if parse_match_kw ps "TABLE"
+    parse_advance ps
+    name: get (parse_consume ps) "text"
+    parse_expect_op ps "("
+    cols: []
+    while true
+      cname: get (parse_consume ps) "text"
+      ctype: get (parse_consume ps) "text"
+      pk: false
+      autoi: false
+      if parse_match_kw ps "PRIMARY"
+        parse_advance ps
+        parse_expect_kw ps "KEY"
+        pk: true
+        if parse_match_kw ps "AUTOINCREMENT"
+          parse_advance ps
+          autoi: true
+      -- Skip other constraints (DEFAULT, NOT NULL, UNIQUE, CHECK, etc.)
+      while (parse_cur_type ps) == "kw" && (parse_cur_text ps) != "primary"
+        if (parse_cur_text ps) == "DEFAULT"
+          parse_advance ps
+          dummy: parse_expr ps
+          continue
+        parse_advance ps
+      col: new_column cname ctype pk autoi
+      push cols col
+      if !(parse_match_op ps ",")
+        break
+      parse_advance ps
+    parse_expect_op ps ")"
+
+    n: parse_make_node "create_table"
+    ast_set n "name" name
+    ast_set n "columns" cols
+    n
+  else if parse_match_kw ps "INDEX"
+    parse_advance ps
+    idx_name: get (parse_consume ps) "text"
+    parse_expect_kw ps "ON"
+    tab_name: get (parse_consume ps) "text"
+    parse_expect_op ps "("
+    col_names: []
+    while true
+      push col_names (get (parse_consume ps) "text")
+      if !(parse_match_op ps ",")
+        break
+      parse_advance ps
+    parse_expect_op ps ")"
+
+    n: parse_make_node "create_index"
+    ast_set n "name" idx_name
+    ast_set n "table" tab_name
+    ast_set n "columns" col_names
+    n
+  else
+    db_raise "Expected TABLE || INDEX after CREATE"
+
+fn parse_drop ps
+  parse_expect_kw ps "DROP"
+  if parse_match_kw ps "TABLE"
+    parse_advance ps
+    if parse_match_kw ps "if"
+      parse_advance ps
+      parse_expect_kw ps "exists"
+    n: parse_make_node "drop_table"
+    ast_set n "name" (get (parse_consume ps) "text")
+    n
+  else if parse_match_kw ps "INDEX"
+    parse_advance ps
+    if parse_match_kw ps "if"
+      parse_advance ps
+      parse_expect_kw ps "exists"
+    n: parse_make_node "drop_index"
+    ast_set n "name" (get (parse_consume ps) "text")
+    n
+  else
+    db_raise "Expected TABLE || INDEX after DROP"
+
+fn parse_statement ps
+  t: parse_cur_type ps
+  if t == "kw"
+    kw: parse_cur_text ps
+    if kw == "SELECT"
+      parse_select ps
+    else if kw == "INSERT"
+      parse_insert ps
+    else if kw == "UPDATE"
+      parse_update ps
+    else if kw == "DELETE"
+      parse_delete ps
+    else if kw == "CREATE"
+      parse_create ps
+    else if kw == "DROP"
+      parse_drop ps
+    else if kw == "BEGIN"
+      parse_advance ps
+      if parse_match_kw ps "TRANSACTION"
+        parse_advance ps
+      parse_make_node "begin"
+    else if kw == "COMMIT"
+      parse_advance ps
+      if parse_match_kw ps "TRANSACTION"
+        parse_advance ps
+      parse_make_node "commit"
+    else if kw == "ROLLBACK"
+      parse_advance ps
+      if parse_match_kw ps "TRANSACTION"
+        parse_advance ps
+      parse_make_node "rollback"
+    else
+      db_raise ("Unknown statement: " ++ kw)
+  else if t == "eof"
+    parse_make_node "empty"
+  else
+    db_raise ("Unexpected token: " ++ t)
+
+fn parse_sql sql
+  tokens: sql_tokenize sql
+  ps: parse_state tokens
+  tkl: ps.tokens
+  stmts: []
+  stmts: []
+  while (parse_cur_type ps) != "eof"
+    push stmts (parse_statement ps)
+    if parse_match_op ps ";"
+      parse_advance ps
+    if (parse_cur_type ps) == "eof"
+      break
+  stmts
+
+--- === SECTION: Expression Evaluator === ---
+
+fn sql_value_to_str v
+  if v == nil
+    "NULL"
+  else if is_bool v
+    if v
+      "TRUE"
+    else
+      "FALSE"
+  else if is_str v
+    "'" ++ v ++ "'"
+  else
+    to_str v
+
+fn eval_expr node db table row aliases
+  -- row: map colname→value (or map "alias.colname"→value for joins)
+  -- aliases: list of {table, alias} for column disambiguation
+  -- returns: evaluated value
+  if node == nil
+    return nil
+  tp: ast_type node
+
+  if tp == "lit"
+    ast_get node "value"
+
+  else if tp == "col"
+    colname: ast_get node "name"
+    tbl: ast_get node "table"
+    if tbl != nil
+      -- qualified: table.column
+      full_key: tbl ++ "." ++ colname
+      if row != nil
+        v: get row full_key
+        if v != nil
+          return v
+      nil
+    else
+      -- unqualified: search in all table contexts
+      -- Try bare colname first
+      if row != nil
+        v: get row colname
+        if v != nil
+          return v
+      -- Try aliases: check each alias.colname
+      if aliases != nil && row != nil
+        i: 0
+        while i < (len aliases)
+          a: at aliases i
+          alias: a.alias
+          key: alias ++ "." ++ colname
+          v: get row key
+          if v != nil
+            return v
+          i: i + 1
+      nil
+
+  else if tp == "id"
+    -- Could be a bare identifier resolved as column || NULL
+    name: ast_get node "name"
+    if row != nil
+      v: get row name
+      if v != nil
+        return v
+    if name == "*"
+      return nil
+    nil
+
+  else if tp == "star"
+    nil
+
+  else if tp == "binop"
+    op: ast_get node "op"
+    left: eval_expr (ast_get node "left") db table row aliases
+    right: eval_expr (ast_get node "right") db table row aliases
+    if op == "isnull"
+      return left == nil
+    if op == "isnot"
+      return left != nil
+    -- AND/OR short-circuit
+    if op == "AND"
+      return eval_truthy left && eval_truthy right
+    if op == "OR"
+      return eval_truthy left || eval_truthy right
+    if op == "IN"
+      -- right should be a list of values
+      vals: right
+      if is_list vals
+        i: 0
+        while i < (len vals)
+          if eval_compare "=" left (at vals i)
+            return true
+          i: i + 1
+        false
+      else
+        false
+    if op == "LIKE"
+      return eval_like (to_str right) (to_str left)
+    eval_compare op left right
+
+  else if tp == "unary"
+    op: ast_get node "op"
+    val: eval_expr (ast_get node "expr") db table row aliases
+    if op == "-"
+      if val == nil
+        return nil
+      return 0 - val
+    if op == "NOT"
+      return !(eval_truthy val)
+    val
+
+  else if tp == "func"
+    fname: ast_get node "name"
+    args: ast_get node "args"
+    if fname == "COUNT"
+      count_arg: at args 0
+      if (ast_type count_arg) == "id" && (ast_get count_arg "name") == "*"
+        return 1 -- mark for counting; actual count is done by accumulating
+      else
+        val: eval_expr count_arg db table row aliases
+        return 1
+    if fname == "SUM"
+      if (len args) > 0
+        return eval_expr (at args 0) db table row aliases
+      return 0
+    if fname == "AVG"
+      if (len args) > 0
+        return eval_expr (at args 0) db table row aliases
+      return 0
+    if fname == "MIN"
+      if (len args) > 0
+        return eval_expr (at args 0) db table row aliases
+      return nil
+    if fname == "MAX"
+      if (len args) > 0
+        return eval_expr (at args 0) db table row aliases
+      return nil
+    -- Fallback
+    if (len args) > 0
+      return eval_expr (at args 0) db table row aliases
+    nil
+
+  else if tp == "BETWEEN"
+    val: eval_expr (ast_get node "expr") db table row aliases
+    lo: eval_expr (ast_get node "lo") db table row aliases
+    hi: eval_expr (ast_get node "hi") db table row aliases
+    return (eval_compare ">=" val lo) && (eval_compare "<=" val hi)
+
+  else if tp == "selitem"
+    eval_expr (ast_get node "expr") db table row aliases
+
+  else
+    nil
+
+fn eval_truthy v
+  if v == nil || v == false
+    false
+  else
+    true
+
+fn eval_like pattern str
+  -- Simple LIKE: % = any sequence, _ = any single char
+  -- Recursive matching without regex
+  if pattern == ""
+    return str == ""
+  if str == ""
+    return false
+  if (at pattern 0) == "%"
+    pi: 1
+    while pi < (len pattern) && (at pattern pi) == "%"
+      pi: pi + 1
+    rest: substring pattern pi (len pattern)
+    if rest == ""
+      return true
+    i: 0
+    while i <= (len str)
+      if eval_like rest (substring str i (len str))
+        return true
+      i: i + 1
+    false
+  else if (at pattern 0) == "_"
+    if (len str) == 0
+      return false
+    return eval_like (substring pattern 1 (len pattern)) (substring str 1 (len str))
+  else
+    if (at pattern 0) == (at str 0)
+      return eval_like (substring pattern 1 (len pattern)) (substring str 1 (len str))
+    else
+      false
+
+fn eval_compare op a b
+  if a == nil && b == nil
+    return op == "="
+  if a == nil || b == nil
+    return op == "!="
+  -- numeric comparison
+  if (is_num a) && (is_num b)
+    match op
+      | "=" -> a == b
+      | "!=" -> a != b
+      | "<" -> a < b
+      | ">" -> a > b
+      | "<=" -> a <= b
+      | ">=" -> a >= b
+      | _ -> false
+  -- string comparison
+  sa: to_str a
+  sb: to_str b
+  match op
+    | "=" -> sa == sb
+    | "!=" -> sa != sb
+    | "<" -> sa < sb
+    | ">" -> sa > sb
+    | "<=" -> sa <= sb
+    | ">=" -> sa >= sb
+    | "+" -> a + b
+    | "-" -> a - b
+    | "*" -> a * b
+    | "/" -> a / b
+    | "%" -> a % b
+    | _ -> false
+
+fn get_select_item_label item
+  -- Returns the column label for a select item
+  alias: ast_get item "alias"
+  if alias != nil
+    return alias
+  expr: ast_get item "expr"
+  tp: ast_type expr
+  if tp == "col"
+    return ast_get expr "name"
+  if tp == "id"
+    return ast_get expr "name"
+  if tp == "func"
+    args: ast_get expr "args"
+    arg_expr: at args 0
+    if (ast_type arg_expr) == "id"
+      if (ast_get arg_expr "name") == "*"
+        return ast_get expr "name" ++ "(*)"
+      else
+        return ast_get expr "name"
+    return ast_get expr "name"
+  if tp == "star"
+    return "*"
+  tp
+
+--- === SECTION: Index Management === ---
+
+fn mk_map_alias tbl al
+  m: {}
+  set m "table" tbl
+  set m "alias" al
+  m
+
+fn index_build table index_name col_list
+  -- col_list: list of column name strings
+  idx: {}
+  set idx "cols" col_list
+  set idx "entries" {}
+  rows: table.rows
+  colnames: table.colnames
+  i: 0
+  while i < (len rows)
+    row: at rows i
+    -- Build key string from indexed columns
+    key: ""
+    j: 0
+    while j < (len col_list)
+      cname: at col_list j
+      ci: get_col_index table cname
+      if ci >= 0
+        val: at row ci
+        if j > 0
+          key: key ++ "|"
+        key: key ++ (to_str val)
+      j: j + 1
+    -- Store entry
+    entry_list: get (idx.entries) key
+    if entry_list == nil
+      entry_list: []
+      set (idx.entries) key entry_list
+    push entry_list i
+    i: i + 1
+  set (table.indexes) index_name idx
+
+fn index_lookup table idx_name key_val
+  -- key_val: list of values matching indexed columns
+  idx: get (table.indexes) idx_name
+  if idx == nil
+    return nil
+  key: ""
+  i: 0
+  while i < (len key_val)
+    if i > 0
+      key: key ++ "|"
+    key: key ++ (to_str (at key_val i))
+    i: i + 1
+  get (idx.entries) key
+
+fn index_rebuild_all table
+  indexes: table.indexes
+  for name in (keys indexes)
+    idx: get indexes name
+    index_build table name (idx.cols)
+
+--- === SECTION: Query Engine — DDL === ---
+
+fn exec_create_table db node
+  name: ast_get node "name"
+  cols: ast_get node "columns"
+  tables: db.tables
+  if (get tables name) != nil
+    db_raise ("Table already exists: " ++ name)
+  table: new_table name
+  i: 0
+  while i < (len cols)
+    add_column table (at cols i)
+    i: i + 1
+  set tables name table
+  0
+
+fn exec_drop_table db node
+  name: ast_get node "name"
+  tables: db.tables
+  set tables name nil
+  0
+
+fn exec_create_index db node
+  name: ast_get node "name"
+  tab_name: ast_get node "table"
+  col_names: ast_get node "columns"
+  table: get_table db tab_name
+  if table == nil
+    db_raise ("Table not found: " ++ tab_name)
+  index_build table name col_names
+  0
+
+--- === SECTION: Query Engine — DML === ---
+
+fn exec_insert db node
+  tab_name: ast_get node "table"
+  table: get_table db tab_name
+  if table == nil
+    db_raise ("Table not found: " ++ tab_name)
+
+  cols: ast_get node "columns"
+  value_rows: ast_get node "values"
+  rows: table.rows
+  affected: 0
+  affected: 0
+
+  -- Resolve column indices
+  col_indices: []
+  if cols != nil
+    ncols: len cols
+    print ncols
+    i: 0
+    while i < ncols
+      print i
+      col_name: at cols i
+      print col_name
+      ci: get_col_index table col_name
+      if ci < 0
+        db_raise ("Column not found: " ++ (at cols i))
+      push col_indices ci
+      i: i + 1
+  else
+    i: 0
+    while i < (len (table.cols))
+        push col_indices i
+        i: i + 1
+
+
+  -- Process each value row
+  vi: 0
+  while vi < (len value_rows)
+    vals: at value_rows vi
+    print vi
+    -- Build row as list aligned with colnames
+    ncols: len (table.cols)
+    row: []
+    i: 0
+    while i < ncols
+      push row nil
+      i: i + 1
+
+    -- Fill specified columns
+    i: 0
+    while i < (len vals) && i < (len col_indices)
+      ci: at col_indices i
+      -- Evaluate expression (no row context for INSERT)
+      val_expr: at vals i
+      empty_aliases: []
+      val: eval_expr val_expr db table nil empty_aliases
+      set row ci val
+      i: i + 1
+
+    -- Auto-increment primary key
+    cols_info: table.cols
+    i: 0
+    while i < ncols
+      col: at cols_info i
+      if (at row i) == nil && (col.pk) && (col.auto)
+        set row i (table.next_rowid)
+        set table "next_rowid" ((table.next_rowid) + 1)
+      i: i + 1
+
+    push rows row
+    affected: affected + 1
+    vi: vi + 1
+
+  -- Rebuild indexes
+  index_rebuild_all table
+  affected
+
+fn exec_update db node
+  tab_name: ast_get node "table"
+  table: get_table db tab_name
+  if table == nil
+    db_raise ("Table not found: " ++ tab_name)
+
+  sets: ast_get node "sets"
+  where_clause: ast_get node "where"
+  rows: table.rows
+  aliases: [(mk_map_alias tab_name tab_name)]
+  affected: 0
+
+  i: 0
+  while i < (len rows)
+    row: at rows i
+    row_map: row_to_map table row
+    colnames: table.colnames
+    j: 0
+    while j < (len colnames)
+      cname: at colnames j
+      full_key: tab_name ++ "." ++ cname
+      set row_map full_key (get row_map cname)
+      j: j + 1
+
+    -- Evaluate WHERE clause
+    do_update: true
+    if where_clause != nil
+      do_update: eval_truthy (eval_expr where_clause db table row_map aliases)
+
+    if do_update
+      -- Apply SET columns
+      s: 0
+      while s < (len sets)
+        assign: at sets s
+        col: ast_get assign "col"
+        val_expr: ast_get assign "value"
+        ci: get_col_index table col
+        if ci >= 0
+          new_val: eval_expr val_expr db table row_map aliases
+          set row ci new_val
+        s: s + 1
+      affected: affected + 1
+    i: i + 1
+
+  -- Rebuild indexes
+  index_rebuild_all table
+  affected
+
+fn exec_delete db node
+  tab_name: ast_get node "table"
+  table: get_table db tab_name
+  if table == nil
+    db_raise ("Table not found: " ++ tab_name)
+
+  where_clause: ast_get node "where"
+  rows: table.rows
+  aliases: [(mk_map_alias tab_name tab_name)]
+  affected: 0
+
+  new_rows: []
+  i: 0
+  while i < (len rows)
+    row: at rows i
+    row_map: row_to_map table row
+    colnames: table.colnames
+    j: 0
+    while j < (len colnames)
+      cname: at colnames j
+      set row_map (tab_name ++ "." ++ cname) (get row_map cname)
+      j: j + 1
+
+    delete: false
+    if where_clause == nil
+      delete: true
+    else
+      delete: eval_truthy (eval_expr where_clause db table row_map aliases)
+
+    if delete
+      affected: affected + 1
+    else
+      push new_rows row
+    i: i + 1
+
+  set table "rows" new_rows
+  index_rebuild_all table
+  affected
+
+--- === SECTION: Query Engine — SELECT === ---
+
+fn resolve_alias_col table_node row_map colname
+  tab_name: ast_get table_node "name"
+  alias: ast_get table_node "alias"
+  if alias == nil
+    alias: tab_name
+  prefix: alias ++ "."
+  get row_map (prefix ++ colname)
+
+fn eval_where db table_list row_map aliases where_clause
+  if where_clause == nil
+    return true
+  eval_truthy (eval_expr where_clause db nil row_map aliases)
+
+fn exec_select db node
+  items: ast_get node "items"
+  from_list: ast_get node "from"
+  where_clause: ast_get node "where"
+  -- quick debug
+  group_by: ast_get node "group_by"
+  order_by: ast_get node "order_by"
+  limit_expr: ast_get node "limit"
+  offset_expr: ast_get node "offset"
+  distinct: ast_get node "distinct"
+
+  -- Resolve FROM clause: first table + JOINs
+  result_rows: []
+
+  if from_list == nil
+    -- No FROM clause (e.g., SELECT 1+1)
+    row: {}
+    push result_rows row
+  else
+    -- Build base rows from first table
+    first_ref: at from_list 0
+    first_table: get_table db (ast_get first_ref "name")
+    if first_table == nil
+      db_raise ("Table not found: " ++ (ast_get first_ref "name"))
+    first_alias: ast_get first_ref "alias"
+    if first_alias == nil
+      first_alias: ast_get first_ref "name"
+
+    -- Build row maps from base table
+    rows_list: first_table.rows
+    colnames: first_table.colnames
+    base_aliases: []
+    push base_aliases (mk_map_alias (ast_get first_ref "name") first_alias)
+
+    i: 0
+    while i < (len rows_list)
+      row: at rows_list i
+      rm: row_to_map first_table row
+      -- Add alias-qualified keys
+      j: 0
+      while j < (len colnames)
+        cname: at colnames j
+        set rm (first_alias ++ "." ++ cname) (get rm cname)
+        j: j + 1
+      push result_rows rm
+      i: i + 1
+
+    -- Process JOINs
+    ji: 1
+    while ji < (len from_list)
+      join_node: at from_list ji
+      if (ast_type join_node) == "JOIN"
+        tab_ref: ast_get join_node "table"
+        jtable: get_table db (ast_get tab_ref "name")
+        if jtable == nil
+          db_raise ("Table not found: " ++ (ast_get tab_ref "name"))
+        jalias: ast_get tab_ref "alias"
+        if jalias == nil
+          jalias: ast_get tab_ref "name"
+        on_expr: ast_get join_node "on"
+        jtype: ast_get join_node "type"
+
+        jrows: jtable.rows
+        jcolnames: jtable.colnames
+        jaliases: base_aliases
+        push jaliases (mk_map_alias (ast_get tab_ref "name") jalias)
+
+        -- Cross join: combine current result_rows with join table rows
+        new_result: []
+        r: 0
+        while r < (len result_rows)
+          base_row: at result_rows r
+          j: 0
+          while j < (len jrows)
+            jrow: at jrows j
+            -- Build combined row map
+            combined: {}
+            for k in (keys base_row)
+              set combined k (get base_row k)
+            jr: row_to_map jtable jrow
+            jc: 0
+            while jc < (len jcolnames)
+              cname: at jcolnames jc
+              set combined (jalias ++ "." ++ cname) (get jr cname)
+              jc: jc + 1
+
+            -- Check ON condition
+            ok: true
+            if on_expr != nil
+              ok: eval_truthy (eval_expr on_expr db nil combined jaliases)
+
+            if ok
+              push new_result combined
+            else if jtype == "LEFT" || jtype == "RIGHT"
+              -- LEFT JOIN: keep left row with NULLs for right
+              if jtype == "LEFT"
+                jc: 0
+                while jc < (len jcolnames)
+                  cname: at jcolnames jc
+                  set combined (jalias ++ "." ++ cname) nil
+                  jc: jc + 1
+                push new_result combined
+            j: j + 1
+          r: r + 1
+
+        result_rows: new_result
+        base_aliases: jaliases
+      ji: ji + 1
+
+  -- WHERE filtering
+  filtered: []
+  i: 0
+  while i < (len result_rows)
+    row: at result_rows i
+    if eval_where db nil nil base_aliases where_clause row
+      push filtered row
+    i: i + 1
+
+  -- GROUP BY
+  grouped: false
+  groups: {}
+  group_keys: []
+  if group_by != nil && (len group_by) > 0
+    grouped: true
+    all_aliases: base_aliases
+    i: 0
+    while i < (len filtered)
+      row: at filtered i
+      -- Build group key from group columns
+      key: ""
+      j: 0
+      while j < (len group_by)
+        gexpr: at group_by j
+        val: eval_expr gexpr db nil row all_aliases
+        if j > 0
+          key: key ++ "|"
+        key: key ++ (to_str val)
+        j: j + 1
+      -- Add to group
+      group_entries: get groups key
+      if group_entries == nil
+        group_entries: []
+        set groups key group_entries
+        push group_keys key
+      push group_entries row
+      i: i + 1
+
+  -- Produce output rows
+  output: []
+  if grouped
+    -- For each group, produce one output row with aggregates
+    ki: 0
+    while ki < (len group_keys)
+      gkey: at group_keys ki
+      group_rows: get groups gkey
+      if (len group_rows) == 0
+        ki: ki + 1
+        continue
+      out_row: {}
+      sample_row: at group_rows 0
+
+      -- Evaluate each SELECT item with aggregate context
+      s: 0
+      while s < (len items)
+        item: at items s
+        label: get_select_item_label item
+        expr: ast_get item "expr"
+        tp: ast_type expr
+
+        if tp == "star"
+          -- Expand all columns from sample row
+          for k in (keys sample_row)
+            set out_row k (get sample_row k)
+        else if tp == "func"
+          fname: ast_get expr "name"
+          args: ast_get expr "args"
+          if fname == "COUNT"
+            set out_row label (len group_rows)
+          else if fname == "SUM"
+            sum: 0
+            g: 0
+            while g < (len group_rows)
+              v: eval_expr (at args 0) db nil (at group_rows g) all_aliases
+              if v != nil
+                sum: sum + v
+              g: g + 1
+            set out_row label sum
+          else if fname == "AVG"
+            sum: 0
+            cnt: 0
+            g: 0
+            while g < (len group_rows)
+              v: eval_expr (at args 0) db nil (at group_rows g) all_aliases
+              if v != nil
+                sum: sum + v
+                cnt: cnt + 1
+              g: g + 1
+            if cnt > 0
+              set out_row label (sum / cnt)
+            else
+              set out_row label nil
+          else if fname == "MIN"
+            min_val: nil
+            g: 0
+            while g < (len group_rows)
+              v: eval_expr (at args 0) db nil (at group_rows g) all_aliases
+              if min_val == nil || (v != nil && v < min_val)
+                min_val: v
+              g: g + 1
+            set out_row label min_val
+          else if fname == "MAX"
+            max_val: nil
+            g: 0
+            while g < (len group_rows)
+              v: eval_expr (at args 0) db nil (at group_rows g) all_aliases
+              if max_val == nil || (v != nil && v > max_val)
+                max_val: v
+              g: g + 1
+            set out_row label max_val
+          else
+            set out_row label (eval_expr expr db nil sample_row all_aliases)
+        else
+          set out_row label (eval_expr expr db nil sample_row all_aliases)
+        s: s + 1
+      push output out_row
+      ki: ki + 1
+  else
+    -- No GROUP BY: check for aggregate functions in SELECT
+    has_agg: false
+    s: 0
+    while s < (len items) && !has_agg
+      item: at items s
+      expr: ast_get item "expr"
+      if (ast_type expr) == "func"
+        fname: ast_get expr "name"
+        if fname == "COUNT" || fname == "SUM" || fname == "AVG" || fname == "MIN" || fname == "MAX"
+          has_agg: true
+      s: s + 1
+
+    if has_agg && (len filtered) == 0
+      -- Aggregate over empty result → single row with aggregates
+      out_row: {}
+      s: 0
+      while s < (len items)
+        item: at items s
+        label: get_select_item_label item
+        expr: ast_get item "expr"
+        if (ast_type expr) == "func"
+          fname: ast_get expr "name"
+          if fname == "COUNT"
+            set out_row label 0
+          else
+            set out_row label nil
+        else
+          set out_row label nil
+        s: s + 1
+      push output out_row
+    else if has_agg
+      -- Aggregate over all rows as single group
+      out_row: {}
+      s: 0
+      while s < (len items)
+        item: at items s
+        label: get_select_item_label item
+        expr: ast_get item "expr"
+        tp: ast_type expr
+
+        if tp == "star"
+          if (len filtered) > 0
+            for k in (keys (at filtered 0))
+              set out_row k (get (at filtered 0) k)
+        else if tp == "func"
+          fname: ast_get expr "name"
+          args: ast_get expr "args"
+          if fname == "COUNT"
+            set out_row label (len filtered)
+          else if fname == "SUM"
+            sum: 0
+            g: 0
+            while g < (len filtered)
+              v: eval_expr (at args 0) db nil (at filtered g) all_aliases
+              if v != nil
+                sum: sum + v
+              g: g + 1
+            set out_row label sum
+          else if fname == "AVG"
+            sum: 0
+            cnt: 0
+            g: 0
+            while g < (len filtered)
+              v: eval_expr (at args 0) db nil (at filtered g) all_aliases
+              if v != nil
+                sum: sum + v
+                cnt: cnt + 1
+              g: g + 1
+            if cnt > 0
+              set out_row label (sum / cnt)
+            else
+              set out_row label nil
+          else if fname == "MIN"
+            min_val: nil
+            g: 0
+            while g < (len filtered)
+              v: eval_expr (at args 0) db nil (at filtered g) all_aliases
+              if min_val == nil || (v != nil && v < min_val)
+                min_val: v
+              g: g + 1
+            set out_row label min_val
+          else if fname == "MAX"
+            max_val: nil
+            g: 0
+            while g < (len filtered)
+              v: eval_expr (at args 0) db nil (at filtered g) all_aliases
+              if max_val == nil || (v != nil && v > max_val)
+                max_val: v
+              g: g + 1
+            set out_row label max_val
+          else
+            set out_row label (eval_expr expr db nil (at filtered 0) all_aliases)
+        else
+          if (len filtered) > 0
+            set out_row label (eval_expr expr db nil (at filtered 0) all_aliases)
+          else
+            set out_row label nil
+        s: s + 1
+      push output out_row
+    else
+      -- No aggregates: produce one row per input
+      all_aliases: base_aliases
+      i: 0
+      while i < (len filtered)
+        row: at filtered i
+        out_row: {}
+        s: 0
+        while s < (len items)
+          item: at items s
+          label: get_select_item_label item
+          expr: ast_get item "expr"
+          tp: ast_type expr
+          if tp == "star"
+            -- Expand all columns (bare names only)
+            for k in (keys row)
+              if !(str_contains k ".")
+                set out_row k (get row k)
+          else
+            set out_row label (eval_expr expr db nil row all_aliases)
+          s: s + 1
+        push output out_row
+        i: i + 1
+
+  -- DISTINCT
+  if distinct
+    seen: {}
+    unique: []
+    i: 0
+    while i < (len output)
+      ri: at output i
+      -- Build key from output row values
+      key: ""
+      first_key: true
+      for k in (keys ri)
+        if !first_key
+          key: key ++ "|"
+        key: key ++ k ++ "=" ++ (to_str (get ri k))
+        first_key: false
+      if (get seen key) == nil
+        set seen key true
+        push unique ri
+      i: i + 1
+    output: unique
+
+  -- ORDER BY
+  if order_by != nil && (len order_by) > 0
+    -- Sort using built-in sort with comparator
+    -- Since Pipe sort supports comparator functions, build one
+    -- But comparator must be a function. Use sorted_by for simple case.
+    -- For ORDER BY, we need multi-column sort with ASC/DESC per column.
+    -- Build a key function that returns a sortable string
+    all_aliases: base_aliases
+    output: sorted_by output (fn o: order_row_key o order_by all_aliases)
+
+  -- LIMIT / OFFSET
+  limit_val: nil
+  offset_val: 0
+  if limit_expr != nil
+    limit_val: eval_expr limit_expr db nil {} []
+  if offset_expr != nil
+    offset_val: eval_expr offset_expr db nil {} []
+    if offset_val == nil
+      offset_val: 0
+
+  if limit_val != nil || offset_val > 0
+    start: offset_val
+    if start < 0
+      start: 0
+    if limit_val == nil
+      limit_val: len output
+    end: start + limit_val
+    if end > (len output)
+      end: len output
+    if start > end
+      start: end
+    output: slice output start end
+
+  output
+
+fn order_row_key row order_by aliases
+  -- Build a sort key string for multi-column ORDER BY
+  key: ""
+  i: 0
+  while i < (len order_by)
+    item: at order_by i
+    expr: ast_get item "expr"
+    dir: ast_get item "dir"
+    if dir == nil
+      dir: "asc"
+    val: eval_expr expr nil nil row aliases
+    val_str: to_str val
+    if dir == "DESC"
+      -- Invert string for descending sort
+      inv: ""
+      j: 0
+      while j < (len val_str)
+        -- Invert each character: 255 - char code (approximate via Unicode range)
+        -- For ASCII, we use a padding approach
+        inv: inv ++ val_str
+        j: j + 1
+      -- Simpler: pad with leading character that sorts reversed
+      val_str: to_str (999999999999 - val)
+    if i > 0
+      key: key ++ "|"
+    key: key ++ val_str
+    i: i + 1
+  key
+
+--- === SECTION: Transactions === ---
+
+fn exec_begin db
+  if (db.txn) != nil
+    db_raise "Transaction already active"
+  journal: enc_state (clone_db db)
+  j: {}
+  set j "journal" journal
+  set db "txn" j
+  0
+
+fn exec_commit db
+  txn: db.txn
+  if txn == nil
+    db_raise "No active transaction"
+  set db "txn" nil
+  -- Persist if not in-memory
+  if !(db.in_memory)
+    state_bytes: enc_state db
+    write_db_file (db.path) state_bytes
+    0
+  else
+    0
+
+fn exec_rollback db
+  txn: db.txn
+  if txn == nil
+    db_raise "No active transaction"
+  -- Restore state from journal
+  journal: txn.journal
+  old_state: dec_state journal
+  -- Restore db fields
+  set db "tables" (old_state.tables)
+  set db "txn" nil
+  0
+
+--- === SECTION: Exported API === ---
+
+export fn db_open path
+  h: next_handle
+  next_handle: next_handle + 1
+  push registry (nil)
+  db: nil
+  if path == ":memory:"
+    db: new_db ":memory:" true
+  else if file_exists path
+    db: read_db_file path
+  else
+    db: new_db path false
+  set_db h db
+  h
+
+export fn db_close handle
+  db: get_db handle
+  if db == nil
+    return nil
+  -- Commit any open transaction? No, roll back implicitly.
+  if (db.txn) != nil
+    set db "txn" nil
+  -- Persist
+  if !(db.in_memory)
+    state_bytes: enc_state db
+    write_db_file (db.path) state_bytes
+  drop_db handle
+  nil
+
+export fn db_exec handle sql
+  db: get_db handle
+  if db == nil
+    db_raise "Invalid database handle"
+  stmts: parse_sql sql
+  result: 0
+  i: 0
+    stmt: at stmts i
+    tp: ast_type stmt
+    if tp == "empty"
+      i: i + 1
+      continue
+    if tp == "BEGIN"
+      exec_begin db
+    else if tp == "COMMIT"
+      exec_commit db
+    else if tp == "ROLLBACK"
+      exec_rollback db
+    else if tp == "create_table"
+      exec_create_table db stmt
+    else if tp == "drop_table"
+      exec_drop_table db stmt
+    else if tp == "create_index"
+      exec_create_index db stmt
+    else if tp == "insert"
+      result: exec_insert db stmt
+    else if tp == "update"
+      result: exec_update db stmt
+    else if tp == "delete"
+      result: exec_delete db stmt
+    else if tp == "select"
+      -- SELECT in db_exec is allowed (just executes, ignores result)
+      exec_select db stmt
+    else
+      db_raise ("Unknown statement type: " ++ tp)
+    i: i + 1
+  result
+
+export fn db_query handle sql
+  db: get_db handle
+  if db == nil
+    db_raise "Invalid database handle"
+  stmts: parse_sql sql
+  if (len stmts) == 0
+    return []
+  stmt: at stmts 0
+  tp: ast_type stmt
+  if tp == "select"
+    exec_select db stmt
+  else
+    db_raise "db_query only supports SELECT statements"

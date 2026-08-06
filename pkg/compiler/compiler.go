@@ -467,7 +467,7 @@ func (c *Compiler) Compile(node ast.Node) error {
 		c.emit(OpClosure, idx, len(compiledFn.FreeSymbols))
 
 	case *ast.SliceExpression:
-		c.emit(OpGetBuiltin, c.resolveBuiltin("slice_list").Index)
+		c.emit(OpGetBuiltin, c.resolveBuiltin("slice").Index)
 		if err := c.Compile(n.List); err != nil {
 			return err
 		}
@@ -1236,17 +1236,17 @@ func ParseFloat(s string) float64 {
 }
 
 var zeroArityBuiltins = map[string]bool{
-	"now":           true,
-	"random":        true,
-	"try_ai_log":    true,
-	"args":          true,
-	"read_stdin":    true,
-	"ai_cost":       true,
-	"ai_tokens":     true,
-	"ai_cache_hits": true,
+	"now":             true,
+	"random":          true,
+	"try_ai_log":      true,
+	"args":            true,
+	"read_stdin":      true,
+	"ai_cost":         true,
+	"ai_tokens":       true,
+	"ai_cache_hits":   true,
 	"ai_cache_misses": true,
-	"audit_log":     true,
-	"budget_spent":  true,
+	"audit_log":       true,
+	"budget_spent":    true,
 }
 
 func isZeroArityBuiltin(name string) bool {

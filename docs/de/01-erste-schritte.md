@@ -4,7 +4,7 @@
 
 Pipe ist eine **einrückungsbasierte, pipeline-orientierte Skriptsprache**,
 implementiert in Go. Sie wird als einzelne, statisch gelinkte Binary
-ausgeliefert (~16 MB).
+ausgeliefert (~7 MB).
 
 **Kernphilosophie:** Daten fließen sichtbar von oben nach unten durch
 eine Kette von Transformationen — nicht versteckt in verschachtelten
@@ -153,5 +153,5 @@ Ausgabe:
 ## 1.10 Nächste Schritte
 
 - [Sprachübersicht](02-sprachuebersicht.md) — Alle Sprachfeatures im Überblick
-- [Builtin-Referenz](10-builtin-referenz.md) — Alle 143 eingebaute Funktionen
+- [Builtin-Referenz](10-builtin-referenz.md) — Alle 168 eingebaute Funktionen
 - [Kochrezepte](16-kochrezepte.md) — Praktische Code-Beispiele

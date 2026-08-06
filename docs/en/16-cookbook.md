@@ -822,6 +822,31 @@ cleanup: fn
 
   print "Operation result: " ++ result.status
 
+### SQLite Database
+
+```pipe
+import "sqlite.pipe"
+
+h: db_open ":memory:"
+
+db_exec h "CREATE TABLE users (id INTEGER PRIMARY KEY, name TEXT, score INTEGER)"
+db_exec h "INSERT INTO users VALUES (1, 'Alice', 95), (2, 'Bob', 72)"
+db_exec h "INSERT INTO users VALUES (3, 'Charlie', 88)"
+
+-- All users
+rows: db_query h "SELECT * FROM users"
+for row in rows
+  print "#" ++ (to_str (get row "id")) ++ " " ++ (get row "name")
+
+-- Filtered
+high: db_query h "SELECT name, score FROM users WHERE score > 80"
+
+-- Aggregate
+stats: db_query h "SELECT AVG(score) as avg_score FROM users"
+
+db_close h
+```
+
 database_operation
 ```
 

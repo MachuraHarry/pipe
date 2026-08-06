@@ -1,6 +1,7 @@
 package eval
 
 import (
+	"bytes"
 	"fmt"
 	"math"
 	"os"
@@ -352,6 +353,12 @@ func evalInfixExpression(operator string, left, right object.Object) object.Obje
 		return evalFloatInfix(operator, left.(*object.Float), &object.Float{Value: float64(right.(*object.Integer).Value)})
 	case left.Type() == object.STRING && right.Type() == object.STRING:
 		return evalStringInfix(operator, left.(*object.String), right.(*object.String))
+	case left.Type() == object.BYTES && right.Type() == object.BYTES:
+		return evalBytesInfix(operator, left.(*object.Bytes), right.(*object.Bytes))
+	case operator == "++" && left.Type() == object.BYTES && right.Type() == object.STRING:
+		return concatBytesString(left.(*object.Bytes).Value, []byte(right.(*object.String).Value))
+	case operator == "++" && left.Type() == object.STRING && right.Type() == object.BYTES:
+		return concatBytesString([]byte(left.(*object.String).Value), right.(*object.Bytes).Value)
 	case operator == "==":
 		return object.NativeBoolToBoolean(left == right)
 	case operator == "!=":
@@ -453,6 +460,40 @@ func evalStringInfix(operator string, left, right *object.String) object.Object 
 	default:
 		return newErrorCode("", "E005", "operator '%s' not supported for strings", operator)
 	}
+}
+
+func concatBytesString(l, r []byte) object.Object {
+	out := make([]byte, 0, len(l)+len(r))
+	out = append(out, l...)
+	out = append(out, r...)
+	return &object.Bytes{Value: out}
+}
+
+func evalBytesInfix(operator string, left, right *object.Bytes) object.Object {
+	switch operator {
+	case "++":
+		out := make([]byte, 0, len(left.Value)+len(right.Value))
+		out = append(out, left.Value...)
+		out = append(out, right.Value...)
+		return &object.Bytes{Value: out}
+	case "==":
+		return object.NativeBoolToBoolean(bytes.Equal(left.Value, right.Value))
+	case "!=":
+		return object.NativeBoolToBoolean(!bytes.Equal(left.Value, right.Value))
+	case "<", ">", "<=", ">=":
+		c := bytes.Compare(left.Value, right.Value)
+		switch operator {
+		case "<":
+			return object.NativeBoolToBoolean(c < 0)
+		case ">":
+			return object.NativeBoolToBoolean(c > 0)
+		case "<=":
+			return object.NativeBoolToBoolean(c <= 0)
+		case ">=":
+			return object.NativeBoolToBoolean(c >= 0)
+		}
+	}
+	return newErrorCode("", "E005", "operator '%s' not supported for bytes", operator)
 }
 
 func (ctx *EvalContext) evalIfExpression(ie *ast.IfExpression, env *object.Environment) object.Object {
@@ -1176,13 +1217,20 @@ func (ctx *EvalContext) evalSliceExpression(se *ast.SliceExpression, env *object
 		return list
 	}
 
-	l, ok := list.(*object.List)
-	if !ok {
-		return ctx.newError("slice only on lists, not %s", list.Type())
+	var length int
+	switch v := list.(type) {
+	case *object.List:
+		length = len(v.Elements)
+	case *object.String:
+		length = len(v.Value)
+	case *object.Bytes:
+		length = len(v.Value)
+	default:
+		return ctx.newError("slice only on lists, strings or bytes, not %s", list.Type())
 	}
 
 	startIdx := int64(0)
-	endIdx := int64(len(l.Elements))
+	endIdx := int64(length)
 
 	if se.Start != nil {
 		start := ctx.Eval(se.Start, env)
@@ -1211,14 +1259,24 @@ func (ctx *EvalContext) evalSliceExpression(se *ast.SliceExpression, env *object
 	if startIdx < 0 {
 		startIdx = 0
 	}
-	if endIdx > int64(len(l.Elements)) {
-		endIdx = int64(len(l.Elements))
+	if endIdx > int64(length) {
+		endIdx = int64(length)
 	}
 	if startIdx > endIdx {
 		startIdx = endIdx
 	}
 
-	return &object.List{Elements: l.Elements[startIdx:endIdx]}
+	switch v := list.(type) {
+	case *object.List:
+		return &object.List{Elements: v.Elements[startIdx:endIdx]}
+	case *object.String:
+		return &object.String{Value: v.Value[startIdx:endIdx]}
+	case *object.Bytes:
+		out := make([]byte, endIdx-startIdx)
+		copy(out, v.Value[startIdx:endIdx])
+		return &object.Bytes{Value: out}
+	}
+	return object.NILOBJ
 }
 
 func evalIndexExpression(left, right object.Object) object.Object {

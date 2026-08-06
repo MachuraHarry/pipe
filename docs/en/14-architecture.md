@@ -382,10 +382,10 @@ The runtime reads itself, scans backward from EOF for the `PIPEBUILD` marker, ex
 | **Go source lines** | ~23,600 total (~19,000 excluding tests) |
 | **Go packages** | 13 (`ai`, `analysis`, `ast`, `build`, `cache`, `compiler`, `eval`, `formatter`, `lexer`, `object`, `parser`, `stdlib`, `vm`) |
 | **External dependencies** | 0 (standard library only) |
-| **Binary size** | ~16 MB (statically linked) |
+| **Binary size** | ~7 MB (dependency-free, statically linked) |
 | **Tests** | 290 (across 12 packages) |
 | **Examples** | 52 example programs in `examples/` |
-| **Built-in functions** | 143 |
+| **Built-in functions** | 168 |
 | **Opcodes** | 40 |
 | **AST node types** | 34 (12 statements, 20 expressions, program, match case) |
 | **Token types** | 66 |

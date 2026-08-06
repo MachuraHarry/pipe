@@ -1,0 +1,3 @@
+import "minitest.pipe"
+
+runtest nil

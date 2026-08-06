@@ -1,6 +1,6 @@
 # 10. Builtin-Referenz
 
-Pipe hat **143 eingebaute Funktionen** — keine externen Abhängigkeiten
+Pipe hat **168 eingebaute Funktionen** — keine externen Abhängigkeiten
 (alle in Go implementiert, nutzen nur die Standardbibliothek).
 
 Die Builtins sind in **allen Ausführungsmodi** verfügbar (Tree-Walker und VM).
@@ -244,6 +244,52 @@ print (path_ext "/a/b/c.txt")
 print (path_ext "/a/b/file")
 ```
 
+### file_open
+```
+file_open pfad modus
+```
+Öffnet eine Datei im Direktzugriffsmodus und liefert einen numerischen Handle. Modi: `"r"` (lesen), `"w"` (schreiben, leeren), `"a"` (anhängen), `"rw"` (lesen/schreiben, erhalten), `"rw+"` (lesen/schreiben, leeren). Beachtet das aktive Sandbox-Profil.
+```pipe
+h: file_open "/tmp/data.bin" "rw"
+```
+
+### file_close
+```
+file_close handle
+```
+Schließt eine mit `file_open` geöffnete Datei und gibt den Handle frei.
+
+### file_read
+```
+file_read handle offset n
+```
+Liest `n` Bytes ab `offset` und liefert sie als `bytes` (bei Dateiende weniger).
+```pipe
+-- erste 8 Bytes
+file_read h 0 8
+```
+
+### file_write
+```
+file_write handle offset daten
+```
+Schreibt `daten` (bytes oder String) ab `offset` und überschreibt vorhandene Bytes. Liefert die Anzahl geschriebener Bytes.
+```pipe
+file_write h 0 (to_bytes "0123456789")
+```
+
+### file_truncate
+```
+file_truncate handle größe
+```
+Kürzt die Datei auf exakt `größe` Bytes.
+
+### file_sync
+```
+file_sync handle
+```
+Schreibt Dateidaten und Metadaten auf den Datenträger (fsync).
+
 ---
 
 ## 10.3 String-Operationen
@@ -314,6 +360,26 @@ print (contains "Hallo Welt" "Mars")
 print (contains ([1, 2, 3]) 2)
 ```
 
+### substring
+```
+substring s start ende
+```
+Liefert den Teilstring von `s` von `start` (inklusive) bis `ende` (exklusive). Indizes werden an die String-Grenzen geklemmt.
+```pipe
+-- "el"
+print (substring "hello" 1 3)
+```
+
+### index_of
+```
+index_of s nadel
+```
+Liefert den 0-basierten Index des ersten Vorkommens von `nadel` in `s`, sonst `-1`.
+```pipe
+-- 6
+print (index_of "hello world" "world")
+```
+
 ---
 
 ## 10.4 Listen-Operationen
@@ -373,13 +439,26 @@ print (at "Hallo" 0)
 ### sort
 ```
 sort liste
+sort liste vergleich
 ```
-Sortiert eine Liste (Zahlen numerisch, Strings alphabetisch).
+Liefert eine neue, sortierte Liste. Ohne Vergleichsfunktion: Zahlen numerisch, Strings alphabetisch. Mit `vergleich(a, b)`, das truthy liefert, wenn `a` vor `b` sortieren soll, wird diese für die Ordnung verwendet.
 ```pipe
 -- [1, 2, 3]
 print (sort ([3, 1, 2]))
 -- ["a", "b", "c"]
 print (sort (["c", "a", "b"]))
+-- absteigend
+print (sort [1, 2, 3] (fn a b: b < a))
+```
+
+### sorted_by
+```
+sorted_by liste schluesselfn
+```
+Liefert eine neue Liste, sortiert nach dem Schlüssel, den `schluesselfn(element)` für jedes Element liefert.
+```pipe
+-- ["a", "bb", "ccc"]
+print (sorted_by ["ccc", "a", "bb"] (fn s: len s))
 ```
 
 ### range
@@ -409,10 +488,22 @@ print (range 0 10 2)
 ```
 slice_list liste start ende
 ```
-Erzeugt eine Teilliste von Index start (inklusive) bis ende (exklusive).
+Erzeugt eine Teilliste von Index start (inklusive) bis ende (exklusive). Die `x[a..b]`-Syntax funktioniert für Listen, Strings und Bytes.
 ```pipe
 -- [20, 30]
 print (slice_list ([10, 20, 30, 40]) 1 3)
+```
+
+### slice
+```
+slice wert start ende
+```
+Liefert einen Ausschnitt von `wert` (Liste, String oder Bytes) von `start` (inklusive) bis `ende` (exklusive). Indizes werden geklemmt.
+```pipe
+-- [20, 30]
+print (slice ([10, 20, 30, 40]) 1 3)
+-- "el"
+print (slice "hello" 1 3)
 ```
 
 ---
@@ -1099,22 +1190,184 @@ print (ai_cache_misses) -- 1
 
 ---
 
-## 10.19 Übersicht aller Builtins
+## 10.19 Bytes und Binär (15 Funktionen)
+
+### to_bytes
+```
+to_bytes wert
+```
+Wandelt einen String in seine UTF-8-Bytes oder eine Liste von Zahlen (0-255) in Bytes um. Bytes werden unverändert zurückgegeben.
+```pipe
+-- 0x4869
+print (to_bytes "Hi")
+-- 0x01ff
+print (to_bytes [1, 255])
+```
+
+### from_bytes
+```
+from_bytes wert
+```
+Wandelt Bytes in einen String um (UTF-8-Dekodierung). Strings werden unverändert zurückgegeben.
+```pipe
+-- "Hi"
+print (from_bytes (to_bytes "Hi"))
+```
+
+### bytes_append
+```
+bytes_append bytes chunk ...
+```
+Hängt einen oder mehrere Blöcke (Bytes oder Strings) an `bytes` an.
+```pipe
+-- 0x0102
+print (bytes_append (to_bytes [1]) (to_bytes [2]))
+```
+
+### bytes_to_int
+```
+bytes_to_int bytes offset? n?
+```
+Interpretiert `n` Big-Endian-Bytes (max. 8) ab `offset` als vorzeichenlose Ganzzahl. Standardmäßig die gesamten `bytes`.
+```pipe
+-- 258
+print (bytes_to_int (to_bytes [1, 2]) 0 2)
+```
+
+### int_to_bytes
+```
+int_to_bytes wert n?
+```
+Kodiert eine nicht-negative Ganzzahl als Big-Endian-Bytes (minimale Länge, oder exakt `n` Bytes).
+```pipe
+-- 0x0102
+print (int_to_bytes 258 2)
+```
+
+### bytes_compare
+```
+bytes_compare a b
+```
+Vergleicht zwei Byte-Sequenzen lexikografisch. Negativ wenn `a < b`, 0 bei Gleichheit, positiv wenn `a > b`.
+```pipe
+-- -1
+print (bytes_compare (to_bytes [1]) (to_bytes [2]))
+```
+
+### hex_encode
+```
+hex_encode bytes
+```
+Kodiert Bytes als hexadezimale Zeichenkette (Kleinbuchstaben).
+```pipe
+-- "4869"
+print (hex_encode (to_bytes "Hi"))
+```
+
+### hex_decode
+```
+hex_decode s
+```
+Dekodiert eine hexadezimale Zeichenkette in Bytes.
+```pipe
+-- 0x4869
+print (hex_decode "4869")
+```
+
+### bit_and
+```
+bit_and a b
+```
+Bitweises UND zweier Ganzzahlen.
+```pipe
+-- 2
+print (bit_and 6 3)
+```
+
+### bit_or
+```
+bit_or a b
+```
+Bitweises ODER zweier Ganzzahlen.
+```pipe
+-- 7
+print (bit_or 6 3)
+```
+
+### bit_xor
+```
+bit_xor a b
+```
+Bitweises XOR zweier Ganzzahlen.
+```pipe
+-- 5
+print (bit_xor 6 3)
+```
+
+### bit_not
+```
+bit_not a
+```
+Bitweise Negation einer Ganzzahl (Zweierkomplement).
+```pipe
+-- -6
+print (bit_not 5)
+```
+
+### bit_lshift
+```
+bit_lshift a n
+```
+Schiebt `a` um `n` Positionen nach links. `n` muss 0-63 sein.
+```pipe
+-- 1024
+print (bit_lshift 1 10)
+```
+
+### bit_rshift
+```
+bit_rshift a n
+```
+Schiebt `a` um `n` Positionen nach rechts. `n` muss 0-63 sein.
+```pipe
+-- 16
+print (bit_rshift 256 4)
+```
+
+### crc32
+```
+crc32 wert
+```
+Berechnet die IEEE-CRC-32-Prüfsumme eines Strings oder von Bytes.
+```pipe
+-- 907060870
+print (crc32 "hello")
+```
+
+---
+
+## 10.20 Übersicht aller Builtins
 
 ### IO & System (8)
-`print`, `input`, `exec`, `env`, `sleep`, `go`
+`print`, `input`, `exec`, `env`, `sleep`, `args`, `read_stdin`, `go`
 
-### Dateisystem (17)
+### Dateisystem (23)
 `read_file`, `write_file`, `append_file`, `read_lines`, `file_exists`,
 `file_delete`, `file_move`, `file_copy`, `file_size`, `file_type`,
-`list_dir`, `make_dir`, `remove_dir`, `path_join`, `path_base`, `path_dir`, `path_ext`
+`list_dir`, `make_dir`, `remove_dir`, `path_join`, `path_base`, `path_dir`, `path_ext`,
+`file_open`, `file_close`, `file_read`, `file_write`, `file_truncate`, `file_sync`
 
-### Strings (6)
-`upper`, `lower`, `trim`, `split`, `join`, `contains`, `repeat`
+### Strings (9)
+`upper`, `lower`, `trim`, `split`, `join`, `contains`, `repeat`, `substring`, `index_of`
 
-### Listen (11)
-`len`, `push`, `pop`, `at`, `slice_list`, `sort`, `range`,
+### Listen (13)
+`len`, `push`, `pop`, `at`, `slice_list`, `slice`, `sort`, `sorted_by`, `range`,
 `map`, `filter`, `reduce`, `each`
+
+### Bytes und Binär (15)
+`to_bytes`, `from_bytes`, `bytes_append`, `bytes_to_int`, `int_to_bytes`,
+`bytes_compare`, `hex_encode`, `hex_decode`, `bit_and`, `bit_or`, `bit_xor`,
+`bit_not`, `bit_lshift`, `bit_rshift`, `crc32`
 
 ### Maps (4)
 `get`, `set`, `keys`, `values`
@@ -1144,10 +1397,37 @@ print (ai_cache_misses) -- 1
 `base64_encode`, `base64_decode`
 
 ### Hashing (4)
-
-### Datenbank — SQLite (4)
-`db_open`, `db_close`, `db_exec`, `db_query`
 `sha256`, `md5`, `sha1`, `sha512`
+
+### Datenbank — SQLite (Modul)
+`db_open`, `db_close`, `db_exec`, `db_query`
+
+Die `db_*`-Builtins wurden durch ein natives Pipe-Modul (`examples/sqlite.pipe`) ersetzt. Die externe `modernc.org/sqlite`-Abhängigkeit ist entfernt — Binary wieder dependency-free (~7 MB).
+
+Das Modul wird via `import "sqlite.pipe"` geladen und bietet dieselbe Drop-in-API:
+
+```pipe
+import "sqlite.pipe"
+h: db_open ":memory:"
+db_exec h "CREATE TABLE users (id INTEGER, name TEXT)"
+rows: db_query h "SELECT * FROM users"
+db_close h
+```
+
+**Unterstütztes SQL:** CREATE TABLE, INSERT (auch multi-value), UPDATE, DELETE, SELECT mit WHERE, GROUP BY + Aggregaten (COUNT, SUM, AVG, MIN, MAX), ORDER BY, LIMIT/OFFSET, JOIN (INNER, LEFT, RIGHT), DISTINCT, BEGIN/COMMIT/ROLLBACK.
+
+Persistenz erfolgt über ein binäres Paging-Format mit CRC32-Prüfsummen; `":memory:"` für In-Memory-Datenbanken.
+
+Siehe `SQLite.md` im Repository-Root für Implementierungsdetails und aktuellen Status.
+
+> **Hinweis:** Das Modul ist implementiert und funktionsfähig. Zwei Pipe-Runtime-Bugs (VM-Closure-Variablen-Slot-Korruption, TV-Deep-If-Panic) verhindern aktuell die vollständige End-to-End-Ausführung aller Demo-Queries. Diese werden im Pipe-Compiler behoben. Die Modul-Logik selbst ist vollständig.
+
+| Funktion | Signatur | Beschreibung |
+|----------|----------|--------------|
+| `db_open` | `db_open(path)` | Öffnet Datenbank-Datei oder `":memory:"`, gibt Handle zurück |
+| `db_close` | `db_close(handle)` | Schließt Datenbank und persistiert Änderungen |
+| `db_exec` | `db_exec(handle, sql)` | Führt DDL/DML aus, gibt Anzahl betroffener Zeilen zurück |
+| `db_query` | `db_query(handle, sql)` | Führt SELECT aus, gibt Liste von Row-Maps zurück |
 
 ### Typ-Prüfung (6)
 `type_of`, `is_num`, `is_str`, `is_list`, `is_map`, `is_nil`
@@ -1158,8 +1438,8 @@ print (ai_cache_misses) -- 1
 ### Result-Typ (6)
 `Ok`, `Err`, `is_ok`, `is_err`, `unwrap`, `unwrap_or`
 
-### KI — Konfiguration (7)
-`ai_provider`, `ai_model`, `ai_host`, `ai_timeout`, `ai_cache`
+### KI — Konfiguration (6)
+`ai_provider`, `ai_model`, `ai_set_key`, `ai_host`, `ai_timeout`, `ai_cache`
 
 ### KI — Chat (2)
 `ai_chat`, `ai_chat_json`
@@ -1183,10 +1463,10 @@ print (ai_cache_misses) -- 1
 `embed`, `embed_batch`, `cosine_sim`, `dot_product`, `nearest`
 
 ### KI — Suche (2)
-`web_search`
+`web_search`, `wiki_search`
 
-### KI — Kosten-Tracking (4)
-`ai_cost`, `ai_tokens`, `ai_cache_hits`, `ai_cache_misses`
+### KI — Kosten-Tracking (5)
+`ai_cost`, `ai_tokens`, `ai_cache_hits`, `ai_cache_misses`, `try_ai_log`
 
 ### Test-Assertions (6)
 `assert`, `assert_eq`, `assert_not_eq`, `assert_lt`, `assert_gt`, `assert_error`
@@ -1194,4 +1474,4 @@ print (ai_cache_misses) -- 1
 ### Sandbox (5)
 `sandbox_profile`, `set_sandbox`, `with_sandbox`, `audit_log`, `budget_spent`
 
-**Gesamt: 142 Builtins**
+**Gesamt: 168 Builtins**

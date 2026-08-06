@@ -1,11 +1,13 @@
 package object
 
 import (
+	"bytes"
 	"crypto/md5"
 	"crypto/sha1"
 	"crypto/sha256"
 	"crypto/sha512"
 	"encoding/base64"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -41,6 +43,7 @@ const (
 	CLOSURE                      = "CLOSURE"
 	LIST                         = "LIST"
 	MAP                          = "MAP"
+	BYTES                        = "BYTES"
 	FUTURE                       = "FUTURE"
 	ERROR                        = "ERROR"
 )
@@ -64,6 +67,11 @@ type String struct{ Value string }
 
 func (s *String) Type() ObjectType { return STRING }
 func (s *String) Inspect() string  { return s.Value }
+
+type Bytes struct{ Value []byte }
+
+func (b *Bytes) Type() ObjectType { return BYTES }
+func (b *Bytes) Inspect() string  { return hex.EncodeToString(b.Value) }
 
 type Boolean struct{ Value bool }
 
@@ -251,6 +259,8 @@ func ValuesEqual(a, b Object) bool {
 		return a.Value == b.(*Float).Value
 	case *String:
 		return a.Value == b.(*String).Value
+	case *Bytes:
+		return bytes.Equal(a.Value, b.(*Bytes).Value)
 	case *Boolean:
 		return a.Value == b.(*Boolean).Value
 	}
@@ -456,6 +466,9 @@ var Builtins = []BuiltinInfo{
 	{"assert_lt", bAssertLt},
 	{"assert_gt", bAssertGt},
 	{"assert_error", bAssertError},
+
+	// Error handling
+	{"raise", bRaise},
 }
 
 // ---- IO ----
@@ -1075,6 +1088,8 @@ func bLen(args ...Object) Object {
 	switch a := args[0].(type) {
 	case *String:
 		return &Integer{Value: int64(len(a.Value))}
+	case *Bytes:
+		return &Integer{Value: int64(len(a.Value))}
 	case *List:
 		return &Integer{Value: int64(len(a.Elements))}
 	case *Map:
@@ -1127,6 +1142,11 @@ func bAt(args ...Object) Object {
 			return NILOBJ
 		}
 		return &String{Value: string(c.Value[idx])}
+	case *Bytes:
+		if idx < 0 || idx >= int64(len(c.Value)) {
+			return NILOBJ
+		}
+		return &Integer{Value: int64(c.Value[idx])}
 	}
 	return err("at expects list or string")
 }
@@ -1165,8 +1185,8 @@ func bSliceList(args ...Object) Object {
 }
 
 func bSort(args ...Object) Object {
-	if len(args) != 1 {
-		return err("sort expects 1 argument")
+	if len(args) < 1 || len(args) > 2 {
+		return err("sort expects 1 or 2 arguments (list[, comparator])")
 	}
 	l, ok := args[0].(*List)
 	if !ok {
@@ -1174,6 +1194,13 @@ func bSort(args ...Object) Object {
 	}
 	sorted := make([]Object, len(l.Elements))
 	copy(sorted, l.Elements)
+	if len(args) == 2 {
+		cmp := args[1]
+		sort.SliceStable(sorted, func(i, j int) bool {
+			return IsTruthy(callTwo(cmp, sorted[i], sorted[j]))
+		})
+		return &List{Elements: sorted}
+	}
 	allNumeric := true
 	for _, e := range sorted {
 		if _, ok := e.(*Integer); !ok {
@@ -1497,18 +1524,28 @@ func bGet(args ...Object) Object {
 
 func bSet(args ...Object) Object {
 	if len(args) != 3 {
-		return err("set expects 3 arguments (Map, Key, Value)")
+		return err("set expects 3 arguments (Map/List, Key/Index, Value)")
 	}
-	m, ok := args[0].(*Map)
-	if !ok {
-		return err("set: first argument must be a map")
+	switch container := args[0].(type) {
+	case *Map:
+		key, ok := args[1].(*String)
+		if !ok {
+			return err("set: Map key must be a string")
+		}
+		container.Pairs[key.Value] = args[2]
+		return container
+	case *List:
+		idx, ok := ToInt(args[1])
+		if !ok {
+			return err("set: List index must be a number")
+		}
+		if idx < 0 || idx >= int64(len(container.Elements)) {
+			return err("set: List index out of range")
+		}
+		container.Elements[idx] = args[2]
+		return container
 	}
-	key, ok := args[1].(*String)
-	if !ok {
-		return err("set: Key must be a string")
-	}
-	m.Pairs[key.Value] = args[2]
-	return m
+	return err("set: first argument must be a map or list")
 }
 
 // ---- Type checks ----
@@ -1792,6 +1829,8 @@ func objectToJSON(obj Object) interface{} {
 		return v.Value
 	case *String:
 		return v.Value
+	case *Bytes:
+		return base64.StdEncoding.EncodeToString(v.Value)
 	case *Boolean:
 		return v.Value
 	case *NilObject:
@@ -2208,6 +2247,13 @@ func err(msg string) *Error {
 	return &Error{Message: msg}
 }
 
+func bRaise(args ...Object) Object {
+	if len(args) != 1 {
+		return err("raise expects 1 argument (message)")
+	}
+	return err(args[0].Inspect())
+}
+
 func FormatMsg(format string, a ...interface{}) string {
 	return fmt.Sprintf(format, a...)
 }
@@ -2405,9 +2451,9 @@ func bAiCost(args ...Object) Object {
 		}
 	}
 	return &Map{Pairs: map[string]Object{
-		"cost_usd":    &Float{Value: cost},
-		"calls":       &Integer{Value: int64(calls)},
-		"cache_hits":  &Integer{Value: int64(hits)},
+		"cost_usd":     &Float{Value: cost},
+		"calls":        &Integer{Value: int64(calls)},
+		"cache_hits":   &Integer{Value: int64(hits)},
 		"cache_misses": &Integer{Value: int64(misses)},
 	}}
 }

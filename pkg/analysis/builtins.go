@@ -32,6 +32,7 @@ const (
 	CatRandom   = "Random"
 	CatEncode   = "Encoding"
 	CatHash     = "Hashing"
+	CatBytes    = "Bytes & Binary"
 	CatDB       = "Database"
 	CatType     = "Type Checks"
 	CatConv     = "Conversion"
@@ -106,6 +107,18 @@ var builtinDocs = []BuiltinDoc{
 		Description: "Returns the directory portion of a path, without the final component.", Category: CatFile},
 	{Name: "path_ext", Signature: "path_ext(path)", Params: []Param{p("path", "string")}, ReturnType: "string",
 		Description: "Returns the file extension including the dot, or empty string if none.", Category: CatFile},
+	{Name: "file_open", Signature: "file_open(path, mode)", Params: []Param{p("path", "string"), p("mode", "string")}, ReturnType: "number",
+		Description: "Opens a file in random-access mode and returns a handle. mode: \"r\", \"w\", \"a\", \"rw\", \"rw+\".", Category: CatFile},
+	{Name: "file_close", Signature: "file_close(handle)", Params: []Param{p("handle", "number")}, ReturnType: "nil",
+		Description: "Closes a file opened with file_open, releasing its handle.", Category: CatFile},
+	{Name: "file_read", Signature: "file_read(handle, offset, n)", Params: []Param{p("handle", "number"), p("offset", "number"), p("n", "number")}, ReturnType: "bytes",
+		Description: "Reads n bytes from handle starting at offset and returns them as bytes. Fewer if past EOF.", Category: CatFile},
+	{Name: "file_write", Signature: "file_write(handle, offset, data)", Params: []Param{p("handle", "number"), p("offset", "number"), p("data", "bytes|string")}, ReturnType: "number",
+		Description: "Writes data to handle at offset. Returns the number of bytes written.", Category: CatFile},
+	{Name: "file_truncate", Signature: "file_truncate(handle, size)", Params: []Param{p("handle", "number"), p("size", "number")}, ReturnType: "nil",
+		Description: "Truncates the file to size bytes.", Category: CatFile},
+	{Name: "file_sync", Signature: "file_sync(handle)", Params: []Param{p("handle", "number")}, ReturnType: "nil",
+		Description: "Flushes file data to disk (fsync).", Category: CatFile},
 
 	// ---- String ----
 	{Name: "upper", Signature: "upper(str)", Params: []Param{p("str", "string")}, ReturnType: "string",
@@ -130,8 +143,8 @@ var builtinDocs = []BuiltinDoc{
 		Description: "Formats a list of maps into a CSV string. Optional headers list for column order.", Category: CatCSV},
 
 	// ---- List ----
-	{Name: "len", Signature: "len(value)", Params: []Param{p("value", "string|list|map")}, ReturnType: "number",
-		Description: "Returns the length of a string (characters), list (elements), or map (keys).", Category: CatList},
+	{Name: "len", Signature: "len(value)", Params: []Param{p("value", "string|list|map|bytes")}, ReturnType: "number",
+		Description: "Returns the length of a string (characters), list (elements), map (keys), or bytes (bytes).", Category: CatList},
 	{Name: "push", Signature: "push(list, value...)", Params: []Param{p("list", "list"), p("value", "any")}, ReturnType: "list",
 		Description: "Appends value(s) to the end of list. Mutates the list in place and returns it.", Category: CatList},
 	{Name: "pop", Signature: "pop(list)", Params: []Param{p("list", "list")}, ReturnType: "any",
@@ -139,9 +152,13 @@ var builtinDocs = []BuiltinDoc{
 	{Name: "at", Signature: "at(collection, index)", Params: []Param{p("collection", "list|string"), p("index", "number")}, ReturnType: "any",
 		Description: "Returns the element at 0-based index in a list or string. Returns nil if out of bounds.", Category: CatList},
 	{Name: "slice_list", Signature: "slice_list(list, start, end)", Params: []Param{p("list", "list"), p("start", "number"), p("end", "number")}, ReturnType: "list",
-		Description: "Returns a sublist from start to end (exclusive).", Category: CatList},
-	{Name: "sort", Signature: "sort(list)", Params: []Param{p("list", "list")}, ReturnType: "list",
-		Description: "Sorts list in ascending order. Numbers numerically, strings lexicographically.", Category: CatList},
+		Description: "Returns a sublist from start to end (exclusive). The x[a..b] syntax works on lists, strings and bytes.", Category: CatList},
+	{Name: "slice", Signature: "slice(value, start, end)", Params: []Param{p("value", "list|string|bytes"), p("start", "number"), p("end", "number")}, ReturnType: "any",
+		Description: "Returns a slice of value from start to end (exclusive). Indexes are clamped.", Category: CatList},
+	{Name: "sort", Signature: "sort(list, comparator?)", Params: []Param{p("list", "list"), p("comparator", "function")}, ReturnType: "list",
+		Description: "Sorts list. Numbers numerically, strings lexicographically, or via comparator(a, b) that returns truthy if a sorts before b.", Category: CatList},
+	{Name: "sorted_by", Signature: "sorted_by(list, keyFn)", Params: []Param{p("list", "list"), p("keyFn", "function")}, ReturnType: "list",
+		Description: "Returns a new list sorted by the key that keyFn(element) returns for each element.", Category: CatList},
 	{Name: "range", Signature: "range(start?, end?, step?)", Params: []Param{p("start", "number"), p("end", "number"), p("step", "number")}, ReturnType: "list",
 		Description: "Creates a list of numbers. range(n) gives 0..n, range(a, b) gives a..b, range(a, b, s) with step s.", Category: CatList},
 	{Name: "map", Signature: "map(list, fn)", Params: []Param{p("list", "list"), p("fn", "function")}, ReturnType: "list",
@@ -237,15 +254,51 @@ var builtinDocs = []BuiltinDoc{
 	{Name: "sha512", Signature: "sha512(text)", Params: []Param{p("text", "string")}, ReturnType: "string",
 		Description: "Computes the SHA-512 hash of text and returns it as a hex string.", Category: CatHash},
 
+	// ---- Bytes & Binary ----
+	{Name: "to_bytes", Signature: "to_bytes(value)", Params: []Param{p("value", "string|bytes|list")}, ReturnType: "bytes",
+		Description: "Converts a string to its UTF-8 bytes, or a list of integers 0-255 to bytes. Returns bytes unchanged.", Category: CatBytes},
+	{Name: "from_bytes", Signature: "from_bytes(value)", Params: []Param{p("value", "bytes|string")}, ReturnType: "string",
+		Description: "Converts bytes to a string, decoding them as UTF-8. Returns strings unchanged.", Category: CatBytes},
+	{Name: "bytes_append", Signature: "bytes_append(bytes, chunk, ...)", Params: []Param{p("bytes", "bytes|string"), p("chunk", "bytes|string")}, ReturnType: "bytes",
+		Description: "Appends one or more byte chunks to bytes and returns the result.", Category: CatBytes},
+	{Name: "bytes_to_int", Signature: "bytes_to_int(bytes, offset?, n?)", Params: []Param{p("bytes", "bytes"), p("offset", "number"), p("n", "number")}, ReturnType: "number",
+		Description: "Interprets n big-endian bytes (max 8) starting at offset as an unsigned integer. Defaults to the whole bytes.", Category: CatBytes},
+	{Name: "int_to_bytes", Signature: "int_to_bytes(value, n?)", Params: []Param{p("value", "number"), p("n", "number")}, ReturnType: "bytes",
+		Description: "Encodes a non-negative integer as big-endian bytes (minimal, or exactly n bytes if given).", Category: CatBytes},
+	{Name: "bytes_compare", Signature: "bytes_compare(a, b)", Params: []Param{p("a", "bytes|string"), p("b", "bytes|string")}, ReturnType: "number",
+		Description: "Lexicographically compares two byte sequences: negative if a < b, 0 if equal, positive if a > b.", Category: CatBytes},
+	{Name: "hex_encode", Signature: "hex_encode(bytes)", Params: []Param{p("bytes", "bytes")}, ReturnType: "string",
+		Description: "Encodes bytes as a lowercase hexadecimal string.", Category: CatBytes},
+	{Name: "hex_decode", Signature: "hex_decode(str)", Params: []Param{p("str", "string")}, ReturnType: "bytes",
+		Description: "Decodes a hexadecimal string into bytes.", Category: CatBytes},
+	{Name: "bit_and", Signature: "bit_and(a, b)", Params: []Param{p("a", "number"), p("b", "number")}, ReturnType: "number",
+		Description: "Bitwise AND of two integers.", Category: CatBytes},
+	{Name: "bit_or", Signature: "bit_or(a, b)", Params: []Param{p("a", "number"), p("b", "number")}, ReturnType: "number",
+		Description: "Bitwise OR of two integers.", Category: CatBytes},
+	{Name: "bit_xor", Signature: "bit_xor(a, b)", Params: []Param{p("a", "number"), p("b", "number")}, ReturnType: "number",
+		Description: "Bitwise XOR of two integers.", Category: CatBytes},
+	{Name: "bit_not", Signature: "bit_not(a)", Params: []Param{p("a", "number")}, ReturnType: "number",
+		Description: "Bitwise NOT of an integer.", Category: CatBytes},
+	{Name: "bit_lshift", Signature: "bit_lshift(a, n)", Params: []Param{p("a", "number"), p("n", "number")}, ReturnType: "number",
+		Description: "Bitwise left-shift of a by n positions.", Category: CatBytes},
+	{Name: "bit_rshift", Signature: "bit_rshift(a, n)", Params: []Param{p("a", "number"), p("n", "number")}, ReturnType: "number",
+		Description: "Bitwise right-shift of a by n positions.", Category: CatBytes},
+	{Name: "crc32", Signature: "crc32(value)", Params: []Param{p("value", "string|bytes")}, ReturnType: "number",
+		Description: "Computes the IEEE CRC-32 checksum of value.", Category: CatBytes},
+	{Name: "substring", Signature: "substring(str, start, end)", Params: []Param{p("str", "string"), p("start", "number"), p("end", "number")}, ReturnType: "string",
+		Description: "Returns the substring of str from start (inclusive) to end (exclusive), clamped to the string bounds.", Category: CatString},
+	{Name: "index_of", Signature: "index_of(str, needle)", Params: []Param{p("str", "string"), p("needle", "string")}, ReturnType: "number",
+		Description: "Returns the 0-based index of the first occurrence of needle in str, or -1 if not found.", Category: CatString},
+
 	// ---- Database ----
 	{Name: "db_open", Signature: "db_open(path)", Params: []Param{p("path", "string")}, ReturnType: "number",
-		Description: "Opens an SQLite database file. Returns a handle for use with db_query/db_exec/db_close.", Category: CatDB},
+		Description: "Removed: SQLite is now the 'sqlite' Pipe module — import 'sqlite' (see SQLite.md).", Category: CatDB},
 	{Name: "db_close", Signature: "db_close(handle)", Params: []Param{p("handle", "number")}, ReturnType: "nil",
-		Description: "Closes an SQLite database connection.", Category: CatDB},
+		Description: "Removed: SQLite is now the 'sqlite' Pipe module — import 'sqlite' (see SQLite.md).", Category: CatDB},
 	{Name: "db_exec", Signature: "db_exec(handle, sql)", Params: []Param{p("handle", "number"), p("sql", "string")}, ReturnType: "number",
-		Description: "Executes an INSERT/UPDATE/DELETE/CREATE statement. Returns rows affected.", Category: CatDB},
+		Description: "Removed: SQLite is now the 'sqlite' Pipe module — import 'sqlite' (see SQLite.md).", Category: CatDB},
 	{Name: "db_query", Signature: "db_query(handle, sql)", Params: []Param{p("handle", "number"), p("sql", "string")}, ReturnType: "list",
-		Description: "Executes a SELECT query. Returns a list of maps (one map per row, column name → value).", Category: CatDB},
+		Description: "Removed: SQLite is now the 'sqlite' Pipe module — import 'sqlite' (see SQLite.md).", Category: CatDB},
 
 	// ---- Type Checks ----
 	{Name: "type_of", Signature: "type_of(value)", Params: []Param{p("value", "any")}, ReturnType: "string",
@@ -280,6 +333,8 @@ var builtinDocs = []BuiltinDoc{
 		Description: "Returns the value inside Ok, or raises an error if called on Err.", Category: CatResult},
 	{Name: "unwrap_or", Signature: "unwrap_or(result, default)", Params: []Param{p("result", "Result"), p("default", "any")}, ReturnType: "any",
 		Description: "Returns the value inside Ok, or default if result is Err.", Category: CatResult},
+	{Name: "raise", Signature: "raise(message)", Params: []Param{p("message", "string")}, ReturnType: "error",
+		Description: "Raises an error with the given message. Catchable with try/catch.", Category: CatResult},
 
 	// ---- AI Configuration ----
 	{Name: "ai_provider", Signature: "ai_provider(name)", Params: []Param{p("name", "string")}, ReturnType: "string",

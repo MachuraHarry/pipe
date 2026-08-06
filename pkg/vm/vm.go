@@ -1,8 +1,10 @@
 package vm
 
 import (
+	"bytes"
 	"fmt"
 	"math"
+	"strings"
 
 	"github.com/MachuraHarry/pipe/pkg/compiler"
 	"github.com/MachuraHarry/pipe/pkg/object"
@@ -156,6 +158,15 @@ func (vm *VM) Run() error {
 			left := vm.pop()
 			right = object.EnsureResolved(right)
 			left = object.EnsureResolved(left)
+			if left.Type() == object.BYTES || right.Type() == object.BYTES {
+				l := leftBytes(left)
+				r := leftBytes(right)
+				out := make([]byte, 0, len(l)+len(r))
+				out = append(out, l...)
+				out = append(out, r...)
+				vm.push(&object.Bytes{Value: out})
+				continue
+			}
 			vm.push(&object.String{Value: left.Inspect() + right.Inspect()})
 
 		case compiler.OpMinus:
@@ -494,6 +505,16 @@ func (vm *VM) binaryFloatOp(op compiler.Opcode, left, right *object.Float) objec
 	return &object.Error{Message: fmt.Sprintf("unknown float op %d", op)}
 }
 
+func leftBytes(o object.Object) []byte {
+	switch v := o.(type) {
+	case *object.Bytes:
+		return v.Value
+	case *object.String:
+		return []byte(v.Value)
+	}
+	return []byte(o.Inspect())
+}
+
 func (vm *VM) compareOp(op compiler.Opcode, left, right object.Object) object.Object {
 	left = object.EnsureResolved(left)
 	right = object.EnsureResolved(right)
@@ -512,8 +533,33 @@ func (vm *VM) compareOp(op compiler.Opcode, left, right object.Object) object.Ob
 		return vm.compareBoolOp(op, a == object.TRUE, b == object.TRUE)
 	case left.Type() == object.STRING && right.Type() == object.STRING:
 		return vm.compareStringOp(op, left.(*object.String).Value, right.(*object.String).Value)
+	case left.Type() == object.BYTES && right.Type() == object.BYTES:
+		return vm.compareBytesOp(op, left.(*object.Bytes).Value, right.(*object.Bytes).Value)
+	case op == compiler.OpEqual:
+		return object.NativeBoolToBoolean(left == right)
+	case op == compiler.OpNotEqual:
+		return object.NativeBoolToBoolean(left != right)
 	}
 	return &object.Error{Message: fmt.Sprintf("Type error: comparing %s %s", left.Type(), right.Type())}
+}
+
+func (vm *VM) compareBytesOp(op compiler.Opcode, l, r []byte) object.Object {
+	c := bytes.Compare(l, r)
+	switch op {
+	case compiler.OpEqual:
+		return object.NativeBoolToBoolean(c == 0)
+	case compiler.OpNotEqual:
+		return object.NativeBoolToBoolean(c != 0)
+	case compiler.OpGreater:
+		return object.NativeBoolToBoolean(c > 0)
+	case compiler.OpLess:
+		return object.NativeBoolToBoolean(c < 0)
+	case compiler.OpGte:
+		return object.NativeBoolToBoolean(c >= 0)
+	case compiler.OpLte:
+		return object.NativeBoolToBoolean(c <= 0)
+	}
+	return &object.Error{Message: fmt.Sprintf("unknown bytes op %d", op)}
 }
 
 func (vm *VM) compareIntOp(op compiler.Opcode, l, r int64) object.Object {
@@ -563,11 +609,20 @@ func (vm *VM) compareBoolOp(op compiler.Opcode, l, r bool) object.Object {
 }
 
 func (vm *VM) compareStringOp(op compiler.Opcode, l, r string) object.Object {
+	c := strings.Compare(l, r)
 	switch op {
 	case compiler.OpEqual:
-		return object.NativeBoolToBoolean(l == r)
+		return object.NativeBoolToBoolean(c == 0)
 	case compiler.OpNotEqual:
-		return object.NativeBoolToBoolean(l != r)
+		return object.NativeBoolToBoolean(c != 0)
+	case compiler.OpGreater:
+		return object.NativeBoolToBoolean(c > 0)
+	case compiler.OpLess:
+		return object.NativeBoolToBoolean(c < 0)
+	case compiler.OpGte:
+		return object.NativeBoolToBoolean(c >= 0)
+	case compiler.OpLte:
+		return object.NativeBoolToBoolean(c <= 0)
 	}
 	return object.FALSE
 }
@@ -655,6 +710,15 @@ func (vm *VM) executeFrame() object.Object {
 			left := vm.pop()
 			right = object.EnsureResolved(right)
 			left = object.EnsureResolved(left)
+			if left.Type() == object.BYTES || right.Type() == object.BYTES {
+				l := leftBytes(left)
+				r := leftBytes(right)
+				out := make([]byte, 0, len(l)+len(r))
+				out = append(out, l...)
+				out = append(out, r...)
+				vm.push(&object.Bytes{Value: out})
+				continue
+			}
 			vm.push(&object.String{Value: left.Inspect() + right.Inspect()})
 
 		case compiler.OpJump:

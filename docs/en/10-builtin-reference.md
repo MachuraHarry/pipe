@@ -1,6 +1,6 @@
 # 10. Built-in Function Reference
 
-Pipe includes 143 built-in functions organized by category. This chapter documents each function with its signature, description, return type, and usage example.
+Pipe includes 168 built-in functions organized by category. This chapter documents each function with its signature, description, return type, and usage example.
 
 ---
 
@@ -104,7 +104,7 @@ print "main"
 
 ---
 
-## 10.2 File System (17 functions)
+## 10.2 File System (23 functions)
 
 ### `read_file`
 **Signature:** `read_file(path)`
@@ -267,9 +267,58 @@ path_ext "archive.tar.gz"
 path_ext "Makefile"
 ```
 
+### `file_open`
+**Signature:** `file_open(path, mode)`
+**Description:** Opens a file in random-access mode and returns a numeric handle. Modes: `"r"` (read), `"w"` (write, truncate), `"a"` (append), `"rw"` (read/write, keep), `"rw+"` (read/write, truncate). Respects the active sandbox profile.
+**Returns:** `number` (handle)
+```pipe
+h: file_open "/tmp/data.bin" "rw"
+```
+
+### `file_close`
+**Signature:** `file_close(handle)`
+**Description:** Closes a file previously opened with `file_open`, releasing its handle.
+**Returns:** `nil`
+```pipe
+file_close h
+```
+
+### `file_read`
+**Signature:** `file_read(handle, offset, n)`
+**Description:** Reads `n` bytes from `handle` starting at `offset` and returns them as `bytes`. Returns fewer bytes when past the end of the file.
+**Returns:** `bytes`
+```pipe
+-- first 8 bytes
+file_read h 0 8
+```
+
+### `file_write`
+**Signature:** `file_write(handle, offset, data)`
+**Description:** Writes `data` (bytes or string) to `handle` at `offset`, overwriting existing bytes. Returns the number of bytes written.
+**Returns:** `number`
+```pipe
+file_write h 0 (to_bytes "0123456789")
+```
+
+### `file_truncate`
+**Signature:** `file_truncate(handle, size)`
+**Description:** Truncates the file to exactly `size` bytes.
+**Returns:** `nil`
+```pipe
+file_truncate h 8
+```
+
+### `file_sync`
+**Signature:** `file_sync(handle)`
+**Description:** Flushes file data and metadata to disk (fsync).
+**Returns:** `nil`
+```pipe
+file_sync h
+```
+
 ---
 
-## 10.3 String (7 functions)
+## 10.3 String (9 functions)
 
 ### `upper`
 **Signature:** `upper(str)`
@@ -361,13 +410,35 @@ contains ([1, 2, 3]) 2
 contains (["a", "b"]) "c"
 ```
 
+### `substring`
+**Signature:** `substring(str, start, end)`
+**Description:** Returns the substring of `str` from `start` (inclusive) to `end` (exclusive). Indexes are clamped to the string bounds.
+**Returns:** `string`
+```pipe
+-- "el"
+substring "hello" 1 3
+-- "hello"
+substring "hello" -5 99
+```
+
+### `index_of`
+**Signature:** `index_of(str, needle)`
+**Description:** Returns the 0-based index of the first occurrence of `needle` in `str`, or `-1` if not found.
+**Returns:** `number`
+```pipe
+-- 6
+index_of "hello world" "world"
+-- -1
+index_of "hello" "xyz"
+```
+
 ---
 
-## 10.4 List (11 functions)
+## 10.4 List (13 functions)
 
 ### `len`
 **Signature:** `len(value)`
-**Description:** Returns the length of a string (characters), list (elements), or map (keys).
+**Description:** Returns the length of a string (characters), list (elements), map (keys), or bytes (bytes).
 **Returns:** `number`
 ```pipe
 -- 5
@@ -428,18 +499,43 @@ slice_list ([10, 20, 30, 40, 50]) (range 2 5)
 slice_list ([10, 20, 30]) (range 1 1)
 ```
 
+### `slice`
+**Signature:** `slice(value, start, end)`
+**Description:** Returns a slice of `value` from `start` (inclusive) to `end` (exclusive). Works on lists, strings, and bytes. Indexes are clamped.
+**Returns:** `list`, `string`, or `bytes`
+```pipe
+-- [10, 20, 30]
+slice ([10, 20, 30, 40, 50]) 0 3
+-- "el"
+slice "hello" 1 3
+-- 0x656c
+slice (to_bytes "hello") 1 3
+```
+
 ### `sort`
-**Signature:** `sort(list)`
-**Description:** Sorts `list` in ascending order **in place**. For strings, sorts lexicographically. For numbers, sorts numerically.
-**Returns:** The mutated `list`
+**Signature:** `sort(list, comparator?)`
+**Description:** Returns a new list sorted from `list`. Without a comparator: strings lexicographically, numbers numerically. With a comparator function `comparator(a, b)` returning truthy when `a` sorts before `b`, uses it for ordering.
+**Returns:** A new `list`
 ```pipe
 xs: [3, 1, 4, 1, 5]
--- xs is now ([1, 1, 3, 4, 5])
+-- [1, 1, 3, 4, 5] (xs unchanged)
 sort xs
 
 ys: ["b", "a", "c"]
--- ys is now (["a", "b", "c"])
+-- ["a", "b", "c"]
 sort ys
+
+-- descending
+sort [1, 2, 3] (fn a b: b < a)
+```
+
+### `sorted_by`
+**Signature:** `sorted_by(list, keyFn)`
+**Description:** Returns a new list sorted by the key that `keyFn(element)` returns for each element.
+**Returns:** `list`
+```pipe
+-- ["a", "bb", "ccc"]
+sorted_by ["ccc", "a", "bb"] (fn s: len s)
 ```
 
 ### `range`
@@ -1001,55 +1097,34 @@ sha512 "hello"
 
 ---
 
-## 10.15 Database — SQLite (4 functions)
+## 10.15 Database — SQLite (module)
 
-### `db_open`
+The `db_open`, `db_close`, `db_exec`, and `db_query` builtins have been replaced by a native Pipe module (`examples/sqlite.pipe`). The external `modernc.org/sqlite` dependency has been removed, restoring the "Zero Dependencies" promise. The binary is now ~7 MB.
 
-**Signature:** `db_open(path)`
+The module is imported via `sqlite.pipe` and exposes the same drop-in API:
 
-**Description:** Opens or creates an SQLite database file. Use `":memory:"` for an in-memory database. Returns an integer handle for use with `db_query`, `db_exec`, `db_close`.
-
-**Returns:** `number` (database handle)
 ```pipe
+import "sqlite.pipe"
 h: db_open ":memory:"
-h: db_open "data.sqlite"
-```
-
-### `db_close`
-
-**Signature:** `db_close(handle)`
-
-**Description:** Closes an SQLite database connection.
-
-**Returns:** `nil`
-```pipe
+db_exec h "CREATE TABLE users (id INTEGER, name TEXT)"
+rows: db_query h "SELECT * FROM users"
 db_close h
 ```
 
-### `db_exec`
+**Supported SQL:** CREATE TABLE, INSERT (single + multi-value), UPDATE, DELETE, SELECT with WHERE, GROUP BY + aggregates (COUNT, SUM, AVG, MIN, MAX), ORDER BY, LIMIT/OFFSET, JOIN (INNER, LEFT, RIGHT), DISTINCT, BEGIN/COMMIT/ROLLBACK.
 
-**Signature:** `db_exec(handle, sql)`
+Persistence uses a paged binary format with CRC32 checksums; `":memory:"` for in-memory databases.
 
-**Description:** Executes a non-query SQL statement (INSERT, UPDATE, DELETE, CREATE TABLE, etc.). Returns the number of rows affected.
+See `SQLite.md` in the repository root for implementation details and current status.
 
-**Returns:** `number` (rows affected)
-```pipe
-db_exec h "CREATE TABLE users (id INTEGER, name TEXT)"
-db_exec h "INSERT INTO users VALUES (1, 'Alice')"
-```
+> **Note:** The module is implemented and functional. Two Pipe runtime bugs (VM closure variable-slot corruption, TV deep-if-chain panic) currently prevent full end-to-end execution of all demo queries. These are being addressed in the Pipe compiler. The module logic itself is complete.
 
-### `db_query`
-
-**Signature:** `db_query(handle, sql)`
-
-**Description:** Executes a SELECT query and returns the results as a list of maps. Each map represents one row with column names as keys.
-
-**Returns:** `list` of `map`
-```pipe
-rows: db_query h "SELECT * FROM users"
-for row in rows
-    print (get row "name")
-```
+| Function | Signature | Description |
+|----------|-----------|-------------|
+| `db_open` | `db_open(path)` | Opens a database file or `":memory:"`, returns handle |
+| `db_close` | `db_close(handle)` | Closes database and persists changes to disk |
+| `db_exec` | `db_exec(handle, sql)` | Executes DDL/DML, returns affected row count |
+| `db_query` | `db_query(handle, sql)` | Executes SELECT, returns list of row maps |
 
 
 ## 10.16 Type Checks (6 functions)
@@ -1957,9 +2032,150 @@ test "addition"
 
 ---
 
-## 10.31 Summary Table
+## 10.31 Bytes & Binary (15 functions)
 
-### IO & System (6)
+### `to_bytes`
+**Signature:** `to_bytes(value)`
+**Description:** Converts a string to its UTF-8 bytes, or a list of integers (0-255) to bytes. Returns bytes unchanged.
+**Returns:** `bytes`
+```pipe
+-- 0x4869
+to_bytes "Hi"
+-- 0x01ff
+to_bytes [1, 255]
+```
+
+### `from_bytes`
+**Signature:** `from_bytes(value)`
+**Description:** Converts bytes to a string, decoding them as UTF-8. Returns strings unchanged.
+**Returns:** `string`
+```pipe
+-- "Hi"
+from_bytes (to_bytes "Hi")
+```
+
+### `bytes_append`
+**Signature:** `bytes_append(bytes, chunk, ...)`
+**Description:** Appends one or more chunks (bytes or strings) to `bytes`.
+**Returns:** `bytes`
+```pipe
+-- 0x0102
+bytes_append (to_bytes [1]) (to_bytes [2])
+```
+
+### `bytes_to_int`
+**Signature:** `bytes_to_int(bytes, offset?, n?)`
+**Description:** Interprets `n` big-endian bytes (max 8) starting at `offset` as an unsigned integer. Defaults to the whole `bytes`.
+**Returns:** `number`
+```pipe
+-- 0x0102 = 258
+bytes_to_int (to_bytes [1, 2]) 0 2
+```
+
+### `int_to_bytes`
+**Signature:** `int_to_bytes(value, n?)`
+**Description:** Encodes a non-negative integer as big-endian bytes (minimal length, or exactly `n` bytes if given).
+**Returns:** `bytes`
+```pipe
+-- 0x0102
+int_to_bytes 258 2
+```
+
+### `bytes_compare`
+**Signature:** `bytes_compare(a, b)`
+**Description:** Lexicographically compares two byte sequences. Negative if `a < b`, 0 if equal, positive if `a > b`.
+**Returns:** `number`
+```pipe
+-- -1
+bytes_compare (to_bytes [1]) (to_bytes [2])
+```
+
+### `hex_encode`
+**Signature:** `hex_encode(bytes)`
+**Description:** Encodes bytes as a lowercase hexadecimal string.
+**Returns:** `string`
+```pipe
+-- "4869"
+hex_encode (to_bytes "Hi")
+```
+
+### `hex_decode`
+**Signature:** `hex_decode(str)`
+**Description:** Decodes a hexadecimal string into bytes.
+**Returns:** `bytes`
+```pipe
+-- 0x4869
+hex_decode "4869"
+```
+
+### `bit_and`
+**Signature:** `bit_and(a, b)`
+**Description:** Bitwise AND of two integers.
+**Returns:** `number`
+```pipe
+-- 2
+bit_and 6 3
+```
+
+### `bit_or`
+**Signature:** `bit_or(a, b)`
+**Description:** Bitwise OR of two integers.
+**Returns:** `number`
+```pipe
+-- 7
+bit_or 6 3
+```
+
+### `bit_xor`
+**Signature:** `bit_xor(a, b)`
+**Description:** Bitwise XOR of two integers.
+**Returns:** `number`
+```pipe
+-- 5
+bit_xor 6 3
+```
+
+### `bit_not`
+**Signature:** `bit_not(a)`
+**Description:** Bitwise NOT of an integer (two's complement).
+**Returns:** `number`
+```pipe
+-- -6
+bit_not 5
+```
+
+### `bit_lshift`
+**Signature:** `bit_lshift(a, n)`
+**Description:** Bitwise left-shift of `a` by `n` positions. `n` must be 0-63.
+**Returns:** `number`
+```pipe
+-- 1024
+bit_lshift 1 10
+```
+
+### `bit_rshift`
+**Signature:** `bit_rshift(a, n)`
+**Description:** Bitwise right-shift of `a` by `n` positions. `n` must be 0-63.
+**Returns:** `number`
+```pipe
+-- 16
+bit_rshift 256 4
+```
+
+### `crc32`
+**Signature:** `crc32(value)`
+**Description:** Computes the IEEE CRC-32 checksum of a string or bytes.
+**Returns:** `number`
+```pipe
+-- 907060870
+crc32 "hello"
+```
+
+---
+
+## 10.32 Summary Table
+
+### IO & System (8)
 
 | # | Function | Signature | Returns |
 |---|----------|-----------|---------|
@@ -1969,275 +2185,319 @@ test "addition"
 | 4 | `env` | `env(name)` | `string` or `nil` |
 | 5 | `sleep` | `sleep(ms)` | `nil` |
 | 6 | `args` | `args()` | `list` |
-| 7 | `go` | `go(fn, args...)` | `nil` |
+| 7 | `read_stdin` | `read_stdin()` | `string` |
+| 8 | `go` | `go(fn, args...)` | `nil` |
 
-### File System (17)
-
-| # | Function | Signature | Returns |
-|---|----------|-----------|---------|
-| 8 | `read_file` | `read_file(path)` | `string` |
-| 9 | `write_file` | `write_file(path, content)` | `nil` |
-| 10 | `append_file` | `append_file(path, content)` | `nil` |
-| 11 | `read_lines` | `read_lines(path)` | `list` of strings |
-| 12 | `file_exists` | `file_exists(path)` | `boolean` |
-| 13 | `file_delete` | `file_delete(path)` | `boolean` |
-| 14 | `file_move` | `file_move(src, dst)` | `nil` |
-| 15 | `file_copy` | `file_copy(src, dst)` | `nil` |
-| 16 | `file_size` | `file_size(path)` | `number` |
-| 17 | `file_type` | `file_type(path)` | `string` or `nil` |
-| 18 | `list_dir` | `list_dir(path)` | `list` of strings |
-| 19 | `make_dir` | `make_dir(path)` | `nil` |
-| 20 | `remove_dir` | `remove_dir(path)` | `nil` |
-| 21 | `path_join` | `path_join(base, part)` | `string` |
-| 22 | `path_base` | `path_base(path)` | `string` |
-| 23 | `path_dir` | `path_dir(path)` | `string` |
-| 24 | `path_ext` | `path_ext(path)` | `string` |
-
-### String (6)
+### File System (23)
 
 | # | Function | Signature | Returns |
 |---|----------|-----------|---------|
-| 25 | `upper` | `upper(str)` | `string` |
-| 26 | `lower` | `lower(str)` | `string` |
-| 27 | `trim` | `trim(str)` | `string` |
-| 28 | `split` | `split(str, delimiter)` | `list` of strings |
-| 29 | `join` | `join(list, delimiter)` | `string` |
-| 30 | `csv_parse` | `csv_parse(text)` | `list` |
-| 31 | `contains` | `contains(haystack, needle)` | `boolean` |
-| 32 | `repeat` | `repeat(str, count)` | `string` |
+| 9 | `read_file` | `read_file(path)` | `string` |
+| 10 | `write_file` | `write_file(path, content)` | `nil` |
+| 11 | `append_file` | `append_file(path, content)` | `nil` |
+| 12 | `read_lines` | `read_lines(path)` | `list` of strings |
+| 13 | `file_exists` | `file_exists(path)` | `boolean` |
+| 14 | `file_delete` | `file_delete(path)` | `boolean` |
+| 15 | `file_move` | `file_move(src, dst)` | `nil` |
+| 16 | `file_copy` | `file_copy(src, dst)` | `nil` |
+| 17 | `file_size` | `file_size(path)` | `number` |
+| 18 | `file_type` | `file_type(path)` | `string` or `nil` |
+| 19 | `list_dir` | `list_dir(path)` | `list` of strings |
+| 20 | `make_dir` | `make_dir(path)` | `nil` |
+| 21 | `remove_dir` | `remove_dir(path)` | `nil` |
+| 22 | `path_join` | `path_join(base, part)` | `string` |
+| 23 | `path_base` | `path_base(path)` | `string` |
+| 24 | `path_dir` | `path_dir(path)` | `string` |
+| 25 | `path_ext` | `path_ext(path)` | `string` |
+| 26 | `file_open` | `file_open(path, mode)` | `number` (handle) |
+| 27 | `file_close` | `file_close(handle)` | `nil` |
+| 28 | `file_read` | `file_read(handle, offset, n)` | `bytes` |
+| 29 | `file_write` | `file_write(handle, offset, data)` | `number` |
+| 30 | `file_truncate` | `file_truncate(handle, size)` | `nil` |
+| 31 | `file_sync` | `file_sync(handle)` | `nil` |
 
-### List (11)
+### String (9)
 
 | # | Function | Signature | Returns |
 |---|----------|-----------|---------|
-| 33 | `len` | `len(value)` | `number` |
-| 34 | `push` | `push(list, value)` | The mutated `list` |
-| 35 | `pop` | `pop(list)` | The removed element, or `nil` if empty |
-| 36 | `at` | `at(collection, index)` | `any` or `nil` |
-| 37 | `slice_list` | `slice_list(list, range)` | `list` |
-| 38 | `sort` | `sort(list)` | The mutated `list` |
-| 39 | `range` | `range(start, end)` | `list` of numbers |
-| 40 | `map` | `map(list, fn)` | `list` |
-| 41 | `filter` | `filter(list, fn)` | `list` |
-| 42 | `reduce` | `reduce(list, fn, initial)` | `any` |
-| 43 | `each` | `each(list, fn)` | `nil` |
+| 32 | `upper` | `upper(str)` | `string` |
+| 33 | `lower` | `lower(str)` | `string` |
+| 34 | `trim` | `trim(str)` | `string` |
+| 35 | `split` | `split(str, delimiter)` | `list` of strings |
+| 36 | `join` | `join(list, delimiter)` | `string` |
+| 37 | `repeat` | `repeat(str, count)` | `string` |
+| 38 | `contains` | `contains(haystack, needle)` | `boolean` |
+| 39 | `substring` | `substring(str, start, end)` | `string` |
+| 40 | `index_of` | `index_of(str, needle)` | `number` |
+
+### List (13)
+
+| # | Function | Signature | Returns |
+|---|----------|-----------|---------|
+| 41 | `len` | `len(value)` | `number` |
+| 42 | `push` | `push(list, value)` | The mutated `list` |
+| 43 | `pop` | `pop(list)` | The removed element, or `nil` if empty |
+| 44 | `at` | `at(collection, index)` | `any` or `nil` |
+| 45 | `slice_list` | `slice_list(list, range)` | `list` |
+| 46 | `slice` | `slice(value, start, end)` | `list`, `string`, or `bytes` |
+| 47 | `sort` | `sort(list, comparator?)` | A new `list` |
+| 48 | `sorted_by` | `sorted_by(list, keyFn)` | `list` |
+| 49 | `range` | `range(start, end)` | `list` of numbers |
+| 50 | `map` | `map(list, fn)` | `list` |
+| 51 | `filter` | `filter(list, fn)` | `list` |
+| 52 | `reduce` | `reduce(list, fn, initial)` | `any` |
+| 53 | `each` | `each(list, fn)` | `nil` |
+
+### Bytes & Binary (15)
+
+| # | Function | Signature | Returns |
+|---|----------|-----------|---------|
+| 54 | `to_bytes` | `to_bytes(value)` | `bytes` |
+| 55 | `from_bytes` | `from_bytes(value)` | `string` |
+| 56 | `bytes_append` | `bytes_append(bytes, chunk, ...)` | `bytes` |
+| 57 | `bytes_to_int` | `bytes_to_int(bytes, offset?, n?)` | `number` |
+| 58 | `int_to_bytes` | `int_to_bytes(value, n?)` | `bytes` |
+| 59 | `bytes_compare` | `bytes_compare(a, b)` | `number` |
+| 60 | `hex_encode` | `hex_encode(bytes)` | `string` |
+| 61 | `hex_decode` | `hex_decode(str)` | `bytes` |
+| 62 | `bit_and` | `bit_and(a, b)` | `number` |
+| 63 | `bit_or` | `bit_or(a, b)` | `number` |
+| 64 | `bit_xor` | `bit_xor(a, b)` | `number` |
+| 65 | `bit_not` | `bit_not(a)` | `number` |
+| 66 | `bit_lshift` | `bit_lshift(a, n)` | `number` |
+| 67 | `bit_rshift` | `bit_rshift(a, n)` | `number` |
+| 68 | `crc32` | `crc32(value)` | `number` |
+
+### CSV (2)
+
+| # | Function | Signature | Returns |
+|---|----------|-----------|---------|
+| 69 | `csv_parse` | `csv_parse(text)` | `list` |
+| 70 | `csv_format` | `csv_format(data)` | `string` |
 
 ### Map (4)
 
 | # | Function | Signature | Returns |
 |---|----------|-----------|---------|
-| 44 | `get` | `get(map, key)` | `any` or `nil` |
-| 45 | `set` | `set(map, key, value)` | The mutated `map` |
-| 46 | `keys` | `keys(map)` | `list` of strings |
-| 47 | `values` | `values(map)` | `list` |
+| 71 | `get` | `get(map, key)` | `any` or `nil` |
+| 72 | `set` | `set(map, key, value)` | The mutated `map` |
+| 73 | `keys` | `keys(map)` | `list` of strings |
+| 74 | `values` | `values(map)` | `list` |
 
 ### Math (6)
 
 | # | Function | Signature | Returns |
 |---|----------|-----------|---------|
-| 48 | `abs` | `abs(x)` | `number` |
-| 49 | `min` | `min(a, b)` | `number` |
-| 50 | `max` | `max(a, b)` | `number` |
-| 51 | `pow` | `pow(base, exp)` | `number` |
-| 52 | `sqrt` | `sqrt(x)` | `number` |
-| 53 | `round` | `round(x)` | `number` |
+| 75 | `abs` | `abs(x)` | `number` |
+| 76 | `min` | `min(a, b)` | `number` |
+| 77 | `max` | `max(a, b)` | `number` |
+| 78 | `pow` | `pow(base, exp)` | `number` |
+| 79 | `sqrt` | `sqrt(x)` | `number` |
+| 80 | `round` | `round(x)` | `number` |
 
 ### Network & HTTP (5)
 
 | # | Function | Signature | Returns |
 |---|----------|-----------|---------|
-| 54 | `http_get` | `http_get(url)` | `string` |
-| 55 | `http_post` | `http_post(url, body)` | `string` |
-| 56 | `http_get_json` | `http_get_json(url)` | `any` (map, list, number, string, boolean, or nil) |
-| 57 | `parse_json` | `parse_json(json_string)` | `any` or `nil` on parse error |
-| 58 | `to_json` | `to_json(value)` | `string` |
+| 81 | `http_get` | `http_get(url)` | `string` |
+| 82 | `http_post` | `http_post(url, body)` | `string` |
+| 83 | `http_get_json` | `http_get_json(url)` | `any` (map, list, number, string, boolean, or nil) |
+| 84 | `parse_json` | `parse_json(json_string)` | `any` or `nil` on parse error |
+| 85 | `to_json` | `to_json(value)` | `string` |
 
 ### TCP (6)
 
 | # | Function | Signature | Returns |
 |---|----------|-----------|---------|
-| 59 | `tcp_listen` | `tcp_listen(address)` | `listener handle` |
-| 60 | `tcp_connect` | `tcp_connect(address)` | `connection handle` |
-| 61 | `tcp_accept` | `tcp_accept(listener)` | `connection handle` |
-| 62 | `tcp_read` | `tcp_read(conn, max_bytes)` | `string` |
-| 63 | `tcp_write` | `tcp_write(conn, data)` | `nil` |
-| 64 | `tcp_close` | `tcp_close(handle)` | `nil` |
+| 86 | `tcp_listen` | `tcp_listen(address)` | `listener handle` |
+| 87 | `tcp_connect` | `tcp_connect(address)` | `connection handle` |
+| 88 | `tcp_accept` | `tcp_accept(listener)` | `connection handle` |
+| 89 | `tcp_read` | `tcp_read(conn, max_bytes)` | `string` |
+| 90 | `tcp_write` | `tcp_write(conn, data)` | `nil` |
+| 91 | `tcp_close` | `tcp_close(handle)` | `nil` |
 
 ### Regex (2)
 
 | # | Function | Signature | Returns |
 |---|----------|-----------|---------|
-| 65 | `regex_match` | `regex_match(pattern, str)` | `boolean` |
-| 66 | `regex_replace` | `regex_replace(pattern, replacement, str)` | `string` |
+| 92 | `regex_match` | `regex_match(pattern, str)` | `boolean` |
+| 93 | `regex_replace` | `regex_replace(pattern, replacement, str)` | `string` |
 
 ### Date & Time (2)
 
 | # | Function | Signature | Returns |
 |---|----------|-----------|---------|
-| 67 | `now` | `now()` | `number` |
-| 68 | `format_time` | `format_time(timestamp, layout)` |  |
+| 94 | `now` | `now()` | `number` |
+| 95 | `format_time` | `format_time(timestamp, layout)` | `string` |
 
 ### Random (2)
 
 | # | Function | Signature | Returns |
 |---|----------|-----------|---------|
-| 69 | `random` | `random()` | `number` |
-| 70 | `random_range` | `random_range(min, max)` | `number` (integer) |
+| 96 | `random` | `random()` | `number` |
+| 97 | `random_range` | `random_range(min, max)` | `number` (integer) |
 
 ### Encoding (2)
 
 | # | Function | Signature | Returns |
 |---|----------|-----------|---------|
-| 71 | `base64_encode` | `base64_encode(str)` | `string` |
-| 72 | `base64_decode` | `base64_decode(str)` | `string` |
+| 98 | `base64_encode` | `base64_encode(str)` | `string` |
+| 99 | `base64_decode` | `base64_decode(str)` | `string` |
 
 ### Hashing (4)
 
 | # | Function | Signature | Returns |
 |---|----------|-----------|---------|
-| 73 | `sha256` | `sha256(text)` | `string` |
-| 74 | `md5` | `md5(text)` | `string` |
-| 75 | `db_open` | `db_open(path)` | `number` |
-| 76 | `sha1` | `sha1(text)` | `string` |
-| 77 | `sha512` | `sha512(text)` | `string` |
+| 100 | `sha256` | `sha256(text)` | `string` |
+| 101 | `md5` | `md5(text)` | `string` |
+| 102 | `sha1` | `sha1(text)` | `string` |
+| 103 | `sha512` | `sha512(text)` | `string` |
+
+### Database (4) — module
+
+| # | Function | Signature | Returns |
+|---|----------|-----------|---------|
+| 104 | `db_open` | `db_open(path)` | *module* |
+| 105 | `db_close` | `db_close(handle)` | *module* |
+| 106 | `db_exec` | `db_exec(handle, sql)` | *module* |
+| 107 | `db_query` | `db_query(handle, sql)` | *module* |
 
 ### Type Checks (6)
 
 | # | Function | Signature | Returns |
 |---|----------|-----------|---------|
-| 78 | `type_of` | `type_of(value)` | `string` — one of `"number"`, `"string"`, `"list"`, `"map"`, `"nil"`, `"function"`, `"boolean"`, `"result"` |
-| 79 | `is_num` | `is_num(value)` | `boolean` |
-| 80 | `is_str` | `is_str(value)` | `boolean` |
-| 81 | `is_list` | `is_list(value)` | `boolean` |
-| 82 | `is_map` | `is_map(value)` | `boolean` |
-| 83 | `is_nil` | `is_nil(value)` | `boolean` |
+| 108 | `type_of` | `type_of(value)` | `string` — one of `"number"`, `"string"`, `"list"`, `"map"`, `"bytes"`, `"nil"`, `"function"`, `"boolean"`, `"result"` |
+| 109 | `is_num` | `is_num(value)` | `boolean` |
+| 110 | `is_str` | `is_str(value)` | `boolean` |
+| 111 | `is_list` | `is_list(value)` | `boolean` |
+| 112 | `is_map` | `is_map(value)` | `boolean` |
+| 113 | `is_nil` | `is_nil(value)` | `boolean` |
 
 ### Conversion (2)
 
 | # | Function | Signature | Returns |
 |---|----------|-----------|---------|
-| 84 | `to_str` | `to_str(value)` | `string` |
-| 85 | `to_num` | `to_num(str)` | `number` or `nil` |
+| 114 | `to_str` | `to_str(value)` | `string` |
+| 115 | `to_num` | `to_num(str)` | `number` or `nil` |
 
 ### Result Type (6)
 
 | # | Function | Signature | Returns |
 |---|----------|-----------|---------|
-| 86 | `Ok` | `Ok(value)` | `Result` (Ok variant) |
-| 87 | `Err` | `Err(message)` | `Result` (Err variant) |
-| 89 | `is_ok` | `is_ok(result)` | `boolean` |
-| 90 | `is_err` | `is_err(result)` | `boolean` |
-| 91 | `unwrap` | `unwrap(result)` | `any` |
-| 92 | `unwrap_or` | `unwrap_or(result, default)` | `any` |
+| 116 | `Ok` | `Ok(value)` | `Result` (Ok variant) |
+| 117 | `Err` | `Err(message)` | `Result` (Err variant) |
+| 118 | `is_ok` | `is_ok(result)` | `boolean` |
+| 119 | `is_err` | `is_err(result)` | `boolean` |
+| 120 | `unwrap` | `unwrap(result)` | `any` |
+| 121 | `unwrap_or` | `unwrap_or(result, default)` | `any` |
 
-### AI — Configuration (5)
+### AI — Configuration (6)
 
 | # | Function | Signature | Returns |
 |---|----------|-----------|---------|
-| 93 | `ai_provider` | `ai_provider(name)` |  |
-| 94 | `ai_model` | `ai_model(name)` |  |
-| 95 | `ai_set_key` | `ai_set_key(provider, key)` | `string` |
-| 96 | `ai_host` | `ai_host(url)` |  |
-| 98 | `ai_timeout` | `ai_timeout(seconds)` |  |
-| 88 | `ai_cache` | `ai_cache(option)` | `string` |
+| 122 | `ai_provider` | `ai_provider(name)` | `string` |
+| 123 | `ai_model` | `ai_model(name)` | `string` |
+| 124 | `ai_set_key` | `ai_set_key(provider, key)` | `string` |
+| 125 | `ai_host` | `ai_host(url)` | `string` |
+| 126 | `ai_cache` | `ai_cache(option)` | `string` |
+| 127 | `ai_timeout` | `ai_timeout(seconds)` | `nil` |
 
 ### AI — Low-level Chat (2)
 
 | # | Function | Signature | Returns |
 |---|----------|-----------|---------|
-| 99 | `ai_chat` | `ai_chat(system_prompt, user_prompt)` |  |
-| 100 | `ai_chat_json` | `ai_chat_json(system_prompt, user_prompt)` |  |
+| 128 | `ai_chat` | `ai_chat(system_prompt, user_prompt)` | `string` |
+| 129 | `ai_chat_json` | `ai_chat_json(system_prompt, user_prompt)` | `any` |
 
 ### AI — Streaming (1)
 
 | # | Function | Signature | Returns |
 |---|----------|-----------|---------|
-| 101 | `ai_stream` | `ai_stream(system_prompt, user_prompt)` |  |
+| 130 | `ai_stream` | `ai_stream(system_prompt, user_prompt)` | `string` |
 
 ### AI — High-level Convenience (7)
 
 | # | Function | Signature | Returns |
 |---|----------|-----------|---------|
-| 102 | `summarize` | `summarize(text)` |  |
-| 97 | `generate_json` | `generate_json(instruction, schema)` | `any` |
-| 103 | `translate` | `translate(text, target_language)` |  |
-| 104 | `classify` | `classify(text, categories)` |  |
-| 105 | `extract` | `extract(text, schema)` |  |
-| 106 | `generate` | `generate(prompt)` |  |
-| 97 | `generate_json` | `generate_json(instruction, schema)` |  |
-| 107 | `ask` | `ask(question)` |  |
+| 131 | `summarize` | `summarize(text)` | `string` |
+| 132 | `generate_json` | `generate_json(instruction, schema)` | `any` |
+| 133 | `translate` | `translate(text, target_language)` | `string` |
+| 134 | `classify` | `classify(text, categories)` | `string` |
+| 135 | `extract` | `extract(text, schema)` | `any` |
+| 136 | `generate` | `generate(prompt)` | `string` |
+| 137 | `ask` | `ask(question)` | `string` |
 
 ### AI — Parallel (3)
 
 | # | Function | Signature | Returns |
 |---|----------|-----------|---------|
-| 111 | `ai_batch` | `ai_batch(system_prompt, items)` |  |
-| 112 | `ai_parallel` | `ai_parallel(concurrency, system_prompt, items)` |  |
-| 113 | `ai_rate_limit` | `ai_rate_limit(calls_per_second)` |  |
+| 138 | `ai_batch` | `ai_batch(system_prompt, items)` | `list` |
+| 139 | `ai_parallel` | `ai_parallel(concurrency, system_prompt, items)` | `list` |
+| 140 | `ai_rate_limit` | `ai_rate_limit(calls_per_second)` | `nil` |
 
 ### AI — Tool Calling (2)
 
 | # | Function | Signature | Returns |
 |---|----------|-----------|---------|
-| 114 | `ai_tool` | `ai_tool(name, description, parameters, function)` |  |
-| 115 | `ai_with_tools` | `ai_with_tools(system_prompt, user_prompt, max_rounds?)` |  |
+| 141 | `ai_tool` | `ai_tool(name, description, parameters, function)` | `string` |
+| 142 | `ai_with_tools` | `ai_with_tools(system_prompt, user_prompt, max_rounds?)` | `string` |
 
 ### AI — Agents (3)
 
-| 117 | `try_ai_log` | `try_ai_log()` | `list` |
 | # | Function | Signature | Returns |
 |---|----------|-----------|---------|
-| 108 | `agent` | `agent(name, system_prompt)` | `string` |
-| 109 | `agent_ask` | `agent_ask(name, message)` | `string` |
-| 110 | `agent_clear` | `agent_clear(name)` | `string` |
+| 143 | `agent` | `agent(name, system_prompt)` | `string` |
+| 144 | `agent_ask` | `agent_ask(name, message)` | `string` |
+| 145 | `agent_clear` | `agent_clear(name)` | `string` |
 
 ### AI — Embeddings (5)
 
 | # | Function | Signature | Returns |
 |---|----------|-----------|---------|
-| 118 | `embed` | `embed(text)` |  |
-| 119 | `embed_batch` | `embed_batch(items)` |  |
-| 120 | `cosine_sim` | `cosine_sim(vec_a, vec_b)` |  |
-| 121 | `dot_product` | `dot_product(vec_a, vec_b)` |  |
-| 122 | `nearest` | `nearest(query_vec, doc_vectors, k)` |  |
-| 123 | `wiki_search` | `wiki_search(query)` | `list` |
+| 146 | `embed` | `embed(text)` | `list` of numbers |
+| 147 | `embed_batch` | `embed_batch(items)` | `list` |
+| 148 | `cosine_sim` | `cosine_sim(vec_a, vec_b)` | `number` |
+| 149 | `dot_product` | `dot_product(vec_a, vec_b)` | `number` |
+| 150 | `nearest` | `nearest(query_vec, doc_vectors, k)` | `list` |
 
-### AI — Search (1)
-
-| # | Function | Signature | Returns |
-|---|----------|-----------|---------|
-| 116 | `web_search` | `web_search(query)` | `list` |
-
-### AI — Cost Tracking (4)
+### AI — Search (2)
 
 | # | Function | Signature | Returns |
 |---|----------|-----------|---------|
-| 133 | `ai_cost` | `ai_cost()` | `map` — `{cost_usd, calls, cache_hits, cache_misses}` |
-| 134 | `ai_tokens` | `ai_tokens()` | `number` |
-| 135 | `ai_cache_hits` | `ai_cache_hits()` | `number` |
-| 136 | `ai_cache_misses` | `ai_cache_misses()` | `number` |
+| 151 | `web_search` | `web_search(query)` | `list` |
+| 152 | `wiki_search` | `wiki_search(query)` | `list` |
+
+### AI — Cost Tracking (5)
+
+| # | Function | Signature | Returns |
+|---|----------|-----------|---------|
+| 153 | `ai_cost` | `ai_cost()` | `map` — `{cost_usd, calls, cache_hits, cache_misses}` |
+| 154 | `ai_tokens` | `ai_tokens()` | `number` |
+| 155 | `ai_cache_hits` | `ai_cache_hits()` | `number` |
+| 156 | `ai_cache_misses` | `ai_cache_misses()` | `number` |
+| 157 | `try_ai_log` | `try_ai_log()` | `list` |
 
 ### Sandbox (5)
 
 | # | Function | Signature | Returns |
 |---|----------|-----------|---------|
-| 124 | `sandbox_profile` | `sandbox_profile(name)` | `string` |
-| 125 | `set_sandbox` | `set_sandbox(profile)` | `string` |
-| 126 | `with_sandbox` | `with_sandbox(profile, fn)` | `any` |
-| 137 | `audit_log` | `audit_log()` | `list` |
-| 138 | `budget_spent` | `budget_spent()` | `number` |
+| 158 | `sandbox_profile` | `sandbox_profile(name)` | `string` |
+| 159 | `set_sandbox` | `set_sandbox(profile)` | `string` |
+| 160 | `with_sandbox` | `with_sandbox(profile, fn)` | `any` |
+| 161 | `audit_log` | `audit_log()` | `list` |
+| 162 | `budget_spent` | `budget_spent()` | `number` |
 
 ### Test Assertions (6)
 
 | # | Function | Signature | Returns |
 |---|----------|-----------|---------|
-| 127 | `assert` | `assert(condition)` |  |
-| 128 | `assert_eq` | `assert_eq(expected, actual)` |  |
-| 129 | `assert_not_eq` | `assert_not_eq(unexpected, actual)` |  |
-| 130 | `assert_lt` | `assert_lt(a, b)` |  |
-| 131 | `assert_gt` | `assert_gt(a, b)` |  |
-| 132 | `assert_error` | `assert_error(fn)` |  |
+| 163 | `assert` | `assert(condition)` | `nil` |
+| 164 | `assert_eq` | `assert_eq(expected, actual)` | `nil` |
+| 165 | `assert_not_eq` | `assert_not_eq(unexpected, actual)` | `nil` |
+| 166 | `assert_lt` | `assert_lt(a, b)` | `nil` |
+| 167 | `assert_gt` | `assert_gt(a, b)` | `nil` |
+| 168 | `assert_error` | `assert_error(fn)` | `nil` |
 
 ---
 
-**Total: 142 built-in functions**
+**Total: 168 built-in functions**

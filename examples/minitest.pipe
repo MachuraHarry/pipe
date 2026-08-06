@@ -1,0 +1,22 @@
+fn make_token typ text
+  t: {}
+  set t "type" typ
+  set t "text" text
+  t
+
+fn tokenize s
+  st: {}
+  set st "src" s
+  set st "pos" 0
+  set st "tokens" ([])
+  push (get st "tokens") (make_token "kw" "CREATE")
+  push (get st "tokens") (make_token "id" "tasks")
+  get st "tokens"
+
+export fn runtest
+  tokens: tokenize "CREATE tasks"
+  print ("len=" ++ to_str(len tokens))
+  t0: at tokens 0
+  t1: at tokens 1
+  print ("tok0 type=" ++ (get t0 "type") ++ " text=" ++ (get t0 "text"))
+  print ("tok1 type=" ++ (get t1 "type") ++ " text=" ++ (get t1 "text"))

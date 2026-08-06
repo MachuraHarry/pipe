@@ -22,7 +22,7 @@ Willkommen zur vollständigen Dokumentation der Skriptsprache **Pipe**.
 7. [Datenstrukturen](07-datenstrukturen.md) — Listen, Slicing, Maps, Dot-Access, höhere Funktionen
 8. [Fehlerbehandlung](08-fehlerbehandlung.md) — try/catch, Stack-Traces, Result-Typ
 9. [Module und Importe](09-module-und-importe.md) — import, export, Namespaces, PIPE\_PATH
-10. [Builtin-Referenz](10-builtin-referenz.md) — Alle 142 eingebaute Funktionen
+10. [Builtin-Referenz](10-builtin-referenz.md) — Alle 168 eingebaute Funktionen
 11. [Tooling](11-tooling.md) — CLI-Flags, REPL, Formatter, Test-Runner, Build
 12. [Ausführungsmodelle](12-ausfuehrungsmodelle.md) — Tree-Walker vs Bytecode-VM
 13. [Bytecode-VM](13-bytecode-vm.md) — 40 Opcodes, Stack-Maschine, Symbol-Tabelle

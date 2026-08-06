@@ -1,4 +1,10 @@
--- SQLite Demo: embedded database with db_open, db_exec, db_query, db_close
+-- SQLite Demo: embedded relational database via the native 'sqlite' Pipe module
+-- (db_open, db_exec, db_query, db_close)
+--
+-- NOTE: requires the 'sqlite' module (see SQLite.md — currently being
+-- implemented in pure Pipe; until then db_* builtins are unavailable).
+
+import "sqlite.pipe"
 
 print "═══ SQLITE DEMO ═══"
 print ""
@@ -17,10 +23,8 @@ print "Table created."
 print ""
 
 -- Insert data
-db_exec h "INSERT INTO tasks (title, priority) VALUES ('Fix login bug', 'high')"
-db_exec h "INSERT INTO tasks (title, priority) VALUES ('Update docs', 'medium')"
+db_exec h "INSERT INTO tasks (title, priority) VALUES ('Fix login bug', 'high'), ('Update docs', 'medium'), ('Ship v2.0', 'high')"
 db_exec h "INSERT INTO tasks (title, priority, done) VALUES ('Old task', 'low', 1)"
-db_exec h "INSERT INTO tasks (title, priority) VALUES ('Ship v2.0', 'high')"
 print "4 rows inserted."
 print ""
 

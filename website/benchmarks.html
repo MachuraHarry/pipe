@@ -4,9 +4,9 @@
 <meta charset="UTF-8">
 <link rel="icon" type="image/svg+xml" href="logo.svg">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="description" content="Pipe (SPR) benchmarks: RAG pipeline in ~10 LOC, 3 parallel LLM calls in ~1.5s, ~16 MB binary vs ~500 MB, bytecode VM ~7× faster.">
+<meta name="description" content="Pipe (SPR) benchmarks: RAG pipeline in ~10 LOC, 3 parallel LLM calls in ~1.5s, ~7 MB binary vs ~500 MB, bytecode VM ~7× faster.">
 <meta property="og:title" content="Benchmarks — Pipe (SPR)">
-<meta property="og:description" content="Numbers, not promises: RAG in ~10 LOC, parallel LLM calls, ~16 MB binary, bytecode VM ~7× faster.">
+<meta property="og:description" content="Numbers, not promises: RAG in ~10 LOC, parallel LLM calls, ~7 MB binary, bytecode VM ~7× faster.">
 <meta property="og:type" content="website">
 <meta property="og:image" content="https://pipe-lang.com/og-image.png">
 <meta property="og:url" content="https://pipe-lang.com/benchmarks.html">
@@ -176,7 +176,7 @@ a[data-lang].active { display: inline-block; }
     <div class="stats-inline">
       <div class="stat"><span class="stat-num">~10 LOC</span><div class="stat-label" data-lang="en" class="active">RAG pipeline</div><div class="stat-label" data-lang="de">RAG-Pipeline</div></div>
       <div class="stat"><span class="stat-num">~1.5s</span><div class="stat-label" data-lang="en" class="active">3 parallel LLM calls</div><div class="stat-label" data-lang="de">3 parallele LLM-Calls</div></div>
-      <div class="stat"><span class="stat-num">~16 MB</span><div class="stat-label" data-lang="en" class="active">Binary vs ~500 MB</div><div class="stat-label" data-lang="de">Binary vs ~500 MB</div></div>
+      <div class="stat"><span class="stat-num">~7 MB</span><div class="stat-label" data-lang="en" class="active">Binary vs ~500 MB</div><div class="stat-label" data-lang="de">Binary vs ~500 MB</div></div>
       <div class="stat"><span class="stat-num">~7×</span><div class="stat-label" data-lang="en" class="active">Bytecode VM</div><div class="stat-label" data-lang="de">Bytecode-VM</div></div>
     </div>
   </div>
@@ -265,8 +265,8 @@ print a ++ " | " ++ b ++ " | " ++ c</pre>
       </div>
       <div class="bench-row">
         <span class="label">Pipe</span>
-        <div class="track"><div class="fill green" style="width:3.2%">~16 MB</div></div>
-        <span class="val green">~16 MB</span>
+        <div class="track"><div class="fill green" style="width:3.2%">~7 MB</div></div>
+        <span class="val green">~7 MB</span>
       </div>
       <div class="bench-row">
         <span class="label">Pipe (UPX)</span>
@@ -320,7 +320,7 @@ print a ++ " | " ++ b ++ " | " ++ c</pre>
         <tr><td><span data-lang="en" class="active">Switch AI provider</span><span data-lang="de">KI-Provider wechseln</span></td><td><span data-lang="en" class="active">Rewrite SDK calls</span><span data-lang="de">SDK-Calls umschreiben</span></td><td style="font-family:var(--mono);color:var(--green)">ai_provider "deepseek"</td></tr>
         <tr><td><span data-lang="en" class="active">Deploy to server</span><span data-lang="de">Auf Server deployen</span></td><td><span data-lang="en" class="active">Docker + venv + pip</span><span data-lang="de">Docker + venv + pip</span></td><td><span data-lang="en" class="active">scp pipe binary</span><span data-lang="de">scp pipe binary</span></td></tr>
         <tr><td><span data-lang="en" class="active">Parallel LLM calls</span><span data-lang="de">Parallele LLM-Calls</span></td><td><span data-lang="en" class="active">asyncio.gather() boilerplate</span><span data-lang="de">asyncio.gather()-Boilerplate</span></td><td style="font-family:var(--mono);color:var(--green)">>> operator, ai_batch</td></tr>
-        <tr><td><span data-lang="en" class="active">Binary size (with deps)</span><span data-lang="de">Binary-Größe (mit Deps)</span></td><td><span data-lang="en" class="active">~500 MB</span><span data-lang="de">~500 MB</span></td><td><span data-lang="en" class="active">~16 MB</span><span data-lang="de">~16 MB</span></td></tr>
+        <tr><td><span data-lang="en" class="active">Binary size (with deps)</span><span data-lang="de">Binary-Größe (mit Deps)</span></td><td><span data-lang="en" class="active">~500 MB</span><span data-lang="de">~500 MB</span></td><td><span data-lang="en" class="active">~7 MB</span><span data-lang="de">~7 MB</span></td></tr>
       </table>
     </div>
   </div>

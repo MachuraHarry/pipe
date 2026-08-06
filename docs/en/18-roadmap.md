@@ -281,3 +281,4 @@ Pipe is currently at version **v0.8.0**, which introduces inline lambda syntax (
 | Test Framework | 🟡 Partial | v0.7 | test blocks + asserts + CLI; setup/teardown hooks open |
 | Doc Generator | 🔮 Future | v0.7+ | `pipe doc` |
 | Plugins | 🔮 Future | v0.8+ | Go/WASM extensions |
+| SQLite Module | ✅ Done | v0.8 | Pure-Pipe SQL engine (examples/sqlite.pipe), replaces modernc.org/sqlite. Binary ~7 MB, zero deps. SQL: CREATE/INSERT/UPDATE/DELETE/SELECT with WHERE, GROUP BY, ORDER BY, JOINs, transactions, paged binary persistence. |

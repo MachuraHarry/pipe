@@ -1117,7 +1117,7 @@ Persistence uses a paged binary format with CRC32 checksums; `":memory:"` for in
 
 See `SQLite.md` in the repository root for implementation details and current status.
 
-> **Note:** The module is implemented and functional. Two Pipe runtime bugs (VM closure variable-slot corruption, TV deep-if-chain panic) currently prevent full end-to-end execution of all demo queries. These are being addressed in the Pipe compiler. The module logic itself is complete.
+> **Note:** The module is implemented and functional. The TV mode (tree-walking interpreter) runs CREATE TABLE, INSERT, and SELECT * correctly. The VM mode has a compiler bug where module-closure function calls do not emit OpCall (functions return closures instead of results). See `MEMORY.md` for the full debugging log.
 
 | Function | Signature | Description |
 |----------|-----------|-------------|

@@ -1420,7 +1420,7 @@ Persistenz erfolgt über ein binäres Paging-Format mit CRC32-Prüfsummen; `":me
 
 Siehe `SQLite.md` im Repository-Root für Implementierungsdetails und aktuellen Status.
 
-> **Hinweis:** Das Modul ist implementiert und funktionsfähig. Zwei Pipe-Runtime-Bugs (VM-Closure-Variablen-Slot-Korruption, TV-Deep-If-Panic) verhindern aktuell die vollständige End-to-End-Ausführung aller Demo-Queries. Diese werden im Pipe-Compiler behoben. Die Modul-Logik selbst ist vollständig.
+> **Hinweis:** Das Modul ist implementiert und funktionsfähig. Der TV-Modus (Tree-Walking-Interpreter) führt CREATE TABLE, INSERT und SELECT * korrekt aus. Der VM-Modus hat einen Compiler-Bug, bei dem Funktionsaufrufe in Modul-Closures keinen OpCall emittieren (Funktionen geben Closures statt Ergebnisse zurück). Siehe `MEMORY.md` für das vollständige Debugging-Log.
 
 | Funktion | Signatur | Beschreibung |
 |----------|----------|--------------|

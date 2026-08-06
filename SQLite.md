@@ -1,6 +1,6 @@
 # SQLite — Pure-Pipe relationales Datenbankmodul
 
-**Status:** Modul implementiert (`examples/sqlite.pipe`, ~2400 Zeilen), API-kompatibel mit den früheren `modernc.org/sqlite`-Builtins. Binary ist wieder dependency-free (~7 MB). Das Modul läuft im VM-Modus (`pipe -vm`) und im Tree-Walker-Modus; verbliebene Pipe-Runtime-Bugs (VM-Slot-Korruption, TV-Deep-If-Panic) verhindern aktuell vollständige End-to-End-Ausführung der Demo-Queries. Siehe Abschnitt „Bekannte Einschränkungen" unten.
+**Status:** Modul implementiert (`examples/sqlite.pipe`, ~2400 Zeilen), API-kompatibel mit den früheren `modernc.org/sqlite`-Builtins. Binary ist wieder dependency-free (~7 MB). TV-Modus (`pipe examples/sqlite_demo.pipe`) führt CREATE TABLE, INSERT und SELECT * korrekt aus. VM-Modus hat einen Compiler-Bug (OpCall in Modul-Closures). Siehe `MEMORY.md` für Details.
 
 ## Architektur
 

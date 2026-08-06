@@ -1,29 +1,43 @@
-# SQLite Module - Bug Memory (Final State)
+# SQLite Module - State Memory
 
-## TV Mode - WORKING: CREATE TABLE, INSERT, SELECT *
-- ✅ CREATE TABLE: works
-- ✅ INSERT: 4 rows inserted correctly  
-- ✅ SELECT *: returns correct data (id is nil because not provided in INSERT)
-- ⏳ WHERE: returns empty (eval_compare/eval_where bug)
-- ⏳ GROUP BY: parsing issue (parse_expr_primary token consumption)
+## TV Mode - FULLY WORKING (all demo queries pass)
+- ✅ CREATE TABLE
+- ✅ INSERT (4 rows, multiple-row insert)
+- ✅ SELECT * (correct row data)
+- ✅ WHERE (filtered queries: `priority = 'high'` → 2 matching rows)
+- ✅ GROUP BY (aggregate: `priority, COUNT(*)` → 3 groups with counts)
+- ✅ UPDATE (with WHERE)
 
-## VM Mode - BROKEN: Module-closure function calls return closures
-- `get`, `set`, `new_db` etc. calls return the function object instead of result
-- OpCall is either not emitted or not executed for global function calls in closures
-- Dot notation (`map.field`) bypasses `get` via OpDot → partial workaround
-- List+index (`at registry h`) bypasses `get` for registry access
+## VM Mode - BROKEN (deep compiler bug)
+- `db_open` works, `db_open`+`get_db` works, `parse_sql` works
+- Individual functions work when called directly from main: exec_create_table, new_table, get_table
+- `exec_insert` (and deeper dispatch) fails — error: `. only on map: INTEGER`
+- Root cause: VM compiler bug in `compileImport` for large modules (140+ functions)
+  - Module global variable access + nested function calls in compiled closures
+  - Likely slot/index mismatch between compiled function bodies and main scope
+- 500-simple-function module works; complex nested functions with globals fail
+- Workaround: dot notation bypasses `get` builtin but can't fix `exec_insert` dispatch
 
 ## Go-level Fixes Applied
-1. `vm.go`: compareOp nil fallback (pointer equality)
-2. `object.go`: bSet list support (int index)
-3. `eval.go`: extendFunctionEnv bound check (prevents index out of range)
-4. `eval.go`: && / || short-circuit evaluation (was always evaluating both sides!)
+1. `vm.go:compareOp`: nil comparison fallback (pointer equality)
+2. `object.go:bSet`: list support with int index
+3. `eval.go:extendFunctionEnv`: bound check
+4. `eval.go:evalInfixExpression`: && / || short-circuit
 
-## Module Fixes Applied
-5. sql_lex_make_token: removed `if typ=="kw"` no-body (ROOT CAUSE of token corruption)
-6. 85× `get map "key"` → `map.key` dot notation
-7. Registry: map+to_str → list+at
-8. parse_select_item: star wrapped in selitem node
-9. Case mismatch: INSERT→insert, SELECT→select
-10. new_table: separate lists for cols/colnames/rows
-11. Various intermediate variable fixes for nested calls
+## SQLite Module Fixes Applied
+5. `sql_lex_make_token`: removed dead `if typ=="kw"` (ROOT CAUSE: token corruption)
+6. 85× `get(map, "key")` → `map.key` dot notation
+7. Registry: `map`+`to_str` → `list`+`at` 
+8. `parse_select_item`: star (*) wrapped in `selitem` node
+9. **FULL keyword case normalization**: lexer lowers kw text, all parser/evaluator comparisons lowercase
+10. `new_table`: separate lists for cols/colnames/rows
+11. `eval_where` argument order fix (Z.2004: row was in wrong position)
+12. `gen/builtins.go`: removed `db_*` entries (builtins deleted from runtime)
+
+## Builtins Status
+- Runtime: 165 total (~140 object.go + 19 bytes.go + 6 file_io.go)
+- `db_*` builtins: deleted from Go runtime (db_builtins.go now empty stubs)
+- SQLite module: pure Pipe implementation (2444 lines)
+
+## Binary
+- ~10 MB (not ~7 MB)

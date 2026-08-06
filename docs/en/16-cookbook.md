@@ -847,7 +847,6 @@ stats: db_query h "SELECT AVG(score) as avg_score FROM users"
 db_close h
 ```
 
-database_operation
-```
+---
 
 Note: `defer` expressions execute in LIFO order (last-in, first-out). The last `defer` declared is the first to execute when the scope exits.

@@ -1099,25 +1099,36 @@ sha512 "hello"
 
 ## 10.15 Database — SQLite (module)
 
-The `db_open`, `db_close`, `db_exec`, and `db_query` builtins have been replaced by a native Pipe module (`examples/sqlite.pipe`). The external `modernc.org/sqlite` dependency has been removed, restoring the "Zero Dependencies" promise. The binary is now ~7 MB.
+The `db_open`, `db_close`, `db_exec`, and `db_query` builtins have been replaced by a native Pipe module (`examples/sqlite.pipe`). The external `modernc.org/sqlite` dependency has been removed. The binary is now ~10 MB, dependency-free.
 
-The module is imported via `sqlite.pipe` and exposes the same drop-in API:
+The module is imported via `sqlite.pipe` and exposes both a classic handle-based API and a pipeline-composable API:
 
 ```pipe
+-- Classic API
 import "sqlite.pipe"
 h: db_open ":memory:"
-db_exec h "CREATE TABLE users (id INTEGER, name TEXT)"
-rows: db_query h "SELECT * FROM users"
+db_exec h "CREATE TABLE tasks (id INTEGER PRIMARY KEY, title TEXT, priority TEXT)"
+db_exec h "INSERT INTO tasks VALUES (1, 'Fix bug', 'high'), (2, 'Update docs', 'medium')"
+rows: db_query h "SELECT * FROM tasks WHERE priority = 'high'"
+for row in rows
+    print (row.title)
 db_close h
+
+-- Pipeline API (composable via > operator)
+fn is_high row
+    (row.priority) == "high"
+q h "SELECT * FROM tasks" > filter is_high > each print
 ```
 
-**Supported SQL:** CREATE TABLE, INSERT (single + multi-value), UPDATE, DELETE, SELECT with WHERE, GROUP BY + aggregates (COUNT, SUM, AVG, MIN, MAX), ORDER BY, LIMIT/OFFSET, JOIN (INNER, LEFT, RIGHT), DISTINCT, BEGIN/COMMIT/ROLLBACK.
+**Supported SQL:** CREATE TABLE, INSERT (single + multi-value), UPDATE, DELETE, SELECT with WHERE, GROUP BY + aggregates (COUNT, SUM, AVG, MIN, MAX), ORDER BY, LIMIT/OFFSET, JOIN (INNER, LEFT, RIGHT), DISTINCT, BEGIN/COMMIT/ROLLBACK. SQL is case-insensitive.
+
+**Pipeline helpers:** `q` / `exec` (short aliases), `row_get` / `row_eq` / `row_ne` (filter predicates). Demo: `examples/sqlite_pipeline_demo.pipe`.
 
 Persistence uses a paged binary format with CRC32 checksums; `":memory:"` for in-memory databases.
 
-See `SQLite.md` in the repository root for implementation details and current status.
+See `SQLite.md` in the repository root for architecture details and `BENCHMARK.md` for performance benchmarks (Pipe vs Python vs Lua).
 
-> **Note:** The module is implemented and functional. The TV mode (tree-walking interpreter) runs CREATE TABLE, INSERT, and SELECT * correctly. The VM mode has a compiler bug where module-closure function calls do not emit OpCall (functions return closures instead of results). See `MEMORY.md` for the full debugging log.
+> **Note:** TV mode is fully functional — all operations work (CREATE, INSERT, SELECT, WHERE, GROUP BY, UPDATE, DELETE). VM mode has a known compiler bug with large module imports — individual operations work but complex dispatch (db_exec → exec_insert) fails. See `MEMORY.md`.
 
 | Function | Signature | Description |
 |----------|-----------|-------------|
@@ -1125,6 +1136,11 @@ See `SQLite.md` in the repository root for implementation details and current st
 | `db_close` | `db_close(handle)` | Closes database and persists changes to disk |
 | `db_exec` | `db_exec(handle, sql)` | Executes DDL/DML, returns affected row count |
 | `db_query` | `db_query(handle, sql)` | Executes SELECT, returns list of row maps |
+| `q` | `q(handle, sql)` | Shorthand for `db_query` (pipeline-friendly) |
+| `exec` | `exec(handle, sql)` | Shorthand for `db_exec` |
+| `row_get` | `row_get(row, key)` | Nil-safe field access from a row map |
+| `row_eq` | `row_eq(row, key, val)` | Predicate: row[key] == val (for `filter`) |
+| `row_ne` | `row_ne(row, key, val)` | Predicate: row[key] != val (for `filter`) |
 
 
 ## 10.16 Type Checks (6 functions)
@@ -2353,14 +2369,19 @@ crc32 "hello"
 | 102 | `sha1` | `sha1(text)` | `string` |
 | 103 | `sha512` | `sha512(text)` | `string` |
 
-### Database (4) — module
+### Database (9) — module (`examples/sqlite.pipe`)
 
 | # | Function | Signature | Returns |
 |---|----------|-----------|---------|
-| 104 | `db_open` | `db_open(path)` | *module* |
-| 105 | `db_close` | `db_close(handle)` | *module* |
-| 106 | `db_exec` | `db_exec(handle, sql)` | *module* |
-| 107 | `db_query` | `db_query(handle, sql)` | *module* |
+| — | `db_open` | `db_open(path)` | *module* |
+| — | `db_close` | `db_close(handle)` | *module* |
+| — | `db_exec` | `db_exec(handle, sql)` | *module* |
+| — | `db_query` | `db_query(handle, sql)` | *module* |
+| — | `q` | `q(handle, sql)` | *module* |
+| — | `exec` | `exec(handle, sql)` | *module* |
+| — | `row_get` | `row_get(row, key)` | *module* |
+| — | `row_eq` | `row_eq(row, key, val)` | *module* |
+| — | `row_ne` | `row_ne(row, key, val)` | *module* |
 
 ### Type Checks (6)
 

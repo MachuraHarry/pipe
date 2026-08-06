@@ -1400,27 +1400,38 @@ print (crc32 "hello")
 `sha256`, `md5`, `sha1`, `sha512`
 
 ### Datenbank — SQLite (Modul)
-`db_open`, `db_close`, `db_exec`, `db_query`
+`db_open`, `db_close`, `db_exec`, `db_query`, `q`, `exec`, `row_get`, `row_eq`, `row_ne`
 
-Die `db_*`-Builtins wurden durch ein natives Pipe-Modul (`examples/sqlite.pipe`) ersetzt. Die externe `modernc.org/sqlite`-Abhängigkeit ist entfernt — Binary wieder dependency-free (~7 MB).
+Die `db_*`-Builtins wurden durch ein natives Pipe-Modul (`examples/sqlite.pipe`) ersetzt. Die externe `modernc.org/sqlite`-Abhängigkeit ist entfernt — Binary wieder dependency-free (~10 MB).
 
-Das Modul wird via `import "sqlite.pipe"` geladen und bietet dieselbe Drop-in-API:
+Das Modul wird via `import "sqlite.pipe"` geladen und bietet sowohl eine klassische Handle-API als auch eine Pipeline-komponierbare API:
 
 ```pipe
+-- Klassische API
 import "sqlite.pipe"
 h: db_open ":memory:"
-db_exec h "CREATE TABLE users (id INTEGER, name TEXT)"
-rows: db_query h "SELECT * FROM users"
+db_exec h "CREATE TABLE tasks (id INTEGER PRIMARY KEY, title TEXT, priority TEXT)"
+db_exec h "INSERT INTO tasks VALUES (1, 'Bug fixen', 'high'), (2, 'Doku updaten', 'medium')"
+rows: db_query h "SELECT * FROM tasks WHERE priority = 'high'"
+for row in rows
+    print (row.title)
 db_close h
+
+-- Pipeline-API (komponierbar via > Operator)
+fn is_high row
+    (row.priority) == "high"
+q h "SELECT * FROM tasks" > filter is_high > each print
 ```
 
-**Unterstütztes SQL:** CREATE TABLE, INSERT (auch multi-value), UPDATE, DELETE, SELECT mit WHERE, GROUP BY + Aggregaten (COUNT, SUM, AVG, MIN, MAX), ORDER BY, LIMIT/OFFSET, JOIN (INNER, LEFT, RIGHT), DISTINCT, BEGIN/COMMIT/ROLLBACK.
+**Unterstütztes SQL:** CREATE TABLE, INSERT (auch multi-value), UPDATE, DELETE, SELECT mit WHERE, GROUP BY + Aggregaten (COUNT, SUM, AVG, MIN, MAX), ORDER BY, LIMIT/OFFSET, JOIN (INNER, LEFT, RIGHT), DISTINCT, BEGIN/COMMIT/ROLLBACK. SQL ist case-insensitiv.
+
+**Pipeline-Helper:** `q` / `exec` (Short-Aliase), `row_get` / `row_eq` / `row_ne` (Filter-Prädikate). Demo: `examples/sqlite_pipeline_demo.pipe`.
 
 Persistenz erfolgt über ein binäres Paging-Format mit CRC32-Prüfsummen; `":memory:"` für In-Memory-Datenbanken.
 
-Siehe `SQLite.md` im Repository-Root für Implementierungsdetails und aktuellen Status.
+Siehe `SQLite.md` im Repository-Root für Architektur-Details und `BENCHMARK.md` für Performance-Benchmarks (Pipe vs Python vs Lua).
 
-> **Hinweis:** Das Modul ist implementiert und funktionsfähig. Der TV-Modus (Tree-Walking-Interpreter) führt CREATE TABLE, INSERT und SELECT * korrekt aus. Der VM-Modus hat einen Compiler-Bug, bei dem Funktionsaufrufe in Modul-Closures keinen OpCall emittieren (Funktionen geben Closures statt Ergebnisse zurück). Siehe `MEMORY.md` für das vollständige Debugging-Log.
+> **Hinweis:** Der TV-Modus ist vollständig funktionsfähig — alle Operationen laufen (CREATE, INSERT, SELECT, WHERE, GROUP BY, UPDATE, DELETE). Der VM-Modus hat einen bekannten Compiler-Bug bei großen Modul-Importen — einzelne Operationen funktionieren, aber komplexe Dispatch-Aufrufe (db_exec → exec_insert) scheitern. Siehe `MEMORY.md`.
 
 | Funktion | Signatur | Beschreibung |
 |----------|----------|--------------|
@@ -1428,6 +1439,11 @@ Siehe `SQLite.md` im Repository-Root für Implementierungsdetails und aktuellen 
 | `db_close` | `db_close(handle)` | Schließt Datenbank und persistiert Änderungen |
 | `db_exec` | `db_exec(handle, sql)` | Führt DDL/DML aus, gibt Anzahl betroffener Zeilen zurück |
 | `db_query` | `db_query(handle, sql)` | Führt SELECT aus, gibt Liste von Row-Maps zurück |
+| `q` | `q(handle, sql)` | Abkürzung für `db_query` (pipeline-freundlich) |
+| `exec` | `exec(handle, sql)` | Abkürzung für `db_exec` |
+| `row_get` | `row_get(row, key)` | Nil-sicherer Feldzugriff aus einer Row-Map |
+| `row_eq` | `row_eq(row, key, val)` | Prädikat: row[key] == val (für `filter`) |
+| `row_ne` | `row_ne(row, key, val)` | Prädikat: row[key] != val (für `filter`) |
 
 ### Typ-Prüfung (6)
 `type_of`, `is_num`, `is_str`, `is_list`, `is_map`, `is_nil`

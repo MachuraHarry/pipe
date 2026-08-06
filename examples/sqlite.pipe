@@ -2442,3 +2442,30 @@ export fn db_query handle sql
     exec_select db stmt
   else
     db_raise "db_query only supports SELECT statements"
+
+--- === SECTION: Pipeline Helpers === ---
+
+-- Row access: get field value (nil-safe)
+export fn row_get row key
+  if row == nil
+    return nil
+  get row key
+
+-- Row filter predicate: row[field] == value
+export fn row_eq row key val
+  if row == nil
+    return false
+  (get row key) == val
+
+-- Row filter predicate: row[field] != value
+export fn row_ne row key val
+  if row == nil
+    return false
+  (get row key) != val
+
+-- Short aliases for core functions
+export fn q h sql
+  db_query h sql
+
+export fn exec h sql
+  db_exec h sql

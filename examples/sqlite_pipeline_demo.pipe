@@ -1,0 +1,87 @@
+-- SQLite Pipeline Demo: pipe-composable queries
+-- Demonstrates Pipe's > operator with map/filter/each builtins
+
+import "sqlite.pipe"
+
+print "═══ SQLITE PIPELINE DEMO ═══"
+print ""
+
+h: db_open ":memory:"
+
+db_exec h "CREATE TABLE tasks (
+    id INTEGER PRIMARY KEY,
+    title TEXT,
+    priority TEXT,
+    done INTEGER DEFAULT 0
+)"
+
+db_exec h "INSERT INTO tasks (title, priority) VALUES ('Fix login bug', 'high'), ('Update docs', 'medium'), ('Ship v2.0', 'high')"
+db_exec h "INSERT INTO tasks (title, priority, done) VALUES ('Old task', 'low', 1)"
+
+print "4 rows inserted."
+print ""
+
+--- Pipeline 1: map rows to formatted strings, print each ---
+fn fmt row
+    "  #" ++ (to_str row.id) ++ " " ++ row.title ++ " [" ++ row.priority ++ "]"
+
+print "─── All Tasks (pipeline) ───"
+each (map (db_query h "SELECT * FROM tasks") fmt) print
+
+print ""
+
+--- Pipeline 2: filter + map via > operator ---
+fn is_high row
+    (row.priority) == "high"
+
+fn high_fmt row
+    "  ⚡ " ++ row.title
+
+print "─── High Priority ───"
+db_query h "SELECT * FROM tasks"
+    > filter is_high
+    > map high_fmt
+    > each print
+
+print ""
+
+--- Pipeline 3: using short alias 'q' ---
+fn is_done row
+    (row.done) == 1
+
+print "─── Done Tasks (short alias) ───"
+q h "SELECT * FROM tasks"
+    > filter is_done
+    > each print
+
+print ""
+
+--- Pipeline 4: row_eq helper ---
+fn done_filter row
+    row_eq row "done" 1
+
+print "─── Done Tasks (row_eq helper) ───"
+db_query h "SELECT * FROM tasks"
+    > filter done_filter
+    > map high_fmt
+    > each print
+
+print ""
+
+--- Pipeline 5: simple transform ---
+fn fmt_id row
+    "  #" ++ (to_str row.id) ++ " " ++ row.title
+
+print "─── Medium Priority ───"
+fn is_medium row
+    (row.priority) == "medium"
+
+db_query h "SELECT * FROM tasks"
+    > filter is_medium
+    > map fmt_id
+    > each print
+
+print ""
+
+db_close h
+print "═══ DONE ═══"

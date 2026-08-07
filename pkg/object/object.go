@@ -358,6 +358,7 @@ var Builtins = []BuiltinInfo{
 	{"values", bValues},
 	{"get", bGet},
 	{"set", bSet},
+	{"map_delete", bMapDelete},
 
 	// Type checks
 	{"type_of", bTypeOf},
@@ -538,8 +539,8 @@ func bInput(args ...Object) Object {
 }
 
 func bReadFile(args ...Object) Object {
-	if len(args) != 1 {
-		return err("read_file expects 1 argument (path)")
+	if len(args) < 1 || len(args) > 2 {
+		return err("read_file expects 1-2 arguments (path, mode?)")
 	}
 	s, ok := args[0].(*String)
 	if !ok {
@@ -554,6 +555,12 @@ func bReadFile(args ...Object) Object {
 	if e != nil {
 		return err("read_file: " + e.Error())
 	}
+	if len(args) == 2 {
+		mode, ok := args[1].(*String)
+		if ok && mode.Value == "bytes" {
+			return &Bytes{Value: data}
+		}
+	}
 	return &String{Value: string(data)}
 }
 
@@ -564,7 +571,7 @@ func bWriteFile(args ...Object) Object {
 	p, ok := args[0].(*String)
 	c, ok2 := args[1].(*String)
 	if !ok || !ok2 {
-		return err("write_file: path und content must be strings")
+		return err("write_file: path and content must be strings")
 	}
 	if ActiveProfile.Name != "none" {
 		if canErr := ActiveProfile.CanWrite(p.Value); canErr != nil {
@@ -659,7 +666,7 @@ func bAppendFile(args ...Object) Object {
 	p, ok := args[0].(*String)
 	c, ok2 := args[1].(*String)
 	if !ok || !ok2 {
-		return err("append_file: path und content must be strings")
+		return err("append_file: path and content must be strings")
 	}
 	if ActiveProfile.Name != "none" {
 		if canErr := ActiveProfile.CanWrite(p.Value); canErr != nil {
@@ -888,7 +895,7 @@ func bPathJoin(args ...Object) Object {
 	for i, a := range args {
 		s, ok := a.(*String)
 		if !ok {
-			return err("path_join: alle Argumente must be strings")
+			return err("path_join: all arguments must be strings")
 		}
 		parts[i] = s.Value
 	}
@@ -958,7 +965,7 @@ func bSplit(args ...Object) Object {
 	s, ok := args[0].(*String)
 	d, ok2 := args[1].(*String)
 	if !ok || !ok2 {
-		return err("split: beide Argumente must be strings")
+		return err("split: both arguments must be strings")
 	}
 	parts := strings.Split(s.Value, d.Value)
 	elems := make([]Object, len(parts))
@@ -1163,7 +1170,7 @@ func bPush(args ...Object) Object {
 	}
 	l, ok := args[0].(*List)
 	if !ok {
-		return err("push: erstes Argument must be a list")
+		return err("push: first argument must be a list")
 	}
 	l.Elements = append(l.Elements, args[1:]...)
 	return l
@@ -1260,7 +1267,7 @@ func bMap(args ...Object) Object {
 	}
 	l, ok := args[0].(*List)
 	if !ok {
-		return err("map: erstes Argument must be a list")
+		return err("map: first argument must be a list")
 	}
 	result := make([]Object, len(l.Elements))
 	for i, e := range l.Elements {
@@ -1279,7 +1286,7 @@ func bFilter(args ...Object) Object {
 	}
 	l, ok := args[0].(*List)
 	if !ok {
-		return err("filter: erstes Argument must be a list")
+		return err("filter: first argument must be a list")
 	}
 	var result []Object
 	for _, e := range l.Elements {
@@ -1300,7 +1307,7 @@ func bReduce(args ...Object) Object {
 	}
 	l, ok := args[0].(*List)
 	if !ok {
-		return err("reduce: erstes Argument must be a list")
+		return err("reduce: first argument must be a list")
 	}
 	acc := args[2]
 	for _, e := range l.Elements {
@@ -1318,7 +1325,7 @@ func bEach(args ...Object) Object {
 	}
 	l, ok := args[0].(*List)
 	if !ok {
-		return err("each: erstes Argument must be a list")
+		return err("each: first argument must be a list")
 	}
 	for _, e := range l.Elements {
 		callOne(args[1], e)
@@ -1391,7 +1398,7 @@ func bRange(args ...Object) Object {
 		s, ok1 := ToInt(args[0])
 		e, ok2 := ToInt(args[1])
 		if !ok1 || !ok2 {
-			return err("range: Argumente must be numbers")
+			return err("range: arguments must be numbers")
 		}
 		start = s
 		end = e
@@ -1400,7 +1407,7 @@ func bRange(args ...Object) Object {
 		e, ok2 := ToInt(args[1])
 		st, ok3 := ToInt(args[2])
 		if !ok1 || !ok2 || !ok3 {
-			return err("range: Argumente must be numbers")
+			return err("range: arguments must be numbers")
 		}
 		start = s
 		end = e
@@ -1442,7 +1449,7 @@ func bMin(args ...Object) Object {
 	}
 	f, ok := ToFloat(args[0])
 	if !ok {
-		return err("min: Argumente must be numbers")
+		return err("min: arguments must be numbers")
 	}
 	allInt := true
 	for _, a := range args {
@@ -1451,7 +1458,7 @@ func bMin(args ...Object) Object {
 		}
 		af, ok := ToFloat(a)
 		if !ok {
-			return err("min: Argumente must be numbers")
+			return err("min: arguments must be numbers")
 		}
 		if af < f {
 			f = af
@@ -1469,7 +1476,7 @@ func bMax(args ...Object) Object {
 	}
 	f, ok := ToFloat(args[0])
 	if !ok {
-		return err("max: Argumente must be numbers")
+		return err("max: arguments must be numbers")
 	}
 	allInt := true
 	for _, a := range args {
@@ -1478,7 +1485,7 @@ func bMax(args ...Object) Object {
 		}
 		af, ok := ToFloat(a)
 		if !ok {
-			return err("max: Argumente must be numbers")
+			return err("max: arguments must be numbers")
 		}
 		if af > f {
 			f = af
@@ -1497,7 +1504,7 @@ func bPow(args ...Object) Object {
 	b, ok1 := ToFloat(args[0])
 	e, ok2 := ToFloat(args[1])
 	if !ok1 || !ok2 {
-		return err("pow: Argumente must be numbers")
+		return err("pow: arguments must be numbers")
 	}
 	return &Float{Value: math.Pow(b, e)}
 }
@@ -1639,6 +1646,22 @@ func bSet(args ...Object) Object {
 		return container
 	}
 	return err("set: first argument must be a map or list")
+}
+
+func bMapDelete(args ...Object) Object {
+	if len(args) != 2 {
+		return err("map_delete expects 2 arguments (Map, Key)")
+	}
+	m, ok := args[0].(*Map)
+	if !ok {
+		return err("map_delete: first argument must be a map")
+	}
+	key, ok := args[1].(*String)
+	if !ok {
+		return err("map_delete: key must be a string")
+	}
+	delete(m.Pairs, key.Value)
+	return NILOBJ
 }
 
 // ---- Type checks ----
@@ -2216,7 +2239,7 @@ func bRegexReplace(args ...Object) Object {
 	repl, ok2 := args[1].(*String)
 	txt, ok3 := args[2].(*String)
 	if !ok || !ok2 || !ok3 {
-		return err("regex_replace: Alle Argumente must be strings")
+		return err("regex_replace: All arguments must be strings")
 	}
 	re, e := regexp.Compile(pat.Value)
 	if e != nil {
@@ -2228,7 +2251,9 @@ func bRegexReplace(args ...Object) Object {
 // ---- Date/Time ----
 
 func bNow(args ...Object) Object {
-	_ = args
+	if len(args) > 0 {
+		return err("now takes no arguments")
+	}
 	ts := time.Now().Unix()
 	return &Integer{Value: ts}
 }

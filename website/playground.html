@@ -231,7 +231,8 @@ a{color:var(--accent);text-decoration:none}
       </div>
       <div class="play-editor-wrap">
         <textarea id="play-editor" class="play-editor" placeholder="Write Pipe code..." spellcheck="false"
-oninput="onEdit()" onscroll="syncScroll()">print (2 + 2)</textarea>
+oninput="onEdit()" onscroll="syncScroll()">"hello pipe"
+    > print</textarea>
         <pre id="play-hl" class="play-editor language-pipe" aria-hidden="true"></pre>
       </div>
       <div class="play-bar" id="play-bar"><span id="play-status">loading wasm…</span><span class="sandbox-notice" id="sandbox-notice">sandbox mode · AI-ready</span></div>

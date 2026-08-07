@@ -1,22 +1,17 @@
---- XOR Cipher
---- Encrypt and decrypt text using XOR with a repeating key.
---- XOR is its own inverse operation.
+--- XOR Cipher — Bitwise Encryption Pipeline
+--- Message flows through encrypt, hex view, decrypt, verify.
 
---- XOR each byte of text with the key, returning raw bytes
 fn xor_bytes text key
     raw: to_bytes text
     key_raw: to_bytes key
     key_len: len key_raw
-
     result: to_bytes ""
     i: 0
     while i < (len raw)
         tb: bytes_to_int raw i 1
         kb: bytes_to_int key_raw (i % key_len) 1
-        xored: bit_xor tb kb
-        result: bytes_append result (int_to_bytes xored 1)
+        result: bytes_append result (int_to_bytes (bit_xor tb kb) 1)
         i: i + 1
-
     from_bytes result
 
 --- === Demo ===
@@ -26,32 +21,18 @@ print "--- XOR Cipher ---"
 message: "SecretMessage42"
 key: "mykey"
 
-print ("Message:   " ++ message)
-print ("Key:       " ++ key)
-
 --- Encrypt
-encrypted: xor_bytes message key
-print ("Encrypted: " ++ encrypted)
-print ("  (hex:    " ++ (hex_encode (to_bytes encrypted)) ++ ")")
+enc: xor_bytes message key
 
---- Decrypt (XOR with same key = reverse operation)
-decrypted: xor_bytes encrypted key
-print ("Decrypted: " ++ decrypted)
+--- Show hex encoding of cipher
+print ("Cipher hex: " ++ (hex_encode (to_bytes enc)))
 
-if decrypted == message
-    print ""
+--- Decrypt through pipeline
+xor_bytes enc key
+    > print
+
+print ""
+if (xor_bytes enc key) == message
     print "SUCCESS: Roundtrip works"
 else
-    print ""
-    print ("FAILED: got '" ++ decrypted ++ "' expected '" ++ message ++ "'")
-
---- Second example with different key
-print ""
-print "--- Example 2 ---"
-msg2: "Hello, Pipe!"
-key2: "xor"
-enc2: xor_bytes msg2 key2
-print ("Original:  " ++ msg2)
-print ("Encrypted: " ++ (hex_encode (to_bytes enc2)))
-dec2: xor_bytes enc2 key2
-print ("Decrypted: " ++ dec2)
+    print "FAILED: Data corrupted"

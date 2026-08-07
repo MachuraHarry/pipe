@@ -382,3 +382,46 @@ func TestCrossStructUndefinedField(t *testing.T) {
 		t.Errorf("eval: expected error for unknown field, got %v", evalR)
 	}
 }
+
+func TestCrossSecureRandom(t *testing.T) {
+	program := parseProgram(t, "secure_random 16")
+	evalR := evalResult(program)
+	vmR := vmResult(t, program)
+
+	if evalR == nil || evalR.Type() != object.STRING {
+		t.Errorf("eval secure_random: expected string, got %v", evalR)
+	}
+	if vmR == nil || vmR.Type() != object.STRING {
+		t.Errorf("vm secure_random: expected string, got %v", vmR)
+	}
+	evalHex := evalR.Inspect()
+	if len(evalHex) != 32 {
+		t.Errorf("eval secure_random 16: expected 32 hex chars, got %d (%q)", len(evalHex), evalHex)
+	}
+}
+
+func TestCrossSecureRandomInt(t *testing.T) {
+	program := parseProgram(t, "secure_random_int")
+	evalR := evalResult(program)
+	if evalR == nil || evalR.Type() != object.INTEGER {
+		t.Errorf("eval secure_random_int: expected integer, got %v", evalR)
+	}
+}
+
+func TestCrossSecureRandomRange(t *testing.T) {
+	program := parseProgram(t, "secure_random_range 1 100")
+	evalR := evalResult(program)
+	if evalR == nil {
+		t.Fatal("eval secure_random_range: got nil")
+	}
+	n, ok := object.ToInt(evalR)
+	if !ok || n < 1 || n >= 100 {
+		t.Errorf("eval secure_random_range 1 100: expected int in [1, 100), got %v", evalR)
+	}
+}
+
+func TestCrossSecureRandomErrors(t *testing.T) {
+	assertBothErrorContains(t, "secure_random 0", "between 1 and 1024")
+	assertBothErrorContains(t, "secure_random 2000", "between 1 and 1024")
+	assertBothErrorContains(t, "secure_random_range 5 3", "min must be less than max")
+}

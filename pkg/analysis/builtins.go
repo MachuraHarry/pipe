@@ -30,6 +30,7 @@ const (
 	CatRegex    = "Regex"
 	CatDate     = "Date & Time"
 	CatRandom   = "Random"
+	CatCrypto   = "Cryptography"
 	CatEncode   = "Encoding"
 	CatHash     = "Hashing"
 	CatBytes    = "Bytes & Binary"
@@ -253,6 +254,14 @@ var builtinDocs = []BuiltinDoc{
 		Description: "Returns a random floating-point number in the range [0.0, 1.0).", Category: CatRandom},
 	{Name: "random_range", Signature: "random_range(min, max)", Params: []Param{p("min", "number"), p("max", "number")}, ReturnType: "number",
 		Description: "Returns a random integer in the range [min, max] inclusive.", Category: CatRandom},
+
+	// ---- Cryptography ----
+	{Name: "secure_random", Signature: "secure_random(byte_count)", Params: []Param{p("byte_count", "number")}, ReturnType: "string",
+		Description: "Returns a hex-encoded string of cryptographically secure random bytes (1-1024).", Category: CatCrypto},
+	{Name: "secure_random_int", Signature: "secure_random_int()", Params: nil, ReturnType: "number",
+		Description: "Returns a cryptographically secure random 64-bit integer.", Category: CatCrypto},
+	{Name: "secure_random_range", Signature: "secure_random_range(min, max)", Params: []Param{p("min", "number"), p("max", "number")}, ReturnType: "number",
+		Description: "Returns a cryptographically secure random integer in [min, max).", Category: CatCrypto},
 
 	// ---- Encoding ----
 	{Name: "base64_encode", Signature: "base64_encode(str)", Params: []Param{p("str", "string")}, ReturnType: "string",

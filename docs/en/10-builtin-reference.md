@@ -1112,7 +1112,41 @@ coin: random_range 0 1
 
 ---
 
-## 10.13 Encoding (2 functions)
+## 10.13 Cryptography (3 functions)
+
+> **Note:** Unlike `random` and `random_range` (which use pseudo-random `math/rand`), these functions use `crypto/rand` and are suitable for cryptographic purposes like key generation, tokens, and nonces.
+
+### `secure_random`
+**Signature:** `secure_random(byte_count)`
+**Description:** Generates `byte_count` cryptographically secure random bytes, returned as a hex-encoded string. Maximum 1024 bytes per call.
+**Returns:** `string`
+```pipe
+-- 32-character hex string (16 bytes)
+key: secure_random 16
+-- "a1b2c3d4e5f6789012345678abcdef01"
+```
+
+### `secure_random_int`
+**Signature:** `secure_random_int()`
+**Description:** Returns a cryptographically secure random 64-bit signed integer.
+**Returns:** `number`
+```pipe
+token: secure_random_int
+-- -8746123456789012345
+```
+
+### `secure_random_range`
+**Signature:** `secure_random_range(min, max)`
+**Description:** Returns a cryptographically secure random integer in the range `[min, max)`.
+**Returns:** `number`
+```pipe
+-- random int between 100000 and 999999
+code: secure_random_range 100000 1000000
+```
+
+---
+
+## 10.14 Encoding (2 functions)
 
 ### `base64_encode`
 **Signature:** `base64_encode(str)`
@@ -1138,7 +1172,7 @@ base64_decode "UGlwZQ=="
 
 ---
 
-## 10.14 Hashing (4 functions)
+## 10.15 Hashing (4 functions)
 
 ### `sha256`
 
@@ -1190,7 +1224,7 @@ sha512 "hello"
 
 ---
 
-## 10.15 Database — SQLite (module)
+## 10.16 Database — SQLite (module)
 
 The `db_open`, `db_close`, `db_exec`, and `db_query` builtins have been replaced by a native Pipe module available in the [`pipe-modules`](https://github.com/MachuraHarry/pipe-modules) registry. The external `modernc.org/sqlite` dependency has been removed. The binary is now ~10 MB, dependency-free.
 
@@ -1236,7 +1270,7 @@ See `SQLite.md` in the repository root for architecture details and `BENCHMARK.m
 | `row_ne` | `row_ne(row, key, val)` | Predicate: row[key] != val (for `filter`) |
 
 
-## 10.16 Type Checks (6 functions)
+## 10.17 Type Checks (6 functions)
 
 ### `type_of`
 **Signature:** `type_of(value)`
@@ -1335,7 +1369,7 @@ is_nil false
 
 ---
 
-## 10.17 Conversion (2 functions)
+## 10.18 Conversion (2 functions)
 
 ### `to_str`
 **Signature:** `to_str(value)`
@@ -1371,7 +1405,7 @@ to_num "0xFF"
 
 ---
 
-## 10.18 Result Type (6 functions)
+## 10.19 Result Type (6 functions)
 
 ### `Ok`
 **Signature:** `Ok(value)`
@@ -1444,7 +1478,7 @@ unwrap_or (Ok "hi") ""
 ```
 ---
 
-## 10.19 AI — Configuration (7 functions)
+## 10.20 AI — Configuration (7 functions)
 
 ### `ai_provider`
 
@@ -1554,7 +1588,7 @@ ask "What is the capital of France?"
 
 ---
 
-## 10.20 AI — Low-level Chat (2 functions)
+## 10.21 AI — Low-level Chat (2 functions)
 
 ### `ai_chat`
 
@@ -1581,7 +1615,7 @@ data: ai_chat_json "Return JSON" "List 3 colors as JSON array"
 
 ---
 
-## 10.21 AI — Streaming (1 function)
+## 10.22 AI — Streaming (1 function)
 
 ### `ai_stream`
 
@@ -1597,7 +1631,7 @@ full: ai_stream "Explain" "How does AI work?"
 
 ---
 
-## 10.22 AI — High-level Convenience (8 functions)
+## 10.23 AI — High-level Convenience (8 functions)
 
 ### `summarize`
 
@@ -1707,7 +1741,7 @@ ask "What is the meaning of life?"
 
 ---
 
-## 10.23 AI — Parallel (3 functions)
+## 10.24 AI — Parallel (3 functions)
 
 ### `ai_batch`
 
@@ -1746,7 +1780,7 @@ ai_rate_limit 5
 
 ---
 
-## 10.24 AI — Tool Calling (2 functions)
+## 10.25 AI — Tool Calling (2 functions)
 
 ### `ai_tool`
 
@@ -1773,7 +1807,7 @@ ai_with_tools "You have weather data" "What is the weather in Berlin?"
 
 ---
 
-## 10.25 AI — Agents (4 functions)
+## 10.26 AI — Agents (4 functions)
 
 ### `agent`
 
@@ -1846,7 +1880,7 @@ for entry in log
 ```
 
 
-## 10.26 AI — Embeddings (5 functions)
+## 10.27 AI — Embeddings (5 functions)
 
 ### `embed`
 
@@ -1910,7 +1944,7 @@ nearest q docs 2
 
 ---
 
-## 10.27 AI — Search (2 functions)
+## 10.28 AI — Search (2 functions)
 
 ### `web_search`
 
@@ -1960,7 +1994,7 @@ for r in results
 
 ---
 
-## 10.28 Sandbox (5 functions)
+## 10.29 Sandbox (5 functions)
 
 ### `sandbox_profile`
 **Signature:** `sandbox_profile(name)`
@@ -2016,7 +2050,7 @@ print (budget_spent)
 
 ---
 
-## 10.29 AI — Cost Tracking (4 functions)
+## 10.30 AI — Cost Tracking (4 functions)
 
 ### `ai_cost`
 **Signature:** `ai_cost()`
@@ -2055,7 +2089,7 @@ print (ai_cache_misses) -- 1
 
 ---
 
-## 10.30 Test Assertions (6 functions)
+## 10.31 Test Assertions (6 functions)
 
 **Note:** `test` blocks and assert builtins are available in all execution modes, but are designed for use with `pipe -test`.
 
@@ -2144,7 +2178,7 @@ test "addition"
 
 ---
 
-## 10.31 Bytes & Binary (15 functions)
+## 10.32 Bytes ## 10.31 Bytes & Binary Binary (15 functions)
 
 ### `to_bytes`
 **Signature:** `to_bytes(value)`
@@ -2285,7 +2319,7 @@ crc32 "hello"
 
 ---
 
-## 10.32 Summary Table
+## 10.33 Summary Table
 
 ### IO & System (8)
 
@@ -2456,11 +2490,19 @@ crc32 "hello"
 | 96 | `random` | `random()` | `number` |
 | 97 | `random_range` | `random_range(min, max)` | `number` (integer) |
 
+### Cryptography (3)
+
+| # | Function | Signature | Returns |
+|---|----------|-----------|---------|
+| 98 | `secure_random` | `secure_random(byte_count)` | `string` (hex) |
+| 99 | `secure_random_int` | `secure_random_int()` | `number` |
+| 100 | `secure_random_range` | `secure_random_range(min, max)` | `number` (integer) |
+
 ### Encoding (2)
 
 | # | Function | Signature | Returns |
 |---|----------|-----------|---------|
-| 98 | `base64_encode` | `base64_encode(str)` | `string` |
+| 101 | `base64_encode` | `base64_encode(str)` | `string` |
 | 99 | `base64_decode` | `base64_decode(str)` | `string` |
 
 ### Hashing (4)

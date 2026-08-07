@@ -857,7 +857,42 @@ print (random_range 1 101)
 
 ---
 
-## 10.12 Encoding
+## 10.12 Kryptographie (3 Funktionen)
+
+> **Hinweis:** Im Gegensatz zu `random` und `random_range` (die `math/rand` verwenden) nutzen diese Funktionen `crypto/rand` und sind für kryptografische Zwecke wie Schlüsselgenerierung, Token und Nonces geeignet.
+
+### secure_random
+```
+secure_random byte_anzahl
+```
+Erzeugt `byte_anzahl` kryptografisch sichere Zufallsbytes, als Hex-String. Maximal 1024 Bytes pro Aufruf.
+```pipe
+-- 32-stelliger Hex-String (16 Bytes)
+key: secure_random 16
+```
+
+### secure_random_int
+```
+secure_random_int
+```
+Gibt eine kryptografisch sichere 64-Bit-Ganzzahl zurück.
+```pipe
+token: secure_random_int
+```
+
+### secure_random_range
+```
+secure_random_range min max
+```
+Gibt eine kryptografisch sichere Ganzzahl im Bereich `[min, max)` zurück.
+```pipe
+-- Zufallszahl zwischen 100000 und 999999
+code: secure_random_range 100000 1000000
+```
+
+---
+
+## 10.14 Encoding
 
 ### base64_encode
 ```
@@ -881,7 +916,7 @@ print (base64_decode "SGFsbG8=")
 
 ---
 
-## 10.13 Typ-Prüfung
+## 10.15 Typ-Prüfung
 
 ### type_of
 ```
@@ -974,7 +1009,7 @@ print (is_nil 0)
 
 ---
 
-## 10.14 Typ-Konvertierung
+## 10.16 Typ-Konvertierung
 
 ### to_str
 ```
@@ -1011,7 +1046,7 @@ print (to_num false)
 
 ---
 
-## 10.15 Result-Typ
+## 10.17 Result-Typ
 
 ### Ok
 ```

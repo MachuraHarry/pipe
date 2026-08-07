@@ -47,7 +47,7 @@ read_file "errors.log"
     > print
 ```
 
-## Available Modules (9)
+## Available Modules (20)
 
 | Module | Description | Functions |
 |--------|-------------|-----------|
@@ -60,6 +60,17 @@ read_file "errors.log"
 | `email-classifier` | Email classification | `classify_email`, `email_batch`, `email_urgent` |
 | `date-formatter` | Date/time utilities | `format_now`, `relative_time`, `is_weekend` |
 | `parallel-runner` | Parallel AI query execution via `>>` | `ask_many`, `summarize_many`, `translate_many` |
+| `pipe-http` | HTTP client with auth | `hget`, `hpost`, `hput`, `hdelete`, `req`, `auth_bearer`, `auth_basic`, `auth_apikey` |
+| `jpipe` | JSON path query | `jp`, `jpick`, `jkeys`, `jflatten` |
+| `pipe-cli` | CLI framework | `app`, `command`, `flag`, `handler`, `run` |
+| `pipe-date` | DateTime utilities | `parse`, `format`, `add_days`, `diff_days`, `relative` |
+| `pipe-test` | Better test assertions | `expect_eq`, `expect_truthy`, `expect_contains`, `with_hooks` |
+| `pipe-tpl` | Template engine | `render`, `render_file` |
+| `pipe-validate` | Schema validation | `validate`, `is_valid` |
+| `pipe-orm` | ORM for Pipe+SQLite | `table`, `col`, `migrate`, `insert`, `select`, `all`, `first`, `count`, `update`, `delete` |
+| `pipe-web` | Web framework (ASP.NET / Express style) | `app`, `route_get`, `post`, `put`, `delete`, `use`, `listen`, `serve`, `json`, `ok`, `text`, `html`, `redirect`, `not_found` |
+| `sqlite` | Pure-Pipe SQL database engine | `db_open`, `db_close`, `db_exec`, `db_query`, `q`, `exec` |
+| `rag-pipe` | RAG pipeline | `index_create`, `index_add`, `index_search`, `index_ask` |
 
 ## Contributing a Module
 

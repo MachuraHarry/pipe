@@ -233,6 +233,8 @@ var builtinDocs = []BuiltinDoc{
 		Description: "Returns the current time as a Unix timestamp in seconds (floating point).", Category: CatDate},
 	{Name: "format_time", Signature: "format_time(timestamp, layout)", Params: []Param{p("timestamp", "number"), p("layout", "string")}, ReturnType: "string",
 		Description: "Formats a Unix timestamp using Go's reference-time layout (e.g. \"2006-01-02 15:04:05\").", Category: CatDate},
+	{Name: "parse_date", Signature: "parse_date(date_string, layout?)", Params: []Param{p("date_string", "string"), p("layout", "string")}, ReturnType: "number",
+		Description: "Parses a date string into a Unix timestamp. Default layout: \"2006-01-02\".", Category: CatDate},
 
 	// ---- Random ----
 	{Name: "random", Signature: "random()", Params: nil, ReturnType: "number",

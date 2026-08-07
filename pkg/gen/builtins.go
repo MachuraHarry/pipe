@@ -99,6 +99,7 @@ var builtinInfos = map[string]builtinInfo{
 	"regex_replace": {3, strs(TypeString, TypeString, TypeString)},
 	"now":           {0, nil},
 	"format_time":   {2, strs(TypeInt, TypeString)},
+	"parse_date":    {2, strs(TypeString, TypeString)},
 	"random":        {0, nil},
 	"random_range":  {2, strs(TypeInt, TypeInt)},
 	"parse_json":    {1, strs(TypeString)},

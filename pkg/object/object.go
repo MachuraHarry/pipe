@@ -391,6 +391,7 @@ var Builtins = []BuiltinInfo{
 	// Date/Time
 	{"now", bNow},
 	{"format_time", bFormatTime},
+	{"parse_date", bParseDate},
 
 	// Random
 	{"random", bRandom},
@@ -2153,6 +2154,29 @@ func bFormatTime(args ...Object) Object {
 	}
 	t := time.Unix(ts, 0)
 	return &String{Value: t.Format(layout)}
+}
+
+func bParseDate(args ...Object) Object {
+	if len(args) < 1 || len(args) > 2 {
+		return err("parse_date expects 1-2 arguments (DateString, Format?)")
+	}
+	s, ok := args[0].(*String)
+	if !ok {
+		return err("parse_date: DateString must be a string")
+	}
+	layout := "2006-01-02"
+	if len(args) >= 2 {
+		ls, ok := args[1].(*String)
+		if !ok {
+			return err("parse_date: Format must be a string")
+		}
+		layout = ls.Value
+	}
+	t, e := time.Parse(layout, s.Value)
+	if e != nil {
+		return err("parse_date: " + e.Error())
+	}
+	return &Integer{Value: t.Unix()}
 }
 
 // ---- Random ----

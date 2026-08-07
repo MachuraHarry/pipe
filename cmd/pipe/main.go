@@ -51,6 +51,7 @@ func main() {
 		doSearch       bool
 		doInit         bool
 		doCheck        bool
+		doGenRegistry  bool
 		searchTerm     string
 		sandbox        bool
 		sandboxProfile string
@@ -102,6 +103,8 @@ func main() {
 			doInit = true
 		case "-validate":
 			doCheck = true
+		case "-gen-registry":
+			doGenRegistry = true
 		case "-h", "--help":
 			printHelp()
 			return
@@ -336,6 +339,27 @@ func main() {
 		return
 	}
 
+	if doGenRegistry {
+		dir := filePath
+		if dir == "" {
+			dir = "."
+		}
+		baseURL := ""
+		if len(scriptArgs) > 0 {
+			baseURL = scriptArgs[0]
+		}
+		if err := module.GenerateRegistry(dir, baseURL); err != nil {
+			fmt.Fprintf(os.Stderr, "pipe gen-registry: %s\n", err)
+			os.Exit(1)
+		}
+		fmt.Printf("Generated registry.json from pipe.json files in %s\n", dir)
+		report, _ := module.GenerateRegistryReport(dir)
+		for _, line := range report {
+			fmt.Println(line)
+		}
+		return
+	}
+
 	if doBench {
 		runBenchmark()
 		return
@@ -557,6 +581,7 @@ Flags:
   -search [term] Search available modules
   -init <name>   Create a new module scaffold (pipe.json + module.pipe)
   -validate [dir] Check a module's pipe.json validity
+  -gen-registry [dir]  Generate registry.json from pipe.json files
   -h, --help    Show this help
 
 Examples:

@@ -19,6 +19,7 @@ import (
 	"github.com/MachuraHarry/pipe/pkg/formatter"
 	"github.com/MachuraHarry/pipe/pkg/gen"
 	"github.com/MachuraHarry/pipe/pkg/lexer"
+	"github.com/MachuraHarry/pipe/pkg/module"
 	"github.com/MachuraHarry/pipe/pkg/object"
 	"github.com/MachuraHarry/pipe/pkg/parser"
 	"github.com/MachuraHarry/pipe/pkg/vm"
@@ -48,6 +49,8 @@ func main() {
 		genCheck       bool
 		doGet          bool
 		doSearch       bool
+		doInit         bool
+		doCheck        bool
 		searchTerm     string
 		sandbox        bool
 		sandboxProfile string
@@ -95,6 +98,10 @@ func main() {
 			doGet = true
 		case "-search":
 			doSearch = true
+		case "-init":
+			doInit = true
+		case "-validate":
+			doCheck = true
 		case "-h", "--help":
 			printHelp()
 			return
@@ -280,6 +287,52 @@ func main() {
 
 	if doSearch {
 		runSearch(searchTerm)
+		return
+	}
+
+	if doInit {
+		dir := filePath
+		if dir == "" {
+			fmt.Fprintln(os.Stderr, "pipe: -init requires a module name")
+			fmt.Fprintln(os.Stderr, "  Example: pipe -init my-module")
+			os.Exit(1)
+		}
+		name := filepath.Base(dir)
+		if err := module.InitModule(dir, name); err != nil {
+			fmt.Fprintf(os.Stderr, "pipe init: %s\n", err)
+			os.Exit(1)
+		}
+		fmt.Printf("Initialized module %q:\n", name)
+		fmt.Printf("  %s/pipe.json\n", dir)
+		fmt.Printf("  %s/module.pipe\n", dir)
+		fmt.Printf("  %s/README.md\n", dir)
+		return
+	}
+
+	if doCheck {
+		dir := filePath
+		if dir == "" {
+			dir = "."
+		}
+		m, err := module.Parse(dir)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "pipe validate: %s\n", err)
+			os.Exit(1)
+		}
+		if err := m.Validate(); err != nil {
+			fmt.Fprintf(os.Stderr, "pipe validate: %s\n", err)
+			os.Exit(1)
+		}
+		fmt.Printf("OK %s v%s\n", m.Name, m.Version)
+		if len(m.Exports) > 0 {
+			fmt.Printf("  Exports: %s\n", strings.Join(m.Exports, ", "))
+		}
+		if len(m.Dependencies) > 0 {
+			fmt.Println("  Dependencies:")
+			for dep, ver := range m.Dependencies {
+				fmt.Printf("    %s: %s\n", dep, ver)
+			}
+		}
 		return
 	}
 
@@ -502,14 +555,17 @@ Flags:
   --ai-provider openai|anthropic|deepseek|ollama
   -get <url>    Download a module into ~/.pipe/modules/
   -search [term] Search available modules
+  -init <name>   Create a new module scaffold (pipe.json + module.pipe)
+  -validate [dir] Check a module's pipe.json validity
   -h, --help    Show this help
 
 Examples:
   pipe examples/hello.pipe
   pipe -vm -q examples/fib.pipe
-  pipe -search                  # List all modules
-  pipe -search log              # Search for "log" modules
-  pipe -get log-analyzer        # Install a module
+  pipe -init my-module            # Scaffold new module
+  pipe -search                    # List all modules
+  pipe -search log                # Search for "log" modules
+  pipe -get log-analyzer          # Install a module
   pipe --sandbox script.pipe
   pipe -build my.pipe -o my_prog
   pipe -build my.pipe -o my_prog -upx  # UPX-compressed (~60% smaller)`)

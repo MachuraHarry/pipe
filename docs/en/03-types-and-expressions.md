@@ -2,7 +2,7 @@
 
 ## Data Types
 
-Pipe has seven built-in data types. Every value belongs to exactly one of these types.
+Pipe has seven built-in data types, plus user-definable structs. Every value belongs to exactly one of these types.
 
 ### nil
 
@@ -212,6 +212,35 @@ triple: fn x
 result: (map ([1, 2, 3]) triple)
 ```
 
+### struct
+
+Structs are user-defined record types with named fields. They allow grouping related data into a single value with positional construction and dot-notation field access.
+
+```pipe
+-- Block form with optional defaults
+struct Person
+    name: "Unknown"
+    age: 0
+    active: true
+
+-- Inline form (no defaults, comma-separated)
+struct Point: x, y
+
+-- Create instances (positional arguments, space-separated)
+alice: Person "Alice" 30 true
+origin: Point 0 0
+
+-- Field access via dot notation
+alice.name    -- "Alice"
+origin.x      -- 0
+
+-- Field access error on unknown field
+origin.z      -- ERROR: struct Point has no field 'z'
+
+-- Dot access only works on structs, maps, and for .message on errors
+42.x          -- ERROR: cannot use .x on INTEGER
+```
+
 ## Operators
 
 ### Arithmetic Operators
@@ -355,7 +384,7 @@ When in doubt, use parentheses to make intent explicit:
 ## Type Checking Functions
 
 ```pipe
--- returns the type as a string: "nil", "bool", "num", "str", "list", "map", "fn"
+-- returns the type as a string: "nil", "bool", "num", "str", "list", "map", "fn", "STRUCT"
 type_of value
 -- true if value is nil
 is_nil value
@@ -388,6 +417,10 @@ is_num "three"
 is_list []
 -- true
 is_nil nil
+
+-- "STRUCT"
+struct P: x, y
+type_of (P)
 ```
 
 ## Type Conversion

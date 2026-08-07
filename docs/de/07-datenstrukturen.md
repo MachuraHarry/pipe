@@ -219,3 +219,42 @@ print (get antwort "name")
 -- 1
 print (get antwort "version")
 ```
+
+## 7.7 Structs
+
+Structs sind benutzerdefinierte Datensätze mit festen, benannten Feldern — im Gegensatz zu Maps, deren Schlüssel dynamisch sind.
+
+### Definition
+
+```pipe
+-- Block-Form mit Default-Werten
+struct Person
+    name: "Unbekannt"
+    alter: 0
+
+-- Inline-Form (kompakt)
+struct Punkt: x, y
+```
+
+### Instanzen und Feldzugriff
+
+```pipe
+p: Punkt 10 20
+alice: Person "Alice" 30
+
+p.x          -- 10
+alice.name   -- "Alice"
+```
+
+### Structs vs Maps
+
+| Eigenschaft | Struct | Map |
+|------------|--------|-----|
+| Felder | Fest definiert | Dynamisch |
+| Zugriff | `p.x` (Dot-Notation) | `m.x` oder `get m "x"` |
+| Erstellung | `Punkt 1 2` (positional) | `{x: 1, y: 2}` |
+| Typ-Identität | Benannt (Punkt, Person) | Anonym (`MAP`) |
+| Default-Werte | Pro Feld definierbar | Keine |
+
+Verwende Structs, wenn die Datenstruktur zur Compile-Zeit bekannt ist (z.B. 2D-Punkt, Konfiguration, API-Antwort). Verwende Maps für dynamische Key-Value-Daten.
+

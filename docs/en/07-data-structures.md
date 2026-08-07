@@ -1,6 +1,6 @@
 # 7. Data Structures
 
-Pipe provides rich data structures — lists, maps, and strings — along with higher-order functions for functional-style data processing.
+Pipe provides rich data structures — lists, maps, strings, and structs — along with higher-order functions for functional-style data processing.
 
 ---
 
@@ -475,3 +475,82 @@ flatten_sum: reduce matrix sum_row 0
 -- 45
 print flatten_sum
 ```
+
+## 7.6 Structs
+
+Structs are user-defined record types that group related named fields into a single value. Unlike maps, structs have a fixed set of fields defined at compile time, and fields are accessed via dot notation.
+
+### 7.6.1 Defining Structs
+
+Structs are defined with the `struct` keyword. There are two forms:
+
+**Block form** — fields listed in an indented block, one per line. Each field can have an optional default value:
+
+```pipe
+struct Point
+    x
+    y
+
+struct Person
+    name: "Unknown"
+    age: 0
+    active: true
+```
+
+**Inline form** — compact, comma-separated field names. No default values:
+
+```pipe
+struct Point: x, y
+struct Color: red, green, blue, alpha
+```
+
+Fields are stored in definition order. Default values are evaluated at struct definition time.
+
+### 7.6.2 Creating Instances
+
+Struct instances are created by calling the struct name as a constructor with space-separated positional arguments matching the field order:
+
+```pipe
+p: Point 10 20
+person: Person "Alice" 30 true
+c: Color 255 128 0 255
+```
+
+Arguments are applied positionally. Any fields not provided use their default value (if one was specified) or remain unset.
+
+### 7.6.3 Field Access
+
+Fields are accessed with dot notation:
+
+```pipe
+p.x        -- 10
+person.name  -- "Alice"
+person.age   -- 30
+```
+
+Dot access is checked at runtime:
+- Accessing a field that doesn't exist on the struct produces an error
+- Dot access on non-struct, non-map values produces an error
+
+```pipe
+p.z        -- ERROR: struct Point has no field 'z'
+42.x       -- ERROR: cannot use .x on INTEGER
+
+-- Dot access also works on maps (existing behavior):
+m: {a: 1, b: 2}
+m.a        -- 1
+```
+
+### 7.6.4 Structs vs Maps
+
+| Feature | Struct | Map |
+|---------|--------|-----|
+| Field set | Fixed at definition | Dynamic, can add/remove keys |
+| Access | `p.x` (dot notation) | `m.x` or `get m "x"` |
+| Creation | `Point 1 2` (positional) | `{x: 1, y: 2}` |
+| Type identity | Named (Point, Person, etc.) | Anonymous (`MAP`) |
+| Default values | Per-field, defined once | No built-in defaults |
+| Use case | Fixed-schema data records | Dynamic key-value data, ad-hoc structures |
+
+Use structs when you know the shape of your data ahead of time (e.g., a 2D point, a configuration record, API response shape). Use maps when keys are determined at runtime (e.g., parsing unknown JSON, caching named results).
+

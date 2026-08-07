@@ -125,6 +125,7 @@ Pipe-Dateien haben die Endung **`.pipe`**.
 | `import` | Modul laden |
 | `export` | Symbol exportieren |
 | `enum` | Enumeration definieren |
+| `struct` | Benannten Datensatz definieren |
 | `defer` | Verzögerte Ausführung |
 | `return` | Vorzeitiges Verlassen einer Funktion |
 | `try` | Fehlerbehandlung (try-Block) |
@@ -156,6 +157,7 @@ Pipe-Dateien haben die Endung **`.pipe`**.
 | `str` | `"Hallo"` | Unicode-String |
 | `list` | `[1, 2, 3]` | Dynamische, geordnete Liste |
 | `map` | `{name: "Anna"}` | Assoziative Map |
+| `struct` | `struct Punkt: x, y` | Benutzerdefinierter Datensatz |
 | `fn` | `fn x` (body indented) | First-Class Function |
 
 ### Truthiness
@@ -227,6 +229,12 @@ list[0..3]
 {key: wert}
 -- Liste
 [1, 2, 3]
+-- Struktur
+struct Punkt
+    x: 0
+    y: 0
+p: Punkt 3 4
+p.x
 -- Backtick-String
 `mehrzeiliger text`
 ```

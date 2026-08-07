@@ -889,7 +889,7 @@ type_of wert
 ```
 Gibt den Typ eines Werts als String zurück. Mögliche Werte: `"INTEGER"`, `"FLOAT"`,
 `"STRING"`, `"BOOLEAN"`, `"NIL"`, `"LIST"`, `"MAP"`, `"FUNCTION"`, `"CLOSURE"`,
-`"COMPILED_FUNCTION"`, `"RETURN"`, `"BREAK"`, `"CONTINUE"`, `"DEFER"`, `"RESULT"`.
+`"COMPILED_FUNCTION"`, `"RETURN"`, `"BREAK"`, `"CONTINUE"`, `"DEFER"`, `"RESULT"`, `"STRUCT"`.
 ```pipe
 -- "INTEGER"
 print (type_of 42)
@@ -905,6 +905,9 @@ print (type_of nil)
 print (type_of ([1, 2]))
 -- "MAP"
 print (type_of {a: 1})
+-- "STRUCT"
+struct P: x, y
+print (type_of P)
 ```
 
 ### is_num

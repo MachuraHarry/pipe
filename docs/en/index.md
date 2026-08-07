@@ -19,7 +19,7 @@ Welcome to the complete documentation for the **Pipe** scripting language.
 4. [Control Flow](04-control-flow.md) — if/else, match, while, break, continue, for-in, return, defer
 5. [Functions and Closures](05-functions-and-closures.md) — fn definition, parameters, anonymous fns, closures, TCO
 6. [Pipelines](06-pipelines.md) — The core feature: vertical/horizontal pipeline, \_ placeholder
-7. [Data Structures](07-data-structures.md) — Lists, slicing, maps, dot access, higher-order functions
+7. [Data Structures](07-data-structures.md) — Lists, slicing, maps, structs, dot access, higher-order functions
 8. [Error Handling](08-error-handling.md) — try/catch, stack traces, Result type
 9. [Modules and Imports](09-modules-and-imports.md) — import, export, namespaces, PIPE\_PATH
 10. [Builtin Reference](10-builtin-reference.md) — All 165 built-in functions

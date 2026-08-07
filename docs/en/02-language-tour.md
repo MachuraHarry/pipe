@@ -120,6 +120,7 @@ main.pipe
 | `return` | Exit the current function early with a value |
 | `defer` | Schedule code to run when the enclosing scope exits |
 | `enum` | Define an enumeration of named integer constants |
+| `struct` | Define a named record type with fixed fields |
 | `true` | Boolean literal, not falsy |
 | `false` | Boolean literal, falsy |
 | `nil` | Absence of value, falsy |
@@ -204,6 +205,7 @@ main.pipe
 | `str` | `"hello"`, `` `multi\nline` `` | String of UTF-8 characters |
 | `list` | `[1, 2, 3]`, `["a", true]` | Ordered, dynamic array |
 | `map` | `{"key": "value"}` | Associative array (string keys) |
+| `struct` | `struct Point: x, y` | Named record with fixed fields |
 | `fn` | `fn x x * 2` | First-class function value |
 
 ## Truthiness
@@ -268,6 +270,12 @@ defer print "cleanup"        -- deferred execution
 
 enum Color                   -- enumeration
   Red Green Blue
+
+struct Point                  -- struct (block form)
+    x: 0                       -- field with default
+    y: 0
+p: Point 3 4                  -- positional construction
+p.x                           -- field access via dot
 ```
 
 ## Recommended Project Structure

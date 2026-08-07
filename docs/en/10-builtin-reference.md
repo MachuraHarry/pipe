@@ -1241,7 +1241,7 @@ See `SQLite.md` in the repository root for architecture details and `BENCHMARK.m
 ### `type_of`
 **Signature:** `type_of(value)`
 **Description:** Returns a string indicating the type of `value`.
-**Returns:** `string` — one of `"number"`, `"string"`, `"list"`, `"map"`, `"nil"`, `"function"`, `"boolean"`, `"result"`
+**Returns:** `string` — one of `"number"`, `"string"`, `"list"`, `"map"`, `"nil"`, `"function"`, `"boolean"`, `"result"`, `"STRUCT"`
 ```pipe
 -- "number"
 type_of 42
@@ -1259,6 +1259,9 @@ type_of: (fn x
 type_of true
 -- "result"
 type_of (Ok 1)
+-- "STRUCT"
+struct P: x, y
+type_of (P)
 ```
 
 ### `is_num`

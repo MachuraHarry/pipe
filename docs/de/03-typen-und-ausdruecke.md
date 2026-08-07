@@ -2,7 +2,7 @@
 
 ## 3.1 Datentypen im Detail
 
-Pipe hat 7 eingebaute Datentypen:
+Pipe hat 7 eingebaute Datentypen, plus benutzerdefinierte Structs:
 
 | Typ | Beschreibung | Literal | Interne Repräsentation |
 |-----|-------------|---------|------------------------|
@@ -12,6 +12,7 @@ Pipe hat 7 eingebaute Datentypen:
 | `str` | Unicode-String | `"Hallo"`, `` `mehrzeilig` `` | `String` |
 | `list` | Dynamische Liste | `[1, 2, 3]` | `List` |
 | `map` | Assoziative Map | `{a: 1, b: 2}` | `Map` |
+| `struct` | Benutzerdef. Datensatz | `struct P: x, y` | `StructDef` / `StructInstance` |
 | `fn` | First-Class Funktion | `fn x` (block form)<br>`fn x: expr` (inline) | `Function` / `CompiledFunction` / `Closure` |
 
 ### nil
@@ -104,6 +105,27 @@ fn anwenden f wert
 
 -- 42
 print (anwenden verdoppler 21)
+```
+
+### struct
+
+Structs sind benutzerdefinierte Datensätze mit benannten Feldern. Sie erlauben es, zusammenhängende Daten in einem Wert zu gruppieren.
+
+```pipe
+-- Block-Form mit optionalen Default-Werten
+struct Person
+    name: "Unbekannt"
+    alter: 0
+    aktiv: true
+
+-- Inline-Form (kompakt, keine Defaults)
+struct Punkt: x, y
+
+-- Instanzen erstellen (positionale Argumente)
+alice: Person "Alice" 30 true
+ursprung: Punkt 0 0
+alice.name    -- "Alice"
+ursprung.x    -- 0
 ```
 
 ## 3.2 Operatoren — Vollständige Referenz
@@ -228,6 +250,9 @@ print (type_of {a: 1})
 -- "FUNCTION"
 print (type_of (fn x
     x))
+-- "STRUCT"
+struct P: x, y
+print (type_of P)
 
 -- true
 print (is_num 42)

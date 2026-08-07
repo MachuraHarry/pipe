@@ -1402,13 +1402,13 @@ print (crc32 "hello")
 ### Datenbank — SQLite (Modul)
 `db_open`, `db_close`, `db_exec`, `db_query`, `q`, `exec`, `row_get`, `row_eq`, `row_ne`
 
-Die `db_*`-Builtins wurden durch ein natives Pipe-Modul (`examples/sqlite.pipe`) ersetzt. Die externe `modernc.org/sqlite`-Abhängigkeit ist entfernt — Binary wieder dependency-free (~10 MB).
+Die `db_*`-Builtins wurden durch ein natives Pipe-Modul ersetzt, das in der [`pipe-modules`](https://github.com/MachuraHarry/pipe-modules)-Registry verfügbar ist. Die externe `modernc.org/sqlite`-Abhängigkeit ist entfernt — Binary wieder dependency-free (~10 MB).
 
-Das Modul wird via `import "sqlite.pipe"` geladen und bietet sowohl eine klassische Handle-API als auch eine Pipeline-komponierbare API:
+Installiere mit `pipe -get sqlite`, dann import mit `import "sqlite"`:
 
 ```pipe
 -- Klassische API
-import "sqlite.pipe"
+import "sqlite"
 h: db_open ":memory:"
 db_exec h "CREATE TABLE tasks (id INTEGER PRIMARY KEY, title TEXT, priority TEXT)"
 db_exec h "INSERT INTO tasks VALUES (1, 'Bug fixen', 'high'), (2, 'Doku updaten', 'medium')"
@@ -1425,7 +1425,7 @@ q h "SELECT * FROM tasks" > filter is_high > each print
 
 **Unterstütztes SQL:** CREATE TABLE, INSERT (auch multi-value), UPDATE, DELETE, SELECT mit WHERE, GROUP BY + Aggregaten (COUNT, SUM, AVG, MIN, MAX), ORDER BY, LIMIT/OFFSET, JOIN (INNER, LEFT, RIGHT), DISTINCT, BEGIN/COMMIT/ROLLBACK. SQL ist case-insensitiv.
 
-**Pipeline-Helper:** `q` / `exec` (Short-Aliase), `row_get` / `row_eq` / `row_ne` (Filter-Prädikate). Demo: `examples/sqlite_pipeline_demo.pipe`.
+**Pipeline-Helper:** `q` / `exec` (Short-Aliase), `row_get` / `row_eq` / `row_ne` (Filter-Prädikate). Demo: `examples/sqlite_pipeline.pipe`.
 
 Persistenz erfolgt über ein binäres Paging-Format mit CRC32-Prüfsummen; `":memory:"` für In-Memory-Datenbanken.
 

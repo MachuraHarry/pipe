@@ -1,14 +1,14 @@
 # SQLite — Pure-Pipe relationales Datenbankmodul
 
-**Status:** Modul vollständig implementiert (`examples/sqlite.pipe`, ~2470 Zeilen), API-kompatibel mit den früheren `modernc.org/sqlite`-Builtins. Binary ist dependency-free (~10 MB). **TV-Modus** (`pipe examples/sqlite_demo.pipe`) führt alle Operationen korrekt aus: CREATE TABLE, INSERT, SELECT, WHERE, GROUP BY, ORDER BY, UPDATE, DELETE. **VM-Modus** hat einen Compiler-Bug bei großen Modul-Imports (siehe unten).
+**Status:** Modul als externes Package im [`pipe-modules`](https://github.com/MachuraHarry/pipe-modules)-Repository verfügbar. Install per `pipe -get sqlite`. API-kompatibel mit den früheren `modernc.org/sqlite`-Builtins. Binary ist dependency-free (~10 MB). **TV-Modus** führt alle Operationen korrekt aus: CREATE TABLE, INSERT, SELECT, WHERE, GROUP BY, ORDER BY, UPDATE, DELETE. **VM-Modus** hat einen Compiler-Bug bei großen Modul-Imports (siehe unten).
 
-**Pipeline-API:** Zusätzlich zu den klassischen handle-basierten Funktionen exportiert das Modul Pipeline-Helper (`q`, `exec`, `row_get`, `row_eq`, `row_ne`), die mit Pipe's `>`-Operator und `map`/`filter`/`each`-Builtins komponierbar sind. Demo: `examples/sqlite_pipeline_demo.pipe`.
+**Pipeline-API:** Das Modul exportiert Pipeline-Helper (`q`, `exec`, `row_get`, `row_eq`, `row_ne`), die mit Pipe's `>`-Operator und `map`/`filter`/`each`-Builtins komponierbar sind. Demo: `examples/sqlite_pipeline.pipe`.
 
 **Benchmark:** 5000-Row-Benchmark gegen Python und Lua zeigt Pipe als schnellste Gesamtlaufzeit (~21 ms vs Python ~28 ms vs Lua ~44 ms). Pipe's pure-pipe SQL-Engine schlägt nativen C-sqlite3 in SELECT-Queries um Faktor 10-30x, weil keine C-Binding-Kopiervorgänge anfallen. Siehe `BENCHMARK.md`.
 
 ## Architektur
 
-Das Modul ist eine einzelne `.pipe`-Datei (`examples/sqlite.pipe`), die über `import "sqlite.pipe"` geladen wird. Es exportiert:
+Das Modul ist im [`pipe-modules`](https://github.com/MachuraHarry/pipe-modules)-Repository unter `sqlite/module.pipe` abgelegt und wird via `pipe -get sqlite` oder per URL-Import geladen:
 
 ### Core API (klassisch)
 - `db_open(path)` — Öffnet eine Datenbank (Datei oder `":memory:"`)
@@ -48,29 +48,34 @@ Das Modul ist eine einzelne `.pipe`-Datei (`examples/sqlite.pipe`), die über `i
 
 ```pipe
 -- Klassische API
-import "sqlite.pipe"
+import "sqlite"
 h: db_open ":memory:"
 db_exec h "CREATE TABLE t (id INTEGER PRIMARY KEY, title TEXT)"
 db_exec h "INSERT INTO t VALUES (1, 'hello')"
 rows: db_query h "SELECT * FROM t"
-for row in rows
-    print (row.title)
+i: 0
+while i < (len rows)
+    row: at rows i
+    print (get row "title")
+    i: i + 1
 db_close h
 ```
 
 ```pipe
 -- Pipeline API
-import "sqlite.pipe"
+import "sqlite"
 h: db_open ":memory:"
 exec h "CREATE TABLE t (a INTEGER)"
 exec h "INSERT INTO t VALUES (1), (2), (3)"
 
 fn is_even row
-    (row.a % 2) == 0
+    (get row "a") % 2 == 0
 
-q h "SELECT * FROM t" > filter is_even > each print
+q h "SELECT * FROM t" > filter is_even > each (fn r: print ("a=" ++ (to_str (get r "a"))))
 db_close h
 ```
+
+Weitere Beispiele: `examples/sqlite_basic.pipe`, `examples/sqlite_pipeline.pipe`.
 
 ## Phasen-Status
 

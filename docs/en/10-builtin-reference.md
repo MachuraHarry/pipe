@@ -1099,13 +1099,13 @@ sha512 "hello"
 
 ## 10.15 Database — SQLite (module)
 
-The `db_open`, `db_close`, `db_exec`, and `db_query` builtins have been replaced by a native Pipe module (`examples/sqlite.pipe`). The external `modernc.org/sqlite` dependency has been removed. The binary is now ~10 MB, dependency-free.
+The `db_open`, `db_close`, `db_exec`, and `db_query` builtins have been replaced by a native Pipe module available in the [`pipe-modules`](https://github.com/MachuraHarry/pipe-modules) registry. The external `modernc.org/sqlite` dependency has been removed. The binary is now ~10 MB, dependency-free.
 
-The module is imported via `sqlite.pipe` and exposes both a classic handle-based API and a pipeline-composable API:
+Install with `pipe -get sqlite`, then import via `import "sqlite"`:
 
 ```pipe
 -- Classic API
-import "sqlite.pipe"
+import "sqlite"
 h: db_open ":memory:"
 db_exec h "CREATE TABLE tasks (id INTEGER PRIMARY KEY, title TEXT, priority TEXT)"
 db_exec h "INSERT INTO tasks VALUES (1, 'Fix bug', 'high'), (2, 'Update docs', 'medium')"
@@ -1122,7 +1122,7 @@ q h "SELECT * FROM tasks" > filter is_high > each print
 
 **Supported SQL:** CREATE TABLE, INSERT (single + multi-value), UPDATE, DELETE, SELECT with WHERE, GROUP BY + aggregates (COUNT, SUM, AVG, MIN, MAX), ORDER BY, LIMIT/OFFSET, JOIN (INNER, LEFT, RIGHT), DISTINCT, BEGIN/COMMIT/ROLLBACK. SQL is case-insensitive.
 
-**Pipeline helpers:** `q` / `exec` (short aliases), `row_get` / `row_eq` / `row_ne` (filter predicates). Demo: `examples/sqlite_pipeline_demo.pipe`.
+**Pipeline helpers:** `q` / `exec` (short aliases), `row_get` / `row_eq` / `row_ne` (filter predicates). Demo: `examples/sqlite_pipeline.pipe`.
 
 Persistence uses a paged binary format with CRC32 checksums; `":memory:"` for in-memory databases.
 
@@ -2369,7 +2369,7 @@ crc32 "hello"
 | 102 | `sha1` | `sha1(text)` | `string` |
 | 103 | `sha512` | `sha512(text)` | `string` |
 
-### Database (9) — module (`examples/sqlite.pipe`)
+### Database (9) — module (see `pipe -get sqlite`)
 
 | # | Function | Signature | Returns |
 |---|----------|-----------|---------|

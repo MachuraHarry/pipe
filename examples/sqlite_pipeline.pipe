@@ -1,0 +1,69 @@
+-- SQLite Pipeline Demo: composable queries with >, map, filter, each
+-- Install: pipe -get sqlite
+
+import "sqlite"
+
+fn is_done row
+    (get row "done") == 1
+
+fn is_pending row
+    (get row "done") == 0
+
+fn show_task row
+    id: get row "id"
+    task: get row "task"
+    print ("  #" ++ (to_str id) ++ " " ++ task)
+
+fn row_done_1 row
+    row_eq row "done" 1
+
+fn task_name row
+    get row "task"
+
+fn print_task_len t
+    print ("  " ++ t ++ " (" ++ (to_str (len t)) ++ " chars)")
+
+fn show_assigned row
+    print ("  " ++ (get row "name") ++ " -> " ++ (get row "title"))
+
+fn show_score row
+    print ("  " ++ (get row "name") ++ ": " ++ (to_str (get row "points")))
+
+print "=== SQLite Pipeline Demo ==="
+print ""
+
+print "--- Setup ---"
+h: db_open ":memory:"
+exec h "CREATE TABLE todos (id INTEGER PRIMARY KEY, task TEXT, done INTEGER DEFAULT 0)"
+exec h "INSERT INTO todos (task, done) VALUES ('Setup CI', 1), ('Add tests', 0), ('Review PRs', 0), ('Release v1', 1)"
+
+print "--- Pipeline: filter with row_eq ---"
+print "Done tasks:"
+q h "SELECT * FROM todos" > filter row_done_1 > each show_task
+
+print ""
+print "--- Pipeline: filter with custom predicate ---"
+print "Pending tasks:"
+q h "SELECT * FROM todos" > filter is_pending > each show_task
+
+print ""
+print "--- Pipeline: map (task length) ---"
+q h "SELECT * FROM todos" > map task_name > each print_task_len
+
+print ""
+print "--- JOIN demo ---"
+exec h "CREATE TABLE users (id INTEGER PRIMARY KEY, name TEXT)"
+exec h "INSERT INTO users VALUES (1, 'Alice'), (2, 'Bob')"
+exec h "CREATE TABLE tasks (id INTEGER PRIMARY KEY, user_id INTEGER, title TEXT)"
+exec h "INSERT INTO tasks VALUES (1, 1, 'Design UI'), (2, 1, 'Write API'), (3, 2, 'Test')"
+q h "SELECT users.name, tasks.title FROM users JOIN tasks ON users.id = tasks.user_id" > each show_assigned
+
+print ""
+print "--- ORDER BY + LIMIT ---"
+exec h "CREATE TABLE scores (name TEXT, points INTEGER)"
+exec h "INSERT INTO scores VALUES ('Alice', 100), ('Bob', 80), ('Charlie', 95), ('Dave', 90)"
+q h "SELECT * FROM scores ORDER BY points DESC LIMIT 3" > each show_score
+
+db_close h
+print ""
+print "=== Done ==="

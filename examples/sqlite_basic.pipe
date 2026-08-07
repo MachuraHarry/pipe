@@ -1,0 +1,62 @@
+-- SQLite Basic Demo: CRUD operations with the sqlite module
+-- Install: pipe -get sqlite
+
+import "sqlite"
+
+fn print_todo row
+    id: get row "id"
+    task: get row "task"
+    done: get row "done"
+    s: "#" ++ (to_str id) ++ " " ++ task ++ " [done: " ++ (to_str done) ++ "]"
+    print s
+
+fn print_pending row
+    print ("  * " ++ (get row "task"))
+
+print "=== SQLite Basic Demo ==="
+print ""
+
+h: db_open ":memory:"
+print ("Database opened (handle: " ++ (to_str h) ++ ")")
+
+db_exec h "CREATE TABLE todos (id INTEGER PRIMARY KEY, task TEXT, done INTEGER DEFAULT 0)"
+print "Table 'todos' created."
+
+db_exec h "INSERT INTO todos (task) VALUES ('Buy milk'), ('Fix bug'), ('Write docs')"
+db_exec h "INSERT INTO todos (task, done) VALUES ('Old task', 1)"
+print "4 rows inserted."
+print ""
+
+print "--- All Todos ---"
+rows: db_query h "SELECT * FROM todos"
+i: 0
+while i < (len rows)
+    row: at rows i
+    print_todo row
+    i: i + 1
+print ""
+
+db_exec h "UPDATE todos SET done = 1 WHERE id = 1"
+print "Updated todo #1 to done."
+print ""
+
+print "--- Pending Todos (done = 0) ---"
+pending: db_query h "SELECT task FROM todos WHERE done = 0"
+i: 0
+while i < (len pending)
+    row: at pending i
+    print_pending row
+    i: i + 1
+print ""
+
+print "--- Stats ---"
+stats: db_query h "SELECT COUNT(*) as total, SUM(done) as completed FROM todos"
+r: at stats 0
+total: get r "total"
+completed: get r "completed"
+print ("  Total: " ++ (to_str total) ++ ", Completed: " ++ (to_str completed))
+print ""
+
+db_close h
+print "Database closed."
+print "=== Done ==="

@@ -15,14 +15,14 @@
 - 500-simple-function module works; complex nested functions with globals fail
 
 ## Pipeline API
-Exports added to `sqlite.pipe`:
+Exports in `sqlite` module (pipe-modules):
 - `q(handle, sql)` → short alias for `db_query`
 - `exec(handle, sql)` → short alias for `db_exec`
 - `row_get(row, key)` → nil-safe dynamic field access (uses `get` builtin)
 - `row_eq(row, key, val)` → predicate for `filter` (equals check)
 - `row_ne(row, key, val)` → predicate for `filter` (not-equals check)
 
-Demo: `examples/sqlite_pipeline_demo.pipe` — 5 pipeline patterns
+Demo: `examples/sqlite_pipeline.pipe` — pipeline patterns
 ```
 db_query h "SELECT *" > filter is_high > map fmt > each print
 ```

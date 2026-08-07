@@ -484,7 +484,7 @@ file_delete "/tmp/test.txt"
 ### SQLite-Datenbank
 
 ```pipe
-import "sqlite.pipe"
+import "sqlite"
 
 h: db_open ":memory:"
 

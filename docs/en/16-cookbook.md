@@ -825,7 +825,7 @@ cleanup: fn
 ### SQLite Database
 
 ```pipe
-import "sqlite.pipe"
+import "sqlite"
 
 h: db_open ":memory:"
 

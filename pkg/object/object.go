@@ -249,20 +249,51 @@ func ToInt(obj Object) (int64, bool) {
 }
 
 func ValuesEqual(a, b Object) bool {
+	if a == nil && b == nil {
+		return true
+	}
+	if a == nil || b == nil {
+		return false
+	}
 	if a.Type() != b.Type() {
 		return false
 	}
-	switch a := a.(type) {
+	switch av := a.(type) {
 	case *Integer:
-		return a.Value == b.(*Integer).Value
+		return av.Value == b.(*Integer).Value
 	case *Float:
-		return a.Value == b.(*Float).Value
+		return av.Value == b.(*Float).Value
 	case *String:
-		return a.Value == b.(*String).Value
+		return av.Value == b.(*String).Value
 	case *Bytes:
-		return bytes.Equal(a.Value, b.(*Bytes).Value)
+		return bytes.Equal(av.Value, b.(*Bytes).Value)
 	case *Boolean:
-		return a.Value == b.(*Boolean).Value
+		return av.Value == b.(*Boolean).Value
+	case *NilObject:
+		return true
+	case *List:
+		bv := b.(*List)
+		if len(av.Elements) != len(bv.Elements) {
+			return false
+		}
+		for i, e := range av.Elements {
+			if !ValuesEqual(e, bv.Elements[i]) {
+				return false
+			}
+		}
+		return true
+	case *Map:
+		bv := b.(*Map)
+		if len(av.Pairs) != len(bv.Pairs) {
+			return false
+		}
+		for k, v := range av.Pairs {
+			bVal, ok := bv.Pairs[k]
+			if !ok || !ValuesEqual(v, bVal) {
+				return false
+			}
+		}
+		return true
 	}
 	return false
 }

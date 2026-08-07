@@ -360,6 +360,10 @@ func (vm *VM) Run() error {
 			frame.ip += 2
 			field := vm.constants[idx].(*object.String).Value
 			obj := vm.pop()
+			if obj == nil {
+				vm.push(&object.Error{Message: fmt.Sprintf("E006: cannot use .%s on nil", field)})
+				continue
+			}
 			switch m := obj.(type) {
 			case *object.StructInstance:
 				if val, ok := m.Values[field]; ok {
@@ -494,6 +498,9 @@ func (vm *VM) spawnCall(numArgs int) {
 func (vm *VM) binaryOp(op compiler.Opcode, left, right object.Object) object.Object {
 	left = object.EnsureResolved(left)
 	right = object.EnsureResolved(right)
+	if left == nil || right == nil {
+		return &object.Error{Message: "E002: type mismatch: cannot apply operator to nil"}
+	}
 	switch {
 	case left.Type() == object.INTEGER && right.Type() == object.INTEGER:
 		return vm.binaryIntOp(op, left.(*object.Integer), right.(*object.Integer))
@@ -571,6 +578,9 @@ func leftBytes(o object.Object) []byte {
 func (vm *VM) compareOp(op compiler.Opcode, left, right object.Object) object.Object {
 	left = object.EnsureResolved(left)
 	right = object.EnsureResolved(right)
+	if left == nil || right == nil {
+		return object.NILOBJ
+	}
 	switch {
 	case left.Type() == object.INTEGER && right.Type() == object.INTEGER:
 		return vm.compareIntOp(op, left.(*object.Integer).Value, right.(*object.Integer).Value)
@@ -886,6 +896,10 @@ func (vm *VM) executeFrame() object.Object {
 			frame.ip += 2
 			field := vm.constants[idx].(*object.String).Value
 			obj := vm.pop()
+			if obj == nil {
+				vm.push(&object.Error{Message: fmt.Sprintf("E006: cannot use .%s on nil", field)})
+				continue
+			}
 			switch m := obj.(type) {
 			case *object.StructInstance:
 				if val, ok := m.Values[field]; ok {

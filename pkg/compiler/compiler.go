@@ -2,14 +2,11 @@ package compiler
 
 import (
 	"fmt"
-	"os"
 	"strconv"
 	"strings"
 
 	"github.com/MachuraHarry/pipe/pkg/ast"
-	"github.com/MachuraHarry/pipe/pkg/lexer"
 	"github.com/MachuraHarry/pipe/pkg/object"
-	"github.com/MachuraHarry/pipe/pkg/parser"
 )
 
 type SymbolScope int
@@ -1054,18 +1051,24 @@ func (c *Compiler) compileImport(is *ast.ImportStatement) error {
 		if _, ok := c.importedSet[cacheKey]; ok {
 			return nil
 		}
-		c.importedSet[cacheKey] = struct{}{}
 	}
 
 	// Use cached parse result or parse fresh
 	program, ok := c.importCache[cacheKey]
 	if !ok {
+		var resolvedPath string
 		var err error
-		program, err = c.resolveImport(is.Path)
+		resolvedPath, program, err = object.ResolveAndParse(is.Path, c.sourceFile)
 		if err != nil {
 			return fmt.Errorf("import %s: %w", is.Path, err)
 		}
+		// Use resolved path as cache key (may differ from is.Path)
+		cacheKey = resolvedPath
 		c.importCache[cacheKey] = program
+	}
+
+	if is.Alias == "" {
+		c.importedSet[cacheKey] = struct{}{}
 	}
 
 	for _, stmt := range program.Statements {
@@ -1105,37 +1108,8 @@ func (c *Compiler) compileImport(is *ast.ImportStatement) error {
 	return nil
 }
 
-func (c *Compiler) resolveImport(path string) (*ast.Program, error) {
-	_, content, err := object.ResolveImportFrom(path, c.sourceFile)
-	if err != nil {
-		return nil, err
-	}
-	l := lexer.New(content)
-	p := parser.New(l)
-	program := p.ParseProgram()
-	if len(p.Errors()) > 0 {
-		return nil, fmt.Errorf("parse errors: %v", p.Errors())
-	}
-	return program, nil
-}
-
-func readImportFile(path string) (string, error) {
-	if data, err := os.ReadFile(path); err == nil {
-		return string(data), nil
-	}
-	cwd, _ := os.Getwd()
-	if data, err := os.ReadFile(cwd + "/" + path); err == nil {
-		return string(data), nil
-	}
-	pipePath := os.Getenv("PIPE_PATH")
-	if pipePath != "" {
-		for _, dir := range strings.Split(pipePath, ":") {
-			if data, err := os.ReadFile(dir + "/" + path); err == nil {
-				return string(data), nil
-			}
-		}
-	}
-	return "", fmt.Errorf("file not found: %s", path)
+func (c *Compiler) resolveImport(path string) (string, *ast.Program, error) {
+	return object.ResolveAndParse(path, c.sourceFile)
 }
 
 func (c *Compiler) defineTopLevelSymbols(stmts []ast.Statement) {
@@ -1162,7 +1136,7 @@ func (c *Compiler) defineTopLevelSymbols(stmts []ast.Statement) {
 				}
 			}
 		case *ast.ImportStatement:
-			program, err := c.resolveImport(s.Path)
+			_, program, err := c.resolveImport(s.Path)
 			if err == nil {
 				c.defineTopLevelSymbols(program.Statements)
 			}

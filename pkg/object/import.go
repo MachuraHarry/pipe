@@ -9,6 +9,10 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
+
+	"github.com/MachuraHarry/pipe/pkg/ast"
+	"github.com/MachuraHarry/pipe/pkg/lexer"
+	"github.com/MachuraHarry/pipe/pkg/parser"
 )
 
 var moduleCacheDir string
@@ -190,4 +194,26 @@ func httpGet(url string) (string, error) {
 	}
 
 	return string(body), nil
+}
+
+func ResolveAndParse(path string, sourceFile string) (resolvedPath string, program *ast.Program, err error) {
+	resolvedPath, content, err := ResolveImportFrom(path, sourceFile)
+	if err != nil {
+		return "", nil, err
+	}
+	program, err = ParseContent(content)
+	if err != nil {
+		return resolvedPath, nil, fmt.Errorf("parse errors in %s: %v", resolvedPath, err)
+	}
+	return resolvedPath, program, nil
+}
+
+func ParseContent(content string) (*ast.Program, error) {
+	l := lexer.New(content)
+	p := parser.New(l)
+	program := p.ParseProgram()
+	if len(p.Errors()) > 0 {
+		return nil, fmt.Errorf("%v", p.Errors())
+	}
+	return program, nil
 }

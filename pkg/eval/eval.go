@@ -4,8 +4,6 @@ import (
 	"bytes"
 	"fmt"
 	"math"
-	"os"
-	"path/filepath"
 	"strings"
 
 	"github.com/MachuraHarry/pipe/pkg/ai"
@@ -1181,24 +1179,6 @@ func (ctx *EvalContext) evalForInExpression(fe *ast.ForExpression, env *object.E
 	return object.NILOBJ
 }
 
-func (ctx *EvalContext) resolveImportPath(path string) (string, error) {
-	// Absolute or relative path that exists
-	if _, err := os.Stat(path); err == nil {
-		return path, nil
-	}
-	// Try PIPE_PATH directories
-	pipePath := os.Getenv("PIPE_PATH")
-	if pipePath != "" {
-		for _, dir := range strings.Split(pipePath, ":") {
-			candidate := filepath.Join(dir, path)
-			if _, err := os.Stat(candidate); err == nil {
-				return candidate, nil
-			}
-		}
-	}
-	return "", fmt.Errorf("import not found: %s (PIPE_PATH=%s)", path, pipePath)
-}
-
 func (ctx *EvalContext) evalImportStatement(is *ast.ImportStatement, env *object.Environment) object.Object {
 	resolvedPath, content, err := object.ResolveImportFrom(is.Path, ctx.SourceFile)
 	if err != nil {
@@ -1220,11 +1200,9 @@ func (ctx *EvalContext) evalImportStatement(is *ast.ImportStatement, env *object
 	// Use cached parse result or parse fresh
 	program, ok := ctx.importCache[resolvedPath]
 	if !ok {
-		l := lexer.New(content)
-		p := parser.New(l)
-		program = p.ParseProgram()
-		if len(p.Errors()) > 0 {
-			return ctx.newError("import parse error in %s: %v", resolvedPath, p.Errors())
+		program, err := object.ParseContent(content)
+		if err != nil {
+			return ctx.newError("import parse error in %s: %v", resolvedPath, err)
 		}
 		ctx.importCache[resolvedPath] = program
 	}

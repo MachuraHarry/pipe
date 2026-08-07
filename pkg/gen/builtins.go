@@ -135,6 +135,9 @@ var builtinInfos = map[string]builtinInfo{
 	"unique":        {1, strs(TypeList)},
 	"ceil":          {1, strs(TypeFloat)},
 	"floor":         {1, strs(TypeFloat)},
+	"secure_random":       {1, strs(TypeInt)},
+	"secure_random_int":   {0, nil},
+	"secure_random_range": {2, strs(TypeInt, TypeInt)},
 }
 
 func strs(types ...PipeType) []PipeType {

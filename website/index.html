@@ -1096,6 +1096,14 @@ var playExamples = [
   '-- 🤖 Agent counselor with follow-up\nai_provider "deepseek"\n\nagent "counselor" "You are a compassionate career counselor. Give short, actionable advice."\n\nagent_ask "counselor" "I feel stuck in my job, what should I do?"\n    > print\n\nagent_ask "counselor" "How do I prepare for an interview?"\n    > print',
   '-- Pipe: CSV parse → iterate rows\ncsv_parse "name,country\nAlice,France\nBob,Germany"\n    > print',
   '-- Pipe: CSV round-trip\ndata: csv_parse "item,price\nApple,1.5\nBanana,0.8"\ncsv: csv_format data\nprint csv',
+
+  '-- Struct: define + positional construction\nstruct Point\n    x\n    y\n\np: Point 10 20\nprint ("x=" ++ (to_str p.x))\nprint ("y=" ++ (to_str p.y))',
+  '-- Struct: inline form with defaults\nstruct Person: name, age\n\nalice: Person "Alice" 30\nprint (alice.name ++ " is " ++ (to_str alice.age))',
+  '-- 🔐 Crypto: generate secure API token\nprint "Token: " ++ (secure_random 16)\nprint "Session: sess_" ++ (secure_random 8)\nprint ("Code: " ++ (to_str (secure_random_range 100000 1000000)))',
+  '-- 🔐 Crypto: password hashing with iterated SHA-256\nfn hash pw salt\n    r: sha256 (pw ++ salt)\n    i: 0\n    while i < 999\n        r: sha256 (r ++ salt)\n        i: i + 1\n    r\n\nh: hash "secret123" "NaCl"\nprint h',
+  '-- 🔐 Crypto: XOR cipher with bytes\nfn xor_byte a b\n    bit_xor (bytes_to_int a) (bytes_to_int b)\n\nraw: to_bytes "Hi!"\nkey: to_bytes "key"\nresult: int_to_bytes (xor_byte (int_to_bytes (bytes_to_int raw 0 1) 1) (int_to_bytes (bytes_to_int key 0 1) 1)) 1\nprint (from_bytes result)',
+  '-- 🔐 Crypto: message signing with HMAC-like SHA-256\nfn sign key msg\n    sha256 (key ++ ":" ++ msg)\n\nsig: sign "secret" "Transfer 100"\nprint ("Signature: " ++ sig)\nif (sign "secret" "Transfer 100") == sig\n    print "Valid"\nif (sign "secret" "Transfer 999") == sig\n    print "Invalid (should not print)"',
+  '-- 🔐 Crypto: secure random coin flip\nflip: secure_random_range 0 2\nif flip == 0\n    print "Heads!"\nelse\n    print "Tails!"',
 ];
 
 function pickPlayExample() {

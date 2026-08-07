@@ -104,6 +104,7 @@ var builtinInfos = map[string]builtinInfo{
 	"parse_json":    {1, strs(TypeString)},
 	"to_json":       {1, strs(TypeAny)},
 	"http_get":      {1, strs(TypeString)},
+	"http_request":  {2, strs(TypeString, TypeString)},
 	"ask":           {1, strs(TypeString)},
 	"summarize":     {1, strs(TypeString)},
 	"translate":     {2, strs(TypeString, TypeString)},

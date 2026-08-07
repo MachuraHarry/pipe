@@ -812,6 +812,18 @@ print_name: fn u
 each data.users print_name
 ```
 
+### `http_request`
+**Signature:** `http_request(method, url, headers?, body?)`
+**Description:** Performs an HTTP request with custom method, URL, optional headers map and body. Returns a map with `status`, `headers`, and `body` keys.
+**Returns:** `map` — `{status: number, headers: map, body: string}`
+```pipe
+h: {}
+set h "Content-Type" "application/json"
+r: http_request "POST" "https://api.example.com/data" h "{\"key\":\"value\"}"
+print (get r "status")
+print (get r "body")
+```
+
 ### `parse_json`
 **Signature:** `parse_json(json_string)`
 **Description:** Parses a JSON string into Pipe data structures (maps, lists, numbers, strings, booleans, nil).
@@ -2318,6 +2330,7 @@ crc32 "hello"
 | 81 | `http_get` | `http_get(url)` | `string` |
 | 82 | `http_post` | `http_post(url, body)` | `string` |
 | 83 | `http_get_json` | `http_get_json(url)` | `any` (map, list, number, string, boolean, or nil) |
+| 83a | `http_request` | `http_request(method, url, headers?, body?)` | `map` — `{status, headers, body}` |
 | 84 | `parse_json` | `parse_json(json_string)` | `any` or `nil` on parse error |
 | 85 | `to_json` | `to_json(value)` | `string` |
 

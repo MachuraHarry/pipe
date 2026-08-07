@@ -1,0 +1,112 @@
+-- Integration Demo: pipe-http + jpipe
+-- Shows the full pipeline: API call -> JSON query -> transform -> display
+-- Requires: pipe -get pipe-http && pipe -get jpipe
+
+import "pipe-http"
+import "jpipe"
+
+fn show_user row
+    s: "  "
+    s: s ++ (get row "name")
+    s: s ++ " ("
+    s: s ++ (to_str (get row "age"))
+    s: s ++ ")"
+    print s
+
+fn show_repo row
+    s: "  "
+    s: s ++ (get row "name")
+    s: s ++ " - "
+    s: s ++ (get row "language")
+    print s
+
+print "=== HTTP + jpipe Demo ==="
+print ""
+
+-- 1: GET JSON from httpbin
+print "--- 1. Simple JSON API call ---"
+data: hget_json "https://httpbin.org/json" {}
+slideshow: jp data ".slideshow"
+title: jp slideshow ".title"
+print ("  Title: " ++ title)
+author: jp slideshow ".author"
+print ("  Author: " ++ author)
+
+-- 2: Parse and query complex JSON
+print ""
+print "--- 2. Complex JSON with wildcards ---"
+
+-- Simulate a users API response
+users_json: "{\"users\": [{\"name\": \"Alice\", \"age\": 30, \"active\": true}, {\"name\": \"Bob\", \"age\": 25, \"active\": false}, {\"name\": \"Charlie\", \"age\": 35, \"active\": true}], \"total\": 3}"
+udata: parse_json users_json
+
+print "  All user names:"
+names: jp udata ".users[*].name"
+i: 0
+while i < (len names)
+    print ("    - " ++ (at names i))
+    i: i + 1
+
+print "  Total: " ++ (to_str (jp udata ".total"))
+
+-- 3: Flatten and inspect
+print ""
+print "--- 3. Flatten nested data ---"
+flat: jflatten udata
+ks: keys flat
+i: 0
+while i < (len ks)
+    k: at ks i
+    v: get flat k
+    s: "  "
+    s: s ++ k
+    s: s ++ " = "
+    if type_of v == "STRING"
+        s: s ++ v
+    else
+        s: s ++ (to_str v)
+    print s
+    i: i + 1
+
+-- 4: GitHub API (real-world example)
+print ""
+print "--- 4. GitHub API repos ---"
+auth: auth_bearer ""
+r: hget "https://api.github.com/users/MachuraHarry/repos" {}
+repos: parse_json (get r "body")
+
+if type_of repos == "LIST"
+    nrepos: len repos
+    print ("  Repos: " ++ (to_str nrepos))
+
+    -- Show first 5 repo names
+    lim: nrepos
+    if nrepos > 5
+        lim: 5
+    print "  Recent:"
+    i: 0
+    while i < lim
+        repo: at repos i
+        name: get repo "name"
+        lang: get repo "language"
+        s: "    "
+        s: s ++ name
+        if lang != nil
+            s: s ++ " ("
+            s: s ++ lang
+            s: s ++ ")"
+        print s
+        i: i + 1
+else
+    print "  (rate limited or API error)"
+
+-- 5: POST + parse response
+print ""
+print "--- 5. POST with auth ---"
+h2: {}
+set h2 "Content-Type" "application/json"
+r2: hget "https://httpbin.org/headers" (auth_bearer "demo-token")
+print "  Response status: " ++ (to_str (get r2 "status"))
+
+print ""
+print "=== Done ==="

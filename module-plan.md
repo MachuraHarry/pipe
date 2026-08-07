@@ -1,5 +1,14 @@
 # Module Plan: HTTP-Client + jpipe
 
+**Status:** Alle Phasen abgeschlossen ✅
+
+| Phase | Komponente | Status |
+|-------|-----------|--------|
+| 1 | `http_request` Go-Builtin | ✅ |
+| 2 | `pipe-http` Modul | ✅ |
+| 3 | `jpipe` Modul | ✅ |
+| 4 | Integration + Doku | ✅ |
+
 ## Stand
 Siehe auch `pipe-modules` Repo: https://github.com/MachuraHarry/pipe-modules
 

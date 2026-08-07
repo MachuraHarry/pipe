@@ -670,6 +670,19 @@ print (get daten "name")
 print (get daten "public_repos")
 ```
 
+### http_request
+```
+http_request method url headers? body?
+```
+Führt einen HTTP-Request mit beliebiger Methode, URL, optionalem Headers-Map und Body aus. Gibt eine Map `{status, headers, body}` zurück.
+```pipe
+h: {}
+set h "Content-Type" "application/json"
+r: http_request "POST" "https://api.example.com/data" h "{\"key\":\"value\"}"
+print (get r "status")
+print (get r "body")
+```
+
 ### parse_json
 ```
 parse_json json_string
@@ -1375,8 +1388,8 @@ print (crc32 "hello")
 ### Mathematik (6)
 `abs`, `min`, `max`, `pow`, `sqrt`, `round`
 
-### Netzwerk & HTTP (5)
-`http_get`, `http_post`, `http_get_json`, `parse_json`, `to_json`
+### Netzwerk & HTTP (6)
+`http_get`, `http_post`, `http_get_json`, `http_request`, `parse_json`, `to_json`
 
 ### TCP (6)
 `tcp_listen`, `tcp_connect`, `tcp_accept`, `tcp_read`, `tcp_write`, `tcp_close`

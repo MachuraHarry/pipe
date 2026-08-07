@@ -300,6 +300,7 @@ var Builtins = []BuiltinInfo{
 	{"http_get", bHttpGet},
 	{"http_post", bHttpPost},
 	{"http_get_json", bHttpGetJSON},
+	{"http_request", bHttpRequest},
 	{"parse_json", bParseJSON},
 	{"to_json", bToJSON},
 
@@ -1736,6 +1737,95 @@ func bHttpPost(args ...Object) Object {
 	}
 	result := make(map[string]Object)
 	result["status"] = &Integer{Value: int64(resp.StatusCode)}
+	result["body"] = &String{Value: string(respBody)}
+	return &Map{Pairs: result}
+}
+
+func bHttpRequest(args ...Object) Object {
+	if ActiveProfile.Name != "none" {
+		if canErr := ActiveProfile.CanNetwork(); canErr != nil {
+			return err(canErr.Error())
+		}
+	} else if Sandbox.Enabled && !Sandbox.AllowNet {
+		return sandboxBlock("http_request (network)")
+	}
+	if len(args) < 2 || len(args) > 4 {
+		return err("http_request expects 2-4 arguments (method, url, headers?, body?)")
+	}
+	method, ok := args[0].(*String)
+	if !ok {
+		return err("http_request: method must be a string")
+	}
+	url, ok := args[1].(*String)
+	if !ok {
+		return err("http_request: URL must be a string")
+	}
+	if whitelistErr := ActiveProfile.CanNetworkTo(url.Value); whitelistErr != nil {
+		return err(whitelistErr.Error())
+	}
+	ActiveProfile.Audit("http_request", url.Value)
+
+	var bodyStr string
+	headers := make(map[string]string)
+
+	if len(args) >= 3 {
+		if h, ok := args[2].(*Map); ok {
+			for k, v := range h.Pairs {
+				if sv, ok := v.(*String); ok {
+					headers[k] = sv.Value
+				} else if iv, ok := v.(*Integer); ok {
+					headers[k] = strconv.FormatInt(iv.Value, 10)
+				} else {
+					headers[k] = v.Inspect()
+				}
+			}
+		}
+	}
+
+	if len(args) >= 4 {
+		if b, ok := args[3].(*String); ok {
+			bodyStr = b.Value
+		} else {
+			bodyStr = args[3].Inspect()
+		}
+	}
+
+	client := &http.Client{Timeout: 30 * time.Second}
+	var bodyReader io.Reader
+	if bodyStr != "" {
+		bodyReader = strings.NewReader(bodyStr)
+	}
+
+	req, e := http.NewRequest(method.Value, url.Value, bodyReader)
+	if e != nil {
+		return err("http_request: " + e.Error())
+	}
+
+	for k, v := range headers {
+		req.Header.Set(k, v)
+	}
+
+	resp, e := client.Do(req)
+	if e != nil {
+		return err("http_request: " + e.Error())
+	}
+	defer resp.Body.Close()
+
+	respBody, e := io.ReadAll(resp.Body)
+	if e != nil {
+		return err("http_request: " + e.Error())
+	}
+
+	respHeaders := make(map[string]Object)
+	for k, vals := range resp.Header {
+		if len(vals) > 0 {
+			respHeaders[k] = &String{Value: vals[0]}
+		}
+	}
+
+	result := make(map[string]Object)
+	result["status"] = &Integer{Value: int64(resp.StatusCode)}
+	result["headers"] = &Map{Pairs: respHeaders}
 	result["body"] = &String{Value: string(respBody)}
 	return &Map{Pairs: result}
 }

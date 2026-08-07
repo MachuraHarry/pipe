@@ -201,6 +201,8 @@ var builtinDocs = []BuiltinDoc{
 		Description: "Performs an HTTP POST request to url with body as the request payload.", Category: CatNet},
 	{Name: "http_get_json", Signature: "http_get_json(url)", Params: []Param{p("url", "string")}, ReturnType: "any",
 		Description: "Performs an HTTP GET request to url and parses the response as JSON.", Category: CatNet},
+	{Name: "http_request", Signature: "http_request(method, url, headers?, body?)", Params: []Param{p("method", "string"), p("url", "string"), p("headers", "map"), p("body", "string")}, ReturnType: "map",
+		Description: "Performs an HTTP request with custom method, URL, optional headers map and body. Returns map with status, headers, body keys.", Category: CatNet},
 	{Name: "parse_json", Signature: "parse_json(json_string)", Params: []Param{p("json_string", "string")}, ReturnType: "any",
 		Description: "Parses a JSON string into Pipe data structures.", Category: CatNet},
 	{Name: "to_json", Signature: "to_json(value)", Params: []Param{p("value", "any")}, ReturnType: "string",

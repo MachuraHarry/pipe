@@ -406,7 +406,9 @@ func (vm *VM) callFunction(numArgs int) {
 		vm.push(result)
 
 	default:
-		panic(fmt.Sprintf("calling non-function: %s", callee.Type()))
+		vm.pop()
+		vm.push(&object.Error{Message: fmt.Sprintf("E004: not a function: %s", callee.Type())})
+		return
 	}
 }
 
@@ -448,10 +450,8 @@ func (vm *VM) binaryOp(op compiler.Opcode, left, right object.Object) object.Obj
 		return vm.binaryFloatOp(op, &object.Float{Value: float64(left.(*object.Integer).Value)}, right.(*object.Float))
 	case left.Type() == object.FLOAT && right.Type() == object.INTEGER:
 		return vm.binaryFloatOp(op, left.(*object.Float), &object.Float{Value: float64(right.(*object.Integer).Value)})
-	case left.Type() == object.STRING && op == compiler.OpAdd:
-		return &object.String{Value: left.(*object.String).Value + right.Inspect()}
 	default:
-		return &object.Error{Message: fmt.Sprintf("Type error: %s %s %s", left.Type(), op, right.Type())}
+		return &object.Error{Message: fmt.Sprintf("E002: type mismatch: cannot apply operator between %s and %s", left.Type(), right.Type())}
 	}
 }
 
@@ -466,12 +466,12 @@ func (vm *VM) binaryIntOp(op compiler.Opcode, left, right *object.Integer) objec
 		return &object.Integer{Value: l * r}
 	case compiler.OpDiv:
 		if r == 0 {
-			return &object.Error{Message: "ERROR: division by zero"}
+			return &object.Error{Message: "E003: division by zero"}
 		}
 		return &object.Integer{Value: l / r}
 	case compiler.OpMod:
 		if r == 0 {
-			return &object.Error{Message: "ERROR: modulo by zero"}
+			return &object.Error{Message: "E003: modulo by zero"}
 		}
 		return &object.Integer{Value: l % r}
 	case compiler.OpPow:
@@ -491,12 +491,12 @@ func (vm *VM) binaryFloatOp(op compiler.Opcode, left, right *object.Float) objec
 		return &object.Float{Value: l * r}
 	case compiler.OpDiv:
 		if r == 0 {
-			return &object.Error{Message: "ERROR: division by zero"}
+			return &object.Error{Message: "E003: division by zero"}
 		}
 		return &object.Float{Value: l / r}
 	case compiler.OpMod:
 		if r == 0 {
-			return &object.Error{Message: "ERROR: modulo by zero"}
+			return &object.Error{Message: "E003: modulo by zero"}
 		}
 		return &object.Float{Value: float64(int64(l) % int64(r))}
 	case compiler.OpPow:

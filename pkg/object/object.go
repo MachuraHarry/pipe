@@ -1143,7 +1143,11 @@ func bLen(args ...Object) Object {
 	case *Map:
 		return &Integer{Value: int64(len(a.Pairs))}
 	}
-	return err("len not supported")
+	t := "nil"
+	if args[0] != nil {
+		t = string(args[0].Type())
+	}
+	return err(fmt.Sprintf("len not supported for type %s", t))
 }
 
 func bPush(args ...Object) Object {
@@ -1203,36 +1207,7 @@ func bAt(args ...Object) Object {
 }
 
 func bSliceList(args ...Object) Object {
-	if len(args) != 3 {
-		return err("slice_list expects 3 arguments (list, start, end)")
-	}
-	container, ok := args[0].(*List)
-	if !ok {
-		return err("slice_list: erstes Argument must be a list")
-	}
-	start, ok := ToInt(args[1])
-	if !ok {
-		return err("slice_list: start must be a number")
-	}
-	end, ok := ToInt(args[2])
-	if !ok {
-		return err("slice_list: end must be a number")
-	}
-	total := int64(len(container.Elements))
-	if start < 0 {
-		start = 0
-	}
-	if end > total {
-		end = total
-	}
-	if start >= end {
-		return &List{Elements: []Object{}}
-	}
-	result := make([]Object, end-start)
-	for i := start; i < end; i++ {
-		result[i-start] = container.Elements[i]
-	}
-	return &List{Elements: result}
+	return bSlice(args...)
 }
 
 func bSort(args ...Object) Object {
@@ -1345,7 +1320,7 @@ func bUnique(args ...Object) Object {
 	seen := make(map[string]bool)
 	result := &List{}
 	for _, e := range l.Elements {
-		key := e.Inspect()
+		key := string(e.Type()) + ":" + e.Inspect()
 		if !seen[key] {
 			seen[key] = true
 			result.Elements = append(result.Elements, e)
@@ -1437,7 +1412,7 @@ func bAbs(args ...Object) Object {
 		if v.Value < 0 {
 			return &Integer{Value: -v.Value}
 		}
-		return v
+		return &Integer{Value: v.Value}
 	case *Float:
 		return &Float{Value: math.Abs(v.Value)}
 	}
@@ -1530,7 +1505,7 @@ func bRound(args ...Object) Object {
 	}
 	switch v := args[0].(type) {
 	case *Integer:
-		return v
+		return &Integer{Value: v.Value}
 	case *Float:
 		return &Integer{Value: int64(math.Round(v.Value))}
 	}
@@ -1543,7 +1518,7 @@ func bCeil(args ...Object) Object {
 	}
 	switch v := args[0].(type) {
 	case *Integer:
-		return v
+		return &Integer{Value: v.Value}
 	case *Float:
 		return &Integer{Value: int64(math.Ceil(v.Value))}
 	}
@@ -1556,7 +1531,7 @@ func bFloor(args ...Object) Object {
 	}
 	switch v := args[0].(type) {
 	case *Integer:
-		return v
+		return &Integer{Value: v.Value}
 	case *Float:
 		return &Integer{Value: int64(math.Floor(v.Value))}
 	}
@@ -1727,7 +1702,7 @@ func bToNum(args ...Object) Object {
 		if e != nil {
 			return err("to_num: '" + v.Value + "' is not a number")
 		}
-		if f == float64(int64(f)) && !strings.Contains(v.Value, ".") {
+		if f >= math.MinInt64 && f <= math.MaxInt64 && f == float64(int64(f)) && !strings.Contains(v.Value, ".") {
 			return &Integer{Value: int64(f)}
 		}
 		return &Float{Value: f}
@@ -1991,7 +1966,7 @@ func convertJSON(data interface{}) Object {
 		}
 		return &List{Elements: elems}
 	case float64:
-		if v == float64(int64(v)) {
+		if v >= math.MinInt64 && v <= math.MaxInt64 && v == float64(int64(v)) {
 			return &Integer{Value: int64(v)}
 		}
 		return &Float{Value: v}

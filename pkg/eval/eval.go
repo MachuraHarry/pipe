@@ -130,7 +130,7 @@ func (ctx *EvalContext) Eval(node ast.Node, env *object.Environment) object.Obje
 			return right
 		}
 		right = object.EnsureResolved(right)
-		return evalInfixExpression(n.Operator, left, right)
+		return ctx.evalInfixExpression(n.Operator, left, right)
 
 	case *ast.IfExpression:
 		return ctx.evalIfExpression(n, env)
@@ -353,7 +353,7 @@ func evalMinusPrefixOperator(right object.Object) object.Object {
 	}
 }
 
-func evalInfixExpression(operator string, left, right object.Object) object.Object {
+func (ctx *EvalContext) evalInfixExpression(operator string, left, right object.Object) object.Object {
 	left = object.EnsureResolved(left)
 	right = object.EnsureResolved(right)
 	if operator == "[]" {
@@ -393,7 +393,7 @@ func evalInfixExpression(operator string, left, right object.Object) object.Obje
 	case operator == "!=":
 		return object.NativeBoolToBoolean(left != right)
 	default:
-		return newErrorCode("", "E002", "type mismatch: cannot apply '%s' between %s and %s", operator, left.Type(), right.Type())
+		return ctx.newErrorCode("E002", "type mismatch: cannot apply '%s' between %s and %s", operator, left.Type(), right.Type())
 	}
 }
 
@@ -654,7 +654,16 @@ func (ctx *EvalContext) applyFunction(fn object.Object, args []object.Object) ob
 		return result
 
 	case *Builtin:
-		return f.Fn(args...)
+		ctx.pushCall("fn(" + f.Name + ")")
+		result := f.Fn(args...)
+		if result != nil && result.Type() == object.ERROR {
+			st := ctx.stackTrace()
+			if st != "" && !strings.Contains(result.Inspect(), "  in ") {
+				result = ctx.newError("%s\n%s", result.Inspect(), st)
+			}
+		}
+		ctx.popCall()
+		return result
 
 	default:
 		return ctx.newErrorCode("E004", "not a function: %s", fn.Type())
@@ -1386,7 +1395,12 @@ func (ctx *EvalContext) newError(format string, a ...interface{}) *object.Error 
 }
 
 func (ctx *EvalContext) newErrorCode(code, format string, a ...interface{}) *object.Error {
-	return newErrorCode(ctx.SourceFile, code, format, a...)
+	msg := fmt.Sprintf(format, a...)
+	prefix := ""
+	if ctx.SourceFile != "" {
+		prefix = ctx.SourceFile + ": "
+	}
+	return &object.Error{Message: prefix + code + ": " + msg}
 }
 
 func newErrorSt(format string, a ...interface{}) *object.Error {

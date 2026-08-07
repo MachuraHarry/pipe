@@ -5,6 +5,7 @@ import (
 )
 
 type Builtin struct {
+	Name  string
 	Fn    func(args ...object.Object) object.Object
 	Arity int
 }
@@ -31,7 +32,7 @@ var zeroArityBuiltins = map[string]bool{
 func init() {
 	for _, bi := range object.Builtins {
 		bi := bi
-		builtins[bi.Name] = &Builtin{Fn: bi.Fn, Arity: -1}
+		builtins[bi.Name] = &Builtin{Name: bi.Name, Fn: bi.Fn, Arity: -1}
 	}
 	for name := range zeroArityBuiltins {
 		if b, ok := builtins[name]; ok {
@@ -39,11 +40,11 @@ func init() {
 		}
 	}
 
-	builtins["map"] = &Builtin{Fn: bMap, Arity: 2}
-	builtins["filter"] = &Builtin{Fn: bFilter, Arity: 2}
-	builtins["reduce"] = &Builtin{Fn: bReduce, Arity: 3}
-	builtins["each"] = &Builtin{Fn: bEach, Arity: 2}
-	builtins["go"] = &Builtin{Fn: bGo, Arity: 1}
+	builtins["map"] = &Builtin{Name: "map", Fn: bMap, Arity: 2}
+	builtins["filter"] = &Builtin{Name: "filter", Fn: bFilter, Arity: 2}
+	builtins["reduce"] = &Builtin{Name: "reduce", Fn: bReduce, Arity: 3}
+	builtins["each"] = &Builtin{Name: "each", Fn: bEach, Arity: 2}
+	builtins["go"] = &Builtin{Name: "go", Fn: bGo, Arity: 1}
 
 	object.TryAIEvalFn = tryAIEvalFromSource
 }

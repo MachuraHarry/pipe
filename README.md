@@ -63,22 +63,23 @@ read_file "/var/log/app/errors.log"
     > save "incident_report.txt"
 ```
 
-### RAG Pipeline (Semantic Search)
+### RAG Pipeline (with rag-pipe module)
 
 ```pipe
-docs: read_lines "knowledge_base.txt"
-vectors: embed_batch docs
+import "rag-pipe"
 
-question: "How does the bytecode VM work?"
-q_vec: embed question
-top: nearest q_vec vectors 3
+idx: index_create h "knowledge"
+index_add idx "Pipe is a semantic pipeline runtime for AI-native infrastructure."
+index_add idx "The bytecode VM runs 7x faster than the tree-walker interpreter."
 
-context: ""
-for idx in top
-    context: context ++ (at docs idx) ++ "\n---\n"
+-- Semantic search
+results: index_search idx "fast execution" 2
+for r in results
+    print (get r "text")
 
-ask ("Based on this context:\n" ++ context ++ "\n\nQuestion: " ++ question)
-    > print
+-- AI-powered Q&A with retrieved context
+answer: index_ask idx "How does Pipe execute code?"
+print answer
 ```
 
 ### AI Agent with Tool Calling
@@ -94,6 +95,32 @@ ai_tool "get_weather" "Get current weather for a city" {city: "Name of the city"
 
 ai_with_tools "You are a weather assistant." "What's the weather in Berlin and London?"
     > print
+```
+
+### Module Pipeline: HTTP → JSON → AI → Report
+
+```pipe
+import "pipe-http"
+import "pipe-tpl"
+
+data: hget_json "https://api.example.com/stats" {}
+analysis: ask ("Summarize: " ++ (to_json data))
+
+report: render "Report: {{ analysis }}\nTop items:\n{{ for item in items }}* {{ item }}\n{{ end }}" data
+print report
+```
+
+### CLI Tool (with pipe-cli)
+
+```pipe
+import "pipe-cli"
+
+cli: app "deployer" "Deployment tool"
+cmd: command cli "release" "Create a release"
+flag cmd "env" "e" "Environment" "staging"
+flag cmd "tag" "t" "Git tag to deploy" ""
+handler cmd handler_fn
+run cli args
 ```
 
 ## Comparison: Pipe vs Python + LangChain
@@ -116,7 +143,7 @@ ai_with_tools "You are a weather assistant." "What's the weather in Berlin and L
 - **No vendor lock-in** — OpenAI, Anthropic (Claude), DeepSeek, Ollama. Switch with one line. Same code works everywhere
 - **Pipeline-native syntax** — `>` sequential, `>>` parallel. Data flows top to bottom — readable, composable, debuggable
 - **Bytecode VM** — Compile to bytecode, execute ~7× faster with automatic caching
-- **Module ecosystem** — 9 curated modules, registry with version pinning (`@1.0.0`). `pipe -get` installs, import by name
+- **Module ecosystem** — 19 curated modules, registry with version pinning (`@1.0.0`). `pipe -get` installs, import by name
 - **Built-in testing** — `test` blocks with `assert_eq`, `assert_error`. Run with `pipe -test`. Zero setup
 - **GitHub Action** — Run Pipe directly in CI/CD. No installation needed
 - **VSCode Extension** — Syntax highlighting, IntelliSense, LSP-powered diagnostics and completions
@@ -181,21 +208,36 @@ Or run the extension in development with F5 from the `vscode/` folder. See [VSCo
 
 ## Module Ecosystem
 
-Pipe has a [curated module library](https://github.com/MachuraHarry/pipe-modules) — 9 reusable modules with version pinning:
+Pipe has a [curated module library](https://github.com/MachuraHarry/pipe-modules) — **19 reusable modules** with version pinning:
+
+| Infrastructure | Data & CLI | AI & Agents | DevTools |
+|---|---|---|---|
+| `pipe-http` | `sqlite` | `rag-pipe` 🆕 | `pipe-test` |
+| `pipe-cli` | `jpipe` | `log-analyzer` | `pipe-validate` 🆕 |
+| `pipe-orm` 🆕 | `pipe-tpl` | `sentiment` | |
+| | `pipe-date` | `code-review` | |
+| | | `translate-batch` | |
+| | | `changelog-gen` | |
+| | | `email-classifier` | |
+| | | `incident-report` | |
+| | | `parallel-runner` | |
+| | | `date-formatter` | |
 
 ```bash
 pipe -search                 # Browse modules
-pipe -search log             # Filter by keyword
-pipe -get log-analyzer       # Install latest
-pipe -get log-analyzer@1.0.0 # Install specific version
+pipe -search sql             # Filter by keyword
+pipe -get sqlite             # Install latest
+pipe -get sqlite@0.8.0       # Install specific version
 ```
 
 ```pipe
-import "log-analyzer@1.0.0"              -- version pinning
-import "parallel-runner"                 -- latest version
+import "sqlite"                            -- database engine
+import "pipe-http"                         -- HTTP client
+import "rag-pipe"                          -- RAG: embeddings + search + AI
 
-ask_many ["What is Paris?", "What is Berlin?"]
-    > print
+idx: index_create h "knowledge"
+index_add idx "Pipe is an AI-native language."
+index_search idx "language" 3 > each print
 ```
 
 [→ Ecosystem Documentation](docs/en/21-ecosystem.md) | [→ Contribute a Module](https://github.com/MachuraHarry/pipe-modules/blob/master/CONTRIBUTING.md)
@@ -268,11 +310,11 @@ write_file "/etc/config"    -- ❌ E_SANDBOX blocked
 ```
 Source (.pipe) → Lexer → Parser → AST → [ Tree-Walker | Compiler + VM ]
                                           ↓
-                               Builtins (165 total, AI + stdlib)
+                               Builtins (~180 total, AI + stdlib)
 ```
 
 - 66 token types, 34 AST node types, 40 opcodes
-- ~19,000 LoC Go, 290+ tests, 52 example programs
+- ~19,000 LoC Go, 300+ tests, ~60 example programs
 
 ## Documentation
 
@@ -327,7 +369,7 @@ pipe/
 │   └── vm/                    # Bytecode VM
 │       ├── vm.go
 │       └── vm_test.go
-├── examples/                  # 52 example programs
+├── examples/                  # ~60 example programs
 │   ├── ai_demo.pipe
 │   ├── ai_embedding_demo.pipe
 │   ├── ai_parallel_demo.pipe

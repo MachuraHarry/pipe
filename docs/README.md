@@ -24,11 +24,12 @@ Pipe combines **Python-like readability** (indentation-based, no braces) with **
 - **Implementation**: Go 1.25+
 - **License**: MIT
 - **Binary size**: ~10 MB (dependency-free, statically linked)
-- **Tests**: 290+ (across 12 packages)
-- **Builtins**: 165 (32 AI + 133 Standard)
+- **Tests**: 300+ (across 12 packages)
+- **Builtins**: ~180
+- **Modules**: 19 (curated, installable via `pipe -get`)
 - **Opcodes**: 40
 - **AST node types**: 34
-- **Example programs**: 52
+- **Example programs**: ~60
 
 ## Project Links
 

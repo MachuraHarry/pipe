@@ -18,6 +18,48 @@ Die Pipe-Binary (`bin/pipe`) akzeptiert folgende Flags:
 | `-test` | Alle `*_test.pipe` / `*.test.pipe` Dateien im aktuellen Verzeichnis ausführen |
 | `-bench` | Benchmarks: Tree-Walker vs VM vergleichen |
 | `-build` | Standalone Binary aus .pipe-Datei erzeugen |
+| `-search` | Modul-Registry durchsuchen |
+| `-get` | Modul aus Registry herunterladen |
+| `-init` | Neues Modul-Gerüst erstellen |
+| `-validate` | pipe.json eines Moduls prüfen |
+| `-install` | Abhängigkeiten aus pipe.json installieren |
+| `-gen-registry` | registry.json aus pipe.json-Dateien generieren |
+
+### Modul-Verwaltung
+
+Pipe hat ein eingebautes Modul-System. Module werden über das [pipe-modules](https://github.com/MachuraHarry/pipe-modules) Repository geteilt.
+
+```bash
+# Module suchen
+pipe -search
+pipe -search log
+
+# Modul installieren (einmalig)
+pipe -get jpipe
+pipe -get jpipe@1.0.0
+
+# Neues Modul erstellen
+pipe -init mein-modul
+
+# pipe.json validieren
+pipe -validate mein-modul
+
+# Abhängigkeiten installieren (rekursiv)
+pipe -install
+
+# Registry aus pipe.json generieren
+pipe -gen-registry .
+```
+
+**`pipe -install`** liest `dependencies` aus `pipe.json`, löst alle Abhängigkeiten rekursiv auf und schreibt eine `pipe.lock`-Datei mit gepinnten Versionen und SHA-256-Prüfsummen.
+
+**`pipe -init`** erstellt:
+```
+mein-modul/
+├── pipe.json       ← Manifest
+├── module.pipe     ← Quellcode
+└── README.md       ← Dokumentation
+```
 
 ### Verwendung
 

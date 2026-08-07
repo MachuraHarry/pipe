@@ -18,6 +18,12 @@ The Pipe interpreter supports the following command-line flags:
 | `-test` | Run tests from `.pipe` files |
 | `-bench` | Run benchmarks |
 | `-build` | Create a self-extracting binary |
+| `-search` | Search the Pipe module registry |
+| `-get` | Download a module from the registry |
+| `-init` | Scaffold a new module with pipe.json |
+| `-validate` | Check a module's pipe.json validity |
+| `-install` | Install dependencies from pipe.json |
+| `-gen-registry` | Generate registry.json from pipe.json files |
 
 ### `-h` — Help
 
@@ -309,6 +315,129 @@ cp agent /opt/tools/
 ├─────────────────────────┤
 │  name + size + bytes    │  <- Embedded data files
 └─────────────────────────┘
+```
+
+---
+### Module Management Commands
+
+Pipe includes a built-in module system for sharing and reusing code. Modules are published via the [pipe-modules](https://github.com/MachuraHarry/pipe-modules) registry.
+
+### `-search` — Search Registry
+
+```bash
+pipe -search
+pipe -search log
+```
+
+Lists all available modules in the registry. With an optional search term, filters by name.
+
+```bash
+$ pipe -search
+Pipe Modules
+
+  jpipe  (latest: 1.0.0)
+    JSON path query — navigate, pick, flatten JSON/Map structures
+    Functions: jp, jpick, jkeys, jflatten
+
+  pipe-http  (latest: 1.0.0)
+    HTTP client with custom headers, auth, all HTTP methods
+    Functions: hget, hpost, hput, ... (12)
+```
+
+### `-get` — Download Module
+
+```bash
+pipe -get log-analyzer
+pipe -get log-analyzer@1.0.0
+pipe -get https://raw.githubusercontent.com/.../module.pipe
+```
+
+Downloads a module into `~/.pipe/modules/` so it can be imported from any script. Supports:
+- **Short names:** `pipe -get jpipe` (resolves via registry)
+- **Version pinning:** `pipe -get jpipe@1.0.0`
+- **Direct URLs:** `pipe -get https://...`
+
+### `-init` — Scaffold New Module
+
+```bash
+pipe -init my-module
+```
+
+Creates a new module directory with three files:
+
+```
+my-module/
+├── pipe.json       ← Module manifest
+├── module.pipe     ← Source code
+└── README.md       ← Documentation
+```
+
+The `pipe.json` contains metadata (name, version, description, exports, dependencies).
+
+### `-validate` — Check Module
+
+```bash
+pipe -validate
+pipe -validate my-module
+```
+
+Validates a module's `pipe.json` for correctness. Checks that required fields (`name`, `version`) are present and the name uses valid characters.
+
+```bash
+$ pipe -validate my-module
+OK my-module v0.1.0
+  Exports: hello
+```
+
+### `-install` — Install Dependencies
+
+```bash
+pipe -install
+```
+
+Reads the `dependencies` field from `pipe.json`, resolves each dependency through the registry, downloads all modules (recursively, including transitive dependencies), and writes a `pipe.lock` lockfile.
+
+```bash
+$ pipe -install
+Installing dependencies for my-app…
+  ✓ pipe-http v1.0.0
+  ✓ jpipe v1.0.0
+Saved lockfile to pipe.lock
+```
+
+The `pipe.lock` file pins exact versions and contains SHA-256 checksums for reproducible builds:
+
+```json
+{
+  "modules": {
+    "jpipe": {
+      "version": "1.0.0",
+      "url": "https://raw.githubusercontent.com/.../jpipe/module.pipe",
+      "checksum": "c8b351f760fef3..."
+    }
+  }
+}
+```
+
+**Version constraints** in `pipe.json`:
+- `"1.0.0"` — exact version
+- `"^1.0.0"` — latest compatible (^1.x.x)
+- `"latest"` or `"*"` — always latest
+
+### `-gen-registry` — Generate Registry
+
+```bash
+pipe -gen-registry .
+```
+
+Scans a directory for module subdirectories with `pipe.json` files and generates `registry.json` automatically. Modules without `pipe.json` are preserved from the existing registry.
+
+```bash
+$ pipe -gen-registry pipe-modules/
+Generated registry.json from pipe.json files
+Scanned 19 modules (5 with pipe.json, 14 legacy):
+  ✓ jpipe v1.0.0 — 4 exports
+  ○ sqlite (no pipe.json, preserved)
 ```
 
 ---

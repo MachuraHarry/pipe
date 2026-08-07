@@ -1001,8 +1001,15 @@ func bContains(args ...Object) Object {
 			}
 		}
 		return FALSE
+	case *Map:
+		needle, ok := args[1].(*String)
+		if !ok {
+			return err("contains: Map key must be a string")
+		}
+		_, exists := c.Pairs[needle.Value]
+		return NativeBoolToBoolean(exists)
 	}
-	return err("contains expects string or list")
+	return err("contains expects string, list, or map")
 }
 
 func bRepeat(args ...Object) Object {
@@ -1257,7 +1264,11 @@ func bMap(args ...Object) Object {
 	}
 	result := make([]Object, len(l.Elements))
 	for i, e := range l.Elements {
-		result[i] = callOne(args[1], e)
+		r := callOne(args[1], e)
+		if r != nil && r.Type() == ERROR {
+			return r
+		}
+		result[i] = r
 	}
 	return &List{Elements: result}
 }
@@ -1273,6 +1284,9 @@ func bFilter(args ...Object) Object {
 	var result []Object
 	for _, e := range l.Elements {
 		r := callOne(args[1], e)
+		if r != nil && r.Type() == ERROR {
+			return r
+		}
 		if IsTruthy(r) {
 			result = append(result, e)
 		}
@@ -1291,6 +1305,9 @@ func bReduce(args ...Object) Object {
 	acc := args[2]
 	for _, e := range l.Elements {
 		acc = callTwo(args[1], acc, e)
+		if acc != nil && acc.Type() == ERROR {
+			return acc
+		}
 	}
 	return acc
 }

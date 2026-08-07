@@ -4,9 +4,9 @@
 <meta charset="UTF-8">
 <link rel="icon" type="image/svg+xml" href="logo.svg">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="description" content="Pipe — The runtime for AI-native infrastructure. Build, sandbox, and deploy LLM pipelines with a single ~10 MB binary. 16 modules, ~175 builtins. Zero dependencies.">
+<meta name="description" content="Pipe — The runtime for AI-native infrastructure. Build, sandbox, and deploy LLM pipelines with a single ~10 MB binary. 20 modules, ~180 builtins. Zero dependencies.">
 <meta property="og:title" content="Pipe — The runtime for AI-native infrastructure">
-<meta property="og:description" content="Build, sandbox, and deploy LLM pipelines. 32 AI builtins, 16 modules, single ~10 MB binary. Zero dependencies.">
+<meta property="og:description" content="Build, sandbox, and deploy LLM pipelines. 32 AI builtins, 20 modules, single ~10 MB binary. Zero dependencies.">
 <meta property="og:type" content="website">
 <meta property="og:image" content="https://pipe-lang.com/og-image.png">
 <meta property="og:url" content="https://pipe-lang.com/">
@@ -269,7 +269,7 @@ span[data-lang].active{display:inline}a[data-lang].active{display:inline-block}
   <div class="badge"><strong>SPR</strong> v0.8.0 · Semantic Pipeline Runtime</div>
 
   <h1 id="hero-headline"><span class="grad">The runtime for</span><br>AI-native infrastructure</h1>
-  <p id="hero-sub" class="sub">Build, sandbox, and deploy LLM pipelines with a single ~10 MB binary. 16 modules, ~175 builtins. Zero dependencies.</p>
+  <p id="hero-sub" class="sub">Build, sandbox, and deploy LLM pipelines with a single ~10 MB binary. 20 modules, ~180 builtins. Zero dependencies.</p>
 
   <div class="stats-inline">
     <div class="stat"><span class="stat-num">32</span><div class="stat-label">AI Builtins</div></div>
@@ -485,6 +485,27 @@ oninput="syncHighlight();scheduleRenderGraph()" onscroll="syncScroll()">"hello w
 {{ analysis }}"</span> data
 <span class="fn">print</span> report</pre></div>
     </div>
+
+    <div class="feature-row reveal">
+      <div class="feature-text">
+        <h3 data-lang="en" class="active"><span>Web APIs</span> — Built-in HTTP Server</h3>
+        <h3 data-lang="de"><span>Web-APIs</span> — Eingebauter HTTP-Server</h3>
+        <p data-lang="en" class="active">Serve an API and a web UI from the same script with pipe-web: routing, JSON in/out, middleware, and a real HTTP server — no FastAPI, no Express, no Docker. One binary that listens, answers, and shuts down cleanly. Try it: <a href="examples.html">AI Summarize API</a> and <a href="examples.html">RAG Knowledge Base</a>.</p>
+        <p data-lang="de">API und Web-UI aus demselben Skript mit pipe-web ausliefern: Routing, JSON in/out, Middleware und ein echter HTTP-Server — kein FastAPI, kein Express, kein Docker. Eine Binary, die lauscht, antwortet und sauber herunterfährt. Ausprobieren: <a href="examples.html">AI-Zusammenfassungs-API</a> und <a href="examples.html">RAG-Wissensbasis</a>.</p>
+      </div>
+      <div class="feature-code"><div class="bar"><span class="dot" style="background:var(--red)"></span><span class="dot" style="background:var(--orange)"></span><span class="dot" style="background:var(--green)"></span></div><pre><span class="kw">import</span> <span class="str">"pipe-web"</span>
+
+<span class="fn">ai_provider</span> <span class="str">"deepseek"</span>
+
+<span class="kw">fn</span> <span class="fn">summarize_handler</span> req
+    <span class="fn">text</span>: <span class="fn">get</span> (<span class="fn">json_body</span> req) <span class="str">"text"</span>
+    <span class="fn">ok</span> {summary: (<span class="fn">summarize</span> text)}
+
+<span class="fn">api</span>: <span class="fn">app</span> <span class="str">"AISummarize"</span>
+<span class="fn">route_get</span> api <span class="str">"/health"</span> health
+<span class="fn">post</span> api <span class="str">"/summarize"</span> summarize_handler
+<span class="fn">serve</span> api <span class="str">"0.0.0.0:8080"</span> <span class="num">300000</span></pre></div>
+    </div>
   </div>
 </section>
 
@@ -504,6 +525,7 @@ oninput="syncHighlight();scheduleRenderGraph()" onscroll="syncScroll()">"hello w
         <tr><td><span data-lang="en" class="active">Sandbox LLM access</span><span data-lang="de">LLM-Zugriff sandboxen</span></td><td><span data-lang="en" class="active">Custom middleware</span><span data-lang="de">Custom Middleware</span></td><td><span data-lang="en" class="active">One sandbox_profile block</span><span data-lang="de">Ein sandbox_profile-Block</span></td></tr>
         <tr><td><span data-lang="en" class="active">Switch AI provider</span><span data-lang="de">KI-Provider wechseln</span></td><td><span data-lang="en" class="active">Rewrite SDK calls</span><span data-lang="de">SDK-Calls umschreiben</span></td><td style="font-family:var(--mono);color:var(--green)">ai_provider "deepseek"</td></tr>
         <tr><td><span data-lang="en" class="active">Deploy to server</span><span data-lang="de">Auf Server deployen</span></td><td><span data-lang="en" class="active">Docker + venv + pip</span><span data-lang="de">Docker + venv + pip</span></td><td><span data-lang="en" class="active">scp pipe binary</span><span data-lang="de">scp pipe binary</span></td></tr>
+        <tr><td><span data-lang="en" class="active">Expose an HTTP API</span><span data-lang="de">HTTP-API bereitstellen</span></td><td><span data-lang="en" class="active">FastAPI + uvicorn + deps</span><span data-lang="de">FastAPI + uvicorn + Deps</span></td><td style="font-family:var(--mono);color:var(--green)">route_get + serve</td></tr>
         <tr><td><span data-lang="en" class="active">Parallel LLM calls</span><span data-lang="de">Parallele LLM-Calls</span></td><td><span data-lang="en" class="active">asyncio.gather() boilerplate</span><span data-lang="de">asyncio.gather()-Boilerplate</span></td><td style="font-family:var(--mono);color:var(--green)">>> operator, ai_batch</td></tr>
         <tr><td><span data-lang="en" class="active">Binary size (with deps)</span><span data-lang="de">Binary-Größe (mit Deps)</span></td><td><span data-lang="en" class="active">~500 MB</span><span data-lang="de">~500 MB</span></td><td><span data-lang="en" class="active">~10 MB</span><span data-lang="de">~10 MB</span></td></tr>
       </table>
@@ -565,8 +587,8 @@ oninput="syncHighlight();scheduleRenderGraph()" onscroll="syncScroll()">"hello w
         <div class="icon">📦</div>
         <h4 data-lang="en" class="active">Module ecosystem</h4>
         <h4 data-lang="de">Modul-Ökosystem</h4>
-        <p data-lang="en" class="active">19 curated modules. Pin versions with <code>@1.0.0</code>. <code>pipe -search</code> discovers, <code>pipe -get</code> installs. Import by name — no URLs.</p>
-        <p data-lang="de">19 kuratierte Module. Versionen pinnen mit <code>@1.0.0</code>. <code>pipe -search</code> entdeckt, <code>pipe -get</code> installiert. Import per Name — keine URLs.</p>
+        <p data-lang="en" class="active">20 curated modules. Pin versions with <code>@1.0.0</code>. <code>pipe -search</code> discovers, <code>pipe -get</code> installs. Import by name — no URLs.</p>
+        <p data-lang="de">20 kuratierte Module. Versionen pinnen mit <code>@1.0.0</code>. <code>pipe -search</code> entdeckt, <code>pipe -get</code> installiert. Import per Name — keine URLs.</p>
       </div>
       <div class="card">
         <div class="icon">🔌</div>
@@ -595,6 +617,13 @@ oninput="syncHighlight();scheduleRenderGraph()" onscroll="syncScroll()">"hello w
         <h4 data-lang="de">Template-Engine</h4>
         <p data-lang="en" class="active"><code>pipe-tpl</code>: Variables, conditionals, loops, filters. Render AI-generated content into reports, emails, or code. No Jinja, no Handlebars.</p>
         <p data-lang="de"><code>pipe-tpl</code>: Variablen, Bedingungen, Schleifen, Filter. KI-generierte Inhalte in Reports, E-Mails oder Code rendern. Kein Jinja, kein Handlebars.</p>
+      </div>
+      <div class="card">
+        <div class="icon">🌍</div>
+        <h4 data-lang="en" class="active">Web apps & APIs built in</h4>
+        <h4 data-lang="de">Web-Apps & APIs eingebaut</h4>
+        <p data-lang="en" class="active"><code>pipe-web</code>: routing, JSON, middleware, and a real HTTP server. Ship APIs and dashboards as a single binary — no FastAPI, no Express. See the <a href="examples.html">AI Summarize API</a> and <a href="examples.html">RAG Knowledge Base</a> examples.</p>
+        <p data-lang="de"><code>pipe-web</code>: Routing, JSON, Middleware und ein echter HTTP-Server. APIs und Dashboards als einzelne Binary ausliefern — kein FastAPI, kein Express. Siehe <a href="examples.html">AI-Zusammenfassungs-API</a> und <a href="examples.html">RAG-Wissensbasis</a>.</p>
       </div>
       <div class="card">
         <div class="icon">🚀</div>
@@ -935,7 +964,7 @@ function setLang(l) {
 var heroTexts = {
   en: [
     {h:'<span class="grad">The runtime for</span><br>AI-native infrastructure',
-     s:'Build, sandbox, and deploy LLM pipelines with a single ~10 MB binary. 16 modules, ~175 builtins. Zero dependencies.'},
+     s:'Build, sandbox, and deploy LLM pipelines with a single ~10 MB binary. 20 modules, ~180 builtins. Zero dependencies.'},
     {h:'<span class="grad">Sandbox AI agents.</span><br>Declarative. Safe by default.',
      s:'<code>sandbox_profile</code> restricts exec, write_file, and http_get with one block. Keep LLMs on a leash — essential for <code>ai_with_tools</code>.'},
     {h:'<span class="grad">One binary. Zero dependencies.</span><br>4 providers. No lock-in.',

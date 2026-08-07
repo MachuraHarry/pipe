@@ -492,6 +492,82 @@ jobs:
       </div>
     </div>
 
+    <!-- Example 12 -->
+    <div class="example-card">
+      <div class="ex-num">12</div>
+      <h3 data-lang="en" class="active">AI Summarize API</h3>
+      <h3 data-lang="de">KI-Zusammenfassungs-API</h3>
+      <p class="ex-desc" data-lang="en" class="active">Serve an HTTP API and a web form from the same script. pipe-web provides routing, JSON handling, and a built-in server — the <code>summarize</code> AI builtin does the rest. One binary, zero dependencies.</p>
+      <p class="ex-desc" data-lang="de">Eine HTTP-API und ein Web-Formular aus demselben Skript servieren. pipe-web liefert Routing, JSON-Handling und einen eingebauten Server — das KI-Builtin <code>summarize</code> erledigt den Rest. Eine Binary, null Abhängigkeiten.</p>
+      <pre class="example-code"><span class="cmt">-- AI Summarize API — pipe-web + AI builtins</span>
+<span class="kw">import</span> <span class="str">"../pipe-modules/pipe-web/module.pipe"</span>
+
+<span class="fn">ai_provider</span> <span class="str">"deepseek"</span>
+
+<span class="kw">fn</span> <span class="fn">summarize_handler</span> req
+    <span class="fn">data</span>: <span class="fn">json_body</span> req
+    <span class="fn">text</span>: <span class="fn">get</span> data <span class="str">"text"</span>
+    <span class="kw">if</span> text <span class="op">==</span> <span class="kw">nil</span>
+        <span class="fn">json</span> <span class="num">400</span> {error: <span class="str">"Missing 'text'"</span>}
+    <span class="kw">else</span>
+        <span class="fn">ok</span> {summary: (<span class="fn">summarize</span> text)}
+
+<span class="kw">fn</span> <span class="fn">health</span> req
+    <span class="fn">ok</span> {status: <span class="str">"ok"</span>, framework: <span class="str">"pipe-web"</span>}
+
+<span class="fn">api</span>: <span class="fn">app</span> <span class="str">"AISummarize"</span>
+<span class="fn">route_get</span> api <span class="str">"/health"</span>   health
+<span class="fn">post</span> api <span class="str">"/summarize"</span>    summarize_handler
+
+<span class="fn">serve</span> api <span class="str">"0.0.0.0:8080"</span> <span class="num">300000</span></pre>
+      <div class="example-flow">
+        <h4 data-lang="en" class="active">Pipeline Flow</h4>
+        <h4 data-lang="de">Pipeline-Ablauf</h4>
+        <p data-lang="en" class="active">pipe-web turns a handful of functions into a running HTTP server. <code>app</code> creates the app, <code>route_get</code> and <code>post</code> map URLs to handlers, and <code>serve</code> binds the port — no framework, no config, no container. The <code>summarize</code> AI builtin turns the request body into a summary in a single call. A landing page with a form and a JSON API are served by the same binary.</p>
+        <p data-lang="de">pipe-web macht aus ein paar Funktionen einen laufenden HTTP-Server. <code>app</code> erzeugt die App, <code>route_get</code> und <code>post</code> mappen URLs auf Handler, <code>serve</code> bindet den Port — kein Framework, keine Config, kein Container. Das KI-Builtin <code>summarize</code> macht aus dem Request-Body in einem Call eine Zusammenfassung. Eine Landingpage mit Formular und eine JSON-API werden von derselben Binary ausgeliefert.</p>
+      </div>
+    </div>
+
+    <!-- Example 13 -->
+    <div class="example-card">
+      <div class="ex-num">13</div>
+      <h3 data-lang="en" class="active">RAG Knowledge Base</h3>
+      <h3 data-lang="de">RAG-Wissensbasis</h3>
+      <p class="ex-desc" data-lang="en" class="active">A full web app on top of rag-pipe and sqlite: add documents by text or URL, search them semantically, and ask questions answered only from your indexed knowledge — sources included, persisted across restarts.</p>
+      <p class="ex-desc" data-lang="de">Eine vollständige Web-App auf Basis von rag-pipe und sqlite: Dokumente per Text oder URL hinzufügen, semantisch durchsuchen und Fragen beantworten lassen — nur aus deinem indexierten Wissen, inklusive Quellen und über Neustarts hinweg persistiert.</p>
+      <pre class="example-code"><span class="cmt">-- RAG Knowledge Base — rag-pipe + sqlite + pipe-web</span>
+<span class="kw">import</span> <span class="str">"sqlite.pipe"</span>
+<span class="kw">import</span> <span class="str">"../pipe-modules/rag-pipe/module.pipe"</span>
+<span class="kw">import</span> <span class="str">"../pipe-modules/pipe-web/module.pipe"</span>
+
+<span class="kw">fn</span> <span class="fn">ask_page</span> req
+    <span class="fn">q</span>: <span class="fn">get</span> (<span class="fn">get</span> req <span class="str">"query"</span>) <span class="str">"q"</span>
+    <span class="fn">idx</span>: <span class="fn">get</span> __kb_state <span class="str">"index"</span>
+    <span class="fn">results</span>: <span class="fn">index_search</span> idx q <span class="num">3</span>
+    <span class="fn">context</span>: <span class="str">""</span>
+    <span class="kw">for</span> r <span class="kw">in</span> results
+        <span class="fn">context</span>: context <span class="op">++</span> (<span class="fn">get</span> r <span class="str">"text"</span>)
+        <span class="fn">context</span>: context <span class="op">++</span> <span class="str">"\n---\n"</span>
+    <span class="fn">answer</span>: <span class="fn">ask</span> (<span class="str">"Context:\n"</span> <span class="op">++</span> context <span class="op">++</span> <span class="str">"\nQuestion: "</span> <span class="op">++</span> q)
+    <span class="fn">out</span>: <span class="fn">page_top</span> <span class="str">"Ask"</span> (<span class="str">"RAG answer for: "</span> <span class="op">++</span> (<span class="fn">esc_html</span> q))
+    <span class="fn">out</span>: out <span class="op">++</span> <span class="str">"&lt;div class=answer&gt;"</span> <span class="op">++</span> (<span class="fn">esc_html</span> answer) <span class="op">++</span> <span class="str">"&lt;/div&gt;"</span>
+    <span class="fn">html</span> <span class="num">200</span> out
+
+<span class="fn">api</span>: <span class="fn">app</span> <span class="str">"RAGKnowledge"</span>
+<span class="fn">route_get</span> api <span class="str">"/"</span>          landing_page
+<span class="fn">route_get</span> api <span class="str">"/documents"</span> add_doc
+<span class="fn">route_get</span> api <span class="str">"/ask"</span>       ask_page
+<span class="fn">route_get</span> api <span class="str">"/search"</span>    search_page
+
+<span class="fn">serve</span> api <span class="str">"0.0.0.0:8090"</span> <span class="num">3600000</span></pre>
+      <div class="example-flow">
+        <h4 data-lang="en" class="active">Pipeline Flow</h4>
+        <h4 data-lang="de">Pipeline-Ablauf</h4>
+        <p data-lang="en" class="active">Documents are embedded and stored in a local sqlite database by rag-pipe. <code>index_search</code> finds the top 3 documents by cosine similarity — meaning, not keywords. The matched text becomes the context for <code>ask</code>, so the AI answers only from your own knowledge base, with the sources rendered on the page.</p>
+        <p data-lang="de">Dokumente werden von rag-pipe in einer lokalen sqlite-Datenbank eingebettet und gespeichert. <code>index_search</code> findet die Top 3 Dokumente nach Kosinus-Ähnlichkeit — Bedeutung, nicht Stichwörter. Der Treffertext wird zum Kontext für <code>ask</code>, sodass die KI nur aus deiner eigenen Wissensbasis antwortet — mit den Quellen auf der Seite.</p>
+      </div>
+    </div>
+
   </div>
 </section>
 

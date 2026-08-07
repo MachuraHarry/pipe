@@ -101,14 +101,14 @@ TODO: describe what this module does.
 
 ## Install
 
-    pipe -get %s
+    pipe -install
 
 ## Usage
 
     import "%s"
 
     print (hello "World")
-`, name, name, name)
+`, name, name)
 	if err := os.WriteFile(filepath.Join(dir, "README.md"), []byte(readmeContent), 0644); err != nil {
 		return err
 	}

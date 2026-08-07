@@ -52,6 +52,7 @@ func main() {
 		doInit         bool
 		doCheck        bool
 		doGenRegistry  bool
+		doInstall      bool
 		searchTerm     string
 		sandbox        bool
 		sandboxProfile string
@@ -105,6 +106,8 @@ func main() {
 			doCheck = true
 		case "-gen-registry":
 			doGenRegistry = true
+		case "-install":
+			doInstall = true
 		case "-h", "--help":
 			printHelp()
 			return
@@ -360,6 +363,18 @@ func main() {
 		return
 	}
 
+	if doInstall {
+		dir := filePath
+		if dir == "" {
+			dir = "."
+		}
+		if err := module.Install(dir); err != nil {
+			fmt.Fprintf(os.Stderr, "pipe install: %s\n", err)
+			os.Exit(1)
+		}
+		return
+	}
+
 	if doBench {
 		runBenchmark()
 		return
@@ -581,6 +596,7 @@ Flags:
   -search [term] Search available modules
   -init <name>   Create a new module scaffold (pipe.json + module.pipe)
   -validate [dir] Check a module's pipe.json validity
+  -install [dir] Install dependencies from pipe.json
   -gen-registry [dir]  Generate registry.json from pipe.json files
   -h, --help    Show this help
 

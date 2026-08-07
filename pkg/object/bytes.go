@@ -306,6 +306,9 @@ func bIndexOf(args ...Object) Object {
 		}
 		return &Integer{Value: int64(strings.Index(haystack.Value, needle.Value))}
 	case *List:
+		if args[1] == nil {
+			return &Integer{Value: -1}
+		}
 		for i, elem := range haystack.Elements {
 			if elem == args[1] || (elem.Type() == args[1].Type() && elem.Inspect() == args[1].Inspect()) {
 				return &Integer{Value: int64(i)}

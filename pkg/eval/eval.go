@@ -15,11 +15,16 @@ import (
 	"github.com/MachuraHarry/pipe/pkg/parser"
 )
 
+type ModuleInstance struct {
+	Env             *object.Environment
+	ExportedSymbols map[string]bool
+}
+
 type EvalContext struct {
 	SourceFile      string
 	callStack       []string
 	importCache     map[string]*ast.Program
-	importedFiles   map[string]struct{}
+	importedModules map[string]*ModuleInstance
 	exportedSymbols map[string]bool
 	testFailed      bool
 }
@@ -28,7 +33,7 @@ func NewEvalContext(sourceFile string) *EvalContext {
 	ctx := &EvalContext{
 		SourceFile:      sourceFile,
 		importCache:     make(map[string]*ast.Program),
-		importedFiles:   make(map[string]struct{}),
+		importedModules: make(map[string]*ModuleInstance),
 		exportedSymbols: make(map[string]bool),
 	}
 	object.SetCallUserFn(func(fn object.Object, args ...object.Object) object.Object {
@@ -1191,12 +1196,16 @@ func (ctx *EvalContext) evalImportStatement(is *ast.ImportStatement, env *object
 		return ctx.newError("%s", err)
 	}
 
-	// Flat imports: skip if already injected into this scope
+	// Flat imports: if already loaded, re-inject exports from shared instance
 	if is.Alias == "" {
-		if _, ok := ctx.importedFiles[resolvedPath]; ok {
+		if mi, ok := ctx.importedModules[resolvedPath]; ok {
+			for name, val := range mi.Env.Store() {
+				if len(mi.ExportedSymbols) == 0 || mi.ExportedSymbols[name] {
+					env.Set(name, val)
+				}
+			}
 			return object.NILOBJ
 		}
-		ctx.importedFiles[resolvedPath] = struct{}{}
 	}
 
 	// Use cached parse result or parse fresh
@@ -1216,6 +1225,18 @@ func (ctx *EvalContext) evalImportStatement(is *ast.ImportStatement, env *object
 
 	importEnv := object.NewEnvironment()
 	result := ctx.Eval(program, importEnv)
+
+	// Save as shared module instance for future imports
+	if is.Alias == "" {
+		exports := make(map[string]bool)
+		for k, v := range ctx.exportedSymbols {
+			exports[k] = v
+		}
+		ctx.importedModules[resolvedPath] = &ModuleInstance{
+			Env:             importEnv,
+			ExportedSymbols: exports,
+		}
+	}
 
 	hasExports := len(ctx.exportedSymbols) > 0
 

@@ -329,6 +329,7 @@ span[data-lang].active{display:inline}a[data-lang].active{display:inline-block}
 oninput="syncHighlight();scheduleRenderGraph()" onscroll="syncScroll()">"hello world"
     > upper
     > print
+</textarea>
         <pre id="play-hl" class="play-editor language-pipe" aria-hidden="true"></pre>
       </div>
        <div class="play-bar" id="play-bar"><span style="color:#fc8c3c">Loading WASM...</span></div>
@@ -1358,13 +1359,13 @@ function renderGraph(){
     {t:'out', s:'\u2192 3/5 filter      7 critical'},
     {t:'out', s:'\u2192 4/5 summarize   done'},
     {t:'out', s:'\u2192 5/5 save        incident_report.txt'},
-    {t:'out', s:'\u2713 done in 1.4s \u00b7 3 AI calls \u00b7 exit 0'}
-  '-- 🔐 Crypto: secure token via pipeline\nsecure_random 32\n    > join ["Token: ", _]\n    > print',
+    {t:'out', s:'\u2713 done in 1.4s \u00b7 3 AI calls \u00b7 exit 0'},
+    {t:'txt', s:'-- 🔐 Crypto: secure token via pipeline\nsecure_random 32\n    > join ["Token: ", _]\n    > print'},
 
-  '-- 🔐 Crypto: AES encrypt via pipeline\nkey: secure_random 32\ndata: "Top Secret"\nenc: encrypt key data\n\nenc\n    > join ["Encrypted: ", _]\n    > print\n\ndecrypt key enc\n    > join ["Decrypted: ", _]\n    > print',
-  '-- 🔐 Crypto: HMAC message signing\nfn sign key msg\n    hmac_sha256 key msg\n\nsig: sign "api-key" "GET /users"\nprint ("Signature: " ++ sig)\n\nif (sign "api-key" "GET /users") == sig\n    print "Valid"',
-  '-- 🔐 Crypto: brute-force protection\nkey: secure_random_bytes 32\nenc: encrypt key "secret"\n\ndecrypt "wrong-key-aaaaaaaaaaaaaaaa" enc\n    > print',
-];
+    {t:'txt', s:'-- 🔐 Crypto: AES encrypt via pipeline\nkey: secure_random 32\ndata: "Top Secret"\nenc: encrypt key data\n\nenc\n    > join ["Encrypted: ", _]\n    > print\n\ndecrypt key enc\n    > join ["Decrypted: ", _]\n    > print'},
+    {t:'txt', s:'-- 🔐 Crypto: HMAC message signing\nfn sign key msg\n    hmac_sha256 key msg\n\nsig: sign "api-key" "GET /users"\nprint ("Signature: " ++ sig)\n\nif (sign "api-key" "GET /users") == sig\n    print "Valid"'},
+    {t:'txt', s:'-- 🔐 Crypto: brute-force protection\nkey: secure_random_bytes 32\nenc: encrypt key "secret"\n\ndecrypt "wrong-key-aaaaaaaaaaaaaaaa" enc\n    > print'},
+  ];
   var idx = 0, timer = null;
 
   function esc(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;');}

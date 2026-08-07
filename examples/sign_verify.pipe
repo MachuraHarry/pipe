@@ -1,0 +1,58 @@
+--- Message Authentication (MAC)
+--- Sign and verify messages using SHA-256 with a shared secret.
+--- Demonstrates hashing, message signing, and tamper detection.
+
+--- === Simple MAC ===
+
+fn sign key message
+    sha256 (key ++ "::" ++ message)
+
+fn verify key message sig
+    (sign key message) == sig
+
+--- === Demo ===
+
+print "--- Message Authentication ---"
+
+secret: "shared-secret-2024"
+
+--- Sign a message
+msg: "Transfer 100 EUR to Alice"
+sig: sign secret msg
+print ("Message:   " ++ msg)
+print ("Signature: " ++ sig)
+
+--- Verify
+if verify secret msg sig
+    print "Verification: VALID"
+else
+    print "Verification: INVALID"
+
+--- Tampered message
+if verify secret "Transfer 999 EUR to Mallory" sig
+    print "Tampered: VALID (bad)"
+else
+    print "Tampered: INVALID (good)"
+
+--- === Structured Data Signing ===
+
+print ""
+print "--- Structured Data ---"
+
+fn sign_pair key user amount
+    sha256 (key ++ "|" ++ user ++ "|" ++ amount)
+
+data_sig: sign_pair secret "alice" "100.00"
+print ("Alice+100.00: " ++ data_sig)
+
+--- Verify correct
+if (sign_pair secret "alice" "100.00") == data_sig
+    print "Data integrity: VALID"
+else
+    print "Data integrity: INVALID"
+
+--- Tampered amount
+if (sign_pair secret "alice" "999.00") == data_sig
+    print "Tampered amount: VALID (bad)"
+else
+    print "Tampered amount: INVALID (good)"

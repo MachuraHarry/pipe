@@ -1,0 +1,86 @@
+--- Hash Chain / Proof of Work
+--- Build a hash chain and demonstrate
+--- a simple proof-of-work system.
+
+--- === Build a hash chain ===
+
+fn build_chain seed length
+    chain: [seed]
+    i: 0
+    while i < length
+        prev: at chain i
+        next: sha256 (prev ++ (to_str i))
+        chain: push chain next
+        i: i + 1
+    chain
+
+--- === Verify chain integrity ===
+
+fn verify_chain chain
+    i: 0
+    while i < ((len chain) - 1)
+        prev: at chain i
+        expected: sha256 (prev ++ (to_str i))
+        actual: at chain (i + 1)
+        if expected != actual
+            print ("Broken at index " ++ (to_str (i + 1)))
+            return false
+        i: i + 1
+    true
+
+--- === Proof of Work ===
+--- Find a nonce such that sha256(data ++ nonce) starts with '000'
+
+fn mine_pow data difficulty
+    nonce: 0
+    found: false
+    while !found
+        candidate: sha256 (data ++ (to_str nonce))
+        check: contains candidate difficulty
+        if !check
+            found: true
+        else
+            nonce: nonce + 1
+    nonce
+
+--- === Demo ===
+
+print "--- Hash Chain ---"
+
+chain: build_chain "genesis" 4
+print "Chain built with 4 links:"
+i: 0
+while i < (len chain)
+    print ("  [" ++ (to_str i) ++ "] " ++ (at chain i))
+    i: i + 1
+
+print ""
+if verify_chain chain
+    print "Chain verification: VALID"
+else
+    print "Chain verification: INVALID"
+
+--- Tamper test
+print ""
+print "--- Tamper Detection ---"
+--- Rebuild chain with tampered entry
+tampered_chain: build_chain "genesis" 4
+tampered_chain: set tampered_chain 2 "hacked"
+print "Inserted fake hash at index 2"
+if verify_chain tampered_chain
+    print "Tampered chain: VALID (bad)"
+else
+    print "Tampered chain: INVALID (good)"
+
+--- PoW demo
+print ""
+print "--- Proof of Work ---"
+t_start: now
+nonce: mine_pow "pipe-pow" "0"
+t_end: now
+print ("Data:   pipe-pow")
+print ("Target: start with '0'")
+print ("Nonce:  " ++ (to_str nonce))
+print ("Result: " ++ (sha256 ("pipe-pow" ++ (to_str nonce))))
+print ("Attempts: " ++ (to_str nonce))
+print ("Time:    " ++ (to_str (t_end - t_start)) ++ " seconds")

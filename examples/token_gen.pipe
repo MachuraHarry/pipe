@@ -1,0 +1,42 @@
+--- Token Generation with crypto/rand
+--- Generates API tokens, session IDs, and one-time codes
+--- using cryptographically secure randomness.
+
+--- === API Token ===
+
+print "--- 1. API Token (32 bytes) ---"
+api_token: secure_random 32
+print ("Token: " ++ api_token)
+print ("Length: " ++ (to_str (len api_token)) ++ " hex chars")
+
+--- === Short Session ID ===
+
+print ""
+print "--- 2. Session ID (8 bytes) ---"
+session: secure_random 8
+print ("Session: sess_" ++ session)
+
+--- === Numeric One-Time Code ===
+
+print ""
+print "--- 3. One-Time Code (6-digit) ---"
+code: secure_random_range 100000 1000000
+print ("Code: " ++ (to_str code))
+
+--- === Bearer Token Header ===
+
+print ""
+print "--- 4. Bearer Token ---"
+secret: secure_random 24
+print ("Authorization: Bearer " ++ secret)
+
+--- === Bulk Token Generation ===
+
+print ""
+print "--- 5. Bulk API Keys ---"
+print "Generating 5 API keys:"
+i: 0
+while i < 5
+    key: secure_random 32
+    print ("  " ++ (to_str (i + 1)) ++ ". " ++ key)
+    i: i + 1

@@ -1249,7 +1249,8 @@ func (ctx *EvalContext) evalImportStatement(is *ast.ImportStatement, env *object
 	// Use cached parse result or parse fresh
 	program, ok := ctx.importCache[resolvedPath]
 	if !ok {
-		program, err := object.ParseContent(content)
+		var err error
+		program, err = object.ParseContent(content)
 		if err != nil {
 			return ctx.newError("import parse error in %s: %v", resolvedPath, err)
 		}

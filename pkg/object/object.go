@@ -320,6 +320,8 @@ var Builtins = []BuiltinInfo{
 	{"join", bJoin},
 	{"contains", bContains},
 	{"repeat", bRepeat},
+	{"replace", bReplace},
+	{"replace_all", bReplaceAll},
 
 	// CSV
 	{"csv_parse", bCsvParse},
@@ -339,6 +341,7 @@ var Builtins = []BuiltinInfo{
 	{"filter", bFilter},
 	{"reduce", bReduce},
 	{"each", bEach},
+	{"unique", bUnique},
 
 	// Math
 	{"abs", bAbs},
@@ -347,6 +350,8 @@ var Builtins = []BuiltinInfo{
 	{"pow", bPow},
 	{"sqrt", bSqrt},
 	{"round", bRound},
+	{"ceil", bCeil},
+	{"floor", bFloor},
 
 	// Map
 	{"keys", bKeys},
@@ -1012,6 +1017,44 @@ func bRepeat(args ...Object) Object {
 	return &String{Value: strings.Repeat(str.Value, int(count))}
 }
 
+func bReplace(args ...Object) Object {
+	if len(args) != 3 {
+		return err("replace expects 3 arguments (str, old, new)")
+	}
+	s, ok := args[0].(*String)
+	if !ok {
+		return err("replace: first argument must be a string")
+	}
+	old, ok := args[1].(*String)
+	if !ok {
+		return err("replace: second argument must be a string")
+	}
+	newS, ok := args[2].(*String)
+	if !ok {
+		return err("replace: third argument must be a string")
+	}
+	return &String{Value: strings.Replace(s.Value, old.Value, newS.Value, 1)}
+}
+
+func bReplaceAll(args ...Object) Object {
+	if len(args) != 3 {
+		return err("replace_all expects 3 arguments (str, old, new)")
+	}
+	s, ok := args[0].(*String)
+	if !ok {
+		return err("replace_all: first argument must be a string")
+	}
+	old, ok := args[1].(*String)
+	if !ok {
+		return err("replace_all: second argument must be a string")
+	}
+	newS, ok := args[2].(*String)
+	if !ok {
+		return err("replace_all: third argument must be a string")
+	}
+	return &String{Value: strings.ReplaceAll(s.Value, old.Value, newS.Value)}
+}
+
 func bCsvParse(args ...Object) Object {
 	if len(args) != 1 {
 		return err("csv_parse expects 1 argument (text)")
@@ -1285,6 +1328,26 @@ func bEach(args ...Object) Object {
 	return NILOBJ
 }
 
+func bUnique(args ...Object) Object {
+	if len(args) != 1 {
+		return err("unique expects 1 argument (list)")
+	}
+	l, ok := args[0].(*List)
+	if !ok {
+		return err("unique: argument must be a list")
+	}
+	seen := make(map[string]bool)
+	result := &List{}
+	for _, e := range l.Elements {
+		key := e.Inspect()
+		if !seen[key] {
+			seen[key] = true
+			result.Elements = append(result.Elements, e)
+		}
+	}
+	return result
+}
+
 func callOne(fn, arg Object) Object {
 	if bi, ok := fn.(*BuiltinInfo); ok {
 		return bi.Fn(arg)
@@ -1462,6 +1525,32 @@ func bRound(args ...Object) Object {
 		return &Integer{Value: int64(math.Round(v.Value))}
 	}
 	return err("round expects a number")
+}
+
+func bCeil(args ...Object) Object {
+	if len(args) != 1 {
+		return err("ceil expects 1 argument")
+	}
+	switch v := args[0].(type) {
+	case *Integer:
+		return v
+	case *Float:
+		return &Integer{Value: int64(math.Ceil(v.Value))}
+	}
+	return err("ceil expects a number")
+}
+
+func bFloor(args ...Object) Object {
+	if len(args) != 1 {
+		return err("floor expects 1 argument")
+	}
+	switch v := args[0].(type) {
+	case *Integer:
+		return v
+	case *Float:
+		return &Integer{Value: int64(math.Floor(v.Value))}
+	}
+	return err("floor expects a number")
 }
 
 // ---- Map ----

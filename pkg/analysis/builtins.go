@@ -135,6 +135,12 @@ var builtinDocs = []BuiltinDoc{
 		Description: "For strings: checks if needle is a substring. For lists: checks if needle is an element.", Category: CatString},
 	{Name: "repeat", Signature: "repeat(str, count)", Params: []Param{p("str", "string"), p("count", "number")}, ReturnType: "string",
 		Description: "Repeats str count times. Much faster than while-loop concat for large counts.", Category: CatString},
+	{Name: "replace", Signature: "replace(str, old, new)", Params: []Param{p("str", "string"), p("old", "string"), p("new", "string")}, ReturnType: "string",
+		Description: "Replaces the first occurrence of old with new in str.", Category: CatString},
+	{Name: "replace_all", Signature: "replace_all(str, old, new)", Params: []Param{p("str", "string"), p("old", "string"), p("new", "string")}, ReturnType: "string",
+		Description: "Replaces all occurrences of old with new in str.", Category: CatString},
+	{Name: "index_of", Signature: "index_of(haystack, needle)", Params: []Param{p("haystack", "string|list"), p("needle", "any")}, ReturnType: "number",
+		Description: "Returns the index of needle in haystack, or -1 if not found. String find or list element search.", Category: CatString},
 
 	// ---- CSV ----
 	{Name: "csv_parse", Signature: "csv_parse(text)", Params: []Param{p("text", "string")}, ReturnType: "list",
@@ -169,6 +175,8 @@ var builtinDocs = []BuiltinDoc{
 		Description: "Accumulates a value by calling fn(accumulator, element) for each element.", Category: CatList},
 	{Name: "each", Signature: "each(list, fn)", Params: []Param{p("list", "list"), p("fn", "function")}, ReturnType: "nil",
 		Description: "Calls fn(element) for each element in list. Used for side effects.", Category: CatList},
+	{Name: "unique", Signature: "unique(list)", Params: []Param{p("list", "list")}, ReturnType: "list",
+		Description: "Returns a new list with duplicate elements removed. Preserves order of first occurrence.", Category: CatList},
 
 	// ---- Map ----
 	{Name: "get", Signature: "get(map, key)", Params: []Param{p("map", "map"), p("key", "string")}, ReturnType: "any",
@@ -193,6 +201,10 @@ var builtinDocs = []BuiltinDoc{
 		Description: "Returns the square root of x.", Category: CatMath},
 	{Name: "round", Signature: "round(x)", Params: []Param{p("x", "number")}, ReturnType: "number",
 		Description: "Rounds x to the nearest integer. Half values round to the nearest even integer.", Category: CatMath},
+	{Name: "ceil", Signature: "ceil(x)", Params: []Param{p("x", "number")}, ReturnType: "number",
+		Description: "Rounds x up to the nearest integer.", Category: CatMath},
+	{Name: "floor", Signature: "floor(x)", Params: []Param{p("x", "number")}, ReturnType: "number",
+		Description: "Rounds x down to the nearest integer.", Category: CatMath},
 
 	// ---- Network & HTTP ----
 	{Name: "http_get", Signature: "http_get(url)", Params: []Param{p("url", "string")}, ReturnType: "string",
@@ -291,8 +303,6 @@ var builtinDocs = []BuiltinDoc{
 		Description: "Computes the IEEE CRC-32 checksum of value.", Category: CatBytes},
 	{Name: "substring", Signature: "substring(str, start, end)", Params: []Param{p("str", "string"), p("start", "number"), p("end", "number")}, ReturnType: "string",
 		Description: "Returns the substring of str from start (inclusive) to end (exclusive), clamped to the string bounds.", Category: CatString},
-	{Name: "index_of", Signature: "index_of(str, needle)", Params: []Param{p("str", "string"), p("needle", "string")}, ReturnType: "number",
-		Description: "Returns the 0-based index of the first occurrence of needle in str, or -1 if not found.", Category: CatString},
 
 	// ---- Database ----
 	{Name: "db_open", Signature: "db_open(path)", Params: []Param{p("path", "string")}, ReturnType: "number",

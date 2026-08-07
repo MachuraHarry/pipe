@@ -296,17 +296,24 @@ func bSubstring(args ...Object) Object {
 
 func bIndexOf(args ...Object) Object {
 	if len(args) != 2 {
-		return err("index_of expects 2 arguments (string, substring)")
+		return err("index_of expects 2 arguments (string/list, needle)")
 	}
-	s, ok := args[0].(*String)
-	if !ok {
-		return err("index_of: first argument must be a string")
+	switch haystack := args[0].(type) {
+	case *String:
+		needle, ok := args[1].(*String)
+		if !ok {
+			return err("index_of: needle must be a string when haystack is a string")
+		}
+		return &Integer{Value: int64(strings.Index(haystack.Value, needle.Value))}
+	case *List:
+		for i, elem := range haystack.Elements {
+			if elem == args[1] || (elem.Type() == args[1].Type() && elem.Inspect() == args[1].Inspect()) {
+				return &Integer{Value: int64(i)}
+			}
+		}
+		return &Integer{Value: -1}
 	}
-	sub, ok2 := args[1].(*String)
-	if !ok2 {
-		return err("index_of: second argument must be a string")
-	}
-	return &Integer{Value: int64(strings.Index(s.Value, sub.Value))}
+	return err("index_of: first argument must be a string or list")
 }
 
 // ---- Bitwise (int64 bit patterns) ----

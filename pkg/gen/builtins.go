@@ -130,6 +130,11 @@ var builtinInfos = map[string]builtinInfo{
 	"cosine_sim":    {2, strs(TypeAny, TypeAny)},
 	"nearest":       {2, strs(TypeAny, TypeAny)},
 	"input":         {1, strs(TypeString)},
+	"replace":       {3, strs(TypeString, TypeString, TypeString)},
+	"replace_all":   {3, strs(TypeString, TypeString, TypeString)},
+	"unique":        {1, strs(TypeList)},
+	"ceil":          {1, strs(TypeFloat)},
+	"floor":         {1, strs(TypeFloat)},
 }
 
 func strs(types ...PipeType) []PipeType {

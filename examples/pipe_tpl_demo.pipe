@@ -1,0 +1,70 @@
+-- pipe-tpl Demo: template engine examples
+-- Install: pipe -get pipe-tpl
+
+import "pipe-tpl"
+
+--- === Simple Variables === ---
+
+print "--- 1. Simple variable ---"
+out: render "Hello {{ name }}!" {name: "Pipe"}
+print out
+
+--- === Nested Paths === ---
+
+print ""
+print "--- 2. Nested paths ---"
+data: {user: {name: "Alice", email: "alice@example.com"}, version: "1.0"}
+out2: render "{{ user.name }} <{{ user.email }}> v{{ version }}" data
+print out2
+
+--- === Filters === ---
+
+print ""
+print "--- 3. Filters ---"
+fdata: {title: "hello world", items: ["a", "b", "c", "d"]}
+out3: render "{{ title | upper }} has {{ items | len }} items" fdata
+print out3
+
+--- === Conditionals === ---
+
+print ""
+print "--- 4. if/else ---"
+tpl4: "{{ if active }}ACTIVE{{ else }}INACTIVE{{ end }} user"
+out4a: render tpl4 {active: true}
+print out4a
+out4b: render tpl4 {active: false}
+print out4b
+
+--- === For Loops === ---
+
+print ""
+print "--- 5. for loop ---"
+tpl5: "Shopping list:{{ for item in items }} - {{ item }}{{ end }}"
+out5: render tpl5 {items: ["Milk", "Bread", "Eggs"]}
+print out5
+
+--- === Mixed Template === ---
+
+print ""
+print "--- 6. Full example ---"
+tpl6: "Report: {{ title | upper }}
+Status: {{ if active }}Online{{ else }}Offline{{ end }}
+Items ({{ items | len }}):{{ for item in items }}
+  * {{ item }}{{ end }}"
+data6: {title: "weekly summary", active: true, items: ["Deploy v2", "Fix login", "Review PRs"]}
+out6: render tpl6 data6
+print out6
+
+--- === From File === ---
+
+print ""
+print "--- 7. render_file ---"
+tpl_path: "/tmp/pipe_tpl_demo.tpl"
+write_file tpl_path "API: {{ endpoint }}
+Method: {{ method | upper }}
+Token: {{ token }}"
+out7: render_file tpl_path {endpoint: "/users", method: "get", token: "abc123"}
+print out7
+
+print ""
+print "=== pipe-tpl demo complete ==="

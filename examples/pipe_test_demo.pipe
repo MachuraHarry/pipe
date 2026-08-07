@@ -1,0 +1,66 @@
+-- pipe-test Demo: better assertions, error catching, hooks
+-- Install: pipe -get pipe-test
+
+import "pipe-test"
+
+--- === Basic Assertions === ---
+
+test "equality"
+    expect_eq (2 + 2) 4 "math works"
+    expect_ne "abc" "xyz" "different strings"
+
+test "truthiness"
+    expect_truthy 42 "number is truthy"
+    expect_falsy nil "nil is falsy"
+    expect_falsy false "false is falsy"
+
+test "nil checks"
+    expect_nil nil "is nil"
+    expect_not_nil "hello" "not nil"
+
+test "numeric comparisons"
+    expect_gt 10 5 "greater than"
+    expect_lt 3 8 "less than"
+    expect_gte 5 5 "greater or equal"
+    expect_lte 3 3 "less or equal"
+
+test "containment"
+    lst: ["apple", "banana", "cherry"]
+    expect_contains lst "banana" "found in list"
+    expect_contains "hello world" "world" "substring match"
+
+test "type checks"
+    expect_type "text" "STRING" "is string"
+    expect_type 42 "INTEGER" "is integer"
+    expect_type true "BOOLEAN" "is boolean"
+    empty: []
+    expect_type empty "LIST" "is list"
+
+--- === Error Catching === ---
+
+fn bad_db _
+    raise "connection refused: timeout"
+
+fn safe_math _
+    2 + 2
+
+test "expect_error catches failures"
+    err: expect_error bad_db
+    expect_contains err "connection" "error message captured"
+
+test "expect_no_error on safe code"
+    expect_no_error safe_math
+
+--- === Hooks === ---
+
+test "setup and teardown with with_hooks"
+    state: [0]
+    fn setup _
+        set state 0 99
+    fn check _
+        expect_eq (at state 0) 99 "setup ran"
+    fn cleanup _
+        set state 0 0
+    with_hooks setup check cleanup
+
+print "=== pipe-test demo complete ==="

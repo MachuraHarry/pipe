@@ -905,6 +905,29 @@ print (get r "status")
 print (get r "body")
 ```
 
+### `http_server`
+**Signature:** `http_server(addr, handler)`
+**Description:** Starts an HTTP server on `addr` (e.g. `"0.0.0.0:8080"`). `handler` is a function `fn(req)` that receives a request map `{method, path, query, headers, body}` and must return a response map `{status, headers, body}`. The server runs in the background. Returns a server handle.
+**Returns:** `server`
+```pipe
+fn handle req
+    name: get req "path"
+    {status: 200, headers: {}, body: "Hello " ++ name}
+
+server: http_server "0.0.0.0:8080" handle
+print "Server running on :8080"
+sleep 60000
+http_close server
+```
+
+### `http_close`
+**Signature:** `http_close(server)`
+**Description:** Shuts down an HTTP server and releases the port.
+**Returns:** `nil`
+```pipe
+http_close server
+```
+
 ### `parse_json`
 **Signature:** `parse_json(json_string)`
 **Description:** Parses a JSON string into Pipe data structures (maps, lists, numbers, strings, booleans, nil).

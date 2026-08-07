@@ -357,6 +357,10 @@ var Builtins = []BuiltinInfo{
 	{"tcp_write", bTcpWrite},
 	{"tcp_close", bTcpClose},
 
+	// HTTP Server
+	{"http_server", bHttpServer},
+	{"http_close", bHttpClose},
+
 	// String
 	{"upper", bUpper},
 	{"lower", bLower},

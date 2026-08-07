@@ -27,6 +27,7 @@ const (
 	CatMath     = "Math"
 	CatNet      = "Network & HTTP"
 	CatTCP      = "TCP"
+	CatServer   = "HTTP Server"
 	CatRegex    = "Regex"
 	CatDate     = "Date & Time"
 	CatRandom   = "Random"
@@ -234,6 +235,12 @@ var builtinDocs = []BuiltinDoc{
 		Description: "Writes data to a TCP connection.", Category: CatTCP},
 	{Name: "tcp_close", Signature: "tcp_close(handle)", Params: []Param{p("handle", "connection|listener")}, ReturnType: "nil",
 		Description: "Closes a TCP connection or listener.", Category: CatTCP},
+
+	// ---- HTTP Server ----
+	{Name: "http_server", Signature: "http_server(addr, handler)", Params: []Param{p("addr", "string"), p("handler", "function")}, ReturnType: "server",
+		Description: "Starts an HTTP server on addr (e.g. \"0.0.0.0:8080\"). handler is a function fn(req) that receives a request map {method, path, query, headers, body} and returns a response map {status, headers, body}. Returns a server handle.", Category: CatServer},
+	{Name: "http_close", Signature: "http_close(server)", Params: []Param{p("server", "server")}, ReturnType: "nil",
+		Description: "Shuts down an HTTP server and releases the port.", Category: CatServer},
 
 	// ---- Regex ----
 	{Name: "regex_match", Signature: "regex_match(pattern, str)", Params: []Param{p("pattern", "string"), p("str", "string")}, ReturnType: "boolean",

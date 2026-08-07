@@ -683,6 +683,31 @@ print (get r "status")
 print (get r "body")
 ```
 
+### http_server
+```
+http_server addr handler
+```
+Startet einen HTTP-Server auf `addr` (z.B. `"0.0.0.0:8080"`). `handler` ist eine Funktion `fn(req)`, die eine Request-Map `{method, path, query, headers, body}` erhält und eine Response-Map `{status, headers, body}` zurückgeben muss. Der Server läuft im Hintergrund. Gibt ein Server-Handle zurück.
+```pipe
+fn handle req
+    name: get req "path"
+    {status: 200, headers: {}, body: "Hallo " ++ name}
+
+server: http_server "0.0.0.0:8080" handle
+print "Server läuft auf :8080"
+sleep 60000
+http_close server
+```
+
+### http_close
+```
+http_close server
+```
+Fährt einen HTTP-Server herunter und gibt den Port frei.
+```pipe
+http_close server
+```
+
 ### parse_json
 ```
 parse_json json_string

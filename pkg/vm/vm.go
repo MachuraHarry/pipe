@@ -328,12 +328,45 @@ func (vm *VM) Run() error {
 			}
 			vm.push(&object.Map{Pairs: pairs})
 
+		case compiler.OpStruct:
+			numFields := int(compiler.ReadUint16(ins, frame.ip))
+			frame.ip += 2
+			fieldNames := make([]string, numFields)
+			for i := 0; i < numFields; i++ {
+				nameIdx := compiler.ReadUint16(ins, frame.ip)
+				frame.ip += 2
+				fieldNames[i] = vm.constants[nameIdx].(*object.String).Value
+			}
+			vals := make([]object.Object, numFields)
+			for i := numFields - 1; i >= 0; i-- {
+				vals[i] = vm.pop()
+			}
+			defObj := vm.pop()
+			def, ok := defObj.(*object.StructDef)
+			if !ok {
+				return fmt.Errorf("expected struct definition, got %T", defObj)
+			}
+			inst := &object.StructInstance{
+				Def:    def,
+				Values: make(map[string]object.Object),
+			}
+			for i, fn := range fieldNames {
+				inst.Values[fn] = vals[i]
+			}
+			vm.push(inst)
+
 		case compiler.OpDot:
 			idx := compiler.ReadUint16(ins, frame.ip)
 			frame.ip += 2
 			field := vm.constants[idx].(*object.String).Value
 			obj := vm.pop()
 			switch m := obj.(type) {
+			case *object.StructInstance:
+				if val, ok := m.Values[field]; ok {
+					vm.push(val)
+				} else {
+					vm.push(object.NILOBJ)
+				}
 			case *object.Map:
 				if val, ok := m.Pairs[field]; ok {
 					vm.push(val)
@@ -347,7 +380,7 @@ func (vm *VM) Run() error {
 					vm.push(m)
 				}
 			default:
-				return fmt.Errorf(". only on map: %s", obj.Type())
+				vm.push(&object.Error{Message: fmt.Sprintf("E006: cannot use .%s on %s", field, obj.Type())})
 			}
 
 		case compiler.OpHalt:
@@ -404,6 +437,26 @@ func (vm *VM) callFunction(numArgs int) {
 		result := fn.Fn(args...)
 		vm.pop()
 		vm.push(result)
+
+	case *object.StructDef:
+		args := make([]object.Object, numArgs)
+		for i := numArgs - 1; i >= 0; i-- {
+			args[i] = vm.pop()
+		}
+		inst := &object.StructInstance{
+			Def:    fn,
+			Values: make(map[string]object.Object),
+		}
+		for k, v := range fn.Defaults {
+			inst.Values[k] = v
+		}
+		for i, arg := range args {
+			if i < len(fn.Fields) {
+				inst.Values[fn.Fields[i]] = arg
+			}
+		}
+		vm.pop()
+		vm.push(inst)
 
 	default:
 		vm.pop()
@@ -834,6 +887,12 @@ func (vm *VM) executeFrame() object.Object {
 			field := vm.constants[idx].(*object.String).Value
 			obj := vm.pop()
 			switch m := obj.(type) {
+			case *object.StructInstance:
+				if val, ok := m.Values[field]; ok {
+					vm.push(val)
+				} else {
+					vm.push(object.NILOBJ)
+				}
 			case *object.Map:
 				if val, ok := m.Pairs[field]; ok {
 					vm.push(val)
@@ -847,7 +906,7 @@ func (vm *VM) executeFrame() object.Object {
 					vm.push(m)
 				}
 			default:
-				return &object.Error{Message: fmt.Sprintf(". only on map: %s", obj.Type())}
+				vm.push(&object.Error{Message: fmt.Sprintf("E006: cannot use .%s on %s", field, obj.Type())})
 			}
 
 		case compiler.OpReturn:

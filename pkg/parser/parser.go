@@ -281,6 +281,8 @@ func (p *Parser) parseStatement() ast.Statement {
 		return p.parseExportStatement()
 	case lexer.ENUM:
 		return p.parseEnumStatement()
+	case lexer.STRUCT:
+		return p.parseStructStatement()
 	case lexer.TEST:
 		return p.parseTestStatement()
 	case lexer.NEWLINE:
@@ -1117,6 +1119,77 @@ func (p *Parser) parseEnumStatement() ast.Statement {
 		p.nextToken()
 		if p.curTokenIs(lexer.COMMA) {
 			p.nextToken() // skip comma
+		}
+	}
+
+	return stmt
+}
+
+func (p *Parser) parseStructStatement() ast.Statement {
+	stmt := &ast.StructStatement{}
+
+	p.nextToken() // skip 'struct'
+	if !p.curTokenIs(lexer.IDENT) {
+		p.error("struct expects a name")
+		return nil
+	}
+	stmt.Name = p.curToken.Literal
+	stmt.Line = p.curToken.Line
+	stmt.Col = p.curToken.Col
+
+	p.nextToken()
+
+	if p.curTokenIs(lexer.COLON) {
+		// Inline: struct Point: x, y
+		p.nextToken()
+		for p.curTokenIs(lexer.IDENT) {
+			stmt.Fields = append(stmt.Fields, ast.StructField{Name: p.curToken.Literal})
+			p.nextToken()
+			if p.curTokenIs(lexer.COMMA) {
+				p.nextToken()
+			}
+		}
+		return stmt
+	}
+
+	// Block form with indentation
+	if !p.curTokenIs(lexer.INDENT) && !p.curTokenIs(lexer.NEWLINE) {
+		p.error("struct expects indented body or ':' after name")
+		return nil
+	}
+
+	// Skip optional newline before INDENT
+	if p.curTokenIs(lexer.NEWLINE) {
+		p.nextToken()
+	}
+
+	if p.curTokenIs(lexer.INDENT) {
+		p.nextToken()
+	}
+
+	for !p.curTokenIs(lexer.DEDENT) && !p.curTokenIs(lexer.EOF) {
+		if !p.curTokenIs(lexer.IDENT) {
+			p.error("struct field must be an identifier")
+			return nil
+		}
+		fieldName := p.curToken.Literal
+
+		var defExpr ast.Expression
+
+		if p.peekTokenIs(lexer.COLON) {
+			p.nextToken() // skip field name
+			p.nextToken() // skip colon
+			defExpr = p.parseExpression(PrecedenceLowest)
+		}
+
+		stmt.Fields = append(stmt.Fields, ast.StructField{
+			Name:    fieldName,
+			Default: defExpr,
+		})
+
+		p.nextToken()
+		if p.curTokenIs(lexer.NEWLINE) {
+			p.nextToken()
 		}
 	}
 

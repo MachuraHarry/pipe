@@ -350,3 +350,35 @@ func TestCrossMatchMultiPattern(t *testing.T) {
 func TestCrossParallelPipelineVar(t *testing.T) {
 	assertBothEqual(t, "fn triple x\n    x * 3\n\nresult: 5\n    >> triple\n\nresult + 10", "25")
 }
+
+func TestCrossStructDefineAndCreate(t *testing.T) {
+	input := "struct Point\n    x\n    y\n\np: Point 10 20\np.x"
+	assertBothEqual(t, input, "10")
+}
+
+func TestCrossStructMultipleFields(t *testing.T) {
+	input := "struct Point\n    x\n    y\n\np: Point 1 2\np.y"
+	assertBothEqual(t, input, "2")
+}
+
+func TestCrossStructWithDefaults(t *testing.T) {
+	input := "struct Point\n    x: 0\n    y: 0\n\np: Point 5 3\np.x + p.y"
+	assertBothEqual(t, input, "8")
+}
+
+func TestCrossStructInline(t *testing.T) {
+	input := "struct Point: x, y\n\np: Point 3 4\np.x"
+	assertBothEqual(t, input, "3")
+}
+
+func TestCrossStructDotOnNonStruct(t *testing.T) {
+	assertBothError(t, "struct Point: x\np: Point 1\n\"hello\".x")
+}
+
+func TestCrossStructUndefinedField(t *testing.T) {
+	program := parseProgram(t, "struct Point: x\n\np: Point 1\np.y")
+	evalR := evalResult(program)
+	if evalR == nil || evalR.Type() != object.ERROR {
+		t.Errorf("eval: expected error for unknown field, got %v", evalR)
+	}
+}

@@ -415,3 +415,19 @@ func (te *TryExpression) TokenLiteral() string {
 	return "try"
 }
 func (te *TryExpression) String() string { return "try ... catch" }
+
+type StructField struct {
+	Name    string
+	Default Expression
+}
+
+type StructStatement struct {
+	Name   string
+	Fields []StructField
+	Line   int
+	Col    int
+}
+
+func (ss *StructStatement) statementNode()       {}
+func (ss *StructStatement) TokenLiteral() string { return "struct" }
+func (ss *StructStatement) Pos() Position        { return Position{Line: ss.Line, Col: ss.Col} }

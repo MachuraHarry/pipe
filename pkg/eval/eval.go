@@ -168,6 +168,9 @@ func (ctx *EvalContext) Eval(node ast.Node, env *object.Environment) object.Obje
 	case *ast.EnumStatement:
 		return ctx.evalEnumStatement(n, env)
 
+	case *ast.StructStatement:
+		return ctx.evalStructStatement(n, env)
+
 	case *ast.ReturnStatement:
 		return &ReturnValue{Value: ctx.Eval(n.Value, env)}
 
@@ -198,6 +201,10 @@ func (ctx *EvalContext) Eval(node ast.Node, env *object.Environment) object.Obje
 		}
 		if isError(fn) {
 			return fn
+		}
+		// Struct construction via positional args: Point(10, 20)
+		if def, ok := fn.(*object.StructDef); ok {
+			return ctx.evalStructConstructor(def, n.Arguments, env)
 		}
 		args := ctx.evalExpressions(n.Arguments, env)
 		if len(args) == 1 && isError(args[0]) {
@@ -786,13 +793,18 @@ func (ctx *EvalContext) evalDotExpression(de *ast.DotExpression, env *object.Env
 	}
 
 	switch obj := left.(type) {
+	case *object.StructInstance:
+		if val, ok := obj.Values[de.Field]; ok {
+			return val
+		}
+		return ctx.newError("struct %s has no field '%s'", obj.Def.Name, de.Field)
 	case *object.Map:
 		if val, ok := obj.Pairs[de.Field]; ok {
 			return val
 		}
 		return ctx.newError("field '%s' not found", de.Field)
 	default:
-		return ctx.newError("cannot use .%s on a %s — dot access requires a map", de.Field, left.Type())
+		return ctx.newError("cannot use .%s on a %s — dot access requires a struct or map", de.Field, left.Type())
 	}
 }
 
@@ -1043,6 +1055,43 @@ func (ctx *EvalContext) evalEnumStatement(es *ast.EnumStatement, env *object.Env
 		env.Set(val, &object.Integer{Value: int64(i)})
 	}
 	return object.NILOBJ
+}
+
+func (ctx *EvalContext) evalStructStatement(ss *ast.StructStatement, env *object.Environment) object.Object {
+	def := &object.StructDef{
+		Name:     ss.Name,
+		Fields:   make([]string, 0, len(ss.Fields)),
+		Defaults: make(map[string]object.Object),
+	}
+	for _, f := range ss.Fields {
+		def.Fields = append(def.Fields, f.Name)
+		if f.Default != nil {
+			def.Defaults[f.Name] = ctx.Eval(f.Default, env)
+		}
+	}
+	env.Set(ss.Name, def)
+	return def
+}
+
+func (ctx *EvalContext) evalStructConstructor(def *object.StructDef, argExprs []ast.Expression, env *object.Environment) object.Object {
+	instance := &object.StructInstance{
+		Def:    def,
+		Values: make(map[string]object.Object),
+	}
+	for k, v := range def.Defaults {
+		instance.Values[k] = v
+	}
+	for i, argExpr := range argExprs {
+		if i >= len(def.Fields) {
+			return ctx.newError("struct %s accepts at most %d arguments, got %d", def.Name, len(def.Fields), len(argExprs))
+		}
+		val := ctx.Eval(argExpr, env)
+		if isError(val) {
+			return val
+		}
+		instance.Values[def.Fields[i]] = val
+	}
+	return instance
 }
 
 func (ctx *EvalContext) evalTestStatement(ts *ast.TestStatement, env *object.Environment) object.Object {

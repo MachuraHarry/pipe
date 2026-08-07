@@ -557,6 +557,26 @@ func (c *Compiler) Compile(node ast.Node) error {
 			}
 		}
 
+	case *ast.StructStatement:
+		def := &object.StructDef{
+			Name:     n.Name,
+			Fields:   make([]string, 0, len(n.Fields)),
+			Defaults: make(map[string]object.Object),
+		}
+		for _, f := range n.Fields {
+			def.Fields = append(def.Fields, f.Name)
+			if f.Default != nil {
+				def.Defaults[f.Name] = &object.NilObject{}
+			}
+		}
+		sym := c.symbolTable.Define(n.Name)
+		c.emit(OpConstant, c.addConstant(def))
+		if sym.Scope == GlobalScope {
+			c.emit(OpSetGlobal, sym.Index)
+		} else {
+			c.emit(OpSetLocal, sym.Index)
+		}
+
 	case *ast.ImportStatement:
 		if err := c.compileImport(n); err != nil {
 			return err
@@ -594,7 +614,7 @@ func (c *Compiler) compileProgram(stmts []ast.Statement) error {
 	// that depend on execution order (e.g., ai_provider before ai_batch).
 	for _, stmt := range stmts {
 		switch stmt.(type) {
-		case *ast.FnStatement, *ast.EnumStatement,
+		case *ast.FnStatement, *ast.EnumStatement, *ast.StructStatement,
 			*ast.ExportStatement, *ast.ImportStatement:
 			if err := c.Compile(stmt); err != nil {
 				return err
@@ -605,7 +625,7 @@ func (c *Compiler) compileProgram(stmts []ast.Statement) error {
 	// Pass 2: compile values (VarStatements) and expressions in source order
 	for _, stmt := range stmts {
 		switch stmt.(type) {
-		case *ast.FnStatement, *ast.EnumStatement,
+		case *ast.FnStatement, *ast.EnumStatement, *ast.StructStatement,
 			*ast.ExportStatement, *ast.ImportStatement:
 			continue
 		}
@@ -1085,6 +1105,10 @@ func (c *Compiler) compileImport(is *ast.ImportStatement) error {
 			if err := c.Compile(s); err != nil {
 				return fmt.Errorf("import %s: %w", is.Path, err)
 			}
+		case *ast.StructStatement:
+			if err := c.Compile(s); err != nil {
+				return fmt.Errorf("import %s: %w", is.Path, err)
+			}
 		case *ast.ExportStatement:
 			if s.Fn != nil {
 				if err := c.Compile(s.Fn); err != nil {
@@ -1123,6 +1147,8 @@ func (c *Compiler) defineTopLevelSymbols(stmts []ast.Statement) {
 			for _, name := range s.Values {
 				c.symbolTable.Define(name)
 			}
+		case *ast.StructStatement:
+			c.symbolTable.Define(s.Name)
 		case *ast.ExportStatement:
 			if s.Fn != nil {
 				c.symbolTable.Define(s.Fn.Name.Value)

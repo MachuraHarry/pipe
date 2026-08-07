@@ -46,6 +46,7 @@ const (
 	OpGetFree
 	OpCheckError
 	OpTryAIFix
+	OpStruct
 )
 
 var opcodeNames = map[Opcode]string{
@@ -90,6 +91,7 @@ var opcodeNames = map[Opcode]string{
 	OpGetFree:       "OpGetFree",
 	OpCheckError:    "OpCheckError",
 	OpTryAIFix:      "OpTryAIFix",
+	OpStruct:        "OpStruct",
 }
 
 func (o Opcode) String() string {

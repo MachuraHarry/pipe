@@ -26,6 +26,7 @@ const (
 	BYTES                        = "BYTES"
 	FUTURE                       = "FUTURE"
 	ERROR                        = "ERROR"
+	STRUCT                       = "STRUCT"
 )
 
 type Object interface {
@@ -178,6 +179,39 @@ func (cf *CompiledFunction) Type() ObjectType { return COMPILED_FUNCTION }
 func (cf *CompiledFunction) Inspect() string  { return "compiled function" }
 func (c *Closure) Type() ObjectType           { return CLOSURE }
 func (c *Closure) Inspect() string            { return "closure" }
+
+type StructDef struct {
+	Name    string
+	Fields  []string
+	Defaults map[string]Object
+}
+
+func (sd *StructDef) Type() ObjectType { return STRUCT }
+func (sd *StructDef) Inspect() string {
+	fields := []string{}
+	for _, f := range sd.Fields {
+		if def, ok := sd.Defaults[f]; ok {
+			fields = append(fields, fmt.Sprintf("%s: %s", f, def.Inspect()))
+		} else {
+			fields = append(fields, f)
+		}
+	}
+	return fmt.Sprintf("struct %s {%s}", sd.Name, strings.Join(fields, ", "))
+}
+
+type StructInstance struct {
+	Def    *StructDef
+	Values map[string]Object
+}
+
+func (si *StructInstance) Type() ObjectType { return STRUCT }
+func (si *StructInstance) Inspect() string {
+	fields := []string{}
+	for _, f := range si.Def.Fields {
+		fields = append(fields, fmt.Sprintf("%s: %s", f, si.Values[f].Inspect()))
+	}
+	return fmt.Sprintf("%s{%s}", si.Def.Name, strings.Join(fields, ", "))
+}
 
 var (
 	TRUE   = &Boolean{Value: true}

@@ -262,6 +262,16 @@ var builtinDocs = []BuiltinDoc{
 		Description: "Returns a cryptographically secure random 64-bit integer.", Category: CatCrypto},
 	{Name: "secure_random_range", Signature: "secure_random_range(min, max)", Params: []Param{p("min", "number"), p("max", "number")}, ReturnType: "number",
 		Description: "Returns a cryptographically secure random integer in [min, max).", Category: CatCrypto},
+	{Name: "secure_random_bytes", Signature: "secure_random_bytes(byte_count)", Params: []Param{p("byte_count", "number")}, ReturnType: "bytes",
+		Description: "Returns cryptographically secure random bytes (max 1024). Use for keys, IVs, nonces.", Category: CatCrypto},
+	{Name: "encrypt", Signature: "encrypt(key, plaintext[, associated_data])", Params: []Param{p("key", "string"), p("plaintext", "string|bytes"), p("associated_data", "string|bytes")}, ReturnType: "string",
+		Description: "Encrypts data using AES-GCM. Key must be 16/24/32 bytes. Returns base64 ciphertext with embedded nonce.", Category: CatCrypto},
+	{Name: "decrypt", Signature: "decrypt(key, ciphertext[, associated_data])", Params: []Param{p("key", "string"), p("ciphertext", "string"), p("associated_data", "string|bytes")}, ReturnType: "string",
+		Description: "Decrypts AES-GCM ciphertext. Returns plaintext or error if authentication fails.", Category: CatCrypto},
+	{Name: "hmac_sha256", Signature: "hmac_sha256(key, message)", Params: []Param{p("key", "string"), p("message", "string")}, ReturnType: "string",
+		Description: "Computes HMAC-SHA256(key, message). Returns hex-encoded 32-byte MAC.", Category: CatCrypto},
+	{Name: "hmac_sha512", Signature: "hmac_sha512(key, message)", Params: []Param{p("key", "string"), p("message", "string")}, ReturnType: "string",
+		Description: "Computes HMAC-SHA512(key, message). Returns hex-encoded 64-byte MAC.", Category: CatCrypto},
 
 	// ---- Encoding ----
 	{Name: "base64_encode", Signature: "base64_encode(str)", Params: []Param{p("str", "string")}, ReturnType: "string",

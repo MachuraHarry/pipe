@@ -1,6 +1,6 @@
 # 10. Builtin-Referenz
 
-Pipe hat **168 eingebaute Funktionen** — keine externen Abhängigkeiten
+Pipe hat **174 eingebaute Funktionen** — keine externen Abhängigkeiten
 (alle in Go implementiert, nutzen nur die Standardbibliothek).
 
 Die Builtins sind in **allen Ausführungsmodi** verfügbar (Tree-Walker und VM).
@@ -857,7 +857,7 @@ print (random_range 1 101)
 
 ---
 
-## 10.12 Kryptographie (3 Funktionen)
+## 10.12 Kryptographie (9 Funktionen)
 
 > **Hinweis:** Im Gegensatz zu `random` und `random_range` (die `math/rand` verwenden) nutzen diese Funktionen `crypto/rand` und sind für kryptografische Zwecke wie Schlüsselgenerierung, Token und Nonces geeignet.
 
@@ -888,6 +888,57 @@ Gibt eine kryptografisch sichere Ganzzahl im Bereich `[min, max)` zurück.
 ```pipe
 -- Zufallszahl zwischen 100000 und 999999
 code: secure_random_range 100000 1000000
+```
+
+### secure_random_bytes
+```
+secure_random_bytes byte_anzahl
+```
+Gibt kryptografisch sichere Zufallsbytes zurück (raw bytes, kein Hex). Für Schlüsselmaterial, IVs, Nonces. Max 1024 Bytes.
+```pipe
+key: secure_random_bytes 32
+```
+
+### encrypt
+```
+encrypt key plaintext [associated_data]
+```
+Verschlüsselt `plaintext` mit AES-GCM. Der Key kann ein String (16/24/32 Bytes), ein Hex-String von `secure_random` oder raw Bytes sein. Eine zufällige Nonce wird vorangestellt. Optionales `associated_data` wird authentifiziert aber nicht verschlüsselt (AEAD).
+```pipe
+key: secure_random 32
+enc: encrypt key "Hello World"
+-- "g+F+k0q...base64..."
+
+-- Mit Associated Data
+enc: encrypt key "Hello" "meta-info"
+```
+
+### decrypt
+```
+decrypt key ciphertext [associated_data]
+```
+Entschlüsselt AES-GCM-Chiffretext. Der Key muss mit dem Verschlüsselungs-Key übereinstimmen. Bei falschem Key oder manipulierten Daten → Fehler.
+```pipe
+decrypt key enc           -- "Hello World"
+decrypt wrong_key enc     -- ERROR: authentication failed
+```
+
+### hmac_sha256
+```
+hmac_sha256 key message
+```
+Berechnet HMAC-SHA256(key, message). Hex-kodierter 32-Byte MAC. Für Nachrichten-Authentifizierung, API-Signing, JWT.
+```pipe
+sig: hmac_sha256 "secret-key" "Transfer 100 EUR"
+```
+
+### hmac_sha512
+```
+hmac_sha512 key message
+```
+Berechnet HMAC-SHA512(key, message). Hex-kodierter 64-Byte MAC. Höhere Sicherheit als SHA256.
+```pipe
+sig: hmac_sha512 "key" "data"
 ```
 
 ---

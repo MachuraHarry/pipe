@@ -138,6 +138,9 @@ var builtinInfos = map[string]builtinInfo{
 	"secure_random":       {1, strs(TypeInt)},
 	"secure_random_int":   {0, nil},
 	"secure_random_range": {2, strs(TypeInt, TypeInt)},
+	"secure_random_bytes": {1, strs(TypeInt)},
+	"encrypt":             {2, strs(TypeString, TypeString)},
+	"hmac_sha256":         {2, strs(TypeString, TypeString)},
 }
 
 func strs(types ...PipeType) []PipeType {

@@ -425,3 +425,72 @@ func TestCrossSecureRandomErrors(t *testing.T) {
 	assertBothErrorContains(t, "secure_random 2000", "between 1 and 1024")
 	assertBothErrorContains(t, "secure_random_range 5 3", "min must be less than max")
 }
+
+func TestCrossSecureRandomBytes(t *testing.T) {
+	program := parseProgram(t, "secure_random_bytes 4")
+	evalR := evalResult(program)
+	vmR := vmResult(t, program)
+	if evalR == nil || evalR.Type() != object.BYTES {
+		t.Errorf("eval: expected bytes, got %v", evalR)
+	}
+	if vmR == nil || vmR.Type() != object.BYTES {
+		t.Errorf("vm: expected bytes, got %v", vmR)
+	}
+	if evalR != nil && len(evalR.(*object.Bytes).Value) != 4 {
+		t.Errorf("eval: expected 4 bytes, got %d", len(evalR.(*object.Bytes).Value))
+	}
+}
+
+func TestCrossEncryptDecrypt(t *testing.T) {
+	input := "key: secure_random 32\nplain: \"Hello World!\"\nenc: encrypt key plain\ndec: decrypt key enc\ndec"
+	assertBothEqual(t, input, "Hello World!")
+}
+
+func TestCrossEncryptBytes(t *testing.T) {
+	input := "key: secure_random 16\ndata: to_bytes \"Secret\"\nenc: encrypt key data\ndecrypt key enc"
+	program := parseProgram(t, input)
+	evalR := evalResult(program)
+	vmR := vmResult(t, program)
+	if evalR == nil || evalR.Inspect() != "Secret" {
+		t.Errorf("eval: expected 'Secret', got %v", evalR)
+	}
+	if vmR == nil || vmR.Inspect() != "Secret" {
+		t.Errorf("vm: expected 'Secret', got %v", vmR)
+	}
+}
+
+func TestCrossDecryptWrongKey(t *testing.T) {
+	assertBothErrorContains(t, "key: secure_random 32\nenc: encrypt key \"test\"\nwrong: secure_random 32\ndecrypt wrong enc", "authentication failed")
+}
+
+func TestCrossHmacSha256(t *testing.T) {
+	input := "hmac_sha256 \"secret\" \"hello\""
+	program := parseProgram(t, input)
+	evalR := evalResult(program)
+	vmR := vmResult(t, program)
+	if evalR == nil || evalR.Type() != object.STRING {
+		t.Errorf("eval: expected string, got %v", evalR)
+	}
+	if vmR == nil || vmR.Type() != object.STRING {
+		t.Errorf("vm: expected string, got %v", vmR)
+	}
+	if evalR != nil && len(evalR.Inspect()) != 64 {
+		t.Errorf("eval: expected 64 hex chars, got %d", len(evalR.Inspect()))
+	}
+}
+
+func TestCrossHmacSha512(t *testing.T) {
+	input := "hmac_sha512 \"key\" \"data\""
+	program := parseProgram(t, input)
+	evalR := evalResult(program)
+	if evalR == nil || evalR.Type() != object.STRING {
+		t.Errorf("eval: expected string, got %v", evalR)
+	}
+	if evalR != nil && len(evalR.Inspect()) != 128 {
+		t.Errorf("eval: expected 128 hex chars, got %d", len(evalR.Inspect()))
+	}
+}
+
+func TestCrossHmacDeterministic(t *testing.T) {
+	assertBothEqual(t, "a: hmac_sha256 \"key\" \"hello\"\nb: hmac_sha256 \"key\" \"hello\"\nif a == b\n    1\nelse\n    0", "1")
+}

@@ -1,6 +1,6 @@
 # 10. Built-in Function Reference
 
-Pipe includes 168 built-in functions organized by category. This chapter documents each function with its signature, description, return type, and usage example.
+Pipe includes 174 built-in functions organized by category. This chapter documents each function with its signature, description, return type, and usage example.
 
 ---
 
@@ -1112,9 +1112,9 @@ coin: random_range 0 1
 
 ---
 
-## 10.13 Cryptography (3 functions)
+## 10.13 Cryptography (9 functions)
 
-> **Note:** Unlike `random` and `random_range` (which use pseudo-random `math/rand`), these functions use `crypto/rand` and are suitable for cryptographic purposes like key generation, tokens, and nonces.
+> **Note:** Unlike `random` and `random_range` (which use pseudo-random `math/rand`), the `secure_*` functions use `crypto/rand` and are suitable for cryptographic purposes like key generation, tokens, and nonces.
 
 ### `secure_random`
 **Signature:** `secure_random(byte_count)`
@@ -1142,6 +1142,59 @@ token: secure_random_int
 ```pipe
 -- random int between 100000 and 999999
 code: secure_random_range 100000 1000000
+```
+
+### `secure_random_bytes`
+**Signature:** `secure_random_bytes(byte_count)`
+**Description:** Generates `byte_count` cryptographically secure random bytes. Returns raw bytes (not hex). For key material, IVs, and nonces. Max 1024 bytes.
+**Returns:** `bytes`
+```pipe
+-- 32 raw bytes for AES-256 key
+key: secure_random_bytes 32
+```
+
+### `encrypt`
+**Signature:** `encrypt(key, plaintext[, associated_data])`
+**Description:** Encrypts `plaintext` using AES-GCM with the given `key`. The key can be a raw string (16/24/32 bytes), a hex-encoded key from `secure_random`, or raw bytes from `secure_random_bytes`. A random nonce is generated and prepended to the ciphertext. Optional `associated_data` is authenticated but not encrypted (AEAD).
+**Returns:** `string` (base64-encoded ciphertext)
+```pipe
+-- AES-256 encryption with hex key
+key: secure_random 32
+enc: encrypt key "Hello World"
+-- "g+F+k0q...base64..."
+
+-- With associated data (authenticated but not encrypted)
+enc: encrypt key "Hello" "meta-info"
+```
+
+### `decrypt`
+**Signature:** `decrypt(key, ciphertext[, associated_data])`
+**Description:** Decrypts AES-GCM ciphertext. The key must match the one used for encryption. The nonce is extracted from the ciphertext. If the key is wrong or the data is tampered, returns an error.
+**Returns:** `string`
+```pipe
+decrypt key enc           -- "Hello World"
+decrypt wrong_key enc     -- ERROR: authentication failed
+```
+
+### `hmac_sha256`
+**Signature:** `hmac_sha256(key, message)`
+**Description:** Computes the HMAC-SHA256 of `message` using `key`. Returns a hex-encoded 32-byte MAC. Used for message authentication, API signing, JWT tokens.
+**Returns:** `string` (64 hex chars)
+```pipe
+-- Generate MAC
+sig: hmac_sha256 "secret-key" "Transfer 100 EUR"
+-- "8f14e45f...64 hex chars..."
+
+-- Verify (recompute and compare)
+sig == (hmac_sha256 "secret-key" "Transfer 100 EUR")   -- true
+```
+
+### `hmac_sha512`
+**Signature:** `hmac_sha512(key, message)`
+**Description:** Computes the HMAC-SHA512 of `message` using `key`. Returns a hex-encoded 64-byte MAC. Higher security than HMAC-SHA256.
+**Returns:** `string` (128 hex chars)
+```pipe
+sig: hmac_sha512 "key" "data"
 ```
 
 ---
@@ -2497,6 +2550,11 @@ crc32 "hello"
 | 98 | `secure_random` | `secure_random(byte_count)` | `string` (hex) |
 | 99 | `secure_random_int` | `secure_random_int()` | `number` |
 | 100 | `secure_random_range` | `secure_random_range(min, max)` | `number` (integer) |
+| 101 | `secure_random_bytes` | `secure_random_bytes(byte_count)` | `bytes` |
+| 102 | `encrypt` | `encrypt(key, plaintext[, ad])` | `string` (base64) |
+| 103 | `decrypt` | `decrypt(key, ciphertext[, ad])` | `string` |
+| 104 | `hmac_sha256` | `hmac_sha256(key, message)` | `string` (64 hex) |
+| 105 | `hmac_sha512` | `hmac_sha512(key, message)` | `string` (128 hex) |
 
 ### Encoding (2)
 
@@ -2666,4 +2724,4 @@ crc32 "hello"
 
 ---
 
-**Total: 168 built-in functions**
+**Total: 174 built-in functions**

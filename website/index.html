@@ -1328,7 +1328,10 @@ function renderGraph(){
     {t:'out', s:'\u2192 4/5 summarize   done'},
     {t:'out', s:'\u2192 5/5 save        incident_report.txt'},
     {t:'out', s:'\u2713 done in 1.4s \u00b7 3 AI calls \u00b7 exit 0'}
-  ];
+  '-- 🔐 Crypto: AES-GCM encrypt + decrypt\nkey: secure_random 32\ndata: "Top Secret"\nenc: encrypt key data\ndec: decrypt key enc\nprint dec\n\nprint ("Matches: " ++ (to_str (dec == data)))',
+  '-- 🔐 Crypto: HMAC message signing\nfn sign key msg\n    hmac_sha256 key msg\n\nsig: sign "api-key" "GET /users"\nprint ("Signature: " ++ sig)\n\nif (sign "api-key" "GET /users") == sig\n    print "Valid"',
+  '-- 🔐 Crypto: brute-force protection demo\nkey: secure_random_bytes 32\nenc: encrypt key "secret"\ndecrypt "wrong-key-aaaaaaaaaaaaaaaa" enc\n    > print',
+];
   var idx = 0, timer = null;
 
   function esc(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;');}

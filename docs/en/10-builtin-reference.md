@@ -107,12 +107,15 @@ print "main"
 ## 10.2 File System (23 functions)
 
 ### `read_file`
-**Signature:** `read_file(path)`
-**Description:** Reads the entire contents of a file and returns it as a string. Errors if the file does not exist.
-**Returns:** `string`
+**Signature:** `read_file(path, mode?)`
+**Description:** Reads the entire contents of a file. Default mode returns a string. Pass `"bytes"` as second argument to get raw bytes for binary files.
+**Returns:** `string` or `bytes`
 ```pipe
 content: read_file "config.json"
 print content
+
+data: read_file "image.png" "bytes"
+print len data
 ```
 
 ### `write_file`
@@ -614,6 +617,43 @@ each ([1, 2, 3]) print_x
 
 ## 10.5 CSV (2 functions)
 
+### `replace`
+**Signature:** `replace(str, old, new)`
+**Description:** Replaces the first occurrence of `old` with `new` in `str`.
+**Returns:** `string`
+```pipe
+replace "hello world" "world" "pipe"
+-- "hello pipe"
+```
+
+### `replace_all`
+**Signature:** `replace_all(str, old, new)`
+**Description:** Replaces all occurrences of `old` with `new` in `str`.
+**Returns:** `string`
+```pipe
+replace_all "a,b,c" "," " | "
+-- "a | b | c"
+```
+
+### `index_of`
+**Signature:** `index_of(haystack, needle)`
+**Description:** Returns the 0-based index of the first occurrence of `needle` in `haystack`. Works on strings and lists. Returns `-1` if not found.
+**Returns:** `number`
+```pipe
+index_of "hello world" "world"   -- 6
+index_of ["a", "b", "c"] "c"     -- 2
+```
+
+### `contains`
+**Signature:** `contains(container, item)`
+**Description:** Checks if `container` contains `item`. Works on strings (substring match), lists (element match via ValuesEqual), and maps (key existence).
+**Returns:** `boolean`
+```pipe
+contains "hello world" "world"   -- true
+contains ["a","b","c"] "d"       -- false
+contains {a: 1, b: 2} "a"       -- true (map key check)
+```
+
 ### `csv_parse`
 
 **Signature:** `csv_parse(text)`
@@ -673,6 +713,27 @@ set m "age" 30
 set m "name" "Bob"
 -- m is now { name: "Bob", age: 30 }
 ```
+
+### `map_delete`
+**Signature:** `map_delete(map, key)`
+**Description:** Removes `key` (and its value) from `map`. Does nothing if the key does not exist.
+**Returns:** `nil`
+```pipe
+m: {a: 1, b: 2}
+map_delete m "a"
+-- m is now {b: 2}
+```
+
+### `unique`
+**Signature:** `unique(list)`
+**Description:** Returns a new list with duplicate elements removed. Preserves order of first occurrence. Uses type-aware deduplication (Integer and Float are distinct).
+**Returns:** `list`
+```pipe
+unique [1, 2, 2, 3, 1]
+-- [1, 2, 3]
+```
+
+---
 
 ### `keys`
 **Signature:** `keys(map)`
@@ -778,9 +839,29 @@ round 2[5]
 round 4[7]
 ```
 
+### `ceil`
+**Signature:** `ceil(x)`
+**Description:** Rounds `x` up to the nearest integer.
+**Returns:** `number`
+```pipe
+ceil 3.2    -- 4
+ceil 4.8    -- 5
+ceil (-1.5) -- -1
+```
+
+### `floor`
+**Signature:** `floor(x)`
+**Description:** Rounds `x` down to the nearest integer.
+**Returns:** `number`
+```pipe
+floor 3.2    -- 3
+floor 4.8    -- 4
+floor (-1.5) -- -2
+```
+
 ---
 
-## 10.8 Network & HTTP (5 functions)
+## 10.8 Network & HTTP (6 functions)
 
 ### `http_get`
 **Signature:** `http_get(url)`
@@ -2220,7 +2301,7 @@ crc32 "hello"
 
 | # | Function | Signature | Returns |
 |---|----------|-----------|---------|
-| 9 | `read_file` | `read_file(path)` | `string` |
+| 9 | `read_file` | `read_file(path, mode?)` | `string` or `bytes` |
 | 10 | `write_file` | `write_file(path, content)` | `nil` |
 | 11 | `append_file` | `append_file(path, content)` | `nil` |
 | 12 | `read_lines` | `read_lines(path)` | `list` of strings |
@@ -2254,9 +2335,11 @@ crc32 "hello"
 | 35 | `split` | `split(str, delimiter)` | `list` of strings |
 | 36 | `join` | `join(list, delimiter)` | `string` |
 | 37 | `repeat` | `repeat(str, count)` | `string` |
-| 38 | `contains` | `contains(haystack, needle)` | `boolean` |
+| 37a | `replace` | `replace(str, old, new)` | `string` |
+| 37b | `replace_all` | `replace_all(str, old, new)` | `string` |
+| 38 | `contains` | `contains(container, item)` | `boolean` (string, list, or map) |
 | 39 | `substring` | `substring(str, start, end)` | `string` |
-| 40 | `index_of` | `index_of(str, needle)` | `number` |
+| 40 | `index_of` | `index_of(haystack, needle)` | `number` (string or list) |
 
 ### List (13)
 
@@ -2275,6 +2358,7 @@ crc32 "hello"
 | 51 | `filter` | `filter(list, fn)` | `list` |
 | 52 | `reduce` | `reduce(list, fn, initial)` | `any` |
 | 53 | `each` | `each(list, fn)` | `nil` |
+| 53a | `unique` | `unique(list)` | `list` with duplicates removed |
 
 ### Bytes & Binary (15)
 
@@ -2303,7 +2387,7 @@ crc32 "hello"
 | 69 | `csv_parse` | `csv_parse(text)` | `list` |
 | 70 | `csv_format` | `csv_format(data)` | `string` |
 
-### Map (4)
+### Map (5)
 
 | # | Function | Signature | Returns |
 |---|----------|-----------|---------|
@@ -2311,8 +2395,9 @@ crc32 "hello"
 | 72 | `set` | `set(map, key, value)` | The mutated `map` |
 | 73 | `keys` | `keys(map)` | `list` of strings |
 | 74 | `values` | `values(map)` | `list` |
+| 74a | `map_delete` | `map_delete(map, key)` | `nil` |
 
-### Math (6)
+### Math (8)
 
 | # | Function | Signature | Returns |
 |---|----------|-----------|---------|
@@ -2322,8 +2407,10 @@ crc32 "hello"
 | 78 | `pow` | `pow(base, exp)` | `number` |
 | 79 | `sqrt` | `sqrt(x)` | `number` |
 | 80 | `round` | `round(x)` | `number` |
+| 80a | `ceil` | `ceil(x)` | `number` |
+| 80b | `floor` | `floor(x)` | `number` |
 
-### Network & HTTP (5)
+### Network & HTTP (6)
 
 | # | Function | Signature | Returns |
 |---|----------|-----------|---------|

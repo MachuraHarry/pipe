@@ -1,0 +1,358 @@
+--- ============================================================
+--- RAG Knowledge Base — pipe-web + rag-pipe + sqlite + DeepSeek
+--- Run: export DEEPSEEK_API_KEY="sk-..."
+---      ./bin/pipe examples/rag_knowledge_base.pipe
+--- Mode: Tree-Walker (http_server + pipe-web)
+--- Requires: pipe -get sqlite  (installs sqlite.pipe)
+--- DB: ~/.pipe/knowledge.db  (persists across restarts)
+--- Endpoints:
+---   GET  /                        Dashboard (HTML)
+---   GET  /documents?title=..&content=..|url=..&tags=..  Add document
+---   GET  /documents/:id           Document detail (JSON)
+---   GET  /documents/:id/delete    Delete document
+---   GET  /search?q=..             Semantic search (HTML)
+---   GET  /ask?q=..                RAG answer with sources (HTML)
+---   GET  /api/documents           All documents (JSON)
+---   GET  /api/search?q=..         Search results (JSON)
+---   GET  /health                  Health + stats (JSON)
+--- ============================================================
+
+import "sqlite.pipe"
+import "../pipe-modules/rag-pipe/module.pipe"
+import "../pipe-modules/pipe-web/module.pipe"
+
+ai_provider "deepseek"
+
+--- === State === ---
+
+__kb_state: {path: "", index: nil}
+
+fn init_kb _
+    p: env "HOME"
+    if p == nil
+        p: "."
+    path: p ++ "/.pipe/knowledge.db"
+    h: db_open path
+    idx: index_create h "docs"
+    set __kb_state "path" path
+    set __kb_state "index" idx
+
+--- === Helpers === ---
+
+fn persist _
+    idx: get __kb_state "index"
+    h: get idx "handle"
+    db_close h
+    nh: db_open (get __kb_state "path")
+    nidx: index_create nh "docs"
+    set __kb_state "index" nidx
+
+fn esc_html s
+    if s == nil
+        s: ""
+    s: replace_all s "&" "&amp;"
+    s: replace_all s "<" "&lt;"
+    s: replace_all s ">" "&gt;"
+    s
+
+fn fetch_url url
+    try
+        r: http_get url
+        if (get r "status") == 200
+            body: get r "body"
+            body: regex_replace "<[^>]+>" "" body
+            body: regex_replace "\\s+" " " body
+            body: trim body
+            if (len body) > 4000
+                substring body 0 4000
+            else
+                body
+        else
+            ""
+    catch e
+        ""
+
+fn page_top title subtitle
+    "<!doctype html><html><head><title>" ++ title ++ "</title><meta charset=utf-8>
+<style>body{font-family:system-ui,sans-serif;max-width:720px;margin:32px auto;padding:20px;background:#0a0a0f;color:#e0e0e8}
+h1{color:#7c5cfc;margin:0}a{color:#6cd4f2;text-decoration:none}code{background:#1a1a24;padding:2px 6px;border-radius:4px}
+.card{background:#1a1a24;border-radius:8px;padding:20px;margin:14px 0}
+.card h2{margin-top:0;color:#ff9e64;font-size:14px;text-transform:uppercase;letter-spacing:1px}
+label{display:block;margin:10px 0 4px;font-weight:600;color:#c0c0d0;font-size:14px}
+input[type=text],textarea{width:100%;box-sizing:border-box;background:#12121c;color:#e0e0e8;border:1px solid #33334a;border-radius:6px;padding:10px;font-size:14px;font-family:inherit}
+textarea{height:90px;resize:vertical}
+input:focus,textarea:focus{outline:none;border-color:#7c5cfc}
+.btn{display:inline-block;margin-top:12px;padding:9px 22px;background:#7c5cfc;color:#fff;border:none;border-radius:6px;font-size:14px;cursor:pointer;font-weight:600}
+.btn:hover{background:#6b48e0}
+.btn.second{background:#33334a}.btn.second:hover{background:#44445a}
+.doc{background:#12121c;border:1px solid #22223a;border-left:3px solid #7c5cfc;border-radius:0 6px 6px 0;padding:14px 16px;margin:10px 0}
+.doc-title{font-weight:700;color:#fff}
+.doc-meta{color:#666680;font-size:12px;margin-top:4px}
+.doc-tags{margin-top:6px}.doc-tags span{background:#1e1e30;color:#9b8ce8;padding:2px 8px;border-radius:10px;font-size:12px;margin-right:4px}
+.doc-snip{color:#b0b0c0;font-size:13px;line-height:1.5;margin-top:8px}
+.doc-actions{margin-top:10px;font-size:13px}
+.doc-actions a{margin-right:12px}.doc-actions .del{color:#ef5566}
+.result{background:#12121c;border:1px solid #22223a;border-left:3px solid #6cd4f2;border-radius:0 6px 6px 0;padding:14px 16px;margin:10px 0}
+.result .score{color:#6cd4f2;font-weight:700;font-size:13px}
+.answer{background:#12121c;border:1px solid #22223a;border-left:3px solid #ff9e64;border-radius:0 6px 6px 0;padding:18px;margin:14px 0;line-height:1.7}
+.muted{color:#666680;font-size:13px}
+.big-q{color:#fff;font-size:17px;font-weight:600}
+</style></head>
+<body>
+<h1>" ++ subtitle ++ "</h1>
+<p class=muted>" ++ title ++ "</p>"
+
+fn page_bottom _
+    "<div style='margin-top:28px;padding-top:14px;border-top:1px solid #222233;color:#555568;font-size:12px'>RAG Knowledge Base — Pipe pipe-web + rag-pipe + sqlite + DeepSeek</div>
+</body></html>"
+
+--- === Dashboard === ---
+
+fn doc_rows docs
+    out: ""
+    i: 0
+    while i < (len docs)
+        d: at docs i
+        id: get d "id"
+        title: esc_html (get d "title")
+        if title == ""
+            title: "(untitled)"
+        src: esc_html (get d "source")
+        tags: esc_html (get d "tags")
+        snip: esc_html (get d "snippet")
+        created: esc_html (get d "created")
+        out: out ++ "<div class=doc>"
+        out: out ++ "<div class=doc-title>" ++ title ++ "</div>"
+        out: out ++ "<div class=doc-meta>"
+        if src != ""
+            out: out ++ src ++ " &middot; "
+        out: out ++ (to_str (get d "size")) ++ " chars"
+        if created != ""
+            out: out ++ " &middot; " ++ created
+        out: out ++ "</div>"
+        if tags != ""
+            out: out ++ "<div class=doc-tags><span>" ++ tags ++ "</span></div>"
+        out: out ++ "<div class=doc-snip>" ++ snip ++ "</div>"
+        out: out ++ "<div class=doc-actions>"
+        out: out ++ "<a href=/documents/" ++ (to_str id) ++ ">view</a>"
+        out: out ++ "<a class=del href=/documents/" ++ (to_str id) ++ "/delete>delete</a>"
+        out: out ++ "</div>"
+        out: out ++ "</div>"
+        i: i + 1
+    out
+
+fn landing_page req
+    idx: get __kb_state "index"
+    count: index_count idx
+    docs: index_list idx
+    out: page_top "indexed knowledge, searchable by meaning" "RAG Knowledge Base"
+    out: out ++ "<div class=card><h2>Add document</h2>"
+    out: out ++ "<form action=/documents method=get>"
+    out: out ++ "<label>Title</label><input type=text name=title placeholder='Document title'>"
+    out: out ++ "<label>Text</label><textarea name=content placeholder='Paste text content here...'></textarea>"
+    out: out ++ "<label>Or fetch from URL</label><input type=text name=url placeholder='https://example.com/page'>"
+    out: out ++ "<label>Tags (comma separated)</label><input type=text name=tags placeholder='programming, ai, docs'>"
+    out: out ++ "<label>Source</label><input type=text name=source placeholder='https://... or notes'>"
+    out: out ++ "<button class=btn type=submit>Add Document</button></form></div>"
+    out: out ++ "<div class=card><h2>Ask your knowledge base</h2>"
+    out: out ++ "<form action=/ask method=get>"
+    out: out ++ "<input type=text name=q placeholder='Ask a question about your documents...'>"
+    out: out ++ "<button class=btn type=submit>Ask AI</button></form></div>"
+    out: out ++ "<div class=card><h2>Search</h2>"
+    out: out ++ "<form action=/search method=get>"
+    out: out ++ "<input type=text name=q placeholder='Search by meaning...'>"
+    out: out ++ "<button class='btn second' type=submit>Search</button></form></div>"
+    out: out ++ "<p style='margin-top:20px'><span class=muted>" ++ (to_str count) ++ " documents indexed</span></p>"
+    out: out ++ "<h2 style='color:#7c5cfc'>Documents</h2>"
+    if (len docs) == 0
+        out: out ++ "<p class=muted>No documents yet. Add one above.</p>"
+    else
+        out: out ++ (doc_rows docs)
+    out: out ++ (page_bottom 0)
+    html 200 out
+
+--- === Add / Detail / Delete === ---
+
+fn add_doc req
+    query: get req "query"
+    title: get query "title"
+    content: get query "content"
+    url: get query "url"
+    tags: get query "tags"
+    source: get query "source"
+    if title == nil
+        title: ""
+    if content == nil
+        content: ""
+    if tags == nil
+        tags: ""
+    if source == nil
+        source: ""
+    if url != nil && url != ""
+        if content == ""
+            content: fetch_url url
+    if content != ""
+        idx: get __kb_state "index"
+        index_add_doc idx title source tags content
+        persist 0
+    redirect 302 "/"
+
+fn doc_detail req
+    params: get req "params"
+    id: get params "id"
+    idx: get __kb_state "index"
+    d: index_get idx id
+    if d == nil
+        json 404 {error: "Not Found", id: id}
+    else
+        ok d
+
+fn delete_doc req
+    params: get req "params"
+    id: get params "id"
+    idx: get __kb_state "index"
+    try
+        index_delete idx id
+        persist 0
+    catch e
+        print ("delete error: " ++ e)
+    redirect 302 "/"
+
+--- === Search === ---
+
+fn search_page req
+    query: get req "query"
+    q: get query "q"
+    if q == nil || q == ""
+        redirect 302 "/"
+    else
+        idx: get __kb_state "index"
+        try
+            results: index_search idx q 5
+            out: page_top ("results for: " ++ (esc_html q)) "Search"
+            out: out ++ "<p class=big-q>Search: " ++ (esc_html q) ++ "</p>"
+            if (len results) == 0
+                out: out ++ "<p class=muted>No matches.</p>"
+            else
+                i: 0
+                while i < (len results)
+                    r: at results i
+                    title: esc_html (get r "title")
+                    if title == ""
+                        title: "(untitled)"
+                    src: esc_html (get r "source")
+                    out: out ++ "<div class=result>"
+                    out: out ++ "<div class=doc-title>" ++ title ++ "</div>"
+                    out: out ++ "<div class=doc-meta>"
+                    if src != ""
+                        out: out ++ src ++ " &middot; "
+                    out: out ++ "<span class=score>score " ++ (to_str (get r "score")) ++ "</span>"
+                    out: out ++ "</div>"
+                    out: out ++ "<div class=doc-snip>" ++ (esc_html (get r "text")) ++ "</div>"
+                    out: out ++ "<div class=doc-actions><a href=/documents/" ++ (to_str (get r "id")) ++ ">view</a></div>"
+                    out: out ++ "</div>"
+                    i: i + 1
+            out: out ++ (page_bottom 0)
+            html 200 out
+        catch e
+            html 500 (page_top "search failed" "Error" ++ "<p class=muted>" ++ (esc_html e) ++ "</p>" ++ (page_bottom 0))
+
+--- === Ask (RAG with sources) === ---
+
+fn ask_page req
+    query: get req "query"
+    q: get query "q"
+    if q == nil || q == ""
+        redirect 302 "/"
+    else
+        idx: get __kb_state "index"
+        try
+            results: index_search idx q 3
+            if (len results) == 0
+                html 200 (page_top "no indexed documents" "Ask" ++ "<p class=muted>No documents to search. Add documents first.</p>" ++ (page_bottom 0))
+            else
+                context: ""
+                i: 0
+                while i < (len results)
+                    r: at results i
+                    context: context ++ (get r "text")
+                    context: context ++ "\n---\n"
+                    i: i + 1
+                prompt: "Context:\n" ++ context ++ "\nQuestion: " ++ q ++ "\nAnswer based on the context above. Be concise."
+                answer: ask prompt
+                out: page_top ("RAG answer for: " ++ (esc_html q)) "Ask"
+                out: out ++ "<p class=big-q>Question: " ++ (esc_html q) ++ "</p>"
+                out: out ++ "<div class=answer>" ++ (esc_html answer) ++ "</div>"
+                out: out ++ "<div class=card><h2>Sources</h2>"
+                i: 0
+                while i < (len results)
+                    r: at results i
+                    title: esc_html (get r "title")
+                    if title == ""
+                        title: "(untitled)"
+                    out: out ++ "<div class=result>"
+                    out: out ++ "<div class=doc-title>" ++ title ++ "</div>"
+                    out: out ++ "<div class=doc-meta><span class=score>score " ++ (to_str (get r "score")) ++ "</span></div>"
+                    out: out ++ "<div class=doc-actions><a href=/documents/" ++ (to_str (get r "id")) ++ ">view</a></div>"
+                    out: out ++ "</div>"
+                    i: i + 1
+                out: out ++ "</div>"
+                out: out ++ (page_bottom 0)
+                html 200 out
+        catch e
+            html 500 (page_top "ask failed" "Error" ++ "<p class=muted>" ++ (esc_html e) ++ "</p>" ++ (page_bottom 0))
+
+--- === JSON API === ---
+
+fn api_docs req
+    idx: get __kb_state "index"
+    ok (index_list idx)
+
+fn api_search req
+    query: get req "query"
+    q: get query "q"
+    idx: get __kb_state "index"
+    if q == nil || q == ""
+        ok {query: q, results: []}
+    else
+        try
+            ok {query: q, results: (index_search idx q 5)}
+        catch e
+            json 500 {error: e}
+
+--- === Health / 404 === ---
+
+fn health req
+    idx: get __kb_state "index"
+    ok {status: "ok", documents: (index_count idx), db: (get __kb_state "path")}
+
+fn custom_notfound req
+    json 404 {error: "Not Found", path: (get req "path")}
+
+--- === Middleware === ---
+
+fn logger req
+    print ("[" ++ (get req "method") ++ "] " ++ (get req "path"))
+
+--- === App Setup === ---
+
+api: app "RAGKnowledge"
+
+use api logger
+
+route_get api "/"                  landing_page
+route_get api "/health"            health
+route_get api "/documents"         add_doc
+route_get api "/documents/:id"     doc_detail
+route_get api "/documents/:id/delete" delete_doc
+route_get api "/search"            search_page
+route_get api "/ask"               ask_page
+route_get api "/api/documents"     api_docs
+route_get api "/api/search"        api_search
+
+route_get api "/*" custom_notfound
+
+--- === Start === ---
+
+init_kb 0
+serve api "0.0.0.0:8090" 3600000

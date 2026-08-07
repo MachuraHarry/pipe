@@ -1,0 +1,82 @@
+--- ============================================================
+--- pipe-web Demo — ASP.NET-style web server in Pipe
+--- Run: ./bin/pipe examples/pipe_web_demo.pipe
+--- ============================================================
+
+--- Set up import path for local development
+--- Uses relative path: ../pipe-modules/pipe-web/module.pipe
+--- For production use: pipe -get pipe-web  then  import "pipe-web"
+import "../pipe-modules/pipe-web/module.pipe"
+
+--- === Handler Functions ===
+
+fn home_page req
+    html 200 "<!doctype html><html><head><title>Pipe Web</title><meta charset=utf-8>
+<style>body{font-family:sans-serif;max-width:600px;margin:60px auto;padding:20px;background:#0a0a0f;color:#e0e0e8}
+h1{color:#7c5cfc}a{color:#5ce0fc}code{background:#1a1a24;padding:2px 6px;border-radius:4px}
+pre{background:#1a1a24;padding:16px;border-radius:8px;overflow-x:auto}</style></head><body>
+<h1>pipe-web Demo</h1>
+<p>ASP.NET-style web framework for Pipe.</p>
+<p>Try: <a href=/api/time>/api/time</a> | <a href=/users/42>/users/42</a> | <a href=/api/json>/api/json</a></p>
+</body></html>"
+
+fn api_time req
+    t: now
+    ok {timestamp: t, human: (format_time t "2006-01-02 15:04:05")}
+
+fn api_json req
+    data: {framework: "pipe-web", version: "1.0.0", language: "Pipe", builtins: "http_server"}
+    ok data
+
+fn user_detail req
+    params: get req "params"
+    id: get params "id"
+    ok {user_id: id, name: "User_" ++ id, active: true}
+
+fn user_list req
+    ok {users: ["Alice", "Bob", "Charlie", "Diana"], total: 4}
+
+fn create_user req
+    data: json_body req
+    json 201 {created: true, user: data}
+
+fn redirect_home req
+    redirect 302 "/"
+
+fn handle_404 path
+    html 404 "<!doctype html><html><head><title>404</title></head>
+<body style='font-family:sans-serif;text-align:center;padding:60px;background:#0a0a0f;color:#e0e0e8'>
+<h1 style='font-size:4rem;color:#7c5cfc'>404</h1>
+<p style='color:#9898a8'>" ++ path ++ " not found</p></body></html>"
+
+fn custom_notfound req
+    path: get req "path"
+    handle_404 path
+
+--- === Middleware ===
+
+fn logger req
+    print ("[" ++ (get req "method") ++ "] " ++ (get req "path"))
+
+--- === App Setup ===
+
+web: app "PipeWeb"
+
+-- Global logger middleware
+use web logger
+
+-- Routes
+route_get web "/"              home_page
+route_get web "/api/time"      api_time
+route_get web "/api/json"      api_json
+route_get web "/users"         user_list
+route_get web "/users/:id"     user_detail
+any web "/redirect"      redirect_home
+post web "/users"        create_user
+
+-- Catch-all for custom 404
+get web "/*" custom_notfound
+
+--- === Start Server ===
+
+serve web "0.0.0.0:8080" 300000

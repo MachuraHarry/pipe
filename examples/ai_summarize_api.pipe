@@ -1,0 +1,146 @@
+--- ============================================================
+--- AI Summarize API — Combine pipe-web + Pipe AI builtins
+--- Run: export DEEPSEEK_API_KEY="sk-..."
+---      ./bin/pipe examples/ai_summarize_api.pipe
+--- Mode: Tree-Walker (http_server + pipe-web)
+--- Requires: pipe-web module
+--- Endpoints:
+---   GET  /              Landing page with form (HTML)
+---   GET  /health        Health check (JSON)
+---   GET  /summarize?text=...  Summarize via query (HTML result page)
+---   POST /summarize     {text: "..."} → {summary: "..."} (JSON API)
+--- ============================================================
+
+import "../pipe-modules/pipe-web/module.pipe"
+
+ai_provider "deepseek"
+
+--- === Landing Page ===
+
+fn landing_page req
+    html 200 "<!doctype html><html><head><title>AI Summarize API</title><meta charset=utf-8>
+<style>body{font-family:system-ui,sans-serif;max-width:640px;margin:40px auto;padding:20px;background:#0a0a0f;color:#e0e0e8}
+h1{color:#7c5cfc;margin-bottom:4px}a{color:#6cd4f2}code{background:#1a1a24;padding:2px 6px;border-radius:4px}
+.subtitle{color:#9898a8;margin-top:0;margin-bottom:24px}
+label{display:block;margin-bottom:8px;font-weight:600;color:#c0c0d0}
+textarea{width:100%;box-sizing:border-box;height:160px;background:#1a1a24;color:#e0e0e8;border:1px solid #33334a;border-radius:8px;padding:12px;font-size:15px;resize:vertical;font-family:inherit}
+textarea:focus{outline:none;border-color:#7c5cfc}
+.btn{display:inline-block;margin-top:12px;padding:10px 24px;background:#7c5cfc;color:#fff;border:none;border-radius:6px;font-size:15px;cursor:pointer;font-weight:600}
+.btn:hover{background:#6b48e0}
+.endpoint{background:#1a1a24;border-left:3px solid #7c5cfc;padding:10px 16px;margin:10px 0;border-radius:0 6px 6px 0}
+.method{font-weight:bold;color:#ff9e64;margin-right:8px}
+.path{color:#7c5cfc}
+.footer{margin-top:32px;padding-top:16px;border-top:1px solid #222233;color:#666680;font-size:13px}
+</style></head>
+<body>
+<h1>AI Summarize</h1>
+<p class=subtitle>Pipe pipe-web + DeepSeek AI</p>
+
+<form action=/summarize method=get>
+  <label for=text>Text to summarize:</label>
+  <textarea name=text id=text placeholder='Paste any text, article, or paragraph here...'></textarea>
+  <button class=btn type=submit>Summarize</button>
+</form>
+
+<div class=footer>
+  <div class=endpoint>
+    <span class=method>GET</span><span class=path>/health</span> — API health check
+  </div>
+  <div class=endpoint>
+    <span class=method>POST</span><span class=path>/summarize</span> — JSON API: <code>{'text':'...'}</code>
+  </div>
+</div>
+</body></html>"
+
+--- === Health ===
+
+fn health req
+    ok {status: "ok", provider: "deepseek", model: "deepseek-v4-pro", framework: "pipe-web"}
+
+--- === Summarize ===
+
+fn summarize_handler req
+    try
+        data: json_body req
+        text: get data "text"
+        if text == nil
+            json 400 {error: "Missing 'text' field in request body"}
+        else
+            s: summarize text
+            ok {summary: s}
+    catch e
+        json 500 {error: "AI API error: " ++ e}
+
+--- === Summarize Form (Browser) ===
+
+fn summarize_form_page req
+    query: get req "query"
+    text: get query "text"
+    if text == nil
+        redirect 302 "/"
+    else
+        if text == ""
+            redirect 302 "/"
+        else
+            try
+                s: summarize text
+                html 200 "<!doctype html><html><head><title>Summary</title><meta charset=utf-8>
+<style>body{font-family:system-ui,sans-serif;max-width:680px;margin:40px auto;padding:20px;background:#0a0a0f;color:#e0e0e8}
+h1{color:#7c5cfc}a{color:#6cd4f2}
+.card{background:#1a1a24;border-radius:8px;padding:20px;margin:16px 0}
+.card h2{color:#ff9e64;margin-top:0;font-size:15px;text-transform:uppercase;letter-spacing:1px}
+.back{display:inline-block;margin-top:20px;padding:8px 18px;background:#33334a;color:#c0c0d0;border-radius:6px;text-decoration:none;font-weight:600}
+.back:hover{background:#44445a}
+</style></head>
+<body>
+<h1>Summary</h1>
+<div class=card>
+  <h2>Original Text</h2>
+  <p style='line-height:1.6;white-space:pre-wrap'>" ++ text ++ "</p>
+</div>
+<div class=card>
+  <h2>AI Summary</h2>
+  <p style='line-height:1.6'>" ++ s ++ "</p>
+</div>
+<a class=back href=/>New Summarize</a>
+</body></html>"
+            catch e
+                html 500 "<!doctype html><html><head><title>Error</title><meta charset=utf-8>
+<style>body{font-family:system-ui,sans-serif;max-width:600px;margin:60px auto;padding:20px;background:#0a0a0f;color:#e0e0e8}
+h1{color:#ef5566}.card{background:#1a1a24;border-radius:8px;padding:20px;margin:16px 0;border-left:3px solid #ef5566}
+a{color:#6cd4f2}</style></head>
+<body>
+<h1>API Error</h1>
+<div class=card>
+  <p>" ++ e ++ "</p>
+  <p style='color:#9898a8;font-size:14px'>Check that DEEPSEEK_API_KEY is set.</p>
+</div>
+<a style='display:inline-block;margin-top:16px' href=/>Back</a>
+</body></html>"
+
+--- === Custom 404 ===
+
+fn custom_notfound req
+    json 404 {error: "Not Found", path: (get req "path")}
+
+--- === Middleware ===
+
+fn logger req
+    print ("[" ++ (get req "method") ++ "] " ++ (get req "path"))
+
+--- === App Setup ===
+
+api: app "AISummarize"
+
+use api logger
+
+route_get api "/"             landing_page
+route_get api "/health"       health
+route_get api "/summarize" summarize_form_page
+post api "/summarize"         summarize_handler
+
+route_get api "/*" custom_notfound
+
+--- === Start Server ===
+
+serve api "0.0.0.0:8080" 300000

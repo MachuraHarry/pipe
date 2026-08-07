@@ -843,7 +843,7 @@ func (ctx *EvalContext) evalTryExpression(te *ast.TryExpression, env *object.Env
 	}
 
 	if te.CatchParam != nil {
-		env.Set(te.CatchParam.Value, result)
+		env.Set(te.CatchParam.Value, &object.String{Value: err.Message})
 	}
 	return ctx.Eval(te.CatchBlock, env)
 }

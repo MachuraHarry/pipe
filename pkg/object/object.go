@@ -1409,6 +1409,10 @@ func bRange(args ...Object) Object {
 		step = st
 	}
 
+	if step == 0 {
+		return err("range: step must not be zero")
+	}
+
 	var elems []Object
 	for i := start; i < end; i += step {
 		elems = append(elems, &Integer{Value: i})
@@ -1645,6 +1649,9 @@ func bTypeOf(args ...Object) Object {
 	if len(args) != 1 {
 		return err("type_of expects 1 argument")
 	}
+	if args[0] == nil {
+		return &String{Value: "NIL"}
+	}
 	return &String{Value: string(args[0].Type())}
 }
 
@@ -1693,6 +1700,9 @@ func bIsNil(args ...Object) Object {
 func bToStr(args ...Object) Object {
 	if len(args) != 1 {
 		return err("to_str expects 1 argument")
+	}
+	if args[0] == nil {
+		return &String{Value: "nil"}
 	}
 	return &String{Value: args[0].Inspect()}
 }
@@ -2453,6 +2463,9 @@ func err(msg string) *Error {
 func bRaise(args ...Object) Object {
 	if len(args) != 1 {
 		return err("raise expects 1 argument (message)")
+	}
+	if args[0] == nil {
+		return err("nil")
 	}
 	return err(args[0].Inspect())
 }
@@ -3604,6 +3617,9 @@ func bAssertError(args ...Object) Object {
 	fn, ok := args[0].(*Function)
 	if !ok {
 		return err("assert_error expects a function (use { ... })")
+	}
+	if callUserFn == nil {
+		return err("assert_error: function execution not available")
 	}
 	result := callUserFn(fn)
 	if result == nil {

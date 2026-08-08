@@ -1,0 +1,89 @@
+--- ============================================================
+--- notify_discord.pipe - Sendet GitHub Event-Benachrichtigungen
+--- via Discord Webhook. Genutzt von der CI-Pipeline.
+--- Ohne KI-Review (nur Telegram hat KI-Review für Code-Qualität).
+--- Inputs via env: EVENT_NAME, EVENT_ACTION, REPO, BRANCH,
+---   COMMITS_JSON, COMMIT_MSG, COMMIT_URL, ISSUE_TITLE,
+---   ISSUE_NUMBER, ISSUE_URL, DISCORD_WEBHOOK
+--- ============================================================
+
+import "discord.pipe" as d
+
+webhook: env "DISCORD_WEBHOOK"
+repo: env "REPO"
+ev: env "EVENT_NAME"
+
+fn emoji_for subj
+    if (len subj) < 2
+        return "🟣"
+    w: lower (get (split subj " ") 0)
+    w: replace_all w ":" ""
+    if contains w "("
+        w: get (split w "(") 0
+    w: trim (lower w)
+    if w == "feat"
+        return "✨"
+    else if w == "fix"
+        return "🐛"
+    else if w == "chore"
+        return "🔧"
+    else if w == "docs"
+        return "📚"
+    else if w == "refactor"
+        return "♻️"
+    else if w == "test"
+        return "🧪"
+    else if w == "style"
+        return "🎨"
+    else if w == "ci"
+        return "⚙️"
+    else if w == "perf"
+        return "⚡"
+    else if w == "build"
+        return "📦"
+    else if w == "revert"
+        return "⏪"
+    else if w == "release"
+        return "🚀"
+    return "🟣"
+
+if ev == "push"
+    branch: env "BRANCH"
+    commits: []
+    if (len (env "COMMITS_JSON")) > 0
+        commits: parse_json (env "COMMITS_JSON")
+    if (len commits) > 0
+        n: to_str (len commits)
+        desc: ""
+        for i in (range 0 (len commits))
+            c: at commits i
+            sha: get c "id"
+            subject: get (split (get c "message") "\n") 0
+            desc: desc ++ (emoji_for subject) ++ " `" ++ (substring sha 0 7) ++ "` " ++ subject ++ "\n"
+            if (len desc) > 1800
+                desc: (substring desc 0 1800) ++ "\n..."
+                break
+        r: d.d_webhook_embed webhook {title: ("📦 Push to " ++ branch ++ " (" ++ n ++ " commits)"), description: desc, color: 3447003}
+        if is_err r
+            print ("Discord-Fehler: " ++ (to_str r))
+    else
+        subject: get (split (env "COMMIT_MSG") "\n") 0
+        r: d.d_webhook_embed webhook {title: ((emoji_for subject) ++ " " ++ subject), description: ("Branch: " ++ branch ++ "\nRepo: " ++ repo), color: 3447003}
+        if is_err r
+            print ("Discord-Fehler: " ++ (to_str r))
+else if ev == "issues"
+    action: env "EVENT_ACTION"
+    icon: "📌"
+    if action == "closed"
+        icon: "✅"
+    if action == "reopened"
+        icon: "🔄"
+    r: d.d_webhook_embed webhook {title: (icon ++ " Issue " ++ action ++ ": " ++ (env "ISSUE_TITLE")), description: ("#" ++ (env "ISSUE_NUMBER") ++ " · " ++ (env "ISSUE_URL")), color: 16776960}
+    if is_err r
+        print ("Discord-Fehler: " ++ (to_str r))
+else
+    r: d.d_webhook_text webhook ("🐙 Event: " ++ ev ++ " in " ++ repo)
+    if is_err r
+        print ("Discord-Fehler: " ++ (to_str r))
+
+print "Discord-Benachrichtigung gesendet"

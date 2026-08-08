@@ -513,11 +513,13 @@ var Builtins = []BuiltinInfo{
 	{"ai_tool", bAiTool},
 	{"ai_with_tools", bAiWithTools},
 
-	// MCP — Model Context Protocol (Server)
+	// MCP — Model Context Protocol (Server + Client)
 	{"mcp_server", bMcpServer},
 	{"mcp_serve_stdio", bMcpServeStdio},
 	{"mcp_serve_sse", bMcpServeSSE},
 	{"mcp_tools", bMcpTools},
+	{"mcp_use_stdio", bMcpUseStdio},
+	{"mcp_use_sse", bMcpUseSSE},
 
 	// AI — Agents
 	{"agent", bAgent},

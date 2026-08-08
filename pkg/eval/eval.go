@@ -670,6 +670,13 @@ func (ctx *EvalContext) applyFunction(fn object.Object, args []object.Object) ob
 		ctx.popCall()
 		return result
 
+	case *object.BuiltinInfo:
+		result := f.Fn(args...)
+		if result != nil && result.Type() == object.ERROR {
+			return ctx.newError("%s", result.Inspect())
+		}
+		return result
+
 	default:
 		return ctx.newErrorCode("E004", "not a function: %s", fn.Type())
 	}

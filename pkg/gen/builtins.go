@@ -156,6 +156,8 @@ var builtinInfos = map[string]builtinInfo{
 	"mcp_serve_stdio":     {0, nil},
 	"mcp_serve_sse":       {1, strs(TypeString)},
 	"mcp_tools":           {0, nil},
+	"mcp_use_stdio":       {1, strs(TypeString)},
+	"mcp_use_sse":         {1, strs(TypeString)},
 }
 
 func strs(types ...PipeType) []PipeType {

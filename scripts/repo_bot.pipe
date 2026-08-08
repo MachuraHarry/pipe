@@ -103,13 +103,34 @@ else if cmd == "/ask"
     else if (len dk) == 0
         reply: "⚠️ `/ask` ist deaktiviert — es ist kein `DEEPSEEK_API_KEY`-Secret gesetzt."
     else
-        w1: replace_all (get (split q " ") 0) "'" ""
-        cx: exec ("git grep -il '" ++ w1 ++ "' | head -5")
+        words: split q " "
+        pats: []
+        npat: 0
+        for w in words
+            if npat < 3
+                lw: lower w
+                lw: replace_all lw "." ""
+                lw: replace_all lw "?" ""
+                lw: replace_all lw "!" ""
+                lw: replace_all lw "," ""
+                lw: replace_all lw ";" ""
+                lw: replace_all lw ":" ""
+                lw: replace_all lw "(" ""
+                lw: replace_all lw ")" ""
+                lw: replace_all lw "'" ""
+                sw: contains ("," ++ "der,die,das,den,dem,des,und,oder,zu,mit,nach,aus,auf,um,in,bei,ein,eine,einer,einen,was,wie,ist,sind,sein,wird,werden,war,waren,hat,haben,hast,hatte,kann,kannst,koennen,konnte,soll,muss,muessen,machen,macht,macht,geben,gibt,es,sich,mein,dein,seine,ihre,fuer,für,ueber,über,von,vom,wo,wann,warum,welche,welcher,welches,dieser,diese,dieses,pipe,bitte,bzw,oder,aber,noch,nur,auch,schon,mehr,immer" ++ ",") ("," ++ lw ++ ",")
+                if (len lw) > 2 && sw == false
+                    push pats lw
+                    npat: npat + 1
+        pat: join pats "|"
+        if (len pat) == 0
+            pat: replace_all (lower (get words 0)) "'" ""
+        cx: exec ("git grep -il -i -E '" ++ pat ++ "' | head -3")
         files: split (trim (get cx "output")) "\n"
         ctx: ""
         for f in files
-            if (len ctx) < 6000 && (len f) > 0
-                rr: exec ("head -c 1200 " ++ f)
+            if (len ctx) < 5000 && (len f) > 0
+                rr: exec ("git grep -n -i -A8 -B8 -E '" ++ pat ++ "' '" ++ f ++ "' | head -c 1500")
                 ctx: ctx ++ "===== " ++ f ++ " =====\n" ++ (get rr "output") ++ "\n"
         sysp: "Du bist Repo-Bot fuer das Repository " ++ repo ++ ". Beantworte die Frage ausschliesslich anhand des mitgelieferten Kontexts. Antworte auf Deutsch, kompakt (max. 10 Zeilen). Nenne relevante Dateipfade im Format `pfad:zeile`, wenn erkennbar."
         a: ai_chat sysp ("Kontext:\n" ++ ctx ++ "\n\nFrage: " ++ q)

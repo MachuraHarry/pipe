@@ -1,6 +1,8 @@
 # 18. Roadmap
 
-## Aktuelle Version: v0.9.0
+## Aktuelle Version: v0.9.2
+
+Pipe ist aktuell in Version **v0.9.2**. Neu: `max_tokens` als optionales drittes Argument für `ai_chat`/`ai_chat_json` (Kostenkontrolle für LLM-Aufrufe), ein offizieller plattformübergreifender Installer (`install.sh`/`install.ps1`) sowie eine automatisierte GitHub Action, die den Installer mit der Website synchron hält.
 
 ---
 

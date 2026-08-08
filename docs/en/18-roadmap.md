@@ -2,9 +2,9 @@
 
 This document outlines the past, present, and future of the Pipe language. The roadmap is organized into phases, with completed features marked accordingly.
 
-## Current Version: v0.9.0
+## Current Version: v0.9.2
 
-Pipe is currently at version **v0.9.0**, which adds structs with named fields and dot access, a package manifest system (`pipe.json`, `pipe -init` / `-install`), network builtins (`http_request`, `http_server`), crypto builtins (AES-GCM, HMAC, secure random), call-stack error traces, and many new string/list builtins (`replace`, `unique`, `ceil`, `floor`, `parse_date`).
+Pipe is currently at version **v0.9.2**, which adds a `max_tokens` limit as the optional third argument to `ai_chat`/`ai_chat_json` (for tighter cost control of LLM calls), plus an official cross-platform installer (`install.sh`/`install.ps1`) and an automated GitHub Action that keeps the installer in sync with the website. It builds on v0.9.0's structs with named fields and dot access, package manifest system (`pipe.json`, `pipe -init` / `-install`), network builtins (`http_request`, `http_server`), crypto builtins (AES-GCM, HMAC, secure random), call-stack error traces, and many new string/list builtins (`replace`, `unique`, `ceil`, `floor`, `parse_date`).
 
 ---
 

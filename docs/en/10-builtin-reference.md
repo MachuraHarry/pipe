@@ -1668,9 +1668,9 @@ ask "What is the capital of France?"
 
 ### `ai_chat`
 
-**Signature:** `ai_chat(system_prompt, user_prompt)`
+**Signature:** `ai_chat(system_prompt, user_prompt[, max_tokens])`
 
-**Description:** Sends a chat request with system and user prompts. Returns the assistant's response.
+**Description:** Sends a chat request with system and user prompts. Returns the assistant's response. The optional third argument limits the response to `max_tokens` tokens.
 
 **Returns:** `string`
 ```pipe
@@ -1679,9 +1679,9 @@ ai_chat "You are a helpful assistant" "What is Pipe?"
 
 ### `ai_chat_json`
 
-**Signature:** `ai_chat_json(system_prompt, user_prompt)`
+**Signature:** `ai_chat_json(system_prompt, user_prompt[, max_tokens])`
 
-**Description:** Like `ai_chat`, but parses the response as JSON and returns the parsed value.
+**Description:** Like `ai_chat`, but parses the response as JSON and returns the parsed value. The optional third argument limits the response to `max_tokens` tokens.
 
 **Returns:** `any` (parsed JSON — map, list, number, string, boolean, or nil)
 ```pipe

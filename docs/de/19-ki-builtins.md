@@ -200,11 +200,12 @@ print (ask "Was ist der Unterschied zwischen Stack und Heap?")
 
 ```pipe
 -- Signatur
-ai_chat system_prompt user_prompt
+ai_chat system_prompt user_prompt [max_tokens]
 
 -- Beschreibung
 -- Direkter Chat mit einem System-Prompt und einem User-Prompt.
 -- Gibt die rohe Antwort des Modells als String zurück.
+-- Das optionale dritte Argument begrenzt die Antwort auf max_tokens Tokens.
 
 -- Beispiel
 antowrt: ai_chat
@@ -219,11 +220,12 @@ print antwort
 
 ```pipe
 -- Signatur
-ai_chat_json system_prompt user_prompt
+ai_chat_json system_prompt user_prompt [max_tokens]
 
 -- Beschreibung
 -- Wie ai_chat, aber die Antwort wird als JSON geparst.
 -- Gibt eine Map oder List zurück, je nach JSON-Struktur.
+-- Das optionale dritte Argument begrenzt die Antwort auf max_tokens Tokens.
 
 -- Beispiel 1: Map
 antwort: ai_chat_json

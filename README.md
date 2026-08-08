@@ -2,7 +2,7 @@
 
 [![CI](https://github.com/MachuraHarry/pipe/actions/workflows/ci.yml/badge.svg)](https://github.com/MachuraHarry/pipe/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-purple.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-0.9.0-blue.svg)](https://github.com/MachuraHarry/pipe/releases)
+[![Version](https://img.shields.io/badge/version-0.9.2-blue.svg)](https://github.com/MachuraHarry/pipe/releases)
 [![SPR](https://img.shields.io/badge/SPR-Semantic%20Pipeline%20Runtime-7c5cfc.svg)](#)
 
 > **Build, sandbox, and deploy LLM pipelines with a single ~7 MB binary. No Python. No dependencies. No vendor lock-in.**
@@ -15,7 +15,7 @@ curl -fsSL https://pipe-lang.com/install.sh | bash   # Linux & macOS
 
 Windows (PowerShell): `irm https://pipe-lang.com/install.ps1 | iex`
 
-The installer downloads the latest release, verifies its SHA256 checksum and installs `pipe` into `~/.local/bin` (or `/usr/local/bin` when run as root). Pin a version with `PIPE_VERSION=v0.9.0`. See the [full install docs](docs/en/01-getting-started.md).
+The installer downloads the latest release, verifies its SHA256 checksum and installs `pipe` into `~/.local/bin` (or `/usr/local/bin` when run as root). Pin a version with `PIPE_VERSION=v0.9.2`. See the [full install docs](docs/en/01-getting-started.md).
 
 ## The Problem
 

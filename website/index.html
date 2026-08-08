@@ -267,7 +267,7 @@ span[data-lang].active{display:inline}a[data-lang].active{display:inline-block}
 
 <!-- Hero -->
 <section class="hero">
-  <div class="badge"><strong>v0.9.2</strong> · MCP Server + Client · Semantic Pipeline Runtime</div>
+  <div class="badge"><strong>SPR</strong> v0.9.2 · MCP Server + Client · Semantic Pipeline Runtime</div>
 
   <h1 id="hero-headline"><span class="grad">MCP-native runtime for</span><br>AI infrastructure</h1>
   <p id="hero-sub" class="sub">The first language with built-in MCP — server and client. Connect to 100+ MCP servers, expose your own tools, and run AI pipelines. Single ~7 MB binary, zero dependencies.</p>
@@ -912,7 +912,7 @@ var playExamples = [
   'print "1 " ++ "2 " ++ "3"',
   '-- 🤖 AI: needs API key in field above\nai_provider "deepseek"\n\nask "What is the meaning of life?"\n    > print',
   '-- 🤖 AI: translate text\nai_provider "deepseek"\n\ntranslate "Hello, how are you today?" "German"\n    > print',
-  '-- 🤖 AI: summarize a paragraph\nai_provider "deepseek"\n\nsummarize "Pipe is a semantic pipeline runtime language. It compiles to bytecode and runs on a stack-based VM. It has 183 builtins for data and AI operations."\n    > print',
+  '-- 🤖 AI: summarize a paragraph\nai_provider "deepseek"\n\nsummarize "Pipe is a semantic pipeline runtime language. It compiles to bytecode and runs on a stack-based VM. It has 193 builtins for data, AI, and MCP operations."\n    > print',
   '-- 🤖 AI: classify text\nai_provider "deepseek"\n\nclassify "The app crashes on startup after update" "bug, feature, question, complaint"\n    > print',
   '-- 🤖 AI: agent with memory\nai_provider "deepseek"\n\nagent "poet" "You are a poet. Respond in rhyming couplets. Keep it short."\n\nagent_ask "poet" "Describe the moon"\n    > print',
   '-- 🤖 AI: structured JSON\nai_provider "deepseek"\n\ndata: generate_json "Create 2 cars" "make: string, model: string, year: number, electric: boolean"\n\nfor car in data\n    (get car "make") ++ " " ++ (get car "model")\n        > print',

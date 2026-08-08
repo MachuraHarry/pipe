@@ -152,6 +152,10 @@ var builtinInfos = map[string]builtinInfo{
 	"http_stream_read":    {1, strs(TypeInt)},
 	"http_stream_read_line": {1, strs(TypeInt)},
 	"http_stream_close":   {1, strs(TypeInt)},
+	"mcp_server":          {2, strs(TypeString, TypeString)},
+	"mcp_serve_stdio":     {0, nil},
+	"mcp_serve_sse":       {1, strs(TypeString)},
+	"mcp_tools":           {0, nil},
 }
 
 func strs(types ...PipeType) []PipeType {

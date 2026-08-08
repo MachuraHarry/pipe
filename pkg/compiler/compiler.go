@@ -1270,6 +1270,8 @@ var zeroArityBuiltins = map[string]bool{
 	"ai_cache_misses":   true,
 	"audit_log":         true,
 	"budget_spent":      true,
+	"mcp_serve_stdio":   true,
+	"mcp_tools":         true,
 }
 
 func isZeroArityBuiltin(name string) bool {

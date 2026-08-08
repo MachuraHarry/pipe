@@ -285,9 +285,3 @@ func bPathExt(args ...Object) Object {
 	}
 	return &String{Value: filepath.Ext(s.Value)}
 }
-
-
-
-
-
-

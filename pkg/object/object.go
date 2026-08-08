@@ -181,8 +181,8 @@ func (c *Closure) Type() ObjectType           { return CLOSURE }
 func (c *Closure) Inspect() string            { return "closure" }
 
 type StructDef struct {
-	Name    string
-	Fields  []string
+	Name     string
+	Fields   []string
 	Defaults map[string]Object
 }
 
@@ -555,4 +555,3 @@ func bRaise(args ...Object) Object {
 func FormatMsg(format string, a ...interface{}) string {
 	return fmt.Sprintf(format, a...)
 }
-

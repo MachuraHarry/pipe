@@ -149,14 +149,14 @@ type SandboxProfile struct {
 
 func NewSandboxProfile(name string) *SandboxProfile {
 	return &SandboxProfile{
-		Name:       name,
-		FSAccess:   FSFull,
-		Network:    true,
-		Exec:       true,
-		AI:         true,
-		Budget:     0,
-		Env:        make(map[string]string),
-		WorkDir:    ".",
+		Name:     name,
+		FSAccess: FSFull,
+		Network:  true,
+		Exec:     true,
+		AI:       true,
+		Budget:   0,
+		Env:      make(map[string]string),
+		WorkDir:  ".",
 	}
 }
 
@@ -246,10 +246,10 @@ func (p *SandboxProfile) Audit(event, detail string) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 	p.auditTrail = append(p.auditTrail, AuditEntry{
-		Time:      time.Now(),
-		Event:     event,
-		Detail:    detail,
-		Profile:   p.Name,
+		Time:    time.Now(),
+		Event:   event,
+		Detail:  detail,
+		Profile: p.Name,
 	})
 }
 

@@ -62,12 +62,12 @@ type ScopeEntry struct {
 }
 
 type GenOptions struct {
-	Seed       int64
-	MaxStmts   int
-	MaxDepth   int
-	Pipelines  bool
-	TryExprs   bool
-	Tests      bool
+	Seed      int64
+	MaxStmts  int
+	MaxDepth  int
+	Pipelines bool
+	TryExprs  bool
+	Tests     bool
 }
 
 func DefaultOptions() GenOptions {

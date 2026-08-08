@@ -23,7 +23,7 @@ var aiBuiltinNames = map[string]bool{
 	"web_search": true, "wiki_search": true,
 	"ai_chat": true, "ai_chat_json": true,
 	"summarize": true, "translate": true, "classify": true, "extract": true, "generate": true, "generate_json": true, "ask": true,
-	"ai_stream": true,
+	"ai_stream":   true,
 	"ai_parallel": true, "ai_batch": true, "ai_rate_limit": true,
 	"embed": true, "embed_batch": true, "cosine_sim": true, "dot_product": true, "nearest": true,
 	"ai_tool": true, "ai_with_tools": true,

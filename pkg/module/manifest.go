@@ -8,13 +8,13 @@ import (
 )
 
 type Manifest struct {
-	Name        string            `json:"name"`
-	Version     string            `json:"version"`
-	Description string            `json:"description,omitempty"`
-	Author      string            `json:"author,omitempty"`
-	License     string            `json:"license,omitempty"`
-	Pipe        string            `json:"pipe,omitempty"`
-	Exports     []string          `json:"exports,omitempty"`
+	Name         string            `json:"name"`
+	Version      string            `json:"version"`
+	Description  string            `json:"description,omitempty"`
+	Author       string            `json:"author,omitempty"`
+	License      string            `json:"license,omitempty"`
+	Pipe         string            `json:"pipe,omitempty"`
+	Exports      []string          `json:"exports,omitempty"`
 	Dependencies map[string]string `json:"dependencies,omitempty"`
 }
 

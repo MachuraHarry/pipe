@@ -8,7 +8,6 @@ import (
 	"github.com/MachuraHarry/pipe/pkg/ai"
 )
 
-
 func bAiProvider(args ...Object) Object {
 	if len(args) != 1 {
 		return err("ai_provider expects 1 argument (name)")
@@ -1086,4 +1085,3 @@ func bTryAILog(args ...Object) Object {
 	}
 	return &List{Elements: elems}
 }
-

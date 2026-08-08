@@ -468,6 +468,3 @@ func bTcpClose(args ...Object) Object {
 	}
 	return NILOBJ
 }
-
-
-

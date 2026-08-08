@@ -13,11 +13,11 @@ type cacheEntry struct {
 }
 
 var (
-	cacheMu       sync.RWMutex
-	cacheStore    = make(map[string]cacheEntry)
-	cacheEnabled  = false
-	cacheTTL      = 10 * time.Minute
-	cacheHitCount int
+	cacheMu        sync.RWMutex
+	cacheStore     = make(map[string]cacheEntry)
+	cacheEnabled   = false
+	cacheTTL       = 10 * time.Minute
+	cacheHitCount  int
 	cacheMissCount int
 )
 

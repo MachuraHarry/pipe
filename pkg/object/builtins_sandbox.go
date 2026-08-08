@@ -5,7 +5,6 @@ import (
 	"time"
 )
 
-
 type SandboxConfig struct {
 	Enabled   bool
 	AllowAI   bool

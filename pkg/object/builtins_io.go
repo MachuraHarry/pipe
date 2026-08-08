@@ -187,4 +187,3 @@ func bExec(args ...Object) Object {
 		"status": &Integer{Value: 0},
 	}}
 }
-

@@ -4,9 +4,9 @@
 <meta charset="UTF-8">
 <link rel="icon" type="image/svg+xml" href="logo.svg">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="description" content="Pipe — The runtime for AI-native infrastructure. Build, sandbox, and deploy LLM pipelines with a single ~7 MB binary. 21 modules, 183 builtins. Zero dependencies.">
+<meta name="description" content="Pipe — The runtime for AI-native infrastructure. MCP Server+Client, AI pipelines, 193 builtins. Single ~7 MB binary. Zero dependencies.">
 <meta property="og:title" content="Pipe — The runtime for AI-native infrastructure">
-<meta property="og:description" content="Build, sandbox, and deploy LLM pipelines. 36 AI builtins, 21 modules, single ~7 MB binary. Zero dependencies.">
+<meta property="og:description" content="MCP-native. 193 builtins, 23 modules, single ~7 MB binary. Zero dependencies.">
 <meta property="og:type" content="website">
 <meta property="og:image" content="https://pipe-lang.com/og-image.png">
 <meta property="og:url" content="https://pipe-lang.com/">
@@ -267,17 +267,17 @@ span[data-lang].active{display:inline}a[data-lang].active{display:inline-block}
 
 <!-- Hero -->
 <section class="hero">
-  <div class="badge"><strong>SPR</strong> v0.9.2 · Semantic Pipeline Runtime</div>
+  <div class="badge"><strong>v0.9.2</strong> · MCP Server + Client · Semantic Pipeline Runtime</div>
 
-  <h1 id="hero-headline"><span class="grad">The runtime for</span><br>AI-native infrastructure</h1>
-  <p id="hero-sub" class="sub">Build, sandbox, and deploy LLM pipelines with a single ~7 MB binary. 21 modules, 183 builtins. Zero dependencies.</p>
+  <h1 id="hero-headline"><span class="grad">MCP-native runtime for</span><br>AI infrastructure</h1>
+  <p id="hero-sub" class="sub">The first language with built-in MCP — server and client. Connect to 100+ MCP servers, expose your own tools, and run AI pipelines. Single ~7 MB binary, zero dependencies.</p>
 
   <div class="stats-inline">
-    <div class="stat"><span class="stat-num">36</span><div class="stat-label">AI Builtins</div></div>
+    <div class="stat"><span class="stat-num">43</span><div class="stat-label">AI Builtins</div></div>
     <div class="stat"><span class="stat-num">300+</span><div class="stat-label">Tests</div></div>
-    <div class="stat"><span class="stat-num">~7 MB</span><div class="stat-label">Binary Size</div></div>
+    <div class="stat"><span class="stat-num">193</span><div class="stat-label">Total Builtins</div></div>
     <div class="stat"><span class="stat-num">4</span><div class="stat-label">Providers</div></div>
-    <div class="stat"><span class="stat-num">21</span><div class="stat-label">Modules</div></div>
+    <div class="stat"><span class="stat-num">23</span><div class="stat-label">Modules</div></div>
   </div>
   <div class="cta">
     <a href="#play" class="cta-primary">▶ Try in Browser</a>
@@ -467,48 +467,40 @@ oninput="syncHighlight();scheduleRenderGraph()" onscroll="syncScroll()">"hello w
 
     <div class="feature-row reverse reveal">
       <div class="feature-text">
-        <h3 data-lang="en" class="active"><span>Module Pipeline</span> — HTTP → SQL → AI → Report</h3>
-        <h3 data-lang="de"><span>Modul-Pipeline</span> — HTTP → SQL → KI → Report</h3>
-        <p data-lang="en" class="active">Fetch data via <code>pipe-http</code>, analyze with AI, store in <code>sqlite</code>, format with <code>pipe-tpl</code>. One script, four modules, zero glue code. Build and ship as a single ~2.8 MB binary with <code>pipe -build -upx</code>.</p>
-        <p data-lang="de">Daten per <code>pipe-http</code> holen, mit KI analysieren, in <code>sqlite</code> speichern, mit <code>pipe-tpl</code> formatieren. Ein Skript, vier Module, null Glue-Code. Kompilieren und als einzelne ~2,8 MB Binary ausliefern mit <code>pipe -build -upx</code>.</p>
+        <h3 data-lang="en" class="active"><span>MCP-Native</span> — Connect any MCP server</h3>
+        <h3 data-lang="de"><span>MCP-Nativ</span> — Beliebige MCP-Server einbinden</h3>
+        <p data-lang="en" class="active">Pipe is the <strong>first language with built-in MCP</strong> — both server and client. Connect to 100+ community servers off npm/uvx, expose your own tools to Claude Desktop, and use everything together in <code>ai_with_tools</code>. Zero dependencies, pure Go stdlib.</p>
+        <p data-lang="de">Pipe ist die <strong>erste Sprache mit eingebautem MCP</strong> — Server und Client. Verbinde dich mit 100+ Community-Servern per npm/uvx, stelle eigene Tools für Claude Desktop bereit und nutze alles zusammen in <code>ai_with_tools</code>. Zero Dependencies, reines Go.</p>
       </div>
-      <div class="feature-code"><div class="bar"><span class="dot" style="background:var(--red)"></span><span class="dot" style="background:var(--orange)"></span><span class="dot" style="background:var(--green)"></span></div><pre><span class="kw">import</span> <span class="str">"pipe-http"</span>
-<span class="kw">import</span> <span class="str">"pipe-tpl"</span>
+      <div class="feature-code"><div class="bar"><span class="dot" style="background:var(--red)"></span><span class="dot" style="background:var(--orange)"></span><span class="dot" style="background:var(--green)"></span></div><pre><span class="fn">mcp_use_stdio</span> <span class="str">"npx"</span> <span class="str">"-y"</span> <span class="str">"@modelcontextprotocol/server-github"</span> {<span class="kw">GITHUB_TOKEN</span>: (<span class="fn">env</span> <span class="str">"GITHUB_TOKEN"</span>)}
 
-<span class="fn">ai_provider</span> <span class="str">"deepseek"</span>
+<span class="fn">mcp_use_stdio</span> <span class="str">"npx"</span> <span class="str">"-y"</span> <span class="str">"@modelcontextprotocol/server-filesystem"</span> <span class="str">"/tmp"</span>
 
-<span class="cmt">-- Fetch + analyze + render</span>
-<span class="fn">repos</span>: <span class="fn">hget</span> <span class="str">"https://gh.api/repos"</span> {}
-<span class="fn">data</span>: <span class="fn">parse_json</span> (<span class="fn">get</span> repos <span class="str">"body"</span>)
-
-<span class="fn">analysis</span>: <span class="fn">summarize</span> (<span class="fn">to_json</span> data)
-
-<span class="fn">report</span>: <span class="fn">render</span> <span class="str">"{{ for r in repos }}
-  * {{ r.name }} ({{ r.language }})
-{{ end }}
-{{ analysis }}"</span> data
-<span class="fn">print</span> report</pre></div>
+<span class="fn">ai_with_tools</span> <span class="str">"You have GitHub + filesystem tools."</span>
+    <span class="str">"Check pipe's open issues, list /tmp files, save a summary."</span></pre></div>
     </div>
 
     <div class="feature-row reveal">
       <div class="feature-text">
-        <h3 data-lang="en" class="active"><span>Web APIs</span> — Built-in HTTP Server</h3>
-        <h3 data-lang="de"><span>Web-APIs</span> — Eingebauter HTTP-Server</h3>
-        <p data-lang="en" class="active">Serve an API and a web UI from the same script with pipe-web: routing, JSON in/out, middleware, and a real HTTP server — no FastAPI, no Express, no Docker. One binary that listens, answers, and shuts down cleanly. Try it: <a href="examples.html">AI Summarize API</a> and <a href="examples.html">RAG Knowledge Base</a>.</p>
-        <p data-lang="de">API und Web-UI aus demselben Skript mit pipe-web ausliefern: Routing, JSON in/out, Middleware und ein echter HTTP-Server — kein FastAPI, kein Express, kein Docker. Eine Binary, die lauscht, antwortet und sauber herunterfährt. Ausprobieren: <a href="examples.html">AI-Zusammenfassungs-API</a> und <a href="examples.html">RAG-Wissensbasis</a>.</p>
+        <h3 data-lang="en" class="active"><span>Social CI/CD</span> — Discord & Telegram in pipelines</h3>
+        <h3 data-lang="de"><span>Social CI/CD</span> — Discord & Telegram in Pipelines</h3>
+        <p data-lang="en" class="active">Built-in Discord webhook and Telegram Bot modules. Send rich embeds with AI code reviews from CI, post notifications, or build custom chat bots — pure Pipe, zero API costs for sending.</p>
+        <p data-lang="de">Eingebaute Discord-Webhook- und Telegram-Bot-Module. Sende Rich-Embeds mit KI-Code-Reviews aus der CI, poste Benachrichtigungen oder baue eigene Chat-Bots — reines Pipe, keine API-Kosten fürs Senden.</p>
       </div>
-      <div class="feature-code"><div class="bar"><span class="dot" style="background:var(--red)"></span><span class="dot" style="background:var(--orange)"></span><span class="dot" style="background:var(--green)"></span></div><pre><span class="kw">import</span> <span class="str">"pipe-web"</span>
-
+      <div class="feature-code"><div class="bar"><span class="dot" style="background:var(--accent2)"></span><span class="dot" style="background:var(--accent2)"></span><span class="dot" style="background:var(--accent2)"></span></div><pre><span class="kw">import</span> <span class="str">"discord.pipe"</span> <span class="kw">as</span> d
 <span class="fn">ai_provider</span> <span class="str">"deepseek"</span>
 
-<span class="kw">fn</span> <span class="fn">summarize_handler</span> req
-    <span class="fn">text</span>: <span class="fn">get</span> (<span class="fn">json_body</span> req) <span class="str">"text"</span>
-    <span class="fn">ok</span> {summary: (<span class="fn">summarize</span> text)}
+<span class="cmt">-- Send AI code review to Discord on every push</span>
+<span class="fn">review</span>: <span class="fn">ai_chat</span> <span class="str">"Review this code"</span> diff <span class="num">800</span>
 
-<span class="fn">api</span>: <span class="fn">app</span> <span class="str">"AISummarize"</span>
-<span class="fn">route_get</span> api <span class="str">"/health"</span> health
-<span class="fn">post</span> api <span class="str">"/summarize"</span> summarize_handler
-<span class="fn">serve</span> api <span class="str">"0.0.0.0:8080"</span> <span class="num">300000</span></pre></div>
+<span class="fn">d.d_webhook_embed</span> (env <span class="str">"DISCORD_WEBHOOK"</span>) {
+    <span class="kw">title</span>: <span class="str">"🔧 CI: Push to master"</span>,
+    <span class="kw">color</span>: <span class="num">3447003</span>,
+    <span class="kw">fields</span>: [
+        {<span class="kw">name</span>: <span class="str">"Changed Files"</span>, <span class="kw">value</span>: stat},
+        {<span class="kw">name</span>: <span class="str">"AI Review"</span>, <span class="kw">value</span>: review}
+    ]
+}</pre></div>
     </div>
   </div>
 </section>
@@ -531,6 +523,7 @@ oninput="syncHighlight();scheduleRenderGraph()" onscroll="syncScroll()">"hello w
         <tr><td><span data-lang="en" class="active">Deploy to server</span><span data-lang="de">Auf Server deployen</span></td><td><span data-lang="en" class="active">Docker + venv + pip</span><span data-lang="de">Docker + venv + pip</span></td><td><span data-lang="en" class="active">scp pipe binary</span><span data-lang="de">scp pipe binary</span></td></tr>
         <tr><td><span data-lang="en" class="active">Expose an HTTP API</span><span data-lang="de">HTTP-API bereitstellen</span></td><td><span data-lang="en" class="active">FastAPI + uvicorn + deps</span><span data-lang="de">FastAPI + uvicorn + Deps</span></td><td style="font-family:var(--mono);color:var(--green)">route_get + serve</td></tr>
         <tr><td><span data-lang="en" class="active">Parallel LLM calls</span><span data-lang="de">Parallele LLM-Calls</span></td><td><span data-lang="en" class="active">asyncio.gather() boilerplate</span><span data-lang="de">asyncio.gather()-Boilerplate</span></td><td style="font-family:var(--mono);color:var(--green)">>> operator, ai_batch</td></tr>
+        <tr><td><span data-lang="en" class="active">MCP Server + Client</span><span data-lang="de">MCP Server + Client</span></td><td><span data-lang="en" class="active">Not available</span><span data-lang="de">Nicht verfügbar</span></td><td style="font-family:var(--mono);color:var(--green)">7 builtins, zero deps, 100+ servers</td></tr>
         <tr><td><span data-lang="en" class="active">Binary size (with deps)</span><span data-lang="de">Binary-Größe (mit Deps)</span></td><td><span data-lang="en" class="active">~500 MB</span><span data-lang="de">~500 MB</span></td><td><span data-lang="en" class="active">~7 MB</span><span data-lang="de">~7 MB</span></td></tr>
       </table>
     </div>
@@ -591,8 +584,8 @@ oninput="syncHighlight();scheduleRenderGraph()" onscroll="syncScroll()">"hello w
         <div class="icon">📦</div>
         <h4 data-lang="en" class="active">Module ecosystem</h4>
         <h4 data-lang="de">Modul-Ökosystem</h4>
-        <p data-lang="en" class="active">21 curated modules. Pin versions with <code>@1.0.0</code>. <code>pipe -search</code> discovers, <code>pipe -get</code> installs. Import by name — no URLs.</p>
-        <p data-lang="de">20 kuratierte Module. Versionen pinnen mit <code>@1.0.0</code>. <code>pipe -search</code> entdeckt, <code>pipe -get</code> installiert. Import per Name — keine URLs.</p>
+        <p data-lang="en" class="active">23 curated modules. Pin versions with <code>@1.0.0</code>. <code>pipe -search</code> discovers, <code>pipe -get</code> installs. Import by name — no URLs.</p>
+        <p data-lang="de">23 kuratierte Module. Versionen pinnen mit <code>@1.0.0</code>. <code>pipe -search</code> entdeckt, <code>pipe -get</code> installiert. Import per Name — keine URLs.</p>
       </div>
       <div class="card">
         <div class="icon">🔌</div>
@@ -609,18 +602,18 @@ oninput="syncHighlight();scheduleRenderGraph()" onscroll="syncScroll()">"hello w
         <p data-lang="de">Kompilieren in 42 Opcodes, Ausführung auf einer Stack-Machine mit automatischem Caching. Tree-Walker für Entwicklung, VM für Produktion.</p>
       </div>
       <div class="card">
-        <div class="icon">🖥️</div>
-        <h4 data-lang="en" class="active">CLI Framework</h4>
-        <h4 data-lang="de">CLI-Framework</h4>
-        <p data-lang="en" class="active"><code>pipe-cli</code> module: subcommands, typed flags, auto-generated <code>--help</code>. Build CLI tools in minutes — no argparse, no cobra.</p>
-        <p data-lang="de"><code>pipe-cli</code>-Modul: Subcommands, typisierte Flags, automatisch generiertes <code>--help</code>. CLI-Tools in Minuten bauen — kein Argparse, kein Cobra.</p>
+        <div class="icon">🔌</div>
+        <h4 data-lang="en" class="active">MCP-Native</h4>
+        <h4 data-lang="de">MCP-Nativ</h4>
+        <p data-lang="en" class="active">Built-in MCP server and client. Connect to 100+ community servers, expose your own tools. Zero dependencies — pure Go stdlib.</p>
+        <p data-lang="de">Eingebauter MCP-Server und -Client. Verbinde dich mit 100+ Community-Servern, stelle eigene Tools bereit. Zero Dependencies — reines Go.</p>
       </div>
       <div class="card">
-        <div class="icon">📝</div>
-        <h4 data-lang="en" class="active">Template Engine</h4>
-        <h4 data-lang="de">Template-Engine</h4>
-        <p data-lang="en" class="active"><code>pipe-tpl</code>: Variables, conditionals, loops, filters. Render AI-generated content into reports, emails, or code. No Jinja, no Handlebars.</p>
-        <p data-lang="de"><code>pipe-tpl</code>: Variablen, Bedingungen, Schleifen, Filter. KI-generierte Inhalte in Reports, E-Mails oder Code rendern. Kein Jinja, kein Handlebars.</p>
+        <div class="icon">💬</div>
+        <h4 data-lang="en" class="active">Social platforms built in</h4>
+        <h4 data-lang="de">Social-Plattformen eingebaut</h4>
+        <p data-lang="en" class="active">Discord webhooks and Telegram bots as Pipe modules. Send AI code reviews, notifications, chat messages — zero API costs for sending.</p>
+        <p data-lang="de">Discord-Webhooks und Telegram-Bots als Pipe-Module. Sende KI-Code-Reviews, Benachrichtigungen, Chat-Nachrichten — keine API-Kosten fürs Senden.</p>
       </div>
       <div class="card">
         <div class="icon">🌍</div>
@@ -650,10 +643,10 @@ oninput="syncHighlight();scheduleRenderGraph()" onscroll="syncScroll()">"hello w
     <div class="stats-inline reveal" style="gap:48px;margin-bottom:0">
       <div class="stat"><span class="stat-num">300+</span><div class="stat-label" data-lang="en" class="active">Tests</div><div class="stat-label" data-lang="de">Tests</div></div>
       <div class="stat"><span class="stat-num">~19k</span><div class="stat-label" data-lang="en" class="active">LoC Go</div><div class="stat-label" data-lang="de">LoC Go</div></div>
-      <div class="stat"><span class="stat-num">21</span><div class="stat-label" data-lang="en" class="active">Modules</div><div class="stat-label" data-lang="de">Module</div></div>
+      <div class="stat"><span class="stat-num">23</span><div class="stat-label" data-lang="en" class="active">Modules</div><div class="stat-label" data-lang="de">Module</div></div>
       <div class="stat"><span class="stat-num">4</span><div class="stat-label" data-lang="en" class="active">AI Providers</div><div class="stat-label" data-lang="de">KI-Provider</div></div>
       <div class="stat"><span class="stat-num">~7 MB</span><div class="stat-label" data-lang="en" class="active">Binary</div><div class="stat-label" data-lang="de">Binary</div></div>
-      <div class="stat"><span class="stat-num">183</span><div class="stat-label" data-lang="en" class="active">Builtins</div><div class="stat-label" data-lang="de">Builtins</div></div>
+      <div class="stat"><span class="stat-num">193</span><div class="stat-label" data-lang="en" class="active">Builtins</div><div class="stat-label" data-lang="de">Builtins</div></div>
     </div>
   </div>
 </section>
@@ -661,12 +654,13 @@ oninput="syncHighlight();scheduleRenderGraph()" onscroll="syncScroll()">"hello w
 <!-- Builtins -->
 <section id="builtins" style="background:var(--bg2)">
   <div class="container">
-    <div class="section-head"><h2 data-lang="en" class="active"><span>36 AI Builtins</span> + 147 Standard Builtins = 183 Total</h2><h2 data-lang="de"><span>36 KI-Builtins</span> + 147 Standard-Builtins = 183 Gesamt</h2></div>
+     <div class="section-head"><h2 data-lang="en" class="active"><span>43 AI Builtins</span> (36 AI + 7 MCP) + 150 Standard = 193 Total</h2><h2 data-lang="de"><span>43 KI-Builtins</span> (36 KI + 7 MCP) + 150 Standard = 193 Gesamt</h2></div>
     <div class="builtins-grid reveal">
       <div class="builtin-group"><h4>🧠 Understanding</h4><table><tr><td>summarize</td><td>Text summarization</td></tr><tr><td>translate</td><td>Translation</td></tr><tr><td>classify</td><td>Classification</td></tr><tr><td>extract</td><td>Data extraction (JSON)</td></tr><tr><td>ask</td><td>Question answering</td></tr><tr><td>generate</td><td>Free-text generation</td></tr></table></div>
       <div class="builtin-group"><h4>⚡ Speed & Parallel</h4><table><tr><td>ai_stream</td><td>Real-time token streaming</td></tr><tr><td>ai_batch</td><td>Auto-parallel batch</td></tr><tr><td>ai_parallel</td><td>Concurrency control</td></tr><tr><td>ai_rate_limit</td><td>Rate limiting</td></tr><tr><td>ai_chat</td><td>Low-level chat</td></tr><tr><td>ai_chat_json</td><td>Chat → structured JSON</td></tr></table></div>
       <div class="builtin-group"><h4>🔍 Embeddings & Search</h4><table><tr><td>embed</td><td>Text → vector</td></tr><tr><td>embed_batch</td><td>Batch embeddings</td></tr><tr><td>cosine_sim</td><td>Semantic similarity</td></tr><tr><td>dot_product</td><td>Dot product</td></tr><tr><td>nearest</td><td>Top-K nearest</td></tr></table></div>
       <div class="builtin-group"><h4>🤖 Tool Calling & Config</h4><table><tr><td>ai_tool</td><td>Register function as tool</td></tr><tr><td>ai_with_tools</td><td>Chat with tool access</td></tr><tr><td>ai_provider</td><td>Select AI provider</td></tr><tr><td>ai_model</td><td>Select model</td></tr><tr><td>ai_timeout</td><td>Set timeout</td></tr></table></div>
+      <div class="builtin-group"><h4>🔌 MCP — Model Context Protocol</h4><table><tr><td>mcp_server</td><td>Create MCP server</td></tr><tr><td>mcp_serve_stdio</td><td>Start stdio server</td></tr><tr><td>mcp_serve_sse</td><td>Start HTTP server</td></tr><tr><td>mcp_tools</td><td>List tools</td></tr><tr><td>mcp_use_stdio</td><td>Connect to MCP server</td></tr><tr><td>mcp_use_sse</td><td>Connect via HTTP</td></tr></table></div>
       <div class="builtin-group"><h4>🔒 Sandbox Profiles</h4><table><tr><td>sandbox_profile</td><td>Define a sandbox profile</td></tr><tr><td>set_sandbox</td><td>Activate a profile</td></tr><tr><td>with_sandbox</td><td>Temp profile override</td></tr></table></div>
       <div class="builtin-group"><h4>🧪 Testing</h4><table><tr><td>test</td><td>Grouped test block</td></tr><tr><td>assert</td><td>Truthy check</td></tr><tr><td>assert_eq</td><td>Equality check</td></tr><tr><td>assert_lt</td><td>Less-than check</td></tr><tr><td>assert_gt</td><td>Greater-than check</td></tr><tr><td>assert_error</td><td>Expect an error</td></tr></table></div>
     </div>
@@ -710,204 +704,22 @@ oninput="syncHighlight();scheduleRenderGraph()" onscroll="syncScroll()">"hello w
   </div>
 </section>
 
-<!-- Advanced Features -->
-<section id="advanced" style="background:var(--bg2)">
+<!-- Connect via MCP to the ecosystem — coming soon -->
+<section id="mcp" style="background:var(--bg2)">
   <div class="container">
     <div class="section-head">
-      <h2 data-lang="en" class="active"><span>Advanced</span> features</h2>
-      <h2 data-lang="de"><span>Fortgeschrittene</span> Features</h2>
+      <h2 data-lang="en" class="active"><span>MCP Ecosystem</span> — 100+ servers at your fingertips</h2>
+      <h2 data-lang="de"><span>MCP-Ökosystem</span> — 100+ Server zur Hand</h2>
+      <p data-lang="en" class="active">Pipe can connect to any MCP server via <code>mcp_use_stdio</code>. GitHub, Filesystem, Postgres, Slack, Brave Search, Git, Memory, Sequential Thinking — everything discoverable from npm/uvx becomes a tool for the AI.</p>
+      <p data-lang="de">Pipe kann sich mit jedem MCP-Server via <code>mcp_use_stdio</code> verbinden. GitHub, Dateisystem, Postgres, Slack, Brave Search, Git, Memory, Sequential Thinking — alles, was per npm/uvx verfügbar ist, wird zum Tool für die KI.</p>
     </div>
-
-    <div class="feature-row reveal">
-      <div class="feature-text">
-        <h3 data-lang="en" class="active"><span>Self-Healing Code</span></h3>
-        <h3 data-lang="de"><span>Selbstheilender Code</span></h3>
-        <p data-lang="en" class="active"><code>try_ai</code> catches runtime errors and uses AI to <strong>automatically fix</strong> the broken expression — type mismatches, division by zero, index errors. If the AI can't fix it, execution falls to <code>catch</code>. No other language has this.</p>
-        <p data-lang="de"><code>try_ai</code> fängt Laufzeitfehler und nutzt KI um den Ausdruck <strong>automatisch zu reparieren</strong> — Typ-Fehler, Division durch Null, Index-Fehler. Wenn die KI nicht fixen kann, fällt es ins <code>catch</code>. Keine andere Sprache kann das.</p>
-      </div>
-      <div class="feature-code"><div class="bar"><span class="dot" style="background:var(--red)"></span><span class="dot" style="background:var(--orange)"></span><span class="dot" style="background:var(--green)"></span></div><pre><span class="kw">try_ai</span>
-    <span class="str">"42"</span> * <span class="num">3</span>        <span class="cmt">-- E002: STRING * INTEGER</span>
-<span class="kw">catch</span> e
-    <span class="num">0</span>                <span class="cmt">-- fallback if AI fix fails</span>
-
-<span class="cmt">-- AI auto-fix: (to_num "42") * 3 → 126 ✓</span></pre></div>
-    </div>
-
-    <div class="feature-row reveal">
-      <div class="feature-text">
-        <h3 data-lang="en" class="active"><span>How We Made AI Code Execution Safe</span></h3>
-        <h3 data-lang="de"><span>Warum KI-Code-Ausführung sicher ist</span></h3>
-<p data-lang="en" class="active"><code>try_ai</code> raised a natural concern: <em>AI modifying code at runtime — isn't that dangerous?</em> We invested in <strong>3-ring defense-in-depth validation</strong> that makes <code>try_ai</code> safe even in production. Ring 2 activates a <strong>real sandbox</strong> (no filesystem, no network, no exec) — only safe builtins pass. Every fix must survive parse-checking, sandbox evaluation, and re-execution. There is no path for AI-generated code to escape validation.</p>
-<p data-lang="de"><code>try_ai</code> warf eine berechtigte Frage auf: <em>KI ändert Code zur Laufzeit — ist das nicht gefährlich?</em> Wir haben in <strong>3-Ring-Defense-in-Depth-Validierung</strong> investiert, die <code>try_ai</code> auch in Produktion sicher macht. Ring 2 aktiviert eine <strong>echte Sandbox</strong> (kein Dateisystem, kein Netzwerk, kein Exec) — nur sichere Builtins passieren. Jeder Fix muss Parse-Check, Sandbox-Evaluation und Wiederausführung bestehen. Es gibt keinen Weg für KI-generierten Code, die Validierung zu umgehen.</p>
-      </div>
-      <div class="feature-code"><div class="bar"><span class="dot" style="background:var(--green)"></span><span class="dot" style="background:var(--green)"></span><span class="dot" style="background:var(--green)"></span></div><pre><span class="cmt">Defense in Depth — 3 validation rings:</span>
-<span class="cmt">┌─────────────────────────────────┐</span>
-<span class="cmt">│ RING 1: Parse → valid syntax?   │</span>
-<span class="cmt">├─────────────────────────────────┤</span>
-<span class="cmt">│ RING 2: Sandbox → I/O blocked?  │</span>
-<span class="cmt">│   env.Copy() + strict sandbox   │</span>
-<span class="cmt">├─────────────────────────────────┤</span>
-<span class="cmt">│ RING 3: Real eval → final check │</span>
-<span class="cmt">├─────────────────────────────────┤</span>
-<span class="cmt">│ catch → deterministic fallback  │</span>
-<span class="cmt">└─────────────────────────────────┘</span>
-<span class="cmt">Every ring must pass independently.</span></pre></div>
-    </div>
-
-    <div class="feature-row reverse reveal">
-      <div class="feature-text">
-        <h3 data-lang="en" class="active"><span>Parallel by Design</span></h3>
-        <h3 data-lang="de"><span>Parallel per Design</span></h3>
-        <p data-lang="en" class="active"><code>>></code> starts any pipeline stage in the background — returning a Future that auto-resolves when needed. <code>ai_batch</code> handles hundreds of texts concurrently with built-in rate limiting. No async/await. No Promise.all.</p>
-        <p data-lang="de"><code>>></code> startet jede Pipeline-Stufe im Hintergrund — und gibt einen Future zurück, der sich automatisch auflöst. <code>ai_batch</code> verarbeitet hunderte Texte parallel mit eingebautem Rate-Limiting. Kein async/await. Kein Promise.all.</p>
-      </div>
-      <div class="feature-code"><div class="bar"><span class="dot" style="background:var(--red)"></span><span class="dot" style="background:var(--orange)"></span><span class="dot" style="background:var(--green)"></span></div><pre><span class="cmt">-- 3 AI calls — ~1.5s instead of ~4s</span>
-a: <span class="str">"Capital of France?"</span>
-    <span class="pipe">&gt;&gt;</span> <span class="fn">ask</span>
-b: <span class="str">"Capital of Germany?"</span>
-    <span class="pipe">&gt;&gt;</span> <span class="fn">ask</span>
-c: <span class="str">"Capital of Italy?"</span>
-    <span class="pipe">&gt;&gt;</span> <span class="fn">ask</span>
-
-<span class="fn">print</span> a <span class="op">++</span> <span class="str">" | "</span> <span class="op">++</span> b <span class="op">++</span> <span class="str">" | "</span> <span class="op">++</span> c</pre></div>
-    </div>
-
-    <div class="feature-row reveal">
-      <div class="feature-text">
-        <h3 data-lang="en" class="active"><span>Modern Control Flow</span></h3>
-        <h3 data-lang="de"><span>Moderne Kontrollstrukturen</span></h3>
-        <p data-lang="en" class="active">C-style <code>for</code> loops, multi-pattern <code>match</code>, and a <code>not</code> keyword keep everyday scripting painless. All compiled to bytecode with proper continue/break support.</p>
-        <p data-lang="de">C-Style-<code>for</code>-Schleifen, Multi-Pattern-<code>match</code> und ein <code>not</code>-Keyword machen alltägliches Scripting angenehm. Alles in Bytecode kompiliert mit voller continue/break-Unterstützung.</p>
-      </div>
-      <div class="feature-code"><div class="bar"><span class="dot" style="background:var(--red)"></span><span class="dot" style="background:var(--orange)"></span><span class="dot" style="background:var(--green)"></span></div><pre><span class="kw">for</span> i: <span class="num">0</span>; i &lt; <span class="num">5</span>; i: i + <span class="num">1</span>
-    <span class="fn">print</span> i
-
-<span class="kw">match</span> <span class="num">6</span>
-    | <span class="num">2</span> | <span class="num">4</span> | <span class="num">6</span> -> <span class="fn">print</span> <span class="str">"even"</span>
-    | <span class="num">1</span> | <span class="num">3</span> | <span class="num">5</span> -> <span class="fn">print</span> <span class="str">"odd"</span>
-
-<span class="kw">if</span> <span class="kw">not</span> (<span class="num">2</span> <span class="op">&gt;</span> <span class="num">3</span>)
-    <span class="fn">print</span> <span class="str">"clearly true"</span></pre></div>
-    </div>
-  </div>
-</section>
-
-<!-- Why Pipe's Syntax is AI-Friendly -->
-<section id="ai-syntax" style="background:var(--bg)">
-  <div class="container">
-    <div class="section-head">
-      <h2 data-lang="en" class="active">AI models learn Pipe <span>in seconds</span></h2>
-      <h2 data-lang="de">KI-Modelle lernen Pipe <span>in Sekunden</span></h2>
-      <p data-lang="en" class="active">The Pipe syntax is AI-friendly by design. Its heart is the pipeline: data flows top to bottom through <code>&gt;</code>, step by step — the same way AI models reason about a task. Here's why models understand and learn Pipe so quickly.</p>
-      <p data-lang="de">Die Pipe-Syntax ist von Haus aus KI-freundlich. Ihr Herzstück ist die Pipeline: Daten fließen von oben nach unten durch <code>&gt;</code>, Schritt für Schritt — genauso, wie KI-Modelle über eine Aufgabe nachdenken. Deshalb verstehen und erlernen Modelle Pipe so schnell.</p>
-    </div>
-
-    <div class="feature-row reveal">
-      <div class="feature-text">
-        <h3 data-lang="en" class="active"><span>Pipelines read like reasoning</span> — step by step, top to bottom</h3>
-        <h3 data-lang="de"><span>Pipelines lesen sich wie Denken</span> — Schritt für Schritt, von oben nach unten</h3>
-        <p data-lang="en" class="active">An AI task is a sequence of steps: <em>read → clean → classify → summarize → deliver</em>. Pipe writes that sequence literally — every <code>&gt;</code> is one transformation, top to bottom. A model doesn't have to reverse-engineer control flow or hunt for side effects; the code is a straight line from input to result, exactly the shape of a reasoning chain.</p>
-        <p data-lang="de">Eine KI-Aufgabe ist eine Folge von Schritten: <em>lesen → bereinigen → klassifizieren → zusammenfassen → liefern</em>. Pipe schreibt diese Folge wörtlich — jedes <code>&gt;</code> ist eine Transformation, von oben nach unten. Ein Modell muss keinen Kontrollfluss rekonstruieren und keine Seiteneffekte suchen; der Code ist eine gerade Linie vom Input zum Ergebnis — exakt die Form einer Denkkette.</p>
-      </div>
-      <div class="feature-code"><div class="bar"><span class="dot" style="background:var(--red)"></span><span class="dot" style="background:var(--orange)"></span><span class="dot" style="background:var(--green)"></span></div><pre><span class="cmt">-- one step per line, top to bottom — like a reasoning chain</span>
-<span class="fn">read_file</span> <span class="str">"tickets.txt"</span>
-    <span class="pipe">&gt;</span> <span class="fn">split</span> <span class="str">"\n"</span>
-    <span class="pipe">&gt;</span> <span class="fn">classify</span> ([<span class="str">"bug"</span>, <span class="str">"feature"</span>, <span class="str">"question"</span>])
-    <span class="pipe">&gt;</span> <span class="fn">summarize</span>
-    <span class="pipe">&gt;</span> <span class="fn">save</span> <span class="str">"report.md"</span></pre></div>
-    </div>
-
-    <div class="feature-row reverse reveal">
-      <div class="feature-text">
-        <h3 data-lang="en" class="active"><span>Tiny grammar</span> — learnable in a single pass</h3>
-        <h3 data-lang="de"><span>Winzige Grammatik</span> — in einem Durchgang lernbar</h3>
-        <p data-lang="en" class="active">Around 20 keywords, 67 token types, 35 AST node types. No classes, no generics, no decorators, no <code>async</code> model to absorb. The whole language fits on a page — so a model memorizes it in one glance and stays <em>inside</em> the grammar instead of drifting out of it.</p>
-        <p data-lang="de">Rund 20 Keywords, 67 Token-Typen, 35 AST-Nodes. Keine Klassen, keine Generics, keine Dekoratoren, kein <code>async</code>-Modell zum Aufnehmen. Die ganze Sprache passt auf eine Seite — ein Modell erfasst sie auf einen Blick und bleibt <em>innerhalb</em> der Grammatik, statt herauszudriften.</p>
-      </div>
-      <div class="feature-code"><div class="bar"><span class="dot" style="background:var(--red)"></span><span class="dot" style="background:var(--orange)"></span><span class="dot" style="background:var(--green)"></span></div><pre><span class="cmt">-- ~20 keywords · no classes · no types · no braces</span>
-<span class="kw">fn</span> <span class="fn">classify_ticket</span> t
-    <span class="kw">match</span> t
-        | <span class="str">"refund"</span> -> <span class="str">"billing"</span>
-        | <span class="str">"crash"</span>  -> <span class="str">"bug"</span>
-        | _        -> <span class="str">"other"</span>
-
-<span class="cmt">-- implicit calls: no parentheses, no commas</span>
-<span class="fn">print</span> (<span class="fn">classify_ticket</span> <span class="str">"crash"</span>)</pre></div>
-    </div>
-
-    <div class="feature-row reveal">
-      <div class="feature-text">
-        <h3 data-lang="en" class="active"><span>Familiar shapes</span> — nothing a model has to unlearn</h3>
-        <h3 data-lang="de"><span>Vertraute Formen</span> — nichts, das ein Modell verlernt</h3>
-        <p data-lang="en" class="active">Pipe uses the structures LLMs are already best at: indentation-based blocks like Python, and implicit space-separated calls instead of parentheses and commas. No braces to balance, no semicolons, no delimiter bookkeeping — the most common source of codegen bugs is simply not there.</p>
-        <p data-lang="de">Pipe nutzt die Strukturen, in denen LLMs ohnehin am besten sind: einrückungsbasierte Blöcke wie in Python und implizite, leerzeichengetrennte Aufrufe statt Klammern und Kommas. Keine geschweiften Klammern, keine Semikolons, keine Klammern-Buchhaltung — die häufigste Codegen-Fehlerquelle existiert schlicht nicht.</p>
-      </div>
-      <div class="feature-code"><div class="bar"><span class="dot" style="background:var(--red)"></span><span class="dot" style="background:var(--orange)"></span><span class="dot" style="background:var(--green)"></span></div><pre><span class="cmt">-- Python: (), [], :, , — four kinds of bookkeeping</span>
-<span class="kw">if</span> <span class="fn">len</span>(items) <span class="op">&gt;</span> <span class="num">3</span> <span class="kw">and</span> items[<span class="num">0</span>] <span class="op">!=</span> <span class="kw">nil</span>: ...
-
-<span class="cmt">-- Pipe: indentation blocks, space-separated calls</span>
-<span class="kw">if</span> (<span class="fn">len</span> items) <span class="op">&gt;</span> <span class="num">3</span> <span class="op">&amp;&amp;</span> (<span class="fn">at</span> items <span class="num">0</span>) <span class="op">!=</span> <span class="kw">nil</span>
-    <span class="fn">print</span> <span class="str">"many items"</span></pre></div>
-    </div>
-
-    <div class="feature-row reverse reveal">
-      <div class="feature-text">
-        <h3 data-lang="en" class="active"><span>Self-describing verbs</span> — the syntax reads like instructions</h3>
-        <h3 data-lang="de"><span>Selbstbeschreibende Verben</span> — die Syntax liest sich wie Anweisungen</h3>
-        <p data-lang="en" class="active"><code>summarize</code>, <code>translate</code>, <code>classify</code>, <code>ask</code>, <code>embed</code>, <code>nearest</code> — the verb <em>is</em> the operation. No client objects, no <code>messages</code> dicts, no model IDs, no API-key plumbing to remember. Code sits one step from natural language, so a model maps your task to the syntax without ceremony.</p>
-        <p data-lang="de"><code>summarize</code>, <code>translate</code>, <code>classify</code>, <code>ask</code>, <code>embed</code>, <code>nearest</code> — das Verb <em>ist</em> die Operation. Keine Client-Objekte, keine <code>messages</code>-Dicts, keine Modell-IDs, keine API-Key-Klempnerei, die man sich merken müsste. Code liegt einen Schritt von natürlicher Sprache entfernt, sodass ein Modell deine Aufgabe ohne Zeremonie in Syntax übersetzt.</p>
-      </div>
-      <div class="feature-code"><div class="bar"><span class="dot" style="background:var(--red)"></span><span class="dot" style="background:var(--orange)"></span><span class="dot" style="background:var(--green)"></span></div><pre><span class="cmt">-- the verbs ARE the operation</span>
-<span class="fn">ticket</span>:  <span class="fn">read_file</span> <span class="str">"ticket.txt"</span>
-<span class="fn">summary</span>: <span class="fn">summarize</span> ticket
-<span class="fn">reply</span>:   <span class="fn">translate</span> summary <span class="str">"de"</span>
-
-<span class="fn">print</span> reply</pre></div>
-    </div>
-
-    <div class="grid-3 reveal" style="margin-top:56px">
-      <div class="card">
-        <div class="icon">🧠</div>
-        <h4 data-lang="en" class="active">Chain-of-thought syntax</h4>
-        <h4 data-lang="de">Chain-of-Thought-Syntax</h4>
-        <p data-lang="en" class="active">Every <code>&gt;</code> is one reasoning step. The pipeline <em>is</em> the plan — models read intent directly from the shape.</p>
-        <p data-lang="de">Jedes <code>&gt;</code> ist ein Denkschritt. Die Pipeline <em>ist</em> der Plan — Modelle lesen die Absicht direkt aus der Form.</p>
-      </div>
-      <div class="card">
-        <div class="icon">📖</div>
-        <h4 data-lang="en" class="active">Linear & stateless</h4>
-        <h4 data-lang="de">Linear & zustandslos</h4>
-        <p data-lang="en" class="active">No control-flow maze, no mutable state to track. The whole program stays in context.</p>
-        <p data-lang="de">Kein Kontrollfluss-Labyrinth, kein veränderlicher Zustand zu verfolgen. Das ganze Programm bleibt im Kontext.</p>
-      </div>
-      <div class="card">
-        <div class="icon">🚫</div>
-        <h4 data-lang="en" class="active">Nothing to unlearn</h4>
-        <h4 data-lang="de">Nichts zu verlernen</h4>
-        <p data-lang="en" class="active">Indentation like Python, implicit calls instead of brackets — structures models already handle best.</p>
-        <p data-lang="de">Einrückung wie in Python, implizite Aufrufe statt Klammern — Strukturen, die Modelle ohnehin am besten beherrschen.</p>
-      </div>
-      <div class="card">
-        <div class="icon">🧩</div>
-        <h4 data-lang="en" class="active">Small grammar</h4>
-        <h4 data-lang="de">Kleine Grammatik</h4>
-        <p data-lang="en" class="active">The whole language fits on a page — learnable in one glance, easy to stay inside.</p>
-        <p data-lang="de">Die ganze Sprache passt auf eine Seite — auf einen Blick lernbar, leicht darin zu bleiben.</p>
-      </div>
-      <div class="card">
-        <div class="icon">🗣️</div>
-        <h4 data-lang="en" class="active">Verbs, not plumbing</h4>
-        <h4 data-lang="de">Verben, keine Klempnerei</h4>
-        <p data-lang="en" class="active">Self-describing AI verbs read like instructions — no SDKs or API schemas to memorize.</p>
-        <p data-lang="de">Selbstbeschreibende KI-Verben lesen sich wie Anweisungen — keine SDKs oder API-Schemas zum Merken.</p>
-      </div>
-      <div class="card">
-        <div class="icon">📉</div>
-        <h4 data-lang="en" class="active">Short output</h4>
-        <h4 data-lang="de">Kurzer Output</h4>
-        <p data-lang="en" class="active">5 lines replace ~80. Fewer tokens to generate, less room for the model to drift.</p>
-        <p data-lang="de">5 Zeilen statt ~80. Weniger Tokens zu generieren, weniger Raum für Drift.</p>
-      </div>
+    <div class="grid-3 reveal" style="max-width:900px;margin:0 auto">
+      <div class="card"><div class="icon">📁</div><h4>Filesystem</h4><p>Read, write, list, search files — secured to allowed directories.</p></div>
+      <div class="card"><div class="icon">🐙</div><h4>GitHub</h4><p>Issues, PRs, repos, files — full GitHub API as AI tools.</p></div>
+      <div class="card"><div class="icon">🗄️</div><h4>Postgres + SQLite</h4><p>Schema inspection, read-only queries — AI explores your data.</p></div>
+      <div class="card"><div class="icon">🌐</div><h4>Fetch + Brave Search</h4><p>Web content fetching, real-time search — AI stays informed.</p></div>
+      <div class="card"><div class="icon">💬</div><h4>Slack</h4><p>Channels, messages, history — integrate AI into team comms.</p></div>
+      <div class="card"><div class="icon">🧠</div><h4>Memory</h4><p>Persistent knowledge graph — AI remembers across sessions.</p></div>
     </div>
   </div>
 </section>
@@ -922,7 +734,7 @@ c: <span class="str">"Capital of Italy?"</span>
       </div>
       <div class="footer-col">
         <h5>Product</h5>
-        <a href="#ai-syntax">Why Pipe for AI</a>
+        <a href="#mcp">MCP Ecosystem</a>
         <a href="#features">Features</a>
         <a href="#play">Try Online</a>
         <a href="playground.html">Playground</a>
@@ -969,7 +781,7 @@ function setLang(l) {
 var heroTexts = {
   en: [
     {h:'<span class="grad">The runtime for</span><br>AI-native infrastructure',
-     s:'Build, sandbox, and deploy LLM pipelines with a single ~7 MB binary. 21 modules, 183 builtins. Zero dependencies.'},
+     s:'MCP-native AI runtime. Single ~7 MB binary, 193 builtins, 23 modules. Zero dependencies.'},
     {h:'<span class="grad">Sandbox AI agents.</span><br>Declarative. Safe by default.',
      s:'<code>sandbox_profile</code> restricts exec, write_file, and http_get with one block. Keep LLMs on a leash — essential for <code>ai_with_tools</code>.'},
     {h:'<span class="grad">One binary. Zero dependencies.</span><br>4 providers. No lock-in.',
@@ -977,7 +789,7 @@ var heroTexts = {
   ],
   de: [
     {h:'<span class="grad">Die Runtime für</span><br>KI-native Infrastruktur',
-     s:'Baue, sandboxe und deploye LLM-Pipelines mit einer einzigen ~7 MB Binary. 21 Module, 183 Builtins. Null Abhängigkeiten.'},
+     s:'Baue, sandboxe und deploye LLM-Pipelines mit einer einzigen ~7 MB Binary. 23 Module, 193 Builtins, MCP-nativ. Null Abhängigkeiten.'},
     {h:'<span class="grad">KI-Agenten sandboxen.</span><br>Deklarativ. Standardmäßig sicher.',
      s:'<code>sandbox_profile</code> beschränkt exec, write_file und http_get mit einem Block. LLMs an die Leine nehmen — essentiell für <code>ai_with_tools</code>.'},
     {h:'<span class="grad">Eine Binary. Null Abhängigkeiten.</span><br>4 Provider. Kein Lock-in.',

@@ -2,7 +2,7 @@
 
 Welcome to the official documentation for **Pipe** — a minimalist, pipeline-based scripting language implemented in Go. The entire grammar fits on one page, inspired by Lua's minimalism but with a modern pipeline syntax.
 
-Pipe combines **Python-like readability** (indentation-based, no braces) with **Unix shell pipelines** and the **portability of a single Go binary** (~10 MB, zero external dependencies).
+Pipe combines **Python-like readability** (indentation-based, no braces) with **Unix shell pipelines** and the **portability of a single Go binary** (~7 MB, zero external dependencies).
 
 ## Documentation Languages
 
@@ -23,12 +23,12 @@ Pipe combines **Python-like readability** (indentation-based, no braces) with **
 - **Version**: 0.9.0
 - **Implementation**: Go 1.25+
 - **License**: MIT
-- **Binary size**: ~10 MB (dependency-free, statically linked)
-- **Tests**: 300+ (across 12 packages)
-- **Builtins**: ~180
-- **Modules**: 19 (curated, installable via `pipe -get`)
-- **Opcodes**: 40
-- **AST node types**: 34
+- **Binary size**: ~7 MB (dependency-free, statically linked)
+- **Tests**: 403 (across 14 packages)
+- **Builtins**: 183
+- **Modules**: 21 (curated, installable via `pipe -get`)
+- **Opcodes**: 42
+- **AST node types**: 35
 - **Example programs**: ~60
 
 ## Project Links

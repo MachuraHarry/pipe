@@ -35,7 +35,6 @@ const (
 	CatEncode   = "Encoding"
 	CatHash     = "Hashing"
 	CatBytes    = "Bytes & Binary"
-	CatDB       = "Database"
 	CatType     = "Type Checks"
 	CatConv     = "Conversion"
 	CatResult   = "Result"
@@ -329,16 +328,6 @@ var builtinDocs = []BuiltinDoc{
 		Description: "Computes the IEEE CRC-32 checksum of value.", Category: CatBytes},
 	{Name: "substring", Signature: "substring(str, start, end)", Params: []Param{p("str", "string"), p("start", "number"), p("end", "number")}, ReturnType: "string",
 		Description: "Returns the substring of str from start (inclusive) to end (exclusive), clamped to the string bounds.", Category: CatString},
-
-	// ---- Database ----
-	{Name: "db_open", Signature: "db_open(path)", Params: []Param{p("path", "string")}, ReturnType: "number",
-		Description: "Removed: SQLite is now the 'sqlite' Pipe module — import 'sqlite' (see SQLite.md).", Category: CatDB},
-	{Name: "db_close", Signature: "db_close(handle)", Params: []Param{p("handle", "number")}, ReturnType: "nil",
-		Description: "Removed: SQLite is now the 'sqlite' Pipe module — import 'sqlite' (see SQLite.md).", Category: CatDB},
-	{Name: "db_exec", Signature: "db_exec(handle, sql)", Params: []Param{p("handle", "number"), p("sql", "string")}, ReturnType: "number",
-		Description: "Removed: SQLite is now the 'sqlite' Pipe module — import 'sqlite' (see SQLite.md).", Category: CatDB},
-	{Name: "db_query", Signature: "db_query(handle, sql)", Params: []Param{p("handle", "number"), p("sql", "string")}, ReturnType: "list",
-		Description: "Removed: SQLite is now the 'sqlite' Pipe module — import 'sqlite' (see SQLite.md).", Category: CatDB},
 
 	// ---- Type Checks ----
 	{Name: "type_of", Signature: "type_of(value)", Params: []Param{p("value", "any")}, ReturnType: "string",

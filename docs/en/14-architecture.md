@@ -54,7 +54,7 @@ The lexer converts raw source text into a stream of tokens. It consists of two f
 | `token.go` | 204 | Token type definitions, keyword map, string representation |
 | `lexer.go` | 485 | Character-level scanning, indent tracking, tokenization |
 
-### 66 Token Types
+### 67 Token Types
 
 **Literals** (4):
 `IDENT`, `INT`, `FLOAT`, `STRING`
@@ -386,8 +386,8 @@ The runtime reads itself, scans backward from EOF for the `PIPEBUILD` marker, ex
 | **Tests** | 290 (across 12 packages) |
 | **Examples** | 52 example programs in `examples/` |
 | **Built-in functions** | 168 |
-| **Opcodes** | 40 |
-| **AST node types** | 34 (12 statements, 20 expressions, program, match case) |
+| **Opcodes** | 42 |
+| **AST node types** | 35 (13 statements, 20 expressions, program, match case) |
 | **Token types** | 66 |
 | **Operand stack size** | 2048 slots |
 | **Maximum call frames** | 1024 |

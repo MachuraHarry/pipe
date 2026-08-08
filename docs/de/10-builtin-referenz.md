@@ -1,6 +1,6 @@
 # 10. Builtin-Referenz
 
-Pipe hat **174 eingebaute Funktionen** — keine externen Abhängigkeiten
+Pipe hat **183 eingebaute Funktionen** — keine externen Abhängigkeiten
 (alle in Go implementiert, nutzen nur die Standardbibliothek).
 
 Die Builtins sind in **allen Ausführungsmodi** verfügbar (Tree-Walker und VM).
@@ -1529,7 +1529,7 @@ print (crc32 "hello")
 ### Datenbank — SQLite (Modul)
 `db_open`, `db_close`, `db_exec`, `db_query`, `q`, `exec`, `row_get`, `row_eq`, `row_ne`
 
-Die `db_*`-Builtins wurden durch ein natives Pipe-Modul ersetzt, das in der [`pipe-modules`](https://github.com/MachuraHarry/pipe-modules)-Registry verfügbar ist. Die externe `modernc.org/sqlite`-Abhängigkeit ist entfernt — Binary wieder dependency-free (~10 MB).
+Die `db_*`-Builtins wurden durch ein natives Pipe-Modul ersetzt, das in der [`pipe-modules`](https://github.com/MachuraHarry/pipe-modules)-Registry verfügbar ist. Die externe `modernc.org/sqlite`-Abhängigkeit ist entfernt — Binary wieder dependency-free (~7 MB).
 
 Installiere mit `pipe -get sqlite`, dann import mit `import "sqlite"`:
 

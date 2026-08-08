@@ -84,7 +84,7 @@ When a function returns (`OpReturn` / `OpReturnValue`):
 3. The frame index is decremented
 4. The return value is pushed onto the caller's stack
 
-## All 47 Opcodes
+## All 42 Opcodes
 
 ### Constants & Literals
 

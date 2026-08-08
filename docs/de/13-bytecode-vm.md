@@ -1,6 +1,6 @@
 # 13. Bytecode-VM
 
-Die Pipe-VM ist eine **Stack-basierte virtuelle Maschine** mit 47 Opcodes.
+Die Pipe-VM ist eine **Stack-basierte virtuelle Maschine** mit 42 Opcodes.
 Sie kompiliert den AST zu Bytecode und führt ihn effizient aus.
 
 ## 13.1 Architektur

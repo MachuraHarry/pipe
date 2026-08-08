@@ -4,9 +4,9 @@
 <meta charset="UTF-8">
 <link rel="icon" type="image/svg+xml" href="logo.svg">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="description" content="Pipe — The runtime for AI-native infrastructure. Build, sandbox, and deploy LLM pipelines with a single ~10 MB binary. 21 modules, ~180 builtins. Zero dependencies.">
+<meta name="description" content="Pipe — The runtime for AI-native infrastructure. Build, sandbox, and deploy LLM pipelines with a single ~7 MB binary. 21 modules, 183 builtins. Zero dependencies.">
 <meta property="og:title" content="Pipe — The runtime for AI-native infrastructure">
-<meta property="og:description" content="Build, sandbox, and deploy LLM pipelines. 36 AI builtins, 21 modules, single ~10 MB binary. Zero dependencies.">
+<meta property="og:description" content="Build, sandbox, and deploy LLM pipelines. 36 AI builtins, 21 modules, single ~7 MB binary. Zero dependencies.">
 <meta property="og:type" content="website">
 <meta property="og:image" content="https://pipe-lang.com/og-image.png">
 <meta property="og:url" content="https://pipe-lang.com/">
@@ -270,12 +270,12 @@ span[data-lang].active{display:inline}a[data-lang].active{display:inline-block}
   <div class="badge"><strong>SPR</strong> v0.9.0 · Semantic Pipeline Runtime</div>
 
   <h1 id="hero-headline"><span class="grad">The runtime for</span><br>AI-native infrastructure</h1>
-  <p id="hero-sub" class="sub">Build, sandbox, and deploy LLM pipelines with a single ~10 MB binary. 21 modules, ~180 builtins. Zero dependencies.</p>
+  <p id="hero-sub" class="sub">Build, sandbox, and deploy LLM pipelines with a single ~7 MB binary. 21 modules, 183 builtins. Zero dependencies.</p>
 
   <div class="stats-inline">
     <div class="stat"><span class="stat-num">36</span><div class="stat-label">AI Builtins</div></div>
     <div class="stat"><span class="stat-num">300+</span><div class="stat-label">Tests</div></div>
-    <div class="stat"><span class="stat-num">~10 MB</span><div class="stat-label">Binary Size</div></div>
+    <div class="stat"><span class="stat-num">~7 MB</span><div class="stat-label">Binary Size</div></div>
     <div class="stat"><span class="stat-num">4</span><div class="stat-label">Providers</div></div>
     <div class="stat"><span class="stat-num">21</span><div class="stat-label">Modules</div></div>
   </div>
@@ -284,8 +284,8 @@ span[data-lang].active{display:inline}a[data-lang].active{display:inline-block}
     <a id="download-btn" href="https://github.com/MachuraHarry/pipe/releases/latest" class="cta-download">⬇ Download <span id="dl-os">for Linux</span></a>
     <a href="docs.html" class="cta-secondary">Read the Docs →</a>
   </div>
-  <p class="version-note" data-lang="en" class="active">v0.9.0 · ~10 MB single binary · Linux · macOS · Windows · Raspberry Pi</p>
-  <p class="version-note" data-lang="de">v0.9.0 · ~10 MB einzelne Binary · Linux · macOS · Windows · Raspberry Pi</p>
+  <p class="version-note" data-lang="en" class="active">v0.9.0 · ~7 MB single binary · Linux · macOS · Windows · Raspberry Pi</p>
+  <p class="version-note" data-lang="de">v0.9.0 · ~7 MB einzelne Binary · Linux · macOS · Windows · Raspberry Pi</p>
   <pre class="inline" style="max-width:560px;margin:14px auto 0">curl -fsSL https://pipe-lang.com/install.sh | bash</pre>
 </section>
 
@@ -469,8 +469,8 @@ oninput="syncHighlight();scheduleRenderGraph()" onscroll="syncScroll()">"hello w
       <div class="feature-text">
         <h3 data-lang="en" class="active"><span>Module Pipeline</span> — HTTP → SQL → AI → Report</h3>
         <h3 data-lang="de"><span>Modul-Pipeline</span> — HTTP → SQL → KI → Report</h3>
-        <p data-lang="en" class="active">Fetch data via <code>pipe-http</code>, analyze with AI, store in <code>sqlite</code>, format with <code>pipe-tpl</code>. One script, four modules, zero glue code. Build and ship as a single 2.5 MB binary with <code>pipe -build -upx</code>.</p>
-        <p data-lang="de">Daten per <code>pipe-http</code> holen, mit KI analysieren, in <code>sqlite</code> speichern, mit <code>pipe-tpl</code> formatieren. Ein Skript, vier Module, null Glue-Code. Kompilieren und als einzelne 2,5 MB Binary ausliefern mit <code>pipe -build -upx</code>.</p>
+        <p data-lang="en" class="active">Fetch data via <code>pipe-http</code>, analyze with AI, store in <code>sqlite</code>, format with <code>pipe-tpl</code>. One script, four modules, zero glue code. Build and ship as a single ~2.8 MB binary with <code>pipe -build -upx</code>.</p>
+        <p data-lang="de">Daten per <code>pipe-http</code> holen, mit KI analysieren, in <code>sqlite</code> speichern, mit <code>pipe-tpl</code> formatieren. Ein Skript, vier Module, null Glue-Code. Kompilieren und als einzelne ~2,8 MB Binary ausliefern mit <code>pipe -build -upx</code>.</p>
       </div>
       <div class="feature-code"><div class="bar"><span class="dot" style="background:var(--red)"></span><span class="dot" style="background:var(--orange)"></span><span class="dot" style="background:var(--green)"></span></div><pre><span class="kw">import</span> <span class="str">"pipe-http"</span>
 <span class="kw">import</span> <span class="str">"pipe-tpl"</span>
@@ -531,7 +531,7 @@ oninput="syncHighlight();scheduleRenderGraph()" onscroll="syncScroll()">"hello w
         <tr><td><span data-lang="en" class="active">Deploy to server</span><span data-lang="de">Auf Server deployen</span></td><td><span data-lang="en" class="active">Docker + venv + pip</span><span data-lang="de">Docker + venv + pip</span></td><td><span data-lang="en" class="active">scp pipe binary</span><span data-lang="de">scp pipe binary</span></td></tr>
         <tr><td><span data-lang="en" class="active">Expose an HTTP API</span><span data-lang="de">HTTP-API bereitstellen</span></td><td><span data-lang="en" class="active">FastAPI + uvicorn + deps</span><span data-lang="de">FastAPI + uvicorn + Deps</span></td><td style="font-family:var(--mono);color:var(--green)">route_get + serve</td></tr>
         <tr><td><span data-lang="en" class="active">Parallel LLM calls</span><span data-lang="de">Parallele LLM-Calls</span></td><td><span data-lang="en" class="active">asyncio.gather() boilerplate</span><span data-lang="de">asyncio.gather()-Boilerplate</span></td><td style="font-family:var(--mono);color:var(--green)">>> operator, ai_batch</td></tr>
-        <tr><td><span data-lang="en" class="active">Binary size (with deps)</span><span data-lang="de">Binary-Größe (mit Deps)</span></td><td><span data-lang="en" class="active">~500 MB</span><span data-lang="de">~500 MB</span></td><td><span data-lang="en" class="active">~10 MB</span><span data-lang="de">~10 MB</span></td></tr>
+        <tr><td><span data-lang="en" class="active">Binary size (with deps)</span><span data-lang="de">Binary-Größe (mit Deps)</span></td><td><span data-lang="en" class="active">~500 MB</span><span data-lang="de">~500 MB</span></td><td><span data-lang="en" class="active">~7 MB</span><span data-lang="de">~7 MB</span></td></tr>
       </table>
     </div>
   </div>
@@ -563,8 +563,8 @@ oninput="syncHighlight();scheduleRenderGraph()" onscroll="syncScroll()">"hello w
         <div class="icon">🚀</div>
         <h4 data-lang="en" class="active">Deploy in seconds</h4>
         <h4 data-lang="de">In Sekunden deployen</h4>
-        <p data-lang="en" class="active">One statically-linked ~10 MB binary. No venv, no pip, no Docker. Linux, macOS, Windows, Raspberry Pi — or your browser via WebAssembly.</p>
-        <p data-lang="de">Eine statisch gelinkte ~10 MB Binary. Kein venv, kein pip, kein Docker. Linux, macOS, Windows, Raspberry Pi — oder dein Browser per WebAssembly.</p>
+        <p data-lang="en" class="active">One statically-linked ~7 MB binary. No venv, no pip, no Docker. Linux, macOS, Windows, Raspberry Pi — or your browser via WebAssembly.</p>
+        <p data-lang="de">Eine statisch gelinkte ~7 MB Binary. Kein venv, kein pip, kein Docker. Linux, macOS, Windows, Raspberry Pi — oder dein Browser per WebAssembly.</p>
       </div>
       <div class="card">
         <div class="icon">⚡⚡</div>
@@ -591,7 +591,7 @@ oninput="syncHighlight();scheduleRenderGraph()" onscroll="syncScroll()">"hello w
         <div class="icon">📦</div>
         <h4 data-lang="en" class="active">Module ecosystem</h4>
         <h4 data-lang="de">Modul-Ökosystem</h4>
-        <p data-lang="en" class="active">20 curated modules. Pin versions with <code>@1.0.0</code>. <code>pipe -search</code> discovers, <code>pipe -get</code> installs. Import by name — no URLs.</p>
+        <p data-lang="en" class="active">21 curated modules. Pin versions with <code>@1.0.0</code>. <code>pipe -search</code> discovers, <code>pipe -get</code> installs. Import by name — no URLs.</p>
         <p data-lang="de">20 kuratierte Module. Versionen pinnen mit <code>@1.0.0</code>. <code>pipe -search</code> entdeckt, <code>pipe -get</code> installiert. Import per Name — keine URLs.</p>
       </div>
       <div class="card">
@@ -605,8 +605,8 @@ oninput="syncHighlight();scheduleRenderGraph()" onscroll="syncScroll()">"hello w
         <div class="icon">⚙️</div>
         <h4 data-lang="en" class="active">Bytecode VM — 7× faster</h4>
         <h4 data-lang="de">Bytecode-VM — 7× schneller</h4>
-        <p data-lang="en" class="active">Compile to 40 opcodes, execute on a stack machine with automatic caching. Tree-walker for development, VM for production.</p>
-        <p data-lang="de">Kompilieren in 40 Opcodes, Ausführung auf einer Stack-Machine mit automatischem Caching. Tree-Walker für Entwicklung, VM für Produktion.</p>
+        <p data-lang="en" class="active">Compile to 42 opcodes, execute on a stack machine with automatic caching. Tree-walker for development, VM for production.</p>
+        <p data-lang="de">Kompilieren in 42 Opcodes, Ausführung auf einer Stack-Machine mit automatischem Caching. Tree-Walker für Entwicklung, VM für Produktion.</p>
       </div>
       <div class="card">
         <div class="icon">🖥️</div>
@@ -633,8 +633,8 @@ oninput="syncHighlight();scheduleRenderGraph()" onscroll="syncScroll()">"hello w
         <div class="icon">🚀</div>
         <h4 data-lang="en" class="active">Self-Contained Binaries</h4>
         <h4 data-lang="de">Eigenständige Binaries</h4>
-        <p data-lang="en" class="active"><code>pipe -build</code> embeds your script + modules into a single executable. <code>pipe -build -upx</code> compresses to ~2.5 MB. Ship one file, zero dependencies.</p>
-        <p data-lang="de"><code>pipe -build</code> bettet dein Skript + Module in eine einzige Binary ein. <code>pipe -build -upx</code> komprimiert auf ~2,5 MB. Eine Datei, null Abhängigkeiten.</p>
+        <p data-lang="en" class="active"><code>pipe -build</code> embeds your script + modules into a single executable. <code>pipe -build -upx</code> compresses to ~2.8 MB. Ship one file, zero dependencies.</p>
+        <p data-lang="de"><code>pipe -build</code> bettet dein Skript + Module in eine einzige Binary ein. <code>pipe -build -upx</code> komprimiert auf ~2,8 MB. Eine Datei, null Abhängigkeiten.</p>
       </div>
     </div>
   </div>
@@ -652,8 +652,8 @@ oninput="syncHighlight();scheduleRenderGraph()" onscroll="syncScroll()">"hello w
       <div class="stat"><span class="stat-num">~19k</span><div class="stat-label" data-lang="en" class="active">LoC Go</div><div class="stat-label" data-lang="de">LoC Go</div></div>
       <div class="stat"><span class="stat-num">21</span><div class="stat-label" data-lang="en" class="active">Modules</div><div class="stat-label" data-lang="de">Module</div></div>
       <div class="stat"><span class="stat-num">4</span><div class="stat-label" data-lang="en" class="active">AI Providers</div><div class="stat-label" data-lang="de">KI-Provider</div></div>
-      <div class="stat"><span class="stat-num">~10 MB</span><div class="stat-label" data-lang="en" class="active">Binary</div><div class="stat-label" data-lang="de">Binary</div></div>
-      <div class="stat"><span class="stat-num">~176</span><div class="stat-label" data-lang="en" class="active">Builtins</div><div class="stat-label" data-lang="de">Builtins</div></div>
+      <div class="stat"><span class="stat-num">~7 MB</span><div class="stat-label" data-lang="en" class="active">Binary</div><div class="stat-label" data-lang="de">Binary</div></div>
+      <div class="stat"><span class="stat-num">183</span><div class="stat-label" data-lang="en" class="active">Builtins</div><div class="stat-label" data-lang="de">Builtins</div></div>
     </div>
   </div>
 </section>
@@ -661,7 +661,7 @@ oninput="syncHighlight();scheduleRenderGraph()" onscroll="syncScroll()">"hello w
 <!-- Builtins -->
 <section id="builtins" style="background:var(--bg2)">
   <div class="container">
-    <div class="section-head"><h2 data-lang="en" class="active"><span>36 AI Builtins</span> + ~140 Standard Builtins = ~176 Total</h2><h2 data-lang="de"><span>36 KI-Builtins</span> + ~140 Standard-Builtins = ~176 Gesamt</h2></div>
+    <div class="section-head"><h2 data-lang="en" class="active"><span>36 AI Builtins</span> + 147 Standard Builtins = 183 Total</h2><h2 data-lang="de"><span>36 KI-Builtins</span> + 147 Standard-Builtins = 183 Gesamt</h2></div>
     <div class="builtins-grid reveal">
       <div class="builtin-group"><h4>🧠 Understanding</h4><table><tr><td>summarize</td><td>Text summarization</td></tr><tr><td>translate</td><td>Translation</td></tr><tr><td>classify</td><td>Classification</td></tr><tr><td>extract</td><td>Data extraction (JSON)</td></tr><tr><td>ask</td><td>Question answering</td></tr><tr><td>generate</td><td>Free-text generation</td></tr></table></div>
       <div class="builtin-group"><h4>⚡ Speed & Parallel</h4><table><tr><td>ai_stream</td><td>Real-time token streaming</td></tr><tr><td>ai_batch</td><td>Auto-parallel batch</td></tr><tr><td>ai_parallel</td><td>Concurrency control</td></tr><tr><td>ai_rate_limit</td><td>Rate limiting</td></tr><tr><td>ai_chat</td><td>Low-level chat</td></tr><tr><td>ai_chat_json</td><td>Chat → structured JSON</td></tr></table></div>
@@ -821,8 +821,8 @@ c: <span class="str">"Capital of Italy?"</span>
       <div class="feature-text">
         <h3 data-lang="en" class="active"><span>Tiny grammar</span> — learnable in a single pass</h3>
         <h3 data-lang="de"><span>Winzige Grammatik</span> — in einem Durchgang lernbar</h3>
-        <p data-lang="en" class="active">Around 20 keywords, 66 token types, 33 AST node types. No classes, no generics, no decorators, no <code>async</code> model to absorb. The whole language fits on a page — so a model memorizes it in one glance and stays <em>inside</em> the grammar instead of drifting out of it.</p>
-        <p data-lang="de">Rund 20 Keywords, 66 Token-Typen, 33 AST-Nodes. Keine Klassen, keine Generics, keine Dekoratoren, kein <code>async</code>-Modell zum Aufnehmen. Die ganze Sprache passt auf eine Seite — ein Modell erfasst sie auf einen Blick und bleibt <em>innerhalb</em> der Grammatik, statt herauszudriften.</p>
+        <p data-lang="en" class="active">Around 20 keywords, 67 token types, 35 AST node types. No classes, no generics, no decorators, no <code>async</code> model to absorb. The whole language fits on a page — so a model memorizes it in one glance and stays <em>inside</em> the grammar instead of drifting out of it.</p>
+        <p data-lang="de">Rund 20 Keywords, 67 Token-Typen, 35 AST-Nodes. Keine Klassen, keine Generics, keine Dekoratoren, kein <code>async</code>-Modell zum Aufnehmen. Die ganze Sprache passt auf eine Seite — ein Modell erfasst sie auf einen Blick und bleibt <em>innerhalb</em> der Grammatik, statt herauszudriften.</p>
       </div>
       <div class="feature-code"><div class="bar"><span class="dot" style="background:var(--red)"></span><span class="dot" style="background:var(--orange)"></span><span class="dot" style="background:var(--green)"></span></div><pre><span class="cmt">-- ~20 keywords · no classes · no types · no braces</span>
 <span class="kw">fn</span> <span class="fn">classify_ticket</span> t
@@ -969,7 +969,7 @@ function setLang(l) {
 var heroTexts = {
   en: [
     {h:'<span class="grad">The runtime for</span><br>AI-native infrastructure',
-     s:'Build, sandbox, and deploy LLM pipelines with a single ~10 MB binary. 21 modules, ~180 builtins. Zero dependencies.'},
+     s:'Build, sandbox, and deploy LLM pipelines with a single ~7 MB binary. 21 modules, 183 builtins. Zero dependencies.'},
     {h:'<span class="grad">Sandbox AI agents.</span><br>Declarative. Safe by default.',
      s:'<code>sandbox_profile</code> restricts exec, write_file, and http_get with one block. Keep LLMs on a leash — essential for <code>ai_with_tools</code>.'},
     {h:'<span class="grad">One binary. Zero dependencies.</span><br>4 providers. No lock-in.',
@@ -977,7 +977,7 @@ var heroTexts = {
   ],
   de: [
     {h:'<span class="grad">Die Runtime für</span><br>KI-native Infrastruktur',
-     s:'Baue, sandboxe und deploye LLM-Pipelines mit einer einzigen ~10 MB Binary. 16 Module, ~175 Builtins. Null Abhängigkeiten.'},
+     s:'Baue, sandboxe und deploye LLM-Pipelines mit einer einzigen ~7 MB Binary. 21 Module, 183 Builtins. Null Abhängigkeiten.'},
     {h:'<span class="grad">KI-Agenten sandboxen.</span><br>Deklarativ. Standardmäßig sicher.',
      s:'<code>sandbox_profile</code> beschränkt exec, write_file und http_get mit einem Block. LLMs an die Leine nehmen — essentiell für <code>ai_with_tools</code>.'},
     {h:'<span class="grad">Eine Binary. Null Abhängigkeiten.</span><br>4 Provider. Kein Lock-in.',
@@ -1100,7 +1100,7 @@ var playExamples = [
   'print "1 " ++ "2 " ++ "3"',
   '-- 🤖 AI: needs API key in field above\nai_provider "deepseek"\n\nask "What is the meaning of life?"\n    > print',
   '-- 🤖 AI: translate text\nai_provider "deepseek"\n\ntranslate "Hello, how are you today?" "German"\n    > print',
-  '-- 🤖 AI: summarize a paragraph\nai_provider "deepseek"\n\nsummarize "Pipe is a semantic pipeline runtime language. It compiles to bytecode and runs on a stack-based VM. It has 165 builtins for data and AI operations."\n    > print',
+  '-- 🤖 AI: summarize a paragraph\nai_provider "deepseek"\n\nsummarize "Pipe is a semantic pipeline runtime language. It compiles to bytecode and runs on a stack-based VM. It has 183 builtins for data and AI operations."\n    > print',
   '-- 🤖 AI: classify text\nai_provider "deepseek"\n\nclassify "The app crashes on startup after update" "bug, feature, question, complaint"\n    > print',
   '-- 🤖 AI: agent with memory\nai_provider "deepseek"\n\nagent "poet" "You are a poet. Respond in rhyming couplets. Keep it short."\n\nagent_ask "poet" "Describe the moon"\n    > print',
   '-- 🤖 AI: structured JSON\nai_provider "deepseek"\n\ndata: generate_json "Create 2 cars" "make: string, model: string, year: number, electric: boolean"\n\nfor car in data\n    (get car "make") ++ " " ++ (get car "model")\n        > print',

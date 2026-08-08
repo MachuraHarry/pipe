@@ -1,6 +1,6 @@
 # 10. Built-in Function Reference
 
-Pipe includes 174 built-in functions organized by category. This chapter documents each function with its signature, description, return type, and usage example.
+Pipe includes 183 built-in functions organized by category. This chapter documents each function with its signature, description, return type, and usage example.
 
 ---
 
@@ -1302,7 +1302,7 @@ sha512 "hello"
 
 ## 10.16 Database — SQLite (module)
 
-The `db_open`, `db_close`, `db_exec`, and `db_query` builtins have been replaced by a native Pipe module available in the [`pipe-modules`](https://github.com/MachuraHarry/pipe-modules) registry. The external `modernc.org/sqlite` dependency has been removed. The binary is now ~10 MB, dependency-free.
+The `db_open`, `db_close`, `db_exec`, and `db_query` builtins have been replaced by a native Pipe module available in the [`pipe-modules`](https://github.com/MachuraHarry/pipe-modules) registry. The external `modernc.org/sqlite` dependency has been removed. The binary is now ~7 MB, dependency-free.
 
 Install with `pipe -get sqlite`, then import via `import "sqlite"`:
 
@@ -2747,4 +2747,4 @@ crc32 "hello"
 
 ---
 
-**Total: 174 built-in functions**
+**Total: 183 built-in functions**

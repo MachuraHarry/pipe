@@ -25,7 +25,7 @@ Willkommen zur vollständigen Dokumentation der Skriptsprache **Pipe**.
 10. [Builtin-Referenz](10-builtin-referenz.md) — Alle 165 eingebaute Funktionen
 11. [Tooling](11-tooling.md) — CLI-Flags, REPL, Formatter, Test-Runner, Build
 12. [Ausführungsmodelle](12-ausfuehrungsmodelle.md) — Tree-Walker vs Bytecode-VM
-13. [Bytecode-VM](13-bytecode-vm.md) — 40 Opcodes, Stack-Maschine, Symbol-Tabelle
+13. [Bytecode-VM](13-bytecode-vm.md) — 42 Opcodes, Stack-Maschine, Symbol-Tabelle
 14. [Architektur](14-architektur.md) — Lexer, Parser, AST, Compiler, VM intern
 15. [VSCode-Erweiterung](15-vscode-erweiterung.md) — Installation, Syntax-Highlighting
 16. [Kochrezepte](16-kochrezepte.md) — 20+ praktische Code-Beispiele

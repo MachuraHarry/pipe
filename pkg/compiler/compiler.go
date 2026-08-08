@@ -206,18 +206,7 @@ func (c *Compiler) Compile(node ast.Node) error {
 		c.emit(OpPop)
 
 	case *ast.VarStatement:
-		symbol, exists := c.symbolTable.Resolve(n.Name.Value)
-		if !exists {
-			symbol = c.symbolTable.Define(n.Name.Value)
-		}
-		if err := c.Compile(n.Value); err != nil {
-			return err
-		}
-		if symbol.Scope == GlobalScope {
-			c.emit(OpSetGlobal, symbol.Index)
-		} else {
-			c.emit(OpSetLocal, symbol.Index)
-		}
+		return c.compileVarStatement(n, false)
 
 	case *ast.IntegerLiteral:
 		idx := c.addInteger(n.Value)
@@ -373,7 +362,9 @@ func (c *Compiler) Compile(node ast.Node) error {
 		}
 		jumpFalsePos := c.emit(OpJumpNotTruthy, 9999)
 		c.enterLoop(conditionPos)
-		if err := c.compileBlockLastReturn(n.Body); err != nil {
+		// Loop bodies discard their value each iteration (matching the
+		// tree-walk); popLast=true prevents per-iteration stack growth.
+		if err := c.compileStatements(n.Body.Statements, true); err != nil {
 			return err
 		}
 		c.emit(OpJumpBackward, conditionPos)
@@ -381,6 +372,7 @@ func (c *Compiler) Compile(node ast.Node) error {
 		c.patchJump(jumpFalsePos, afterLoop)
 		c.patchBreaks(afterLoop)
 		c.leaveLoop()
+		c.emit(OpNil)
 
 	case *ast.ForExpression:
 		if n.IsForIn {
@@ -639,13 +631,39 @@ func (c *Compiler) compileProgram(stmts []ast.Statement) error {
 func (c *Compiler) compileStatements(stmts []ast.Statement, popLast bool) error {
 	for i, stmt := range stmts {
 		if i == len(stmts)-1 && !popLast {
-			if es, ok := stmt.(*ast.ExpressionStatement); ok {
-				return c.Compile(es.Expression)
+			switch s := stmt.(type) {
+			case *ast.ExpressionStatement:
+				return c.Compile(s.Expression)
+			case *ast.VarStatement:
+				return c.compileVarStatement(s, true)
 			}
 		}
 		if err := c.Compile(stmt); err != nil {
 			return err
 		}
+	}
+	return nil
+}
+
+func (c *Compiler) compileVarStatement(vs *ast.VarStatement, keepValue bool) error {
+	symbol, exists := c.symbolTable.Resolve(vs.Name.Value)
+	if !exists {
+		symbol = c.symbolTable.Define(vs.Name.Value)
+	}
+	if err := c.Compile(vs.Value); err != nil {
+		return err
+	}
+	if keepValue {
+		// Match the tree-walk: a VarStatement in value position leaves its
+		// value on the stack (e.g. `x: expr` as the last statement of an
+		// if-branch or function body). OpDup keeps a copy while OpSetLocal
+		// consumes the original, preserving stack balance.
+		c.emit(OpDup)
+	}
+	if symbol.Scope == GlobalScope {
+		c.emit(OpSetGlobal, symbol.Index)
+	} else {
+		c.emit(OpSetLocal, symbol.Index)
 	}
 	return nil
 }
@@ -948,7 +966,7 @@ func (c *Compiler) compileForIn(fe *ast.ForExpression) error {
 	c.emitSet(iterSym)
 
 	c.enterLoop(loopStart)
-	if err := c.compileBlockLastReturn(fe.Body); err != nil {
+	if err := c.compileStatements(fe.Body.Statements, true); err != nil {
 		return err
 	}
 	c.leaveLoop()
@@ -963,6 +981,8 @@ func (c *Compiler) compileForIn(fe *ast.ForExpression) error {
 	afterLoop := len(c.currentInstructions())
 	c.patchJump(jumpFalsePos, afterLoop)
 	c.patchBreaks(afterLoop)
+
+	c.emit(OpNil)
 
 	return nil
 }
@@ -986,7 +1006,7 @@ func (c *Compiler) compileCStyleFor(fe *ast.ForExpression) error {
 	jumpFalsePos := c.emit(OpJumpNotTruthy, 9999)
 
 	c.enterLoopPending()
-	if err := c.compileBlockLastReturn(fe.Body); err != nil {
+	if err := c.compileStatements(fe.Body.Statements, true); err != nil {
 		return err
 	}
 
@@ -1003,6 +1023,8 @@ func (c *Compiler) compileCStyleFor(fe *ast.ForExpression) error {
 	c.patchContinues(updatePos)
 	c.patchBreaks(afterLoop)
 	c.leaveLoop()
+
+	c.emit(OpNil)
 
 	return nil
 }

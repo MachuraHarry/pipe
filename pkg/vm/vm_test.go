@@ -249,3 +249,51 @@ func TestVMZeroArityBuiltinWithArgs(t *testing.T) {
 		t.Errorf("ai_cost \"reset\": got %q", got)
 	}
 }
+
+func TestVMWhileWithVarStatementIfBranchChunking(t *testing.T) {
+	input := `fn esc text
+    replace_all text "&" "&amp;"
+
+fn send_chunked t
+    n: len t
+    start: 0
+    out: []
+    while start < n
+        end: start + 3800
+        if end > n
+            end: n
+        push out (len (substring t start end))
+        start: end
+    out
+
+t: "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
+i: 0
+acc: []
+while i < 200
+    push acc t
+    i: i + 1
+t: join acc ""
+send_chunked t`
+	bc := parseAndCompile(t, input)
+	result := runVM(t, bc)
+	if result != "[3800, 3800, 2800]" {
+		t.Errorf("expected chunks [3800, 3800, 2800], got %q", result)
+	}
+}
+
+func TestVMIfConsequenceVarStatementStackBalance(t *testing.T) {
+	input := `fn f cond
+    x: 0
+    if cond
+        x: 42
+    x + 1
+
+a: f true
+b: f false
+a ++ "," ++ b`
+	bc := parseAndCompile(t, input)
+	result := runVM(t, bc)
+	if result != "43,1" {
+		t.Errorf("expected 43,1, got %q", result)
+	}
+}

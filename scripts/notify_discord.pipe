@@ -1,17 +1,19 @@
 --- ============================================================
 --- notify_discord.pipe - Sendet GitHub Event-Benachrichtigungen
---- via Discord Webhook. Genutzt von der CI-Pipeline.
---- Ohne KI-Review (nur Telegram hat KI-Review für Code-Qualität).
+--- via Discord Webhook mit KI-Code-Review (DeepSeek).
+--- Genutzt von der CI-Pipeline (parallel zu Telegram).
 --- Inputs via env: EVENT_NAME, EVENT_ACTION, REPO, BRANCH,
 ---   COMMITS_JSON, COMMIT_MSG, COMMIT_URL, ISSUE_TITLE,
----   ISSUE_NUMBER, ISSUE_URL, DISCORD_WEBHOOK
+---   ISSUE_NUMBER, ISSUE_URL, DISCORD_WEBHOOK, DEEPSEEK_API_KEY
 --- ============================================================
 
 import "discord.pipe" as d
+ai_provider "deepseek"
 
 webhook: env "DISCORD_WEBHOOK"
 repo: env "REPO"
 ev: env "EVENT_NAME"
+key: env "DEEPSEEK_API_KEY"
 
 fn emoji_for subj
     if (len subj) < 2
@@ -47,38 +49,103 @@ fn emoji_for subj
         return "🚀"
     return "🟣"
 
+fn clip text n
+    if (len text) > n
+        (substring text 0 n) ++ "…"
+    else
+        text
+
+fn send_embed title desc fields color
+    payload: {embeds: [{title: (clip title 256), description: (clip desc 4096), fields: fields, color: color}]}
+    r: d.d_webhook_send webhook payload
+    if is_err r
+        print ("Discord-Fehler: " ++ (to_str r))
+
 if ev == "push"
     branch: env "BRANCH"
     commits: []
     if (len (env "COMMITS_JSON")) > 0
         commits: parse_json (env "COMMITS_JSON")
     if (len commits) > 0
-        n: to_str (len commits)
-        desc: ""
+        print ("⏳ KI-Review von " ++ (to_str (len commits)) ++ " Commit(s) …")
         for i in (range 0 (len commits))
             c: at commits i
             sha: get c "id"
+            short_sha: substring sha 0 7
             subject: get (split (get c "message") "\n") 0
-            desc: desc ++ (emoji_for subject) ++ " `" ++ (substring sha 0 7) ++ "` " ++ subject ++ "\n"
-            if (len desc) > 1800
-                desc: (substring desc 0 1800) ++ "\n..."
-                break
-        r: d.d_webhook_embed webhook {title: ("📦 Push to " ++ branch ++ " (" ++ n ++ " commits)"), description: desc, color: 3447003}
-        if is_err r
-            print ("Discord-Fehler: " ++ (to_str r))
+            url: "https://github.com/" ++ repo ++ "/commit/" ++ sha
+
+            diff: get (exec ("git show --stat --patch --format= " ++ sha)) "output"
+            lines: split diff "\n"
+            if (len lines) > 500
+                lines: slice_list lines 0 500
+            diff: join lines "\n"
+            stat: get (exec ("git show --stat --format= " ++ sha)) "output"
+
+            review: ""
+            footer_text: ""
+            if (len key) > 0
+                sys: "Du bist ein erfahrener Senior-Entwickler. Schreibe ein KOMPAKTES deutsches Code-Review (max. 150 Wörter). Klartext ohne Markdown und ohne Formatierungszeichen: keine **, ##, Backticks, Links oder HTML. Struktur: 1) Was ändert der Commit in 1-2 Sätzen? 2) Der wichtigste Punkt bzw. die 1-2 wichtigsten Änderungen. 3) Risiken, Bugs oder fehlende Tests. Antworte NUR mit dem Review, ohne Einleitung."
+                try
+                    ai_cost "reset"
+                    review: ai_chat sys ("Commit-Betreff: " ++ subject ++ "\n\nDateien:\n" ++ stat ++ "\n\nDiff:\n" ++ diff) 800
+                    cm: ai_cost
+                    cost_usd: get cm "cost_usd"
+                    c2: round (cost_usd * 1000000.0)
+                    c2: c2 / 1000000.0
+                    footer_text: "DeepSeek · max. 800 Tokens · ~$" ++ (to_str c2)
+                catch e
+                    review: "KI-Review fehlgeschlagen: " ++ e
+            else
+                review: "Kein DEEPSEEK_API_KEY gesetzt — keine KI-Review."
+            
+            review: clip review 1020
+
+            stat_clipped: replace_all (clip stat 1000) "\t" "  "
+            fields: [
+                {name: "Geänderte Dateien", value: ("```\n" ++ stat_clipped ++ "\n```"), inline: false}
+            ]
+            
+            if (len review) > 0
+                push fields {name: "KI-Review", value: review, inline: false}
+
+            color: 3447003
+            if contains (lower subject) "fix"
+                color: 15158332
+            if contains (lower subject) "feat"
+                color: 3066993
+            if contains (lower subject) "docs"
+                color: 10181046
+
+            embed_title: (emoji_for subject) ++ " [" ++ branch ++ "] " ++ subject
+            embed_desc: ("`" ++ short_sha ++ "` · " ++ url)
+
+            payload: {embeds: [{title: (clip embed_title 256), description: embed_desc, fields: fields, color: color, footer: {text: footer_text}}]}
+            r: d.d_webhook_send webhook payload
+            if is_err r
+                print ("Discord-Fehler: " ++ (to_str r))
+            print ("✓ " ++ short_sha ++ " — Review gesendet")
     else
         subject: get (split (env "COMMIT_MSG") "\n") 0
-        r: d.d_webhook_embed webhook {title: ((emoji_for subject) ++ " " ++ subject), description: ("Branch: " ++ branch ++ "\nRepo: " ++ repo), color: 3447003}
-        if is_err r
-            print ("Discord-Fehler: " ++ (to_str r))
+        send_embed ((emoji_for subject) ++ " " ++ subject) ("Branch: " ++ branch ++ "\nRepo: " ++ repo) [] 3447003
 else if ev == "issues"
     action: env "EVENT_ACTION"
     icon: "📌"
+    color: 16776960
     if action == "closed"
         icon: "✅"
+        color: 3066993
     if action == "reopened"
         icon: "🔄"
-    r: d.d_webhook_embed webhook {title: (icon ++ " Issue " ++ action ++ ": " ++ (env "ISSUE_TITLE")), description: ("#" ++ (env "ISSUE_NUMBER") ++ " · " ++ (env "ISSUE_URL")), color: 16776960}
+        color: 16776960
+    
+    fields: [
+        {name: "Issue", value: (env "ISSUE_NUMBER"), inline: true}
+        {name: "Action", value: action, inline: true}
+    ]
+    
+    payload: {embeds: [{title: (icon ++ " " ++ (env "ISSUE_TITLE")), url: (env "ISSUE_URL"), description: ("#" ++ (env "ISSUE_NUMBER") ++ " · " ++ (env "ISSUE_URL")), fields: fields, color: color, footer: {text: repo}}]}
+    r: d.d_webhook_send webhook payload
     if is_err r
         print ("Discord-Fehler: " ++ (to_str r))
 else

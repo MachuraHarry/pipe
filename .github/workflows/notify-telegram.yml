@@ -14,7 +14,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Telegram-Benachrichtigung senden
+        with:
+          fetch-depth: 0
+      - name: Telegram-Benachrichtigung + KI-Review senden
         uses: ./.github/actions/pipe-action
         with:
           file: scripts/notify_telegram.pipe
@@ -22,10 +24,12 @@ jobs:
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: '8288410155'
+          DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
           EVENT_NAME: ${{ github.event_name }}
           EVENT_ACTION: ${{ github.event.action }}
           REPO: ${{ github.repository }}
           BRANCH: ${{ github.ref_name }}
+          COMMITS_JSON: ${{ toJson(github.event.commits) }}
           COMMIT_MSG: ${{ github.event.head_commit.message }}
           COMMIT_URL: ${{ github.event.head_commit.url }}
           ISSUE_TITLE: ${{ github.event.issue.title }}

@@ -1,26 +1,92 @@
 --- ============================================================
 --- notify_telegram.pipe - Sends GitHub event notifications via the
 --- Telegram Bot API. Called from .github/workflows/notify-telegram.yml.
+--- On push: reviews EVERY commit (real diff) with the AI (DeepSeek),
+--- writes a detailed German code review and sends it via Telegram.
 --- Inputs via env: EVENT_NAME, EVENT_ACTION, REPO, BRANCH,
----   COMMIT_MSG, COMMIT_URL, ISSUE_TITLE, ISSUE_NUMBER, ISSUE_URL,
----   TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID
+---   COMMITS_JSON, COMMIT_MSG, COMMIT_URL, ISSUE_TITLE, ISSUE_NUMBER,
+---   ISSUE_URL, TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID, DEEPSEEK_API_KEY
 --- ============================================================
+
+ai_provider "deepseek"
+
+token: env "TELEGRAM_BOT_TOKEN"
+chat: env "TELEGRAM_CHAT_ID"
+repo: env "REPO"
+
+fn esc text
+    t: replace_all text "&" "&amp;"
+    t: replace_all t "<" "&lt;"
+    replace_all t ">" "&gt;"
+
+fn send_telegram text
+    n: len text
+    if n > 0
+        payload: {chat_id: chat, text: text, parse_mode: "HTML"}
+        headers: {}
+        set headers "Content-Type" "application/json"
+        d: parse_json (get (http_request "POST" ("https://api.telegram.org/bot" ++ token ++ "/sendMessage") headers (to_json payload)) "body")
+        if (get d "ok") != true
+            raise (get d "description")
+
+fn send_chunked text
+    n: len text
+    start: 0
+    while start < n
+        end: start + 3800
+        if end > n
+            end: n
+        send_telegram (substring text start end)
+        start: end
 
 ev: env "EVENT_NAME"
 
-msg: if ev == "push"
-    commit_first_line: get (split (env "COMMIT_MSG") "\n") 0
-    "🐙 " ++ (env "REPO") ++ " — 📦 Push nach " ++ (env "BRANCH") ++ "\n✏️ " ++ commit_first_line ++ "\n🔗 " ++ (env "COMMIT_URL")
-else if ev == "issues"
-    "🐙 " ++ (env "REPO") ++ " — 🗂 Issue " ++ (env "EVENT_ACTION") ++ ": " ++ (env "ISSUE_TITLE") ++ " (#" ++ (env "ISSUE_NUMBER") ++ ")\n🔗 " ++ (env "ISSUE_URL")
-else
-    "🐙 " ++ (env "REPO")
+if ev == "push"
+    branch: env "BRANCH"
+    key: env "DEEPSEEK_API_KEY"
+    commits: []
+    if (len (env "COMMITS_JSON")) > 0
+        commits: parse_json (env "COMMITS_JSON")
+    if (len commits) > 0
+        print ("⏳ KI-Review von " ++ (to_str (len commits)) ++ " Commit(s) …")
+        for i in (range 0 (len commits))
+            c: at commits i
+            sha: get c "id"
+            short_sha: substring sha 0 7
+            subject: get (split (get c "message") "\n") 0
+            url: "https://github.com/" ++ repo ++ "/commit/" ++ sha
 
-payload: {chat_id: (env "TELEGRAM_CHAT_ID"), text: msg}
-headers: {}
-set headers "Content-Type" "application/json"
-d: parse_json (get (http_request "POST" ("https://api.telegram.org/bot" ++ (env "TELEGRAM_BOT_TOKEN") ++ "/sendMessage") headers (to_json payload)) "body")
-if (get d "ok") == true
-    print "Telegram-Nachricht gesendet."
+            diff: get (exec ("git show --stat --patch --format= " ++ sha)) "output"
+            lines: split diff "\n"
+            if (len lines) > 500
+                lines: slice_list lines 0 500
+            diff: join lines "\n"
+            stat: get (exec ("git show --stat --format= " ++ sha)) "output"
+
+            review: ""
+            if (len key) > 0
+                sys: "Du bist ein erfahrener Senior-Entwickler, der deutsche Code-Reviews schreibt. Analysiere den Git-Diff gründlich und schreibe eine AUSFÜHRLICHE Zusammenfassung auf Deutsch: 1) Was wurde geändert und warum? 2) Die wichtigsten Änderungen im Detail. 3) Risiken, Bugs oder Nebenwirkungen. 4) Fehlen Tests, Doku oder Fehlerbehandlung? Antworte NUR mit dem Review auf Deutsch, ohne Einleitung."
+                try
+                    review: ai_chat sys ("Commit-Betreff: " ++ subject ++ "\n\nDateien:\n" ++ stat ++ "\n\nDiff:\n" ++ diff)
+                catch e
+                    review: "_KI-Review fehlgeschlagen:_ " ++ e
+            else
+                review: "_Kein DEEPSEEK_API_KEY gesetzt — nur Commit-Infos gesendet._"
+
+            header: "<b>🐙 " ++ (esc repo) ++ " — 📦 Push " ++ (esc branch) ++ "</b>\n"
+            header: header ++ "<b>✏️ " ++ (esc subject) ++ "</b>\n"
+            header: header ++ "<code>" ++ (esc short_sha) ++ "</code> · <a href=\"" ++ url ++ "\">Commit ansehen</a>\n\n"
+            header: header ++ "📊 <b>Geänderte Dateien</b>\n<pre>" ++ (esc (trim stat)) ++ "</pre>"
+
+            send_telegram header
+            send_chunked (esc review)
+            print ("✓ " ++ short_sha ++ " — Review gesendet")
+    else
+        commit_first_line: get (split (env "COMMIT_MSG") "\n") 0
+        send_telegram (esc ("🐙 " ++ repo ++ " — 📦 Push nach " ++ (env "BRANCH") ++ "\n✏️ " ++ commit_first_line ++ "\n🔗 " ++ (env "COMMIT_URL")))
+else if ev == "issues"
+    send_telegram (esc ("🐙 " ++ repo ++ " — 🗂 Issue " ++ (env "EVENT_ACTION") ++ ": " ++ (env "ISSUE_TITLE") ++ " (#" ++ (env "ISSUE_NUMBER") ++ ")\n🔗 " ++ (env "ISSUE_URL")))
 else
-    raise (get d "description")
+    send_telegram (esc ("🐙 " ++ repo))
+
+print "Fertig."

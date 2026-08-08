@@ -68,7 +68,7 @@ if ev == "push"
     if (len (env "COMMITS_JSON")) > 0
         commits: parse_json (env "COMMITS_JSON")
     if (len commits) > 0
-        print ("⏳ KI-Review von " ++ (to_str (len commits)) ++ " Commit(s) …")
+        print ("⏳ AI review for " ++ (to_str (len commits)) ++ " commit(s) …")
         for i in (range 0 (len commits))
             c: at commits i
             sha: get c "id"
@@ -86,28 +86,28 @@ if ev == "push"
             review: ""
             footer_text: ""
             if (key != nil) && ((len key) > 0)
-                sys: "Du bist ein erfahrener Senior-Entwickler. Schreibe ein KOMPAKTES deutsches Code-Review (max. 150 Wörter). Klartext ohne Markdown und ohne Formatierungszeichen: keine **, ##, Backticks, Links oder HTML. Struktur: 1) Was ändert der Commit in 1-2 Sätzen? 2) Der wichtigste Punkt bzw. die 1-2 wichtigsten Änderungen. 3) Risiken, Bugs oder fehlende Tests. Antworte NUR mit dem Review, ohne Einleitung."
+                sys: "You are an experienced senior developer. Write a CONCISE code review in English (max. 150 words). Plain text without markdown or formatting: no **, ##, backticks, links, or HTML. Structure: 1) What does the commit change in 1-2 sentences? 2) The most important point or 1-2 most important changes. 3) Risks, bugs, or missing tests. Reply ONLY with the review, no introduction."
                 try
                     ai_cost "reset"
-                    review: ai_chat sys ("Commit-Betreff: " ++ subject ++ "\n\nDateien:\n" ++ stat ++ "\n\nDiff:\n" ++ diff) 800
+                    review: ai_chat sys ("Commit: " ++ subject ++ "\n\nFiles:\n" ++ stat ++ "\n\nDiff:\n" ++ diff) 800
                     cm: ai_cost
                     cost_usd: get cm "cost_usd"
                     c2: round (cost_usd * 1000000.0)
                     c2: c2 / 1000000.0
                     footer_text: "DeepSeek · max. 800 Tokens · ~$" ++ (to_str c2)
                 catch e
-                    review: "KI-Review fehlgeschlagen: " ++ e
+                    review: "AI review failed: " ++ e
             else
-                review: "Kein DEEPSEEK_API_KEY gesetzt — keine KI-Review."
+                review: "No DEEPSEEK_API_KEY set — no AI review."
             
             review: clip review 1020
 
             stat_clipped: replace_all (clip stat 1000) "\t" "  "
             fields: []
-            push fields ( {name: "Geänderte Dateien", value: ("```\n" ++ stat_clipped ++ "\n```"), inline: false} )
+            push fields ( {name: "Changed Files", value: ("```\n" ++ stat_clipped ++ "\n```"), inline: false} )
             
             if (len review) > 0
-                push fields ( {name: "KI-Review", value: review, inline: false} )
+                push fields ( {name: "AI Review", value: review, inline: false} )
 
             color: 3447003
             if contains (lower subject) "fix"
@@ -125,7 +125,7 @@ if ev == "push"
             r: d.d_webhook_send webhook payload
             if is_err r
                 print ("Discord-Fehler: " ++ (to_str r))
-            print ("✓ " ++ short_sha ++ " — Review gesendet")
+            print ("✓ " ++ short_sha ++ " — Review sent")
     else
         subject: get (split (env "COMMIT_MSG") "\n") 0
         send_embed ((emoji_for subject) ++ " " ++ subject) ("Branch: " ++ branch ++ "\nRepo: " ++ repo) [] 3447003
@@ -154,4 +154,4 @@ else
     if is_err r
         print ("Discord-Fehler: " ++ (to_str r))
 
-print "Discord-Benachrichtigung gesendet"
+print "Discord notification sent"

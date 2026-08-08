@@ -39,6 +39,40 @@ fn send_chunked text
         send_telegram (substring text start end)
         start: end
 
+fn emoji_for subj
+    if (len subj) < 2
+        return "🟣"
+    w: lower (get (split subj " ") 0)
+    w: replace_all w ":" ""
+    if contains w "("
+        w: get (split w "(") 0
+    w: trim (lower w)
+    if w == "feat"
+        return "✨"
+    else if w == "fix"
+        return "🐛"
+    else if w == "chore"
+        return "🔧"
+    else if w == "docs"
+        return "📚"
+    else if w == "refactor"
+        return "♻️"
+    else if w == "test"
+        return "🧪"
+    else if w == "style"
+        return "🎨"
+    else if w == "ci"
+        return "⚙️"
+    else if w == "perf"
+        return "⚡"
+    else if w == "build"
+        return "📦"
+    else if w == "revert"
+        return "⏪"
+    else if w == "release"
+        return "🚀"
+    return "🟣"
+
 ev: env "EVENT_NAME"
 
 if ev == "push"
@@ -64,34 +98,43 @@ if ev == "push"
             stat: get (exec ("git show --stat --format= " ++ sha)) "output"
 
             review: ""
+            footer: ""
             if (len key) > 0
                 sys: "Du bist ein erfahrener Senior-Entwickler. Schreibe ein KOMPAKTES deutsches Code-Review (max. 150 Wörter). Klartext ohne Markdown und ohne Formatierungszeichen: keine **, ##, Backticks, Links oder HTML. Struktur: 1) Was ändert der Commit in 1-2 Sätzen? 2) Der wichtigste Punkt bzw. die 1-2 wichtigsten Änderungen. 3) Risiken, Bugs oder fehlende Tests. Antworte NUR mit dem Review, ohne Einleitung."
                 try
-                    review: ai_chat sys ("Commit-Betreff: " ++ subject ++ "\n\nDateien:\n" ++ stat ++ "\n\nDiff:\n" ++ diff) 300
+                    review: esc (ai_chat sys ("Commit-Betreff: " ++ subject ++ "\n\nDateien:\n" ++ stat ++ "\n\nDiff:\n" ++ diff) 300)
+                    footer: "<i>DeepSeek · max. 300 Tokens</i>"
                 catch e
-                    review: "KI-Review fehlgeschlagen: " ++ e
+                    review: "<s>" ++ (esc ("KI-Review fehlgeschlagen: " ++ e)) ++ "</s>"
             else
-                review: "Kein DEEPSEEK_API_KEY gesetzt — nur Commit-Infos gesendet."
+                review: "<i>Kein DEEPSEEK_API_KEY gesetzt — nur Commit-Infos gesendet.</i>"
             if (len review) > 2800
                 review: (substring review 0 2800) ++ " …"
 
-            msg: "<b>🐙 " ++ (esc repo) ++ "</b> — 📦 Push <code>" ++ (esc branch) ++ "</code>\n"
-            msg: msg ++ "<b>✏️ " ++ (esc subject) ++ "</b>\n"
-            msg: msg ++ "<code>" ++ (esc short_sha) ++ "</code> · <a href=\"" ++ url ++ "\">Commit ansehen</a>\n"
-            msg: msg ++ "━━━━━━━━━━━━━━━━━━\n"
+            msg: "<b>🐙 " ++ (esc repo) ++ "</b> · <code>" ++ (esc branch) ++ "</code>\n\n"
+            msg: msg ++ (emoji_for subject) ++ " <b>" ++ (esc subject) ++ "</b>\n"
+            msg: msg ++ "🔗 <code>" ++ (esc short_sha) ++ "</code> · <a href=\"" ++ url ++ "\">Commit ansehen</a>\n\n"
             msg: msg ++ "📊 <b>Geänderte Dateien</b>\n<pre>" ++ (esc (trim stat)) ++ "</pre>"
 
             if (len review) > 0
-                msg: msg ++ "\n\n🤖 <b>KI-Review</b>\n" ++ (esc review)
+                msg: msg ++ "\n\n🤖 <b>KI-Review</b>\n<blockquote>" ++ review ++ "</blockquote>"
+                if (len footer) > 0
+                    msg: msg ++ "\n" ++ footer
 
             send_chunked msg
             print ("✓ " ++ short_sha ++ " — Review gesendet")
     else
         commit_first_line: get (split (env "COMMIT_MSG") "\n") 0
-        send_telegram (esc ("🐙 " ++ repo ++ " — 📦 Push nach " ++ (env "BRANCH") ++ "\n✏️ " ++ commit_first_line ++ "\n🔗 " ++ (env "COMMIT_URL")))
+        m2: "<b>🐙 " ++ (esc repo) ++ "</b> — 📦 Push <code>" ++ (esc (env "BRANCH")) ++ "</code>\n\n"
+        m2: m2 ++ (emoji_for commit_first_line) ++ " <b>" ++ (esc commit_first_line) ++ "</b>\n"
+        m2: m2 ++ "🔗 <a href=\"" ++ (env "COMMIT_URL") ++ "\">Commit ansehen</a>"
+        send_telegram m2
 else if ev == "issues"
-    send_telegram (esc ("🐙 " ++ repo ++ " — 🗂 Issue " ++ (env "EVENT_ACTION") ++ ": " ++ (env "ISSUE_TITLE") ++ " (#" ++ (env "ISSUE_NUMBER") ++ ")\n🔗 " ++ (env "ISSUE_URL")))
+    m3: "<b>🐙 " ++ (esc repo) ++ "</b> — 🗂 <b>Issue <i>" ++ (esc (env "EVENT_ACTION")) ++ "</i></b>\n\n"
+    m3: m3 ++ "📌 <b>" ++ (esc (env "ISSUE_TITLE")) ++ "</b>\n"
+    m3: m3 ++ "🔗 <code>#" ++ (esc (env "ISSUE_NUMBER")) ++ "</code> · <a href=\"" ++ (env "ISSUE_URL") ++ "\">Issue ansehen</a>"
+    send_telegram m3
 else
-    send_telegram (esc ("🐙 " ++ repo))
+    send_telegram ("<b>🐙 " ++ (esc repo) ++ "</b>")
 
 print "Fertig."

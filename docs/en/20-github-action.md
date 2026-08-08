@@ -12,7 +12,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: MachuraHarry/pipe/pipe-action@master
+      - uses: MachuraHarry/pipe/.github/actions/pipe-action@master
         with:
           script: |
             print "Hello from CI/CD!"
@@ -38,7 +38,7 @@ Sandbox flags (`--sandbox`, `--sandbox-profile networked`, `--allow-ai`) are pas
 ### Hello World
 
 ```yaml
-- uses: MachuraHarry/pipe/pipe-action@master
+- uses: MachuraHarry/pipe/.github/actions/pipe-action@master
   with:
     script: print "hello from pipe-action"
 ```
@@ -47,7 +47,7 @@ Sandbox flags (`--sandbox`, `--sandbox-profile networked`, `--allow-ai`) are pas
 
 ```yaml
 - uses: actions/checkout@v4
-- uses: MachuraHarry/pipe/pipe-action@master
+- uses: MachuraHarry/pipe/.github/actions/pipe-action@master
   with:
     script: |
       data: read_file "CHANGELOG.md"
@@ -57,7 +57,7 @@ Sandbox flags (`--sandbox`, `--sandbox-profile networked`, `--allow-ai`) are pas
 ### AI-Powered Release Notes
 
 ```yaml
-- uses: MachuraHarry/pipe/pipe-action@master
+- uses: MachuraHarry/pipe/.github/actions/pipe-action@master
   with:
     script: |
       log: exec "git log --oneline -20"
@@ -69,7 +69,7 @@ Sandbox flags (`--sandbox`, `--sandbox-profile networked`, `--allow-ai`) are pas
 ### Classify with DeepSeek
 
 ```yaml
-- uses: MachuraHarry/pipe/pipe-action@master
+- uses: MachuraHarry/pipe/.github/actions/pipe-action@master
   with:
     script: |
       cats: ["bug", "feature", "question"]
@@ -86,7 +86,7 @@ Sandbox flags (`--sandbox`, `--sandbox-profile networked`, `--allow-ai`) are pas
 ### Sandboxed
 
 ```yaml
-- uses: MachuraHarry/pipe/pipe-action@master
+- uses: MachuraHarry/pipe/.github/actions/pipe-action@master
   with:
     script: print "safe execution"
     flags: '--sandbox'
@@ -151,7 +151,7 @@ The repo-bot turns GitHub issues into a chat interface. Write a slash-command as
 
 The workflow (`.github/workflows/repo-bot.yml`) triggers on `issue_comment`, only for comments starting with `/` and not written by a bot. Only users listed in `ALLOWED_USERS` get a response. `/ask` builds context from `git grep` hits, extracts keywords (stop-word filtered, case-insensitive), and calls `ai_chat` with that context — so answers cite real `file:line` references.
 
-For `pipe-modules`, the same workflow uses the remote action (`MachuraHarry/pipe/pipe-action@master`) with `scripts/repo_bot.pipe`.
+For `pipe-modules`, the same workflow uses the remote action (`MachuraHarry/pipe/.github/actions/pipe-action@master`) with `scripts/repo_bot.pipe`.
 
 ## Source
 

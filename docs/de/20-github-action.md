@@ -12,7 +12,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: MachuraHarry/pipe/pipe-action@master
+      - uses: MachuraHarry/pipe/.github/actions/pipe-action@master
         with:
           script: |
             print "Hallo aus CI/CD!"
@@ -34,7 +34,7 @@ jobs:
 ### Hallo Welt
 
 ```yaml
-- uses: MachuraHarry/pipe/pipe-action@master
+- uses: MachuraHarry/pipe/.github/actions/pipe-action@master
   with:
     script: print "hallo von pipe-action"
 ```
@@ -43,7 +43,7 @@ jobs:
 
 ```yaml
 - uses: actions/checkout@v4
-- uses: MachuraHarry/pipe/pipe-action@master
+- uses: MachuraHarry/pipe/.github/actions/pipe-action@master
   with:
     script: |
       data: read_file "CHANGELOG.md"
@@ -53,7 +53,7 @@ jobs:
 ### KI-gestützte Release Notes
 
 ```yaml
-- uses: MachuraHarry/pipe/pipe-action@master
+- uses: MachuraHarry/pipe/.github/actions/pipe-action@master
   with:
     script: |
       log: exec "git log --oneline -20"
@@ -65,7 +65,7 @@ jobs:
 ### Klassifikation mit DeepSeek
 
 ```yaml
-- uses: MachuraHarry/pipe/pipe-action@master
+- uses: MachuraHarry/pipe/.github/actions/pipe-action@master
   with:
     script: |
       cats: ["bug", "feature", "question"]
@@ -82,7 +82,7 @@ jobs:
 ### Sandbox-Modus
 
 ```yaml
-- uses: MachuraHarry/pipe/pipe-action@master
+- uses: MachuraHarry/pipe/.github/actions/pipe-action@master
   with:
     script: print "sichere ausführung"
     sandbox: true

@@ -68,7 +68,7 @@ Starte `./bin/pipe` ohne Dateinamen, um in die REPL zu gelangen:
 
 ```
 $ ./bin/pipe
-Pipe v0.8.0 — REPL
+Pipe v0.9.0 — REPL
 >>> 1 + 2
 3
 >>> print "Hallo"

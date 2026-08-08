@@ -2,7 +2,7 @@
 
 [![CI](https://github.com/MachuraHarry/pipe/actions/workflows/ci.yml/badge.svg)](https://github.com/MachuraHarry/pipe/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-purple.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-0.8.0-blue.svg)](https://github.com/MachuraHarry/pipe/releases)
+[![Version](https://img.shields.io/badge/version-0.9.0-blue.svg)](https://github.com/MachuraHarry/pipe/releases)
 [![SPR](https://img.shields.io/badge/SPR-Semantic%20Pipeline%20Runtime-7c5cfc.svg)](#)
 
 > **Build, sandbox, and deploy LLM pipelines with a single ~10 MB binary. No Python. No dependencies. No vendor lock-in.**
@@ -136,7 +136,7 @@ run cli args
 
 ## Features
 
-- **Ship AI pipelines 10× faster** — 32 AI builtins: no imports, no SDKs, no API wrappers
+- **Ship AI pipelines 10× faster** — 36 AI builtins: no imports, no SDKs, no API wrappers
 - **Lock down AI agents in one line** — Declarative sandbox profiles: restrict `exec`, `write_file`, `http_get` with a single block
 - **Deploy in seconds** — One statically-linked ~10 MB binary. No venv, no pip, no Docker. Linux, macOS, Windows, Raspberry Pi, or your browser via WebAssembly
 - **3 LLM calls in 1.5s, not 4s** — `>>` starts any pipeline stage in the background. Futures auto-resolve. `ai_batch` handles hundreds of texts concurrently with built-in rate limiting
@@ -249,7 +249,7 @@ index_search idx "language" 3 > each print
 | Tree-Walker | `./bin/pipe script.pipe` | Baseline |
 | Bytecode VM | `./bin/pipe -vm -q script.pipe` | ~7× faster |
 
-## 32 AI Builtins
+## 36 AI Builtins
 
 ### Understanding
 `summarize`, `translate`, `classify`, `extract`, `ask`, `generate`, `generate_json`

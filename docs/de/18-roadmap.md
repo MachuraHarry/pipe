@@ -1,6 +1,6 @@
 # 18. Roadmap
 
-## Aktuelle Version: v0.8.0
+## Aktuelle Version: v0.9.0
 
 ---
 

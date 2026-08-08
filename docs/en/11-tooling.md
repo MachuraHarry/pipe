@@ -53,7 +53,7 @@ Starts the REPL without printing the welcome banner and version information.
 ```bash
 # Normal REPL:
 $ pipe
-Pipe v0.8.0 — REPL
+Pipe v0.9.0 — REPL
 >>>
 
 # Quiet REPL:
@@ -435,7 +435,7 @@ Scans a directory for module subdirectories with `pipe.json` files and generates
 ```bash
 $ pipe -gen-registry pipe-modules/
 Generated registry.json from pipe.json files
-Scanned 19 modules (5 with pipe.json, 14 legacy):
+Scanned 21 modules (8 with pipe.json, 13 legacy):
   ✓ jpipe v1.0.0 — 4 exports
   ○ sqlite (no pipe.json, preserved)
 ```

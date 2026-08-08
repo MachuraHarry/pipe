@@ -2,9 +2,9 @@
 
 This document outlines the past, present, and future of the Pipe language. The roadmap is organized into phases, with completed features marked accordingly.
 
-## Current Version: v0.8.0
+## Current Version: v0.9.0
 
-Pipe is currently at version **v0.8.0**, which introduces inline lambda syntax (`fn x: expr`), the most requested language feature.
+Pipe is currently at version **v0.9.0**, which adds structs with named fields and dot access, a package manifest system (`pipe.json`, `pipe -init` / `-install`), network builtins (`http_request`, `http_server`), crypto builtins (AES-GCM, HMAC, secure random), call-stack error traces, and many new string/list builtins (`replace`, `unique`, `ceil`, `floor`, `parse_date`).
 
 ---
 

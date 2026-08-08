@@ -9,7 +9,7 @@ Welcome to the complete documentation for the **Pipe** scripting language.
 | 🚀 **Try it in 5 minutes** | → [Getting Started](01-getting-started.md) — install, hello world, first pipeline |
 | 🐍 **I know Python/Bash/JS** | → [Language Tour](02-language-tour.md) — key differences in 10 minutes |
 | ⚙️ **Understand the VM** | → [Architecture](14-architecture.md) — lexer → parser → bytecode VM |
-| 🤖 **Use AI features** | → [AI Builtins](19-ai-builtins.md) — 32 AI operations as language primitives |
+| 🤖 **Use AI features** | → [AI Builtins](19-ai-builtins.md) — 36 AI operations as language primitives |
 
 ## Table of Contents
 

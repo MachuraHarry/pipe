@@ -9,7 +9,7 @@ Willkommen zur vollständigen Dokumentation der Skriptsprache **Pipe**.
 | 🚀 **In 5 Minuten ausprobieren** | → [Erste Schritte](01-erste-schritte.md) — Installation, Hallo Welt, erste Pipeline |
 | 🐍 **Ich komme von Python/Bash/JS** | → [Sprachübersicht](02-sprachuebersicht.md) — Unterschiede in 10 Minuten |
 | ⚙️ **Die VM verstehen** | → [Architektur](14-architektur.md) — Lexer → Parser → Bytecode-VM |
-| 🤖 **KI-Funktionen nutzen** | → [KI-Builtins](19-ki-builtins.md) — 32 KI-Operationen als Sprach-Primitives |
+| 🤖 **KI-Funktionen nutzen** | → [KI-Builtins](19-ki-builtins.md) — 36 KI-Operationen als Sprach-Primitives |
 
 ## Inhaltsverzeichnis
 

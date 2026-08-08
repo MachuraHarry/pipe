@@ -153,6 +153,13 @@ a[data-lang].active { display: inline-block; }
       <p data-lang="en" class="active">Download a pre-built static binary — no Go, no Git, no dependencies. On Apple Silicon use the <strong>arm64</strong> build.</p>
       <p data-lang="de">Lade eine vorkompilierte statische Binary herunter — kein Go, kein Git, keine Abhängigkeiten. Auf Apple Silicon den <strong>arm64</strong>-Build verwenden.</p>
 
+      <pre class="inline" style="border-color: var(--accent);"><span data-lang="en" class="active"># One-liner install (Linux & macOS)</span><span data-lang="de"># Installation mit einem Befehl (Linux & macOS)</span>
+curl -fsSL https://pipe-lang.com/install.sh | bash
+<span data-lang="en" class="active"># Windows (PowerShell)</span><span data-lang="de"># Windows (PowerShell)</span>
+irm https://pipe-lang.com/install.ps1 | iex</pre>
+      <p data-lang="en" class="active" style="margin-bottom:0">The installer downloads the latest release, verifies its <strong>SHA256 checksum</strong> and installs <code>pipe</code> into <code>~/.local/bin</code> (or <code>/usr/local/bin</code> as root). Pin a version with <code>PIPE_VERSION=v0.9.0</code>.</p>
+      <p data-lang="de" style="margin-bottom:0">Der Installer lädt die neueste Version herunter, prüft ihre <strong>SHA256-Prüfsumme</strong> und installiert <code>pipe</code> nach <code>~/.local/bin</code> (als root nach <code>/usr/local/bin</code>). Version pinnen mit <code>PIPE_VERSION=v0.9.0</code>.</p>
+
       <div class="dl-grid">
         <div class="dl-card">
           <div class="dl-head">🐧 Linux</div>

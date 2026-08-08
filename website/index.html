@@ -57,6 +57,7 @@ nav a:hover{color:var(--fg)}
 .cta-download{background:var(--green);color:#04210f;padding:12px 28px;border-radius:var(--radius);font-weight:700;font-size:0.9rem;text-decoration:none;transition:all .2s;box-shadow:0 4px 20px rgba(60,224,150,0.22);display:inline-flex;align-items:center;gap:6px}
 .cta-download:hover{transform:translateY(-1px);box-shadow:0 8px 32px rgba(60,224,150,0.35)}
 .hero .version-note{font-size:0.72rem;color:var(--fg3);margin-top:12px}
+pre.inline{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:14px 18px;overflow-x:auto;font-family:var(--mono);font-size:0.78rem;line-height:1.7;color:var(--fg);margin:10px 0 0;text-align:left}
 
 /* Stats inline bar */
 .stats-inline{display:flex;gap:32px;justify-content:center;flex-wrap:wrap;margin-bottom:20px}
@@ -283,7 +284,9 @@ span[data-lang].active{display:inline}a[data-lang].active{display:inline-block}
     <a id="download-btn" href="https://github.com/MachuraHarry/pipe/releases/latest" class="cta-download">⬇ Download <span id="dl-os">for Linux</span></a>
     <a href="docs.html" class="cta-secondary">Read the Docs →</a>
   </div>
-  <p class="version-note">v0.9.0 · ~10 MB single binary · Linux · macOS · Windows · Raspberry Pi</p>
+  <p class="version-note" data-lang="en" class="active">v0.9.0 · ~10 MB single binary · Linux · macOS · Windows · Raspberry Pi</p>
+  <p class="version-note" data-lang="de">v0.9.0 · ~10 MB einzelne Binary · Linux · macOS · Windows · Raspberry Pi</p>
+  <pre class="inline" style="max-width:560px;margin:14px auto 0">curl -fsSL https://pipe-lang.com/install.sh | bash</pre>
 </section>
 
 <!-- Terminal demo -->
@@ -692,6 +695,7 @@ oninput="syncHighlight();scheduleRenderGraph()" onscroll="syncScroll()">"hello w
         <h4 data-lang="de">Lokal installieren</h4>
         <p data-lang="en" class="active">Pre-built binaries for Linux, macOS &amp; Windows — or build from source with <code>git clone</code> + <code>make build</code>.</p>
         <p data-lang="de">Fertige Binaries für Linux, macOS &amp; Windows — oder aus dem Quellcode mit <code>git clone</code> + <code>make build</code>.</p>
+        <pre class="inline">curl -fsSL https://pipe-lang.com/install.sh | bash</pre>
         <a href="install.html" class="cta-secondary" style="display:inline-block;margin-top:12px;font-size:0.8rem;padding:10px 22px">Install Guide</a>
       </div>
       <div class="card" style="text-align:center;padding:28px 18px">

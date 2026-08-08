@@ -1,0 +1,81 @@
+name: Installer
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - 'install.sh'
+      - 'install.ps1'
+      - '.github/workflows/installer.yml'
+      - '.github/workflows/pages.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: write
+
+concurrency:
+  group: installer
+  cancel-in-progress: true
+
+jobs:
+  smoke:
+    name: Smoke test (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run install.sh into a temp dir
+        env:
+          PIPE_DIR: "${{ runner.temp }}/pipebin"
+        run: ./install.sh
+
+      - name: Verify binary
+        run: |
+          "${{ runner.temp }}/pipebin/pipe" -h
+
+  smoke-windows:
+    name: Smoke test (windows-latest)
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run install.ps1 into a temp dir
+        shell: pwsh
+        run: ./install.ps1 -Prefix "$env:RUNNER_TEMP\pipebin" -SkipPath
+
+      - name: Verify binary
+        shell: pwsh
+        run: |
+          & "$env:RUNNER_TEMP\pipebin\pipe.exe" -h
+
+  sync-site:
+    name: Sync installer to website
+    runs-on: ubuntu-latest
+    needs: [smoke, smoke-windows]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Copy installers into website/
+        run: |
+          cp install.sh website/install.sh
+          cp install.ps1 website/install.ps1
+          chmod +x website/install.sh
+
+      - name: Commit and push when changed
+        run: |
+          if git diff --quiet -- website/install.sh website/install.ps1; then
+            echo "website/installer unchanged — nothing to commit"
+          else
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add website/install.sh website/install.ps1
+            git commit -m "chore(installer): sync installer to website"
+            git push
+            gh workflow run pages.yml --ref "${GITHUB_REF_NAME}"
+            echo "Synced installer to website and triggered pages deployment"
+          fi

@@ -28,6 +28,32 @@ Klammerausdrücken.
 
 ## 1.3 Installation
 
+### Schnellinstallation (vorkompilierte Binary)
+
+```bash
+# Linux & macOS
+curl -fsSL https://pipe-lang.com/install.sh | bash
+
+# Windows (PowerShell)
+irm https://pipe-lang.com/install.ps1 | iex
+```
+
+Der Installer erkennt Betriebssystem und Architektur, lädt die neueste
+Release-Binary herunter, prüft ihre SHA256-Prüfsumme und installiert `pipe`
+nach `~/.local/bin` (als root nach `/usr/local/bin`). Optionen:
+
+- `PIPE_VERSION=v0.9.0` — bestimmte Version installieren
+- `PIPE_DIR=/ein/verzeichnis` — Installationsverzeichnis wählen
+- `install.sh --uninstall` — Binary entfernen
+
+Überprüfen:
+
+```bash
+pipe -h
+```
+
+### Aus dem Quellcode bauen
+
 ```bash
 # Repository klonen
 git clone <pipe-repo>

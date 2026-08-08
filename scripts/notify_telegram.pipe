@@ -75,13 +75,16 @@ if ev == "push"
             if (len review) > 2800
                 review: (substring review 0 2800) ++ " …"
 
-            header: "<b>🐙 " ++ (esc repo) ++ " — 📦 Push " ++ (esc branch) ++ "</b>\n"
-            header: header ++ "<b>✏️ " ++ (esc subject) ++ "</b>\n"
-            header: header ++ "<code>" ++ (esc short_sha) ++ "</code> · <a href=\"" ++ url ++ "\">Commit ansehen</a>\n\n"
-            header: header ++ "📊 <b>Geänderte Dateien</b>\n<pre>" ++ (esc (trim stat)) ++ "</pre>"
+            msg: "<b>🐙 " ++ (esc repo) ++ "</b> — 📦 Push <code>" ++ (esc branch) ++ "</code>\n"
+            msg: msg ++ "<b>✏️ " ++ (esc subject) ++ "</b>\n"
+            msg: msg ++ "<code>" ++ (esc short_sha) ++ "</code> · <a href=\"" ++ url ++ "\">Commit ansehen</a>\n"
+            msg: msg ++ "━━━━━━━━━━━━━━━━━━\n"
+            msg: msg ++ "📊 <b>Geänderte Dateien</b>\n<pre>" ++ (esc (trim stat)) ++ "</pre>"
 
-            send_telegram header
-            send_chunked (esc review)
+            if (len review) > 0
+                msg: msg ++ "\n\n🤖 <b>KI-Review</b>\n" ++ (esc review)
+
+            send_chunked msg
             print ("✓ " ++ short_sha ++ " — Review gesendet")
     else
         commit_first_line: get (split (env "COMMIT_MSG") "\n") 0

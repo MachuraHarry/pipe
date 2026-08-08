@@ -380,10 +380,10 @@ var builtinDocs = []BuiltinDoc{
 		Description: "Sets API key for the given provider ('openai', 'deepseek', 'anthropic'). Useful when env vars aren't available (browser, CI).", Category: CatAIConf},
 
 	// ---- AI Chat ----
-	{Name: "ai_chat", Signature: "ai_chat(system_prompt, user_prompt)", Params: []Param{p("system_prompt", "string"), p("user_prompt", "string")}, ReturnType: "string",
-		Description: "Sends a chat request with system and user prompts. Returns the assistant's response.", Category: CatAIChat},
-	{Name: "ai_chat_json", Signature: "ai_chat_json(system_prompt, user_prompt)", Params: []Param{p("system_prompt", "string"), p("user_prompt", "string")}, ReturnType: "any",
-		Description: "Like ai_chat, but parses the response as JSON and returns the parsed value.", Category: CatAIChat},
+	{Name: "ai_chat", Signature: "ai_chat(system_prompt, user_prompt, max_tokens?)", Params: []Param{p("system_prompt", "string"), p("user_prompt", "string"), p("max_tokens", "int, optional")}, ReturnType: "string",
+		Description: "Sends a chat request with system and user prompts. Optionally limits the response length via max_tokens (e.g. 300 for short answers). Returns the assistant's response.", Category: CatAIChat},
+	{Name: "ai_chat_json", Signature: "ai_chat_json(system_prompt, user_prompt, max_tokens?)", Params: []Param{p("system_prompt", "string"), p("user_prompt", "string"), p("max_tokens", "int, optional")}, ReturnType: "any",
+		Description: "Like ai_chat, but parses the response as JSON and returns the parsed value. Optionally limits the response length via max_tokens.", Category: CatAIChat},
 
 	// ---- AI High-level ----
 	{Name: "summarize", Signature: "summarize(text)", Params: []Param{p("text", "string")}, ReturnType: "string",

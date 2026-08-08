@@ -65,13 +65,15 @@ if ev == "push"
 
             review: ""
             if (len key) > 0
-                sys: "Du bist ein erfahrener Senior-Entwickler, der deutsche Code-Reviews schreibt. Analysiere den Git-Diff gründlich und schreibe eine AUSFÜHRLICHE Zusammenfassung auf Deutsch: 1) Was wurde geändert und warum? 2) Die wichtigsten Änderungen im Detail. 3) Risiken, Bugs oder Nebenwirkungen. 4) Fehlen Tests, Doku oder Fehlerbehandlung? Antworte NUR mit dem Review auf Deutsch, ohne Einleitung."
+                sys: "Du bist ein erfahrener Senior-Entwickler. Schreibe ein KOMPAKTES deutsches Code-Review (max. 150 Wörter). Klartext ohne Markdown und ohne Formatierungszeichen: keine **, ##, Backticks, Links oder HTML. Struktur: 1) Was ändert der Commit in 1-2 Sätzen? 2) Der wichtigste Punkt bzw. die 1-2 wichtigsten Änderungen. 3) Risiken, Bugs oder fehlende Tests. Antworte NUR mit dem Review, ohne Einleitung."
                 try
-                    review: ai_chat sys ("Commit-Betreff: " ++ subject ++ "\n\nDateien:\n" ++ stat ++ "\n\nDiff:\n" ++ diff)
+                    review: ai_chat sys ("Commit-Betreff: " ++ subject ++ "\n\nDateien:\n" ++ stat ++ "\n\nDiff:\n" ++ diff) 300
                 catch e
-                    review: "_KI-Review fehlgeschlagen:_ " ++ e
+                    review: "KI-Review fehlgeschlagen: " ++ e
             else
-                review: "_Kein DEEPSEEK_API_KEY gesetzt — nur Commit-Infos gesendet._"
+                review: "Kein DEEPSEEK_API_KEY gesetzt — nur Commit-Infos gesendet."
+            if (len review) > 2800
+                review: (substring review 0 2800) ++ " …"
 
             header: "<b>🐙 " ++ (esc repo) ++ " — 📦 Push " ++ (esc branch) ++ "</b>\n"
             header: header ++ "<b>✏️ " ++ (esc subject) ++ "</b>\n"

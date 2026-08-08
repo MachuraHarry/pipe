@@ -221,6 +221,25 @@ func bAiCacheMisses(args ...Object) Object {
 	return &Integer{Value: int64(misses)}
 }
 
+type maxTokensResult struct {
+	tokens int
+	err    Object
+}
+
+func maxTokensArg(args []Object, name string) maxTokensResult {
+	if len(args) < 3 {
+		return maxTokensResult{}
+	}
+	mt, ok := args[2].(*Integer)
+	if !ok {
+		return maxTokensResult{err: err(name + ": optional third argument must be an integer (max_tokens)")}
+	}
+	if mt.Value < 1 {
+		return maxTokensResult{err: err(name + ": max_tokens must be >= 1")}
+	}
+	return maxTokensResult{tokens: int(mt.Value)}
+}
+
 func bAiChat(args ...Object) Object {
 	if ActiveProfile.Name != "none" {
 		if canErr := ActiveProfile.CanAI(); canErr != nil {
@@ -246,6 +265,11 @@ func bAiChat(args ...Object) Object {
 			{Role: "system", Content: sp.Value},
 			{Role: "user", Content: up.Value},
 		},
+	}
+	if mt := maxTokensArg(args, "ai_chat"); mt.err != nil {
+		return mt.err
+	} else if mt.tokens > 0 {
+		req.MaxTokens = mt.tokens
 	}
 
 	resp, respErr := ai.Chat(req)
@@ -280,6 +304,11 @@ func bAiChatJSON(args ...Object) Object {
 			{Role: "system", Content: sysPrompt},
 			{Role: "user", Content: up.Value},
 		},
+	}
+	if mt := maxTokensArg(args, "ai_chat_json"); mt.err != nil {
+		return mt.err
+	} else if mt.tokens > 0 {
+		req.MaxTokens = mt.tokens
 	}
 
 	resp, respErr := ai.Chat(req)

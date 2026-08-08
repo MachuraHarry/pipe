@@ -71,6 +71,39 @@ func TestAiConfigArgsError(t *testing.T) {
 	}
 }
 
+func TestMaxTokensArg(t *testing.T) {
+	tests := []struct {
+		name  string
+		args  []Object
+		want  int
+		isErr bool
+	}{
+		{"no third arg", []Object{&String{Value: "s"}, &String{Value: "u"}}, 0, false},
+		{"valid max_tokens", []Object{&String{Value: "s"}, &String{Value: "u"}, &Integer{Value: 300}}, 300, false},
+		{"non-integer", []Object{&String{Value: "s"}, &String{Value: "u"}, &String{Value: "x"}}, 0, true},
+		{"zero", []Object{&String{Value: "s"}, &String{Value: "u"}, &Integer{Value: 0}}, 0, true},
+		{"negative", []Object{&String{Value: "s"}, &String{Value: "u"}, &Integer{Value: -5}}, 0, true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			res := maxTokensArg(tt.args, "ai_chat")
+			if tt.isErr {
+				if res.err == nil {
+					t.Error("expected error, got nil")
+				}
+				return
+			}
+			if res.err != nil {
+				t.Fatalf("unexpected error: %s", res.err.Inspect())
+			}
+			if res.tokens != tt.want {
+				t.Errorf("tokens = %d, want %d", res.tokens, tt.want)
+			}
+		})
+	}
+}
+
 func TestConvertJSONRoundtrip(t *testing.T) {
 	tests := []struct {
 		name string

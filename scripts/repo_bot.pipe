@@ -39,29 +39,19 @@ else if cmd == "/search"
     if (len parts) < 2
         reply: "❓ Nutzung: `/search <query>`"
     else
-        q: replace_all (trim (replace body parts0 "")) " " "+"
-        surl: "https://api.github.com/search/code?q=" ++ q ++ "+repo:" ++ repo
-        sh: {}
-        set sh "Authorization" ("token " ++ token)
-        set sh "Accept" "application/vnd.github+json"
-        sr: http_request "GET" surl sh ""
-        sd: parse_json (get sr "body")
-        m1: get sd "message"
-        if m1 != nil && (contains (to_str m1) "try again")
-            exec "sleep 13"
-            sr: http_request "GET" surl sh ""
-            sd: parse_json (get sr "body")
-        total: get sd "total_count"
-        if total == nil
-            reply: "⚠️ Suche fehlgeschlagen: " ++ (get sd "message")
-        else if total == 0
-            reply: "🔍 Keine Treffer für `" ++ (get parts 1) ++ "`."
+        qraw: trim (replace body parts0 "")
+        q: replace_all qraw "'" ""
+        srch: exec ("git grep -il -i -E '" ++ q ++ "' | head -15")
+        so: get srch "output"
+        if (get srch "status") != 0 || (len (trim so)) == 0
+            reply: "🔍 Keine Treffer für `" ++ qraw ++ "`."
         else
-            items: get sd "items"
+            files: split (trim so) "\n"
             paths: []
-            for it in items
-                push paths ("- `" ++ (get it "path") ++ "`")
-            reply: "🔍 " ++ (to_str total) ++ " Treffer für `" ++ (get parts 1) ++ "` (Top " ++ (to_str (len paths)) ++ "):\n" ++ (join paths "\n")
+            for f in files
+                if (len f) > 0
+                    push paths ("- `" ++ f ++ "`")
+            reply: "🔍 **" ++ (to_str (len paths)) ++ " Datei(en)** enthalten `" ++ qraw ++ "`:\n" ++ (join paths "\n")
 else if cmd == "/read"
     if (len parts) < 2
         reply: "❓ Nutzung: `/read <path>`"

@@ -1,0 +1,31 @@
+name: Repo-Bot
+
+on:
+  issue_comment:
+    types: [created]
+
+permissions:
+  issues: write
+  contents: read
+
+jobs:
+  bot:
+    runs-on: ubuntu-latest
+    if: >-
+      github.event.comment.user.type != 'Bot' &&
+      startsWith(github.event.comment.body, '/')
+    steps:
+      - uses: actions/checkout@v4
+      - name: Slash-Command ausfuehren
+        uses: ./.github/actions/pipe-action
+        with:
+          file: scripts/repo_bot.pipe
+          version: v0.9.0
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
+          COMMENT_BODY: ${{ github.event.comment.body }}
+          COMMENT_AUTHOR: ${{ github.event.comment.user.login }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+          REPO: ${{ github.repository }}
+          ALLOWED_USERS: 'MachuraHarry'

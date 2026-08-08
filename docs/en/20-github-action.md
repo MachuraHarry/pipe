@@ -136,6 +136,23 @@ jobs:
           path: commit-summary.md
 ```
 
+## Repo-Bot — Slash-Commands in Issue-Kommentaren
+
+The repo-bot turns GitHub issues into a chat interface. Write a slash-command as an issue comment and a workflow replies with a comment:
+
+```
+/help                 Show all commands
+/search <query>       GitHub code search (file paths)
+/read <path>          Show a file (max. 4 KB)
+/grep <pattern>       Regex search in the local checkout
+/issues               List open issues
+/ask <question>       AI answer with repo context (DeepSeek)
+```
+
+The workflow (`.github/workflows/repo-bot.yml`) triggers on `issue_comment`, only for comments starting with `/` and not written by a bot. Only users listed in `ALLOWED_USERS` get a response. `/ask` builds context from `git grep` hits, extracts keywords (stop-word filtered, case-insensitive), and calls `ai_chat` with that context — so answers cite real `file:line` references.
+
+For `pipe-modules`, the same workflow uses the remote action (`MachuraHarry/pipe/pipe-action@master`) with `scripts/repo_bot.pipe`.
+
 ## Source
 
-`pipe-action/action.yml`, `pipe-action/run.sh`
+`pipe-action/action.yml`, `pipe-action/run.sh`, `scripts/repo_bot.pipe`, `.github/workflows/repo-bot.yml`

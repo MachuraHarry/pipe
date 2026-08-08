@@ -1,0 +1,256 @@
+--- ============================================================
+--- telegram_bot.pipe - Telegram-Bot als GitHub-Actions-Cron-Poller
+--- Commands: /help, /search <query>, /read <path>, /grep <pattern>,
+---   /issues, /ask <frage>
+--- Kein laufender Prozess noetig: der Workflow pollt Telegram
+--- jede Minute per getUpdates und antwortet per sendMessage.
+--- Der Offset wird im Body eines Kontroll-Issues persistiert.
+---
+--- Env inputs: TELEGRAM_BOT_TOKEN, ALLOWED_USERS, ALLOWED_CHATS,
+---   REPO, GITHUB_TOKEN (optional), STATE_ISSUE (optional),
+---   DEEPSEEK_API_KEY (optional, nur fuer /ask),
+---   UPDATES_FILE (optional, nur zum lokalen Testen)
+--- ============================================================
+
+ai_provider "deepseek"
+dk: env "DEEPSEEK_API_KEY"
+if dk != nil && (len dk) > 0
+    ai_set_key "deepseek" dk
+
+tok: env "TELEGRAM_BOT_TOKEN"
+allowed: env "ALLOWED_USERS"
+allowed_chats: env "ALLOWED_CHATS"
+repo: env "REPO"
+token: env "GITHUB_TOKEN"
+state_issue: env "STATE_ISSUE"
+
+fn esc s
+    s: replace_all s "&" "&amp;"
+    s: replace_all s "<" "&lt;"
+    s: replace_all s ">" "&gt;"
+    return s
+
+fn cmd_reply cmd body
+    reply: ""
+    if cmd == "/help"
+        reply: "🤖 <b>Pipe-Telegram-Bot</b> — ich beantworte Slash-Commands (Repo: " ++ repo ++ "):\n"
+        reply: reply ++ "<code>/help</code> — diese Hilfe\n"
+        reply: reply ++ "<code>/search &lt;query&gt;</code> — Dateisuche im Repo\n"
+        reply: reply ++ "<code>/read &lt;path&gt;</code> — Dateiinhalt (max. 3 KB)\n"
+        reply: reply ++ "<code>/grep &lt;pattern&gt;</code> — Regex-Suche im Checkout\n"
+        reply: reply ++ "<code>/issues</code> — offene Issues\n"
+        reply: reply ++ "<code>/ask &lt;frage&gt;</code> — AI-Antwort mit Repo-Kontext"
+    else if cmd == "/search"
+        if (len body) == 0
+            reply: "❓ Nutzung: <code>/search &lt;query&gt;</code>"
+        else
+            q: replace_all body "'" ""
+            srch: exec ("git grep -il -i -E '" ++ q ++ "' | head -15")
+            so: get srch "output"
+            if (get srch "status") != 0 || (len (trim so)) == 0
+                reply: "🔍 Keine Treffer für <code>" ++ (esc body) ++ "</code>."
+            else
+                files: split (trim so) "\n"
+                paths: []
+                for f in files
+                    if (len f) > 0
+                        push paths ("- <code>" ++ (esc f) ++ "</code>")
+                reply: "🔍 <b>" ++ (to_str (len paths)) ++ " Datei(en)</b> enthalten <code>" ++ (esc body) ++ "</code>:\n" ++ (join paths "\n")
+    else if cmd == "/read"
+        if (len body) == 0
+            reply: "❓ Nutzung: <code>/read &lt;path&gt;</code>"
+        else
+            rp: get (split body " ") 0
+            if contains rp ".."
+                reply: "⛔ Pfad-Traversal nicht erlaubt."
+            else
+                rr: exec ("head -c 3000 " ++ rp)
+                if (get rr "status") == 0
+                    reply: "📄 <code>" ++ (esc rp) ++ "</code>:\n<pre>" ++ (esc (get rr "output")) ++ "</pre>"
+                else
+                    reply: "❌ Datei nicht lesbar: <code>" ++ (esc rp) ++ "</code>"
+    else if cmd == "/grep"
+        if (len body) == 0
+            reply: "❓ Nutzung: <code>/grep &lt;pattern&gt;</code>"
+        else
+            gp: replace_all (get (split body " ") 0) "'" ""
+            gr: exec ("git grep -n -i '" ++ gp ++ "' | head -c 3000")
+            out: get gr "output"
+            if (get gr "status") != 0 || (len out) == 0
+                reply: "🔍 Keine Treffer für <code>" ++ (esc body) ++ "</code>."
+            else
+                reply: "🔍 <code>git grep -i '" ++ (esc gp) ++ "'</code>:\n<pre>" ++ (esc out) ++ "</pre>"
+    else if cmd == "/issues"
+        if token == nil
+            reply: "⚠️ Kein GITHUB_TOKEN vorhanden."
+        else
+            iurl: "https://api.github.com/repos/" ++ repo ++ "/issues?state=open&per_page=10"
+            ih: {}
+            set ih "Authorization" ("token " ++ token)
+            set ih "Accept" "application/vnd.github+json"
+            ir: http_request "GET" iurl ih ""
+            if (get ir "status") != 200
+                reply: "❌ Issues konnten nicht geladen werden."
+            else
+                ids: parse_json (get ir "body")
+                lines: []
+                for it in ids
+                    if (get it "pull_request") == nil
+                        push lines ("#" ++ (to_str (get it "number")) ++ " " ++ (esc (get it "title")))
+                if (len lines) == 0
+                    reply: "🎉 Keine offenen Issues."
+                else
+                    reply: "📋 <b>Offene Issues:</b>\n" ++ (join lines "\n")
+    else if cmd == "/ask"
+        if (len body) == 0
+            reply: "❓ Nutzung: <code>/ask &lt;frage&gt;</code>"
+        else if dk == nil || (len dk) == 0
+            reply: "⚠️ <code>/ask</code> ist deaktiviert — kein <code>DEEPSEEK_API_KEY</code>-Secret gesetzt."
+        else
+            words: split body " "
+            pats: []
+            npat: 0
+            for w in words
+                if npat < 3
+                    lw: lower w
+                    lw: replace_all lw "." ""
+                    lw: replace_all lw "?" ""
+                    lw: replace_all lw "!" ""
+                    lw: replace_all lw "," ""
+                    lw: replace_all lw ";" ""
+                    lw: replace_all lw ":" ""
+                    lw: replace_all lw "(" ""
+                    lw: replace_all lw ")" ""
+                    lw: replace_all lw "'" ""
+                    sw: contains ("," ++ "der,die,das,den,dem,des,und,oder,zu,mit,nach,aus,auf,um,in,bei,ein,eine,einer,einen,was,wie,ist,sind,sein,wird,werden,war,waren,hat,haben,hast,hatte,kann,kannst,koennen,konnte,soll,muss,muessen,machen,macht,macht,geben,gibt,es,sich,mein,dein,seine,ihre,fuer,für,ueber,über,von,vom,wo,wann,warum,welche,welcher,welches,dieser,diese,dieses,pipe,bitte,bzw,oder,aber,noch,nur,auch,schon,mehr,immer" ++ ",") ("," ++ lw ++ ",")
+                    if (len lw) > 2 && sw == false
+                        push pats lw
+                        npat: npat + 1
+            pat: join pats "|"
+            if (len pat) == 0
+                pat: replace_all (lower (get words 0)) "'" ""
+            cx: exec ("git grep -il -i -E '" ++ pat ++ "' | head -6")
+            files: split (trim (get cx "output")) "\n"
+            ctx: ""
+            for f in files
+                if (len ctx) < 7000 && (len f) > 0
+                    rr: exec ("git grep -n -i -A12 -B12 -E '" ++ pat ++ "' '" ++ f ++ "' | head -c 1500")
+                    ctx: ctx ++ "===== " ++ f ++ " =====\n" ++ (get rr "output") ++ "\n"
+            sysp: "Du bist der Telegram-Bot fuer das Repository " ++ repo ++ ". Beantworte die Frage ausschliesslich anhand des mitgelieferten Kontexts. Antworte auf Deutsch, kompakt (max. 10 Zeilen). Nenne relevante Dateipfade im Format `pfad:zeile`, wenn erkennbar."
+            a: ai_chat sysp ("Kontext:\n" ++ ctx ++ "\n\nFrage: " ++ body)
+            reply: "🤖 <b>AI-Antwort</b> (Kontext: " ++ (to_str (len files)) ++ " Datei(en)):\n\n" ++ (esc a)
+    else
+        reply: "🤖 Unbekannter Befehl <code>" ++ (esc cmd) ++ "</code>. <code>/help</code> zeigt alle Befehle."
+    return reply
+
+--- ============================================================
+--- Offset aus dem Kontroll-Issue lesen (Standard: "0")
+--- ============================================================
+
+offset: "0"
+if token != nil && state_issue != nil
+    gurl: "https://api.github.com/repos/" ++ repo ++ "/issues/" ++ state_issue
+    gh: {}
+    set gh "Authorization" ("token " ++ token)
+    set gh "Accept" "application/vnd.github+json"
+    set gh "Content-Type" "application/json"
+    gr: http_request "GET" gurl gh ""
+    if (get gr "status") == 200
+        gp: parse_json (get gr "body")
+        off: get gp "body"
+        if off != nil && off != ""
+            offset: off
+
+--- ============================================================
+--- Updates holen (echt per getUpdates oder aus UPDATES_FILE)
+--- ============================================================
+
+pbody: ""
+uf: env "UPDATES_FILE"
+if uf != nil && (len uf) > 0
+    fr: exec ("cat " ++ uf)
+    pbody: trim (get fr "output")
+else
+    pr: http_request "GET" ("https://api.telegram.org/bot" ++ tok ++ "/getUpdates?offset=" ++ offset ++ "&timeout=0") {} ""
+    if (get pr "status") == 200
+        pbody: get pr "body"
+    else
+        print ("getUpdates fehlgeschlagen: " ++ (get pr "status") ++ " " ++ (get pr "body"))
+
+if (len pbody) == 0
+    print "Keine Updates."
+else
+    pu: parse_json pbody
+    updates: get pu "result"
+    max_id: 0
+    for u in updates
+        msg: get u "message"
+        if msg == nil
+            print ("Update " ++ (to_str (get u "update_id")) ++ ": kein Message-Objekt, uebersprungen.")
+        else
+            mid: get u "update_id"
+            if mid != nil
+                if max_id < mid
+                    max_id: mid
+            chat_id: get (get msg "chat") "id"
+            mtext: get msg "text"
+            mfrom: get msg "from"
+            uname: get mfrom "username"
+            msid: get msg "message_id"
+            if mtext == nil
+                print ("Update " ++ (to_str mid) ++ ": kein Text, uebersprungen.")
+            else
+                t: trim mtext
+                uname_s: ""
+                if uname != nil
+                    uname_s: uname
+                ok_user: false
+                if contains ("," ++ allowed ++ ",") ("," ++ uname_s ++ ",")
+                    ok_user: true
+                if allowed_chats != nil
+                    if contains ("," ++ allowed_chats ++ ",") ("," ++ (to_str chat_id) ++ ",")
+                        ok_user: true
+                if ok_user == false
+                    print ("Update " ++ (to_str mid) ++ ": Benutzer @" ++ uname_s ++ " nicht erlaubt, ignoriert.")
+                else
+                    if (len t) > 0 && (substring t 0 1) == "/"
+                        parts: split t " "
+                        c: lower (get parts 0)
+                        if contains c "@"
+                            c: get (split c "@") 0
+                        q: trim (replace t (get parts 0) "")
+                        print ("Befehl: " ++ c ++ " (@@" ++ uname_s ++ " chat " ++ (to_str chat_id) ++ ")")
+                        rp: cmd_reply c q
+                        sm: {}
+                        set sm "chat_id" chat_id
+                        set sm "text" rp
+                        set sm "parse_mode" "HTML"
+                        if msid != nil
+                            set sm "reply_to_message_id" msid
+                        sh: {}
+                        set sh "Content-Type" "application/json"
+                        sr: http_request "POST" ("https://api.telegram.org/bot" ++ tok ++ "/sendMessage") sh (to_json sm)
+                        if (get sr "status") != 200 && msid != nil
+                            sm2: {}
+                            set sm2 "chat_id" chat_id
+                            set sm2 "text" rp
+                            set sm2 "parse_mode" "HTML"
+                            sr: http_request "POST" ("https://api.telegram.org/bot" ++ tok ++ "/sendMessage") sh (to_json sm2)
+                            print ("Retry ohne reply_to -> Status " ++ (to_str (get sr "status")))
+                        print ("sendMessage -> Status " ++ (to_str (get sr "status")))
+                        if (get sr "status") != 200
+                            print (get sr "body")
+                    else
+                        print ("Update " ++ (to_str mid) ++ ": kein Slash-Command, ignoriert.")
+
+--- ============================================================
+--- Offset im Kontroll-Issue persistieren
+--- ============================================================
+
+if token != nil && state_issue != nil && max_id > 0
+    nxt: to_str (max_id + 1)
+    pp: to_json {body: nxt}
+    pr2: http_request "PATCH" gurl gh pp
+    print ("Offset persistiert: " ++ nxt ++ " (Status " ++ (to_str (get pr2 "status")) ++ ")")
+else
+    print ("Keine Persistenz (Offset bleibt " ++ offset ++ ").")

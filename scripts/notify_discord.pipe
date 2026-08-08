@@ -56,7 +56,8 @@ fn clip text n
         text
 
 fn send_embed title desc fields color
-    payload: {embeds: [{title: (clip title 256), description: (clip desc 4096), fields: fields, color: color}]}
+    embed: {title: (clip title 256), description: (clip desc 4096), fields: fields, color: color}
+    payload: {embeds: [embed]}
     r: d.d_webhook_send webhook payload
     if is_err r
         print ("Discord-Fehler: " ++ (to_str r))
@@ -84,7 +85,7 @@ if ev == "push"
 
             review: ""
             footer_text: ""
-            if (len key) > 0
+            if (key != nil) && ((len key) > 0)
                 sys: "Du bist ein erfahrener Senior-Entwickler. Schreibe ein KOMPAKTES deutsches Code-Review (max. 150 Wörter). Klartext ohne Markdown und ohne Formatierungszeichen: keine **, ##, Backticks, Links oder HTML. Struktur: 1) Was ändert der Commit in 1-2 Sätzen? 2) Der wichtigste Punkt bzw. die 1-2 wichtigsten Änderungen. 3) Risiken, Bugs oder fehlende Tests. Antworte NUR mit dem Review, ohne Einleitung."
                 try
                     ai_cost "reset"
@@ -102,12 +103,11 @@ if ev == "push"
             review: clip review 1020
 
             stat_clipped: replace_all (clip stat 1000) "\t" "  "
-            fields: [
-                {name: "Geänderte Dateien", value: ("```\n" ++ stat_clipped ++ "\n```"), inline: false}
-            ]
+            fields: []
+            push fields ( {name: "Geänderte Dateien", value: ("```\n" ++ stat_clipped ++ "\n```"), inline: false} )
             
             if (len review) > 0
-                push fields {name: "KI-Review", value: review, inline: false}
+                push fields ( {name: "KI-Review", value: review, inline: false} )
 
             color: 3447003
             if contains (lower subject) "fix"
@@ -120,7 +120,8 @@ if ev == "push"
             embed_title: (emoji_for subject) ++ " [" ++ branch ++ "] " ++ subject
             embed_desc: ("`" ++ short_sha ++ "` · " ++ url)
 
-            payload: {embeds: [{title: (clip embed_title 256), description: embed_desc, fields: fields, color: color, footer: {text: footer_text}}]}
+            embed: {title: (clip embed_title 256), description: embed_desc, fields: fields, color: color, footer: {text: footer_text}}
+            payload: {embeds: [embed]}
             r: d.d_webhook_send webhook payload
             if is_err r
                 print ("Discord-Fehler: " ++ (to_str r))
@@ -139,12 +140,12 @@ else if ev == "issues"
         icon: "🔄"
         color: 16776960
     
-    fields: [
-        {name: "Issue", value: (env "ISSUE_NUMBER"), inline: true}
-        {name: "Action", value: action, inline: true}
-    ]
+    fields: []
+    push fields ( {name: "Issue", value: (env "ISSUE_NUMBER"), inline: true} )
+    push fields ( {name: "Action", value: action, inline: true} )
     
-    payload: {embeds: [{title: (icon ++ " " ++ (env "ISSUE_TITLE")), url: (env "ISSUE_URL"), description: ("#" ++ (env "ISSUE_NUMBER") ++ " · " ++ (env "ISSUE_URL")), fields: fields, color: color, footer: {text: repo}}]}
+    embed: {title: (icon ++ " " ++ (env "ISSUE_TITLE")), url: (env "ISSUE_URL"), description: ("#" ++ (env "ISSUE_NUMBER") ++ " · " ++ (env "ISSUE_URL")), fields: fields, color: color, footer: {text: repo}}
+    payload: {embeds: [embed]}
     r: d.d_webhook_send webhook payload
     if is_err r
         print ("Discord-Fehler: " ++ (to_str r))

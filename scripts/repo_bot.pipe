@@ -125,12 +125,12 @@ else if cmd == "/ask"
         pat: join pats "|"
         if (len pat) == 0
             pat: replace_all (lower (get words 0)) "'" ""
-        cx: exec ("git grep -il -i -E '" ++ pat ++ "' | head -3")
+        cx: exec ("git grep -il -i -E '" ++ pat ++ "' | head -6")
         files: split (trim (get cx "output")) "\n"
         ctx: ""
         for f in files
-            if (len ctx) < 5000 && (len f) > 0
-                rr: exec ("git grep -n -i -A8 -B8 -E '" ++ pat ++ "' '" ++ f ++ "' | head -c 1500")
+            if (len ctx) < 7000 && (len f) > 0
+                rr: exec ("git grep -n -i -A12 -B12 -E '" ++ pat ++ "' '" ++ f ++ "' | head -c 1500")
                 ctx: ctx ++ "===== " ++ f ++ " =====\n" ++ (get rr "output") ++ "\n"
         sysp: "Du bist Repo-Bot fuer das Repository " ++ repo ++ ". Beantworte die Frage ausschliesslich anhand des mitgelieferten Kontexts. Antworte auf Deutsch, kompakt (max. 10 Zeilen). Nenne relevante Dateipfade im Format `pfad:zeile`, wenn erkennbar."
         a: ai_chat sysp ("Kontext:\n" ++ ctx ++ "\n\nFrage: " ++ q)

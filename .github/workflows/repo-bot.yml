@@ -20,7 +20,7 @@ jobs:
         uses: ./.github/actions/pipe-action
         with:
           file: scripts/repo_bot.pipe
-          version: v0.9.0
+          version: v0.9.1
         env:
           GITHUB_TOKEN: ${{ github.token }}
           DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}

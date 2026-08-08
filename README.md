@@ -143,7 +143,7 @@ run cli args
 - **No vendor lock-in** — OpenAI, Anthropic (Claude), DeepSeek, Ollama. Switch with one line. Same code works everywhere
 - **Pipeline-native syntax** — `>` sequential, `>>` parallel. Data flows top to bottom — readable, composable, debuggable
 - **Bytecode VM** — Compile to bytecode, execute ~7× faster with automatic caching
-- **Module ecosystem** — 20 curated modules, registry with version pinning (`@1.0.0`). `pipe -get` installs, import by name
+- **Module ecosystem** — 21 curated modules, registry with version pinning (`@1.0.0`). `pipe -get` installs, import by name
 - **Built-in testing** — `test` blocks with `assert_eq`, `assert_error`. Run with `pipe -test`. Zero setup
 - **GitHub Action** — Run Pipe directly in CI/CD. No installation needed
 - **VSCode Extension** — Syntax highlighting, IntelliSense, LSP-powered diagnostics and completions
@@ -208,7 +208,7 @@ Or run the extension in development with F5 from the `vscode/` folder. See [VSCo
 
 ## Module Ecosystem
 
-Pipe has a [curated module library](https://github.com/MachuraHarry/pipe-modules) — **20 reusable modules** with version pinning:
+Pipe has a [curated module library](https://github.com/MachuraHarry/pipe-modules) — **21 reusable modules** with version pinning:
 
 | Infrastructure | Data & CLI | AI & Agents | DevTools |
 |---|---|---|---|
@@ -216,7 +216,7 @@ Pipe has a [curated module library](https://github.com/MachuraHarry/pipe-modules
 | `pipe-cli` | `jpipe` | `log-analyzer` | `pipe-validate` 🆕 |
 | `pipe-orm` 🆕 | `pipe-tpl` | `sentiment` | |
 | `pipe-web` 🆕 | `pipe-date` | `code-review` | |
-| | | `translate-batch` | |
+| | `telegram-bot` | `translate-batch` | |
 | | | `changelog-gen` | |
 | | | `email-classifier` | |
 | | | `incident-report` | |

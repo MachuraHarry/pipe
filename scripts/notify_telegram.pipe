@@ -1,0 +1,26 @@
+--- ============================================================
+--- notify_telegram.pipe - Sends GitHub event notifications via the
+--- Telegram Bot API. Called from .github/workflows/notify-telegram.yml.
+--- Inputs via env: EVENT_NAME, EVENT_ACTION, REPO, BRANCH,
+---   COMMIT_MSG, COMMIT_URL, ISSUE_TITLE, ISSUE_NUMBER, ISSUE_URL,
+---   TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID
+--- ============================================================
+
+ev: env "EVENT_NAME"
+
+msg: if ev == "push"
+    commit_first_line: get (split (env "COMMIT_MSG") "\n") 0
+    "🐙 " ++ (env "REPO") ++ " — 📦 Push nach " ++ (env "BRANCH") ++ "\n✏️ " ++ commit_first_line ++ "\n🔗 " ++ (env "COMMIT_URL")
+else if ev == "issues"
+    "🐙 " ++ (env "REPO") ++ " — 🗂 Issue " ++ (env "EVENT_ACTION") ++ ": " ++ (env "ISSUE_TITLE") ++ " (#" ++ (env "ISSUE_NUMBER") ++ ")\n🔗 " ++ (env "ISSUE_URL")
+else
+    "🐙 " ++ (env "REPO")
+
+payload: {chat_id: (env "TELEGRAM_CHAT_ID"), text: msg}
+headers: {}
+set headers "Content-Type" "application/json"
+d: parse_json (get (http_request "POST" ("https://api.telegram.org/bot" ++ (env "TELEGRAM_BOT_TOKEN") ++ "/sendMessage") headers (to_json payload)) "body")
+if (get d "ok") == true
+    print "Telegram-Nachricht gesendet."
+else
+    raise (get d "description")

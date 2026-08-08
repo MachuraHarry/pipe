@@ -67,6 +67,8 @@ jobs:
           chmod +x website/install.sh
 
       - name: Commit and push when changed
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           if git status --porcelain -- website/install.sh website/install.ps1 | grep -q .; then
             git config user.name "github-actions[bot]"

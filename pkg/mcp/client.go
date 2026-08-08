@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"os"
 	"os/exec"
 	"strings"
 	"sync"
@@ -25,8 +26,14 @@ type Client struct {
 	closed   bool
 }
 
-func NewStdioClient(command string, args ...string) (*Client, error) {
+func NewStdioClient(command string, args []string, env map[string]string) (*Client, error) {
 	cmd := exec.Command(command, args...)
+	if len(env) > 0 {
+		cmd.Env = os.Environ()
+		for k, v := range env {
+			cmd.Env = append(cmd.Env, k+"="+v)
+		}
+	}
 	stdin, err := cmd.StdinPipe()
 	if err != nil {
 		return nil, fmt.Errorf("mcp client stdin: %w", err)
@@ -87,6 +94,7 @@ func (c *Client) Initialize() (*InitializeResult, error) {
 		ID:      1,
 		Params: jsonToRaw(InitializeParams{
 			ProtocolVersion: "2025-11-25",
+			Capabilities:    ClientCapabilities{},
 			ClientInfo: struct {
 				Name    string `json:"name"`
 				Version string `json:"version"`

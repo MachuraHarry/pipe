@@ -311,14 +311,31 @@ func resultText(result *mcp.CallToolResult) string {
 
 func bMcpUseStdio(args ...Object) Object {
 	if len(args) < 1 {
-		return err("mcp_use_stdio expects at least 1 argument (command, args...)")
+		return err("mcp_use_stdio expects at least 1 argument (command, args..., env?)")
 	}
 	command, ok := args[0].(*String)
 	if !ok {
 		return err("mcp_use_stdio: first argument must be a string (command)")
 	}
-	cmdArgs := make([]string, 0, len(args)-1)
-	for _, a := range args[1:] {
+	cmdArgs := make([]string, 0)
+	envVars := make(map[string]string)
+	argEnd := len(args)
+
+	// Last argument can be a Map for environment variables
+	if len(args) >= 2 {
+		if envMap, ok := args[len(args)-1].(*Map); ok {
+			argEnd = len(args) - 1
+			for k, v := range envMap.Pairs {
+				if s, ok := v.(*String); ok {
+					envVars[k] = s.Value
+				} else {
+					envVars[k] = v.Inspect()
+				}
+			}
+		}
+	}
+
+	for _, a := range args[1:argEnd] {
 		if s, ok := a.(*String); ok {
 			cmdArgs = append(cmdArgs, s.Value)
 		} else {
@@ -326,7 +343,7 @@ func bMcpUseStdio(args ...Object) Object {
 		}
 	}
 
-	client, clientErr := mcp.NewStdioClient(command.Value, cmdArgs...)
+	client, clientErr := mcp.NewStdioClient(command.Value, cmdArgs, envVars)
 	if clientErr != nil {
 		return err("mcp_use_stdio: " + clientErr.Error())
 	}

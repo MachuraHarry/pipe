@@ -46,11 +46,15 @@ func makeError(id any, code int, msg string) jsonrpcError {
 // --- MCP Initialize ---
 
 type InitializeParams struct {
-	ProtocolVersion string `json:"protocolVersion"`
+	ProtocolVersion string              `json:"protocolVersion"`
+	Capabilities    ClientCapabilities  `json:"capabilities"`
 	ClientInfo      struct {
 		Name    string `json:"name"`
 		Version string `json:"version"`
 	} `json:"clientInfo"`
+}
+
+type ClientCapabilities struct {
 }
 
 type InitializeResult struct {

@@ -72,13 +72,11 @@ Sandbox flags (`--sandbox`, `--sandbox-profile networked`, `--allow-ai`) are pas
 - uses: MachuraHarry/pipe/.github/actions/pipe-action@master
   with:
     script: |
+      ai_provider "deepseek"
       cats: ["bug", "feature", "question"]
       "the app crashes on submit"
           > classify cats
           > print
-    ai-provider: deepseek
-    sandbox: true
-    allow-ai: true
   env:
     DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
 ```
@@ -155,4 +153,4 @@ For `pipe-modules`, the same workflow uses the remote action (`MachuraHarry/pipe
 
 ## Source
 
-`pipe-action/action.yml`, `pipe-action/run.sh`, `scripts/repo_bot.pipe`, `.github/workflows/repo-bot.yml`
+`.github/actions/pipe-action/action.yml`, `.github/actions/pipe-action/run.sh`, `scripts/repo_bot.pipe`, `.github/workflows/repo-bot.yml`

@@ -23,11 +23,15 @@ jobs:
 
 | Input | Erforderlich | Standard | Beschreibung |
 |-------|-------------|----------|-------------|
-| `script` | ✅ | — | Auszuführender Pipe-Code |
-| `sandbox` | ❌ | `false` | Blockiert AI, exec, net, FS Builtins |
-| `allow-ai` | ❌ | `false` | AI Builtins im Sandbox-Modus erlauben |
-| `timeout` | ❌ | `30` | Maximale Ausführungszeit in Sekunden |
-| `ai-provider` | ❌ | – | KI-Provider: `openai`, `anthropic`, `deepseek`, `ollama` |
+| `script` | eines von `script`/`file` | — | Auszuführender Pipe-Code (Inline) |
+| `file` | eines von `script`/`file` | — | Pfad zu einer `.pipe`-Datei im Repo |
+| `flags` | ❌ | `-vm -q` | Zusätzliche CLI-Flags (z. B. `--sandbox`, `--sandbox-profile networked`) |
+| `version` | ❌ | `latest` | Pipe-Version (Release-Tag wie `v0.8.0`), die heruntergeladen wird |
+| `provider` | ❌ | — | KI-Provider (`openai`, `anthropic`, `deepseek`, `ollama`); wird per `--ai-provider` injiziert, wenn `file` genutzt wird |
+
+Parameter werden über Umgebungsvariablen übergeben (z. B. `SUMMARY_COUNT`, `SUMMARY_OUTPUT`) statt über CLI-Argumente, da das aktuelle Release-Binary `args` im VM-Modus nicht unterstützt.
+
+Sandbox-Flags (`--sandbox`, `--sandbox-profile networked`, `--allow-ai`) werden über das `flags`-Input übergeben.
 
 ## Beispiele
 
@@ -68,13 +72,11 @@ jobs:
 - uses: MachuraHarry/pipe/.github/actions/pipe-action@master
   with:
     script: |
+      ai_provider "deepseek"
       cats: ["bug", "feature", "question"]
       "die app abstürzt beim Klick"
           > classify cats
           > print
-    ai-provider: deepseek
-    sandbox: true
-    allow-ai: true
   env:
     DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
 ```
@@ -85,10 +87,38 @@ jobs:
 - uses: MachuraHarry/pipe/.github/actions/pipe-action@master
   with:
     script: print "sichere ausführung"
-    sandbox: true
-    timeout: 10
+    flags: '--sandbox'
 ```
+
+### Skript aus dem Repo ausführen
+
+```yaml
+- uses: ./.github/actions/pipe-action
+  with:
+    file: examples/commit_summary.pipe
+  env:
+    DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
+    SUMMARY_COUNT: '20'
+    SUMMARY_OUTPUT: commit-summary.md
+```
+
+## Repo-Bot — Slash-Commands in Issue-Kommentaren
+
+Der Repo-Bot macht GitHub Issues zu einer Chat-Oberfläche. Schreibe einen Slash-Command als Issue-Kommentar und ein Workflow antwortet mit einem Kommentar:
+
+```
+/help                 Zeigt alle Befehle
+/search <query>       GitHub-Code-Suche (Dateipfade)
+/read <path>          Zeigt eine Datei (max. 4 KB)
+/grep <pattern>       Regex-Suche im lokalen Checkout
+/issues               Listet offene Issues
+/ask <frage>          KI-Antwort mit Repo-Kontext (DeepSeek)
+```
+
+Der Workflow (`.github/workflows/repo-bot.yml`) triggert bei `issue_comment`, nur für Kommentare, die mit `/` beginnen und nicht von einem Bot stammen. Nur Nutzer in `ALLOWED_USERS` erhalten eine Antwort. `/ask` baut Kontext aus `git grep`-Treffern, extrahiert Schlüsselwörter (Stoppwort-Filter, case-insensitiv) und ruft `ai_chat` mit diesem Kontext auf — so zitieren Antworten echte `datei:zeile`-Referenzen.
+
+Für `pipe-modules` nutzt derselbe Workflow die Remote-Action (`MachuraHarry/pipe/.github/actions/pipe-action@master`) mit `scripts/repo_bot.pipe`.
 
 ## Quellcode
 
-`pipe-action/action.yml`, `pipe-action/entrypoint.sh`, `pipe-action/Dockerfile`
+`.github/actions/pipe-action/action.yml`, `.github/actions/pipe-action/run.sh`, `scripts/repo_bot.pipe`, `.github/workflows/repo-bot.yml`

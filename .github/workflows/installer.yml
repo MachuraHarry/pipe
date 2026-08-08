@@ -68,9 +68,7 @@ jobs:
 
       - name: Commit and push when changed
         run: |
-          if git diff --quiet -- website/install.sh website/install.ps1; then
-            echo "website/installer unchanged — nothing to commit"
-          else
+          if git status --porcelain -- website/install.sh website/install.ps1 | grep -q .; then
             git config user.name "github-actions[bot]"
             git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
             git add website/install.sh website/install.ps1
@@ -78,4 +76,6 @@ jobs:
             git push
             gh workflow run pages.yml --ref "${GITHUB_REF_NAME}"
             echo "Synced installer to website and triggered pages deployment"
+          else
+            echo "website/installer unchanged — nothing to commit"
           fi

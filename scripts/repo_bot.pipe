@@ -46,6 +46,11 @@ else if cmd == "/search"
         set sh "Accept" "application/vnd.github+json"
         sr: http_request "GET" surl sh ""
         sd: parse_json (get sr "body")
+        m1: get sd "message"
+        if m1 != nil && (contains (to_str m1) "try again")
+            exec "sleep 13"
+            sr: http_request "GET" surl sh ""
+            sd: parse_json (get sr "body")
         total: get sd "total_count"
         if total == nil
             reply: "⚠️ Suche fehlgeschlagen: " ++ (get sd "message")

@@ -20,11 +20,23 @@ ai_provider "deepseek"
 
 ### Modell und Timeout
 
+Jeder Provider nutzt ein günstiges und schnelles Standard-Modell. Überschreiben
+kannst du es mit einem Config-Block bei `ai_provider` oder jederzeit mit `ai_model`:
+
 ```pipe
--- Modell setzen (Standard: gpt-4o-mini)
-ai_model "gpt-4o"
--- Timeout in Sekunden (Standard: 60)
-ai_timeout 120
+-- Standard (günstigstes & schnellstes Modell pro Provider):
+--   openai    → gpt-4o-mini
+--   anthropic → claude-3-5-haiku-20241022
+--   deepseek  → deepseek-v4-flash
+--   ollama    → llama3.1:8b
+
+-- Provider setzen + Modell/Timeout in einem Zug überschreiben
+ai_provider "deepseek" {model: "deepseek-v4-pro", timeout: 120}
+
+-- Spätere Overrides (wirken sofort)
+ai_model "deepseek-v4-flash"
+ai_host "https://api.deepseek.com"
+ai_timeout 60
 ```
 
 ### API-Keys
@@ -46,7 +58,7 @@ schlägt die Anfrage mit einem Fehler fehl.
 
 | Builtin | Beschreibung | Signatur |
 |---------|-------------|----------|
-| `ai_provider` | Provider setzen | `ai_provider name` |
+| `ai_provider` | Provider setzen (+ optionaler Modell/Host/Timeout-Block) | `ai_provider name {model, host, timeout}?` |
 | `ai_model` | Modell setzen | `ai_model name` |
 | `ai_timeout` | Timeout setzen | `ai_timeout sekunden` |
 | `ai_host` | Host-URL setzen | `ai_host url` |

@@ -5,6 +5,7 @@ import (
 	"crypto/cipher"
 	"crypto/hmac"
 	"crypto/rand"
+	"crypto/sha1"
 	"crypto/sha256"
 	"crypto/sha512"
 	"encoding/base64"
@@ -20,6 +21,7 @@ func init() {
 		BuiltinInfo{Name: "secure_random_bytes", Fn: bSecureRandomBytes},
 		BuiltinInfo{Name: "encrypt", Fn: bEncrypt},
 		BuiltinInfo{Name: "decrypt", Fn: bDecrypt},
+		BuiltinInfo{Name: "hmac_sha1", Fn: bHmacSha1},
 		BuiltinInfo{Name: "hmac_sha256", Fn: bHmacSha256},
 		BuiltinInfo{Name: "hmac_sha512", Fn: bHmacSha512},
 	)
@@ -181,6 +183,23 @@ func bDecrypt(args ...Object) Object {
 		return err("decrypt: authentication failed — wrong key or tampered data")
 	}
 	return &String{Value: string(plaintext)}
+}
+
+func bHmacSha1(args ...Object) Object {
+	if len(args) != 2 {
+		return err("hmac_sha1 expects 2 arguments (key, message)")
+	}
+	keyStr, ok := args[0].(*String)
+	if !ok {
+		return err("hmac_sha1: key must be a string")
+	}
+	msgStr, ok := args[1].(*String)
+	if !ok {
+		return err("hmac_sha1: message must be a string")
+	}
+	mac := hmac.New(sha1.New, []byte(keyStr.Value))
+	mac.Write([]byte(msgStr.Value))
+	return &String{Value: hex.EncodeToString(mac.Sum(nil))}
 }
 
 func bHmacSha256(args ...Object) Object {

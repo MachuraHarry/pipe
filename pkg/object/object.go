@@ -432,6 +432,10 @@ var Builtins = []BuiltinInfo{
 	// Encoding
 	{"base64_encode", bBase64Encode},
 	{"base64_decode", bBase64Decode},
+	{"base64url_encode", bBase64URLEncode},
+	{"base64url_decode", bBase64URLDecode},
+	{"url_encode", bURLEncode},
+	{"url_decode", bURLDecode},
 
 	// Hashing
 	{"sha256", bSha256},

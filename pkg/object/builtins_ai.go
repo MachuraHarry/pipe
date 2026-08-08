@@ -9,14 +9,46 @@ import (
 )
 
 func bAiProvider(args ...Object) Object {
-	if len(args) != 1 {
-		return err("ai_provider expects 1 argument (name)")
+	if len(args) < 1 {
+		return err("ai_provider expects a provider name (openai, anthropic, deepseek, ollama)")
 	}
 	s, ok := args[0].(*String)
 	if !ok {
 		return err("ai_provider: argument must be a string")
 	}
 	ai.SetProvider(s.Value)
+
+	if len(args) >= 2 {
+		config, ok := args[1].(*Map)
+		if !ok {
+			return err("ai_provider: optional second argument must be a block {model: ..., host: ..., timeout: ...}")
+		}
+		for key, val := range config.Pairs {
+			switch key {
+			case "model":
+				m, ok := val.(*String)
+				if !ok {
+					return err("ai_provider: model must be a string")
+				}
+				ai.SetModel(m.Value)
+			case "host":
+				h, ok := val.(*String)
+				if !ok {
+					return err("ai_provider: host must be a string")
+				}
+				ai.SetHost(h.Value)
+			case "timeout":
+				t, ok := ToInt(val)
+				if !ok {
+					return err("ai_provider: timeout must be a number (seconds)")
+				}
+				ai.SetTimeout(int(t))
+			default:
+				return err("ai_provider: unknown option '" + key + "'. Use model, host, or timeout")
+			}
+		}
+	}
+
 	return &String{Value: "provider set to " + s.Value}
 }
 

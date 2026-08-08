@@ -1,0 +1,202 @@
+--- ============================================================
+--- x.pipe - X (Twitter) API v2 Modul für Pipe.
+---
+--- STATUS: IN ENTWICKLUNG - noch NICHT im pipe-modules-Registry.
+---   Live-verifiziert: PKCE-Auth, x_token_from_code, users/me.
+---   Offen: Kredit-basierte Endpoints (Tweet posten, Search, Lookups)
+---   brauchen aufgeladene Credits im X Developer Console.
+---
+--- Import:  import "x.pipe" as x
+---
+--- Funktionen (OAuth 2.0):
+---   x_auth_url           client_id redirect_uri scope        -> {url, verifier, state}
+---   x_token_from_code    client_id redirect_uri code verifier -> parsed token response
+---   x_token_refresh      client_id refresh_token              -> parsed token response
+---   x_app_token          client_id client_secret              -> app-only Bearer (read)
+---
+--- Funktionen (API v2, Bearer Token):
+---   x_request            bearer method path body? -> Ok json | Err
+---   x_tweet              bearer text              -> Ok tweet | Err
+---   x_delete_tweet       bearer id                -> Ok | Err
+---   x_get_tweet          bearer id                -> Ok tweet | Err
+---   x_search             bearer query max_results -> Ok result | Err
+---   x_user_by_username   bearer username          -> Ok user | Err
+---   x_me                 bearer                   -> Ok user | Err
+---   x_like               bearer user_id tweet_id  -> Ok | Err
+---   x_unlike             bearer user_id tweet_id  -> Ok | Err
+---   x_stream_open        bearer                   -> stream handle (SSE)
+---
+--- Fehler: Ok/Err-Results (is_ok, is_err, unwrap, unwrap_or).
+--- Stream: http_stream_read_line liefert "" für leere SSE-Zeilen,
+---   nil am Stream-Ende.
+--- ============================================================
+
+API_BASE: env "X_API_BASE"
+if API_BASE == nil
+    API_BASE: "https://api.x.com/2"
+TOKEN_URL: env "X_TOKEN_URL"
+if TOKEN_URL == nil
+    TOKEN_URL: "https://api.x.com/2/oauth2/token"
+AUTH_URL: env "X_AUTH_URL"
+if AUTH_URL == nil
+    AUTH_URL: "https://x.com/i/oauth2/authorize"
+
+--- URL-Form-Encoding für Maps
+fn _form_encode m
+    ks: keys m
+    parts: []
+    for k in ks
+        push parts ((url_encode k) ++ "=" ++ (url_encode (to_str (get m k))))
+    join parts "&"
+
+--- Token-Request an X (form-encoded), gibt Ok json | Err zurück
+fn _token_request body headers
+    h: {}
+    set h "Content-Type" "application/x-www-form-urlencoded"
+    for k in (keys headers)
+        set h k (get headers k)
+    r: http_request "POST" TOKEN_URL h body
+    if (type_of r) == "ERROR"
+        return r
+    status: get r "status"
+    j: parse_json (get r "body")
+    if (type_of j) == "ERROR"
+        return j
+    if status >= 400
+        return (Err ("X API Token-Fehler (HTTP " ++ (to_str status) ++ "): " ++ (to_str (get j "error_description"))))
+    Ok j
+
+--- Generischer API v2-Aufruf mit Bearer-Token
+fn _api bearer method path body
+    h: {}
+    set h "Authorization" ("Bearer " ++ bearer)
+    set h "Content-Type" "application/json"
+    url: API_BASE ++ path
+    r: http_request method url h body
+    if (type_of r) == "ERROR"
+        return r
+    status: get r "status"
+    j: parse_json (get r "body")
+    if (type_of j) == "ERROR"
+        return j
+    if status >= 400
+        title: get j "title"
+        if title == nil
+            title: "API-Fehler"
+        return (Err ("X API-Fehler (HTTP " ++ (to_str status) ++ "): " ++ (to_str title)))
+    Ok j
+
+--- ============================================================
+--- OAuth 2.0 PKCE
+--- ============================================================
+
+--- Baut die Authorize-URL + code_verifier + state.
+--- Rückgabe: {url: "...", verifier: "...", state: "..."}
+--- 1) Öffne die URL im Browser. 2) Nach Redirect code aus der
+---    redirect_uri ziehen. 3) x_token_from_code aufrufen.
+export fn x_auth_url client_id redirect_uri scope
+    verifier: base64url_encode (secure_random_bytes 32)
+    challenge: base64url_encode (sha256 (to_bytes verifier))
+    state: base64url_encode (secure_random_bytes 16)
+    params: {}
+    set params "response_type" "code"
+    set params "client_id" client_id
+    set params "redirect_uri" redirect_uri
+    set params "scope" scope
+    set params "state" state
+    set params "code_challenge" challenge
+    set params "code_challenge_method" "S256"
+    {url: (AUTH_URL ++ "?" ++ (_form_encode params)), verifier: verifier, state: state}
+
+--- Tauscht den Authorization-Code gegen Tokens.
+--- Rückgabe: Ok {access_token, refresh_token, expires_in, scope} | Err
+export fn x_token_from_code client_id redirect_uri code verifier
+    b: {}
+    set b "grant_type" "authorization_code"
+    set b "code" code
+    set b "client_id" client_id
+    set b "redirect_uri" redirect_uri
+    set b "code_verifier" verifier
+    _token_request (_form_encode b) {}
+
+--- Verlängert Tokens per refresh_token.
+--- Rückgabe: Ok {access_token, refresh_token, expires_in, scope} | Err
+export fn x_token_refresh client_id refresh_token
+    b: {}
+    set b "grant_type" "refresh_token"
+    set b "refresh_token" refresh_token
+    set b "client_id" client_id
+    _token_request (_form_encode b) {}
+
+--- App-only Bearer Token (nur Lesezugriff) via Client-Credentials.
+--- scope optional (Default: "tweet.read users.read").
+--- Rückgabe: Ok {access_token, token_type, expires_in} | Err
+export fn x_app_token client_id client_secret scope
+    if scope == nil
+        scope: "tweet.read users.read"
+    basic: base64_encode (client_id ++ ":" ++ client_secret)
+    h: {}
+    set h "Authorization" ("Basic " ++ basic)
+    b: {}
+    set b "grant_type" "client_credentials"
+    set b "client_id" client_id
+    set b "client_secret" client_secret
+    set b "client_type" "third_party_app"
+    set b "scope" scope
+    _token_request (_form_encode b) h
+
+--- ============================================================
+--- API v2
+--- ============================================================
+
+--- Generischer Request. body ist ein JSON-String oder nil.
+--- Rückgabe: Ok parsed json | Err
+export fn x_request bearer method path body
+    _api bearer method path body
+
+--- Erstellt einen Tweet. Rückgabe: Ok tweet | Err
+export fn x_tweet bearer text
+    _api bearer "POST" "/tweets" (to_json {text: text})
+
+--- Löscht einen Tweet. Rückgabe: Ok | Err
+export fn x_delete_tweet bearer id
+    _api bearer "DELETE" ("/tweets/" ++ id) nil
+
+--- Holt einen einzelnen Tweet. Rückgabe: Ok tweet | Err
+export fn x_get_tweet bearer id
+    _api bearer "GET" ("/tweets/" ++ id) nil
+
+--- Recent-Search. max_results optional (10-100).
+--- Rückgabe: Ok {data, meta} | Err
+export fn x_search bearer query max_results
+    q: url_encode query
+    mr: ""
+    if max_results != nil
+        mr: "&max_results=" ++ (to_str max_results)
+    _api bearer "GET" ("/tweets/search/recent?query=" ++ q ++ mr) nil
+
+--- User per Username. Rückgabe: Ok user | Err
+export fn x_user_by_username bearer username
+    _api bearer "GET" ("/users/by/username/" ++ (url_encode username)) nil
+
+--- Aktueller User (User-Context Token). Rückgabe: Ok user | Err
+export fn x_me bearer
+    _api bearer "GET" "/users/me" nil
+
+--- Liket einen Tweet. Rückgabe: Ok {liked} | Err
+export fn x_like bearer user_id tweet_id
+    _api bearer "POST" ("/users/" ++ user_id ++ "/likes") (to_json {tweet_id: tweet_id})
+
+--- Entfernt ein Like. Rückgabe: Ok | Err
+export fn x_unlike bearer user_id tweet_id
+    _api bearer "DELETE" ("/users/" ++ user_id ++ "/likes/" ++ tweet_id) nil
+
+--- Öffnet den Filtered-Stream (SSE). Regeln müssen vorher per
+--- x_request gesetzt sein. Rückgabe: stream handle
+--- Lesen: http_stream_read_line handle -> Datenzeile | "" | nil (Ende)
+export fn x_stream_open bearer
+    h: {}
+    set h "Authorization" ("Bearer " ++ bearer)
+    hdrs: {}
+    set hdrs "Accept" "text/event-stream"
+    http_stream_open (API_BASE ++ "/tweets/search/stream") hdrs

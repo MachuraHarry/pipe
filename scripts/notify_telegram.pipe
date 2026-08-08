@@ -102,8 +102,13 @@ if ev == "push"
             if (len key) > 0
                 sys: "Du bist ein erfahrener Senior-Entwickler. Schreibe ein KOMPAKTES deutsches Code-Review (max. 150 Wörter). Klartext ohne Markdown und ohne Formatierungszeichen: keine **, ##, Backticks, Links oder HTML. Struktur: 1) Was ändert der Commit in 1-2 Sätzen? 2) Der wichtigste Punkt bzw. die 1-2 wichtigsten Änderungen. 3) Risiken, Bugs oder fehlende Tests. Antworte NUR mit dem Review, ohne Einleitung."
                 try
-                    review: esc (ai_chat sys ("Commit-Betreff: " ++ subject ++ "\n\nDateien:\n" ++ stat ++ "\n\nDiff:\n" ++ diff) 300)
-                    footer: "<i>DeepSeek · max. 300 Tokens</i>"
+                    ai_cost "reset"
+                    review: esc (ai_chat sys ("Commit-Betreff: " ++ subject ++ "\n\nDateien:\n" ++ stat ++ "\n\nDiff:\n" ++ diff) 800)
+                    cm: ai_cost
+                    cost_usd: get cm "cost_usd"
+                    c: round (cost_usd * 1000000.0)
+                    c: c / 1000000.0
+                    footer: "<i>DeepSeek · max. 800 Tokens · ~$" ++ (to_str c) ++ "</i>"
                 catch e
                     review: "<s>" ++ (esc ("KI-Review fehlgeschlagen: " ++ e)) ++ "</s>"
             else

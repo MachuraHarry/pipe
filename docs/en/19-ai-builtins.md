@@ -20,11 +20,23 @@ ai_provider "deepseek"
 
 ### Model and Timeout
 
+Each provider uses a cheap & fast default model. Override it with a config
+block passed to `ai_provider`, or at any time with `ai_model`:
+
 ```pipe
--- Set model (default: gpt-4o-mini)
-ai_model "gpt-4o"
--- Timeout in seconds (default: 60)
-ai_timeout 120
+-- Defaults (cheapest & fastest per provider):
+--   openai    → gpt-4o-mini
+--   anthropic → claude-3-5-haiku-20241022
+--   deepseek  → deepseek-v4-flash
+--   ollama    → llama3.1:8b
+
+-- Set provider + override model & timeout in one go
+ai_provider "deepseek" {model: "deepseek-v4-pro", timeout: 120}
+
+-- Later overrides (apply immediately)
+ai_model "deepseek-v4-flash"
+ai_host "https://api.deepseek.com"
+ai_timeout 60
 ```
 
 ### API Keys
@@ -46,7 +58,7 @@ is missing, the request fails with an error.
 
 | Builtin | Description | Signature |
 |---------|-------------|-----------|
-| `ai_provider` | Set provider | `ai_provider name` |
+| `ai_provider` | Set provider (+ optional model/host/timeout block) | `ai_provider name {model, host, timeout}?` |
 | `ai_model` | Set model | `ai_model name` |
 | `ai_timeout` | Set timeout | `ai_timeout seconds` |
 | `ai_host` | Set host URL | `ai_host url` |

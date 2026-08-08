@@ -1558,13 +1558,14 @@ unwrap_or (Ok "hi") ""
 
 ### `ai_provider`
 
-**Signature:** `ai_provider(name)`
+**Signature:** `ai_provider(name, {model, host, timeout}?)`
 
-**Description:** Sets the AI provider to `name`. Supported: `"openai"`, `"anthropic"`, `"deepseek"`, `"ollama"`.
+**Description:** Sets the AI provider to `name`. Supported: `"openai"`, `"anthropic"`, `"deepseek"`, `"ollama"`. An optional config block overrides the provider's cheap-and-fast default model, the API host, and/or the request timeout in one call.
 
 **Returns:** `string` (confirmation message)
 ```pipe
 ai_provider "deepseek"
+ai_provider "deepseek" {model: "deepseek-v4-flash", timeout: 120}
 ai_model "deepseek-chat"
 ```
 
@@ -2642,7 +2643,7 @@ crc32 "hello"
 
 | # | Function | Signature | Returns |
 |---|----------|-----------|---------|
-| 122 | `ai_provider` | `ai_provider(name)` | `string` |
+| 122 | `ai_provider` | `ai_provider(name, {model, host, timeout}?)` | `string` |
 | 123 | `ai_model` | `ai_model(name)` | `string` |
 | 124 | `ai_set_key` | `ai_set_key(provider, key)` | `string` |
 | 125 | `ai_host` | `ai_host(url)` | `string` |

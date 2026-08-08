@@ -60,10 +60,10 @@ func SetProvider(name string) {
 		ActiveConfig.Model = "gpt-4o-mini"
 	case "anthropic":
 		ActiveConfig.APIHost = "https://api.anthropic.com"
-		ActiveConfig.Model = "claude-3-5-sonnet-20241022"
+		ActiveConfig.Model = "claude-3-5-haiku-20241022"
 	case "deepseek":
 		ActiveConfig.APIHost = "https://api.deepseek.com"
-		ActiveConfig.Model = "deepseek-v4-pro"
+		ActiveConfig.Model = "deepseek-v4-flash"
 	case "ollama":
 		ActiveConfig.APIHost = "http://localhost:11434"
 		ActiveConfig.Model = "llama3.1:8b"
@@ -463,7 +463,10 @@ func estimateCost(provider, model string, promptTokens, completionTokens int) fl
 		}
 		return float64(promptTokens)*0.005/1000 + float64(completionTokens)*0.015/1000
 	case "deepseek":
-		return float64(promptTokens)*0.0009/1000 + float64(completionTokens)*0.0009/1000
+		if strings.Contains(model, "flash") {
+			return float64(promptTokens)*0.00014/1000 + float64(completionTokens)*0.00028/1000
+		}
+		return float64(promptTokens)*0.000435/1000 + float64(completionTokens)*0.00087/1000
 	case "anthropic":
 		if strings.Contains(model, "haiku") {
 			return float64(promptTokens)*0.0008/1000 + float64(completionTokens)*0.004/1000

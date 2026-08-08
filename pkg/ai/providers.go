@@ -40,8 +40,9 @@ func openAIChat(cfg Config, req ChatRequest) (ChatResponse, error) {
 		Content string `json:"content"`
 	}
 	type oaiReq struct {
-		Model    string   `json:"model"`
-		Messages []oaiMsg `json:"messages"`
+		Model     string   `json:"model"`
+		Messages  []oaiMsg `json:"messages"`
+		MaxTokens int      `json:"max_tokens,omitempty"`
 	}
 	messages := make([]oaiMsg, len(req.Messages))
 	for i, m := range req.Messages {
@@ -49,8 +50,9 @@ func openAIChat(cfg Config, req ChatRequest) (ChatResponse, error) {
 	}
 
 	oai := oaiReq{
-		Model:    cfg.Model,
-		Messages: messages,
+		Model:     cfg.Model,
+		Messages:  messages,
+		MaxTokens: req.MaxTokens,
 	}
 
 	result, err := httpPostJSON(cfg.APIHost+"/v1/chat/completions", apiKey, oai, cfg.Timeout)
@@ -101,8 +103,9 @@ func deepSeekChat(cfg Config, req ChatRequest) (ChatResponse, error) {
 		Content string `json:"content"`
 	}
 	type dsReq struct {
-		Model    string  `json:"model"`
-		Messages []dsMsg `json:"messages"`
+		Model     string  `json:"model"`
+		Messages  []dsMsg `json:"messages"`
+		MaxTokens int     `json:"max_tokens,omitempty"`
 	}
 	messages := make([]dsMsg, len(req.Messages))
 	for i, m := range req.Messages {
@@ -110,8 +113,9 @@ func deepSeekChat(cfg Config, req ChatRequest) (ChatResponse, error) {
 	}
 
 	ds := dsReq{
-		Model:    cfg.Model,
-		Messages: messages,
+		Model:     cfg.Model,
+		Messages:  messages,
+		MaxTokens: req.MaxTokens,
 	}
 
 	result, err := httpPostJSON(cfg.APIHost+"/v1/chat/completions", apiKey, ds, cfg.Timeout)
@@ -217,6 +221,9 @@ func openAIStream(cfg Config, req ChatRequest, onToken StreamCallback) error {
 		"messages": messages,
 		"stream":   true,
 	}
+	if req.MaxTokens > 0 {
+		body["max_tokens"] = req.MaxTokens
+	}
 
 	return httpPostStream(cfg.APIHost+"/v1/chat/completions", apiKey, body, cfg.Timeout, onToken)
 }
@@ -240,6 +247,9 @@ func deepSeekStream(cfg Config, req ChatRequest, onToken StreamCallback) error {
 		"model":    cfg.Model,
 		"messages": messages,
 		"stream":   true,
+	}
+	if req.MaxTokens > 0 {
+		body["max_tokens"] = req.MaxTokens
 	}
 
 	return httpPostStream(cfg.APIHost+"/v1/chat/completions", apiKey, body, cfg.Timeout, onToken)

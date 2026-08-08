@@ -81,6 +81,10 @@ var builtinInfos = map[string]builtinInfo{
 	"raise":               {1, strs(TypeString)},
 	"base64_encode":       {1, strs(TypeAny)},
 	"base64_decode":       {1, strs(TypeAny)},
+	"base64url_encode":    {1, strs(TypeAny)},
+	"base64url_decode":    {1, strs(TypeAny)},
+	"url_encode":          {1, strs(TypeString)},
+	"url_decode":          {1, strs(TypeString)},
 	"bit_and":             {2, strs(TypeInt, TypeInt)},
 	"bit_lshift":          {2, strs(TypeInt, TypeInt)},
 	"bit_not":             {1, strs(TypeInt)},
@@ -115,7 +119,7 @@ var builtinInfos = map[string]builtinInfo{
 	"extract":             {2, strs(TypeString, TypeString)},
 	"generate":            {1, strs(TypeString)},
 	"generate_json":       {2, strs(TypeString, TypeString)},
-	"ai_provider":         {1, strs(TypeString)},
+	"ai_provider":         {2, strs(TypeString, TypeAny)},
 	"ai_model":            {1, strs(TypeString)},
 	"ai_timeout":          {1, strs(TypeInt)},
 	"ai_host":             {1, strs(TypeString)},
@@ -142,7 +146,12 @@ var builtinInfos = map[string]builtinInfo{
 	"secure_random_range": {2, strs(TypeInt, TypeInt)},
 	"secure_random_bytes": {1, strs(TypeInt)},
 	"encrypt":             {2, strs(TypeString, TypeString)},
+	"hmac_sha1":           {2, strs(TypeString, TypeString)},
 	"hmac_sha256":         {2, strs(TypeString, TypeString)},
+	"http_stream_open":    {1, strs(TypeString)},
+	"http_stream_read":    {1, strs(TypeInt)},
+	"http_stream_read_line": {1, strs(TypeInt)},
+	"http_stream_close":   {1, strs(TypeInt)},
 }
 
 func strs(types ...PipeType) []PipeType {

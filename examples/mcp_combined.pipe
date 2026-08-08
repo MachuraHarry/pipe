@@ -1,0 +1,43 @@
+--- ============================================================
+--- mcp_combined.pipe — MCP Hub: Eigene Tools + externe Server.
+--- Kombiniert eigene ai_tool-Funktionen mit MCP-Servern.
+---
+--- Voraussetzungen:
+---   node.js installiert (npx verfügbar)
+---   export DEEPSEEK_API_KEY="sk-..."
+--- ============================================================
+
+ai_provider "deepseek"
+ai_set_key "deepseek" (env "DEEPSEEK_API_KEY")
+
+--- ============================================================
+--- Eigene Tools
+--- ============================================================
+
+fn calculate expr
+    result: exec ("echo '" ++ expr ++ "' | bc -l 2>/dev/null || echo 'invalid'")
+    trim (get result "output")
+
+ai_tool "calculate" "Evaluate a math expression" {expr: "Math expression like 2+3*4"} calculate
+
+--- ============================================================
+--- Externe MCP-Server verbinden
+--- ============================================================
+
+print "Connecting to filesystem server..."
+mcp_use_stdio "npx" "-y" "@modelcontextprotocol/server-filesystem" "/tmp"
+
+print "Connecting to memory server..."
+mcp_use_stdio "npx" "-y" "@modelcontextprotocol/server-memory" ((env "HOME") ++ "/pipe-memory.json")
+
+print ""
+print "All tools loaded: " ++ (to_str (len (mcp_tools)))
+print ""
+
+--- ============================================================
+--- Jetzt nutzen
+--- ============================================================
+
+print "=== AI with all tools ==="
+result: ai_with_tools "You have filesystem, memory, and calculation tools. Answer in 1-2 sentences." "Calculate (125 * 37) + 400 and save the result as a memory. Then list files in /tmp." 10
+print result

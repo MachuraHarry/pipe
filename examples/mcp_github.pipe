@@ -1,0 +1,33 @@
+--- ============================================================
+--- mcp_github.pipe — MCP Client: GitHub-Server nutzen.
+--- Verbindet sich zu @modelcontextprotocol/server-github
+--- und nutzt dessen 26 Tools via ai_with_tools.
+---
+--- Voraussetzungen:
+---   node.js installiert (npx verfügbar)
+---   export DEEPSEEK_API_KEY="sk-..."
+---   export GITHUB_TOKEN="ghp_..."  (GitHub Personal Access Token)
+--- ============================================================
+
+ai_provider "deepseek"
+ai_set_key "deepseek" (env "DEEPSEEK_API_KEY")
+
+print "Connecting to GitHub MCP server..."
+mcp_use_stdio "npx" "-y" "@modelcontextprotocol/server-github" {GITHUB_PERSONAL_ACCESS_TOKEN: (env "GITHUB_TOKEN")}
+
+print "Available tools: " ++ (to_str (len (mcp_tools)))
+print ""
+
+print "=== Search Issues ==="
+result: ai_with_tools "You have GitHub tools. Answer concisely." "Search issues in MachuraHarry/pipe. How many open issues?" 10
+print result
+print ""
+
+print "=== Repo Info ==="
+result: ai_with_tools "You have GitHub tools. Answer in ONE sentence." "Get info about MachuraHarry/pipe. Language and stars?" 8
+print result
+print ""
+
+print "=== Read go.mod ==="
+result: ai_with_tools "You have GitHub tools. Be concise." "Read go.mod from MachuraHarry/pipe and tell me the Go version." 8
+print result

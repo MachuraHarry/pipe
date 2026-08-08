@@ -1,0 +1,36 @@
+--- ============================================================
+--- mcp_server.pipe — Eigener MCP-Server mit Wetter-Tool.
+--- Von Claude Desktop oder Cursor nutzbar.
+---
+--- Konfiguration für Claude Desktop:
+--- {
+---   "mcpServers": {
+---     "pipe-weather": {
+---       "command": "/tmp/pipe",
+---       "args": ["examples/mcp_server.pipe"]
+---     }
+---   }
+--- }
+--- ============================================================
+
+fn get_weather city
+    match city
+        | "Berlin" -> "Berlin: 22°C, sunny"
+        | "London" -> "London: 15°C, rainy"
+        | "Paris"  -> "Paris: 25°C, clear"
+        | "Tokyo"  -> "Tokyo: 28°C, humid"
+        | _ -> city ++ ": no data available"
+
+fn search_docs query
+    "Documentation results for: " ++ query ++ "\n\n--- docs/index.md ---\nFound 42 modules. " ++ query ++ " appears in sections 5, 12, and 23."
+
+fn run_command cmd
+    output: exec cmd
+    "Command: " ++ cmd ++ "\n" ++ (get output "output")
+
+ai_tool "get_weather" "Get current weather for a city" {city: "City name"} get_weather
+ai_tool "search_docs" "Search documentation" {query: "Search term"} search_docs
+ai_tool "run_command" "Run a shell command" {cmd: "Shell command to run"} run_command
+
+mcp_server "Pipe Tools" "1.0.0"
+mcp_serve_stdio

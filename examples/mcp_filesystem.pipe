@@ -1,0 +1,34 @@
+--- ============================================================
+--- mcp_filesystem.pipe — MCP Client: Filesystem-Server nutzen.
+--- Verbindet sich zum offiziellen @modelcontextprotocol/server-filesystem
+--- und nutzt dessen Tools via ai_with_tools.
+---
+--- Voraussetzungen:
+---   node.js installiert (npx verfügbar)
+---   export DEEPSEEK_API_KEY="sk-..."
+--- ============================================================
+
+ai_provider "deepseek"
+ai_set_key "deepseek" (env "DEEPSEEK_API_KEY")
+
+print "Connecting to MCP filesystem server..."
+mcp_use_stdio "npx" "-y" "@modelcontextprotocol/server-filesystem" (env "HOME")
+
+print "Available tools: " ++ (to_str (len (mcp_tools)))
+print ""
+
+print "=== Files in HOME ==="
+prompt: "List the contents of my home directory. Show only file/directory names, one per line. Be brief."
+result: ai_with_tools "You have filesystem tools. Use them to answer questions concisely." prompt
+print result
+print ""
+
+print "=== Read go.mod ==="
+prompt: "Read go.mod in the current directory (if it exists) and tell me the Go version."
+result: ai_with_tools "You have filesystem tools." prompt
+print result
+print ""
+
+print "=== Create hello.txt ==="
+result: ai_with_tools "You have filesystem tools. Create/write files when asked." "Create hello.txt in the current directory containing 'Hello from Pipe MCP!'"
+print result

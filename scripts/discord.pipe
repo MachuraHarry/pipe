@@ -1,0 +1,126 @@
+--- ============================================================
+--- discord.pipe - Discord Modul für Pipe.
+---
+--- STATUS: IN ENTWICKLUNG - noch NICHT im pipe-modules-Registry.
+---
+--- Zwei Auth-Modelle (beide kostenlos):
+---   Webhook:    POST JSON an die Webhook-URL, kein Auth-Header nötig.
+---   Bot-Token:  Authorization: Bot <token>, für Lesen + Senden.
+---
+--- Kein Echtzeit (Gateway/WebSocket) - Nachrichten lesen per Polling.
+--- Nur Text + Embeds, keine Datei-Anhänge (Multipart).
+---
+--- Import:  import "discord.pipe" as d
+--- ============================================================
+
+API_BASE: env "DISCORD_API_BASE"
+if API_BASE == nil
+    API_BASE: "https://discord.com/api/v10"
+
+--- Generischer Discord-REST-Aufruf. body ist JSON-String oder nil.
+--- Rückgabe: Ok parsed json | Err
+fn _api bearer method path body
+    h: {}
+    if bearer != nil
+        set h "Authorization" ("Bot " ++ bearer)
+    if body != nil
+        set h "Content-Type" "application/json"
+    url: API_BASE ++ path
+    r: http_request method url h body
+    if (type_of r) == "ERROR"
+        return r
+    status: get r "status"
+    if status == 204
+        return (Ok {})
+    j: parse_json (get r "body")
+    if (type_of j) == "ERROR"
+        return j
+    if status >= 400
+        msg: get j "message"
+        if msg == nil
+            msg: "HTTP " ++ (to_str status)
+        code: get j "code"
+        extra: ""
+        if code != nil
+            extra: " (code " ++ (to_str code) ++ ")"
+        return (Err ("Discord-Fehler (HTTP " ++ (to_str status) ++ "): " ++ (to_str msg) ++ extra))
+    Ok j
+
+--- ============================================================
+--- Webhook (Senden ohne Bot-Token)
+--- ============================================================
+
+--- Sendet eine Textnachricht über eine Webhook-URL.
+--- payload: Map mit {content, username?, avatar_url?, embeds?, ...}
+--- Rückgabe: Ok {}. Mit ?wait=true im URL-Anhang wäre es die Message.
+export fn d_webhook_send webhook_url payload
+    r: http_request "POST" webhook_url (nil) (to_json payload)
+    if (type_of r) == "ERROR"
+        return r
+    status: get r "status"
+    if status >= 400
+        j: parse_json (get r "body")
+        msg: "HTTP " ++ (to_str status)
+        if (type_of j) != "ERROR"
+            m: get j "message"
+            if m != nil
+                msg: to_str m
+        return (Err ("Discord-Webhook-Fehler: " ++ msg))
+    Ok {}
+
+--- Komfort: einfacher Text via Webhook.
+--- Rückgabe: Ok {} | Err
+export fn d_webhook_text webhook_url content
+    d_webhook_send webhook_url {content: content}
+
+--- Komfort: Embed via Webhook. payload: Map mit title/description/color/fields...
+--- Rückgabe: Ok {} | Err
+export fn d_webhook_embed webhook_url embed
+    d_webhook_send webhook_url {embeds: [embed]}
+
+--- ============================================================
+--- Bot-Token (Senden + Lesen)
+--- ============================================================
+
+--- Sendet eine Nachricht als Bot in einen Channel.
+--- payload: Map mit {content, embeds?, tts?, flags?, ...}
+--- Rückgabe: Ok message | Err
+export fn d_send token channel_id payload
+    _api token "POST" ("/channels/" ++ channel_id ++ "/messages") (to_json payload)
+
+--- Komfort: einfacher Text als Bot.
+--- Rückgabe: Ok message | Err
+export fn d_send_text token channel_id content
+    d_send token channel_id {content: content}
+
+--- Komfort: Embed als Bot.
+--- Rückgabe: Ok message | Err
+export fn d_send_embed token channel_id embed
+    d_send token channel_id {embeds: [embed]}
+
+--- Liest die letzten Nachrichten eines Channels (Polling).
+--- limit optional (1-100, Default 20).
+--- Rückgabe: Ok [message, ...] | Err
+export fn d_get_messages token channel_id limit
+    l: "20"
+    if limit != nil
+        l: to_str limit
+    _api token "GET" ("/channels/" ++ channel_id ++ "/messages?limit=" ++ l) nil
+
+--- Holt Kanal-Infos.
+--- Rückgabe: Ok channel | Err
+export fn d_get_channel token channel_id
+    _api token "GET" ("/channels/" ++ channel_id) nil
+
+--- Editiert eine Bot-Nachricht. payload: Map mit {content?, embeds?, ...}
+--- Rückgabe: Ok message | Err
+export fn d_edit_message token channel_id message_id payload
+    _api token "PATCH" ("/channels/" ++ channel_id ++ "/messages/" ++ message_id) (to_json payload)
+
+--- Löscht eine Nachricht. Rückgabe: Ok {} | Err
+export fn d_delete_message token channel_id message_id
+    _api token "DELETE" ("/channels/" ++ channel_id ++ "/messages/" ++ message_id) nil
+
+--- Server-Liste des Bots. Rückgabe: Ok [guild, ...] | Err
+export fn d_get_guilds token
+    _api token "GET" "/users/@me/guilds" nil

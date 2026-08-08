@@ -1,11 +1,12 @@
-# <img src="website/logo.svg" width="32" height="32" align="left" style="margin-right:8px"> Pipe — The runtime for AI-native infrastructure
+# <img src="website/logo.svg" width="32" height="32" align="left" style="margin-right:8px"> Pipe — MCP-native runtime for AI infrastructure
 
 [![CI](https://github.com/MachuraHarry/pipe/actions/workflows/ci.yml/badge.svg)](https://github.com/MachuraHarry/pipe/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-purple.svg)](LICENSE)
 [![Version](https://img.shields.io/badge/version-0.9.2-blue.svg)](https://github.com/MachuraHarry/pipe/releases)
 [![SPR](https://img.shields.io/badge/SPR-Semantic%20Pipeline%20Runtime-7c5cfc.svg)](#)
+[![MCP](https://img.shields.io/badge/MCP-Server%20%2B%20Client-3ce096.svg)](#model-context-protocol)
 
-> **Build, sandbox, and deploy LLM pipelines with a single ~7 MB binary. No Python. No dependencies. No vendor lock-in.**
+> **The first language with built-in MCP — server and client. 193 builtins, 23 modules, single ~7 MB binary. Zero dependencies.**
 
 ## Quick Install
 
@@ -24,7 +25,7 @@ Running AI in production is harder than it should be:
 - **Security** — LLMs with file access, network, and `exec` are a liability. You need fine-grained sandboxing at the language level, not afterthought middleware.
 - **Performance** — Sequential API calls turn a 1-second pipeline into a 10-second bottleneck. Parallelism shouldn't require `asyncio.gather()` boilerplate.
 - **Vendor Lock-in** — Switching from OpenAI to DeepSeek means rewriting your Python SDK code. Provider changes should be one line.
-- **Deployment** — `pip install`, `requirements.txt`, Docker images, virtual environments — just to ship 5 lines of logic.
+- **Tool Integration** — Connecting LLMs to external tools (GitHub, databases, filesystems) is a maze of SDKs and API wrappers. MCP should be a language primitive, not a library.
 
 **Pipe fixes this at the language level.**
 
@@ -57,6 +58,47 @@ read_file "news.txt"
     > print
 ```
 
+## Model Context Protocol
+
+Pipe has **built-in MCP** — both as a server and client. No SDKs, no npm packages, no Python. Pure Go stdlib.
+
+### MCP Server — Expose your tools
+
+```pipe
+fn get_weather city
+    match city
+        | "Berlin" -> "22°C, sunny"
+        | "London" -> "15°C, rainy"
+        | _ -> city ++ ": no data"
+
+ai_tool "get_weather" "Get weather for a city" {city: "City name"} get_weather
+mcp_server "Weather Agent" "1.0.0"
+mcp_serve_stdio
+```
+
+Configure in Claude Desktop (`claude_desktop_config.json`):
+
+```json
+{ "mcpServers": { "pipe": { "command": "/tmp/pipe", "args": ["agent.pipe"] } } }
+```
+
+### MCP Client — Use external tools
+
+```pipe
+ai_provider "deepseek"
+ai_set_key "deepseek" (env "DEEPSEEK_API_KEY")
+
+-- Connect to GitHub + Filesystem MCP servers
+mcp_use_stdio "npx" "-y" "@modelcontextprotocol/server-github" {GITHUB_TOKEN: (env "GITHUB_TOKEN")}
+mcp_use_stdio "npx" "-y" "@modelcontextprotocol/server-filesystem" "/tmp"
+
+-- AI discovers and uses all tools automatically
+result: ai_with_tools "You are a DevOps assistant." "Search pipe's open issues and list files in /tmp." 10
+print result
+```
+
+**100+ community MCP servers** work immediately: Filesystem, GitHub, Git, Postgres, SQLite, Slack, Brave Search, Memory, Sequential Thinking — anything on npm/uvx.
+
 ## Use Cases
 
 ### Log Analysis → Incident Report
@@ -73,23 +115,24 @@ read_file "/var/log/app/errors.log"
     > save "incident_report.txt"
 ```
 
-### RAG Pipeline (with rag-pipe module)
+### RAG Pipeline
 
 ```pipe
-import "rag-pipe"
+ai_provider "deepseek"
 
-idx: index_create h "knowledge"
-index_add idx "Pipe is a semantic pipeline runtime for AI-native infrastructure."
-index_add idx "The bytecode VM runs 7x faster than the tree-walker interpreter."
+docs: read_lines "knowledge_base.txt"
+vectors: embed_batch docs
 
--- Semantic search
-results: index_search idx "fast execution" 2
-for r in results
-    print (get r "text")
+question: "How does the bytecode VM work?"
+q_vec: embed question
+top: nearest q_vec vectors 3
 
--- AI-powered Q&A with retrieved context
-answer: index_ask idx "How does Pipe execute code?"
-print answer
+context: ""
+for idx in top
+    context: context ++ (at docs idx) ++ "\n---\n"
+
+ask ("Context:\n" ++ context ++ "\nQuestion: " ++ question)
+    > print
 ```
 
 ### AI Agent with Tool Calling
@@ -107,30 +150,23 @@ ai_with_tools "You are a weather assistant." "What's the weather in Berlin and L
     > print
 ```
 
-### Module Pipeline: HTTP → JSON → AI → Report
+### Discord CI/CD Notifications
 
 ```pipe
-import "pipe-http"
-import "pipe-tpl"
+import "discord.pipe" as d
+ai_provider "deepseek"
 
-data: hget_json "https://api.example.com/stats" {}
-analysis: ask ("Summarize: " ++ (to_json data))
+-- AI code review per commit, sent as Discord embed
+review: ai_chat "Review this code change" diff 800
 
-report: render "Report: {{ analysis }}\nTop items:\n{{ for item in items }}* {{ item }}\n{{ end }}" data
-print report
-```
-
-### CLI Tool (with pipe-cli)
-
-```pipe
-import "pipe-cli"
-
-cli: app "deployer" "Deployment tool"
-cmd: command cli "release" "Create a release"
-flag cmd "env" "e" "Environment" "staging"
-flag cmd "tag" "t" "Git tag to deploy" ""
-handler cmd handler_fn
-run cli args
+d.d_webhook_embed (env "DISCORD_WEBHOOK") {
+    title: "🔧 CI: Push to master",
+    color: 3447003,
+    fields: [
+        {name: "Changed Files", value: stat},
+        {name: "AI Review", value: review}
+    ]
+}
 ```
 
 ## Comparison: Pipe vs Python + LangChain
@@ -142,18 +178,21 @@ run cli args
 | **Switch AI provider**   | Rewrite SDK calls              | `ai_provider "deepseek"`       |
 | **Deploy to server**     | Docker + venv + pip            | `scp pipe binary`              |
 | **Parallel LLM calls**   | `asyncio.gather()` boilerplate | `>>` operator, `ai_batch`      |
+| **MCP Server + Client**  | Library-dependent              | 7 builtins, zero deps, 100+ servers |
 | **Binary size**          | ~500 MB (with deps)            | ~7 MB                          |
 
 ## Features
 
-- **Ship AI pipelines 10× faster** — 36 AI builtins: no imports, no SDKs, no API wrappers
+- **MCP-native** — 7 builtins for MCP Server + Client. Pure Go stdlib. Connect to 100+ community servers
+- **Ship AI pipelines 10× faster** — 43 AI builtins (36 AI + 7 MCP): no imports, no SDKs, no API wrappers
 - **Lock down AI agents in one line** — Declarative sandbox profiles: restrict `exec`, `write_file`, `http_get` with a single block
 - **Deploy in seconds** — One statically-linked ~7 MB binary. No venv, no pip, no Docker. Linux, macOS, Windows, Raspberry Pi, or your browser via WebAssembly
 - **3 LLM calls in 1.5s, not 4s** — `>>` starts any pipeline stage in the background. Futures auto-resolve. `ai_batch` handles hundreds of texts concurrently with built-in rate limiting
 - **No vendor lock-in** — OpenAI, Anthropic (Claude), DeepSeek, Ollama. Switch with one line. Same code works everywhere
 - **Pipeline-native syntax** — `>` sequential, `>>` parallel. Data flows top to bottom — readable, composable, debuggable
+- **Social platforms built in** — Discord webhooks and Telegram bots as Pipe modules. AI code reviews, notifications, chat — zero API costs for sending
 - **Bytecode VM** — Compile to bytecode, execute ~7× faster with automatic caching
-- **Module ecosystem** — 21 curated modules, registry with version pinning (`@1.0.0`). `pipe -get` installs, import by name
+- **Module ecosystem** — 23 curated modules, registry with version pinning (`@1.0.0`). `pipe -get` installs, import by name
 - **Built-in testing** — `test` blocks with `assert_eq`, `assert_error`. Run with `pipe -test`. Zero setup
 - **GitHub Action** — Run Pipe directly in CI/CD. No installation needed
 - **VSCode Extension** — Syntax highlighting, IntelliSense, LSP-powered diagnostics and completions
@@ -218,20 +257,20 @@ Or run the extension in development with F5 from the `vscode/` folder. See [VSCo
 
 ## Module Ecosystem
 
-Pipe has a [curated module library](https://github.com/MachuraHarry/pipe-modules) — **21 reusable modules** with version pinning:
+Pipe has a [curated module library](https://github.com/MachuraHarry/pipe-modules) — **23 reusable modules** with version pinning:
 
-| Infrastructure | Data & CLI | AI & Agents | DevTools |
-|---|---|---|---|
-| `pipe-http` | `sqlite` | `rag-pipe` 🆕 | `pipe-test` |
-| `pipe-cli` | `jpipe` | `log-analyzer` | `pipe-validate` 🆕 |
-| `pipe-orm` 🆕 | `pipe-tpl` | `sentiment` | |
-| `pipe-web` 🆕 | `pipe-date` | `code-review` | |
-| | `telegram-bot` | `translate-batch` | |
-| | | `changelog-gen` | |
-| | | `email-classifier` | |
-| | | `incident-report` | |
-| | | `parallel-runner` | |
-| | | `date-formatter` | |
+| Infrastructure | Data & CLI | AI & Agents | DevTools | Social |
+|---|---|---|---|---|
+| `pipe-http` | `sqlite` | `rag-pipe` 🆕 | `pipe-test` | `discord` 🆕 |
+| `pipe-cli` | `jpipe` | `log-analyzer` | `pipe-validate` 🆕 | `x` 🆕 (in dev) |
+| `pipe-orm` 🆕 | `pipe-tpl` | `sentiment` | | `telegram-bot` |
+| `pipe-web` 🆕 | `pipe-date` | `code-review` | | |
+| | | `translate-batch` | | |
+| | | `changelog-gen` | | |
+| | | `email-classifier` | | |
+| | | `incident-report` | | |
+| | | `parallel-runner` | | |
+| | | `date-formatter` | | |
 
 ```bash
 pipe -search                 # Browse modules
@@ -243,7 +282,8 @@ pipe -get sqlite@0.8.0       # Install specific version
 ```pipe
 import "sqlite"                            -- database engine
 import "pipe-http"                         -- HTTP client
-import "rag-pipe"                          -- RAG: embeddings + search + AI
+import "discord.pipe" as d                 -- Discord webhooks + bot
+import "x.pipe" as x                       -- X (Twitter) API v2
 
 idx: index_create h "knowledge"
 index_add idx "Pipe is an AI-native language."
@@ -259,7 +299,7 @@ index_search idx "language" 3 > each print
 | Tree-Walker | `./bin/pipe script.pipe` | Baseline |
 | Bytecode VM | `./bin/pipe -vm -q script.pipe` | ~7× faster |
 
-## 36 AI Builtins
+## 43 AI Builtins (36 AI + 7 MCP)
 
 ### Understanding
 `summarize`, `translate`, `classify`, `extract`, `ask`, `generate`, `generate_json`
@@ -272,6 +312,9 @@ index_search idx "language" 3 > each print
 
 ### Agents & Tools
 `agent`, `agent_ask`, `agent_clear`, `ai_tool`, `ai_with_tools`
+
+### MCP — Model Context Protocol
+`mcp_server`, `mcp_serve_stdio`, `mcp_serve_sse`, `mcp_tools`, `mcp_use_stdio`, `mcp_use_sse`
 
 ### Configuration
 `ai_provider`, `ai_model`, `ai_timeout`, `ai_host`, `ai_cache`, `ai_set_key`
@@ -319,12 +362,15 @@ write_file "/etc/config"    -- ❌ E_SANDBOX blocked
 
 ```
 Source (.pipe) → Lexer → Parser → AST → [ Tree-Walker | Compiler + VM ]
-                                          ↓
-                               Builtins (183 total, AI + stdlib)
+                                            ↓
+                                 Builtins (193 total: 43 AI, 150 stdlib)
+                                            ↓
+                              MCP Server ↔ MCP Clients (stdio + HTTP)
 ```
 
 - 67 token types, 35 AST node types, 42 opcodes
 - ~19,000 LoC Go, 300+ tests, ~60 example programs
+- Zero dependencies — pure Go stdlib
 
 ## Documentation
 
@@ -368,6 +414,12 @@ pipe/
 │   │   ├── lexer.go
 │   │   ├── lexer_test.go
 │   │   └── token.go
+│   ├── mcp/                   # MCP server + client (zero-dependency)
+│   │   ├── types.go
+│   │   ├── server.go
+│   │   ├── client.go
+│   │   ├── stdio.go
+│   │   └── schema.go
 │   ├── object/                # Runtime objects
 │   │   ├── ai_builtins_test.go
 │   │   ├── environment.go
@@ -380,10 +432,10 @@ pipe/
 │       ├── vm.go
 │       └── vm_test.go
 ├── examples/                  # ~60 example programs
-│   ├── ai_demo.pipe
-│   ├── ai_embedding_demo.pipe
-│   ├── ai_parallel_demo.pipe
-│   ├── ai_stream_demo.pipe
+│   ├── mcp_server.pipe        # MCP server with weather/docs/shell tools
+│   ├── mcp_filesystem.pipe    # MCP client using filesystem server
+│   ├── mcp_github.pipe        # MCP client using GitHub server
+│   ├── mcp_combined.pipe      # MCP hub: own tools + external servers
 │   ├── ai_tool_demo.pipe
 │   ├── selfhost/              # Self-hosting lexer/parser
 │   └── ...
@@ -393,8 +445,8 @@ pipe/
 │   ├── syntaxes/pipe.tmLanguage.json
 │   └── package.json
 ├── docs/                      # Documentation (DE + EN)
-│   ├── en/                    # English docs (24 chapters)
-│   └── de/                    # German docs (24 chapters)
+│   ├── en/                    # English docs (25 chapters)
+│   └── de/                    # German docs (25 chapters)
 ├── website/                   # Project website
 ├── Makefile
 ├── go.mod

@@ -126,4 +126,3 @@ export fn d_delete_message token channel_id message_id
 --- Server-Liste des Bots. Rückgabe: Ok [guild, ...] | Err
 export fn d_get_guilds token
     _api token "GET" "/users/@me/guilds" nil
-// Discord + Telegram CI-Notify verifiziert

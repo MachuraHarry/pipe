@@ -54,7 +54,9 @@ fn _api bearer method path body
 --- payload: Map mit {content, username?, avatar_url?, embeds?, ...}
 --- Rückgabe: Ok {}. Mit ?wait=true im URL-Anhang wäre es die Message.
 export fn d_webhook_send webhook_url payload
-    r: http_request "POST" webhook_url (nil) (to_json payload)
+    h: {}
+    set h "Content-Type" "application/json"
+    r: http_request "POST" webhook_url h (to_json payload)
     if (type_of r) == "ERROR"
         return r
     status: get r "status"

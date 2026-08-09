@@ -4,7 +4,7 @@
     "file": "sandbox-audit.md",
     "date": "2026-08-09",
     "tag": "security",
-    "title": {"en": "Red-Team Sandbox Audit: The Sandbox Held", "de": "Red-Team Sandbox-Audit: Die Sandbox hat gehalten"},
-    "excerpt": {"en": "We ordered a real LLM to break the Pipe sandbox. 23 vectors across all five layers — all blocked. The audit trail gives you objective proof independent of what the model claims. Here is the full report.", "de": "Ein echtes LLM wurde beauftragt, die Pipe-Sandbox zu brechen. 23 Vektoren über alle fünf Ebenen — alle geblockt. Der Audit-Trail liefert objektive Nachweise unabhängig vom Modell. Hier der vollständige Report."}
+    "title": {"en": "🛡️ How I Tried to Escape My Own Sandbox — and What I Learned", "de": "🛡️ Wie ich versuchte, meine eigene Sandbox zu sprengen — und was ich dabei lernte"},
+    "excerpt": {"en": "A real LLM was ordered to escape Pipe's sandbox. 23 vectors, 25 tool calls, zero escapes. The audit trail caught everything — including a design bug that would have invalidated every exec:false profile. Here's the full report, plus what we still need to test.", "de": "Ein echtes LLM wurde beauftragt, Pipes Sandbox zu brechen. 23 Vektoren, 25 Tool-Calls, null Escapes. Der Audit-Trail dokumentiert alles — inklusive eines Design-Bugs. Der vollständige Report und was noch getestet werden muss."}
   }
 ]

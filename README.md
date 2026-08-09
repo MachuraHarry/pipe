@@ -16,7 +16,7 @@ curl -fsSL https://pipe-lang.com/install.sh | bash   # Linux & macOS
 
 Windows (PowerShell): `irm https://pipe-lang.com/install.ps1 | iex`
 
-The installer downloads the latest release, verifies its SHA256 checksum and installs `pipe` into `~/.local/bin` (or `/usr/local/bin` when run as root). Pin a version with `PIPE_VERSION=v0.9.2`. See the [full install docs](docs/en/01-getting-started.md).
+The installer downloads the latest release, verifies its SHA256 checksum and installs `pipe` into `~/.local/bin` (or `/usr/local/bin` when run as root). Pin a version with `PIPE_VERSION=v0.9.3`. See the [full install docs](docs/en/01-getting-started.md).
 
 ## The Problem
 
@@ -97,7 +97,7 @@ result: ai_with_tools "You are a DevOps assistant." "Search pipe's open issues a
 print result
 ```
 
-**100+ community MCP servers** work immediately: Filesystem, GitHub, Git, Postgres, SQLite, Slack, Brave Search, Memory, Sequential Thinking — anything on npm/uvx.
+**Any stdio MCP server** works immediately: Filesystem, GitHub, Git, Postgres, SQLite, Slack, Brave Search, Memory, Sequential Thinking — anything on npm/uvx.
 
 ## Use Cases
 
@@ -183,8 +183,8 @@ d.d_webhook_embed (env "DISCORD_WEBHOOK") {
 
 ## Features
 
-- **MCP-native** — 7 builtins for MCP Server + Client. Pure Go stdlib. Connect to 100+ community servers
-- **Ship AI pipelines 10× faster** — 43 AI builtins (36 AI + 7 MCP): no imports, no SDKs, no API wrappers
+- **MCP-native** — 6 builtins for MCP Server + Client. Pure Go stdlib. Connect to any stdio MCP server
+- **Ship AI pipelines 10× faster** — 18 AI + 6 MCP builtins: no imports, no SDKs, no API wrappers
 - **Lock down AI agents in one line** — Declarative sandbox profiles: restrict `exec`, `write_file`, `http_get` with a single block
 - **Deploy in seconds** — One statically-linked ~7 MB binary. No venv, no pip, no Docker. Linux, macOS, Windows, Raspberry Pi, or your browser via WebAssembly
 - **3 LLM calls in 1.5s, not 4s** — `>>` starts any pipeline stage in the background. Futures auto-resolve. `ai_batch` handles hundreds of texts concurrently with built-in rate limiting
@@ -299,7 +299,7 @@ index_search idx "language" 3 > each print
 | Tree-Walker | `./bin/pipe script.pipe` | Baseline |
 | Bytecode VM | `./bin/pipe -vm -q script.pipe` | ~7× faster |
 
-## 43 AI Builtins (36 AI + 7 MCP)
+## 24 AI + MCP Builtins (18 AI + 6 MCP)
 
 ### Understanding
 `summarize`, `translate`, `classify`, `extract`, `ask`, `generate`, `generate_json`
@@ -369,7 +369,7 @@ Source (.pipe) → Lexer → Parser → AST → [ Tree-Walker | Compiler + VM ]
 ```
 
 - 67 token types, 35 AST node types, 42 opcodes
-- ~19,000 LoC Go, 300+ tests, ~60 example programs
+- ~29,000 LoC Go, 416 tests, 72 example programs
 - Zero dependencies — pure Go stdlib
 
 ## Documentation

@@ -379,7 +379,7 @@ The runtime reads itself, scans backward from EOF for the `PIPEBUILD` marker, ex
 
 | Metric | Value |
 |--------|-------|
-| **Go source lines** | ~23,600 total (~19,000 excluding tests) |
+| **Go source lines** | ~29,200 total (~22,800 excluding tests) |
 | **Go packages** | 13 (`ai`, `analysis`, `ast`, `build`, `cache`, `compiler`, `eval`, `formatter`, `lexer`, `object`, `parser`, `stdlib`, `vm`) |
 | **External dependencies** | 0 (standard library only) |
 | **Binary size** | ~7 MB (dependency-free, statically linked) |

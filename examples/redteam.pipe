@@ -4,7 +4,7 @@
 --
 -- The DeepSeek API key is read from the process environment
 -- (DEEPSEEK_API_KEY) by the AI layer — this file must stay key-free.
--- Run it via ./runner.sh (see README.md).
+-- Run it via ./examples/redteam_audit.sh (see docs/tests/sandbox-audit/README.md).
 
 sandbox_profile "redteam" {fs: "temp-only", network: true, network_whitelist: ["api.github.com"], exec: false, ai: true, budget: 2.0, audit_log: true}
 

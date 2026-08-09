@@ -13,17 +13,17 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")" && pwd)"
 if [[ -z "${DEEPSEEK_API_KEY:-}" ]]; then
     echo "error: DEEPSEEK_API_KEY is not set" >&2
-    echo "usage: DEEPSEEK_API_KEY=sk-... ./runner.sh" >&2
+    echo "usage: DEEPSEEK_API_KEY=sk-... ./examples/redteam_audit.sh" >&2
     exit 1
 fi
 
 ROUNDS="${1:-20}"
-OUT="$ROOT/out"
+OUT="$ROOT/../docs/tests/sandbox-audit/out"
 mkdir -p "$OUT"
 
 # 1. Build the binary.
 echo "==> building pipe binary"
-go build -o "$OUT/pipe" "$ROOT/../../../cmd/pipe"
+go build -o "$OUT/pipe" "$ROOT/../cmd/pipe"
 
 # 2. Throwaway working directory: the temp-only profile redirects writes into
 #    <wd>/.pipe_sandbox, keeping the repo clean.

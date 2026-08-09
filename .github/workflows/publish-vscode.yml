@@ -13,6 +13,8 @@ jobs:
   publish:
     name: Package & Publish
     runs-on: ubuntu-latest
+    env:
+      VSCE_TOKEN: ${{ secrets.VSCE_TOKEN }}
 
     steps:
     - uses: actions/checkout@v4
@@ -49,12 +51,10 @@ jobs:
       working-directory: vscode
 
     - name: Publish
-      if: startsWith(github.ref, 'refs/tags/v') && secrets.VSCE_TOKEN != ''
-      env:
-        VSCE_TOKEN: ${{ secrets.VSCE_TOKEN }}
+      if: startsWith(github.ref, 'refs/tags/v') && env.VSCE_TOKEN != ''
       run: npx --yes @vscode/vsce publish --skip-license --no-dependencies -p "$VSCE_TOKEN"
       working-directory: vscode
 
     - name: Skip publish (no VSCE_TOKEN)
-      if: startsWith(github.ref, 'refs/tags/v') && secrets.VSCE_TOKEN == ''
+      if: startsWith(github.ref, 'refs/tags/v') && env.VSCE_TOKEN == ''
       run: echo "::warning::VSCE_TOKEN secret is not set — skipping publish. Create the 'pipe-lang' publisher and add the PAT as VSCE_TOKEN."

@@ -2,7 +2,7 @@
 
 [![CI](https://github.com/MachuraHarry/pipe/actions/workflows/ci.yml/badge.svg)](https://github.com/MachuraHarry/pipe/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-purple.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-0.9.2-blue.svg)](https://github.com/MachuraHarry/pipe/releases)
+[![Version](https://img.shields.io/badge/version-0.9.3-blue.svg)](https://github.com/MachuraHarry/pipe/releases)
 [![SPR](https://img.shields.io/badge/SPR-Semantic%20Pipeline%20Runtime-7c5cfc.svg)](#)
 [![MCP](https://img.shields.io/badge/MCP-Server%20%2B%20Client-3ce096.svg)](#model-context-protocol)
 

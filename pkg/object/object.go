@@ -518,6 +518,13 @@ var Builtins = []BuiltinInfo{
 	{"mcp_serve_stdio", bMcpServeStdio},
 	{"mcp_serve_sse", bMcpServeSSE},
 	{"mcp_tools", bMcpTools},
+	{"mcp_resources", bMcpResources},
+	{"mcp_read_resource", bMcpReadResource},
+	{"mcp_prompts", bMcpPrompts},
+	{"mcp_prompt_get", bMcpPromptGet},
+	{"mcp_resource", bMcpResource},
+	{"mcp_resource_template", bMcpResourceTemplate},
+	{"mcp_prompt", bMcpPrompt},
 	{"mcp_use_stdio", bMcpUseStdio},
 	{"mcp_use_sse", bMcpUseSSE},
 

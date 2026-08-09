@@ -1272,6 +1272,8 @@ var zeroArityBuiltins = map[string]bool{
 	"budget_spent":      true,
 	"mcp_serve_stdio":   true,
 	"mcp_tools":         true,
+	"mcp_resources":     true,
+	"mcp_prompts":       true,
 }
 
 func isZeroArityBuiltin(name string) bool {

@@ -1,0 +1,42 @@
+--- ============================================================
+--- mcp_resources.pipe — MCP-Server mit Ressourcen und Prompts.
+--- Nutzbar von Claude Desktop oder Cursor.
+---
+--- Zeigt die drei MCP-Primitive:
+---   Tools       -> mcp_tools (via ai_tool registriert)
+---   Resources   -> mcp_resource / mcp_resource_template
+---   Prompts     -> mcp_prompt
+--- ============================================================
+
+fn get_weather city
+    match city
+        | "Berlin" -> "Berlin: 22°C, sunny"
+        | "London" -> "London: 15°C, rainy"
+        | _ -> city ++ ": no data available"
+
+ai_tool "get_weather" "Get current weather for a city" {city: "City name"} get_weather
+
+fn read_docs uri
+    "Documentation for " ++ uri ++ "\n\n# Pipe\nZero-dependency scripting language.\nResources and prompts are served over MCP."
+
+fn read_tmp uri
+    --- resolve any file:///{path} against /tmp
+    path: replace uri "file:///" ""
+    content: read_file ("/tmp/" ++ path)
+    content
+
+mcp_resource "docs://pipe" "Pipe Docs" "text/markdown" read_docs
+mcp_resource_template "file:///{path}" "Temp File" "text/plain" read_tmp
+
+fn build_summary args
+    "Please summarize the following text:\n" ++ (get args "text")
+
+mcp_prompt "summarize" "Summarize the given text" {text: "The text to summarize"} build_summary
+
+--- NOTE: do not print() here — stdout carries the JSON-RPC protocol
+--- when mcp_serve_stdio is running. Inspect with mcp_read_resource /
+--- mcp_prompt_get in a separate script (they work without a server).
+
+--- Serve everything to external clients
+mcp_server "Pipe Resources" "1.0.0"
+mcp_serve_stdio

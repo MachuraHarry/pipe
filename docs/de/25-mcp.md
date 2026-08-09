@@ -1,8 +1,7 @@
 # 25. MCP (Model Context Protocol)
 
 > **STATUS: IN ENTWICKLUNG — NOCH NICHT im pipe-modules-Registry veröffentlicht.**
-> E2E-verifiziert: MCP Server + Client mit JSON-RPC 2.0 über stdio.
-> HTTP/SSE-Transport in Arbeit.
+> E2E-verifiziert: MCP Server + Client mit JSON-RPC 2.0 über stdio UND Streamable HTTP (SSE).
 
 Pipe implementiert das **[Model Context Protocol (MCP)](https://modelcontextprotocol.io)** — sowohl als Server (um Tools für externe Clients wie Claude Desktop bereitzustellen) als auch als Client (um externe MCP-Server in `ai_with_tools` zu nutzen). Die Implementierung ist **dependency-frei** und verwendet nur Go's Standardbibliothek.
 
@@ -15,12 +14,14 @@ MCP verwendet **JSON-RPC 2.0** über zwei Transporte:
 | Transport | Anwendungsfall |
 |-----------|---------------|
 | **stdio** | Subprocess-Pipe (Claude Desktop, CLI-Tools). Pipe liest von stdin, schreibt auf stdout. |
-| **Streamable HTTP** | Netzwerkbasiert (POST + SSE). *Geplant, noch nicht implementiert.* |
+| **Streamable HTTP** | Netzwerkbasiert (POST + SSE, session-verwaltet via `Mcp-Session-Id`). |
 
 Das Protokoll definiert drei Primitive:
 - **Tools** — Funktionen, die das KI-Modell aufrufen kann (`tools/list`, `tools/call`)
-- **Resources** — Daten, die dem Modell ausgesetzt werden (in Pipe noch nicht implementiert)
-- **Prompts** — Wiederverwendbare Vorlagen (in Pipe noch nicht implementiert)
+- **Resources** — Daten, die dem Modell ausgesetzt werden (`resources/list`, `resources/read`, inkl. URI-Templates)
+- **Prompts** — Wiederverwendbare Nachrichtenvorlagen (`prompts/list`, `prompts/get`)
+
+Der Server verhandelt während `initialize` die **Protokollversion** (neueste unterstützte: `2025-11-25`, abwärtskompatibel mit `2025-06-18`, `2025-03-26`, `2024-11-05`) und beantwortet `ping`-Keep-Alive-Anfragen.
 
 ---
 
@@ -34,8 +35,17 @@ Pipe kann als MCP-Server agieren und alle über `ai_tool` registrierten Funktion
 |---------|--------------|
 | `mcp_server(name, version)` | Erstellt einen MCP-Server. Bridgt automatisch alle `ai_tool`-Einträge als MCP-Tools. |
 | `mcp_serve_stdio` | Startet den Server auf stdin/stdout (blockierend). Für Claude Desktop, Cursor usw. |
-| `mcp_serve_sse(addr)` | *(Noch nicht implementiert)* Startet einen HTTP/SSE-Server. |
+| `mcp_serve_sse(addr)` | Startet einen Streamable-HTTP-Server auf `addr` (z. B. `:9090`, blockierend). Clients verbinden sich per `POST` + SSE. |
 | `mcp_tools` | Listet alle registrierten Tools (lokal + remote). |
+| `mcp_resource(uri, name, mime, read_fn)` | Registriert eine statische Resource. `read_fn(uri)` liefert den Resourcentext. |
+| `mcp_resource_template(template, name, mime, read_fn)` | Registriert eine URI-Template-Resource, z. B. `file:///{path}`. `read_fn(uri)` wird mit der konkreten URI aufgerufen. |
+| `mcp_prompt(name, description, args_map, build_fn)` | Registriert eine Prompt-Vorlage. `args_map` bildet Argumentnamen auf eine Beschreibung ab (oder auf eine Map mit `description`/`required`). `build_fn(args)` liefert den gerenderten Text. |
+| `mcp_resources` | Listet alle Ressourcen (lokal + remote). |
+| `mcp_read_resource(uri)` | Liest eine Resource vom lokalen Server oder einem verbundenen Client. |
+| `mcp_prompts` | Listet alle Prompts (lokal + remote). |
+| `mcp_prompt_get(name, args?)` | Rendert einen Prompt vom lokalen Server oder einem verbundenen Client. |
+
+> **Hinweis:** Fehlende Pflicht-Argumente werden mit `isError: true` abgelehnt; Tool-Namen müssen dem Spec-Muster `^[a-zA-Z0-9_-]{1,64}$` entsprechen (ungültige Namen werden übersprungen). Tools, die eine Map/Liste zurückgeben, werden als pretty JSON serialisiert, damit strukturierte Daten den Roundtrip überleben.
 
 ### Beispiel: Claude-Desktop-Integration
 
@@ -85,6 +95,78 @@ Client                  Pipe (MCP Server)
   │                         │
 ```
 
+### Beispiel: Streamable-HTTP-Server
+
+```pipe
+--- http_agent.pipe — Tools über HTTP für Netzwerk-Clients bereitstellen
+
+fn get_weather city
+    match city
+        | "Berlin" -> "Berlin: 22°C, sonnig"
+        | _ -> city ++ ": keine Daten"
+
+ai_tool "get_weather" "Aktuelles Wetter für eine Stadt abrufen" {city: "Stadtname"} get_weather
+
+mcp_server "Pipe HTTP Agent" "1.0.0"
+mcp_serve_sse ":9090"
+```
+
+Clients POSTen JSON-RPC-Nachrichten an `http://host:9090/` mit
+`Accept: application/json, text/event-stream`. Der Server verwaltet Sessions über den
+`Mcp-Session-Id`-Header; `DELETE` beendet eine Session.
+
+### Ressourcen & Prompts
+
+Ressourcen und Prompts werden mit den folgenden Builtins registriert und beim
+Aufruf von `mcp_server` automatisch in den Server gebridged. Die Lese-/Render-
+Builtins funktionieren auch ohne laufenden Server (Fallback auf die lokalen
+Registries).
+
+```pipe
+--- resources.pipe — Ressourcen + Prompts über MCP bereitstellen
+
+--- Statische Resource
+fn read_docs uri
+    "Dokumentation zu " ++ uri ++ "\n\n# Pipe\nDependency-freie Sprache."
+
+--- URI-Template-Resource: jede file:///{path} matcht
+fn read_tmp uri
+    path: replace uri "file:///" ""
+    content: read_file ("/tmp/" ++ path)
+    content
+
+mcp_resource "docs://pipe" "Pipe-Doku" "text/markdown" read_docs
+mcp_resource_template "file:///{path}" "Datei" "text/plain" read_tmp
+
+--- Prompt mit Pflicht-Argument
+fn build_summary args
+    "Bitte zusammenfassen: " ++ (get args "text")
+
+mcp_prompt "summarize" "Fasse den gegebenen Text zusammen" {text: "Der zu fassende Text"} build_summary
+
+--- Ohne laufenden Server prüfen (mcp_read_resource / mcp_prompt_get
+--- funktionieren eigenständig; bei aktivem mcp_serve_stdio NICHT print()en,
+--- da stdout das JSON-RPC-Protokoll trägt)
+print (mcp_resources)
+print (mcp_read_resource "file:///hello.txt")
+print (mcp_prompt_get "summarize" {text: "Ein langer Artikel ..."})
+
+mcp_server "Pipe Resources" "1.0.0"
+mcp_serve_stdio
+```
+
+`args_map`-Einträge können einfache Strings (eine Beschreibung) oder Maps mit
+`description` und optionalem `required`-Boolean (Standard `true`) sein. Remote-
+Ressourcen/-Prompts, die über `mcp_use_*` entdeckt werden, erscheinen in
+`mcp_resources` / `mcp_prompts` und können per `mcp_read_resource` /
+`mcp_prompt_get` gelesen werden.
+
+> Ein lauffähiges Beispiel mit Tools, Ressourcen und Prompts liegt unter
+> `examples/mcp_resources.pipe` (direkt ausführbar oder als stdio-Server in
+> Claude Desktop konfigurierbar). Weitere Kombinationen: `examples/mcp_server.pipe`,
+> `examples/mcp_filesystem.pipe`, `examples/mcp_github.pipe`,
+> `examples/mcp_combined.pipe`.
+
 ---
 
 ## 25.3 MCP-Client — Externe Tools nutzen
@@ -96,7 +178,12 @@ Pipe kann sich mit externen MCP-Servern verbinden und deren Tools in `ai_with_to
 | Builtin | Beschreibung |
 |---------|--------------|
 | `mcp_use_stdio(command, args...)` | Startet einen Subprocess und verbindet sich über stdio. Entdeckt Tools und registriert sie im Tool-Registry mit einem `mcp0_`-, `mcp1_`-, …-Präfix. |
-| `mcp_use_sse(url)` | Verbindet sich per POST mit einem Streamable-HTTP-MCP-Server. |
+| `mcp_use_sse(url)` | Verbindet sich per POST + SSE mit einem Streamable-HTTP-MCP-Server (session-verwaltet). |
+
+> **Hinweis:** Client-Calls haben ein konfigurierbares Timeout (Standard 120 s, via
+> `client.SetCallTimeout`); Subprocess-stderr wird erfasst (letzte 64 KB) und in
+> Fehlermeldungen einbezogen. Remote-Tool-Argumente unterstützen verschachtelte
+> Maps/Listen (rekursiv nach JSON konvertiert).
 
 Entdeckte Tools werden automatisch im Tool-Registry von Pipe registriert und stehen damit `ai_with_tools` neben lokal definierten Tools zur Verfügung.
 
@@ -164,18 +251,19 @@ Die gesamte MCP-Funktionalität ist in reinem Go mit Standardbibliothek implemen
 
 | Package | Verantwortlichkeit |
 |---------|-------------------|
-| `pkg/mcp/types.go` | JSON-RPC-2.0- und MCP-Message-Typen |
-| `pkg/mcp/server.go` | Server-Dispatch: `initialize`, `tools/list`, `tools/call` |
+| `pkg/mcp/types.go` | JSON-RPC-2.0- und MCP-Message-Typen, Protokollversionen, Fehlercodes |
+| `pkg/mcp/server.go` | Server-Dispatch: `initialize` (Versions-Negotiation), `ping`, `tools/list`, `tools/call`, `resources/list` + `resources/read`, `prompts/list` + `prompts/get` |
 | `pkg/mcp/stdio.go` | stdio-Transport (`bufio.Scanner` + `fmt.Println`) |
-| `pkg/mcp/client.go` | Client: `exec.Cmd` (stdio) oder `net/http` (HTTP), nebenläufigkeitssicher |
+| `pkg/mcp/http_server.go` | Streamable-HTTP-Server (POST + SSE, Session-Verwaltung, `DELETE`) |
+| `pkg/mcp/client.go` | Client: stdio (`exec.Cmd`) + HTTP (SSE-Read-Loop, Session-Id), Call-Timeouts, stderr-Capture, nebenläufigkeitssicher |
 | `pkg/mcp/schema.go` | JSON-Schema-Konverter |
-| `pkg/object/builtins_mcp.go` | 7 Pipe-Builtins + Brücke zum `ai_tool`-Registry |
+| `pkg/object/builtins_mcp.go` | 13 Pipe-Builtins + Brücke zum `ai_tool`-Registry |
 
 ---
 
 ## 25.6 Fehlerbehandlung
 
-Alle Builtins liefern Pipe's standard `Ok`/`Err`-Results oder einfache Strings. MCP-Protokollfehler (unbekannte Tools, Parse-Fehler) werden als JSON-RPC-Fehlerantworten an den Client zurückgegeben.
+Alle Builtins liefern Pipe's standard `Ok`/`Err`-Results oder einfache Strings. MCP-Protokollfehler (unbekannte Tools, Parse-Fehler) werden als JSON-RPC-Fehlerantworten an den Client zurückgegeben. Fehler auf Tool-Ebene (inkl. fehlender Pflicht-Argumente oder Remote-Tool-Fehler) werden als `isError: true`-Results zurückgegeben, damit Clients einen fehlgeschlagenen von einem erfolgreichen Call unterscheiden können.
 
 ```pipe
 r: mcp_use_stdio "./my-server"

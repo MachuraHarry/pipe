@@ -1,6 +1,6 @@
 # 10. Built-in Function Reference
 
-Pipe includes 183 built-in functions organized by category. This chapter documents each function with its signature, description, return type, and usage example.
+Pipe includes 196 built-in functions organized by category. This chapter documents each function with its signature, description, return type, and usage example.
 
 ---
 
@@ -2396,7 +2396,168 @@ crc32 "hello"
 
 ---
 
-## 10.33 Summary Table
+## 10.33 MCP — Model Context Protocol (13 functions)
+
+Pipe implements the Model Context Protocol both as a **Server** (exposing tools, resources and prompts to external clients such as Claude Desktop) and as a **Client** (consuming external MCP servers in `ai_with_tools`). Transports: stdio and Streamable HTTP. See [Chapter 25](25-mcp.md) for the full guide.
+
+### `mcp_server`
+
+**Signature:** `mcp_server(name, version)`
+
+**Description:** Creates an MCP server. Automatically bridges all `ai_tool`-registered functions as MCP tools and all registered resources/prompts.
+
+**Returns:** `nil`
+```pipe
+mcp_server "Pipe Agent" "1.0.0"
+```
+
+### `mcp_serve_stdio`
+
+**Signature:** `mcp_serve_stdio`
+
+**Description:** Starts the server on stdin/stdout (blocking). For Claude Desktop, Cursor, etc.
+
+**Returns:** `nil`
+```pipe
+mcp_server "Pipe Agent" "1.0.0"
+mcp_serve_stdio
+```
+
+### `mcp_serve_sse`
+
+**Signature:** `mcp_serve_sse(addr)`
+
+**Description:** Starts a Streamable HTTP server on `addr` (e.g. `:9090`, blocking). Clients connect via `POST` + SSE; sessions are managed via `Mcp-Session-Id`.
+
+**Returns:** `nil`
+```pipe
+mcp_server "Pipe Agent" "1.0.0"
+mcp_serve_sse ":9090"
+```
+
+### `mcp_tools`
+
+**Signature:** `mcp_tools`
+
+**Description:** Lists all registered tools (local + remote) as a list of Maps with `name`, `description` and `source`.
+
+**Returns:** `list`
+```pipe
+print "All tools: " ++ (to_str (len (mcp_tools)))
+```
+
+### `mcp_resource`
+
+**Signature:** `mcp_resource(uri, name, mime, read_fn)`
+
+**Description:** Registers a static resource. `read_fn(uri)` is called with the requested URI and returns the resource text.
+
+**Returns:** `nil`
+```pipe
+fn read_docs uri
+    "Documentation for " ++ uri
+
+mcp_resource "docs://pipe" "Pipe Docs" "text/markdown" read_docs
+```
+
+### `mcp_resource_template`
+
+**Signature:** `mcp_resource_template(template, name, mime, read_fn)`
+
+**Description:** Registers a URI-template resource, e.g. `file:///{path}`. `read_fn(uri)` is called with the concrete URI of any matching request.
+
+**Returns:** `nil`
+```pipe
+fn read_file uri
+    content: read_file (replace uri "file:///" "")
+    content
+
+mcp_resource_template "file:///{path}" "File" "text/plain" read_file
+```
+
+### `mcp_prompt`
+
+**Signature:** `mcp_prompt(name, description, args_map, build_fn)`
+
+**Description:** Registers a prompt template. `args_map` maps argument names to a description (string) or to a Map with `description` and optional `required` (default `true`). `build_fn(args)` returns the rendered prompt text.
+
+**Returns:** `nil`
+```pipe
+fn build_summary args
+    "Please summarize: " ++ (get args "text")
+
+mcp_prompt "summarize" "Summarize text" {text: "The text"} build_summary
+```
+
+### `mcp_resources`
+
+**Signature:** `mcp_resources`
+
+**Description:** Lists all resources (local registrations + remote clients) as a list of Maps with `uri`, `name`, `mimeType`, `description` and `source`.
+
+**Returns:** `list`
+```pipe
+print (mcp_resources)
+```
+
+### `mcp_read_resource`
+
+**Signature:** `mcp_read_resource(uri)`
+
+**Description:** Reads a resource (static or template match) from the local registries, the local server, or a connected MCP client. Works standalone without a running server.
+
+**Returns:** `string`
+```pipe
+print (mcp_read_resource "docs://pipe")
+```
+
+### `mcp_prompts`
+
+**Signature:** `mcp_prompts`
+
+**Description:** Lists all prompts (local registrations + remote clients) as a list of Maps with `name`, `description` and `source`.
+
+**Returns:** `list`
+```pipe
+print (mcp_prompts)
+```
+
+### `mcp_prompt_get`
+
+**Signature:** `mcp_prompt_get(name, args?)`
+
+**Description:** Renders a prompt from the local registries, the local server, or a connected MCP client. Missing required arguments are rejected with an error.
+
+**Returns:** `string`
+```pipe
+print (mcp_prompt_get "summarize" {text: "A long article ..."})
+```
+
+### `mcp_use_stdio`
+
+**Signature:** `mcp_use_stdio(command, args...)`
+
+**Description:** Spawns a subprocess and connects to it as an MCP server via stdio. Discovers its tools and registers them in the tool registry with a `mcp0_`, `mcp1_`, ... prefix. Also discovers resources and prompts if advertised.
+
+**Returns:** `string` (confirmation message)
+```pipe
+mcp_use_stdio "npx" "-y" "@modelcontextprotocol/server-everything"
+```
+
+### `mcp_use_sse`
+
+**Signature:** `mcp_use_sse(url)`
+
+**Description:** Connects to a Streamable HTTP MCP server via POST + SSE (session-managed). Registers its tools with a `mcp2_`, `mcp3_`, ... prefix.
+
+**Returns:** `string` (confirmation message)
+```pipe
+mcp_use_sse "http://localhost:9090/"
+```
+
+---
+
+## 10.34 Summary Table
 
 ### IO & System (8)
 
@@ -2746,6 +2907,24 @@ crc32 "hello"
 | 167 | `assert_gt` | `assert_gt(a, b)` | `nil` |
 | 168 | `assert_error` | `assert_error(fn)` | `nil` |
 
+### MCP (13)
+
+| # | Function | Signature | Returns |
+|---|----------|-----------|---------|
+| 169 | `mcp_server` | `mcp_server(name, version)` | `nil` |
+| 170 | `mcp_serve_stdio` | `mcp_serve_stdio` | `nil` |
+| 171 | `mcp_serve_sse` | `mcp_serve_sse(addr)` | `nil` |
+| 172 | `mcp_tools` | `mcp_tools` | `list` |
+| 173 | `mcp_resource` | `mcp_resource(uri, name, mime, read_fn)` | `nil` |
+| 174 | `mcp_resource_template` | `mcp_resource_template(template, name, mime, read_fn)` | `nil` |
+| 175 | `mcp_prompt` | `mcp_prompt(name, description, args_map, build_fn)` | `nil` |
+| 176 | `mcp_resources` | `mcp_resources` | `list` |
+| 177 | `mcp_read_resource` | `mcp_read_resource(uri)` | `string` |
+| 178 | `mcp_prompts` | `mcp_prompts` | `list` |
+| 179 | `mcp_prompt_get` | `mcp_prompt_get(name, args?)` | `string` |
+| 180 | `mcp_use_stdio` | `mcp_use_stdio(command, args...)` | `string` |
+| 181 | `mcp_use_sse` | `mcp_use_sse(url)` | `string` |
+
 ---
 
-**Total: 183 built-in functions**
+**Total: 196 built-in functions**

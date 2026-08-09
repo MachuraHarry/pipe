@@ -5,6 +5,27 @@ import (
 	"fmt"
 )
 
+// --- Protocol versions ---
+
+const LATEST_PROTOCOL_VERSION = "2025-11-25"
+
+var ValidProtocolVersions = []string{
+	"2025-11-25",
+	"2025-06-18",
+	"2025-03-26",
+	"2024-11-05",
+}
+
+// --- JSON-RPC error codes (see JSON-RPC 2.0 + MCP spec) ---
+
+const (
+	ErrCodeParseError     = -32700
+	ErrCodeInvalidRequest = -32600
+	ErrCodeMethodNotFound = -32601
+	ErrCodeInvalidParams  = -32602
+	ErrCodeInternalError  = -32603
+)
+
 // --- JSON-RPC 2.0 ---
 
 type JSONRPCRequest struct {
@@ -29,6 +50,7 @@ type jsonrpcError struct {
 type rpcErrorDetail struct {
 	Code    int    `json:"code"`
 	Message string `json:"message"`
+	Data    any    `json:"data,omitempty"`
 }
 
 func makeResponse(id any, result any) jsonrpcResponse {
@@ -64,10 +86,21 @@ type InitializeResult struct {
 }
 
 type Capabilities struct {
-	Tools *ToolsCapability `json:"tools,omitempty"`
+	Tools     *ToolsCapability     `json:"tools,omitempty"`
+	Resources *ResourcesCapability `json:"resources,omitempty"`
+	Prompts   *PromptsCapability   `json:"prompts,omitempty"`
 }
 
 type ToolsCapability struct {
+	ListChanged bool `json:"listChanged"`
+}
+
+type ResourcesCapability struct {
+	Subscribe   bool `json:"subscribe"`
+	ListChanged bool `json:"listChanged"`
+}
+
+type PromptsCapability struct {
 	ListChanged bool `json:"listChanged"`
 }
 
@@ -99,6 +132,88 @@ type ContentItem struct {
 	Text string `json:"text,omitempty"`
 }
 
+// --- MCP Resources ---
+
+type Resource struct {
+	URI         string `json:"uri"`
+	Name        string `json:"name"`
+	Description string `json:"description,omitempty"`
+	MIMEType    string `json:"mimeType,omitempty"`
+	Size        int64  `json:"size,omitempty"`
+}
+
+type ResourceTemplate struct {
+	URITemplate string `json:"uriTemplate"`
+	Name        string `json:"name"`
+	Description string `json:"description,omitempty"`
+	MIMEType    string `json:"mimeType,omitempty"`
+}
+
+type ReadResourceParams struct {
+	URI string `json:"uri"`
+}
+
+type ResourceContents struct {
+	URI      string `json:"uri"`
+	MIMEType string `json:"mimeType,omitempty"`
+	Text     string `json:"text,omitempty"`
+}
+
+type ReadResourceResult struct {
+	Contents []ResourceContents `json:"contents"`
+}
+
+// --- MCP Prompts ---
+
+type PromptArgument struct {
+	Name        string `json:"name"`
+	Description string `json:"description,omitempty"`
+	Required    bool   `json:"required,omitempty"`
+}
+
+type Prompt struct {
+	Name        string           `json:"name"`
+	Description string           `json:"description,omitempty"`
+	Arguments   []PromptArgument `json:"arguments,omitempty"`
+}
+
+type GetPromptParams struct {
+	Name      string            `json:"name"`
+	Arguments map[string]string `json:"arguments,omitempty"`
+}
+
+type PromptMessage struct {
+	Role    string      `json:"role"`
+	Content ContentItem `json:"content"`
+}
+
+type GetPromptResult struct {
+	Description string          `json:"description,omitempty"`
+	Messages    []PromptMessage `json:"messages"`
+}
+
+// --- Completion ---
+
+type CompleteRequest struct {
+	Ref struct {
+		Type string `json:"type"`
+		Name string `json:"name"`
+		URI  string `json:"uri"`
+	} `json:"ref"`
+	Argument struct {
+		Name  string `json:"name"`
+		Value string `json:"value"`
+	} `json:"argument"`
+}
+
+type CompleteResult struct {
+	Completion struct {
+		Values  []string `json:"values"`
+		HasMore bool     `json:"hasMore,omitempty"`
+		Total   int      `json:"total,omitempty"`
+	} `json:"completion"`
+}
+
 // --- Tool Registry (caller-provided) ---
 
 type ParamDef struct {
@@ -117,6 +232,12 @@ type ToolDef struct {
 // If error is non-nil, the tool result is marked isError: true.
 // args are passed in the same order as ToolDef.Params.
 type ToolHandler func(args map[string]interface{}) (string, error)
+
+// ResourceHandler returns the text contents of a resource for a concrete URI.
+type ResourceHandler func(uri string) (string, error)
+
+// PromptHandler renders a prompt from its arguments (map argument name -> value).
+type PromptHandler func(args map[string]string) (string, error)
 
 func NewTextResult(text string) *CallToolResult {
 	return &CallToolResult{

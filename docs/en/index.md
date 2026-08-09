@@ -37,7 +37,7 @@ Welcome to the complete documentation for the **Pipe** scripting language.
 22. [Sandbox Profiles](22-sandbox-profiles.md) — Declarative security profiles for AI agents and untrusted code
 23. [X (Twitter) Module](23-x-module.md) — OAuth 2.0 + API v2 client as a pure-Pipe module *(in development, not yet in the registry)*
 24. [Discord Module](24-discord-module.md) — Webhook + Bot-Token client as a pure-Pipe module *(in development, not yet in the registry)*
-25. [MCP — Model Context Protocol](25-mcp.md) — Zero-dependency MCP Server + Client, JSON-RPC 2.0 over stdio *(in development, not yet in the registry)*
+25. [MCP — Model Context Protocol](25-mcp.md) — Zero-dependency MCP Server + Client (tools, resources, prompts) over stdio & Streamable HTTP *(in development, not yet in the registry)*
 26. [SQLite Module](26-sqlite-module.md) — Pure-Pipe relational database + benchmark vs Python/Lua
 
 ## Appendix

@@ -17,7 +17,7 @@ import (
 )
 
 var outputBuf strings.Builder
-var pipeVersion = "v0.9.2"
+var pipeVersion = "v0.9.3"
 
 func init() {
 	object.PrintHook = func(args ...object.Object) {

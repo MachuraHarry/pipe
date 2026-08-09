@@ -1,6 +1,6 @@
 # 10. Builtin-Referenz
 
-Pipe hat **183 eingebaute Funktionen** — keine externen Abhängigkeiten
+Pipe hat **181 eingebaute Funktionen** — keine externen Abhängigkeiten
 (alle in Go implementiert, nutzen nur die Standardbibliothek).
 
 Die Builtins sind in **allen Ausführungsmodi** verfügbar (Tree-Walker und VM).
@@ -1473,7 +1473,142 @@ print (crc32 "hello")
 
 ---
 
-## 10.20 Übersicht aller Builtins
+## 10.20 MCP — Model Context Protocol (13 Funktionen)
+
+Pipe implementiert das Model Context Protocol sowohl als **Server** (stellt Tools, Ressourcen und Prompts für externe Clients wie Claude Desktop bereit) als auch als **Client** (nutzt externe MCP-Server in `ai_with_tools`). Transporte: stdio und Streamable HTTP. Die vollständige Anleitung steht in [Kapitel 25](25-mcp.md).
+
+### mcp_server
+```
+mcp_server(name, version)
+```
+Erstellt einen MCP-Server. Bridgt automatisch alle über `ai_tool` registrierten Funktionen als MCP-Tools sowie alle registrierten Ressourcen und Prompts.
+```pipe
+mcp_server "Pipe Agent" "1.0.0"
+```
+
+### mcp_serve_stdio
+```
+mcp_serve_stdio
+```
+Startet den Server auf stdin/stdout (blockierend). Für Claude Desktop, Cursor usw.
+```pipe
+mcp_server "Pipe Agent" "1.0.0"
+mcp_serve_stdio
+```
+
+### mcp_serve_sse
+```
+mcp_serve_sse(addr)
+```
+Startet einen Streamable-HTTP-Server auf `addr` (z. B. `:9090`, blockierend). Clients verbinden sich per `POST` + SSE; Sessions werden über `Mcp-Session-Id` verwaltet.
+```pipe
+mcp_server "Pipe Agent" "1.0.0"
+mcp_serve_sse ":9090"
+```
+
+### mcp_tools
+```
+mcp_tools
+```
+Listet alle registrierten Tools (lokal + remote) als Liste von Maps mit `name`, `description` und `source`.
+```pipe
+print "Alle Tools: " ++ (to_str (len (mcp_tools)))
+```
+
+### mcp_resource
+```
+mcp_resource(uri, name, mime, read_fn)
+```
+Registriert eine statische Resource. `read_fn(uri)` wird mit der angefragten URI aufgerufen und liefert den Resourcentext.
+```pipe
+fn read_docs uri
+    "Dokumentation zu " ++ uri
+
+mcp_resource "docs://pipe" "Pipe-Doku" "text/markdown" read_docs
+```
+
+### mcp_resource_template
+```
+mcp_resource_template(template, name, mime, read_fn)
+```
+Registriert eine URI-Template-Resource, z. B. `file:///{path}`. `read_fn(uri)` wird mit der konkreten URI jeder passenden Anfrage aufgerufen.
+```pipe
+fn read_file uri
+    content: read_file (replace uri "file:///" "")
+    content
+
+mcp_resource_template "file:///{path}" "Datei" "text/plain" read_file
+```
+
+### mcp_prompt
+```
+mcp_prompt(name, description, args_map, build_fn)
+```
+Registriert eine Prompt-Vorlage. `args_map` bildet Argumentnamen auf eine Beschreibung (String) oder auf eine Map mit `description` und optionalem `required` (Standard `true`) ab. `build_fn(args)` liefert den gerenderten Prompttext.
+```pipe
+fn build_summary args
+    "Bitte zusammenfassen: " ++ (get args "text")
+
+mcp_prompt "summarize" "Fasse Text zusammen" {text: "Der Text"} build_summary
+```
+
+### mcp_resources
+```
+mcp_resources
+```
+Listet alle Ressourcen (lokale Registrierungen + Remote-Clients) als Liste von Maps mit `uri`, `name`, `mimeType`, `description` und `source`.
+```pipe
+print (mcp_resources)
+```
+
+### mcp_read_resource
+```
+mcp_read_resource(uri)
+```
+Liest eine Resource (statisch oder per Template-Match) aus den lokalen Registries, vom lokalen Server oder von einem verbundenen MCP-Client. Funktioniert auch ohne laufenden Server.
+```pipe
+print (mcp_read_resource "docs://pipe")
+```
+
+### mcp_prompts
+```
+mcp_prompts
+```
+Listet alle Prompts (lokale Registrierungen + Remote-Clients) als Liste von Maps mit `name`, `description` und `source`.
+```pipe
+print (mcp_prompts)
+```
+
+### mcp_prompt_get
+```
+mcp_prompt_get(name, args?)
+```
+Rendert einen Prompt aus den lokalen Registries, vom lokalen Server oder von einem verbundenen MCP-Client. Fehlende Pflicht-Argumente werden mit einem Fehler abgelehnt.
+```pipe
+print (mcp_prompt_get "summarize" {text: "Ein langer Artikel ..."})
+```
+
+### mcp_use_stdio
+```
+mcp_use_stdio(command, args...)
+```
+Startet einen Subprozess und verbindet sich per stdio als MCP-Client. Entdeckt dessen Tools und registriert sie mit Präfix `mcp0_`, `mcp1_`, ... im Tool-Registry. Ressourcen und Prompts werden ebenfalls entdeckt, falls beworben.
+```pipe
+mcp_use_stdio "npx" "-y" "@modelcontextprotocol/server-everything"
+```
+
+### mcp_use_sse
+```
+mcp_use_sse(url)
+```
+Verbindet sich per POST + SSE mit einem Streamable-HTTP-MCP-Server (Session-verwaltet). Registriert dessen Tools mit Präfix `mcp2_`, `mcp3_`, ...
+```pipe
+mcp_use_sse "http://localhost:9090/"
+```
+
+---
+
+## 10.21 Übersicht aller Builtins
 
 ### IO & System (8)
 `print`, `input`, `exec`, `env`, `sleep`, `args`, `read_stdin`, `go`
@@ -1617,4 +1752,9 @@ Siehe das Kapitel [SQLite-Modul](26-sqlite-modul.md) für Architektur-Details un
 ### Sandbox (5)
 `sandbox_profile`, `set_sandbox`, `with_sandbox`, `audit_log`, `budget_spent`
 
-**Gesamt: 168 Builtins**
+### MCP (13)
+`mcp_server`, `mcp_serve_stdio`, `mcp_serve_sse`, `mcp_tools`, `mcp_resource`,
+`mcp_resource_template`, `mcp_prompt`, `mcp_resources`, `mcp_read_resource`,
+`mcp_prompts`, `mcp_prompt_get`, `mcp_use_stdio`, `mcp_use_sse`
+
+**Gesamt: 181 Builtins**

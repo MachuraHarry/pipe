@@ -1,7 +1,10 @@
 package object
 
 import (
+	"reflect"
 	"testing"
+
+	"github.com/MachuraHarry/pipe/pkg/ai"
 )
 
 func TestAiProviderBuiltin(t *testing.T) {
@@ -9,6 +12,157 @@ func TestAiProviderBuiltin(t *testing.T) {
 	s, ok := result.(*String)
 	if !ok || s.Value != "provider set to openai" {
 		t.Errorf("ai_provider returned %v, want 'provider set to openai'", result.Inspect())
+	}
+}
+
+func TestAiProviderThinkingConfig(t *testing.T) {
+	ai.SetProvider("deepseek")
+	ai.SetExtraBody(nil)
+
+	result := bAiProvider(&String{Value: "deepseek"}, &Map{Pairs: map[string]Object{
+		"thinking": &Boolean{Value: true},
+		"effort":   &String{Value: "max"},
+	}})
+	if _, ok := result.(*Error); ok {
+		t.Fatalf("thinking/effort config failed: %s", result.Inspect())
+	}
+	if ai.ActiveConfig.ExtraBody == nil {
+		t.Fatal("ExtraBody is nil after thinking/effort config")
+	}
+	th, ok := ai.ActiveConfig.ExtraBody["thinking"].(map[string]interface{})
+	if !ok || th["type"] != "enabled" {
+		t.Errorf("thinking = %v, want enabled", ai.ActiveConfig.ExtraBody["thinking"])
+	}
+	if eff, ok := ai.ActiveConfig.ExtraBody["reasoning_effort"].(string); !ok || eff != "max" {
+		t.Errorf("reasoning_effort = %v, want max", ai.ActiveConfig.ExtraBody["reasoning_effort"])
+	}
+}
+
+func TestAiProviderThinkingDisabled(t *testing.T) {
+	ai.SetProvider("deepseek")
+	ai.SetExtraBody(nil)
+
+	bAiProvider(&String{Value: "deepseek"}, &Map{Pairs: map[string]Object{
+		"thinking": &Boolean{Value: false},
+	}})
+	th, ok := ai.ActiveConfig.ExtraBody["thinking"].(map[string]interface{})
+	if !ok || th["type"] != "disabled" {
+		t.Errorf("thinking = %v, want disabled", ai.ActiveConfig.ExtraBody["thinking"])
+	}
+	if _, exists := ai.ActiveConfig.ExtraBody["reasoning_effort"]; exists {
+		t.Error("reasoning_effort must be absent when thinking is disabled")
+	}
+}
+
+func TestAiProviderEffortNoneDisablesThinking(t *testing.T) {
+	ai.SetProvider("deepseek")
+	ai.SetExtraBody(nil)
+
+	bAiProvider(&String{Value: "deepseek"}, &Map{Pairs: map[string]Object{
+		"effort": &String{Value: "none"},
+	}})
+	th, ok := ai.ActiveConfig.ExtraBody["thinking"].(map[string]interface{})
+	if !ok || th["type"] != "disabled" {
+		t.Errorf("thinking = %v, want disabled for effort none", ai.ActiveConfig.ExtraBody["thinking"])
+	}
+	if _, exists := ai.ActiveConfig.ExtraBody["reasoning_effort"]; exists {
+		t.Error("reasoning_effort must be absent when effort is none")
+	}
+}
+
+func TestSetThinkingMergesExtraBody(t *testing.T) {
+	ai.SetProvider("deepseek")
+	ai.SetExtraBody(map[string]interface{}{"temperature": 0.0})
+
+	if err := ai.SetThinking("deepseek", ai.ThinkingConfig{Enabled: boolPtr(true)}); err != nil {
+		t.Fatalf("SetThinking failed: %v", err)
+	}
+	if got := ai.ActiveConfig.ExtraBody["temperature"]; got != 0.0 {
+		t.Errorf("existing extra field temperature lost: %v", got)
+	}
+	if _, ok := ai.ActiveConfig.ExtraBody["thinking"]; !ok {
+		t.Error("thinking not merged into ExtraBody")
+	}
+}
+
+func boolPtr(b bool) *bool { return &b }
+
+func TestAiProviderThinkingInvalidEffort(t *testing.T) {
+	ai.SetProvider("deepseek")
+	ai.SetExtraBody(nil)
+
+	result := bAiProvider(&String{Value: "deepseek"}, &Map{Pairs: map[string]Object{
+		"effort": &String{Value: "extreme"},
+	}})
+	if _, ok := result.(*Error); !ok {
+		t.Errorf("invalid effort should return error, got %s", result.Inspect())
+	}
+}
+
+func TestAiProviderThinkingTypeCheck(t *testing.T) {
+	ai.SetProvider("deepseek")
+	result := bAiProvider(&String{Value: "deepseek"}, &Map{Pairs: map[string]Object{
+		"thinking": &String{Value: "yes"},
+	}})
+	if _, ok := result.(*Error); !ok {
+		t.Errorf("thinking as string should return error, got %s", result.Inspect())
+	}
+
+	result = bAiProvider(&String{Value: "deepseek"}, &Map{Pairs: map[string]Object{
+		"effort": &Integer{Value: 3},
+	}})
+	if _, ok := result.(*Error); !ok {
+		t.Errorf("effort as integer should return error, got %s", result.Inspect())
+	}
+}
+
+func TestAiProviderThinkingNonDeepSeek(t *testing.T) {
+	ai.SetProvider("openai")
+	result := bAiProvider(&String{Value: "openai"}, &Map{Pairs: map[string]Object{
+		"thinking": &Boolean{Value: true},
+	}})
+	if _, ok := result.(*Error); !ok {
+		t.Errorf("thinking on non-deepseek provider should error, got %s", result.Inspect())
+	}
+}
+
+func TestSetThinkingEffortMapping(t *testing.T) {
+	tests := []struct {
+		effort string
+		want   map[string]interface{}
+	}{
+		{"low", map[string]interface{}{"reasoning_effort": "low"}},
+		{"medium", map[string]interface{}{"reasoning_effort": "medium"}},
+		{"high", map[string]interface{}{"reasoning_effort": "high"}},
+		{"xhigh", map[string]interface{}{"reasoning_effort": "xhigh"}},
+		{"max", map[string]interface{}{"reasoning_effort": "max"}},
+		{"none", map[string]interface{}{"thinking": map[string]interface{}{"type": "disabled"}}},
+	}
+	for _, tt := range tests {
+		t.Run(tt.effort, func(t *testing.T) {
+			ai.SetProvider("deepseek")
+			ai.SetExtraBody(nil)
+			if err := ai.SetThinking("deepseek", ai.ThinkingConfig{Effort: tt.effort}); err != nil {
+				t.Fatalf("SetThinking failed: %v", err)
+			}
+			if !reflect.DeepEqual(ai.ActiveConfig.ExtraBody, tt.want) {
+				t.Errorf("SetThinking(%q) ExtraBody = %v, want %v", tt.effort, ai.ActiveConfig.ExtraBody, tt.want)
+			}
+		})
+	}
+}
+
+func TestSetThinkingInvalidEffort(t *testing.T) {
+	ai.SetProvider("deepseek")
+	if err := ai.SetThinking("deepseek", ai.ThinkingConfig{Effort: "extreme"}); err == nil {
+		t.Error("invalid effort should return error")
+	}
+}
+
+func TestSetThinkingNonDeepSeek(t *testing.T) {
+	ai.SetProvider("openai")
+	if err := ai.SetThinking("openai", ai.ThinkingConfig{Effort: "high"}); err == nil {
+		t.Error("non-deepseek provider should return error")
 	}
 }
 

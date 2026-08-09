@@ -39,6 +39,42 @@ ai_host "https://api.deepseek.com"
 ai_timeout 60
 ```
 
+### Thinking & Reasoning-Effort (DeepSeek V4)
+
+DeepSeek V4 macht Thinking-Modus und abgestuften Reasoning-Effort über
+Request-Parameter steuerbar. Pipe mappt sie auf die `ai_provider`-Config-Keys
+`thinking` und `effort`:
+
+```pipe
+-- Thinking-Modus AN + hoher Effort (V4-Standard: enabled/high)
+ai_provider "deepseek" {model: "deepseek-v4-pro", thinking: true, effort: "high"}
+
+-- Thinking AUS (schnell & günstig, keine Reasoning-Spur)
+ai_provider "deepseek" {model: "deepseek-v4-flash", thinking: false}
+
+-- Maximaler Effort für schwere Agent-Aufgaben
+ai_provider "deepseek" {model: "deepseek-v4-pro", effort: "max"}
+
+-- "none" deaktiviert Thinking komplett (wie thinking: false)
+ai_provider "deepseek" {model: "deepseek-v4-pro", effort: "none"}
+```
+
+Zulässige `effort`-Werte werden unverändert weitergereicht; das finale Mapping
+macht DeepSeek serverseitig (`low`/`medium` → `high`, `xhigh` → `max` auf pro):
+`low`, `medium`, `high`, `xhigh`, `max`, `none`.
+
+Hinweise:
+
+- Beide Keys sind **nur DeepSeek**; bei anderen Providern gibt es einen Fehler.
+  Kombinierbar mit `model`/`host`/`timeout` in einem Block.
+- Im Thinking-Modus haben `temperature`, `top_p`, `presence_penalty` und
+  `frequency_penalty` keine Wirkung.
+- Thinking-Tokens zählen ins Completion-Budget — `max_tokens` großzügig setzen
+  (`ai_chat`/`ai_with_tools`), sonst endet der Request mit Reasoning, aber ohne
+  finale Antwort.
+- Tool-Calls im Thinking-Modus (`ai_with_tools`) senden `reasoning_content`
+  automatisch zurück; die API verlangt das und liefert sonst einen 400-Fehler.
+
 ### API-Keys
 
 API-Keys werden über Umgebungsvariablen gesetzt:
@@ -58,7 +94,7 @@ schlägt die Anfrage mit einem Fehler fehl.
 
 | Builtin | Beschreibung | Signatur |
 |---------|-------------|----------|
-| `ai_provider` | Provider setzen (+ optionaler Modell/Host/Timeout-Block) | `ai_provider name {model, host, timeout}?` |
+| `ai_provider` | Provider setzen (+ optionaler Modell/Host/Timeout/Thinking/Effort-Block) | `ai_provider name {model, host, timeout, thinking, effort}?` |
 | `ai_model` | Modell setzen | `ai_model name` |
 | `ai_timeout` | Timeout setzen | `ai_timeout sekunden` |
 | `ai_host` | Host-URL setzen | `ai_host url` |

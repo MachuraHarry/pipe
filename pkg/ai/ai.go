@@ -89,6 +89,74 @@ func SetExtraBody(extra map[string]interface{}) {
 	ActiveConfig.ExtraBody = extra
 }
 
+// ThinkingConfig describes provider-specific reasoning controls.
+type ThinkingConfig struct {
+	// Enabled toggles thinking mode. nil leaves the provider default in place.
+	Enabled *bool
+	// Effort is the requested reasoning effort: "low", "medium", "high",
+	// "xhigh", "max", or "none". "none" disables thinking mode. "" = unset.
+	Effort string
+}
+
+// SetThinking applies reasoning controls (thinking toggle, effort) to the
+// active config's ExtraBody, merging with any existing extra fields. Only the
+// deepseek provider understands these controls today.
+func SetThinking(provider string, tc ThinkingConfig) error {
+	if provider != "deepseek" {
+		return fmt.Errorf("provider '%s' does not support thinking/effort controls (only deepseek)", provider)
+	}
+	extra, err := buildDeepSeekThinking(tc)
+	if err != nil {
+		return err
+	}
+	if len(extra) == 0 {
+		return nil
+	}
+	merged := make(map[string]interface{}, len(ActiveConfig.ExtraBody)+len(extra))
+	for k, v := range ActiveConfig.ExtraBody {
+		merged[k] = v
+	}
+	for k, v := range extra {
+		merged[k] = v
+	}
+	SetExtraBody(merged)
+	return nil
+}
+
+// buildDeepSeekThinking maps DeepSeek V4 thinking controls to request body
+// fields. The API performs the final effort mapping server-side (low/medium to
+// high on pro, xhigh to max), so values are forwarded verbatim. "none"
+// disables thinking entirely per the official thinking-mode guide.
+func buildDeepSeekThinking(tc ThinkingConfig) (map[string]interface{}, error) {
+	var extra map[string]interface{}
+	if tc.Enabled != nil {
+		typ := "enabled"
+		if !*tc.Enabled {
+			typ = "disabled"
+		}
+		extra = map[string]interface{}{"thinking": map[string]interface{}{"type": typ}}
+	}
+	if tc.Effort == "" {
+		return extra, nil
+	}
+	switch tc.Effort {
+	case "low", "medium", "high", "xhigh", "max":
+		if extra == nil {
+			extra = map[string]interface{}{}
+		}
+		extra["reasoning_effort"] = tc.Effort
+	case "none":
+		if extra == nil {
+			extra = map[string]interface{}{}
+		}
+		extra["thinking"] = map[string]interface{}{"type": "disabled"}
+		delete(extra, "reasoning_effort")
+	default:
+		return nil, fmt.Errorf("invalid reasoning effort '%s' (use low, medium, high, xhigh, max, or none)", tc.Effort)
+	}
+	return extra, nil
+}
+
 func SetTimeout(seconds int) {
 	ActiveConfig.Timeout = time.Duration(seconds) * time.Second
 }

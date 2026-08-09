@@ -1558,15 +1558,16 @@ unwrap_or (Ok "hi") ""
 
 ### `ai_provider`
 
-**Signature:** `ai_provider(name, {model, host, timeout}?)`
+**Signature:** `ai_provider(name, {model, host, timeout, thinking, effort}?)`
 
-**Description:** Sets the AI provider to `name`. Supported: `"openai"`, `"anthropic"`, `"deepseek"`, `"ollama"`. An optional config block overrides the provider's cheap-and-fast default model, the API host, and/or the request timeout in one call.
+**Description:** Sets the AI provider to `name`. Supported: `"openai"`, `"anthropic"`, `"deepseek"`, `"ollama"`. An optional config block overrides the provider's cheap-and-fast default model, the API host, and/or the request timeout in one call. For DeepSeek only, `thinking` (bool) toggles V4 thinking mode and `effort` (`"low"`, `"medium"`, `"high"`, `"xhigh"`, `"max"`, `"none"`) sets the reasoning effort; using them with another provider returns an error.
 
 **Returns:** `string` (confirmation message)
 ```pipe
 ai_provider "deepseek"
 ai_provider "deepseek" {model: "deepseek-v4-flash", timeout: 120}
-ai_model "deepseek-chat"
+ai_provider "deepseek" {model: "deepseek-v4-pro", thinking: true, effort: "max"}
+ai_model "deepseek-v4-flash"
 ```
 
 ### `ai_model`
@@ -2804,7 +2805,7 @@ mcp_use_sse "http://localhost:9090/"
 
 | # | Function | Signature | Returns |
 |---|----------|-----------|---------|
-| 122 | `ai_provider` | `ai_provider(name, {model, host, timeout}?)` | `string` |
+| 122 | `ai_provider` | `ai_provider(name, {model, host, timeout, thinking, effort}?)` | `string` |
 | 123 | `ai_model` | `ai_model(name)` | `string` |
 | 124 | `ai_set_key` | `ai_set_key(provider, key)` | `string` |
 | 125 | `ai_host` | `ai_host(url)` | `string` |

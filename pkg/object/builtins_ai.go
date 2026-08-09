@@ -43,8 +43,25 @@ func bAiProvider(args ...Object) Object {
 					return err("ai_provider: timeout must be a number (seconds)")
 				}
 				ai.SetTimeout(int(t))
+			case "thinking":
+				b, ok := val.(*Boolean)
+				if !ok {
+					return err("ai_provider: thinking must be a bool")
+				}
+				enabled := b.Value
+				if thinkErr := ai.SetThinking(s.Value, ai.ThinkingConfig{Enabled: &enabled}); thinkErr != nil {
+					return err(thinkErr.Error())
+				}
+			case "effort":
+				e, ok := val.(*String)
+				if !ok {
+					return err("ai_provider: effort must be a string")
+				}
+				if thinkErr := ai.SetThinking(s.Value, ai.ThinkingConfig{Effort: e.Value}); thinkErr != nil {
+					return err(thinkErr.Error())
+				}
 			default:
-				return err("ai_provider: unknown option '" + key + "'. Use model, host, or timeout")
+				return err("ai_provider: unknown option '" + key + "'. Use model, host, timeout, thinking, or effort")
 			}
 		}
 	}

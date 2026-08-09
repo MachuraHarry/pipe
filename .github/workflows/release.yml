@@ -38,15 +38,89 @@ jobs:
         tar -czf pipe-${{ matrix.target.os }}-${{ matrix.target.arch }}.tar.gz pipe${{ matrix.target.ext }}
         sha256sum pipe-${{ matrix.target.os }}-${{ matrix.target.arch }}.tar.gz > pipe-${{ matrix.target.os }}-${{ matrix.target.arch }}.tar.gz.sha256
 
+    - name: Build MCPB bundle
+      run: |
+        VERSION="${GITHUB_REF_NAME#v}"
+        mkdir -p bundle/server
+        cp pipe${{ matrix.target.ext }} bundle/server/pipe${{ matrix.target.ext }}
+        cp examples/mcp_server.pipe bundle/server/mcp_server.pipe
+        cp mcpb/manifest.json bundle/manifest.json
+        sed -i "s/\"version\": \"[^\"]*\"/\"version\": \"$VERSION\"/" bundle/manifest.json
+        if [ "${{ matrix.target.os }}" = "windows" ]; then
+          sed -i 's|server/pipe"|server/pipe.exe"|g' bundle/manifest.json
+        fi
+        chmod +x bundle/server/pipe${{ matrix.target.ext }}
+        npx -y @anthropic-ai/mcpb pack bundle pipe-server-${{ matrix.target.os }}-${{ matrix.target.arch }}.mcpb
+        openssl dgst -sha256 -r pipe-server-${{ matrix.target.os }}-${{ matrix.target.arch }}.mcpb | awk '{print $1}' > pipe-server-${{ matrix.target.os }}-${{ matrix.target.arch }}.mcpb.sha256
+
     - name: Upload artifact
       uses: actions/upload-artifact@v4
       with:
         name: pipe-${{ matrix.target.os }}-${{ matrix.target.arch }}
-        path: pipe-${{ matrix.target.os }}-${{ matrix.target.arch }}.tar.gz*
+        path: |
+          pipe-${{ matrix.target.os }}-${{ matrix.target.arch }}.tar.gz*
+          pipe-server-${{ matrix.target.os }}-${{ matrix.target.arch }}.mcpb*
 
     - name: Create Release
       if: startsWith(github.ref, 'refs/tags/v')
       uses: softprops/action-gh-release@v2
       with:
-        files: pipe-${{ matrix.target.os }}-${{ matrix.target.arch }}.tar.gz*
+        files: |
+          pipe-${{ matrix.target.os }}-${{ matrix.target.arch }}.tar.gz*
+          pipe-server-${{ matrix.target.os }}-${{ matrix.target.arch }}.mcpb*
         generate_release_notes: true
+
+  publish:
+    name: Publish to MCP Registry
+    needs: release
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Install mcp-publisher
+      run: |
+        curl -L "https://github.com/modelcontextprotocol/registry/releases/latest/download/mcp-publisher_linux_amd64.tar.gz" | tar xz mcp-publisher
+        ./mcp-publisher --help >/dev/null
+
+    - name: Download MCPB assets
+      env:
+        GH_TOKEN: ${{ github.token }}
+      run: |
+        for p in linux-amd64 linux-arm64 darwin-amd64 darwin-arm64 windows-amd64; do
+          gh release download "${{ github.ref_name }}" -p "pipe-server-$p.mcpb" -R "${{ github.repository }}"
+        done
+
+    - name: Update server.json
+      env:
+        REPO: ${{ github.repository }}
+        TAG: ${{ github.ref_name }}
+      run: |
+        VERSION="${TAG#v}"
+        H="https://github.com/$REPO/releases/download/$TAG"
+        h0=$(openssl dgst -sha256 -r pipe-server-linux-amd64.mcpb | awk '{print $1}')
+        h1=$(openssl dgst -sha256 -r pipe-server-linux-arm64.mcpb | awk '{print $1}')
+        h2=$(openssl dgst -sha256 -r pipe-server-darwin-amd64.mcpb | awk '{print $1}')
+        h3=$(openssl dgst -sha256 -r pipe-server-darwin-arm64.mcpb | awk '{print $1}')
+        h4=$(openssl dgst -sha256 -r pipe-server-windows-amd64.mcpb | awk '{print $1}')
+        jq \
+          --arg v "$VERSION" \
+          --arg h "$H" \
+          --arg a "$h0" --arg b "$h1" --arg c "$h2" --arg d "$h3" --arg e "$h4" \
+          '.version = $v
+           | .packages[0].identifier = ($h + "/pipe-server-linux-amd64.mcpb")  | .packages[0].fileSha256 = $a
+           | .packages[1].identifier = ($h + "/pipe-server-linux-arm64.mcpb")  | .packages[1].fileSha256 = $b
+           | .packages[2].identifier = ($h + "/pipe-server-darwin-amd64.mcpb") | .packages[2].fileSha256 = $c
+           | .packages[3].identifier = ($h + "/pipe-server-darwin-arm64.mcpb") | .packages[3].fileSha256 = $d
+           | .packages[4].identifier = ($h + "/pipe-server-windows-amd64.mcpb") | .packages[4].fileSha256 = $e' \
+          server.json > server.json.tmp && mv server.json.tmp server.json
+        cat server.json
+
+    - name: Authenticate to MCP Registry
+      run: ./mcp-publisher login github-oidc
+
+    - name: Publish to MCP Registry
+      run: ./mcp-publisher publish

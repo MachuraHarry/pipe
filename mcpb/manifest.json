@@ -1,0 +1,26 @@
+{
+  "manifest_version": "0.3",
+  "name": "pipe-mcp",
+  "display_name": "Pipe (SPR) MCP Server",
+  "version": "0.9.2",
+  "description": "AI-native runtime with built-in MCP server. 193 builtins, AI pipelines, RAG, single ~7 MB binary.",
+  "author": {
+    "name": "MachuraHarry",
+    "url": "https://github.com/MachuraHarry"
+  },
+  "homepage": "https://pipe-lang.com",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/MachuraHarry/pipe"
+  },
+  "license": "MIT",
+  "keywords": ["mcp", "mcp-server", "ai", "pipeline", "runtime"],
+  "server": {
+    "type": "binary",
+    "entry_point": "server/pipe",
+    "mcp_config": {
+      "command": "${__dirname}/server/pipe",
+      "args": ["${__dirname}/server/mcp_server.pipe"]
+    }
+  }
+}

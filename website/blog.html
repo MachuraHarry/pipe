@@ -26,62 +26,76 @@
 html{scroll-behavior:smooth}
 body{background:var(--bg);color:var(--fg);font-family:var(--sans);line-height:1.6;padding-top:64px;min-height:100vh;display:flex;flex-direction:column}
 .container{max-width:820px;margin:0 auto;padding:0 20px}
-nav{position:fixed;top:0;z-index:100;width:100%;background:rgba(7,7,12,0.85);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);padding:12px 0}
+
+nav{position:fixed;top:0;z-index:100;width:100%;background:rgba(7,7,12,0.85);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);padding:10px 0}
 nav .container{display:flex;justify-content:space-between;align-items:center}
 nav .logo{font-weight:800;font-size:1.2rem;color:var(--accent);text-decoration:none;letter-spacing:-0.5px;display:flex;align-items:center}
 nav .logo img{height:28px;margin-right:6px}
 nav .logo span{color:var(--fg)}
-nav .nav-links{display:flex;align-items:center;gap:14px}
-nav a{color:var(--fg2);text-decoration:none;font-size:0.82rem;transition:color .2s;white-space:nowrap}
-nav a:hover{color:var(--fg)}
+nav .nl{display:flex;align-items:center;gap:14px}
+nav a.nl-a{color:var(--fg2);text-decoration:none;font-size:0.8rem;transition:color .2s;white-space:nowrap}
+nav a.nl-a:hover{color:var(--fg)}
 .hamburger{display:none;background:none;border:none;color:var(--fg);font-size:1.4rem;cursor:pointer;padding:4px 8px}
 .lang-switch{display:flex;background:var(--bg3);border:1px solid var(--border);border-radius:20px;overflow:hidden}
 .lang-switch button{background:none;border:none;color:var(--fg2);padding:4px 10px;font-size:0.72rem;cursor:pointer;font-weight:600;transition:all .2s}
 .lang-switch button.active{background:var(--accent);color:#fff}
-[data-lang]{display:none}
-[data-lang].active{display:inline}
-h1[data-lang].active,h2[data-lang].active,p[data-lang].active,div[data-lang].active{display:block}
 
-main{flex:1;padding:40px 0}
-main h1{font-size:2rem;font-weight:800;margin-bottom:8px;letter-spacing:-0.5px}
-main .subtitle{color:var(--fg2);margin-bottom:36px;font-size:0.9rem}
+main{flex:1;padding:48px 0}
+main .pg-title{font-size:2rem;font-weight:800;margin-bottom:6px;letter-spacing:-0.5px}
+main .pg-sub{color:var(--fg2);margin-bottom:40px;font-size:0.9rem}
 
-.post-list{display:flex;flex-direction:column;gap:20px}
-.post-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:24px;transition:border-color .2s,transform .15s;cursor:pointer}
-.post-card:hover{border-color:var(--accent);transform:translateY(-1px)}
-.post-card .post-date{font-size:0.72rem;color:var(--accent);font-family:var(--mono);margin-bottom:6px}
-.post-card .post-title{font-size:1.2rem;font-weight:700;margin-bottom:8px;color:var(--fg)}
-.post-card .post-excerpt{font-size:0.85rem;color:var(--fg2);line-height:1.6}
+/* post list */
+.plist{display:flex;flex-direction:column;gap:24px}
+.pcard{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:28px;cursor:pointer;transition:border-color .2s,transform .15s;text-decoration:none;color:var(--fg);display:block}
+.pcard:hover{border-color:var(--accent);transform:translateY(-1px)}
+.pcard .pcard-meta{display:flex;align-items:center;gap:12px;margin-bottom:10px;font-size:0.72rem;color:var(--accent);font-family:var(--mono)}
+.pcard .pcard-meta .pcard-tag{background:var(--bg3);padding:2px 8px;border-radius:10px;font-size:0.68rem;color:var(--fg2);font-family:var(--sans)}
+.pcard .pcard-title{font-size:1.25rem;font-weight:700;margin-bottom:8px;line-height:1.35;color:var(--fg)}
+.pcard .pcard-excerpt{font-size:0.85rem;color:var(--fg2);line-height:1.65;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
 
-.post-detail .back-link{display:inline-block;margin-bottom:20px;color:var(--accent);font-size:0.82rem;text-decoration:none}
-.post-detail .back-link:hover{text-decoration:underline}
+/* post detail */
+.pdetail .pdetail-back{display:inline-flex;align-items:center;gap:4px;margin-bottom:28px;color:var(--accent);font-size:0.82rem;text-decoration:none;transition:color .2s}
+.pdetail .pdetail-back:hover{color:var(--fg);text-decoration:none}
+.pdetail .pdetail-meta{display:flex;align-items:center;gap:12px;margin-bottom:8px;font-size:0.72rem;color:var(--accent);font-family:var(--mono);flex-wrap:wrap}
+.pdetail .pdetail-meta .pdetail-tag{background:var(--bg3);padding:2px 8px;border-radius:10px;font-size:0.68rem;color:var(--fg2);font-family:var(--sans)}
+.pdetail .pdetail-actions{display:flex;gap:8px;margin:28px 0 0}
+.pdetail .pdetail-actions button{background:var(--bg3);border:1px solid var(--border);color:var(--fg2);padding:6px 14px;border-radius:14px;font-size:0.75rem;cursor:pointer;font-family:var(--sans);transition:all .2s}
+.pdetail .pdetail-actions button:hover{border-color:var(--accent);color:var(--fg);background:var(--bg2)}
 
-/* rendered markdown */
-.doc-body h1{font-size:1.8rem;font-weight:800;margin-bottom:8px}
-.doc-body h2{font-size:1.3rem;font-weight:700;margin:36px 0 12px;padding-bottom:6px;border-bottom:1px solid var(--border)}
-.doc-body h3{font-size:1.05rem;font-weight:700;margin:24px 0 8px;color:var(--accent2)}
-.doc-body p{margin-bottom:12px;font-size:0.9rem;line-height:1.7}
-.doc-body ul,.doc-body ol{margin-bottom:12px;padding-left:22px}
-.doc-body li{font-size:0.9rem;margin-bottom:4px}
-.doc-body a{color:var(--accent);text-decoration:none}
-.doc-body a:hover{text-decoration:underline}
-.doc-body strong{font-weight:700;color:var(--orange)}
-.doc-body code{background:var(--bg3);padding:2px 6px;border-radius:4px;font-family:var(--mono);font-size:0.83em;color:var(--accent2)}
-.doc-body pre{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:16px 20px;overflow-x:auto;margin-bottom:14px}
-.doc-body pre code{background:none;padding:0;font-size:0.82rem;color:var(--fg)}
-.doc-body table{border-collapse:collapse;width:100%;margin-bottom:16px;font-size:0.85rem}
-.doc-body th{background:var(--bg2);border:1px solid var(--border);padding:8px 12px;text-align:left;font-weight:600}
-.doc-body td{border:1px solid var(--border);padding:8px 12px}
-.doc-body blockquote{border-left:3px solid var(--accent);padding:8px 16px;margin-bottom:12px;background:var(--bg2);border-radius:0 var(--radius) var(--radius) 0;color:var(--fg2);font-size:0.88rem}
-.doc-body hr{border:none;border-top:1px solid var(--border);margin:32px 0}
+/* markdown body */
+.md h1{font-size:1.8rem;font-weight:800;margin:0 0 24px;letter-spacing:-0.5px}
+.md h2{font-size:1.3rem;font-weight:700;margin:36px 0 12px;padding-bottom:6px;border-bottom:1px solid var(--border)}
+.md h3{font-size:1.05rem;font-weight:700;margin:24px 0 8px;color:var(--accent2)}
+.md p{margin-bottom:12px;font-size:0.9rem;line-height:1.75}
+.md ul,.md ol{margin-bottom:12px;padding-left:22px}
+.md li{font-size:0.9rem;margin-bottom:4px;line-height:1.6}
+.md a{color:var(--accent);text-decoration:none}
+.md a:hover{text-decoration:underline}
+.md strong{font-weight:700;color:var(--orange)}
+.md code{background:var(--bg3);padding:2px 6px;border-radius:4px;font-family:var(--mono);font-size:0.83em;color:var(--accent2)}
+.md pre{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:16px 20px;overflow-x:auto;margin-bottom:14px}
+.md pre code{background:none;padding:0;font-size:0.82rem;color:var(--fg)}
+.md table{border-collapse:collapse;width:100%;margin-bottom:16px;font-size:0.85rem}
+.md th{background:var(--bg2);border:1px solid var(--border);padding:8px 12px;text-align:left;font-weight:600}
+.md td{border:1px solid var(--border);padding:8px 12px}
+.md blockquote{border-left:3px solid var(--accent);padding:8px 16px;margin-bottom:12px;background:var(--bg2);border-radius:0 var(--radius) var(--radius) 0;color:var(--fg2);font-size:0.88rem}
+.md hr{border:none;border-top:1px solid var(--border);margin:32px 0}
+.md img{max-width:100%;border-radius:var(--radius)}
 
-footer{background:var(--bg2);border-top:1px solid var(--border);padding:24px 0;text-align:center;color:var(--fg3);font-size:0.75rem;margin-top:auto}
+footer{background:var(--bg2);border-top:1px solid var(--border);padding:28px 0;text-align:center}
+footer .ft{color:var(--fg3);font-size:0.75rem}
+footer .ft a{color:var(--accent);text-decoration:none}
+
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--green);color:var(--bg);padding:10px 20px;border-radius:20px;font-size:0.82rem;font-weight:600;z-index:200;opacity:0;transition:opacity .3s;pointer-events:none}
+.toast.show{opacity:1}
 
 @media(max-width:768px){
   .hamburger{display:block}
-  nav .nav-links{display:none;position:absolute;top:100%;left:0;right:0;background:rgba(7,7,12,0.98);border-bottom:1px solid var(--border);flex-direction:column;padding:16px 20px;gap:12px;backdrop-filter:blur(12px)}
-  nav .nav-links.open{display:flex}
-  main h1{font-size:1.5rem}
+  nav .nl{display:none;position:absolute;top:100%;left:0;right:0;background:rgba(7,7,12,0.98);border-bottom:1px solid var(--border);flex-direction:column;padding:16px 20px;gap:12px;backdrop-filter:blur(12px)}
+  nav .nl.open{display:flex}
+  .pg-title{font-size:1.5rem}
+  .pcard{padding:20px}
+  .md h1{font-size:1.5rem}
 }
 </style>
 </head>
@@ -90,16 +104,16 @@ footer{background:var(--bg2);border-top:1px solid var(--border);padding:24px 0;t
 <nav>
   <div class="container">
     <a href="index.html" class="logo"><img src="logo.svg" alt="Pipe">Pipe<span>.lang</span></a>
-    <button class="hamburger" onclick="document.getElementById('nav-menu').classList.toggle('open')">☰</button>
-    <div class="nav-links" id="nav-menu">
-      <a href="index.html"><span data-lang="en" class="active">Home</span><span data-lang="de">Start</span></a>
-      <a href="docs.html"><span data-lang="en" class="active">Docs</span><span data-lang="de">Doku</span></a>
-      <a href="examples.html">Examples</a>
-      <a href="install.html">Install</a>
-      <a href="benchmarks.html">Benchmarks</a>
-      <a href="playground.html">Playground</a>
-      <a href="blog.html">Blog</a>
-      <a href="https://github.com/MachuraHarry/pipe">GitHub</a>
+    <button class="hamburger" onclick="document.getElementById('nm').classList.toggle('open')">☰</button>
+    <div class="nl" id="nm">
+      <a class="nl-a" href="index.html">Home</a>
+      <a class="nl-a" href="docs.html">Docs</a>
+      <a class="nl-a" href="examples.html">Examples</a>
+      <a class="nl-a" href="install.html">Install</a>
+      <a class="nl-a" href="benchmarks.html">Benchmarks</a>
+      <a class="nl-a" href="playground.html">Playground</a>
+      <a class="nl-a" href="blog.html">Blog</a>
+      <a class="nl-a" href="https://github.com/MachuraHarry/pipe">GitHub</a>
       <div class="lang-switch">
         <button id="btn-en" class="active" onclick="setLang('en')">EN</button>
         <button id="btn-de" onclick="setLang('de')">DE</button>
@@ -108,86 +122,115 @@ footer{background:var(--bg2);border-top:1px solid var(--border);padding:24px 0;t
   </div>
 </nav>
 
-<main id="main-content">
-  <div class="container" id="post-list"><div style="text-align:center;color:var(--fg2);padding-top:60px">Loading…</div></div>
-</main>
+<main><div class="container" id="root"></div></main>
 
-<footer>© 2026 Pipe (SPR) · MIT License · <a href="feed.xml" style="color:var(--accent)">RSS</a></footer>
+<div class="toast" id="toast">Link copied ✓</div>
+
+<footer><div class="ft">© 2026 Pipe (SPR) · MIT License · <a href="feed.xml">RSS</a></div></footer>
 
 <script>
-var currentLang = 'en';
+var LANG='en',POSTS=[],MODE='list',ACTIVE='';
 
-function setLang(lang){
-  currentLang=lang;
-  document.querySelectorAll('[data-lang]').forEach(function(e){e.classList.remove('active')});
-  document.querySelectorAll('[data-lang="'+lang+'"]').forEach(function(e){e.classList.add('active')});
-  document.getElementById('btn-en').classList.toggle('active',lang==='en');
-  document.getElementById('btn-de').classList.toggle('active',lang==='de');
-  document.documentElement.lang=lang;
-  localStorage.setItem('pipe-lang',lang);
-  renderPostList();
+function setLang(l){
+  LANG=l;
+  document.getElementById('btn-en').classList.toggle('active',l==='en');
+  document.getElementById('btn-de').classList.toggle('active',l==='de');
+  document.documentElement.lang=l;
+  localStorage.setItem('pipe-lang',l);
+  if(MODE==='list') renderList();
+  else if(ACTIVE) renderPost(ACTIVE);
 }
 
-function renderPostList(){
-  var el=document.getElementById('post-list');
-  var lang=currentLang;
-  el.innerHTML='<h1>'+L.blogTitle[lang]+'</h1><p class="subtitle">'+L.blogSub[lang]+'</p><div class="post-list">'+postData.map(function(p,i){
-    return '<div class="post-card" onclick="showPost(\''+p.id+'\')">'+
-      '<div class="post-date">'+p.date+'</div>'+
-      '<div class="post-title">'+p.title[lang]+'</div>'+
-      '<div class="post-excerpt">'+p.excerpt[lang]+'</div>'+
-    '</div>';
+function fmtDate(d){var m=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'],p=d.split('-');return m[parseInt(p[1])-1]+' '+parseInt(p[2])+', '+p[0]}
+
+function wpm(t){return Math.max(1,Math.ceil(t.split(/\s+/).length/238))+' min read'}
+
+function renderList(){
+  MODE='list';ACTIVE='';
+  var l=LANG;
+  var h='<h1 class="pg-title">'+T.blogTitle[l]+'</h1><p class="pg-sub">'+T.blogSub[l]+'</p>';
+  if(!POSTS.length){h+='<p style="color:var(--fg2)">'+T.noPosts[l]+'</p>'}
+  else h+='<div class="plist">'+POSTS.map(function(p){
+    return '<a class="pcard" href="?post='+p.id+'">'+
+      '<div class="pcard-meta"><span>'+p.date+'</span>'+(p.tag?' <span class="pcard-tag">'+p.tag+'</span>':'')+'<span>'+wpm(p.excerpt[l])+'</span></div>'+
+      '<div class="pcard-title">'+p.title[l]+'</div>'+
+      '<div class="pcard-excerpt">'+p.excerpt[l]+'</div>'+
+    '</a>';
   }).join('')+'</div>';
+  document.getElementById('root').innerHTML=h;
+  document.title='Blog — Pipe';
+  history.replaceState(null,'','blog.html');
 }
 
-function showPost(id){
-  var p=postData.find(function(x){return x.id===id;});
-  if(!p) return;
-  var el=document.getElementById('post-list');
-  el.innerHTML='<div class="post-detail"><a class="back-link" href="javascript:void(0)" onclick="renderPostList()">← '+L.back[lang]+'</a><div style="color:var(--fg2);padding:40px 0">'+L.loading[lang]+'</div></div>';
+function renderPost(id){
+  var p=POSTS.find(function(x){return x.id===id;});
+  if(!p){renderList();return}
+  MODE='post';ACTIVE=id;
+  var l=LANG;
+  var el=document.getElementById('root');
+  el.innerHTML='<div class="pdetail"><div class="pdetail-back" style="cursor:pointer">← '+T.back[l]+'</div><div class="pdetail-meta"><span>'+fmtDate(p.date)+'</span>'+(p.tag?' <span class="pdetail-tag">'+p.tag+'</span>':'')+'<span>'+wpm(p.excerpt[l])+'</span></div><div class="md" style="padding:20px 0;color:var(--fg2)">'+T.loading[l]+'</div></div>';
+  el.querySelector('.pdetail-back').onclick=renderList;
 
   fetch('blog/'+p.file).then(function(r){return r.text()}).then(function(md){
     var html=renderMarkdown(md);
-    el.innerHTML='<div class="post-detail"><a class="back-link" href="javascript:void(0)" onclick="renderPostList()">← '+L.back[lang]+'</a><div class="post-date" style="font-size:0.72rem;color:var(--accent);font-family:var(--mono);margin-bottom:8px">'+p.date+'</div><div class="doc-body">'+html+'</div></div>';
-    history.replaceState(null,'','?post='+id);
+    el.innerHTML='<div class="pdetail"><div class="pdetail-back" style="cursor:pointer">← '+T.back[l]+'</div><div class="pdetail-meta"><span>'+fmtDate(p.date)+'</span>'+(p.tag?' <span class="pdetail-tag">'+p.tag+'</span>':'')+'<span>'+wpm(p.excerpt[l])+'</span></div><div class="md">'+html+'</div><div class="pdetail-actions"><button onclick="copyLink(\''+id+'\')">🔗 '+T.copyLink[l]+'</button><button onclick="shareX(\''+id+'\')">𝕏 '+T.shareX[l]+'</button></div></div>';
+    el.querySelector('.pdetail-back').onclick=renderList;
+    document.title=p.title[l]+' — Pipe Blog';
   }).catch(function(e){
-    el.innerHTML='<div class="post-detail"><a class="back-link" href="javascript:void(0)" onclick="renderPostList()">← '+L.back[lang]+'</a><p style="color:var(--red)">'+L.loadErr[lang]+'</p></div>';
+    el.innerHTML='<div class="pdetail"><div class="pdetail-back" style="cursor:pointer">← '+T.back[l]+'</div><p style="color:var(--red)">'+T.loadErr[l]+'</p></div>';
+    el.querySelector('.pdetail-back').onclick=renderList;
+  });
+
+  history.replaceState(null,'','?post='+id);
+}
+
+function copyLink(id){
+  var url=location.origin+location.pathname+'?post='+id;
+  navigator.clipboard.writeText(url).then(function(){
+    var t=document.getElementById('toast');t.classList.add('show');setTimeout(function(){t.classList.remove('show')},2000);
   });
 }
 
-// ---- Markdown ----
+function shareX(id){
+  var url=location.origin+location.pathname+'?post='+id;
+  window.open('https://twitter.com/intent/tweet?url='+encodeURIComponent(url),'_blank');
+}
+
+// ---- markdown ----
 function renderMarkdown(t){t=t.replace(/</g,'&lt;').replace(/>/g,'&gt;');var o=[],l=t.split('\n'),i=0;
 while(i<l.length){var ln=l[i];
 if(ln.match(/^```/)){i++;var cl=[];while(i<l.length&&!l[i].match(/^```/)){cl.push(l[i]);i++}i++;o.push('<pre><code>'+cl.join('\n')+'</code></pre>');continue}
-var mh=ln.match(/^(#{1,6})\s+(.+)/);if(mh){o.push('<h'+mh[1].length+'>'+inline(mh[2])+'</h'+mh[1].length+'>');i++;continue}
+var m=ln.match(/^(#{1,6})\s+(.+)/);if(m){o.push('<h'+m[1].length+'>'+inline(m[2])+'</h'+m[1].length+'>');i++;continue}
 if(ln.match(/^---/)){o.push('<hr>');i++;continue}
-if(ln.match(/^> /)){var ql=[];while(i<l.length&&l[i].match(/^> /)){ql.push(l[i].slice(2));i++}o.push('<blockquote>'+inline(ql.join('\n'))+'</blockquote>');continue}
+if(ln.match(/^> /)){var q=[];while(i<l.length&&l[i].match(/^> /)){q.push(l[i].slice(2));i++}o.push('<blockquote>'+inline(q.join('\n'))+'</blockquote>');continue}
 if(ln.indexOf('|')>=0&&i+1<l.length&&l[i+1].match(/^\|[\s\-:|]+\|$/)){var hr=ln;i+=2;var br=[];while(i<l.length&&l[i].trim().indexOf('|')>=0){br.push(l[i]);i++}
-var hcs=hr.split('|').filter(function(c){return c.trim()}),ths='';for(var hi=0;hi<hcs.length;hi++)ths+='<th>'+inline(hcs[hi].trim())+'</th>';
-var tbd='';for(var ri=0;ri<br.length;ri++){var bcs=br[ri].split('|').filter(function(c){return c.trim()}),tr='';for(var bi=0;bi<bcs.length;bi++)tr+='<td>'+inline(bcs[bi].trim())+'</td>';tbd+='<tr>'+tr+'</tr>'}
-o.push('<table><thead><tr>'+ths+'</tr></thead><tbody>'+tbd+'</tbody></table>');continue}
-if(ln.match(/^[\-\*\+]\s+/)){var it=[];while(i<l.length&&l[i].match(/^[\-\*\+]\s+/)){it.push(l[i].replace(/^[\-\*\+]\s+/,''));i++}var lb='';for(var li=0;li<it.length;li++)lb+='<li>'+inline(it[li])+'</li>';o.push('<ul>'+lb+'</ul>');continue}
-if(ln.match(/^\d+\.\s+/)){var oi=[];while(i<l.length&&l[i].match(/^\d+\.\s+/)){oi.push(l[i].replace(/^\d+\.\s+/,''));i++}var ob='';for(var oj=0;oj<oi.length;oj++)ob+='<li>'+inline(oi[oj])+'</li>';o.push('<ol>'+ob+'</ol>');continue}
+var hc=hr.split('|').filter(function(c){return c.trim()}),hs='';for(var j=0;j<hc.length;j++)hs+='<th>'+inline(hc[j].trim())+'</th>';
+var tb='';for(var r=0;r<br.length;r++){var bc=br[r].split('|').filter(function(c){return c.trim()}),trs='';for(var k=0;k<bc.length;k++)trs+='<td>'+inline(bc[k].trim())+'</td>';tb+='<tr>'+trs+'</tr>'}
+o.push('<table><thead><tr>'+hs+'</tr></thead><tbody>'+tb+'</tbody></table>');continue}
+if(ln.match(/^[\-\*\+]\s+/)){var ul=[];while(i<l.length&&l[i].match(/^[\-\*\+]\s+/)){ul.push(l[i].replace(/^[\-\*\+]\s+/,''));i++}var ub='';for(var u=0;u<ul.length;u++)ub+='<li>'+inline(ul[u])+'</li>';o.push('<ul>'+ub+'</ul>');continue}
+if(ln.match(/^\d+\.\s+/)){var ol=[];while(i<l.length&&l[i].match(/^\d+\.\s+/)){ol.push(l[i].replace(/^\d+\.\s+/,''));i++}var ob='';for(var v=0;v<ol.length;v++)ob+='<li>'+inline(ol[v])+'</li>';o.push('<ol>'+ob+'</ol>');continue}
 if(ln.trim()===''){i++;continue}
 var pl=[];while(i<l.length&&l[i].trim()!==''&&!l[i].match(/^(#{1,6}\s|^> |^```|^[\-\*\+]\s|^\d+\.\s|^---|^\|)/)){pl.push(l[i]);i++}if(pl.length)o.push('<p>'+inline(pl.join(' '))+'</p>')
 }return o.join('\n')}
 function inline(t){t=t.replace(/\*\*\*(.+?)\*\*\*/g,'<strong><em>$1</em></strong>');t=t.replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>');t=t.replace(/`([^`]+)`/g,'<code>$1</code>');t=t.replace(/~~(.+?)~~/g,'<del>$1</del>');t=t.replace(/\[([^\]]+)\]\(([^)]+)\)/g,'<a href="$2">$1</a>');return t}
 
-// ---- i18n ----
-var L={blogTitle:{en:'Blog',de:'Blog'},blogSub:{en:'Updates, tutorials, and deep dives.',de:'Updates, Tutorials und Deep Dives.'},back:{en:'All posts',de:'Alle Beiträge'},loading:{en:'Loading…',de:'Lade…'},loadErr:{en:'Failed to load post.',de:'Beitrag konnte nicht geladen werden.'}};
+var T={blogTitle:{en:'Blog',de:'Blog'},blogSub:{en:'Updates, tutorials, and deep dives.',de:'Updates, Tutorials und Deep Dives.'},back:{en:'All posts',de:'Alle Beiträge'},loading:{en:'Loading…',de:'Lade…'},loadErr:{en:'Failed to load post.',de:'Beitrag konnte nicht geladen werden.'},noPosts:{en:'No posts yet.',de:'Noch keine Beiträge.'},copyLink:{en:'Copy link',de:'Link kopieren'},shareX:{en:'Share',de:'Teilen'}};
 
-// ---- Init ----
-var postData=[];
-fetch('blog/index.json').then(function(r){return r.json()}).then(function(d){postData=d;renderPostList()}).catch(function(){document.getElementById('post-list').innerHTML='<p style="color:var(--red)">Could not load blog index.</p>'});
-
+// ---- init ----
 (function(){
-  var s=localStorage.getItem('pipe-lang');if(!s){s=navigator.language.startsWith('de')?'de':'en'}currentLang=s;
+  var s=localStorage.getItem('pipe-lang');if(!s)s=navigator.language.startsWith('de')?'de':'en';LANG=s;
+  document.documentElement.lang=s;
   document.getElementById('btn-en').classList.toggle('active',s==='en');
   document.getElementById('btn-de').classList.toggle('active',s==='de');
-  document.querySelectorAll('[data-lang="'+s+'"]').forEach(function(e){e.classList.add('active')});
-  document.documentElement.lang=s;
-  var ps=new URLSearchParams(window.location.search).get('post');
-  if(ps) fetch('blog/index.json').then(function(r){return r.json()}).then(function(d){postData=d;showPost(ps)});
+
+  var ps=new URLSearchParams(location.search).get('post');
+  fetch('blog/index.json').then(function(r){return r.json()}).then(function(d){
+    POSTS=d;
+    if(ps) renderPost(ps);
+    else renderList();
+  }).catch(function(){
+    document.getElementById('root').innerHTML='<p style="color:var(--red)">Could not load blog index.</p>';
+  });
 })();
 </script>
 

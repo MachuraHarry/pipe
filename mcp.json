@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "pipe": {
+      "command": "pipe",
+      "args": ["examples/mcp_server.pipe"]
+    }
+  }
+}

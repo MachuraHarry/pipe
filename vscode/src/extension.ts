@@ -69,13 +69,19 @@ function resolveServerPath(context: vscode.ExtensionContext): string | undefined
 		return configured;
 	}
 
-	// 2. Binary shipped inside the extension.
-	const extBin = path.join(context.extensionPath, 'bin', 'pipe-lsp');
+	// 2. Binary shipped inside the extension (per-platform bin/<os>-<arch>/pipe-lsp).
+	const extBin = path.join(context.extensionPath, 'bin', platformDir(), lspBinaryName());
 	if (isFile(extBin)) {
 		return extBin;
 	}
 
-	// 3. <workspace>/bin/pipe-lsp (repo layout).
+	// 3. Legacy single-binary layout.
+	const legacyBin = path.join(context.extensionPath, 'bin', 'pipe-lsp');
+	if (isFile(legacyBin)) {
+		return legacyBin;
+	}
+
+	// 4. <workspace>/bin/pipe-lsp (repo layout).
 	for (const folder of vscode.workspace.workspaceFolders ?? []) {
 		const candidate = path.join(folder.uri.fsPath, 'bin', 'pipe-lsp');
 		if (isFile(candidate)) {
@@ -83,7 +89,7 @@ function resolveServerPath(context: vscode.ExtensionContext): string | undefined
 		}
 	}
 
-	// 4. On PATH.
+	// 5. On PATH.
 	const found = which('pipe-lsp');
 	if (found) {
 		return found;
@@ -98,6 +104,18 @@ function isFile(p: string): boolean {
 	} catch {
 		return false;
 	}
+}
+
+function platformDir(): string {
+	const osMap: Record<string, string> = { linux: 'linux', darwin: 'darwin', win32: 'windows' };
+	const archMap: Record<string, string> = { x64: 'amd64', arm64: 'arm64' };
+	const os = osMap[process.platform] ?? 'linux';
+	const arch = archMap[process.arch] ?? 'amd64';
+	return `${os}-${arch}`;
+}
+
+function lspBinaryName(): string {
+	return process.platform === 'win32' ? 'pipe-lsp.exe' : 'pipe-lsp';
 }
 
 function which(cmd: string): string | undefined {

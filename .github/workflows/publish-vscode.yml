@@ -1,0 +1,60 @@
+name: Publish VS Code Extension
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    name: Package & Publish
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: '1.25'
+
+    - name: Set up Node
+      uses: actions/setup-node@v5
+      with:
+        node-version: '20'
+
+    - name: Build pipe-lsp for all platforms
+      run: |
+        mkdir -p vscode/bin
+        for target in "linux amd64" "linux arm64" "darwin amd64" "darwin arm64" "windows amd64"; do
+          set -- $target
+          os=$1; arch=$2
+          ext=""; [ "$os" = "windows" ] && ext=".exe"
+          mkdir -p "vscode/bin/$os-$arch"
+          GOOS=$os GOARCH=$arch go build -ldflags="-s -w" -trimpath \
+            -o "vscode/bin/$os-$arch/pipe-lsp$ext" ./cmd/pipe-lsp
+        done
+        ls -la vscode/bin/*/
+
+    - name: Install dependencies
+      run: npm ci
+      working-directory: vscode
+
+    - name: Package
+      run: npx --yes @vscode/vsce package --skip-license --no-dependencies
+      working-directory: vscode
+
+    - name: Publish
+      if: startsWith(github.ref, 'refs/tags/v') && secrets.VSCE_TOKEN != ''
+      env:
+        VSCE_TOKEN: ${{ secrets.VSCE_TOKEN }}
+      run: npx --yes @vscode/vsce publish --skip-license --no-dependencies -p "$VSCE_TOKEN"
+      working-directory: vscode
+
+    - name: Skip publish (no VSCE_TOKEN)
+      if: startsWith(github.ref, 'refs/tags/v') && secrets.VSCE_TOKEN == ''
+      run: echo "::warning::VSCE_TOKEN secret is not set — skipping publish. Create the 'pipe-lang' publisher and add the PAT as VSCE_TOKEN."

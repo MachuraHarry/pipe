@@ -1,0 +1,9 @@
+[
+  {
+    "id": "sandbox-audit",
+    "file": "sandbox-audit.md",
+    "date": "2026-08-09",
+    "title": {"en": "Red-Team Sandbox Audit: The Sandbox Held", "de": "Red-Team Sandbox-Audit: Die Sandbox hat gehalten"},
+    "excerpt": {"en": "A real LLM was ordered to break the Pipe sandbox. 23 vectors across all five layers, zero escapes. Full audit trail and the bug we found.", "de": "Ein echtes LLM wurde beauftragt, die Pipe-Sandbox zu brechen. 23 Vektoren, null Escapes. Vollständiger Audit-Trail und der Bug, den wir dabei fanden."}
+  }
+]

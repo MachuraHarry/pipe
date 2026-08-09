@@ -4,9 +4,9 @@
 <meta charset="UTF-8">
 <link rel="icon" type="image/svg+xml" href="logo.svg">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-    <meta name="description" content="Pipe (SPR) documentation: language guide, builtin reference (198 builtins), pipelines, AI builtins, sandbox profiles, and more.">
+<meta name="description" content="Pipe (SPR) documentation — language guide, builtin reference (198 builtins), AI builtins, sandbox profiles. Read on-site with search.">
 <meta property="og:title" content="Docs — Pipe (SPR)">
-    <meta property="og:description" content="Complete documentation for Pipe: 198 builtins, pipelines, AI, sandbox profiles, and the bytecode VM.">
+<meta property="og:description" content="Complete Pipe documentation with quick search and bilingual EN/DE chapters.">
 <meta property="og:type" content="website">
 <meta property="og:image" content="https://pipe-lang.com/og-image.png">
 <meta property="og:url" content="https://pipe-lang.com/docs.html">
@@ -25,89 +25,92 @@
 }
 
 html { scroll-behavior: smooth; }
-body { background: var(--bg); color: var(--fg); font-family: var(--sans); line-height: 1.6; padding-top: 64px; }
-.container { max-width: 1100px; margin: 0 auto; padding: 0 20px; }
+body { background: var(--bg); color: var(--fg); font-family: var(--sans); line-height: 1.6; }
 
-/* Nav */
-nav { position: fixed; top: 0; z-index: 100; width: 100%; background: rgba(7,7,12,0.85); backdrop-filter: blur(12px); border-bottom: 1px solid var(--border); padding: 12px 0; transition: all .3s; }
-nav .container { display: flex; justify-content: space-between; align-items: center; }
+nav { position: fixed; top: 0; z-index: 100; width: 100%; background: rgba(7,7,12,0.92); backdrop-filter: blur(12px); border-bottom: 1px solid var(--border); padding: 10px 0; }
+nav .container { max-width: 1400px; margin: 0 auto; padding: 0 20px; display: flex; justify-content: space-between; align-items: center; }
 nav .logo { font-weight: 800; font-size: 1.2rem; color: var(--accent); text-decoration: none; letter-spacing: -0.5px; display: flex; align-items: center; }
-nav .logo img { height: 32px; margin-right: 6px; }
+nav .logo img { height: 28px; margin-right: 6px; }
 nav .logo span { color: var(--fg); }
-nav .nav-links { display: flex; align-items: center; gap: 18px; }
-nav a { color: var(--fg2); text-decoration: none; font-size: 0.82rem; transition: color .2s; }
+nav .nav-links { display: flex; align-items: center; gap: 14px; }
+nav a { color: var(--fg2); text-decoration: none; font-size: 0.8rem; transition: color .2s; white-space: nowrap; }
 nav a:hover { color: var(--fg); }
 .hamburger { display: none; background: none; border: none; color: var(--fg); font-size: 1.4rem; cursor: pointer; padding: 4px 8px; }
 
-/* Lang switch */
 .lang-switch { display: flex; background: var(--bg3); border: 1px solid var(--border); border-radius: 20px; overflow: hidden; }
 .lang-switch button { background: none; border: none; color: var(--fg2); padding: 4px 10px; font-size: 0.72rem; cursor: pointer; font-family: var(--sans); font-weight: 600; transition: all .2s; }
 .lang-switch button.active { background: var(--accent); color: #fff; }
 
-/* Sections */
-section { padding: 60px 0; }
-section h2 { font-size: 2rem; font-weight: 700; margin-bottom: 12px; letter-spacing: -0.5px; }
-section h3 { font-size: 1.3rem; font-weight: 700; margin-bottom: 20px; color: var(--accent2); }
-section .subtitle { color: var(--fg2); font-size: 1rem; margin-bottom: 48px; }
-code { background: var(--bg3); padding: 2px 6px; border-radius: 4px; font-family: var(--mono); font-size: 0.85em; color: var(--accent2); }
+.docs-layout { display: flex; min-height: 100vh; padding-top: 56px; }
+.sidebar { width: 260px; min-width: 260px; background: var(--bg2); border-right: 1px solid var(--border); overflow-y: auto; position: sticky; top: 56px; height: calc(100vh - 56px); padding: 16px 12px; }
+.sidebar::-webkit-scrollbar { width: 4px; }
+.sidebar::-webkit-scrollbar-thumb { background: var(--bg3); border-radius: 4px; }
 
-/* Footer */
-footer { background: var(--bg2); border-top: 1px solid var(--border); padding: 50px 0 25px; }
-.footer-grid { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 32px; }
-.footer-col h5 { font-size: 0.78rem; text-transform: uppercase; letter-spacing: 1px; color: var(--fg3); margin-bottom: 14px; }
-.footer-col a { display: block; color: var(--fg2); text-decoration: none; font-size: 0.8rem; margin-bottom: 7px; transition: color .2s; }
-.footer-col a:hover { color: var(--fg); }
-.footer-brand { font-weight: 800; font-size: 1.05rem; color: var(--accent); letter-spacing: -0.5px; margin-bottom: 6px; display: block; }
-.footer-brand span { color: var(--fg); }
-.footer-bottom { border-top: 1px solid var(--border); margin-top: 36px; padding-top: 18px; text-align: center; color: var(--fg3); font-size: 0.72rem; }
+.sidebar-search { margin-bottom: 16px; }
+.sidebar-search input { width: 100%; padding: 8px 12px; background: var(--bg3); border: 1px solid var(--border); border-radius: var(--radius); color: var(--fg); font-size: 0.8rem; outline: none; font-family: var(--sans); }
+.sidebar-search input:focus { border-color: var(--accent); }
+.sidebar-search input::placeholder { color: var(--fg3); }
 
-/* Chapter Groups */
-.doc-group { margin-bottom: 48px; }
-.doc-group .group-title { font-size: 1.1rem; font-weight: 700; color: var(--accent); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 20px; padding-bottom: 8px; border-bottom: 1px solid var(--border); }
-.chapter-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(310px, 1fr)); gap: 14px; }
+.sidebar-group { margin-bottom: 14px; }
+.sidebar-group-title { font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1.2px; color: var(--accent); margin-bottom: 6px; cursor: pointer; display: flex; align-items: center; gap: 6px; user-select: none; }
+.sidebar-group-title .arrow { transition: transform .2s; font-size: 0.55rem; }
+.sidebar-group-title.collapsed .arrow { transform: rotate(-90deg); }
+.sidebar-group-chapters { display: flex; flex-direction: column; gap: 1px; }
+.sidebar-group.collapsed .sidebar-group-chapters { display: none; }
 
-/* Chapter Cards */
-.chapter-card { background: var(--bg3); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; display: flex; flex-direction: column; gap: 8px; transition: border-color 0.2s, transform 0.15s; }
-.chapter-card:hover { border-color: var(--accent); transform: translateY(-2px); }
-.chapter-card .ch-num { font-size: 0.75rem; font-weight: 700; color: var(--accent); font-family: var(--mono); text-transform: uppercase; letter-spacing: 0.5px; }
-.chapter-card .ch-title { font-size: 1.05rem; font-weight: 700; color: var(--fg); line-height: 1.3; }
-.chapter-card .ch-title-de { font-size: 0.85rem; color: var(--fg2); }
-.chapter-card .ch-desc { font-size: 0.82rem; color: var(--fg2); line-height: 1.5; flex: 1; }
-.chapter-card .ch-desc-de { font-size: 0.82rem; color: var(--fg2); line-height: 1.5; flex: 1; }
-.chapter-card .ch-links { display: flex; gap: 8px; margin-top: 4px; }
-.chapter-card .ch-links a { display: inline-block; padding: 5px 14px; border-radius: 14px; font-size: 0.75rem; font-weight: 600; text-decoration: none; transition: all 0.2s; }
-.ch-links .en-link { background: var(--accent); color: #fff; }
-.ch-links .en-link:hover { background: #8e72fc; }
-.ch-links .de-link { background: var(--bg2); color: var(--fg2); border: 1px solid var(--border); }
-.ch-links .de-link:hover { border-color: var(--accent); color: var(--fg); }
+.sidebar-chapter { display: flex; align-items: center; gap: 8px; padding: 6px 10px; border-radius: 6px; text-decoration: none; color: var(--fg2); font-size: 0.78rem; transition: all .15s; border-left: 2px solid transparent; cursor: pointer; }
+.sidebar-chapter:hover { background: var(--bg3); color: var(--fg); }
+.sidebar-chapter.active { background: var(--bg3); color: var(--fg); border-left-color: var(--accent); font-weight: 600; }
+.sidebar-chapter .ch-num { font-family: var(--mono); font-size: 0.65rem; color: var(--accent); width: 28px; flex-shrink: 0; }
+.sidebar-chapter .ch-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
-/* GitHub link section */
-.gh-section { text-align: center; padding: 20px 0; }
-.gh-section a { display: inline-block; padding: 14px 36px; background: var(--accent); color: #fff; border-radius: var(--radius); font-weight: 600; font-size: 0.95rem; text-decoration: none; transition: all 0.2s; }
-.gh-section a:hover { background: #8e72fc; transform: translateY(-1px); box-shadow: 0 8px 32px rgba(124,92,252,0.3); }
+.content { flex: 1; max-width: 860px; padding: 32px 48px; overflow-wrap: break-word; }
+.content.loading { display: flex; align-items: center; justify-content: center; min-height: 400px; color: var(--fg2); font-size: 0.9rem; }
+.content-placeholder { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 400px; color: var(--fg2); text-align: center; }
+.content-placeholder h2 { font-size: 1.4rem; margin-bottom: 8px; color: var(--fg); }
+.content-placeholder p { font-size: 0.85rem; max-width: 400px; }
 
-/* Lang visibility */
-[data-lang] { display: none; }
-[data-lang].active { display: inline; }
-span[data-lang].active, p[data-lang].active, h1[data-lang].active, h2[data-lang].active,
-h3[data-lang].active, h4[data-lang].active, a[data-lang].active, th[data-lang].active,
-td[data-lang].active, li[data-lang].active, div[data-lang].active { display: block; }
-h1[data-lang].active, h2[data-lang].active, h3[data-lang].active, h4[data-lang].active,
-p[data-lang].active, div[data-lang].active { display: block; }
-span[data-lang].active { display: inline; }
-a[data-lang].active { display: inline-block; }
+/* Markdown rendered content */
+.doc-body h1 { font-size: 2rem; font-weight: 800; margin-bottom: 8px; letter-spacing: -0.5px; }
+.doc-body h2 { font-size: 1.4rem; font-weight: 700; margin-top: 40px; margin-bottom: 12px; padding-bottom: 6px; border-bottom: 1px solid var(--border); }
+.doc-body h3 { font-size: 1.1rem; font-weight: 700; margin-top: 28px; margin-bottom: 8px; color: var(--accent2); }
+.doc-body h4 { font-size: 0.95rem; font-weight: 600; margin-top: 20px; margin-bottom: 6px; }
+.doc-body p { margin-bottom: 12px; font-size: 0.9rem; line-height: 1.7; }
+.doc-body ul, .doc-body ol { margin-bottom: 12px; padding-left: 22px; }
+.doc-body li { font-size: 0.9rem; margin-bottom: 4px; }
+.doc-body a { color: var(--accent); text-decoration: none; }
+.doc-body a:hover { text-decoration: underline; }
+.doc-body strong { font-weight: 700; color: var(--orange); }
+.doc-body code { background: var(--bg3); padding: 2px 6px; border-radius: 4px; font-family: var(--mono); font-size: 0.83em; color: var(--accent2); }
+.doc-body pre { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px 20px; overflow-x: auto; margin-bottom: 14px; line-height: 1.55; }
+.doc-body pre code { background: none; padding: 0; font-size: 0.82rem; color: var(--fg); }
+.doc-body table { border-collapse: collapse; width: 100%; margin-bottom: 16px; font-size: 0.85rem; }
+.doc-body th { background: var(--bg2); border: 1px solid var(--border); padding: 8px 12px; text-align: left; font-weight: 600; }
+.doc-body td { border: 1px solid var(--border); padding: 8px 12px; }
+.doc-body blockquote { border-left: 3px solid var(--accent); padding: 8px 16px; margin-bottom: 12px; background: var(--bg2); border-radius: 0 var(--radius) var(--radius) 0; color: var(--fg2); font-size: 0.88rem; }
+.doc-body hr { border: none; border-top: 1px solid var(--border); margin: 32px 0; }
 
-@media (max-width: 768px) {
-  .chapter-grid { grid-template-columns: 1fr; }
-  .hamburger { display: block; }
+.doc-body .breadcrumb { font-size: 0.75rem; color: var(--fg3); margin-bottom: 20px; }
+.doc-body .breadcrumb span { color: var(--fg2); }
+
+/* Mobile */
+.sidebar-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 90; }
+.sidebar-toggle { display: none; position: fixed; bottom: 20px; right: 20px; z-index: 95; width: 48px; height: 48px; border-radius: 50%; background: var(--accent); color: #fff; border: none; font-size: 1.2rem; cursor: pointer; box-shadow: 0 4px 16px rgba(124,92,252,0.4); }
+
+@media (max-width: 900px) {
+  .sidebar { position: fixed; top: 56px; left: -280px; z-index: 95; height: calc(100vh - 56px); transition: left .25s; }
+  .sidebar.open { left: 0; }
+  .sidebar-overlay.open { display: block; }
+  .sidebar-toggle { display: block; }
+  .content { padding: 24px 20px; }
   nav .nav-links { display: none; position: absolute; top: 100%; left: 0; right: 0; background: rgba(7,7,12,0.98); border-bottom: 1px solid var(--border); flex-direction: column; padding: 16px 20px; gap: 12px; backdrop-filter: blur(12px); }
   nav .nav-links.open { display: flex; }
-  nav a { font-size: 0.9rem; padding: 8px 0; }
-  .footer-grid { grid-template-columns: 1fr 1fr; gap: 24px; }
+  .hamburger { display: block; }
 }
+
 @media (max-width: 480px) {
-  nav .logo img { height: 24px; }
-  .footer-grid { grid-template-columns: 1fr; }
+  .doc-body h1 { font-size: 1.5rem; }
+  .doc-body h2 { font-size: 1.2rem; }
 }
 </style>
 </head>
@@ -118,14 +121,14 @@ a[data-lang].active { display: inline-block; }
     <a href="index.html" class="logo"><img src="logo.svg" alt="Pipe">Pipe<span>.lang</span></a>
     <button class="hamburger" onclick="document.getElementById('nav-menu').classList.toggle('open')" aria-label="Menu">☰</button>
     <div class="nav-links" id="nav-menu">
-      <a href="index.html" onclick="closeMenu()"><span data-lang="en" class="active">Home</span><span data-lang="de">Start</span></a>
-      <a href="docs.html" onclick="closeMenu()"><span data-lang="en" class="active">Docs</span><span data-lang="de">Doku</span></a>
-      <a href="examples.html" onclick="closeMenu()"><span data-lang="en" class="active">Examples</span><span data-lang="de">Beispiele</span></a>
-      <a href="install.html" onclick="closeMenu()"><span data-lang="en" class="active">Install</span><span data-lang="de">Installation</span></a>
-      <a href="benchmarks.html" onclick="closeMenu()">Benchmarks</a>
-      <a href="playground.html" onclick="closeMenu()">Playground</a>
-      <a href="blog.html" onclick="closeMenu()">Blog</a>
-      <a href="https://github.com/MachuraHarry/pipe" onclick="closeMenu()">GitHub</a>
+      <a href="index.html"><span data-lang="en" class="active">Home</span><span data-lang="de">Start</span></a>
+      <a href="docs.html"><span data-lang="en" class="active">Docs</span><span data-lang="de">Doku</span></a>
+      <a href="examples.html">Examples</a>
+      <a href="install.html">Install</a>
+      <a href="benchmarks.html">Benchmarks</a>
+      <a href="playground.html">Playground</a>
+      <a href="blog.html">Blog</a>
+      <a href="https://github.com/MachuraHarry/pipe">GitHub</a>
       <div class="lang-switch">
         <button id="btn-en" class="active" onclick="setLang('en')">EN</button>
         <button id="btn-de" onclick="setLang('de')">DE</button>
@@ -134,432 +137,478 @@ a[data-lang].active { display: inline-block; }
   </div>
 </nav>
 
-<main>
-
-<section>
-  <div class="container">
-    <h2 data-lang="en" class="active">Documentation</h2>
-    <h2 data-lang="de">Dokumentation</h2>
-    <p class="subtitle" data-lang="en" class="active">41 chapters — everything from your first program to the bytecode VM. Available in English and German.</p>
-    <p class="subtitle" data-lang="de">41 Kapitel — vom ersten Programm bis zur Bytecode-VM. Verfügbar auf Englisch und Deutsch.</p>
-    <p class="subtitle" data-lang="en" class="active">Pipe (SPR) is a Semantic Pipeline Runtime — AI operations as language primitives.</p>
-    <p class="subtitle" data-lang="de">Pipe (SPR) ist eine Semantic Pipeline Runtime — KI-Operationen als Sprachbestandteile.</p>
-  </div>
-</section>
-
-<section style="background: var(--bg2);">
-  <div class="container">
-
-    <!-- Group: Language Guide / Sprachführer -->
-    <div class="doc-group">
-      <div class="group-title">
-        <span data-lang="en" class="active">Language Guide</span>
-        <span data-lang="de">Sprachführer</span>
-      </div>
-      <div class="chapter-grid">
-
-        <div class="chapter-card">
-          <div class="ch-num">01</div>
-          <div class="ch-title ch-title-en" data-lang="en" class="active">Getting Started</div>
-          <div class="ch-title-de ch-title" data-lang="de">Erste Schritte</div>
-          <div class="ch-desc" data-lang="en" class="active">Installation, your first Pipe program, REPL basics, and project setup.</div>
-          <div class="ch-desc-de" data-lang="de">Installation, dein erstes Pipe-Programm, REPL-Grundlagen und Projekt-Setup.</div>
-          <div class="ch-links">
-            <a class="en-link" href="https://github.com/MachuraHarry/pipe/blob/master/docs/en/01-getting-started.md" target="_blank">EN</a>
-            <a class="de-link" href="https://github.com/MachuraHarry/pipe/blob/master/docs/de/01-erste-schritte.md" target="_blank">DE</a>
-          </div>
-        </div>
-
-        <div class="chapter-card">
-          <div class="ch-num">02</div>
-          <div class="ch-title ch-title-en" data-lang="en" class="active">Language Tour</div>
-          <div class="ch-title-de ch-title" data-lang="de">Sprachübersicht</div>
-          <div class="ch-desc" data-lang="en" class="active">A rapid tour of syntax, pipelines, types, and the standard library.</div>
-          <div class="ch-desc-de" data-lang="de">Ein schneller Rundgang durch Syntax, Pipelines, Typen und die Standardbibliothek.</div>
-          <div class="ch-links">
-            <a class="en-link" href="https://github.com/MachuraHarry/pipe/blob/master/docs/en/02-language-tour.md" target="_blank">EN</a>
-            <a class="de-link" href="https://github.com/MachuraHarry/pipe/blob/master/docs/de/02-sprachuebersicht.md" target="_blank">DE</a>
-          </div>
-        </div>
-
-        <div class="chapter-card">
-          <div class="ch-num">03</div>
-          <div class="ch-title ch-title-en" data-lang="en" class="active">Types and Expressions</div>
-          <div class="ch-title-de ch-title" data-lang="de">Typen und Ausdrücke</div>
-          <div class="ch-desc" data-lang="en" class="active">All built-in types, literals, operators, and expression evaluation rules.</div>
-          <div class="ch-desc-de" data-lang="de">Alle eingebauten Typen, Literale, Operatoren und Regeln zur Ausdrucksauswertung.</div>
-          <div class="ch-links">
-            <a class="en-link" href="https://github.com/MachuraHarry/pipe/blob/master/docs/en/03-types-and-expressions.md" target="_blank">EN</a>
-            <a class="de-link" href="https://github.com/MachuraHarry/pipe/blob/master/docs/de/03-typen-und-ausdruecke.md" target="_blank">DE</a>
-          </div>
-        </div>
-
-        <div class="chapter-card">
-          <div class="ch-num">04</div>
-          <div class="ch-title ch-title-en" data-lang="en" class="active">Control Flow</div>
-          <div class="ch-title-de ch-title" data-lang="de">Kontrollfluss</div>
-          <div class="ch-desc" data-lang="en" class="active">Conditionals, loops, match expressions, and early returns.</div>
-          <div class="ch-desc-de" data-lang="de">Bedingungen, Schleifen, Match-Ausdrücke und vorzeitige Rückgaben.</div>
-          <div class="ch-links">
-            <a class="en-link" href="https://github.com/MachuraHarry/pipe/blob/master/docs/en/04-control-flow.md" target="_blank">EN</a>
-            <a class="de-link" href="https://github.com/MachuraHarry/pipe/blob/master/docs/de/04-kontrollfluss.md" target="_blank">DE</a>
-          </div>
-        </div>
-
-        <div class="chapter-card">
-          <div class="ch-num">05</div>
-          <div class="ch-title ch-title-en" data-lang="en" class="active">Functions and Closures</div>
-          <div class="ch-title-de ch-title" data-lang="de">Funktionen und Closures</div>
-          <div class="ch-desc" data-lang="en" class="active">Defining functions, closures, partial application, and higher-order patterns.</div>
-          <div class="ch-desc-de" data-lang="de">Funktionen definieren, Closures, partielle Anwendung und Higher-Order-Muster.</div>
-          <div class="ch-links">
-            <a class="en-link" href="https://github.com/MachuraHarry/pipe/blob/master/docs/en/05-functions-and-closures.md" target="_blank">EN</a>
-            <a class="de-link" href="https://github.com/MachuraHarry/pipe/blob/master/docs/de/05-funktionen-und-closures.md" target="_blank">DE</a>
-          </div>
-        </div>
-
-        <div class="chapter-card">
-          <div class="ch-num">06</div>
-          <div class="ch-title ch-title-en" data-lang="en" class="active">Pipelines</div>
-          <div class="ch-title-de ch-title" data-lang="de">Pipelines</div>
-          <div class="ch-desc" data-lang="en" class="active">The pipeline operator, stage composition, error propagation, and best practices.</div>
-          <div class="ch-desc-de" data-lang="de">Der Pipeline-Operator, Stufenkomposition, Fehlerpropagation und Best Practices.</div>
-          <div class="ch-links">
-            <a class="en-link" href="https://github.com/MachuraHarry/pipe/blob/master/docs/en/06-pipelines.md" target="_blank">EN</a>
-            <a class="de-link" href="https://github.com/MachuraHarry/pipe/blob/master/docs/de/06-pipelines.md" target="_blank">DE</a>
-          </div>
-        </div>
-
-        <div class="chapter-card">
-          <div class="ch-num">07</div>
-          <div class="ch-title ch-title-en" data-lang="en" class="active">Data Structures</div>
-          <div class="ch-title-de ch-title" data-lang="de">Datenstrukturen</div>
-          <div class="ch-desc" data-lang="en" class="active">Lists, maps, structs, strings, and common transformation operations.</div>
-          <div class="ch-desc-de" data-lang="de">Listen, Maps, Structs, Strings und gängige Transformationsoperationen.</div>
-          <div class="ch-links">
-            <a class="en-link" href="https://github.com/MachuraHarry/pipe/blob/master/docs/en/07-data-structures.md" target="_blank">EN</a>
-            <a class="de-link" href="https://github.com/MachuraHarry/pipe/blob/master/docs/de/07-datenstrukturen.md" target="_blank">DE</a>
-          </div>
-        </div>
-
-        <div class="chapter-card">
-          <div class="ch-num">08</div>
-          <div class="ch-title ch-title-en" data-lang="en" class="active">Error Handling</div>
-          <div class="ch-title-de ch-title" data-lang="de">Fehlerbehandlung</div>
-          <div class="ch-desc" data-lang="en" class="active">Error types, try-catch, error propagation in pipelines, and logging.</div>
-          <div class="ch-desc-de" data-lang="de">Fehlertypen, Try-Catch, Fehlerweiterleitung in Pipelines und Logging.</div>
-          <div class="ch-links">
-            <a class="en-link" href="https://github.com/MachuraHarry/pipe/blob/master/docs/en/08-error-handling.md" target="_blank">EN</a>
-            <a class="de-link" href="https://github.com/MachuraHarry/pipe/blob/master/docs/de/08-fehlerbehandlung.md" target="_blank">DE</a>
-          </div>
-        </div>
-
-        <div class="chapter-card">
-          <div class="ch-num">09</div>
-          <div class="ch-title ch-title-en" data-lang="en" class="active">Modules and Imports</div>
-          <div class="ch-title-de ch-title" data-lang="de">Module und Importe</div>
-          <div class="ch-desc" data-lang="en" class="active">Module system, file imports, namespaces, and package management.</div>
-          <div class="ch-desc-de" data-lang="de">Modulsystem, Datei-Importe, Namespaces und Paketmanagement.</div>
-          <div class="ch-links">
-            <a class="en-link" href="https://github.com/MachuraHarry/pipe/blob/master/docs/en/09-modules-and-imports.md" target="_blank">EN</a>
-            <a class="de-link" href="https://github.com/MachuraHarry/pipe/blob/master/docs/de/09-module-und-importe.md" target="_blank">DE</a>
-          </div>
-        </div>
-
-      </div>
+<div class="docs-layout">
+  <div class="sidebar-overlay" id="sidebar-overlay" onclick="closeSidebar()"></div>
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-search">
+      <input type="text" id="search" placeholder="Search docs…" oninput="filterChapters()">
     </div>
+    <div id="chapter-tree"></div>
+  </aside>
 
-    <!-- Group: Reference / Referenz -->
-    <div class="doc-group">
-      <div class="group-title">
-        <span data-lang="en" class="active">Reference</span>
-        <span data-lang="de">Referenz</span>
-      </div>
-      <div class="chapter-grid">
-
-        <div class="chapter-card">
-          <div class="ch-num">10</div>
-          <div class="ch-title ch-title-en" data-lang="en" class="active">Builtin Reference</div>
-          <div class="ch-title-de ch-title" data-lang="de">Builtin-Referenz</div>
-<div class="ch-desc" data-lang="en" class="active">Complete reference for all 198 built-in functions (174 standard + 18 AI + 6 MCP) with signatures and examples.</div>
-           <div class="ch-desc-de" data-lang="de">Vollständige Referenz aller 198 Builtin-Funktionen (174 Standard + 18 KI + 6 MCP) mit Signaturen und Beispielen.</div>
-          <div class="ch-links">
-            <a class="en-link" href="https://github.com/MachuraHarry/pipe/blob/master/docs/en/10-builtin-reference.md" target="_blank">EN</a>
-            <a class="de-link" href="https://github.com/MachuraHarry/pipe/blob/master/docs/de/10-builtin-referenz.md" target="_blank">DE</a>
-          </div>
-        </div>
-
-        <div class="chapter-card">
-          <div class="ch-num">A</div>
-          <div class="ch-title ch-title-en" data-lang="en" class="active">Formal Grammar</div>
-          <div class="ch-title-de ch-title" data-lang="de">Formale Grammatik</div>
-          <div class="ch-desc" data-lang="en" class="active">EBNF grammar specification. The definitive reference for Pipe syntax.</div>
-          <div class="ch-desc-de" data-lang="de">EBNF-Grammatik-Spezifikation. Die definitive Referenz für die Pipe-Syntax.</div>
-          <div class="ch-links">
-            <a class="en-link" href="https://github.com/MachuraHarry/pipe/blob/master/docs/en/appendix-a-formal-grammar.md" target="_blank">EN</a>
-            <a class="de-link" href="https://github.com/MachuraHarry/pipe/blob/master/docs/de/appendix-a-formale-grammatik.md" target="_blank">DE</a>
-          </div>
-        </div>
-
-      </div>
+  <main class="content loading" id="doc-content">
+    <div class="content-placeholder">
+      <h2>Pipe Documentation</h2>
+      <p>41 chapters — from your first program to the bytecode VM. Available in English and German. Select a chapter to start reading.</p>
     </div>
+  </main>
+</div>
 
-    <!-- Group: Tooling & Internals / Tooling & Interna -->
-    <div class="doc-group">
-      <div class="group-title">
-        <span data-lang="en" class="active">Tooling &amp; Internals</span>
-        <span data-lang="de">Tooling &amp; Interna</span>
-      </div>
-      <div class="chapter-grid">
-
-        <div class="chapter-card">
-          <div class="ch-num">11</div>
-          <div class="ch-title ch-title-en" data-lang="en" class="active">Tooling</div>
-          <div class="ch-title-de ch-title" data-lang="de">Tooling</div>
-          <div class="ch-desc" data-lang="en" class="active">CLI flags, build modes, debugging, profiling, and the Pipe developer toolchain.</div>
-          <div class="ch-desc-de" data-lang="de">CLI-Flags, Build-Modi, Debugging, Profiling und die Pipe-Entwickler-Toolchain.</div>
-          <div class="ch-links">
-            <a class="en-link" href="https://github.com/MachuraHarry/pipe/blob/master/docs/en/11-tooling.md" target="_blank">EN</a>
-            <a class="de-link" href="https://github.com/MachuraHarry/pipe/blob/master/docs/de/11-tooling.md" target="_blank">DE</a>
-          </div>
-        </div>
-
-        <div class="chapter-card">
-          <div class="ch-num">12</div>
-          <div class="ch-title ch-title-en" data-lang="en" class="active">Execution Models</div>
-          <div class="ch-title-de ch-title" data-lang="de">Ausführungsmodelle</div>
-          <div class="ch-desc" data-lang="en" class="active">Tree-walker vs bytecode VM. When to use each and how to switch.</div>
-          <div class="ch-desc-de" data-lang="de">Tree-Walker vs. Bytecode-VM. Wann welches Modell und wie man wechselt.</div>
-          <div class="ch-links">
-            <a class="en-link" href="https://github.com/MachuraHarry/pipe/blob/master/docs/en/12-execution-models.md" target="_blank">EN</a>
-            <a class="de-link" href="https://github.com/MachuraHarry/pipe/blob/master/docs/de/12-ausfuehrungsmodelle.md" target="_blank">DE</a>
-          </div>
-        </div>
-
-        <div class="chapter-card">
-          <div class="ch-num">13</div>
-          <div class="ch-title ch-title-en" data-lang="en" class="active">Bytecode VM</div>
-          <div class="ch-title-de ch-title" data-lang="de">Bytecode-VM</div>
-          <div class="ch-desc" data-lang="en" class="active">Instruction set, compilation pipeline, caching, and ~7× speedup details.</div>
-          <div class="ch-desc-de" data-lang="de">Befehlssatz, Kompilierungs-Pipeline, Caching und Details zum ~7× Speedup.</div>
-          <div class="ch-links">
-            <a class="en-link" href="https://github.com/MachuraHarry/pipe/blob/master/docs/en/13-bytecode-vm.md" target="_blank">EN</a>
-            <a class="de-link" href="https://github.com/MachuraHarry/pipe/blob/master/docs/de/13-bytecode-vm.md" target="_blank">DE</a>
-          </div>
-        </div>
-
-        <div class="chapter-card">
-          <div class="ch-num">14</div>
-          <div class="ch-title ch-title-en" data-lang="en" class="active">Architecture</div>
-          <div class="ch-title-de ch-title" data-lang="de">Architektur</div>
-          <div class="ch-desc" data-lang="en" class="active">Lexer, parser, AST, compiler, VM, and AI provider subsystem architecture.</div>
-          <div class="ch-desc-de" data-lang="de">Architektur von Lexer, Parser, AST, Compiler, VM und KI-Provider-Subsystem.</div>
-          <div class="ch-links">
-            <a class="en-link" href="https://github.com/MachuraHarry/pipe/blob/master/docs/en/14-architecture.md" target="_blank">EN</a>
-            <a class="de-link" href="https://github.com/MachuraHarry/pipe/blob/master/docs/de/14-architektur.md" target="_blank">DE</a>
-          </div>
-        </div>
-
-        <div class="chapter-card">
-          <div class="ch-num">15</div>
-          <div class="ch-title ch-title-en" data-lang="en" class="active">VSCode Extension</div>
-          <div class="ch-title-de ch-title" data-lang="de">VSCode-Erweiterung</div>
-          <div class="ch-desc" data-lang="en" class="active">Syntax highlighting, diagnostics, and language server support for VS Code.</div>
-          <div class="ch-desc-de" data-lang="de">Syntax-Highlighting, Diagnostik und Language-Server-Unterstützung für VS Code.</div>
-          <div class="ch-links">
-            <a class="en-link" href="https://github.com/MachuraHarry/pipe/blob/master/docs/en/15-vscode-extension.md" target="_blank">EN</a>
-            <a class="de-link" href="https://github.com/MachuraHarry/pipe/blob/master/docs/de/15-vscode-erweiterung.md" target="_blank">DE</a>
-          </div>
-        </div>
-
-      </div>
-    </div>
-
-    <!-- Group: Practical / Praktisch -->
-    <div class="doc-group">
-      <div class="group-title">
-        <span data-lang="en" class="active">Practical</span>
-        <span data-lang="de">Praktisch</span>
-      </div>
-      <div class="chapter-grid">
-
-        <div class="chapter-card">
-          <div class="ch-num">16</div>
-          <div class="ch-title ch-title-en" data-lang="en" class="active">Cookbook</div>
-          <div class="ch-title-de ch-title" data-lang="de">Kochrezepte</div>
-          <div class="ch-desc" data-lang="en" class="active">25 practical recipes: text processing, file I/O, API calls, AI pipelines, and more.</div>
-          <div class="ch-desc-de" data-lang="de">25 praktische Rezepte: Textverarbeitung, Datei-I/O, API-Calls, KI-Pipelines und mehr.</div>
-          <div class="ch-links">
-            <a class="en-link" href="https://github.com/MachuraHarry/pipe/blob/master/docs/en/16-cookbook.md" target="_blank">EN</a>
-            <a class="de-link" href="https://github.com/MachuraHarry/pipe/blob/master/docs/de/16-kochrezepte.md" target="_blank">DE</a>
-          </div>
-        </div>
-
-        <div class="chapter-card">
-          <div class="ch-num">17</div>
-          <div class="ch-title ch-title-en" data-lang="en" class="active">Migration From</div>
-          <div class="ch-title-de ch-title" data-lang="de">Migration von</div>
-          <div class="ch-desc" data-lang="en" class="active">Side-by-side migration guides from Python, Lua, Bash, and JavaScript.</div>
-          <div class="ch-desc-de" data-lang="de">Seite-an-Seite-Migrationsleitfäden von Python, Lua, Bash und JavaScript.</div>
-          <div class="ch-links">
-            <a class="en-link" href="https://github.com/MachuraHarry/pipe/blob/master/docs/en/17-migration-from.md" target="_blank">EN</a>
-            <a class="de-link" href="https://github.com/MachuraHarry/pipe/blob/master/docs/de/17-migration-von.md" target="_blank">DE</a>
-          </div>
-        </div>
-
-        <div class="chapter-card">
-          <div class="ch-num">20</div>
-          <div class="ch-title ch-title-en" data-lang="en" class="active">GitHub Action</div>
-          <div class="ch-title-de ch-title" data-lang="de">GitHub Action</div>
-          <div class="ch-desc" data-lang="en" class="active">Official GitHub Action to run Pipe scripts and tests in CI/CD pipelines.</div>
-          <div class="ch-desc-de" data-lang="de">Offizielle GitHub Action zum Ausführen von Pipe-Skripten und -Tests in CI/CD-Pipelines.</div>
-          <div class="ch-links">
-            <a class="en-link" href="https://github.com/MachuraHarry/pipe/blob/master/docs/en/20-github-action.md" target="_blank">EN</a>
-            <a class="de-link" href="https://github.com/MachuraHarry/pipe/blob/master/docs/de/20-github-action.md" target="_blank">DE</a>
-          </div>
-        </div>
-
-        <div class="chapter-card">
-          <div class="ch-num">21</div>
-          <div class="ch-title ch-title-en" data-lang="en" class="active">Ecosystem</div>
-          <div class="ch-title-de ch-title" data-lang="de">Ökosystem</div>
-          <div class="ch-desc" data-lang="en" class="active">Module registry, community packages, tooling, and the wider Pipe ecosystem.</div>
-          <div class="ch-desc-de" data-lang="de">Modul-Registry, Community-Pakete, Tooling und das weitere Pipe-Ökosystem.</div>
-          <div class="ch-links">
-            <a class="en-link" href="https://github.com/MachuraHarry/pipe/blob/master/docs/en/21-ecosystem.md" target="_blank">EN</a>
-            <a class="de-link" href="https://github.com/MachuraHarry/pipe/blob/master/docs/de/21-ecosystem.md" target="_blank">DE</a>
-          </div>
-        </div>
-
-        <div class="chapter-card">
-          <div class="ch-num">22</div>
-          <div class="ch-title ch-title-en" data-lang="en" class="active">Sandbox Profiles</div>
-          <div class="ch-title-de ch-title" data-lang="de">Sandbox-Profile</div>
-          <div class="ch-desc" data-lang="en" class="active">Declarative sandbox profiles to lock down AI agents, exec, filesystem, and network access.</div>
-          <div class="ch-desc-de" data-lang="de">Deklarative Sandbox-Profile zum Einschränken von KI-Agenten, exec, Dateisystem- und Netzwerkzugriff.</div>
-          <div class="ch-links">
-            <a class="en-link" href="https://github.com/MachuraHarry/pipe/blob/master/docs/en/22-sandbox-profiles.md" target="_blank">EN</a>
-            <a class="de-link" href="https://github.com/MachuraHarry/pipe/blob/master/docs/de/22-sandbox-profile.md" target="_blank">DE</a>
-          </div>
-        </div>
-
-      </div>
-    </div>
-
-    <!-- Group: AI / KI -->
-    <div class="doc-group">
-      <div class="group-title">
-        <span data-lang="en" class="active">AI</span>
-        <span data-lang="de">KI</span>
-      </div>
-      <div class="chapter-grid">
-
-        <div class="chapter-card">
-          <div class="ch-num">19</div>
-          <div class="ch-title ch-title-en" data-lang="en" class="active">AI Builtins</div>
-          <div class="ch-title-de ch-title" data-lang="de">KI-Builtins</div>
-          <div class="ch-desc" data-lang="en" class="active">All 27 AI functions in depth: summarize, translate, classify, embed, ai_tool, and more.</div>
-          <div class="ch-desc-de" data-lang="de">Alle 27 KI-Funktionen im Detail: summarize, translate, classify, embed, ai_tool und mehr.</div>
-          <div class="ch-links">
-            <a class="en-link" href="https://github.com/MachuraHarry/pipe/blob/master/docs/en/19-ai-builtins.md" target="_blank">EN</a>
-            <a class="de-link" href="https://github.com/MachuraHarry/pipe/blob/master/docs/de/19-ki-builtins.md" target="_blank">DE</a>
-          </div>
-        </div>
-
-        <div class="chapter-card">
-          <div class="ch-num">18</div>
-          <div class="ch-title ch-title-en" data-lang="en" class="active">Roadmap</div>
-          <div class="ch-title-de ch-title" data-lang="de">Roadmap</div>
-          <div class="ch-desc" data-lang="en" class="active">Upcoming features, planned milestones, and community-driven development priorities.</div>
-          <div class="ch-desc-de" data-lang="de">Kommende Features, geplante Meilensteine und community-getriebene Entwicklungsprioritäten.</div>
-          <div class="ch-links">
-            <a class="en-link" href="https://github.com/MachuraHarry/pipe/blob/master/docs/en/18-roadmap.md" target="_blank">EN</a>
-            <a class="de-link" href="https://github.com/MachuraHarry/pipe/blob/master/docs/de/18-roadmap.md" target="_blank">DE</a>
-          </div>
-        </div>
-
-        <div class="chapter-card">
-          <div class="ch-num">AI</div>
-          <div class="ch-title ch-title-en" data-lang="en" class="active">AI Roadmap</div>
-          <div class="ch-title-de ch-title" data-lang="de">KI-Roadmap</div>
-          <div class="ch-desc" data-lang="en" class="active">Detailed AI integration roadmap: local models, Ollama, on-device inference, and more.</div>
-          <div class="ch-desc-de" data-lang="de">Detaillierte KI-Integrations-Roadmap: lokale Modelle, Ollama, On-Device-Inferenz und mehr.</div>
-          <div class="ch-links">
-            <a class="en-link" href="https://github.com/MachuraHarry/pipe/blob/master/docs/en/AI_Roadmap.md" target="_blank">EN</a>
-            <a class="de-link" href="https://github.com/MachuraHarry/pipe/blob/master/docs/de/AI_Roadmap.md" target="_blank">DE</a>
-          </div>
-        </div>
-
-      </div>
-    </div>
-
-    <!-- Full Documentation on GitHub -->
-    <div class="gh-section">
-      <p style="color: var(--fg2); margin-bottom: 16px;" data-lang="en" class="active">Full documentation on GitHub</p>
-      <p style="color: var(--fg2); margin-bottom: 16px;" data-lang="de">Vollständige Dokumentation auf GitHub</p>
-      <a href="https://github.com/MachuraHarry/pipe/tree/master/docs" target="_blank"><span data-lang="en" class="active">Browse all chapters</span><span data-lang="de">Alle Kapitel durchsuchen</span></a>
-    </div>
-
-  </div>
-</section>
-
-</main>
-
-<footer>
-  <div class="container">
-    <div class="footer-grid">
-      <div class="footer-col">
-        <span class="footer-brand"><img src="logo.svg" alt="Pipe" style="height:20px;vertical-align:middle;margin-right:4px">Pipe<span>.lang</span></span>
-        <p style="color:var(--fg2);font-size:0.8rem;margin-top:8px">Semantic Pipeline Runtime.<br>AI operations as language primitives.<br>One binary. Zero dependencies.</p>
-      </div>
-      <div class="footer-col">
-        <h5>Product</h5>
-        <a href="index.html#features">Features</a>
-        <a href="index.html#play">Try Online</a>
-        <a href="playground.html">Playground</a>
-        <a href="blog.html">Blog</a>
-        <a href="install.html">Install</a>
-      </div>
-      <div class="footer-col">
-        <h5>Resources</h5>
-        <a href="docs.html">Documentation</a>
-        <a href="https://github.com/MachuraHarry/pipe-modules">Modules</a>
-        <a href="benchmarks.html">Benchmarks</a>
-        <a href="https://github.com/MachuraHarry/pipe/releases">Releases</a>
-        <a href="blog.html">Blog</a>
-        <a href="https://github.com/MachuraHarry/pipe">GitHub</a>
-      </div>
-      <div class="footer-col">
-        <h5>Community</h5>
-        <a href="https://github.com/MachuraHarry/pipe/discussions">Discussions</a>
-        <a href="https://github.com/MachuraHarry/pipe/blob/master/SECURITY.md">Security</a>
-        <a href="https://github.com/MachuraHarry/pipe/blob/master/CONTRIBUTING.md">Contribute</a>
-        <a href="https://github.com/MachuraHarry/pipe-modules/blob/master/CONTRIBUTING.md">Submit Module</a>
-        <a href="impressum.html">Impressum</a>
-      </div>
-    </div>
-    <div class="footer-bottom">© 2026 Pipe (SPR) · MIT License · Built with Go · Running in your browser via WebAssembly</div>
-  </div>
-</footer>
+<button class="sidebar-toggle" id="sidebar-toggle" onclick="toggleSidebar()">☰</button>
 
 <script>
-function setLang(lang) {
-  document.querySelectorAll('[data-lang]').forEach(el => el.classList.remove('active'));
-  document.querySelectorAll('[data-lang="' + lang + '"]').forEach(el => el.classList.add('active'));
-  document.getElementById('btn-en').classList.toggle('active', lang === 'en');
-  document.getElementById('btn-de').classList.toggle('active', lang === 'de');
-  document.documentElement.lang = lang;
-  localStorage.setItem('pipe-lang', lang);
+const CHAPTERS = [
+  {num:"01",group:"guide",en:"01-getting-started.md",de:"01-erste-schritte.md",ten:"Getting Started",tde:"Erste Schritte",den:"Installation, your first Pipe program, REPL basics.",dde:"Installation, dein erstes Pipe-Programm, REPL-Grundlagen."},
+  {num:"02",group:"guide",en:"02-language-tour.md",de:"02-sprachuebersicht.md",ten:"Language Tour",tde:"Sprachübersicht",den:"A rapid tour of syntax, pipelines, types.",dde:"Rundgang durch Syntax, Pipelines, Typen."},
+  {num:"03",group:"guide",en:"03-types-and-expressions.md",de:"03-typen-und-ausdruecke.md",ten:"Types & Expressions",tde:"Typen & Ausdrücke",den:"All built-in types, operators, and expression rules.",dde:"Alle Typen, Operatoren und Ausdrucksregeln."},
+  {num:"04",group:"guide",en:"04-control-flow.md",de:"04-kontrollfluss.md",ten:"Control Flow",tde:"Kontrollfluss",den:"Conditionals, loops, match expressions.",dde:"Bedingungen, Schleifen, Match-Ausdrücke."},
+  {num:"05",group:"guide",en:"05-functions-and-closures.md",de:"05-funktionen-und-closures.md",ten:"Functions & Closures",tde:"Funktionen & Closures",den:"Defining functions, closures, partial application.",dde:"Funktionen, Closures, partielle Anwendung."},
+  {num:"06",group:"guide",en:"06-pipelines.md",de:"06-pipelines.md",ten:"Pipelines",tde:"Pipelines",den:"Pipeline operator, stage composition, error propagation.",dde:"Pipeline-Operator, Stufenkomposition, Fehlerpropagation."},
+  {num:"07",group:"guide",en:"07-data-structures.md",de:"07-datenstrukturen.md",ten:"Data Structures",tde:"Datenstrukturen",den:"Lists, maps, structs, strings, transformations.",dde:"Listen, Maps, Structs, Strings, Transformationen."},
+  {num:"08",group:"guide",en:"08-error-handling.md",de:"08-fehlerbehandlung.md",ten:"Error Handling",tde:"Fehlerbehandlung",den:"Error types, try-catch, pipeline error propagation.",dde:"Fehlertypen, Try-Catch, Fehlerweiterleitung."},
+  {num:"09",group:"guide",en:"09-modules-and-imports.md",de:"09-module-und-importe.md",ten:"Modules & Imports",tde:"Module & Importe",den:"Module system, file imports, package management.",dde:"Modulsystem, Datei-Importe, Paketmanagement."},
+  {num:"10",group:"reference",en:"10-builtin-reference.md",de:"10-builtin-referenz.md",ten:"Builtin Reference",tde:"Builtin-Referenz",den:"Complete reference for all built-in functions.",dde:"Vollständige Referenz aller Builtin-Funktionen."},
+  {num:"11",group:"tooling",en:"11-tooling.md",de:"11-tooling.md",ten:"Tooling",tde:"Tooling",den:"CLI flags, build modes, debugging, profiling.",dde:"CLI-Flags, Build-Modi, Debugging, Profiling."},
+  {num:"12",group:"tooling",en:"12-execution-models.md",de:"12-ausfuehrungsmodelle.md",ten:"Execution Models",tde:"Ausführungsmodelle",den:"Tree-walker vs bytecode VM.",dde:"Tree-Walker vs. Bytecode-VM."},
+  {num:"13",group:"tooling",en:"13-bytecode-vm.md",de:"13-bytecode-vm.md",ten:"Bytecode VM",tde:"Bytecode-VM",den:"Instruction set, compilation, ~7× speedup.",dde:"Befehlssatz, Kompilierung, ~7× Speedup."},
+  {num:"14",group:"tooling",en:"14-architecture.md",de:"14-architektur.md",ten:"Architecture",tde:"Architektur",den:"Lexer, parser, AST, compiler, VM, AI subsystem.",dde:"Lexer, Parser, AST, Compiler, VM, KI-Subsystem."},
+  {num:"15",group:"tooling",en:"15-vscode-extension.md",de:"15-vscode-erweiterung.md",ten:"VSCode Extension",tde:"VSCode-Erweiterung",den:"Syntax highlighting, LSP, diagnostics.",dde:"Syntax-Highlighting, LSP, Diagnostik."},
+  {num:"16",group:"practical",en:"16-cookbook.md",de:"16-kochrezepte.md",ten:"Cookbook",tde:"Kochrezepte",den:"25 practical recipes for common tasks.",dde:"25 praktische Rezepte für häufige Aufgaben."},
+  {num:"17",group:"practical",en:"17-migration-from.md",de:"17-migration-von.md",ten:"Migration From",tde:"Migration von",den:"Migration guides from Python, Lua, Bash, JS.",dde:"Migrationsleitfäden von Python, Lua, Bash, JS."},
+  {num:"20",group:"practical",en:"20-github-action.md",de:"20-github-action.md",ten:"GitHub Action",tde:"GitHub Action",den:"Official GitHub Action for CI/CD pipelines.",dde:"Offizielle GitHub Action für CI/CD-Pipelines."},
+  {num:"21",group:"practical",en:"21-ecosystem.md",de:"21-ecosystem.md",ten:"Ecosystem",tde:"Ökosystem",den:"Module registry, community packages, tooling.",dde:"Modul-Registry, Community-Pakete, Tooling."},
+  {num:"19",group:"ai",en:"19-ai-builtins.md",de:"19-ki-builtins.md",ten:"AI Builtins",tde:"KI-Builtins",den:"All 27 AI functions: summarize, translate, classify.",dde:"Alle 27 KI-Funktionen: summarize, translate, classify."},
+  {num:"18",group:"ai",en:"18-roadmap.md",de:"18-roadmap.md",ten:"Roadmap",tde:"Roadmap",den:"Upcoming features, planned milestones.",dde:"Kommende Features, geplante Meilensteine."},
+  {num:"AI",group:"ai",en:"AI_Roadmap.md",de:"AI_Roadmap.md",ten:"AI Roadmap",tde:"KI-Roadmap",den:"Detailed AI integration roadmap.",dde:"Detaillierte KI-Integrations-Roadmap."},
+  {num:"22",group:"sandbox",en:"22-sandbox-profiles.md",de:"22-sandbox-profile.md",ten:"Sandbox Profiles",tde:"Sandbox-Profile",den:"Lock down AI agents, exec, fs, network access.",dde:"KI-Agenten, exec, Dateisystem, Netzwerk einschränken."},
+  {num:"23",group:"modules",en:"23-x-module.md",de:"23-x-modul.md",ten:"X Module",tde:"X-Modul",den:"Post to X/Twitter via the Pipe X module.",dde:"Auf X/Twitter posten mit dem Pipe X-Modul."},
+  {num:"24",group:"modules",en:"24-discord-module.md",de:"24-discord-modul.md",ten:"Discord Module",tde:"Discord-Modul",den:"Discord bot integration.",dde:"Discord-Bot-Integration."},
+  {num:"25",group:"modules",en:"25-mcp.md",de:"25-mcp.md",ten:"MCP Integration",tde:"MCP-Integration",den:"Model Context Protocol client and server.",dde:"Model Context Protocol Client und Server."},
+  {num:"26",group:"modules",en:"26-sqlite-module.md",de:"26-sqlite-modul.md",ten:"SQLite Module",tde:"SQLite-Modul",den:"Embedded SQLite database integration.",dde:"Eingebettete SQLite-Datenbank-Integration."},
+  {num:"A",group:"reference",en:"appendix-a-grammar.md",de:"anhang-a-grammatik.md",ten:"Formal Grammar",tde:"Formale Grammatik",den:"EBNF grammar specification.",dde:"EBNF-Grammatik-Spezifikation."}
+];
+
+var GROUPS = [
+  {id:"guide", en:"Language Guide", de:"Sprachführer"},
+  {id:"reference", en:"Reference", de:"Referenz"},
+  {id:"tooling", en:"Tooling & Internals", de:"Tooling & Interna"},
+  {id:"practical", en:"Practical", de:"Praktisch"},
+  {id:"ai", en:"AI", de:"KI"},
+  {id:"sandbox", en:"Sandbox & Security", de:"Sandbox & Sicherheit"},
+  {id:"modules", en:"Modules & Integration", de:"Module & Integration"}
+];
+
+var currentLang = 'en';
+var activeChapter = null;
+var allGroupsCollapsed = window.innerWidth < 900;
+
+// i18n utilities
+var L = {
+  searchPlaceholder: {en:"Search docs…", de:"Doku durchsuchen…"},
+  noResults: {en:"No chapters match.", de:"Keine Kapitel gefunden."},
+  selectChapter: {en:"Select a chapter to start reading.", de:"Wähle ein Kapitel zum Lesen."},
+  docsTitle: {en:"Pipe Documentation", de:"Pipe-Dokumentation"},
+  docsSubtitle: {en:"41 chapters — from your first program to the bytecode VM. Available in English and German.", de:"41 Kapitel — vom ersten Programm bis zur Bytecode-VM. Englisch und Deutsch."},
+  loading: {en:"Loading…", de:"Lade…"},
+  loadError: {en:"Failed to load document.", de:"Dokument konnte nicht geladen werden."},
+  prev: {en:"« Previous", de:"« Zurück"},
+  next: {en:"Next »", de:"Weiter »"}
+};
+
+// ---- Sidebar ----
+
+function buildChapterTree() {
+  var lang = currentLang;
+  var tree = document.getElementById('chapter-tree');
+  var html = '';
+  for (var gi = 0; gi < GROUPS.length; gi++) {
+    var g = GROUPS[gi];
+    var chs = CHAPTERS.filter(function(c){return c.group===g.id;});
+    html += '<div class="sidebar-group" id="sg-'+g.id+'">';
+    html += '  <div class="sidebar-group-title'+(allGroupsCollapsed?' collapsed':'')+'" onclick="toggleGroup(\''+g.id+'\')"><span class="arrow">▼</span><span data-lang="en">'+g.en+'</span><span data-lang="de">'+g.de+'</span></div>';
+    html += '  <div class="sidebar-group-chapters">';
+    for (var ci = 0; ci < chs.length; ci++) {
+      var c = chs[ci];
+      var file = lang==='de' ? c.de : c.en;
+      var title = lang==='de' ? c.tde : c.ten;
+      var desc = lang==='de' ? c.dde : c.den;
+      html += '    <a class="sidebar-chapter" data-chapter="'+c.en.replace('.md','')+'" data-file="'+file+'" data-group="'+c.group+'" data-num="'+c.num+'" onclick="loadChapter(this,\''+file+'\',\''+c.num+'\',\''+escapeAttr(title)+'\')" title="'+escapeAttr(desc)+'">';
+      html += '      <span class="ch-num">'+c.num+'</span>';
+      html += '      <span class="ch-title">'+title+'</span>';
+      html += '    </a>';
+    }
+    html += '  </div>';
+    html += '</div>';
+  }
+  tree.innerHTML = html;
 }
 
-function closeMenu(){document.getElementById('nav-menu').classList.remove('open');}
+function updateChapterLabels() {
+  var lang = currentLang;
+  var chs = document.querySelectorAll('.sidebar-chapter');
+  for (var i = 0; i < chs.length; i++) {
+    var a = chs[i];
+    var num = a.getAttribute('data-num');
+    var enFile = a.getAttribute('data-chapter') + '.md';
+    for (var j = 0; j < CHAPTERS.length; j++) {
+      if (CHAPTERS[j].en === enFile) {
+        var file = lang==='de' ? CHAPTERS[j].de : CHAPTERS[j].en;
+        var title = lang==='de' ? CHAPTERS[j].tde : CHAPTERS[j].ten;
+        a.setAttribute('data-file', file);
+        a.querySelector('.ch-title').textContent = title;
+        break;
+      }
+    }
+  }
+}
+
+function toggleGroup(id) {
+  var sg = document.getElementById('sg-'+id);
+  var title = sg.querySelector('.sidebar-group-title');
+  title.classList.toggle('collapsed');
+}
+
+function filterChapters() {
+  var q = document.getElementById('search').value.toLowerCase();
+  var groups = document.querySelectorAll('.sidebar-group');
+  for (var i = 0; i < groups.length; i++) {
+    var g = groups[i];
+    var chs = g.querySelectorAll('.sidebar-chapter');
+    var hasVisible = false;
+    for (var j = 0; j < chs.length; j++) {
+      var c = chs[j];
+      var title = c.querySelector('.ch-title').textContent.toLowerCase();
+      var num = c.getAttribute('data-num').toLowerCase();
+      var visible = !q || title.indexOf(q) >= 0 || num.indexOf(q) >= 0;
+      c.style.display = visible ? '' : 'none';
+      if (visible) hasVisible = true;
+    }
+    g.style.display = hasVisible ? '' : 'none';
+  }
+}
+
+// ---- Content ----
+
+function loadChapter(linkEl, file, num, title) {
+  document.querySelectorAll('.sidebar-chapter').forEach(function(a){a.classList.remove('active');});
+  if (linkEl) linkEl.classList.add('active');
+  activeChapter = linkEl;
+
+  if (window.innerWidth < 900) closeSidebar();
+
+  var content = document.getElementById('doc-content');
+  content.className = 'content loading';
+  content.innerHTML = '<div style="text-align:center;color:var(--fg2);padding-top:120px">'+L.loading[currentLang]+'</div>';
+
+  var lang = currentLang;
+  var url = 'docs/'+lang+'/'+file;
+
+  fetch(url).then(function(r){
+    if (!r.ok) throw new Error('HTTP '+r.status);
+    return r.text();
+  }).then(function(md){
+    var html = renderMarkdown(md);
+    var ci = getChapterIndexByFile(file);
+    var prev = getAdjacentChapter(ci, -1);
+    var next = getAdjacentChapter(ci, 1);
+
+    var nav = '';
+    var t = lang==='de' ? prev? prev.tde : '' : prev? prev.ten : '';
+    var tn = lang==='de' ? next? next.tde : '' : next? next.ten : '';
+    if (prev || next) {
+      nav = '<div style="display:flex;justify-content:space-between;margin-top:40px;padding-top:20px;border-top:1px solid var(--border)">';
+      if (prev) nav += '<a href="javascript:void(0)" onclick="navChapter(\''+prev.en.replace('.md','')+'\')" style="color:var(--accent);text-decoration:none;font-size:0.85rem">'+L.prev[currentLang]+'<br><span style="font-size:0.75rem;color:var(--fg2)">'+t+'</span></a>';
+      else nav += '<span></span>';
+      if (next) nav += '<a href="javascript:void(0)" onclick="navChapter(\''+next.en.replace('.md','')+'\')" style="color:var(--accent);text-decoration:none;font-size:0.85rem;text-align:right">'+L.next[currentLang]+'<br><span style="font-size:0.75rem;color:var(--fg2)">'+tn+'</span></a>';
+      else nav += '<span></span>';
+      nav += '</div>';
+    }
+
+    content.className = 'content';
+    content.innerHTML = '<div class="doc-body"><div class="breadcrumb"><span>Pipe</span> / <span>Docs</span> / <span>'+title+'</span></div><div class="markdown-body">'+html+'</div>'+nav+'</div>';
+
+    history.replaceState(null, '', '?chapter='+file.replace('.md','')+'&lang='+lang);
+  }).catch(function(e){
+    content.className = 'content';
+    content.innerHTML = '<div class="content-placeholder"><p style="color:var(--red)">'+L.loadError[currentLang]+': '+e.message+'</p></div>';
+  });
+}
+
+function navChapter(enBase) {
+  for (var j = 0; j < CHAPTERS.length; j++) {
+    if (CHAPTERS[j].en.replace('.md','') === enBase) {
+      var file = currentLang==='de' ? CHAPTERS[j].de : CHAPTERS[j].en;
+      var title = currentLang==='de' ? CHAPTERS[j].tde : CHAPTERS[j].ten;
+      var link = document.querySelector('.sidebar-chapter[data-chapter="'+enBase+'"]');
+      loadChapter(link, file, CHAPTERS[j].num, title);
+      break;
+    }
+  }
+}
+
+function getChapterIndexByFile(file) {
+  for (var i = 0; i < CHAPTERS.length; i++) {
+    var f = currentLang==='de' ? CHAPTERS[i].de : CHAPTERS[i].en;
+    if (f === file) return i;
+  }
+  return -1;
+}
+
+function getAdjacentChapter(index, offset) {
+  if (index < 0) return null;
+  var ni = index + offset;
+  if (ni < 0 || ni >= CHAPTERS.length) return null;
+  return CHAPTERS[ni];
+}
+
+// ---- Markdown ----
+
+var mdRenderer = {
+  heading: function(text, level) {
+    if (level === 1) {
+      var tn = getTitleNumber(text);
+      return '<h1 id="'+slugify(text)+'">'+(tn?'<span style="font-family:var(--mono);font-size:0.7em;color:var(--accent);margin-right:8px">'+tn+'</span>':'')+text+'</h1>\n';
+    }
+    return '<h'+level+' id="'+slugify(text)+'">'+text+'</h'+level+'>\n';
+  },
+  code: function(code, lang, escaped) { return '<pre><code>'+code+'</code></pre>\n'; },
+  codespan: function(code) { return '<code>'+code+'</code>'; },
+  link: function(href, title, text) { return '<a href="'+href+'"'+(title?' title="'+title+'"':'')+'>'+text+'</a>'; },
+  paragraph: function(text) { return '<p>'+text+'</p>\n'; },
+  strong: function(text) { return '<strong>'+text+'</strong>'; },
+  em: function(text) { return '<em>'+text+'</em>'; },
+  del: function(text) { return '<del>'+text+'</del>'; },
+  list: function(body, ordered, start) { var t = ordered ? 'ol' : 't'; return '<'+t+(start&&start!==1?' start="'+start+'"':'')+'>\n'+body+'</'+t+'>\n'; },
+  listitem: function(text, task, checked) { return '<li>'+text+'</li>\n'; },
+  table: function(header, body) { return '<table>\n<thead>\n'+header+'</thead>\n<tbody>\n'+body+'</tbody>\n</table>\n'; },
+  tablerow: function(content, flags) { return '<tr>\n'+content+'</tr>\n'; },
+  tablecell: function(content, flags) { var t = flags.header ? 'th' : 'td'; return '<'+t+(flags.align?' style="text-align:'+flags.align+'"':'')+'>'+content+'</'+t+'>\n'; },
+  blockquote: function(quote) { return '<blockquote>\n'+quote+'</blockquote>\n'; },
+  hr: function() { return '<hr>\n'; },
+  image: function(href, title, text) { return '<img src="'+href+'" alt="'+text+'"'+(title?' title="'+title+'"':'')+' style="max-width:100%">'; }
+};
+
+function renderMarkdown(md) {
+  var text = md.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  var lines = text.split('\n');
+  var output = [];
+  var i = 0;
+
+  while (i < lines.length) {
+    var line = lines[i];
+
+    // code blocks
+    if (line.match(/^```/)) {
+      var lang = line.slice(3).trim();
+      i++;
+      var codeLines = [];
+      while (i < lines.length && !lines[i].match(/^```/)) {
+        codeLines.push(lines[i]);
+        i++;
+      }
+      i++; // skip closing ```
+      output.push(mdRenderer.code(codeLines.join('\n'), lang));
+      continue;
+    }
+
+    // headings
+    var mh = line.match(/^(#{1,6})\s+(.+)/);
+    if (mh) {
+      output.push(mdRenderer.heading(mh[2], mh[1].length));
+      i++;
+      continue;
+    }
+
+    // hr
+    if (line.match(/^---/)) {
+      output.push(mdRenderer.hr());
+      i++;
+      continue;
+    }
+
+    // blockquote
+    if (line.match(/^> /)) {
+      var qlines = [];
+      while (i < lines.length && lines[i].match(/^> /)) {
+        qlines.push(lines[i].slice(2));
+        i++;
+      }
+      output.push(mdRenderer.blockquote(inlineParse(qlines.join('\n'))));
+      continue;
+    }
+
+    // tables
+    if (line.indexOf('|') >= 0 && i+1 < lines.length && lines[i+1].match(/^\|[\s\-:|]+\|$/)) {
+      var headerRow = line;
+      i++; // skip separator
+      i++;
+      var bodyRows = [];
+      while (i < lines.length && lines[i].trim().indexOf('|') >= 0) {
+        bodyRows.push(lines[i]);
+        i++;
+      }
+
+      var hcells = headerRow.split('|').filter(function(c){return c.trim();});
+      var ahdr = '';
+      for (var hi = 0; hi < hcells.length; hi++) {
+        ahdr += mdRenderer.tablecell(inlineParse(hcells[hi].trim()), {header:true});
+      }
+      var hrow = mdRenderer.tablerow(ahdr);
+
+      var brows = '';
+      for (var ri = 0; ri < bodyRows.length; ri++) {
+        var bcells = bodyRows[ri].split('|').filter(function(c){return c.trim();});
+        var bdr = '';
+        for (var bi = 0; bi < bcells.length; bi++) {
+          bdr += mdRenderer.tablecell(inlineParse(bcells[bi].trim()), {});
+        }
+        brows += mdRenderer.tablerow(bdr);
+      }
+      output.push(mdRenderer.table(hrow, brows));
+      continue;
+    }
+
+    // unordered lists
+    if (line.match(/^[\-\*\+]\s+/)) {
+      var litems = [];
+      while (i < lines.length && lines[i].match(/^[\-\*\+]\s+/)) {
+        litems.push(lines[i].replace(/^[\-\*\+]\s+/, ''));
+        i++;
+      }
+      var lbody = '';
+      for (var li = 0; li < litems.length; li++) {
+        lbody += mdRenderer.listitem(inlineParse(litems[li]));
+      }
+      output.push(mdRenderer.list(lbody, false));
+      continue;
+    }
+
+    // ordered lists
+    if (line.match(/^\d+\.\s+/)) {
+      var olitems = [];
+      while (i < lines.length && lines[i].match(/^\d+\.\s+/)) {
+        olitems.push(lines[i].replace(/^\d+\.\s+/, ''));
+        i++;
+      }
+      var olbody = '';
+      for (var oi = 0; oi < olitems.length; oi++) {
+        olbody += mdRenderer.listitem(inlineParse(olitems[oi]));
+      }
+      output.push(mdRenderer.list(olbody, true));
+      continue;
+    }
+
+    // empty line
+    if (line.trim() === '') { i++; continue; }
+
+    // paragraph
+    var plines = [];
+    while (i < lines.length && lines[i].trim() !== '' && !lines[i].match(/^(#{1,6}\s|^> |^```|^[\-\*\+]\s|^\d+\.\s|^---|^\|)/)) {
+      plines.push(lines[i]);
+      i++;
+    }
+    if (plines.length) {
+      output.push(mdRenderer.paragraph(inlineParse(plines.join(' '))));
+    }
+  }
+  return output.join('\n');
+}
+
+function inlineParse(text) {
+  text = text.replace(/\*\*\*(.+?)\*\*\*/g, '<strong><em>$1</em></strong>');
+  text = text.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+  text = text.replace(/(?<!\*)\*(?!\*)(.+?)(?<!\*)\*(?!\*)/g, '<em>$1</em>');
+  text = text.replace(/`([^`]+)`/g, '<code>$1</code>');
+  text = text.replace(/~~(.+?)~~/g, '<del>$1</del>');
+  text = text.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2">$1</a>');
+  text = text.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '<img src="$2" alt="$1" style="max-width:100%">');
+  return text;
+}
+
+function slugify(text) {
+  return text.toLowerCase().replace(/[^\w-]+/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
+}
+
+function getTitleNumber(text) {
+  var m = text.match(/^(\d+)\.\s/);
+  return m ? m[1] : null;
+}
+
+function escapeAttr(s) { return s.replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
+
+// ---- Sidebar toggle ----
+
+function toggleSidebar() {
+  var sb = document.getElementById('sidebar');
+  var ov = document.getElementById('sidebar-overlay');
+  var open = !sb.classList.contains('open');
+  sb.classList.toggle('open', open);
+  ov.classList.toggle('open', open);
+}
+
+function closeSidebar() {
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('sidebar-overlay').classList.remove('open');
+}
+
+// ---- Lang ----
+
+function setLang(lang) {
+  currentLang = lang;
+  document.querySelectorAll('[data-lang]').forEach(function(el){el.classList.remove('active');});
+  document.querySelectorAll('[data-lang="'+lang+'"]').forEach(function(el){el.classList.add('active');});
+  document.getElementById('btn-en').classList.toggle('active', lang==='en');
+  document.getElementById('btn-de').classList.toggle('active', lang==='de');
+  document.documentElement.lang = lang;
+  document.getElementById('search').placeholder = L.searchPlaceholder[lang];
+  localStorage.setItem('pipe-lang', lang);
+
+  updateChapterLabels();
+  var placeholder = document.querySelector('.content-placeholder');
+  if (placeholder) {
+    placeholder.querySelector('h2').textContent = L.docsTitle[lang];
+    placeholder.querySelector('p').textContent = L.docsSubtitle[lang];
+  }
+  if (activeChapter) {
+    var file = currentLang==='de' ? getChapterDE(activeChapter.getAttribute('data-chapter')) : activeChapter.getAttribute('data-chapter')+'.md';
+    var ci = getChapterIndexByFile(file);
+    if (ci >= 0) {
+      var title = currentLang==='de' ? CHAPTERS[ci].tde : CHAPTERS[ci].ten;
+      loadChapter(activeChapter, file, CHAPTERS[ci].num, title);
+    }
+  }
+}
+
+function getChapterDE(enBase) {
+  for (var j = 0; j < CHAPTERS.length; j++) {
+    if (CHAPTERS[j].en.replace('.md','') === enBase) return CHAPTERS[j].de;
+  }
+  return enBase+'.md';
+}
+
+// ---- Init ----
 
 (function() {
   var stored = localStorage.getItem('pipe-lang');
-  if (!stored) {
-    stored = navigator.language.startsWith('de') ? 'de' : 'en';
-  }
+  if (!stored) stored = navigator.language.startsWith('de') ? 'de' : 'en';
+  currentLang = stored;
+  document.getElementById('search').placeholder = L.searchPlaceholder[stored];
+
+  buildChapterTree();
   setLang(stored);
+
+  // URL deep-link
+  var params = new URLSearchParams(window.location.search);
+  var ch = params.get('chapter');
+  if (ch) {
+    var file = stored==='de' ? getChapterDE(ch) : ch+'.md';
+    var ci = getChapterIndexByFile(file);
+    if (ci >= 0) {
+      var title = stored==='de' ? CHAPTERS[ci].tde : CHAPTERS[ci].ten;
+      var link = document.querySelector('.sidebar-chapter[data-chapter="'+ch+'"]');
+      loadChapter(link, file, CHAPTERS[ci].num, title);
+    }
+  }
 })();
 </script>
 

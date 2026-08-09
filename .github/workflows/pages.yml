@@ -5,6 +5,7 @@ on:
     branches: [master]
     paths:
       - 'website/**'
+      - 'docs/**'
       - '.github/workflows/pages.yml'
   schedule:
     - cron: '0 6 * * *'  # daily at 6 AM UTC
@@ -45,29 +46,25 @@ jobs:
     - name: Generate RSS Feed
       run: |
         cat > /tmp/genrss.py << 'PYEOF'
-        import json, urllib.request
-        from xml.sax.saxutils import escape
+        import json
         from email.utils import formatdate
+        from datetime import datetime
 
-        url = "https://pipe-a3ad1-default-rtdb.europe-west1.firebasedatabase.app/blog/posts.json"
-        try:
-            resp = urllib.request.urlopen(url)
-            raw = resp.read().decode()
-            data = json.loads(raw) if raw != "null" else None
-        except Exception as e:
-            print(f"Firebase fetch failed: {e}")
-            data = None
+        with open("website/blog/index.json") as f:
+            posts = json.load(f)
 
+        now = formatdate(usegmt=True)
         items = ""
-        if data and isinstance(data, dict):
-            for key in sorted(data.keys(), key=lambda k: data[k].get("created", 0), reverse=True):
-                p = data[key]
-                title = escape(p.get("title", ""))
-                excerpt = escape(" ".join(p.get("content", "").split())[:300])
-                post_url = f"https://pipe-lang.com/blog.html?post={key}"
-                ts = p.get("created", 0) / 1000
-                pubdate = formatdate(ts, usegmt=True)
-                items += f"""  <item>
+        for p in posts:
+            title = p["title"]["en"]
+            excerpt = p["excerpt"]["en"]
+            post_url = f"https://pipe-lang.com/blog.html?post={p['id']}"
+            try:
+                dt = datetime.fromisoformat(p["date"])
+                pubdate = formatdate(dt.timestamp(), usegmt=True)
+            except:
+                pubdate = now
+            items += f"""  <item>
             <title>{title}</title>
             <link>{post_url}</link>
             <guid isPermaLink="true">{post_url}</guid>
@@ -76,7 +73,6 @@ jobs:
           </item>
         """
 
-        now = formatdate(usegmt=True)
         rss = f"""<?xml version="1.0" encoding="UTF-8"?>
         <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
         <channel>
@@ -91,9 +87,12 @@ jobs:
 
         with open("website/feed.xml", "w") as f:
             f.write(rss)
-        print(f"RSS feed generated: {len(rss)} bytes ({len(items.split(chr(10))) if items else 0} items)")
+        print(f"RSS feed generated: {len(rss)} bytes ({len(posts)} items)")
         PYEOF
         python3 /tmp/genrss.py
+
+    - name: Copy docs for in-site viewing
+      run: cp -r docs website/docs
 
     - name: Upload artifact
       uses: actions/upload-pages-artifact@v3

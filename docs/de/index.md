@@ -22,7 +22,7 @@ Willkommen zur vollständigen Dokumentation der Skriptsprache **Pipe**.
 7. [Datenstrukturen](07-datenstrukturen.md) — Listen, Slicing, Maps, Dot-Access, höhere Funktionen
 8. [Fehlerbehandlung](08-fehlerbehandlung.md) — try/catch, Stack-Traces, Result-Typ
 9. [Module und Importe](09-module-und-importe.md) — import, export, Namespaces, PIPE\_PATH
-10. [Builtin-Referenz](10-builtin-referenz.md) — Alle 165 eingebaute Funktionen
+10. [Builtin-Referenz](10-builtin-referenz.md) — Alle 198 eingebauten Funktionen
 11. [Tooling](11-tooling.md) — CLI-Flags, REPL, Formatter, Test-Runner, Build
 12. [Ausführungsmodelle](12-ausfuehrungsmodelle.md) — Tree-Walker vs Bytecode-VM
 13. [Bytecode-VM](13-bytecode-vm.md) — 42 Opcodes, Stack-Maschine, Symbol-Tabelle
@@ -35,6 +35,10 @@ Willkommen zur vollständigen Dokumentation der Skriptsprache **Pipe**.
 20. [GitHub Action](20-github-action.md) — Pipe in CI/CD-Pipelines nutzen
 21. [Modul-Ökosystem](21-ecosystem.md) — Module finden, installieren, beitragen
 22. [Sandbox-Profile](22-sandbox-profile.md) — Deklarative Sicherheitsprofile für KI-Agenten und nicht vertrauenswürdigen Code
+23. [X-Modul (Twitter)](23-x-modul.md) — OAuth-2.0- + API-v2-Client als reines-Pipe-Modul *(in Entwicklung, noch nicht im Registry)*
+24. [Discord-Modul](24-discord-modul.md) — Webhook- + Bot-Token-Client als reines-Pipe-Modul *(in Entwicklung, noch nicht im Registry)*
+25. [MCP — Model Context Protocol](25-mcp.md) — Dependency-freier MCP-Server + -Client, JSON-RPC 2.0 über stdio *(in Entwicklung, noch nicht im Registry)*
+26. [SQLite-Modul](26-sqlite-modul.md) — Reine-Pipe relationale Datenbank + Benchmark vs Python/Lua
 
 ## Anhang
 

@@ -30,3 +30,8 @@ jobs:
 
     - name: Build
       run: go build -v ./cmd/pipe
+
+    - name: Integration tests
+      run: |
+        go build -o /tmp/pipe ./cmd/pipe
+        cd test/integration && /tmp/pipe -test

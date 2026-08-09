@@ -26,6 +26,11 @@ run: build
 
 test:
 	go test ./pkg/...
+	$(MAKE) test-integration
+
+test-integration:
+	go build -o bin/pipe ./cmd/pipe
+	cd test/integration && ../../bin/pipe -test
 
 repl: build
 	./bin/pipe

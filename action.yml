@@ -23,14 +23,13 @@ inputs:
 runs:
   using: 'composite'
   steps:
-    - shell: bash
-      run: bash "$GITHUB_ACTION_PATH/.github/actions/pipe-action/run.sh"
-      env:
-        PIPE_SCRIPT: ${{ inputs.script }}
-        PIPE_FILE: ${{ inputs.file }}
-        PIPE_FLAGS: ${{ inputs.flags }}
-        PIPE_VERSION: ${{ inputs.version }}
-        PIPE_PROVIDER: ${{ inputs.provider }}
+    - uses: ./.github/actions/pipe-action
+      with:
+        script: ${{ inputs.script }}
+        file: ${{ inputs.file }}
+        flags: ${{ inputs.flags }}
+        version: ${{ inputs.version }}
+        provider: ${{ inputs.provider }}
 
 branding:
   icon: 'cpu'

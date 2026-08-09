@@ -281,4 +281,4 @@ Pipe is currently at version **v0.9.2**, which adds a `max_tokens` limit as the 
 | Test Framework | 🟡 Partial | v0.7 | test blocks + asserts + CLI; setup/teardown hooks open |
 | Doc Generator | 🔮 Future | v0.7+ | `pipe doc` |
 | Plugins | 🔮 Future | v0.8+ | Go/WASM extensions |
-| SQLite Module | ✅ Done | v0.8 | Pure-Pipe SQL engine, available via `pipe -get sqlite` from pipe-modules. Replaces modernc.org/sqlite. Binary ~7 MB, zero deps. SQL: CREATE/INSERT/UPDATE/DELETE/SELECT with WHERE, GROUP BY, ORDER BY, JOINs, transactions, paged binary persistence. Pipeline API (q, exec, row_get, row_eq, row_ne). Benchmarks vs Python/Lua in BENCHMARK.md. |
+| SQLite Module | ✅ Done | v0.8 | Pure-Pipe SQL engine, available via `pipe -get sqlite` from pipe-modules. Replaces modernc.org/sqlite. Binary ~7 MB, zero deps. SQL: CREATE/INSERT/UPDATE/DELETE/SELECT with WHERE, GROUP BY, ORDER BY, JOINs, transactions, paged binary persistence. Pipeline API (q, exec, row_get, row_eq, row_ne). Benchmarks vs Python/Lua in the [SQLite Module](26-sqlite-module.md) chapter. |

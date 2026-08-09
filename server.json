@@ -7,35 +7,35 @@
     "url": "https://github.com/MachuraHarry/pipe",
     "source": "github"
   },
-  "version": "0.9.2",
+  "version": "0.9.3",
   "packages": [
     {
       "registryType": "mcpb",
-      "identifier": "https://github.com/MachuraHarry/pipe/releases/download/v0.9.2/pipe-server-linux-amd64.mcpb",
+      "identifier": "https://github.com/MachuraHarry/pipe/releases/download/v0.9.3/pipe-server-linux-amd64.mcpb",
       "fileSha256": "REPLACE_AT_PUBLISH",
       "transport": { "type": "stdio" }
     },
     {
       "registryType": "mcpb",
-      "identifier": "https://github.com/MachuraHarry/pipe/releases/download/v0.9.2/pipe-server-linux-arm64.mcpb",
+      "identifier": "https://github.com/MachuraHarry/pipe/releases/download/v0.9.3/pipe-server-linux-arm64.mcpb",
       "fileSha256": "REPLACE_AT_PUBLISH",
       "transport": { "type": "stdio" }
     },
     {
       "registryType": "mcpb",
-      "identifier": "https://github.com/MachuraHarry/pipe/releases/download/v0.9.2/pipe-server-darwin-amd64.mcpb",
+      "identifier": "https://github.com/MachuraHarry/pipe/releases/download/v0.9.3/pipe-server-darwin-amd64.mcpb",
       "fileSha256": "REPLACE_AT_PUBLISH",
       "transport": { "type": "stdio" }
     },
     {
       "registryType": "mcpb",
-      "identifier": "https://github.com/MachuraHarry/pipe/releases/download/v0.9.2/pipe-server-darwin-arm64.mcpb",
+      "identifier": "https://github.com/MachuraHarry/pipe/releases/download/v0.9.3/pipe-server-darwin-arm64.mcpb",
       "fileSha256": "REPLACE_AT_PUBLISH",
       "transport": { "type": "stdio" }
     },
     {
       "registryType": "mcpb",
-      "identifier": "https://github.com/MachuraHarry/pipe/releases/download/v0.9.2/pipe-server-windows-amd64.mcpb",
+      "identifier": "https://github.com/MachuraHarry/pipe/releases/download/v0.9.3/pipe-server-windows-amd64.mcpb",
       "fileSha256": "REPLACE_AT_PUBLISH",
       "transport": { "type": "stdio" }
     }

@@ -1329,9 +1329,9 @@ q h "SELECT * FROM tasks" > filter is_high > each print
 
 Persistence uses a paged binary format with CRC32 checksums; `":memory:"` for in-memory databases.
 
-See `SQLite.md` in the repository root for architecture details and `BENCHMARK.md` for performance benchmarks (Pipe vs Python vs Lua).
+See the [SQLite Module](26-sqlite-module.md) chapter for architecture details and benchmarks (Pipe vs Python vs Lua).
 
-> **Note:** TV mode is fully functional — all operations work (CREATE, INSERT, SELECT, WHERE, GROUP BY, UPDATE, DELETE). VM mode has a known compiler bug with large module imports — individual operations work but complex dispatch (db_exec → exec_insert) fails. See `MEMORY.md`.
+> **Note:** TV mode is fully functional — all operations work (CREATE, INSERT, SELECT, WHERE, GROUP BY, UPDATE, DELETE). VM mode has a known compiler bug with large module imports — individual operations work but complex dispatch (db_exec → exec_insert) fails. See the [SQLite Module](26-sqlite-module.md) chapter.
 
 | Function | Signature | Description |
 |----------|-----------|-------------|

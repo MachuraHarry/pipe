@@ -1556,9 +1556,9 @@ q h "SELECT * FROM tasks" > filter is_high > each print
 
 Persistenz erfolgt über ein binäres Paging-Format mit CRC32-Prüfsummen; `":memory:"` für In-Memory-Datenbanken.
 
-Siehe `SQLite.md` im Repository-Root für Architektur-Details und `BENCHMARK.md` für Performance-Benchmarks (Pipe vs Python vs Lua).
+Siehe das Kapitel [SQLite-Modul](26-sqlite-modul.md) für Architektur-Details und Benchmarks (Pipe vs Python vs Lua).
 
-> **Hinweis:** Der TV-Modus ist vollständig funktionsfähig — alle Operationen laufen (CREATE, INSERT, SELECT, WHERE, GROUP BY, UPDATE, DELETE). Der VM-Modus hat einen bekannten Compiler-Bug bei großen Modul-Importen — einzelne Operationen funktionieren, aber komplexe Dispatch-Aufrufe (db_exec → exec_insert) scheitern. Siehe `MEMORY.md`.
+> **Hinweis:** Der TV-Modus ist vollständig funktionsfähig — alle Operationen laufen (CREATE, INSERT, SELECT, WHERE, GROUP BY, UPDATE, DELETE). Der VM-Modus hat einen bekannten Compiler-Bug bei großen Modul-Importen — einzelne Operationen funktionieren, aber komplexe Dispatch-Aufrufe (db_exec → exec_insert) scheitern. Siehe das Kapitel [SQLite-Modul](26-sqlite-modul.md).
 
 | Funktion | Signatur | Beschreibung |
 |----------|----------|--------------|

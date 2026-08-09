@@ -34,3 +34,7 @@ vscode/out/
 
 # VSCode extension package
 *.vsix
+
+# WebAssembly build artifacts (built in CI for GitHub Pages)
+website/pipe.wasm
+website/pipe.wasm.gz

@@ -6,7 +6,7 @@
 [![SPR](https://img.shields.io/badge/SPR-Semantic%20Pipeline%20Runtime-7c5cfc.svg)](#)
 [![MCP](https://img.shields.io/badge/MCP-Server%20%2B%20Client-3ce096.svg)](#model-context-protocol)
 
-> **The first language with built-in MCP — server and client. 193 builtins, 23 modules, single ~7 MB binary. Zero dependencies.**
+> **The first language with built-in MCP — server and client. 198 builtins, single ~7 MB binary. Zero dependencies.**
 
 ## Quick Install
 
@@ -363,7 +363,7 @@ write_file "/etc/config"    -- ❌ E_SANDBOX blocked
 ```
 Source (.pipe) → Lexer → Parser → AST → [ Tree-Walker | Compiler + VM ]
                                             ↓
-                                 Builtins (193 total: 43 AI, 150 stdlib)
+                                  Builtins (198 total: 18 ai_*, 6 mcp_*, 174 stdlib)
                                             ↓
                               MCP Server ↔ MCP Clients (stdio + HTTP)
 ```

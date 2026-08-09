@@ -27,8 +27,8 @@ var (
 )
 
 func bHttpServer(args ...Object) Object {
-	if ActiveProfile.Name != "none" {
-		if canErr := ActiveProfile.CanNetwork(); canErr != nil {
+	if ActiveProfile.Load().Name != "none" {
+		if canErr := ActiveProfile.Load().CanNetwork(); canErr != nil {
 			return err(canErr.Error())
 		}
 	} else if Sandbox.Enabled && !Sandbox.AllowNet {

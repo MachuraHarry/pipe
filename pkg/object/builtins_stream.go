@@ -39,8 +39,8 @@ func getStream(handle int) (*streamHandle, bool) {
 }
 
 func bHttpStreamOpen(args ...Object) Object {
-	if ActiveProfile.Name != "none" {
-		if canErr := ActiveProfile.CanNetwork(); canErr != nil {
+	if ActiveProfile.Load().Name != "none" {
+		if canErr := ActiveProfile.Load().CanNetwork(); canErr != nil {
 			return err(canErr.Error())
 		}
 	} else if Sandbox.Enabled && !Sandbox.AllowNet {
@@ -53,10 +53,10 @@ func bHttpStreamOpen(args ...Object) Object {
 	if !ok {
 		return err("http_stream_open: URL must be a string")
 	}
-	if whitelistErr := ActiveProfile.CanNetworkTo(url.Value); whitelistErr != nil {
+	if whitelistErr := ActiveProfile.Load().CanNetworkTo(url.Value); whitelistErr != nil {
 		return err(whitelistErr.Error())
 	}
-	ActiveProfile.Audit("http_stream_open", url.Value)
+	ActiveProfile.Load().Audit("http_stream_open", url.Value)
 
 	headers := make(map[string]string)
 	if len(args) >= 2 {
@@ -84,7 +84,7 @@ func bHttpStreamOpen(args ...Object) Object {
 	}
 
 	// No client timeout: the stream stays open until closed or the server ends it.
-	client := &http.Client{}
+	client := sandboxHTTPClient(0)
 	resp, e := client.Do(req)
 	if e != nil {
 		return err("http_stream_open: " + e.Error())

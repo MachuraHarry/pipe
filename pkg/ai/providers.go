@@ -55,7 +55,12 @@ func openAIChat(cfg Config, req ChatRequest) (ChatResponse, error) {
 		MaxTokens: req.MaxTokens,
 	}
 
-	result, err := httpPostJSON(cfg.APIHost+"/v1/chat/completions", apiKey, oai, cfg.Timeout)
+	oaiBody, err := bodyWithExtra(oai, cfg.ExtraBody)
+	if err != nil {
+		return ChatResponse{}, err
+	}
+
+	result, err := httpPostJSON(cfg.APIHost+"/v1/chat/completions", apiKey, oaiBody, cfg.Timeout)
 	if err != nil {
 		return ChatResponse{}, err
 	}
@@ -118,7 +123,12 @@ func deepSeekChat(cfg Config, req ChatRequest) (ChatResponse, error) {
 		MaxTokens: req.MaxTokens,
 	}
 
-	result, err := httpPostJSON(cfg.APIHost+"/v1/chat/completions", apiKey, ds, cfg.Timeout)
+	dsBody, err := bodyWithExtra(ds, cfg.ExtraBody)
+	if err != nil {
+		return ChatResponse{}, err
+	}
+
+	result, err := httpPostJSON(cfg.APIHost+"/v1/chat/completions", apiKey, dsBody, cfg.Timeout)
 	if err != nil {
 		return ChatResponse{}, err
 	}
@@ -171,6 +181,9 @@ func anthropicChat(cfg Config, req ChatRequest) (ChatResponse, error) {
 	if systemPrompt != "" {
 		body["system"] = systemPrompt
 	}
+	for k, v := range cfg.ExtraBody {
+		body[k] = v
+	}
 
 	result, err := httpPostJSON(cfg.APIHost+"/v1/messages", apiKey, body, cfg.Timeout)
 	if err != nil {
@@ -199,6 +212,27 @@ func anthropicChat(cfg Config, req ChatRequest) (ChatResponse, error) {
 	return resp, nil
 }
 
+// bodyWithExtra marshals base into a map and merges the ExtraBody fields on
+// top of it, so arbitrary provider capabilities (reasoning/thinking controls,
+// etc.) can be passed through verbatim.
+func bodyWithExtra(base interface{}, extra map[string]interface{}) (interface{}, error) {
+	if len(extra) == 0 {
+		return base, nil
+	}
+	b, err := json.Marshal(base)
+	if err != nil {
+		return nil, fmt.Errorf("marshal request body: %w", err)
+	}
+	var m map[string]interface{}
+	if err := json.Unmarshal(b, &m); err != nil {
+		return nil, fmt.Errorf("unmarshal request body: %w", err)
+	}
+	for k, v := range extra {
+		m[k] = v
+	}
+	return m, nil
+}
+
 // ---- Streaming Implementations ----
 
 func openAIStream(cfg Config, req ChatRequest, onToken StreamCallback) error {
@@ -223,6 +257,9 @@ func openAIStream(cfg Config, req ChatRequest, onToken StreamCallback) error {
 	}
 	if req.MaxTokens > 0 {
 		body["max_tokens"] = req.MaxTokens
+	}
+	for k, v := range cfg.ExtraBody {
+		body[k] = v
 	}
 
 	return httpPostStream(cfg.APIHost+"/v1/chat/completions", apiKey, body, cfg.Timeout, onToken)
@@ -250,6 +287,9 @@ func deepSeekStream(cfg Config, req ChatRequest, onToken StreamCallback) error {
 	}
 	if req.MaxTokens > 0 {
 		body["max_tokens"] = req.MaxTokens
+	}
+	for k, v := range cfg.ExtraBody {
+		body[k] = v
 	}
 
 	return httpPostStream(cfg.APIHost+"/v1/chat/completions", apiKey, body, cfg.Timeout, onToken)
@@ -289,6 +329,9 @@ func anthropicStream(cfg Config, req ChatRequest, onToken StreamCallback) error 
 	}
 	if systemPrompt != "" {
 		body["system"] = systemPrompt
+	}
+	for k, v := range cfg.ExtraBody {
+		body[k] = v
 	}
 
 	return httpPostStreamAnthropic(cfg.APIHost+"/v1/messages", apiKey, body, cfg.Timeout, onToken)
@@ -374,6 +417,9 @@ func ollamaChat(cfg Config, req ChatRequest) (ChatResponse, error) {
 		"messages": messages,
 		"stream":   false,
 	}
+	for k, v := range cfg.ExtraBody {
+		body[k] = v
+	}
 
 	result, err := httpPostJSON(cfg.APIHost+"/v1/chat/completions", "ollama", body, cfg.Timeout)
 	if err != nil {
@@ -397,6 +443,9 @@ func ollamaStream(cfg Config, req ChatRequest, onToken StreamCallback) error {
 		"model":    cfg.Model,
 		"messages": messages,
 		"stream":   true,
+	}
+	for k, v := range cfg.ExtraBody {
+		body[k] = v
 	}
 
 	return httpPostStream(cfg.APIHost+"/v1/chat/completions", "ollama", body, cfg.Timeout, onToken)

@@ -41,9 +41,28 @@ func (tl *TcpListener) Inspect() string  { return fmt.Sprintf("tcp-listener:%d",
 
 // ---- Network ----
 
+// sandboxHTTPClient returns an http.Client whose redirect hops are re-checked
+// against the active profile's network whitelist.
+func sandboxHTTPClient(timeout time.Duration) *http.Client {
+	return &http.Client{
+		Timeout: timeout,
+		CheckRedirect: func(req *http.Request, via []*http.Request) error {
+			if len(via) >= 10 {
+				return fmt.Errorf("E_SANDBOX: too many redirects")
+			}
+			if ActiveProfile.Load().Name != "none" {
+				if canErr := ActiveProfile.Load().CanNetworkTo(req.URL.String()); canErr != nil {
+					return canErr
+				}
+			}
+			return nil
+		},
+	}
+}
+
 func bHttpGet(args ...Object) Object {
-	if ActiveProfile.Name != "none" {
-		if canErr := ActiveProfile.CanNetwork(); canErr != nil {
+	if ActiveProfile.Load().Name != "none" {
+		if canErr := ActiveProfile.Load().CanNetwork(); canErr != nil {
 			return err(canErr.Error())
 		}
 	} else if Sandbox.Enabled && !Sandbox.AllowNet {
@@ -56,11 +75,11 @@ func bHttpGet(args ...Object) Object {
 	if !ok {
 		return err("http_get: URL must be a string")
 	}
-	if whitelistErr := ActiveProfile.CanNetworkTo(url.Value); whitelistErr != nil {
+	if whitelistErr := ActiveProfile.Load().CanNetworkTo(url.Value); whitelistErr != nil {
 		return err(whitelistErr.Error())
 	}
-	ActiveProfile.Audit("http_get", url.Value)
-	client := &http.Client{Timeout: 10 * time.Second}
+	ActiveProfile.Load().Audit("http_get", url.Value)
+	client := sandboxHTTPClient(10 * time.Second)
 	resp, e := client.Get(url.Value)
 	if e != nil {
 		return err("http_get: " + e.Error())
@@ -77,8 +96,8 @@ func bHttpGet(args ...Object) Object {
 }
 
 func bHttpPost(args ...Object) Object {
-	if ActiveProfile.Name != "none" {
-		if canErr := ActiveProfile.CanNetwork(); canErr != nil {
+	if ActiveProfile.Load().Name != "none" {
+		if canErr := ActiveProfile.Load().CanNetwork(); canErr != nil {
 			return err(canErr.Error())
 		}
 	}
@@ -89,10 +108,10 @@ func bHttpPost(args ...Object) Object {
 	if !ok {
 		return err("http_post: URL must be a string")
 	}
-	if whitelistErr := ActiveProfile.CanNetworkTo(url.Value); whitelistErr != nil {
+	if whitelistErr := ActiveProfile.Load().CanNetworkTo(url.Value); whitelistErr != nil {
 		return err(whitelistErr.Error())
 	}
-	ActiveProfile.Audit("http_post", url.Value)
+	ActiveProfile.Load().Audit("http_post", url.Value)
 	var bodyStr string
 	if len(args) >= 2 {
 		if b, ok := args[1].(*String); ok {
@@ -101,7 +120,7 @@ func bHttpPost(args ...Object) Object {
 			bodyStr = args[1].Inspect()
 		}
 	}
-	client := &http.Client{Timeout: 10 * time.Second}
+	client := sandboxHTTPClient(10 * time.Second)
 	var bodyReader io.Reader
 	if bodyStr != "" {
 		bodyReader = strings.NewReader(bodyStr)
@@ -122,8 +141,8 @@ func bHttpPost(args ...Object) Object {
 }
 
 func bHttpRequest(args ...Object) Object {
-	if ActiveProfile.Name != "none" {
-		if canErr := ActiveProfile.CanNetwork(); canErr != nil {
+	if ActiveProfile.Load().Name != "none" {
+		if canErr := ActiveProfile.Load().CanNetwork(); canErr != nil {
 			return err(canErr.Error())
 		}
 	} else if Sandbox.Enabled && !Sandbox.AllowNet {
@@ -140,10 +159,10 @@ func bHttpRequest(args ...Object) Object {
 	if !ok {
 		return err("http_request: URL must be a string")
 	}
-	if whitelistErr := ActiveProfile.CanNetworkTo(url.Value); whitelistErr != nil {
+	if whitelistErr := ActiveProfile.Load().CanNetworkTo(url.Value); whitelistErr != nil {
 		return err(whitelistErr.Error())
 	}
-	ActiveProfile.Audit("http_request", url.Value)
+	ActiveProfile.Load().Audit("http_request", url.Value)
 
 	var bodyStr string
 	headers := make(map[string]string)
@@ -170,7 +189,7 @@ func bHttpRequest(args ...Object) Object {
 		}
 	}
 
-	client := &http.Client{Timeout: 30 * time.Second}
+	client := sandboxHTTPClient(30 * time.Second)
 	var bodyReader io.Reader
 	if bodyStr != "" {
 		bodyReader = strings.NewReader(bodyStr)
@@ -312,8 +331,8 @@ func objectToJSON(obj Object) interface{} {
 // ---- TCP ----
 
 func bTcpListen(args ...Object) Object {
-	if ActiveProfile.Name != "none" {
-		if canErr := ActiveProfile.CanNetwork(); canErr != nil {
+	if ActiveProfile.Load().Name != "none" {
+		if canErr := ActiveProfile.Load().CanNetwork(); canErr != nil {
 			return err(canErr.Error())
 		}
 	}
@@ -329,6 +348,11 @@ func bTcpListen(args ...Object) Object {
 		return err("tcp_listen: Port must be a number")
 	}
 	addr := fmt.Sprintf("%s:%d", host.Value, port)
+	if ActiveProfile.Load().Name != "none" {
+		if canErr := ActiveProfile.Load().CanNetworkTo(addr); canErr != nil {
+			return err(canErr.Error())
+		}
+	}
 	ln, e := net.Listen("tcp", addr)
 	if e != nil {
 		return err("tcp_listen: " + e.Error())
@@ -342,8 +366,8 @@ func bTcpListen(args ...Object) Object {
 }
 
 func bTcpConnect(args ...Object) Object {
-	if ActiveProfile.Name != "none" {
-		if canErr := ActiveProfile.CanNetwork(); canErr != nil {
+	if ActiveProfile.Load().Name != "none" {
+		if canErr := ActiveProfile.Load().CanNetwork(); canErr != nil {
 			return err(canErr.Error())
 		}
 	}
@@ -359,7 +383,19 @@ func bTcpConnect(args ...Object) Object {
 		return err("tcp_connect: Port must be a number")
 	}
 	addr := net.JoinHostPort(host.Value, strconv.FormatInt(port, 10))
-	c, e := net.Dial("tcp", addr)
+	if ActiveProfile.Load().Name != "none" {
+		if canErr := ActiveProfile.Load().CanNetworkTo(addr); canErr != nil {
+			return err(canErr.Error())
+		}
+	}
+	profile := ActiveProfile.Load()
+	var c net.Conn
+	var e error
+	if profile.Name != "none" && profile.Timeout > 0 {
+		c, e = net.DialTimeout("tcp", addr, time.Duration(profile.Timeout)*time.Second)
+	} else {
+		c, e = net.Dial("tcp", addr)
+	}
 	if e != nil {
 		return err("tcp_connect: " + e.Error())
 	}
@@ -410,6 +446,10 @@ func bTcpRead(args ...Object) Object {
 	connMu.Unlock()
 	if !exists {
 		return err("tcp_read: connection does not exist")
+	}
+	profile := ActiveProfile.Load()
+	if profile.Name != "none" && profile.Timeout > 0 {
+		c.SetReadDeadline(time.Now().Add(time.Duration(profile.Timeout) * time.Second))
 	}
 	buf := make([]byte, 4096)
 	n, e := c.Read(buf)

@@ -19,12 +19,15 @@ func bAppendFile(args ...Object) Object {
 	if !ok || !ok2 {
 		return err("append_file: path and content must be strings")
 	}
-	if ActiveProfile.Name != "none" {
-		if canErr := ActiveProfile.CanWrite(p.Value); canErr != nil {
-			return err(canErr.Error())
+	path := p.Value
+	if ActiveProfile.Load().Name != "none" {
+		var cerr error
+		path, cerr = ActiveProfile.Load().canonicalWrite(p.Value)
+		if cerr != nil {
+			return err(cerr.Error())
 		}
 	}
-	f, e := os.OpenFile(p.Value, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	f, e := os.OpenFile(path, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if e != nil {
 		return err("append_file: " + e.Error())
 	}
@@ -43,7 +46,15 @@ func bReadLines(args ...Object) Object {
 	if !ok {
 		return err("read_lines: path must be a string")
 	}
-	data, e := os.ReadFile(p.Value)
+	path := p.Value
+	if ActiveProfile.Load().Name != "none" {
+		var cerr error
+		path, cerr = ActiveProfile.Load().canonicalRead(p.Value)
+		if cerr != nil {
+			return err(cerr.Error())
+		}
+	}
+	data, e := os.ReadFile(path)
 	if e != nil {
 		return err("read_lines: " + e.Error())
 	}
@@ -63,7 +74,15 @@ func bFileExists(args ...Object) Object {
 	if !ok {
 		return err("file_exists: path must be a string")
 	}
-	_, e := os.Stat(p.Value)
+	path := p.Value
+	if ActiveProfile.Load().Name != "none" {
+		var cerr error
+		path, cerr = ActiveProfile.Load().canonicalRead(p.Value)
+		if cerr != nil {
+			return err(cerr.Error())
+		}
+	}
+	_, e := os.Stat(path)
 	return NativeBoolToBoolean(e == nil)
 }
 
@@ -75,14 +94,17 @@ func bFileDelete(args ...Object) Object {
 	if !ok {
 		return err("file_delete: path must be a string")
 	}
-	if ActiveProfile.Name != "none" {
-		if canErr := ActiveProfile.CanWrite(p.Value); canErr != nil {
-			return err(canErr.Error())
+	path := p.Value
+	if ActiveProfile.Load().Name != "none" {
+		var cerr error
+		path, cerr = ActiveProfile.Load().canonicalWrite(p.Value)
+		if cerr != nil {
+			return err(cerr.Error())
 		}
 	} else if Sandbox.Enabled && !Sandbox.AllowFS {
 		return sandboxBlock("file_delete (filesystem write)")
 	}
-	if e := os.Remove(p.Value); e != nil {
+	if e := os.Remove(path); e != nil {
 		return err("file_delete: " + e.Error())
 	}
 	return NILOBJ
@@ -97,12 +119,19 @@ func bFileMove(args ...Object) Object {
 	if !ok || !ok2 {
 		return err("file_move: paths must be strings")
 	}
-	if ActiveProfile.Name != "none" {
-		if canErr := ActiveProfile.CanWrite(dst.Value); canErr != nil {
-			return err(canErr.Error())
+	srcPath, dstPath := src.Value, dst.Value
+	if ActiveProfile.Load().Name != "none" {
+		var cerr error
+		srcPath, cerr = ActiveProfile.Load().canonicalRead(src.Value)
+		if cerr != nil {
+			return err(cerr.Error())
+		}
+		dstPath, cerr = ActiveProfile.Load().canonicalWrite(dst.Value)
+		if cerr != nil {
+			return err(cerr.Error())
 		}
 	}
-	if e := os.Rename(src.Value, dst.Value); e != nil {
+	if e := os.Rename(srcPath, dstPath); e != nil {
 		return err("file_move: " + e.Error())
 	}
 	return NILOBJ
@@ -117,20 +146,24 @@ func bFileCopy(args ...Object) Object {
 	if !ok || !ok2 {
 		return err("file_copy: paths must be strings")
 	}
-	if ActiveProfile.Name != "none" {
-		if canErr := ActiveProfile.CanRead(src.Value); canErr != nil {
-			return err(canErr.Error())
+	srcPath, dstPath := src.Value, dst.Value
+	if ActiveProfile.Load().Name != "none" {
+		var cerr error
+		srcPath, cerr = ActiveProfile.Load().canonicalRead(src.Value)
+		if cerr != nil {
+			return err(cerr.Error())
 		}
-		if canErr := ActiveProfile.CanWrite(dst.Value); canErr != nil {
-			return err(canErr.Error())
+		dstPath, cerr = ActiveProfile.Load().canonicalWrite(dst.Value)
+		if cerr != nil {
+			return err(cerr.Error())
 		}
 	}
-	srcFile, e := os.Open(src.Value)
+	srcFile, e := os.Open(srcPath)
 	if e != nil {
 		return err("file_copy: " + e.Error())
 	}
 	defer srcFile.Close()
-	dstFile, e := os.Create(dst.Value)
+	dstFile, e := os.Create(dstPath)
 	if e != nil {
 		return err("file_copy: " + e.Error())
 	}
@@ -149,7 +182,15 @@ func bFileSize(args ...Object) Object {
 	if !ok {
 		return err("file_size: path must be a string")
 	}
-	info, e := os.Stat(p.Value)
+	path := p.Value
+	if ActiveProfile.Load().Name != "none" {
+		var cerr error
+		path, cerr = ActiveProfile.Load().canonicalRead(p.Value)
+		if cerr != nil {
+			return err(cerr.Error())
+		}
+	}
+	info, e := os.Stat(path)
 	if e != nil {
 		return err("file_size: " + e.Error())
 	}
@@ -164,7 +205,15 @@ func bFileType(args ...Object) Object {
 	if !ok {
 		return err("file_type: path must be a string")
 	}
-	info, e := os.Stat(p.Value)
+	path := p.Value
+	if ActiveProfile.Load().Name != "none" {
+		var cerr error
+		path, cerr = ActiveProfile.Load().canonicalRead(p.Value)
+		if cerr != nil {
+			return err(cerr.Error())
+		}
+	}
+	info, e := os.Stat(path)
 	if e != nil {
 		return err("file_type: " + e.Error())
 	}
@@ -183,7 +232,15 @@ func bListDir(args ...Object) Object {
 		}
 		path = p.Value
 	}
-	entries, e := os.ReadDir(path)
+	dirPath := path
+	if ActiveProfile.Load().Name != "none" {
+		var cerr error
+		dirPath, cerr = ActiveProfile.Load().canonicalRead(path)
+		if cerr != nil {
+			return err(cerr.Error())
+		}
+	}
+	entries, e := os.ReadDir(dirPath)
 	if e != nil {
 		return err("list_dir: " + e.Error())
 	}
@@ -209,12 +266,15 @@ func bMakeDir(args ...Object) Object {
 	if !ok {
 		return err("make_dir: path must be a string")
 	}
-	if ActiveProfile.Name != "none" {
-		if canErr := ActiveProfile.CanWrite(p.Value); canErr != nil {
-			return err(canErr.Error())
+	path := p.Value
+	if ActiveProfile.Load().Name != "none" {
+		var cerr error
+		path, cerr = ActiveProfile.Load().canonicalWrite(p.Value)
+		if cerr != nil {
+			return err(cerr.Error())
 		}
 	}
-	if e := os.MkdirAll(p.Value, 0755); e != nil {
+	if e := os.MkdirAll(path, 0755); e != nil {
 		return err("make_dir: " + e.Error())
 	}
 	return NILOBJ
@@ -228,14 +288,17 @@ func bRemoveDir(args ...Object) Object {
 	if !ok {
 		return err("remove_dir: path must be a string")
 	}
-	if ActiveProfile.Name != "none" {
-		if canErr := ActiveProfile.CanWrite(p.Value); canErr != nil {
-			return err(canErr.Error())
+	path := p.Value
+	if ActiveProfile.Load().Name != "none" {
+		var cerr error
+		path, cerr = ActiveProfile.Load().canonicalWrite(p.Value)
+		if cerr != nil {
+			return err(cerr.Error())
 		}
 	} else if Sandbox.Enabled && !Sandbox.AllowFS {
 		return sandboxBlock("remove_dir (filesystem write)")
 	}
-	if e := os.RemoveAll(p.Value); e != nil {
+	if e := os.RemoveAll(path); e != nil {
 		return err("remove_dir: " + e.Error())
 	}
 	return NILOBJ

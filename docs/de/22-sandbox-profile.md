@@ -69,11 +69,11 @@ Profile werden mit dem `sandbox_profile`-Builtin definiert. Die Konfiguration is
 | `network` | Bool | HTTP/TCP-Operationen erlauben |
 | `exec` | Bool | Shell-Befehle erlauben |
 | `ai` | Bool | KI-Chat/Embedding-Aufrufe erlauben |
-| `timeout` | Int | Max. Sekunden pro Tool-Call (0 = unbegrenzt) |
-| `env` | Map | Injizierte Umgebungsvariablen |
+| `timeout` | Int | Max. Sekunden pro `exec`/`tcp_connect`/`tcp_read`/`sleep`-Operation (0 = unbegrenzt) |
+| `env` | Map | Umgebungsvariablen, die in `exec` injiziert und von `env` zurückgegeben werden. Bei aktiven Profilen wird die echte Prozess-Umgebung nie preisgegeben |
 | `work_dir` | String | Arbeitsverzeichnis für den Sandbox |
-| `budget` | Num | Max. KI-Ausgaben in USD (0 = unbegrenzt). KI-Aufrufe werden blockiert, sobald die Ausgaben diesen Betrag erreichen |
-| `network_whitelist` | List | Liste von URL-Teilzeichenketten. Wenn gesetzt, erlauben `http_get`/`http_post` nur URLs, die mindestens einen Eintrag enthalten |
+| `budget` | Num | Max. KI-Ausgaben in USD (0 = unbegrenzt). Vor jedem Aufruf wird eine konservative Kostenschätzung geprüft, damit ein einzelner Aufruf das Budget nicht sprengen kann |
+| `network_whitelist` | List | Liste von Hosts/Domains (optional `host:port` oder `host/pfad`). Wenn gesetzt, müssen HTTP- und TCP-Ziele genau oder als Subdomain zu einem Eintrag passen. **Keine** Teilzeichenketten-Prüfung |
 | `max_tool_calls` | Int | Max. Anzahl Tool-Ausführungen pro `ai_with_tools`-Sitzung (0 = unbegrenzt) |
 | `audit_log` | Bool | Alle Sandbox-Ereignisse (http, KI-Aufrufe, Tool-Aufrufe) im Audit-Trail protokollieren |
 
@@ -121,6 +121,22 @@ set_sandbox "none"
 
 Ändert das aktive Profil global. Alle nachfolgenden Builtin-Aufrufe werden gegen dieses Profil geprüft.
 
+> **Sperre:** Wenn der Sandbox mit dem CLI-Flag `--sandbox-profile` gestartet
+> wurde (oder der Builtin `sandbox_lock` verwendet wird), kann sandboxisierter
+> Code **nicht** zu Profil `none` zurückschalten. Dadurch kann nicht
+> vertrauenswürdiger Code seinen eigenen Sandbox nicht deaktivieren.
+
+### `sandbox_lock` — Aktives Profil einfrieren
+
+```pipe
+sandbox_lock                -- aktives Profil sperren
+sandbox_lock "strict"       -- bestimmtes Profil sperren
+```
+
+Sobald ein Profil gesperrt ist, werden `set_sandbox` und `with_sandbox`
+abgelehnt, solange es aktiv ist. Das ist die stärkste Garantie: Auch das Skript
+selbst kann seine Einschränkung nicht mehr ändern.
+
 ### `with_sandbox` — Temporäres Profil
 
 ```pipe
@@ -145,7 +161,11 @@ Führt eine Funktion unter einem bestimmten Profil aus und stellt danach das vor
 | `temp-only` | nur temp-dir | nur temp-dir | nur temp-dir |
 | `full` | erlaubt | erlaubt | erlaubt |
 
-Bei `temp-only` werden alle Dateioperationen automatisch in ein `.pipe_sandbox`-Verzeichnis unter dem Arbeitsverzeichnis umgeleitet. Dies verhindert jeglichen Zugriff auf Dateien außerhalb des Sandbox.
+Bei `temp-only` werden Dateioperationen auf Pfade außerhalb des Sandbox
+automatisch in ein `.pipe_sandbox`-Verzeichnis unter dem Arbeitsverzeichnis
+umgeleitet. Pfade werden zuvor kanonisiert (absolut, Symlink-aufgelöst,
+`..`-sicher), sodass nichts außerhalb des Sandbox-Verzeichnisses gelesen oder
+geschrieben werden kann.
 
 ---
 
@@ -153,11 +173,13 @@ Bei `temp-only` werden alle Dateioperationen automatisch in ein `.pipe_sandbox`-
 
 Die folgenden Builtins prüfen das aktive Sandbox-Profil:
 
-**Dateisystem:** `read_file`, `write_file`, `append_file`, `file_delete`, `file_move`, `file_copy`, `make_dir`, `remove_dir`
+**Dateisystem:** `read_file`, `read_lines`, `write_file`, `append_file`, `file_delete`, `file_move`, `file_copy`, `file_size`, `file_type`, `file_exists`, `list_dir`, `make_dir`, `remove_dir`, `file_open`
 
 **Ausführung:** `exec`
 
-**Netzwerk:** `http_get`, `http_post`, `tcp_listen`, `tcp_connect`
+**Netzwerk:** `http_get`, `http_post`, `http_request`, `http_stream_open`, `tcp_listen`, `tcp_connect`
+
+**Umgebung:** `env` (liefert unter aktiven Profilen nur die injizierte Profil-Umgebung; geheime Variablennamen wie `*KEY*`/`*TOKEN*`/`*SECRET*` sind immer blockiert)
 
 **KI:** `ai_chat`, `ai_chat_json`, `ai_stream`, `ai_with_tools`, `summarize`, `translate`, `classify`, `extract`, `generate`, `ask`, `ai_parallel`, `ai_batch`, `embed`, `embed_batch`
 
@@ -194,8 +216,11 @@ Das LLM kann `get_weather` erfolgreich aufrufen, aber `delete_logs` gibt einen S
 ### Budget-Durchsetzung (`budget`, `budget_spent`)
 
 Der `budget`-Schlüssel begrenzt die **gesamten KI-Ausgaben** eines Profils in USD.
-Jeder KI-Aufruf verbucht seine Kosten im aktiven Profil. Sobald die
-aufsummierten Kosten das Budget erreichen, werden weitere KI-Aufrufe mit einem
+Jeder KI-Aufruf verbucht seine Kosten im aktiven Profil. Zusätzlich wird vor
+jedem Aufruf eine konservative Kostenschätzung (Prompt-Puffer +
+Completion-Annahme für das aktuelle Modell) geprüft: Ein einzelner Aufruf kann
+das Profil nicht über sein Budget treiben. Sobald die aufsummierten Kosten das
+Budget erreichen, werden weitere KI-Aufrufe mit einem
 `E_SANDBOX: budget exceeded`-Fehler blockiert.
 
 ```pipe
@@ -217,9 +242,17 @@ catch e
 
 ### Netzwerk-Whitelist (`network_whitelist`)
 
-`network_whitelist` beschränkt `http_get` / `http_post` auf URLs, die
-mindestens eine der angegebenen Teilzeichenketten enthalten. Das ist präziser
-als der grobe `network`-Schalter und erlaubt feingranulares Allow-Listing.
+`network_whitelist` beschränkt Netzwerkziele (HTTP **und** TCP) auf passende
+Hosts. Jeder Eintrag kann sein:
+
+- eine bloße Domain (`api.github.com`) — matcht diesen Host und seine Subdomains,
+- ein `host:port`-Paar (`api.github.com:443`) — Host und Port müssen passen,
+- ein `host/pfad-präfix` (`api.github.com/repos`) — Host muss passen und der Pfad mit dem Präfix beginnen.
+
+Die Prüfung ist host-basiert, **nicht** Teilzeichenketten-basiert:
+`api.github.com` matcht nicht `attacker.com?x=api.github.com`.
+Redirect-Sprünge von `http_get`/`http_post`/`http_request`/`http_stream_open`
+werden erneut gegen die Whitelist geprüft.
 
 ```pipe
 sandbox_profile "web-agent" {fs: "full", network: true, network_whitelist: ["api.github.com", "openai.com"], exec: false, ai: true}
@@ -267,3 +300,5 @@ Jeder Audit-Eintrag ist eine Map mit den Feldern `time` (RFC 3339), `event`,
 ## 22.10 Rückwärtskompatibilität
 
 Die alten `--sandbox` / `--allow-ai` CLI-Flags funktionieren weiterhin. Wenn kein Profil aktiv ist (`"none"`), werden die alten Sandbox-Flags wie zuvor geprüft. Benutzerdefinierte Profile haben Vorrang vor dem Legacy-System, wenn `ActiveProfile.Name != "none"` ist.
+
+Ein Start mit `--sandbox-profile <name>` **sperrt** den Sandbox außerdem: Sandboxisierter Code kann nicht zum uneingeschränkten `none`-Profil zurückschalten (siehe 22.5).

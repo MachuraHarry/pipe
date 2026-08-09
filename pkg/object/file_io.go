@@ -61,19 +61,20 @@ func bFileOpen(args ...Object) Object {
 		return err("file_open: unknown mode '" + mode.Value + "' (use r, w, a, rw, rw+)")
 	}
 
-	if ActiveProfile.Name != "none" {
-		var canErr error
+	openPath := path.Value
+	if ActiveProfile.Load().Name != "none" {
+		var cerr error
 		if mode.Value == "r" {
-			canErr = ActiveProfile.CanRead(path.Value)
+			openPath, cerr = ActiveProfile.Load().canonicalRead(path.Value)
 		} else {
-			canErr = ActiveProfile.CanWrite(path.Value)
+			openPath, cerr = ActiveProfile.Load().canonicalWrite(path.Value)
 		}
-		if canErr != nil {
-			return err(canErr.Error())
+		if cerr != nil {
+			return err(cerr.Error())
 		}
 	}
 
-	f, e := os.OpenFile(path.Value, flags, 0644)
+	f, e := os.OpenFile(openPath, flags, 0644)
 	if e != nil {
 		return err("file_open: " + e.Error())
 	}

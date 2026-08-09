@@ -506,6 +506,7 @@ var Builtins = []BuiltinInfo{
 	{"sandbox_profile", bSandboxProfile},
 	{"set_sandbox", bSetSandbox},
 	{"with_sandbox", bWithSandbox},
+	{"sandbox_lock", bSandboxLock},
 	{"audit_log", bAuditLog},
 	{"budget_spent", bBudgetSpent},
 

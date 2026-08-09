@@ -2,11 +2,15 @@ package object
 
 import (
 	"fmt"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
+
+	"github.com/MachuraHarry/pipe/pkg/ai"
 )
 
 type FSAccess int
@@ -55,6 +59,7 @@ type PathPolicy interface {
 }
 
 type defaultPathPolicy struct {
+	mu         sync.Mutex
 	access     FSAccess
 	workingDir string
 	tempDir    string
@@ -62,26 +67,50 @@ type defaultPathPolicy struct {
 	allowWrite []string
 }
 
+// Canonicalize resolves the absolute, symlink-cleaned path of path. For
+// temp-only profiles, paths outside the sandbox temp dir are redirected into
+// it. The returned path is safe to pass to the filesystem.
 func (p *defaultPathPolicy) Canonicalize(path string) (string, error) {
 	abs, err := filepath.Abs(path)
 	if err != nil {
 		return "", err
 	}
+	resolved := resolveSymlinks(abs)
 
 	switch p.access {
 	case FSNone:
-		return "", fmt.Errorf("E_SANDBOX: filesystem access denied")
+		return resolved, nil
 	case FSTempOnly:
-		if p.tempDir != "" && !strings.HasPrefix(abs, p.tempDir) {
-			rel, err := filepath.Rel(p.workingDir, abs)
-			if err != nil {
-				return filepath.Join(p.tempDir, filepath.Base(abs)), nil
-			}
-			return filepath.Join(p.tempDir, rel), nil
+		td := p.tempDir
+		if td == "" {
+			td = p.ensureTempDirLocked()
+		}
+		if td == "" {
+			return "", fmt.Errorf("E_SANDBOX: temp dir not configured for temp-only access")
+		}
+		if inside(td, resolved) {
+			return resolved, nil
+		}
+		rel, relErr := filepath.Rel(p.workingDir, resolved)
+		if relErr != nil || !inside(td, filepath.Join(td, rel)) {
+			rel = filepath.Base(resolved)
+		}
+		return filepath.Join(td, rel), nil
+	default:
+		return resolved, nil
+	}
+}
+
+func (p *defaultPathPolicy) ensureTempDirLocked() string {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	if p.tempDir == "" {
+		p.tempDir, _ = filepath.Abs(filepath.Join(p.workingDir, ".pipe_sandbox"))
+		if err := os.MkdirAll(p.tempDir, 0755); err != nil {
+			p.tempDir = ""
 		}
 	}
-
-	return abs, nil
+	return p.tempDir
 }
 
 func (p *defaultPathPolicy) AllowRead(path string) bool {
@@ -89,14 +118,15 @@ func (p *defaultPathPolicy) AllowRead(path string) bool {
 	case FSFull, FSReadOnly:
 		return true
 	case FSTempOnly:
-		if p.tempDir == "" {
-			return false
+		td := p.tempDir
+		if td == "" {
+			td = p.ensureTempDirLocked()
 		}
 		abs, err := filepath.Abs(path)
 		if err != nil {
 			return false
 		}
-		return strings.HasPrefix(abs, p.tempDir)
+		return inside(td, abs)
 	case FSNone:
 		return false
 	}
@@ -113,17 +143,58 @@ func (p *defaultPathPolicy) AllowWrite(path string) bool {
 		}
 		return len(p.allowWrite) == 0
 	case FSTempOnly:
-		if p.tempDir == "" {
-			return false
+		td := p.tempDir
+		if td == "" {
+			td = p.ensureTempDirLocked()
 		}
 		abs, err := filepath.Abs(path)
 		if err != nil {
 			return false
 		}
-		return strings.HasPrefix(abs, p.tempDir)
+		return inside(td, abs)
 	default:
 		return false
 	}
+}
+
+// resolveSymlinks resolves as much of path as exists, cleaning symlinks, and
+// re-appends any trailing components that do not exist yet.
+func resolveSymlinks(path string) string {
+	if r, err := filepath.EvalSymlinks(path); err == nil {
+		return filepath.Clean(r)
+	}
+	var missing []string
+	cur := path
+	for {
+		if r, err := filepath.EvalSymlinks(cur); err == nil {
+			for i := len(missing) - 1; i >= 0; i-- {
+				r = filepath.Join(r, missing[i])
+			}
+			return filepath.Clean(r)
+		}
+		parent := filepath.Dir(cur)
+		if parent == cur {
+			return filepath.Clean(path)
+		}
+		missing = append(missing, filepath.Base(cur))
+		cur = parent
+	}
+}
+
+// inside reports whether path is equal to root or strictly below it, so that
+// "root/../escape" and sibling-directory prefix tricks do not pass.
+func inside(root, path string) bool {
+	rel, err := filepath.Rel(root, path)
+	if err != nil {
+		return false
+	}
+	if rel == ".." {
+		return false
+	}
+	if strings.HasPrefix(rel, ".."+string(filepath.Separator)) {
+		return false
+	}
+	return true
 }
 
 type SandboxProfile struct {
@@ -145,6 +216,21 @@ type SandboxProfile struct {
 	toolCalls  int
 	auditTrail []AuditEntry
 	spentCost  float64
+	Locked     bool
+}
+
+// IsLocked reports whether the profile refuses to be switched away from.
+func (p *SandboxProfile) IsLocked() bool {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	return p.Locked
+}
+
+// SetLocked marks the profile as immutable for the rest of the run.
+func (p *SandboxProfile) SetLocked() {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	p.Locked = true
 }
 
 func NewSandboxProfile(name string) *SandboxProfile {
@@ -174,6 +260,39 @@ func (p *SandboxProfile) CanWrite(path string) error {
 	return nil
 }
 
+func (p *SandboxProfile) Canonicalize(path string) (string, error) {
+	if p.PathPolicy == nil {
+		return path, nil
+	}
+	return p.PathPolicy.Canonicalize(path)
+}
+
+// canonicalRead resolves path and enforces the read policy, returning the
+// safe path to pass to the filesystem.
+func (p *SandboxProfile) canonicalRead(path string) (string, error) {
+	canon, cerr := p.Canonicalize(path)
+	if cerr != nil {
+		return "", cerr
+	}
+	if canErr := p.CanRead(canon); canErr != nil {
+		return "", canErr
+	}
+	return canon, nil
+}
+
+// canonicalWrite resolves path and enforces the write policy, returning the
+// safe path to pass to the filesystem.
+func (p *SandboxProfile) canonicalWrite(path string) (string, error) {
+	canon, cerr := p.Canonicalize(path)
+	if cerr != nil {
+		return "", cerr
+	}
+	if canErr := p.CanWrite(canon); canErr != nil {
+		return "", canErr
+	}
+	return canon, nil
+}
+
 func (p *SandboxProfile) CanNetwork() error {
 	if !p.Network {
 		return fmt.Errorf("E_SANDBOX: network access blocked by profile '%s'", p.Name)
@@ -193,12 +312,20 @@ func (p *SandboxProfile) CanAI() error {
 		return fmt.Errorf("E_SANDBOX: AI calls blocked by profile '%s'", p.Name)
 	}
 	if p.Budget > 0 {
-		p.mu.Lock()
-		spent := p.spentCost
-		p.mu.Unlock()
-		if spent >= p.Budget {
-			return fmt.Errorf("E_SANDBOX: budget exceeded (%.4f USD) in profile '%s'", p.Budget, p.Name)
-		}
+		return p.checkBudget(ai.EstimateMaxCost(4096))
+	}
+	return nil
+}
+
+// checkBudget blocks a call whose estimated cost would exceed the remaining
+// budget. The estimate is a conservative upper bound, so this prevents a
+// single call from blowing through the budget before its cost is recorded.
+func (p *SandboxProfile) checkBudget(estimated float64) error {
+	p.mu.Lock()
+	spent := p.spentCost
+	p.mu.Unlock()
+	if spent+estimated > p.Budget {
+		return fmt.Errorf("E_SANDBOX: budget exceeded (%.4f USD) in profile '%s'", p.Budget, p.Name)
 	}
 	return nil
 }
@@ -219,24 +346,87 @@ func (p *SandboxProfile) CanToolCall() error {
 	return nil
 }
 
-func (p *SandboxProfile) CanNetworkTo(url string) error {
+func (p *SandboxProfile) CanNetworkTo(target string) error {
 	if !p.Network {
 		return fmt.Errorf("E_SANDBOX: network access blocked by profile '%s'", p.Name)
 	}
 	if len(p.NetworkWhitelist) == 0 {
 		return nil
 	}
-	allowed := false
+	host, port, path := splitNetworkTarget(target)
+	if host == "" {
+		return fmt.Errorf("E_SANDBOX: network target '%s' not in whitelist of profile '%s'", target, p.Name)
+	}
 	for _, pattern := range p.NetworkWhitelist {
-		if strings.Contains(url, pattern) {
-			allowed = true
-			break
+		if matchNetworkPattern(pattern, host, port, path) {
+			return nil
 		}
 	}
-	if !allowed {
-		return fmt.Errorf("E_SANDBOX: network url '%s' not in whitelist of profile '%s'", url, p.Name)
+	return fmt.Errorf("E_SANDBOX: network target '%s' not in whitelist of profile '%s'", target, p.Name)
+}
+
+// splitNetworkTarget parses either an absolute URL ("https://host:443/path")
+// or a bare "host[:port][/path]" into its components.
+func splitNetworkTarget(target string) (host, port, path string) {
+	raw := target
+	if !strings.Contains(raw, "://") {
+		raw = "//" + raw
 	}
-	return nil
+	u, err := url.Parse(raw)
+	if err != nil {
+		return "", "", ""
+	}
+	host = u.Hostname()
+	if host == "" {
+		return "", "", ""
+	}
+	port = u.Port()
+	path = u.EscapedPath()
+	if path == "" {
+		path = "/"
+	}
+	if port == "" {
+		switch strings.ToLower(u.Scheme) {
+		case "http":
+			port = "80"
+		case "https":
+			port = "443"
+		}
+	}
+	return host, port, path
+}
+
+// matchNetworkPattern checks one whitelist entry. An entry may be a bare
+// hostname (matches the host and its subdomains), a host:port pair, or a
+// host/path prefix.
+func matchNetworkPattern(pattern, host, port, path string) bool {
+	ph, pport, ppath := splitNetworkTarget(pattern)
+	if ph == "" {
+		return host == pattern
+	}
+	if !hostMatches(ph, host) {
+		return false
+	}
+	if pport != "" && port != "" && pport != port {
+		return false
+	}
+	if ppath != "" && ppath != "/" {
+		if !strings.HasPrefix(path, ppath) {
+			return false
+		}
+	}
+	return true
+}
+
+// hostMatches reports whether host equals pattern or is a subdomain of it.
+func hostMatches(pattern, host string) bool {
+	if pattern == host {
+		return true
+	}
+	if strings.HasSuffix(host, "."+pattern) {
+		return true
+	}
+	return false
 }
 
 func (p *SandboxProfile) Audit(event, detail string) {
@@ -278,19 +468,19 @@ func (p *SandboxProfile) ensureTempDir() string {
 	if p.FSAccess != FSTempOnly {
 		return ""
 	}
-	pp := p.PathPolicy
-	if dpp, ok := pp.(*defaultPathPolicy); ok {
-		if dpp.tempDir == "" {
-			dpp.tempDir = filepath.Join(p.WorkDir, ".pipe_sandbox")
-			os.MkdirAll(dpp.tempDir, 0755)
-		}
-		return dpp.tempDir
+	if dpp, ok := p.PathPolicy.(*defaultPathPolicy); ok {
+		return dpp.ensureTempDirLocked()
 	}
 	return ""
 }
 
+// ActiveProfile is the sandbox profile currently in force. It is read from
+// every sandboxed builtin, so it is swapped atomically.
+var ActiveProfile atomic.Pointer[SandboxProfile]
+
 var (
-	profileRegistry = map[string]*SandboxProfile{
+	profileRegistryMu sync.RWMutex
+	profileRegistry   = map[string]*SandboxProfile{
 		"none": {
 			Name: "none", FSAccess: FSFull, Network: true, Exec: true, AI: true,
 			Env: make(map[string]string), WorkDir: ".",
@@ -314,13 +504,18 @@ var (
 		"networked": {
 			Name: "networked", FSAccess: FSTempOnly, Network: true, Exec: false, AI: true,
 			Env: make(map[string]string), WorkDir: ".",
-			PathPolicy: &defaultPathPolicy{access: FSTempOnly},
+			PathPolicy: &defaultPathPolicy{access: FSTempOnly, workingDir: "."},
 		},
 	}
-	ActiveProfile = profileRegistry["none"]
 )
 
+func init() {
+	ActiveProfile.Store(profileRegistry["none"])
+}
+
 func RegisterProfile(name string, p *SandboxProfile) error {
+	profileRegistryMu.Lock()
+	defer profileRegistryMu.Unlock()
 	if _, exists := profileRegistry[name]; exists {
 		return fmt.Errorf("E_SANDBOX: profile '%s' already exists", name)
 	}
@@ -340,6 +535,8 @@ func RegisterProfile(name string, p *SandboxProfile) error {
 }
 
 func GetProfile(name string) (*SandboxProfile, error) {
+	profileRegistryMu.RLock()
+	defer profileRegistryMu.RUnlock()
 	p, ok := profileRegistry[name]
 	if !ok {
 		return nil, fmt.Errorf("E_SANDBOX: unknown profile '%s'", name)
@@ -348,18 +545,27 @@ func GetProfile(name string) (*SandboxProfile, error) {
 }
 
 func WithProfile(name string, fn func() Object) Object {
-	prev := ActiveProfile
-	defer func() { ActiveProfile = prev }()
+	prev := ActiveProfile.Load()
+	defer func() { ActiveProfile.Store(prev) }()
 
 	prof, profErr := GetProfile(name)
 	if profErr != nil {
 		return &Error{Message: profErr.Error()}
 	}
-	ActiveProfile = prof
+	ActiveProfile.Store(prof)
+	return fn()
+}
+
+// withActiveProfile runs fn with p as the active profile, then restores the
+// previous one. Unlike WithProfile it does not require p to be registered.
+func withActiveProfile(p *SandboxProfile, fn func() Object) Object {
+	prev := ActiveProfile.Load()
+	ActiveProfile.Store(p)
+	defer func() { ActiveProfile.Store(prev) }()
 	return fn()
 }
 
 func sandboxError(feature string) *Error {
-	msg := "E_SANDBOX: " + feature + " is blocked by active profile '" + ActiveProfile.Name + "'"
+	msg := "E_SANDBOX: " + feature + " is blocked by active profile '" + ActiveProfile.Load().Name + "'"
 	return &Error{Message: msg}
 }

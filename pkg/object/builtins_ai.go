@@ -159,8 +159,8 @@ func bAiSetKey(args ...Object) Object {
 }
 
 func bWebSearch(args ...Object) Object {
-	if ActiveProfile.Name != "none" {
-		if canErr := ActiveProfile.CanNetwork(); canErr != nil {
+	if ActiveProfile.Load().Name != "none" {
+		if canErr := ActiveProfile.Load().CanNetwork(); canErr != nil {
 			return err(canErr.Error())
 		}
 	}
@@ -191,8 +191,8 @@ func bWebSearch(args ...Object) Object {
 }
 
 func bWikiSearch(args ...Object) Object {
-	if ActiveProfile.Name != "none" {
-		if canErr := ActiveProfile.CanNetwork(); canErr != nil {
+	if ActiveProfile.Load().Name != "none" {
+		if canErr := ActiveProfile.Load().CanNetwork(); canErr != nil {
 			return err(canErr.Error())
 		}
 	}
@@ -273,8 +273,8 @@ func maxTokensArg(args []Object, name string) maxTokensResult {
 }
 
 func bAiChat(args ...Object) Object {
-	if ActiveProfile.Name != "none" {
-		if canErr := ActiveProfile.CanAI(); canErr != nil {
+	if ActiveProfile.Load().Name != "none" {
+		if canErr := ActiveProfile.Load().CanAI(); canErr != nil {
 			return err(canErr.Error())
 		}
 	} else if Sandbox.Enabled && !Sandbox.AllowAI {
@@ -312,8 +312,8 @@ func bAiChat(args ...Object) Object {
 }
 
 func bAiChatJSON(args ...Object) Object {
-	if ActiveProfile.Name != "none" {
-		if canErr := ActiveProfile.CanAI(); canErr != nil {
+	if ActiveProfile.Load().Name != "none" {
+		if canErr := ActiveProfile.Load().CanAI(); canErr != nil {
 			return err(canErr.Error())
 		}
 	}
@@ -356,8 +356,8 @@ func bAiChatJSON(args ...Object) Object {
 }
 
 func bSummarize(args ...Object) Object {
-	if ActiveProfile.Name != "none" {
-		if canErr := ActiveProfile.CanAI(); canErr != nil {
+	if ActiveProfile.Load().Name != "none" {
+		if canErr := ActiveProfile.Load().CanAI(); canErr != nil {
 			return err(canErr.Error())
 		}
 	}
@@ -386,8 +386,8 @@ func bSummarize(args ...Object) Object {
 }
 
 func bTranslate(args ...Object) Object {
-	if ActiveProfile.Name != "none" {
-		if canErr := ActiveProfile.CanAI(); canErr != nil {
+	if ActiveProfile.Load().Name != "none" {
+		if canErr := ActiveProfile.Load().CanAI(); canErr != nil {
 			return err(canErr.Error())
 		}
 	}
@@ -420,8 +420,8 @@ func bTranslate(args ...Object) Object {
 }
 
 func bClassify(args ...Object) Object {
-	if ActiveProfile.Name != "none" {
-		if canErr := ActiveProfile.CanAI(); canErr != nil {
+	if ActiveProfile.Load().Name != "none" {
+		if canErr := ActiveProfile.Load().CanAI(); canErr != nil {
 			return err(canErr.Error())
 		}
 	}
@@ -464,8 +464,8 @@ func bClassify(args ...Object) Object {
 }
 
 func bExtract(args ...Object) Object {
-	if ActiveProfile.Name != "none" {
-		if canErr := ActiveProfile.CanAI(); canErr != nil {
+	if ActiveProfile.Load().Name != "none" {
+		if canErr := ActiveProfile.Load().CanAI(); canErr != nil {
 			return err(canErr.Error())
 		}
 	}
@@ -503,8 +503,8 @@ func bExtract(args ...Object) Object {
 }
 
 func bGenerate(args ...Object) Object {
-	if ActiveProfile.Name != "none" {
-		if canErr := ActiveProfile.CanAI(); canErr != nil {
+	if ActiveProfile.Load().Name != "none" {
+		if canErr := ActiveProfile.Load().CanAI(); canErr != nil {
 			return err(canErr.Error())
 		}
 	}
@@ -530,8 +530,8 @@ func bGenerate(args ...Object) Object {
 }
 
 func bGenerateJSON(args ...Object) Object {
-	if ActiveProfile.Name != "none" {
-		if canErr := ActiveProfile.CanAI(); canErr != nil {
+	if ActiveProfile.Load().Name != "none" {
+		if canErr := ActiveProfile.Load().CanAI(); canErr != nil {
 			return err(canErr.Error())
 		}
 	}
@@ -569,8 +569,8 @@ func bGenerateJSON(args ...Object) Object {
 }
 
 func bAsk(args ...Object) Object {
-	if ActiveProfile.Name != "none" {
-		if canErr := ActiveProfile.CanAI(); canErr != nil {
+	if ActiveProfile.Load().Name != "none" {
+		if canErr := ActiveProfile.Load().CanAI(); canErr != nil {
 			return err(canErr.Error())
 		}
 	}
@@ -599,8 +599,8 @@ func bAsk(args ...Object) Object {
 }
 
 func bAiStream(args ...Object) Object {
-	if ActiveProfile.Name != "none" {
-		if canErr := ActiveProfile.CanAI(); canErr != nil {
+	if ActiveProfile.Load().Name != "none" {
+		if canErr := ActiveProfile.Load().CanAI(); canErr != nil {
 			return err(canErr.Error())
 		}
 	}
@@ -650,8 +650,8 @@ func bAiRateLimit(args ...Object) Object {
 }
 
 func bAiParallel(args ...Object) Object {
-	if ActiveProfile.Name != "none" {
-		if canErr := ActiveProfile.CanAI(); canErr != nil {
+	if ActiveProfile.Load().Name != "none" {
+		if canErr := ActiveProfile.Load().CanAI(); canErr != nil {
 			return err(canErr.Error())
 		}
 	}
@@ -702,8 +702,8 @@ func bAiParallel(args ...Object) Object {
 }
 
 func bAiBatch(args ...Object) Object {
-	if ActiveProfile.Name != "none" {
-		if canErr := ActiveProfile.CanAI(); canErr != nil {
+	if ActiveProfile.Load().Name != "none" {
+		if canErr := ActiveProfile.Load().CanAI(); canErr != nil {
 			return err(canErr.Error())
 		}
 	}
@@ -749,8 +749,8 @@ func bAiBatch(args ...Object) Object {
 }
 
 func bEmbed(args ...Object) Object {
-	if ActiveProfile.Name != "none" {
-		if canErr := ActiveProfile.CanNetwork(); canErr != nil {
+	if ActiveProfile.Load().Name != "none" {
+		if canErr := ActiveProfile.Load().CanNetwork(); canErr != nil {
 			return err(canErr.Error())
 		}
 	}
@@ -980,7 +980,7 @@ func bAiWithTools(args ...Object) Object {
 	}
 
 	// Optional sandbox name from a string arg
-	profile := ActiveProfile
+	profile := ActiveProfile.Load()
 	if len(args) > argIdx {
 		if s, ok := args[argIdx].(*String); ok {
 			if p, pErr := GetProfile(s.Value); pErr == nil {
@@ -1008,50 +1008,7 @@ func bAiWithTools(args ...Object) Object {
 	}
 
 	executor := func(toolName string, args map[string]interface{}) (string, error) {
-		entry, exists := toolRegistry[toolName]
-		if !exists {
-			return "", fmt.Errorf("unknown tool: %s", toolName)
-		}
-
-		if profile.Name != "none" {
-			if canErr := profile.CanExec(); canErr != nil {
-				return "", fmt.Errorf("E_SANDBOX: tool '%s' execution blocked by profile '%s'", toolName, profile.Name)
-			}
-			if canErr := profile.CanToolCall(); canErr != nil {
-				return "", fmt.Errorf("E_SANDBOX: %s", canErr.Error())
-			}
-			profile.Audit("tool_call", toolName)
-		}
-
-		argObjects := make([]Object, 0, len(args))
-		for _, v := range args {
-			switch val := v.(type) {
-			case string:
-				argObjects = append(argObjects, &String{Value: val})
-			case float64:
-				if val == float64(int64(val)) {
-					argObjects = append(argObjects, &Integer{Value: int64(val)})
-				} else {
-					argObjects = append(argObjects, &Float{Value: val})
-				}
-			case bool:
-				argObjects = append(argObjects, NativeBoolToBoolean(val))
-			default:
-				argObjects = append(argObjects, &String{Value: fmt.Sprintf("%v", val)})
-			}
-		}
-
-		if callUserFn != nil {
-			result := callUserFn(entry.Fn, argObjects...)
-			return result.Inspect(), nil
-		}
-
-		if bi, ok := entry.Fn.(*BuiltinInfo); ok {
-			result := bi.Fn(argObjects...)
-			return result.Inspect(), nil
-		}
-
-		return "", fmt.Errorf("tool function not callable")
+		return executeTool(profile, toolName, args)
 	}
 
 	result, chatErr := ai.ChatWithTools(sp.Value, up.Value, tools, executor, maxRounds)
@@ -1060,6 +1017,57 @@ func bAiWithTools(args ...Object) Object {
 	}
 
 	return &String{Value: result}
+}
+
+// executeTool runs one registered tool in the given sandbox profile. The
+// profile's own gates are enforced inside the tool's builtin (via the active
+// profile), so this layer only enforces call-count limits and auditing — it
+// must NOT gate every tool on a single capability flag such as Exec.
+func executeTool(profile *SandboxProfile, toolName string, args map[string]interface{}) (string, error) {
+	entry, exists := toolRegistry[toolName]
+	if !exists {
+		return "", fmt.Errorf("unknown tool: %s", toolName)
+	}
+
+	if profile != nil && profile.Name != "none" {
+		if canErr := profile.CanToolCall(); canErr != nil {
+			return "", fmt.Errorf("E_SANDBOX: %s", canErr.Error())
+		}
+		profile.Audit("tool_call", toolName)
+	}
+
+	argObjects := make([]Object, 0, len(args))
+	for _, v := range args {
+		switch val := v.(type) {
+		case string:
+			argObjects = append(argObjects, &String{Value: val})
+		case float64:
+			if val == float64(int64(val)) {
+				argObjects = append(argObjects, &Integer{Value: int64(val)})
+			} else {
+				argObjects = append(argObjects, &Float{Value: val})
+			}
+		case bool:
+			argObjects = append(argObjects, NativeBoolToBoolean(val))
+		default:
+			argObjects = append(argObjects, &String{Value: fmt.Sprintf("%v", val)})
+		}
+	}
+
+	run := func() Object {
+		if callUserFn != nil {
+			return callUserFn(entry.Fn, argObjects...)
+		}
+		if bi, ok := entry.Fn.(*BuiltinInfo); ok {
+			return bi.Fn(argObjects...)
+		}
+		return err("tool function not callable")
+	}
+
+	if profile == nil || profile.Name == "none" {
+		return run().Inspect(), nil
+	}
+	return withActiveProfile(profile, run).Inspect(), nil
 }
 
 // ---- AI — Agents ----
@@ -1082,8 +1090,8 @@ func bAgent(args ...Object) Object {
 }
 
 func bAgentAsk(args ...Object) Object {
-	if ActiveProfile.Name != "none" {
-		if canErr := ActiveProfile.CanAI(); canErr != nil {
+	if ActiveProfile.Load().Name != "none" {
+		if canErr := ActiveProfile.Load().CanAI(); canErr != nil {
 			return err(canErr.Error())
 		}
 	}

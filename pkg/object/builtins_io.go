@@ -1,10 +1,12 @@
 package object
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"os"
 	"os/exec"
+	"strings"
 	"time"
 
 	"github.com/MachuraHarry/pipe/pkg/ai"
@@ -20,10 +22,10 @@ var ScriptArgs []string
 
 func init() {
 	ai.SetCostHook(func(entry ai.CostEntry) {
-		if ActiveProfile != nil {
-			ActiveProfile.RecordCost(entry.CostUSD)
-			if ActiveProfile.AuditLog {
-				ActiveProfile.Audit("ai_call",
+		if ActiveProfile.Load() != nil {
+			ActiveProfile.Load().RecordCost(entry.CostUSD)
+			if ActiveProfile.Load().AuditLog {
+				ActiveProfile.Load().Audit("ai_call",
 					fmt.Sprintf("provider=%s model=%s tokens=%d cost=%.6f cached=%v",
 						entry.Provider, entry.Model, entry.TotalTokens, entry.CostUSD, entry.Cached))
 			}
@@ -77,12 +79,15 @@ func bReadFile(args ...Object) Object {
 	if !ok {
 		return err("read_file expects a string as path")
 	}
-	if ActiveProfile.Name != "none" {
-		if canErr := ActiveProfile.CanRead(s.Value); canErr != nil {
-			return err(canErr.Error())
+	path := s.Value
+	if ActiveProfile.Load().Name != "none" {
+		var cerr error
+		path, cerr = ActiveProfile.Load().canonicalRead(s.Value)
+		if cerr != nil {
+			return err(cerr.Error())
 		}
 	}
-	data, e := os.ReadFile(s.Value)
+	data, e := os.ReadFile(path)
 	if e != nil {
 		return err("read_file: " + e.Error())
 	}
@@ -104,15 +109,32 @@ func bWriteFile(args ...Object) Object {
 	if !ok || !ok2 {
 		return err("write_file: path and content must be strings")
 	}
-	if ActiveProfile.Name != "none" {
-		if canErr := ActiveProfile.CanWrite(p.Value); canErr != nil {
-			return err(canErr.Error())
+	path := p.Value
+	if ActiveProfile.Load().Name != "none" {
+		var cerr error
+		path, cerr = ActiveProfile.Load().canonicalWrite(p.Value)
+		if cerr != nil {
+			return err(cerr.Error())
 		}
 	}
-	if e := os.WriteFile(p.Value, []byte(c.Value), 0644); e != nil {
+	if e := os.WriteFile(path, []byte(c.Value), 0644); e != nil {
 		return err("write_file: " + e.Error())
 	}
 	return NILOBJ
+}
+
+// secretEnvMarkers are substrings that identify secrets. Sandboxed code must
+// never read these from the real process environment.
+var secretEnvMarkers = []string{"KEY", "TOKEN", "SECRET", "PASSWORD", "PASSWD", "CREDENTIAL", "APIKEY", "APISECRET"}
+
+func blockedEnvName(name string) bool {
+	upper := strings.ToUpper(name)
+	for _, m := range secretEnvMarkers {
+		if strings.Contains(upper, m) {
+			return true
+		}
+	}
+	return false
 }
 
 func bEnv(args ...Object) Object {
@@ -122,6 +144,16 @@ func bEnv(args ...Object) Object {
 	name, ok := args[0].(*String)
 	if !ok {
 		return err("env: Name must be a string")
+	}
+	if blockedEnvName(name.Value) {
+		return err("env: access to environment variable '" + name.Value + "' is blocked by sandbox policy")
+	}
+	if ActiveProfile.Load().Name != "none" {
+		val, exists := ActiveProfile.Load().Env[name.Value]
+		if !exists {
+			return NILOBJ
+		}
+		return &String{Value: val}
 	}
 	val, exists := os.LookupEnv(name.Value)
 	if !exists {
@@ -137,6 +169,13 @@ func bSleep(args ...Object) Object {
 	ms, ok := ToInt(args[0])
 	if !ok {
 		return err("sleep: milliseconds must be a number")
+	}
+	profile := ActiveProfile.Load()
+	if profile.Name != "none" && profile.Timeout > 0 {
+		maxMs := int64(profile.Timeout) * 1000
+		if ms > maxMs {
+			ms = maxMs
+		}
 	}
 	time.Sleep(time.Duration(ms) * time.Millisecond)
 	return NILOBJ
@@ -159,8 +198,8 @@ func bReadStdin(args ...Object) Object {
 }
 
 func bExec(args ...Object) Object {
-	if ActiveProfile.Name != "none" {
-		if canErr := ActiveProfile.CanExec(); canErr != nil {
+	if ActiveProfile.Load().Name != "none" {
+		if canErr := ActiveProfile.Load().CanExec(); canErr != nil {
 			return err(canErr.Error())
 		}
 	} else if Sandbox.Enabled && !Sandbox.AllowExec {
@@ -173,7 +212,23 @@ func bExec(args ...Object) Object {
 	if !ok {
 		return err("exec: command must be a string")
 	}
-	out, e := exec.Command("sh", "-c", cmd.Value).CombinedOutput()
+	profile := ActiveProfile.Load()
+	var c *exec.Cmd
+	if profile.Name != "none" && profile.Timeout > 0 {
+		ctx, cancel := context.WithTimeout(context.Background(), time.Duration(profile.Timeout)*time.Second)
+		defer cancel()
+		c = exec.CommandContext(ctx, "sh", "-c", cmd.Value)
+	} else {
+		c = exec.Command("sh", "-c", cmd.Value)
+	}
+	if profile.Name != "none" {
+		env := os.Environ()
+		for k, v := range profile.Env {
+			env = append(env, k+"="+v)
+		}
+		c.Env = env
+	}
+	out, e := c.CombinedOutput()
 	if e != nil {
 		return &Map{Pairs: map[string]Object{
 			"output": &String{Value: string(out)},

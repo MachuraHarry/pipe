@@ -69,11 +69,11 @@ Define profiles with the `sandbox_profile` builtin. The config is a map with the
 | `network` | bool | Allow HTTP/TCP operations |
 | `exec` | bool | Allow shell command execution |
 | `ai` | bool | Allow AI chat/embedding calls |
-| `timeout` | int | Max seconds per tool call (0 = no limit) |
-| `env` | map | Injected environment variables |
+| `timeout` | int | Max seconds per `exec`, `tcp_connect`/`tcp_read` or `sleep` operation (0 = no limit) |
+| `env` | map | Environment variables injected into `exec` and returned by `env`. Under an active profile the real process environment is never exposed |
 | `work_dir` | string | Working directory for sandbox |
-| `budget` | num | Max AI spend in USD (0 = unlimited). AI calls are blocked once the spent cost reaches this limit |
-| `network_whitelist` | list | List of URL substrings. When set, `http_get`/`http_post` only allow URLs containing at least one entry |
+| `budget` | num | Max AI spend in USD (0 = unlimited). A conservative cost estimate is checked before each call is issued, so a single call cannot blow through the budget |
+| `network_whitelist` | list | List of hosts or domains (optionally `host:port` or `host/path`). When set, HTTP and TCP targets must match one entry exactly or as a subdomain. Substring matching is **not** used |
 | `max_tool_calls` | int | Max number of tool executions per `ai_with_tools` session (0 = unlimited) |
 | `audit_log` | bool | Record all sandbox events (http, AI calls, tool calls) into an audit trail |
 
@@ -121,6 +121,22 @@ set_sandbox "none"
 
 Changes the active profile globally. All subsequent builtin calls are checked against this profile.
 
+> **Locking:** When the sandbox was started with the `--sandbox-profile` CLI flag
+> (or the `sandbox_lock` builtin was used), sandboxed code can **not** switch
+> back to profile `none`. This prevents untrusted code from disabling its own
+> sandbox.
+
+### `sandbox_lock` — Freeze the Active Profile
+
+```pipe
+sandbox_lock                -- lock the active profile
+sandbox_lock "strict"       -- lock a specific profile
+```
+
+Once a profile is locked, `set_sandbox` and `with_sandbox` are rejected while it
+is active. This is the strongest guarantee: even the script itself can no longer
+change its confinement.
+
 ### `with_sandbox` — Temporary Profile
 
 ```pipe
@@ -145,7 +161,10 @@ Runs a function under a specific profile, then restores the previous one.
 | `temp-only` | temp dir only | temp dir only | temp dir only |
 | `full` | allowed | allowed | allowed |
 
-With `temp-only`, all file operations are automatically redirected to a `.pipe_sandbox` directory under the working directory. This prevents any access to files outside the sandbox.
+With `temp-only`, file operations on paths outside the sandbox are
+automatically redirected into a `.pipe_sandbox` directory under the working
+directory. Paths are canonicalized first (absolute, symlink-resolved, `..`-safe),
+so nothing outside the sandbox directory can be read or written.
 
 ---
 
@@ -153,11 +172,13 @@ With `temp-only`, all file operations are automatically redirected to a `.pipe_s
 
 The following builtins check the active sandbox profile:
 
-**File System:** `read_file`, `write_file`, `append_file`, `file_delete`, `file_move`, `file_copy`, `make_dir`, `remove_dir`
+**File System:** `read_file`, `read_lines`, `write_file`, `append_file`, `file_delete`, `file_move`, `file_copy`, `file_size`, `file_type`, `file_exists`, `list_dir`, `make_dir`, `remove_dir`, `file_open`
 
 **Execution:** `exec`
 
-**Network:** `http_get`, `http_post`, `tcp_listen`, `tcp_connect`
+**Network:** `http_get`, `http_post`, `http_request`, `http_stream_open`, `tcp_listen`, `tcp_connect`
+
+**Environment:** `env` (returns only the profile's injected environment under an active profile; secret variable names such as `*KEY*`/`*TOKEN*`/`*SECRET*` are always blocked)
 
 **AI:** `ai_chat`, `ai_chat_json`, `ai_stream`, `ai_with_tools`, `summarize`, `translate`, `classify`, `extract`, `generate`, `ask`, `ai_parallel`, `ai_batch`, `embed`, `embed_batch`
 
@@ -194,8 +215,11 @@ The LLM can call `get_weather` successfully, but `delete_logs` returns a sandbox
 ### Budget Enforcement (`budget`, `budget_spent`)
 
 The `budget` key caps the **total AI spend** of a profile in USD. Every AI call
-records its cost into the active profile. Once the accumulated cost reaches the
-budget, further AI calls are blocked with an `E_SANDBOX: budget exceeded` error.
+records its cost into the active profile. Additionally, a conservative cost
+estimate (prompt buffer + completion allowance for the current model) is
+checked **before** each call is issued: a single call cannot push the profile
+past its budget. Once the accumulated cost reaches the budget, further AI calls
+are blocked with an `E_SANDBOX: budget exceeded` error.
 
 ```pipe
 sandbox_profile "agent" {fs: "full", network: false, exec: false, ai: true, budget: 0.01}
@@ -216,15 +240,24 @@ catch e
 
 ### Network Whitelist (`network_whitelist`)
 
-`network_whitelist` restricts `http_get` / `http_post` to URLs that contain at
-least one of the given substrings. This is more precise than the coarse
-`network` on/off switch and allows fine-grained allow-listing.
+`network_whitelist` restricts network targets (HTTP **and** TCP) to matching
+hosts. Each entry may be:
+
+- a bare domain (`api.github.com`) — matches that host and its subdomains,
+- a `host:port` pair (`api.github.com:443`) — host and port must match,
+- a `host/path-prefix` (`api.github.com/repos`) — host must match and the path
+  must start with the prefix.
+
+Matching is host-based, **not** substring-based: `api.github.com` does not match
+`attacker.com?x=api.github.com`. Redirect hops of `http_get`/`http_post`/
+`http_request`/`http_stream_open` are re-checked against the whitelist.
 
 ```pipe
 sandbox_profile "web-agent" {fs: "full", network: true, network_whitelist: ["api.github.com", "openai.com"], exec: false, ai: true}
 set_sandbox "web-agent"
 
 http_get "https://api.github.com/repos/MachuraHarry/pipe"   -- allowed
+http_get "https://api.github.com/repos/MachuraHarry/pipe" > redirect to "https://internal.example.com"  -- blocked
 -- http_get "https://example.com"                           -- E_SANDBOX: not in whitelist
 ```
 
@@ -266,3 +299,5 @@ Each audit entry is a map with the fields `time` (RFC 3339), `event`,
 ## 22.10 Backward Compatibility
 
 The old `--sandbox` / `--allow-ai` CLI flags continue to work. When no profile is active (`"none"`), the old sandbox flags are checked as before. Custom profiles take priority over the legacy system when `ActiveProfile.Name != "none"`.
+
+Starting a run with `--sandbox-profile <name>` also **locks** the sandbox: sandboxed code cannot switch back to the unrestricted `none` profile (see 22.5).

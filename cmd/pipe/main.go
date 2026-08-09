@@ -446,7 +446,8 @@ func main() {
 			fmt.Fprintf(os.Stderr, "pipe: %s\n", err)
 			os.Exit(1)
 		}
-		object.ActiveProfile = prof
+		object.ActiveProfile.Store(prof)
+		object.SetSandboxStartLocked()
 	}
 	if allowAI {
 		object.SetSandboxAllowAI(true)

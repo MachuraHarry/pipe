@@ -41,6 +41,10 @@ type Config struct {
 	Model    string
 	Timeout  time.Duration
 	APIHost  string
+	// ExtraBody holds additional request fields that are merged verbatim into
+	// the JSON body of every provider request. Provider-agnostic passthrough
+	// for capabilities like reasoning/thinking controls.
+	ExtraBody map[string]interface{}
 }
 
 var DefaultConfig = Config{
@@ -54,6 +58,7 @@ var ActiveConfig = DefaultConfig
 
 func SetProvider(name string) {
 	ActiveConfig.Provider = name
+	ActiveConfig.ExtraBody = nil
 	switch name {
 	case "openai":
 		ActiveConfig.APIHost = "https://api.openai.com"
@@ -76,6 +81,12 @@ func SetHost(host string) {
 
 func SetModel(model string) {
 	ActiveConfig.Model = model
+}
+
+// SetExtraBody replaces the provider-agnostic extra request body fields (e.g.
+// reasoning/thinking controls). Passed through verbatim by every provider.
+func SetExtraBody(extra map[string]interface{}) {
+	ActiveConfig.ExtraBody = extra
 }
 
 func SetTimeout(seconds int) {
@@ -480,4 +491,15 @@ func estimateCost(provider, model string, promptTokens, completionTokens int) fl
 	default:
 		return 0
 	}
+}
+
+// EstimateMaxCost returns a conservative upper bound for the cost of a single
+// AI call that may produce up to maxTokens completion tokens. A prompt buffer
+// is included to cover the request context. It is used for budget
+// pre-checking before a call is issued.
+func EstimateMaxCost(maxTokens int) float64 {
+	if maxTokens <= 0 {
+		maxTokens = 4096
+	}
+	return estimateCost(ActiveConfig.Provider, ActiveConfig.Model, 2000, maxTokens)
 }

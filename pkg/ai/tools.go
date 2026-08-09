@@ -24,9 +24,10 @@ type ToolResult struct {
 }
 
 type toolResponse struct {
-	Content    string
-	ToolCalls  []ToolCall
-	IsToolCall bool
+	Content          string
+	ReasoningContent string
+	ToolCalls        []ToolCall
+	IsToolCall       bool
 }
 
 type ToolExecutor func(toolName string, args map[string]interface{}) (string, error)
@@ -70,6 +71,9 @@ func ChatWithTools(
 
 		assistantMsg := map[string]interface{}{
 			"role": "assistant",
+		}
+		if resp.ReasoningContent != "" {
+			assistantMsg["reasoning_content"] = resp.ReasoningContent
 		}
 
 		var openaiToolCalls []map[string]interface{}
@@ -133,6 +137,9 @@ func chatWithToolsRaw(messages []map[string]interface{}, tools []ToolDef) (toolR
 		"messages": messages,
 		"tools":    openaiTools,
 	}
+	for k, v := range ActiveConfig.ExtraBody {
+		body[k] = v
+	}
 
 	result, err := httpPostJSON(ActiveConfig.APIHost+"/v1/chat/completions", apiKey, body, ActiveConfig.Timeout)
 	if err != nil {
@@ -150,6 +157,7 @@ func chatWithToolsRaw(messages []map[string]interface{}, tools []ToolDef) (toolR
 	}
 
 	finishReason, _ := choice["finish_reason"].(string)
+	reasoningContent, _ := msg["reasoning_content"].(string)
 
 	if tc, ok := msg["tool_calls"].([]interface{}); ok && len(tc) > 0 {
 		var calls []ToolCall
@@ -163,7 +171,7 @@ func chatWithToolsRaw(messages []map[string]interface{}, tools []ToolDef) (toolR
 				Arguments: fn["arguments"].(string),
 			})
 		}
-		return toolResponse{IsToolCall: true, ToolCalls: calls}, nil
+		return toolResponse{IsToolCall: true, ToolCalls: calls, ReasoningContent: reasoningContent}, nil
 	}
 
 	content, _ := msg["content"].(string)
@@ -171,8 +179,8 @@ func chatWithToolsRaw(messages []map[string]interface{}, tools []ToolDef) (toolR
 	_ = finishReason
 
 	if content == "" && len(strings.TrimSpace(content)) == 0 {
-		return toolResponse{Content: ""}, nil
+		return toolResponse{Content: "", ReasoningContent: reasoningContent}, nil
 	}
 
-	return toolResponse{Content: content}, nil
+	return toolResponse{Content: content, ReasoningContent: reasoningContent}, nil
 }

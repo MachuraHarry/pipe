@@ -155,6 +155,34 @@ func bSandboxProfile(args ...Object) Object {
 	return TRUE
 }
 
+// sandboxStartLocked is set by the CLI when --sandbox-profile is given. It
+// prevents sandboxed code from disabling the sandbox via set_sandbox "none".
+var sandboxStartLocked bool
+
+// SetSandboxStartLocked marks the sandbox as locked from process start
+// (used by the CLI --sandbox-profile flag).
+func SetSandboxStartLocked() { sandboxStartLocked = true }
+
+func bSandboxLock(args ...Object) Object {
+	if len(args) > 1 {
+		return err("sandbox_lock expects 0 or 1 argument (profile name)")
+	}
+	prof := ActiveProfile.Load()
+	if len(args) == 1 {
+		name, ok := args[0].(*String)
+		if !ok {
+			return err("sandbox_lock: profile name must be a string")
+		}
+		p, pErr := GetProfile(name.Value)
+		if pErr != nil {
+			return err(pErr.Error())
+		}
+		prof = p
+	}
+	prof.SetLocked()
+	return TRUE
+}
+
 func bSetSandbox(args ...Object) Object {
 	if len(args) < 1 {
 		return err("set_sandbox needs a profile name")
@@ -163,11 +191,18 @@ func bSetSandbox(args ...Object) Object {
 	if !ok {
 		return err("set_sandbox name must be a string")
 	}
+	cur := ActiveProfile.Load()
+	if cur.IsLocked() {
+		return err("E_SANDBOX: profile '" + cur.Name + "' is locked; set_sandbox is disabled")
+	}
+	if name.Value == "none" && sandboxStartLocked {
+		return err("E_SANDBOX: the sandbox is locked; switching to profile 'none' is not allowed")
+	}
 	prof, profErr := GetProfile(name.Value)
 	if profErr != nil {
 		return err(profErr.Error())
 	}
-	ActiveProfile = prof
+	ActiveProfile.Store(prof)
 	return TRUE
 }
 
@@ -180,14 +215,20 @@ func bWithSandbox(args ...Object) Object {
 		return err("with_sandbox name must be a string")
 	}
 
-	prev := ActiveProfile
-	defer func() { ActiveProfile = prev }()
+	prev := ActiveProfile.Load()
+	if prev.IsLocked() {
+		return err("E_SANDBOX: profile '" + prev.Name + "' is locked; with_sandbox is disabled")
+	}
+	if name.Value == "none" && sandboxStartLocked {
+		return err("E_SANDBOX: the sandbox is locked; switching to profile 'none' is not allowed")
+	}
+	defer func() { ActiveProfile.Store(prev) }()
 
 	prof, profErr := GetProfile(name.Value)
 	if profErr != nil {
 		return err(profErr.Error())
 	}
-	ActiveProfile = prof
+	ActiveProfile.Store(prof)
 
 	switch fn := args[1].(type) {
 	case *Function:
@@ -203,7 +244,7 @@ func bWithSandbox(args ...Object) Object {
 }
 
 func bAuditLog(args ...Object) Object {
-	entries := ActiveProfile.GetAuditLog()
+	entries := ActiveProfile.Load().GetAuditLog()
 	elems := make([]Object, len(entries))
 	for i, e := range entries {
 		elems[i] = &Map{Pairs: map[string]Object{
@@ -217,6 +258,6 @@ func bAuditLog(args ...Object) Object {
 }
 
 func bBudgetSpent(args ...Object) Object {
-	spent := ActiveProfile.GetSpentBudget()
+	spent := ActiveProfile.Load().GetSpentBudget()
 	return &Float{Value: spent}
 }

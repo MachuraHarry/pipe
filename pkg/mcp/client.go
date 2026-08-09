@@ -13,17 +13,17 @@ import (
 )
 
 type Client struct {
-	name     string
-	mu       sync.Mutex
-	nextID   int
-	stdin    io.WriteCloser
-	stdout   *bufio.Scanner
-	cmd      *exec.Cmd
-	mode     string   // "stdio" or "http"
-	httpURL  string
-	pendRes  map[int]chan json.RawMessage
-	pendMu   sync.Mutex
-	closed   bool
+	name    string
+	mu      sync.Mutex
+	nextID  int
+	stdin   io.WriteCloser
+	stdout  *bufio.Scanner
+	cmd     *exec.Cmd
+	mode    string // "stdio" or "http"
+	httpURL string
+	pendRes map[int]chan json.RawMessage
+	pendMu  sync.Mutex
+	closed  bool
 }
 
 func NewStdioClient(command string, args []string, env map[string]string) (*Client, error) {
@@ -49,11 +49,11 @@ func NewStdioClient(command string, args []string, env map[string]string) (*Clie
 	}
 
 	c := &Client{
-		name:   command + " " + strings.Join(args, " "),
-		mode:   "stdio",
-		stdin:  stdin,
-		stdout: bufio.NewScanner(stdout),
-		cmd:    cmd,
+		name:    command + " " + strings.Join(args, " "),
+		mode:    "stdio",
+		stdin:   stdin,
+		stdout:  bufio.NewScanner(stdout),
+		cmd:     cmd,
 		pendRes: make(map[int]chan json.RawMessage),
 	}
 	c.stdout.Buffer(make([]byte, 0, 1024*1024), 10*1024*1024)
@@ -63,8 +63,8 @@ func NewStdioClient(command string, args []string, env map[string]string) (*Clie
 
 func NewHTTPClient(url string) (*Client, error) {
 	c := &Client{
-		name:   url,
-		mode:   "http",
+		name:    url,
+		mode:    "http",
 		httpURL: url,
 		pendRes: make(map[int]chan json.RawMessage),
 	}
@@ -243,9 +243,9 @@ func (c *Client) readLoop() {
 			continue
 		}
 		var hdr struct {
-			ID     any  `json:"id"`
+			ID     any             `json:"id"`
 			Result json.RawMessage `json:"result"`
-			Method string `json:"method"`
+			Method string          `json:"method"`
 		}
 		if err := json.Unmarshal(line, &hdr); err != nil {
 			continue

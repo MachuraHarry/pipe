@@ -374,11 +374,11 @@ func bMcpResources(args ...Object) Object {
 	for _, entry := range mcpClients {
 		for _, r := range entry.resources {
 			elems = append(elems, &Map{Pairs: map[string]Object{
-				"uri":        &String{Value: r.URI},
-				"name":       &String{Value: r.Name},
-				"mimeType":   &String{Value: r.MIMEType},
+				"uri":         &String{Value: r.URI},
+				"name":        &String{Value: r.Name},
+				"mimeType":    &String{Value: r.MIMEType},
 				"description": &String{Value: r.Description},
-				"source":     &String{Value: entry.prefix},
+				"source":      &String{Value: entry.prefix},
 			}})
 		}
 	}

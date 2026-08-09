@@ -145,10 +145,10 @@ func bEnv(args ...Object) Object {
 	if !ok {
 		return err("env: Name must be a string")
 	}
-	if blockedEnvName(name.Value) {
-		return err("env: access to environment variable '" + name.Value + "' is blocked by sandbox policy")
-	}
 	if ActiveProfile.Load().Name != "none" {
+		if blockedEnvName(name.Value) {
+			return err("env: access to environment variable '" + name.Value + "' is blocked by sandbox policy")
+		}
 		val, exists := ActiveProfile.Load().Env[name.Value]
 		if !exists {
 			return NILOBJ

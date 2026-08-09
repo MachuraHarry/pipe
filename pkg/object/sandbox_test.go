@@ -149,9 +149,15 @@ func TestReadLinesBlockedByIsolated(t *testing.T) {
 }
 
 func TestEnvSecretBlocked(t *testing.T) {
+	p := NewSandboxProfile("envblk")
+	p.FSAccess = FSFull
+	p.PathPolicy = &defaultPathPolicy{access: FSFull}
+	p.Env = map[string]string{}
+	defer withProfile(p)()
+
 	res := bEnv(&String{Value: "OPENAI_API_KEY"})
 	if res.Type() != ERROR {
-		t.Fatalf("env of a secret variable must be blocked, got: %s", res.Inspect())
+		t.Fatalf("env of a secret variable must be blocked under a sandbox profile, got: %s", res.Inspect())
 	}
 }
 

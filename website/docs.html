@@ -41,6 +41,11 @@ nav a:hover { color: var(--fg); }
 .lang-switch button { background: none; border: none; color: var(--fg2); padding: 4px 10px; font-size: 0.72rem; cursor: pointer; font-family: var(--sans); font-weight: 600; transition: all .2s; }
 .lang-switch button.active { background: var(--accent); color: #fff; }
 
+[data-lang] { display: none; }
+[data-lang].active { display: inline; }
+a[data-lang].active, .sidebar-chapter [data-lang].active, .sidebar-group-title [data-lang].active, span[data-lang].active { display: inline; }
+p[data-lang].active, div[data-lang].active, h1[data-lang].active, h2[data-lang].active, h3[data-lang].active { display: block; }
+
 .docs-layout { display: flex; min-height: 100vh; padding-top: 56px; }
 .sidebar { width: 260px; min-width: 260px; background: var(--bg2); border-right: 1px solid var(--border); overflow-y: auto; position: sticky; top: 56px; height: calc(100vh - 56px); padding: 16px 12px; }
 .sidebar::-webkit-scrollbar { width: 4px; }
@@ -64,7 +69,19 @@ nav a:hover { color: var(--fg); }
 .sidebar-chapter .ch-num { font-family: var(--mono); font-size: 0.65rem; color: var(--accent); width: 28px; flex-shrink: 0; }
 .sidebar-chapter .ch-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
-.content { flex: 1; max-width: 860px; padding: 32px 48px; overflow-wrap: break-word; }
+.page-toc { width: 220px; min-width: 220px; display: none; flex-direction: column; position: sticky; top: 56px; height: calc(100vh - 56px); overflow-y: auto; padding: 24px 12px 16px 24px; border-left: 1px solid var(--border); background: var(--bg2); font-size: 0.75rem; }
+.page-toc-title { font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1.2px; color: var(--accent); margin-bottom: 10px; }
+.page-toc a { display: block; color: var(--fg2); text-decoration: none; padding: 3px 0 3px 10px; border-left: 2px solid transparent; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; transition: all .15s; }
+.page-toc a:hover { color: var(--fg); }
+.page-toc a.active { color: var(--fg); border-left-color: var(--accent); }
+.page-toc a.toc-h3 { padding-left: 22px; font-size: 0.7rem; }
+.page-toc::-webkit-scrollbar { width: 4px; }
+.page-toc::-webkit-scrollbar-thumb { background: var(--bg3); border-radius: 4px; }
+@media (min-width: 1280px) { .page-toc { display: flex; } }
+
+.content { flex: 1; min-width: 0; max-width: 860px; margin: 0 auto; width: 100%; padding: 32px 48px; overflow-wrap: break-word; }
+.content.fade { animation: fadeIn .25s ease; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
 .content.loading { display: flex; align-items: center; justify-content: center; min-height: 400px; color: var(--fg2); font-size: 0.9rem; }
 .content-placeholder { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 400px; color: var(--fg2); text-align: center; }
 .content-placeholder h2 { font-size: 1.4rem; margin-bottom: 8px; color: var(--fg); }
@@ -84,18 +101,41 @@ nav a:hover { color: var(--fg); }
 .doc-body code { background: var(--bg3); padding: 2px 6px; border-radius: 4px; font-family: var(--mono); font-size: 0.83em; color: var(--accent2); }
 .doc-body pre { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px 20px; overflow-x: auto; margin-bottom: 14px; line-height: 1.55; }
 .doc-body pre code { background: none; padding: 0; font-size: 0.82rem; color: var(--fg); }
+.doc-body pre.code-block { position: relative; }
+.doc-body .code-head { display: flex; justify-content: space-between; align-items: center; background: var(--bg3); border: 1px solid var(--border); border-bottom: none; border-radius: var(--radius) var(--radius) 0 0; padding: 4px 10px; font-family: var(--mono); font-size: 0.68rem; color: var(--fg3); text-transform: uppercase; letter-spacing: .5px; }
+.doc-body .code-head .copy-btn { background: none; border: 1px solid var(--border); color: var(--fg2); font-size: 0.68rem; font-family: var(--sans); text-transform: none; letter-spacing: 0; padding: 3px 10px; border-radius: 6px; cursor: pointer; transition: all .15s; }
+.doc-body .code-head .copy-btn:hover { border-color: var(--accent); color: var(--fg); }
+.doc-body .code-head .copy-btn.copied { border-color: var(--green); color: var(--green); }
+.doc-body pre.code-block code { display: block; }
+.doc-body pre.code-block { border-radius: 0 0 var(--radius) var(--radius); margin-top: 0; }
 .doc-body table { border-collapse: collapse; width: 100%; margin-bottom: 16px; font-size: 0.85rem; }
+.doc-body .table-wrap { overflow-x: auto; margin-bottom: 16px; -webkit-overflow-scrolling: touch; }
+.doc-body .table-wrap table { margin-bottom: 0; }
+.doc-body .table-wrap td, .doc-body .table-wrap th { overflow-wrap: anywhere; word-break: break-word; }
 .doc-body th { background: var(--bg2); border: 1px solid var(--border); padding: 8px 12px; text-align: left; font-weight: 600; }
 .doc-body td { border: 1px solid var(--border); padding: 8px 12px; }
+.doc-body [id] { scroll-margin-top: 84px; }
 .doc-body blockquote { border-left: 3px solid var(--accent); padding: 8px 16px; margin-bottom: 12px; background: var(--bg2); border-radius: 0 var(--radius) var(--radius) 0; color: var(--fg2); font-size: 0.88rem; }
 .doc-body hr { border: none; border-top: 1px solid var(--border); margin: 32px 0; }
 
 .doc-body .breadcrumb { font-size: 0.75rem; color: var(--fg3); margin-bottom: 20px; }
 .doc-body .breadcrumb span { color: var(--fg2); }
 
+.doc-body .inpage-search { position: relative; display: flex; align-items: center; margin-bottom: 16px; }
+.doc-body .inpage-search input { flex: 1; min-width: 0; padding: 8px 12px; background: var(--bg3); border: 1px solid var(--border); border-radius: var(--radius); color: var(--fg); font-size: 0.8rem; outline: none; font-family: var(--sans); }
+.doc-body .inpage-search input:focus { border-color: var(--accent); }
+.doc-body .inpage-search input::placeholder { color: var(--fg3); }
+.doc-body .inpage-search #inpage-count { margin-left: 10px; font-size: 0.75rem; color: var(--accent); white-space: nowrap; }
+mark { background: rgba(168,85,247,0.35); color: inherit; border-radius: 3px; padding: 0 1px; }
+
 /* Mobile */
 .sidebar-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 90; }
 .sidebar-toggle { display: none; position: fixed; bottom: 20px; right: 20px; z-index: 95; width: 48px; height: 48px; border-radius: 50%; background: var(--accent); color: #fff; border: none; font-size: 1.2rem; cursor: pointer; box-shadow: 0 4px 16px rgba(124,92,252,0.4); }
+
+@media (max-width: 1200px) {
+  .sidebar { width: 240px; min-width: 240px; }
+  .content { padding: 32px 28px; }
+}
 
 @media (max-width: 900px) {
   .sidebar { position: fixed; top: 56px; left: -280px; z-index: 95; height: calc(100vh - 56px); transition: left .25s; }
@@ -111,6 +151,8 @@ nav a:hover { color: var(--fg); }
 @media (max-width: 480px) {
   .doc-body h1 { font-size: 1.5rem; }
   .doc-body h2 { font-size: 1.2rem; }
+  .content { padding: 20px 16px; }
+  .doc-body pre { padding: 12px 14px; }
 }
 </style>
 </head>
@@ -149,9 +191,15 @@ nav a:hover { color: var(--fg); }
   <main class="content loading" id="doc-content">
     <div class="content-placeholder">
       <h2>Pipe Documentation</h2>
-      <p>41 chapters — from your first program to the bytecode VM. Available in English and German. Select a chapter to start reading.</p>
+      <p>27 chapters — from your first program to the bytecode VM. Available in English and German. Select a chapter to start reading.</p>
     </div>
   </main>
+
+  <aside class="page-toc" id="page-toc" aria-label="On this page">
+    <div class="page-toc-title active" data-lang="en">On this page</div>
+    <div class="page-toc-title" data-lang="de">Auf dieser Seite</div>
+    <div id="toc-list"></div>
+  </aside>
 </div>
 
 <button class="sidebar-toggle" id="sidebar-toggle" onclick="toggleSidebar()">☰</button>
@@ -175,11 +223,10 @@ const CHAPTERS = [
   {num:"15",group:"tooling",en:"15-vscode-extension.md",de:"15-vscode-erweiterung.md",ten:"VSCode Extension",tde:"VSCode-Erweiterung",den:"Syntax highlighting, LSP, diagnostics.",dde:"Syntax-Highlighting, LSP, Diagnostik."},
   {num:"16",group:"practical",en:"16-cookbook.md",de:"16-kochrezepte.md",ten:"Cookbook",tde:"Kochrezepte",den:"25 practical recipes for common tasks.",dde:"25 praktische Rezepte für häufige Aufgaben."},
   {num:"17",group:"practical",en:"17-migration-from.md",de:"17-migration-von.md",ten:"Migration From",tde:"Migration von",den:"Migration guides from Python, Lua, Bash, JS.",dde:"Migrationsleitfäden von Python, Lua, Bash, JS."},
+  {num:"18",group:"ai",en:"18-roadmap.md",de:"18-roadmap.md",ten:"Roadmap",tde:"Roadmap",den:"Upcoming features, planned milestones.",dde:"Kommende Features, geplante Meilensteine."},
+  {num:"19",group:"ai",en:"19-ai-builtins.md",de:"19-ki-builtins.md",ten:"AI Builtins",tde:"KI-Builtins",den:"All 27 AI functions: summarize, translate, classify.",dde:"Alle 27 KI-Funktionen: summarize, translate, classify."},
   {num:"20",group:"practical",en:"20-github-action.md",de:"20-github-action.md",ten:"GitHub Action",tde:"GitHub Action",den:"Official GitHub Action for CI/CD pipelines.",dde:"Offizielle GitHub Action für CI/CD-Pipelines."},
   {num:"21",group:"practical",en:"21-ecosystem.md",de:"21-ecosystem.md",ten:"Ecosystem",tde:"Ökosystem",den:"Module registry, community packages, tooling.",dde:"Modul-Registry, Community-Pakete, Tooling."},
-  {num:"19",group:"ai",en:"19-ai-builtins.md",de:"19-ki-builtins.md",ten:"AI Builtins",tde:"KI-Builtins",den:"All 27 AI functions: summarize, translate, classify.",dde:"Alle 27 KI-Funktionen: summarize, translate, classify."},
-  {num:"18",group:"ai",en:"18-roadmap.md",de:"18-roadmap.md",ten:"Roadmap",tde:"Roadmap",den:"Upcoming features, planned milestones.",dde:"Kommende Features, geplante Meilensteine."},
-  {num:"AI",group:"ai",en:"AI_Roadmap.md",de:"AI_Roadmap.md",ten:"AI Roadmap",tde:"KI-Roadmap",den:"Detailed AI integration roadmap.",dde:"Detaillierte KI-Integrations-Roadmap."},
   {num:"22",group:"sandbox",en:"22-sandbox-profiles.md",de:"22-sandbox-profile.md",ten:"Sandbox Profiles",tde:"Sandbox-Profile",den:"Lock down AI agents, exec, fs, network access.",dde:"KI-Agenten, exec, Dateisystem, Netzwerk einschränken."},
   {num:"23",group:"modules",en:"23-x-module.md",de:"23-x-modul.md",ten:"X Module",tde:"X-Modul",den:"Post to X/Twitter via the Pipe X module.",dde:"Auf X/Twitter posten mit dem Pipe X-Modul."},
   {num:"24",group:"modules",en:"24-discord-module.md",de:"24-discord-modul.md",ten:"Discord Module",tde:"Discord-Modul",den:"Discord bot integration.",dde:"Discord-Bot-Integration."},
@@ -208,11 +255,15 @@ var L = {
   noResults: {en:"No chapters match.", de:"Keine Kapitel gefunden."},
   selectChapter: {en:"Select a chapter to start reading.", de:"Wähle ein Kapitel zum Lesen."},
   docsTitle: {en:"Pipe Documentation", de:"Pipe-Dokumentation"},
-  docsSubtitle: {en:"41 chapters — from your first program to the bytecode VM. Available in English and German.", de:"41 Kapitel — vom ersten Programm bis zur Bytecode-VM. Englisch und Deutsch."},
+  docsSubtitle: {en:"27 chapters — from your first program to the bytecode VM. Available in English and German.", de:"27 Kapitel — vom ersten Programm bis zur Bytecode-VM. Englisch und Deutsch."},
+  tocTitle: {en:"On this page", de:"Auf dieser Seite"},
   loading: {en:"Loading…", de:"Lade…"},
   loadError: {en:"Failed to load document.", de:"Dokument konnte nicht geladen werden."},
   prev: {en:"« Previous", de:"« Zurück"},
-  next: {en:"Next »", de:"Weiter »"}
+  next: {en:"Next »", de:"Weiter »"},
+  copy: {en:"Copy", de:"Kopieren"},
+  copied: {en:"Copied", de:"Kopiert"},
+  inpageSearch: {en:"Search in chapter…", de:"Im Kapitel suchen…"}
 };
 
 // ---- Sidebar ----
@@ -299,39 +350,60 @@ function loadChapter(linkEl, file, num, title) {
   var content = document.getElementById('doc-content');
   content.className = 'content loading';
   content.innerHTML = '<div style="text-align:center;color:var(--fg2);padding-top:120px">'+L.loading[currentLang]+'</div>';
+  clearToc();
 
   var lang = currentLang;
   var url = 'docs/'+lang+'/'+file;
+  var cacheKey = 'pipe-doc|'+lang+'|'+file;
+
+  var cached = null;
+  try { cached = sessionStorage.getItem(cacheKey); } catch(e) {}
+  if (cached) {
+    renderChapter(content, cached, file, lang, title, url);
+    return;
+  }
 
   fetch(url).then(function(r){
     if (!r.ok) throw new Error('HTTP '+r.status);
     return r.text();
   }).then(function(md){
-    var html = renderMarkdown(md);
-    var ci = getChapterIndexByFile(file);
-    var prev = getAdjacentChapter(ci, -1);
-    var next = getAdjacentChapter(ci, 1);
-
-    var nav = '';
-    var t = lang==='de' ? prev? prev.tde : '' : prev? prev.ten : '';
-    var tn = lang==='de' ? next? next.tde : '' : next? next.ten : '';
-    if (prev || next) {
-      nav = '<div style="display:flex;justify-content:space-between;margin-top:40px;padding-top:20px;border-top:1px solid var(--border)">';
-      if (prev) nav += '<a href="javascript:void(0)" onclick="navChapter(\''+prev.en.replace('.md','')+'\')" style="color:var(--accent);text-decoration:none;font-size:0.85rem">'+L.prev[currentLang]+'<br><span style="font-size:0.75rem;color:var(--fg2)">'+t+'</span></a>';
-      else nav += '<span></span>';
-      if (next) nav += '<a href="javascript:void(0)" onclick="navChapter(\''+next.en.replace('.md','')+'\')" style="color:var(--accent);text-decoration:none;font-size:0.85rem;text-align:right">'+L.next[currentLang]+'<br><span style="font-size:0.75rem;color:var(--fg2)">'+tn+'</span></a>';
-      else nav += '<span></span>';
-      nav += '</div>';
-    }
-
-    content.className = 'content';
-    content.innerHTML = '<div class="doc-body"><div class="breadcrumb"><span>Pipe</span> / <span>Docs</span> / <span>'+title+'</span></div><div class="markdown-body">'+html+'</div>'+nav+'</div>';
-
-    history.replaceState(null, '', '?chapter='+file.replace('.md','')+'&lang='+lang);
+    try { sessionStorage.setItem(cacheKey, md); } catch(e) {}
+    renderChapter(content, md, file, lang, title, url);
   }).catch(function(e){
     content.className = 'content';
     content.innerHTML = '<div class="content-placeholder"><p style="color:var(--red)">'+L.loadError[currentLang]+': '+e.message+'</p></div>';
+    clearToc();
   });
+}
+
+function renderChapter(content, md, file, lang, title, url) {
+  var html = renderMarkdown(md);
+  var ci = getChapterIndexByFile(file);
+  var prev = getAdjacentChapter(ci, -1);
+  var next = getAdjacentChapter(ci, 1);
+
+  var nav = '';
+  var t = lang==='de' ? prev? prev.tde : '' : prev? prev.ten : '';
+  var tn = lang==='de' ? next? next.tde : '' : next? next.ten : '';
+  if (prev || next) {
+    nav = '<div class="chapter-nav" style="display:flex;justify-content:space-between;margin-top:40px;padding-top:20px;border-top:1px solid var(--border)">';
+    if (prev) nav += '<a href="javascript:void(0)" onclick="navChapter(\''+prev.en.replace('.md','')+'\')" style="color:var(--accent);text-decoration:none;font-size:0.85rem">'+L.prev[currentLang]+'<br><span style="font-size:0.75rem;color:var(--fg2)">'+t+'</span></a>';
+    else nav += '<span></span>';
+    if (next) nav += '<a href="javascript:void(0)" onclick="navChapter(\''+next.en.replace('.md','')+'\')" style="color:var(--accent);text-decoration:none;font-size:0.85rem;text-align:right">'+L.next[currentLang]+'<br><span style="font-size:0.75rem;color:var(--fg2)">'+tn+'</span></a>';
+    else nav += '<span></span>';
+    nav += '</div>';
+  }
+
+  content.className = 'content fade';
+  content.innerHTML = '<div class="doc-body">'
+    + '<div class="inpage-search"><input type="text" id="inpage-search" placeholder="'+L.inpageSearch[lang]+'" oninput="inpageSearch()" aria-label="'+L.inpageSearch[lang]+'"><span id="inpage-count"></span></div>'
+    + '<div class="breadcrumb"><span>Pipe</span> / <span>Docs</span> / <span>'+title+'</span></div>'
+    + '<div class="markdown-body">'+html+'</div>'+nav+'</div>';
+
+  setChapterSeo(title, lang, file);
+  buildToc();
+  window.scrollTo(0, 0);
+  history.replaceState(null, '', '?chapter='+file.replace('.md','')+'&lang='+lang);
 }
 
 function navChapter(enBase) {
@@ -343,6 +415,132 @@ function navChapter(enBase) {
       loadChapter(link, file, CHAPTERS[j].num, title);
       break;
     }
+  }
+}
+
+function navChapterByOffset(offset) {
+  if (!activeChapter) return;
+  var enBase = activeChapter.getAttribute('data-chapter');
+  for (var j = 0; j < CHAPTERS.length; j++) {
+    if (CHAPTERS[j].en.replace('.md','') === enBase) {
+      var ni = j + offset;
+      if (ni < 0 || ni >= CHAPTERS.length) return;
+      var c = CHAPTERS[ni];
+      var file = currentLang==='de' ? c.de : c.en;
+      var title = currentLang==='de' ? c.tde : c.ten;
+      var link = document.querySelector('.sidebar-chapter[data-chapter="'+c.en.replace('.md','')+'"]');
+      loadChapter(link, file, c.num, title);
+      return;
+    }
+  }
+}
+
+function copyCode(btn) {
+  var pre = btn.parentNode.nextElementSibling;
+  var text = pre ? pre.textContent : '';
+  if (!navigator.clipboard || !text) return;
+  navigator.clipboard.writeText(text).then(function(){
+    btn.textContent = L.copied[currentLang];
+    btn.classList.add('copied');
+    setTimeout(function(){ btn.textContent = L.copy[currentLang]; btn.classList.remove('copied'); }, 1500);
+  });
+}
+
+function setChapterSeo(title, lang, file) {
+  var chapter = null;
+  for (var j = 0; j < CHAPTERS.length; j++) {
+    if ((lang==='de' ? CHAPTERS[j].de : CHAPTERS[j].en) === file) { chapter = CHAPTERS[j]; break; }
+  }
+  document.title = title+' — Docs — Pipe (SPR)';
+  var meta = document.querySelector('meta[name="description"]');
+  if (meta && chapter) meta.setAttribute('content', (lang==='de'?chapter.dde:chapter.den)+' Pipe (SPR) documentation.');
+  var og = document.querySelector('meta[property="og:description"]');
+  if (og && chapter) og.setAttribute('content', lang==='de'?chapter.dde:chapter.den);
+}
+
+function clearToc() {
+  var list = document.getElementById('toc-list');
+  if (list) list.innerHTML = '';
+}
+
+function buildToc() {
+  var list = document.getElementById('toc-list');
+  var body = document.querySelector('.doc-body');
+  if (!list || !body) return;
+  var headings = body.querySelectorAll('h2, h3');
+  var html = '';
+  for (var i = 0; i < headings.length; i++) {
+    var h = headings[i];
+    if (!h.id) h.id = slugify(h.textContent);
+    html += '<a class="'+(h.tagName==='H3'?'toc-h3':'')+'" href="#'+h.id+'" data-target="'+h.id+'">'+h.textContent+'</a>';
+  }
+  list.innerHTML = html;
+  var links = list.querySelectorAll('a');
+  if (links.length && 'IntersectionObserver' in window) {
+    var observer = new IntersectionObserver(function(entries){
+      entries.forEach(function(e){
+        if (e.isIntersecting) {
+          for (var i = 0; i < links.length; i++) links[i].classList.remove('active');
+          var link = list.querySelector('a[data-target="'+e.target.id+'"]');
+          if (link) link.classList.add('active');
+        }
+      });
+    }, { rootMargin: '-70px 0px -72% 0px', threshold: 0 });
+    for (var j = 0; j < headings.length; j++) observer.observe(headings[j]);
+  }
+}
+
+function inpageSearch() {
+  var input = document.getElementById('inpage-search');
+  var body = document.querySelector('.markdown-body');
+  var countEl = document.getElementById('inpage-count');
+  if (countEl) countEl.textContent = '';
+  if (!input || !body) return;
+  var q = input.value.trim();
+  clearMarks(body);
+  if (!q) return;
+  var re = new RegExp('('+q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')+')', 'ig');
+  var walker = document.createTreeWalker(body, NodeFilter.SHOW_TEXT, {
+    acceptNode: function(node) {
+      var p = node.parentNode;
+      if (p && p.closest && p.closest('mark, script, style, button, .inpage-search')) return NodeFilter.FILTER_REJECT;
+      return NodeFilter.FILTER_ACCEPT;
+    }
+  });
+  var nodes = [];
+  while (walker.nextNode()) nodes.push(walker.currentNode);
+  var count = 0;
+  for (var i = 0; i < nodes.length; i++) {
+    var node = nodes[i];
+    var text = node.nodeValue;
+    re.lastIndex = 0;
+    if (!re.test(text)) continue;
+    re.lastIndex = 0;
+    var frag = document.createDocumentFragment();
+    var last = 0, m;
+    while ((m = re.exec(text)) !== null) {
+      if (m.index > last) frag.appendChild(document.createTextNode(text.slice(last, m.index)));
+      var mark = document.createElement('mark');
+      mark.textContent = m[0];
+      frag.appendChild(mark);
+      count++;
+      last = m.index + m[0].length;
+      if (m[0].length === 0) re.lastIndex++;
+    }
+    if (last < text.length) frag.appendChild(document.createTextNode(text.slice(last)));
+    node.parentNode.replaceChild(frag, node);
+  }
+  if (countEl && count > 0) countEl.textContent = count+'×';
+}
+
+function clearMarks(body) {
+  var marks = body.querySelectorAll('mark');
+  for (var i = marks.length - 1; i >= 0; i--) {
+    var m = marks[i];
+    var p = m.parentNode;
+    if (!p) continue;
+    while (m.firstChild) p.insertBefore(m.firstChild, m);
+    p.removeChild(m);
   }
 }
 
@@ -371,7 +569,9 @@ var mdRenderer = {
     }
     return '<h'+level+' id="'+slugify(text)+'">'+text+'</h'+level+'>\n';
   },
-  code: function(code, lang, escaped) { return '<pre><code>'+code+'</code></pre>\n'; },
+  code: function(code, lang) {
+    return '<div class="code-block-wrap"><div class="code-head"><span class="code-lang">'+(lang||'code')+'</span><button class="copy-btn" type="button" onclick="copyCode(this)">'+L.copy[currentLang]+'</button></div><pre class="code-block"><code>'+code+'</code></pre></div>\n';
+  },
   codespan: function(code) { return '<code>'+code+'</code>'; },
   link: function(href, title, text) { return '<a href="'+href+'"'+(title?' title="'+title+'"':'')+'>'+text+'</a>'; },
   paragraph: function(text) { return '<p>'+text+'</p>\n'; },
@@ -380,7 +580,7 @@ var mdRenderer = {
   del: function(text) { return '<del>'+text+'</del>'; },
   list: function(body, ordered, start) { var t = ordered ? 'ol' : 't'; return '<'+t+(start&&start!==1?' start="'+start+'"':'')+'>\n'+body+'</'+t+'>\n'; },
   listitem: function(text, task, checked) { return '<li>'+text+'</li>\n'; },
-  table: function(header, body) { return '<table>\n<thead>\n'+header+'</thead>\n<tbody>\n'+body+'</tbody>\n</table>\n'; },
+  table: function(header, body) { return '<div class="table-wrap"><table>\n<thead>\n'+header+'</thead>\n<tbody>\n'+body+'</tbody>\n</table></div>\n'; },
   tablerow: function(content, flags) { return '<tr>\n'+content+'</tr>\n'; },
   tablecell: function(content, flags) { var t = flags.header ? 'th' : 'td'; return '<'+t+(flags.align?' style="text-align:'+flags.align+'"':'')+'>'+content+'</'+t+'>\n'; },
   blockquote: function(quote) { return '<blockquote>\n'+quote+'</blockquote>\n'; },
@@ -561,6 +761,8 @@ function setLang(lang) {
   document.getElementById('btn-de').classList.toggle('active', lang==='de');
   document.documentElement.lang = lang;
   document.getElementById('search').placeholder = L.searchPlaceholder[lang];
+  var ips = document.getElementById('inpage-search');
+  if (ips) ips.placeholder = L.inpageSearch[lang];
   localStorage.setItem('pipe-lang', lang);
 
   updateChapterLabels();
@@ -589,8 +791,11 @@ function getChapterDE(enBase) {
 // ---- Init ----
 
 (function() {
+  var params = new URLSearchParams(window.location.search);
+  var langParam = params.get('lang');
   var stored = localStorage.getItem('pipe-lang');
   if (!stored) stored = navigator.language.startsWith('de') ? 'de' : 'en';
+  if (langParam === 'en' || langParam === 'de') stored = langParam;
   currentLang = stored;
   document.getElementById('search').placeholder = L.searchPlaceholder[stored];
 
@@ -598,7 +803,6 @@ function getChapterDE(enBase) {
   setLang(stored);
 
   // URL deep-link
-  var params = new URLSearchParams(window.location.search);
   var ch = params.get('chapter');
   if (ch) {
     var file = stored==='de' ? getChapterDE(ch) : ch+'.md';
@@ -609,6 +813,16 @@ function getChapterDE(enBase) {
       loadChapter(link, file, CHAPTERS[ci].num, title);
     }
   }
+
+  // Keyboard navigation
+  document.addEventListener('keydown', function(e) {
+    var tag = (e.target.tagName || '').toLowerCase();
+    if (tag === 'input' || tag === 'textarea') return;
+    if (e.key === 'ArrowLeft') { navChapterByOffset(-1); e.preventDefault(); }
+    else if (e.key === 'ArrowRight') { navChapterByOffset(1); e.preventDefault(); }
+    else if (e.key === 'Escape') closeSidebar();
+    else if (e.key === '/') { document.getElementById('search').focus(); e.preventDefault(); }
+  });
 })();
 </script>
 

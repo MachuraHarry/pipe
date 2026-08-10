@@ -1,1018 +1,1338 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="utf-8">
-<link rel="icon" type="image/svg+xml" href="logo.svg">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="description" content="Pipe Playground — write and run Pipe code in your browser via WebAssembly. No install, no signup.">
-<meta property="og:title" content="Pipe Playground">
-<meta property="og:description" content="Run Pipe code in your browser. No install, no signup.">
-<meta property="og:type" content="website">
-<meta property="og:image" content="https://pipe-lang.com/og-image.png">
-<meta property="og:url" content="https://pipe-lang.com/playground.html">
-<link rel="canonical" href="https://pipe-lang.com/playground.html">
-<meta name="twitter:card" content="summary_large_image">
-<title>Pipe — Playground</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pipe Playground</title>
+<meta name="description" content="Run Pipe code in your browser via WebAssembly. Try the MCP-first scripting language without installing anything.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📦</text></svg>">
+<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.css">
 <style>
-:root {
-  --bg:#07070c;--bg2:#0d0d16;--bg3:#141420;
-  --fg:#e8e8f0;--fg2:#9090a8;--fg3:#606078;
-  --accent:#a855f7;--accent2:#7c3aed;
-  --green:#3ce096;--orange:#fc8c3c;--red:#fc5c7c;
-  --border:#1e1e2e;--radius:10px;
-  --mono:'JetBrains Mono','Fira Code',monospace;
-  --sans:system-ui,-apple-system,sans-serif;
-}
-*{box-sizing:border-box;margin:0;padding:0}
-body{background:var(--bg);color:var(--fg);font-family:var(--sans);display:flex;flex-direction:column;align-items:center;min-height:100vh;padding:24px}
-h1{font-size:1.5rem;margin:14px 0 2px;font-weight:800;letter-spacing:-0.5px}
-h1 span{background:linear-gradient(135deg,var(--accent),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
-.sub{color:var(--fg2);font-size:.85rem;margin-bottom:10px}
+/* ---------- Playground layout ---------- */
+.pg-container { max-width: 1280px; margin: 0 auto; padding: 110px 20px 60px; }
+nav a.active { color: var(--fg); }
+.pg-header { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 12px 24px; margin-bottom: 20px; }
+.pg-title h1 { margin: 0; font-size: 26px; letter-spacing: -0.02em; }
+.pg-title p { margin: 4px 0 0; color: #8b8fa3; font-size: 13.5px; }
+.pg-badges { margin-left: auto; display: flex; gap: 8px; align-items: center; }
+.badge { font-size: 11px; padding: 4px 10px; border-radius: 999px; border: 1px solid #2b2d3d; color: #a9acc2; background: #16171f; white-space: nowrap; }
+.badge.ok { color: #34d399; border-color: rgba(52,211,153,.35); }
 
-.view-toggle{display:flex;gap:4px;margin-bottom:18px;background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:3px;width:fit-content}
-.view-btn{background:transparent;color:var(--fg2);border:none;padding:6px 14px;font-size:.76rem;font-weight:600;cursor:pointer;border-radius:6px;transition:all .15s;font-family:var(--sans)}
-.view-btn.active{background:var(--accent);color:#fff}
-.view-btn:hover:not(.active){color:var(--fg);background:var(--bg3)}
-.view-split{display:flex;gap:14px;width:100%;max-width:1400px;align-items:flex-start}
-.view-split .split-left{flex:1;min-width:0;max-width:900px}
-.view-split .split-right{flex:1;min-width:0;display:none}
-.view-split.split .split-right{display:block}
-.view-split.graph-only{max-width:900px}
-.view-split.graph-only .split-left{display:none}
-.view-split.graph-only .split-right{display:block;flex:1}
+.pg-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; align-items: start; }
+@media (max-width: 1000px) { .pg-grid { grid-template-columns: 1fr; } }
 
-.play-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);box-shadow:0 0 0 1px rgba(168,85,247,0.04),0 16px 48px rgba(0,0,0,0.4)}
-.play-card>:first-child{border-radius:var(--radius) var(--radius) 0 0;overflow:hidden}
-.play-card>:last-child{border-radius:0 0 var(--radius) var(--radius);overflow:hidden}
-.play-top{display:flex;justify-content:space-between;align-items:center;padding:10px 16px;background:var(--bg3);border-bottom:1px solid var(--border)}
-.play-top-left{display:flex;align-items:center;gap:8px}
-.play-dot{display:inline-block;width:10px;height:10px;border-radius:50%}
-.play-label{color:var(--fg3);font-size:.7rem;font-family:var(--mono);text-transform:uppercase;letter-spacing:.4px}
-.play-actions{display:flex;align-items:center;gap:6px}
-.icon-btn{background:transparent;color:var(--fg2);border:1px solid var(--border);border-radius:6px;padding:5px 10px;font-size:.78rem;cursor:pointer;transition:all .15s;line-height:1}
-.icon-btn:hover{color:var(--fg);border-color:var(--fg3)}
-.icon-btn:disabled{opacity:0.4;cursor:not-allowed}
-.share-btn{background:transparent;color:var(--accent);border:1px solid var(--accent);border-radius:6px;padding:5px 12px;font-size:.78rem;font-weight:600;cursor:pointer;transition:all .15s;line-height:1}
-.share-btn:hover:not(:disabled){background:var(--accent);color:#fff}
-.share-btn:disabled{opacity:0.4;cursor:not-allowed}
-.run-btn{background:var(--accent);color:#fff;border:none;border-radius:6px;padding:5px 14px;font-weight:600;font-size:.78rem;cursor:pointer;transition:all .15s;line-height:1}
-.run-btn:hover:not(:disabled){background:#8e72fc}
-.run-btn:disabled{opacity:0.4;cursor:not-allowed}
-.play-editor-wrap{display:grid;min-height:220px}
-.play-editor-wrap>*{grid-area:1/1}
-textarea.play-editor{width:100%;min-height:220px;padding:16px 18px;font:14px/1.7 var(--mono);background:transparent;border:none;color:transparent;caret-color:var(--fg);resize:vertical;outline:none;white-space:pre-wrap;tab-size:4;overflow:auto;z-index:2}
-pre.play-editor{padding:16px 18px;font:14px/1.7 var(--mono);margin:0;color:var(--fg);overflow:hidden;pointer-events:none;user-select:none;z-index:1}
-pre.play-editor::-webkit-scrollbar{display:none}
-.play-bar{display:flex;align-items:center;gap:8px;padding:7px 16px;background:var(--bg3);border-top:1px solid var(--border);font-size:.7rem;color:var(--fg2);font-family:var(--mono);min-height:32px}
-.play-bar.success{color:var(--green)}
-.play-bar.error{color:var(--red)}
-.play-out-wrap{background:var(--bg);border-top:1px solid var(--border)}
-.play-out{padding:14px 18px;font:13px/1.6 var(--mono);color:var(--green);min-height:48px;max-height:220px;overflow-y:auto;white-space:pre-wrap}
-.play-out.error{color:var(--red)}
-.play-out:empty::before{content:"▶ output";color:var(--fg3)}
-.rating-section{border-top:1px solid var(--border);padding:12px 16px;background:var(--bg2);display:flex;align-items:center;gap:10px;min-height:44px}
-.rating-stars{display:inline-flex;gap:2px;font-size:1.4rem;cursor:pointer;line-height:1}
-.rating-stars span{color:var(--fg3);transition:color .12s;user-select:none}
-.rating-stars span.active{color:#fbbf24}
-.rating-stars span:hover{color:#fbbf24}
-.rating-info{font-size:.78rem;color:var(--fg2)}
-a{color:var(--accent);text-decoration:none}
-.ft{color:var(--fg3);font-size:.72rem;text-align:center;margin:22px 0 0}
-.play-api-row{padding:4px 16px;background:var(--bg3);display:flex;gap:6px;align-items:center;border-top:1px solid var(--border);font-size:0.62rem}
-.play-api-row select{background:var(--bg);color:var(--fg2);border:1px solid var(--border);border-radius:4px;padding:1px 3px;font-size:0.6rem}
-.play-api-row input{flex:1;background:var(--bg);color:var(--fg2);border:1px solid var(--border);border-radius:4px;padding:1px 6px;font-size:0.6rem;font-family:var(--mono)}
-.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--bg3);color:var(--fg);padding:10px 22px;border-radius:8px;font-size:.82rem;border:1px solid var(--border);z-index:100;opacity:0;transition:opacity .25s;pointer-events:none;font-family:var(--sans);max-width:calc(100vw - 48px);text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.toast.show{opacity:1}
-.top-panel{margin-top:24px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden}
-.top-header{padding:14px 18px;background:var(--bg3);border-bottom:1px solid var(--border);font-size:.82rem;font-weight:700;display:flex;align-items:center;gap:8px}
-.top-list{padding:4px 0}
-.top-item{display:flex;align-items:center;gap:10px;padding:9px 18px;cursor:pointer;transition:background .12s;border-bottom:1px solid rgba(255,255,255,0.03)}
-.top-item:last-child{border-bottom:none}
-.top-item:hover{background:var(--bg3)}
-.top-rank{font-size:.68rem;font-weight:700;color:var(--fg3);min-width:16px;text-align:right}
-.top-stars{font-size:.82rem;color:#fbbf24;min-width:55px}
-.top-preview{font-family:var(--mono);font-size:.74rem;color:var(--fg2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1}
-.top-count{font-size:.66rem;color:var(--fg3);white-space:nowrap}
-.graph-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);box-shadow:0 0 0 1px rgba(168,85,247,0.04),0 16px 48px rgba(0,0,0,0.4);position:sticky;top:24px}
-.graph-top{display:flex;align-items:center;gap:6px;padding:10px 16px;background:var(--bg3);border-bottom:1px solid var(--border);border-radius:var(--radius) var(--radius) 0 0}
-.graph-label{color:var(--fg3);font-size:.7rem;font-family:var(--mono);text-transform:uppercase;letter-spacing:.4px}
-.graph-body{padding:18px 14px;min-height:200px;display:flex;align-items:center;justify-content:center;overflow:auto}
-.graph-body svg{max-width:100%}
-.graph-empty{color:var(--fg3);font-size:.8rem;font-family:var(--mono);text-align:center;padding:20px}
-.graph-empty .icon{font-size:2rem;display:block;margin-bottom:10px;opacity:.4}
-.graph-error{color:var(--red);font-size:.75rem;font-family:var(--mono);text-align:center;padding:12px}
-.graph-legend{display:flex;flex-wrap:wrap;gap:6px;padding:8px 14px;border-top:1px solid var(--border);background:var(--bg3);border-radius:0 0 var(--radius) var(--radius)}
-.graph-legend-item{display:flex;align-items:center;gap:4px;font-size:.62rem;color:var(--fg3);font-family:var(--sans)}
-.graph-legend-dot{width:8px;height:8px;border-radius:2px;flex-shrink:0}
-.token.comment{color:var(--fg3);font-style:italic}
-.token.string,.token.char,.token.builtin{color:var(--green)}
-.token.number,.token.boolean,.token.constant{color:var(--orange)}
-.token.keyword{color:var(--accent);font-weight:600}
-.token.function{color:#5ce0fc}
-.token.operator{color:var(--orange)}
-.token.punctuation{color:var(--fg2)}
-.token.variable{color:var(--fg)}
-.sandbox-notice{margin-left:auto;font-size:.65rem;color:var(--fg3);display:none;align-items:center;gap:4px}
-.sandbox-notice a{color:var(--fg3);text-decoration:underline;text-underline-offset:2px}
-.sandbox-notice a:hover{color:var(--accent)}
-.sandbox-notice.show{display:inline-flex}
-.graph-badge{display:inline-block;padding:1px 6px;border-radius:3px;font-size:9px;font-weight:700;font-family:var(--mono);letter-spacing:.3px;vertical-align:middle}
-@media(max-width:1200px){
-  .view-split .split-left{max-width:550px}
-  .view-split .split-right{max-width:450px}
-}
-@media(max-width:900px){
-  .view-split{flex-direction:column}
-  .view-split .split-left{max-width:100%}
-  .view-split .split-right{max-width:100%}
-  .graph-card{position:static}
-  .view-split.graph-only .split-right{max-width:100%}
-  .graph-body{min-height:140px;padding:14px 8px}
-  .graph-legend{gap:4px;padding:6px 10px}
-  .graph-legend-item{font-size:.58rem}
-}
-@media(max-width:600px){
-  body{padding:8px}
-  h1{font-size:1.05rem;margin:8px 0 1px}
-  h1 img{height:20px!important}
-  .sub{font-size:.74rem;margin-bottom:8px}
-  .view-toggle{gap:2px;margin-bottom:10px;width:100%}
-  .view-btn{font-size:.7rem;padding:7px 0;flex:1;text-align:center;min-height:36px;border-radius:5px}
-  .view-toggle .view-btn.active{border-radius:5px}
+/* ---------- Editor ---------- */
+.card { background: #101117; border: 1px solid #2b2d3d; border-radius: 12px; overflow: hidden; }
+.card-head { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 10px 14px; border-bottom: 1px solid #2b2d3d; background: #14151d; }
+.card-head h3 { margin: 0 8px 0 0; font-size: 13px; letter-spacing: .04em; text-transform: uppercase; color: #8b8fa3; }
+.btn { font: inherit; font-size: 12.5px; padding: 6px 12px; border-radius: 8px; border: 1px solid #2b2d3d; background: #1b1c26; color: #e4e5f1; cursor: pointer; transition: border-color .15s, background .15s, transform .05s; }
+.btn:hover { border-color: #4b4d6b; background: #23242f; }
+.btn:active { transform: translateY(1px); }
+.btn.primary { background: #6d5ef2; border-color: #6d5ef2; color: #fff; }
+.btn.primary:hover { background: #7d70f4; }
+.btn.primary:disabled, .btn:disabled { opacity: .5; cursor: not-allowed; }
+.btn.danger:hover { border-color: #f87171; color: #f87171; }
+.spacer { flex: 1; }
+.toolbar { display: flex; flex-wrap: wrap; gap: 8px; }
 
-  .play-top{padding:8px 10px;flex-wrap:wrap;gap:4px;flex-direction:column;align-items:flex-start}
-  .play-top-left{align-self:stretch}
-  .play-actions{align-self:stretch;justify-content:space-between;gap:6px}
-  .play-label{font-size:.62rem}
-  .icon-btn,.share-btn{font-size:.7rem;padding:5px 10px;min-height:32px}
-  .run-btn{font-size:.72rem;padding:5px 14px;min-height:32px}
+.editor-wrap { position: relative; height: 420px; }
+#code-area { width: 100%; height: 100%; resize: none; padding: 16px; box-sizing: border-box; border: 0; background: transparent; color: #e4e5f1; font-family: "Cascadia Code", "JetBrains Mono", "Fira Code", Menlo, Consolas, monospace; font-size: 13px; line-height: 1.65; tab-size: 2; white-space: pre; overflow: auto; outline: none; }
+#code-overlay { position: absolute; inset: 0; pointer-events: none; padding: 16px; font-family: inherit; font-size: 13px; line-height: 1.65; white-space: pre; overflow: hidden; color: #e4e5f1; }
+.token.pipe-kw { color: #c084fc; }
+.token.pipe-op { color: #f97316; }
+.token.pipe-num { color: #38bdf8; }
+.token.pipe-str { color: #34d399; }
+.token.pipe-fn { color: #60a5fa; }
+.token.pipe-var { color: #e4e5f1; }
+.token.pipe-comment { color: #64748b; }
+#code-area:focus { box-shadow: inset 0 0 0 1px #6d5ef2; }
 
-  textarea.play-editor,pre.play-editor{font:12px/1.5 var(--mono);padding:10px 12px;min-height:140px}
-  .play-editor-wrap{min-height:140px}
-  .play-out{padding:8px 12px;font:11px/1.4 var(--mono);min-height:32px;max-height:120px}
-  .play-bar{padding:5px 8px;font-size:.6rem;flex-wrap:wrap;gap:3px}
+.status-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; padding: 8px 14px; border-top: 1px solid #2b2d3d; font-size: 12px; color: #8b8fa3; background: #14151d; }
+.status-dot { width: 8px; height: 8px; border-radius: 50%; background: #f59e0b; }
+.status-dot.ok { background: #34d399; }
+.status-dot.err { background: #f87171; }
+#status-text { flex: 1; }
+#status-version { font-variant-numeric: tabular-nums; }
 
-  .rating-section{padding:8px 10px;flex-wrap:wrap;gap:6px}
-  .rating-stars{font-size:1.2rem;gap:1px}
-  .rating-info{font-size:.68rem}
+.ai-bar { display: flex; flex-wrap: wrap; gap: 8px; padding: 10px 14px; border-top: 1px solid #2b2d3d; background: #14151d; align-items: center; }
+.ai-bar label { font-size: 12px; color: #8b8fa3; }
+.ai-bar select, .ai-bar input { font: inherit; font-size: 12.5px; padding: 6px 10px; border-radius: 8px; border: 1px solid #2b2d3d; background: #1b1c26; color: #e4e5f1; }
 
-  .top-header{padding:8px 10px;font-size:.72rem}
-  .top-item{padding:6px 10px;gap:5px}
-  .top-rank{font-size:.6rem;min-width:10px}
-  .top-stars{font-size:.68rem;min-width:36px}
-  .top-preview{font-size:.64rem}
+/* ---------- Output / tabs ---------- */
+.tabs { display: flex; gap: 2px; padding: 0 10px; border-bottom: 1px solid #2b2d3d; background: #14151d; }
+.tab-btn { font: inherit; font-size: 12.5px; padding: 10px 14px; background: none; border: 0; border-bottom: 2px solid transparent; color: #8b8fa3; cursor: pointer; }
+.tab-btn.active { color: #e4e5f1; border-bottom-color: #6d5ef2; }
+.tab-panel { display: none; }
+.tab-panel.active { display: block; }
+#output-panel { background: #0c0d12; }
+#output { margin: 0; padding: 16px; min-height: 280px; max-height: 480px; overflow: auto; font-family: "Cascadia Code", "JetBrains Mono", Menlo, Consolas, monospace; font-size: 13px; line-height: 1.65; white-space: pre-wrap; word-break: break-word; color: #e4e5f1; }
+#output .out-ok { color: #34d399; }
+#output .out-err { color: #f87171; }
+#output .out-dim { color: #64748b; }
+#output p { margin: 0 0 8px; }
+.out-meta { padding: 8px 16px; border-top: 1px solid #2b2d3d; font-size: 12px; color: #8b8fa3; display: flex; gap: 16px; flex-wrap: wrap; }
 
-  .sandbox-notice{font-size:.55rem;display:none!important}
-  .ft{font-size:.6rem}
-  .play-api-row{flex-wrap:wrap;padding:6px 10px;gap:4px}
-  .play-api-row select,.play-api-row input{min-height:26px}
-  .graph-body{padding:8px 4px;min-height:100px}
-  .graph-card .play-dot{width:7px;height:7px}
-  .graph-label{font-size:.62rem}
-  .graph-legend{gap:3px;padding:5px 8px;overflow-x:auto}
-  .graph-legend-item{font-size:.55rem;white-space:nowrap}
-  .graph-legend-dot{width:6px;height:6px}
-  .graph-empty{font-size:.7rem;padding:14px}
-  .graph-empty .icon{font-size:1.5rem;margin-bottom:6px}
-}
-@media(max-width:400px){
-  body{padding:6px}
-  h1{font-size:.95rem}
-  h1 img{height:18px!important}
-  .sub{font-size:.68rem;margin-bottom:6px}
+#rating-bar { display: none; align-items: center; gap: 10px; padding: 10px 16px; border-top: 1px solid #2b2d3d; font-size: 13px; color: #e4e5f1; background: #14151d; }
+#rating-bar .stars { display: flex; gap: 2px; }
+#rating-bar .star { font-size: 20px; cursor: pointer; color: #4b4d6b; user-select: none; }
+#rating-bar .star.active { color: #fbbf24; }
+#rating-bar .avg { font-size: 12px; color: #8b8fa3; }
 
-  .view-toggle{gap:1px;border-radius:6px}
-  .view-btn{font-size:.64rem;padding:6px 0;min-height:32px;border-radius:4px}
+#graph-panel { background: #0c0d12; }
+.graph-toolbar { display: flex; flex-wrap: wrap; gap: 8px; padding: 8px 12px; border-bottom: 1px solid #2b2d3d; align-items: center; }
+.graph-toolbar label { font-size: 12px; color: #8b8fa3; }
+#graph-body { overflow: auto; min-height: 280px; }
+#graph-svg { display: block; margin: 0 auto; }
+.legend { display: flex; flex-wrap: wrap; gap: 12px; padding: 10px 16px; border-top: 1px solid #2b2d3d; font-size: 12px; color: #8b8fa3; }
+.legend .chip { display: inline-flex; align-items: center; gap: 6px; }
+.legend .swatch { width: 10px; height: 10px; border-radius: 3px; display: inline-block; }
+.legend .swatch.edge { background: #7c3aed; }
+.legend .swatch.vnode { background: #6d5ef2; }
+.legend .swatch.const { background: #34d399; }
+.legend .swatch.fn { background: #f97316; }
+.graph-msg { padding: 16px; color: #8b8fa3; font-size: 13px; }
+.graph-msg.err { color: #f87171; }
 
-  .play-top{padding:6px 8px;gap:3px}
-  .play-actions{gap:3px}
-  .icon-btn,.share-btn{font-size:.64rem;padding:4px 7px;min-height:28px}
-  .run-btn{font-size:.66rem;padding:4px 10px;min-height:28px}
+/* ---------- Templates ---------- */
+.select-label { font-size: 12px; color: #8b8fa3; margin-left: 4px; }
+#template-select { font: inherit; font-size: 12.5px; padding: 6px 10px; border-radius: 8px; border: 1px solid #2b2d3d; background: #1b1c26; color: #e4e5f1; }
 
-  textarea.play-editor,pre.play-editor{font:11px/1.45 var(--mono);padding:8px 10px;min-height:120px}
-  .play-editor-wrap{min-height:120px}
-  .play-out{padding:6px 8px;font:10px/1.35 var(--mono);min-height:28px;max-height:100px}
-  .play-bar{font-size:.56rem}
+/* ---------- Top rated ---------- */
+.top-section { margin-top: 28px; }
+.top-section h3 { font-size: 16px; margin: 0 0 4px; }
+.top-sub { color: #8b8fa3; font-size: 13px; margin: 0 0 14px; }
+.top-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px; }
+.top-item { background: #14151d; border: 1px solid #2b2d3d; border-radius: 10px; padding: 14px; display: flex; flex-direction: column; gap: 8px; }
+.top-item .t-head { display: flex; align-items: center; gap: 8px; }
+.top-item .t-name { font-weight: 600; font-size: 14px; flex: 1; word-break: break-word; }
+.top-item .t-stars { color: #fbbf24; font-size: 13px; }
+.top-item .t-lines { font-size: 12px; color: #8b8fa3; }
+.top-item .btn { align-self: flex-start; }
+.top-none { color: #8b8fa3; font-size: 13px; }
 
-  .graph-body{padding:6px 2px;min-height:80px}
-  .graph-top{padding:6px 10px}
-  .graph-legend{padding:4px 6px}
-  .graph-empty{font-size:.64rem;padding:10px}
-  .graph-empty .icon{font-size:1.2rem}
-  .rating-stars{font-size:1rem}
-}
+/* ---------- Toast ---------- */
+#toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%) translateY(20px); background: #1b1c26; border: 1px solid #4b4d6b; color: #e4e5f1; padding: 10px 18px; border-radius: 10px; font-size: 13px; opacity: 0; pointer-events: none; transition: opacity .2s, transform .2s; z-index: 1000; max-width: 90vw; }
+#toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 </style>
 </head>
 <body>
-<h1><img src="logo.svg" alt="" style="height:28px;vertical-align:middle;margin-right:6px">Pipe <span>Playground</span></h1>
-<p class="sub">Write code. Run in browser. See your pipeline. <a href="index.html">home</a></p>
 
-<div class="view-toggle">
-  <button class="view-btn active" data-view="code" onclick="setView('code')">Code</button>
-  <button class="view-btn" data-view="split" onclick="setView('split')">Split</button>
-  <button class="view-btn" data-view="graph" onclick="setView('graph')">Graph</button>
-</div>
-
-<div class="view-split" id="view-split">
-  <div class="split-left" id="split-left">
-    <div class="play-card">
-      <div class="play-top">
-        <div class="play-top-left">
-          <span class="play-dot" style="background:var(--red)"></span>
-          <span class="play-dot" style="background:var(--orange)"></span>
-          <span class="play-dot" style="background:var(--green)"></span>
-          <span class="play-label">pipe playground</span>
-        </div>
-        <div class="play-actions">
-          <button class="icon-btn" onclick="downloadCode()" title="Download .pipe file">↓</button>
-          <button id="share-btn" class="share-btn" onclick="sharePlay()">Share</button>
-          <button id="gen-btn" class="icon-btn" onclick="generatePlay()" disabled title="Generate random valid code">✦</button>
-          <button id="play-btn" class="run-btn" disabled onclick="runPlay()">▶ Run</button>
-        </div>
-      </div>
-      <div class="play-editor-wrap">
-        <textarea id="play-editor" class="play-editor" placeholder="Write Pipe code..." spellcheck="false"
-oninput="onEdit()" onscroll="syncScroll()">"hello pipe"
-    > print</textarea>
-        <pre id="play-hl" class="play-editor language-pipe" aria-hidden="true"></pre>
-      </div>
-      <div class="play-bar" id="play-bar"><span id="play-status">loading wasm…</span><span class="sandbox-notice" id="sandbox-notice">sandbox mode · AI-ready</span></div>
-      <div class="play-api-row">
-        <select id="api-provider">
-          <option value="">API Key (optional)</option>
-          <option value="deepseek">DeepSeek</option>
-          <option value="openai">OpenAI</option>
-          <option value="anthropic">Anthropic</option>
-        </select>
-        <input id="api-key" type="password" autocomplete="off" placeholder="sk-..." oninput="setAPIKey(document.getElementById('api-provider').value,this.value)">
-      </div>
-      <div class="play-out-wrap">
-        <div class="play-out" id="play-out"></div>
-      </div>
-      <div class="rating-section" id="rating-section" style="display:none">
-        <div class="rating-stars" id="rating-stars">
-          <span data-val="1">☆</span>
-          <span data-val="2">☆</span>
-          <span data-val="3">☆</span>
-          <span data-val="4">☆</span>
-          <span data-val="5">☆</span>
-        </div>
-        <div class="rating-info" id="rating-info"></div>
-      </div>
-    </div>
-    <div class="top-panel" id="top-panel" style="display:none">
-      <div class="top-header">🔥 Top Rated Snippets</div>
-      <div class="top-list" id="top-list"><div style="padding:14px 18px;font-size:.78rem;color:var(--fg3)">loading…</div></div>
-    </div>
-  </div>
-
-  <div class="split-right" id="split-right">
-    <div class="graph-card">
-      <div class="graph-top">
-        <span class="play-dot" style="background:var(--accent)"></span>
-        <span class="play-dot" style="background:#5ce0fc"></span>
-        <span class="play-dot" style="background:var(--green)"></span>
-        <span class="graph-label">pipeline graph</span>
-      </div>
-      <div class="graph-body" id="graph-body">
-        <div class="graph-empty">
-          <span class="icon">◧</span>
-          <span>pipeline will appear here</span>
-        </div>
-      </div>
-      <div class="graph-legend">
-        <div class="graph-legend-item"><span class="graph-legend-dot" style="background:var(--accent)"></span>AI</div>
-        <div class="graph-legend-item"><span class="graph-legend-dot" style="background:var(--green)"></span>Builtin</div>
-        <div class="graph-legend-item"><span class="graph-legend-dot" style="background:#5ce0fc"></span>HOF</div>
-        <div class="graph-legend-item"><span class="graph-legend-dot" style="background:var(--orange)"></span>IO</div>
-        <div class="graph-legend-item"><span class="graph-legend-dot" style="background:#666"></span>Var</div>
-        <div class="graph-legend-item"><span style="color:#c084fc">⇢</span> parallel</div>
+<nav>
+  <div class="container">
+    <a href="index.html" class="logo"><img src="logo.svg" alt="Pipe">Pipe<span>.lang</span></a>
+    <button class="hamburger" onclick="document.getElementById('nav-menu').classList.toggle('open')" aria-label="Menu">☰</button>
+    <div class="nav-links" id="nav-menu">
+      <a href="index.html" onclick="closeMenu()"><span data-lang="en" class="active">Home</span><span data-lang="de">Start</span></a>
+      <a href="docs.html" onclick="closeMenu()"><span data-lang="en" class="active">Docs</span><span data-lang="de">Doku</span></a>
+      <a href="examples.html" onclick="closeMenu()"><span data-lang="en" class="active">Examples</span><span data-lang="de">Beispiele</span></a>
+      <a href="install.html" onclick="closeMenu()"><span data-lang="en" class="active">Install</span><span data-lang="de">Installation</span></a>
+      <a href="benchmarks.html" onclick="closeMenu()">Benchmarks</a>
+      <a href="playground.html" class="active" onclick="closeMenu()">Playground</a>
+      <a href="blog.html" onclick="closeMenu()">Blog</a>
+      <a href="https://github.com/MachuraHarry/pipe" onclick="closeMenu()">GitHub</a>
+      <div class="lang-switch">
+        <button id="btn-en" class="active" onclick="setLang('en')">EN</button>
+        <button id="btn-de" onclick="setLang('de')">DE</button>
       </div>
     </div>
   </div>
-</div>
+</nav>
 
-<p class="ft"><a href="index.html">home</a> · <a href="https://github.com/MachuraHarry/pipe">github</a></p>
-<div class="toast" id="toast"></div>
+<main class="pg-container">
+  <div class="pg-header">
+    <div class="pg-title">
+      <h1 data-i18n="pg.title">Pipe Playground</h1>
+      <p data-i18n="pg.subtitle">Run Pipe in your browser via WebAssembly — no install needed. <code>ai_with_tools</code>, MCP and HTTP work here too.</p>
+    </div>
+    <div class="pg-badges">
+      <span class="badge" id="badge-wasm">WASM</span>
+      <span class="badge" id="badge-version">Pipe ?</span>
+    </div>
+  </div>
 
-<script src="wasm_exec.js?v=2"></script>
+  <div class="pg-grid">
+    <!-- Left: editor -->
+    <div>
+      <div class="card">
+        <div class="card-head">
+          <h3 data-i18n="pg.editor">Editor</h3>
+          <select id="template-select" class="select-label" aria-label="Template">
+            <option value="" data-i18n="pg.templates.label">Templates…</option>
+            <option value="hello" data-i18n="pg.templates.hello">Hello World</option>
+            <option value="pipeline" data-i18n="pg.templates.pipeline">Pipeline</option>
+            <option value="mapfilter" data-i18n="pg.templates.mapfilter">Map &amp; Filter</option>
+            <option value="fizzbuzz" data-i18n="pg.templates.fizzbuzz">FizzBuzz</option>
+            <option value="textstats" data-i18n="pg.templates.textstats">Text Stats</option>
+            <option value="ai" data-i18n="pg.templates.ai">AI Summarize</option>
+          </select>
+          <div class="spacer"></div>
+          <div class="toolbar">
+            <button class="btn" id="btn-clear" data-i18n="pg.clear">Clear</button>
+            <button class="btn" id="btn-copy" data-i18n="pg.copy">Copy</button>
+            <button class="btn" id="btn-download" data-i18n="pg.download">Download</button>
+            <button class="btn" id="btn-share" data-i18n="pg.share">Share</button>
+            <button class="btn" id="btn-generate" data-i18n="pg.generate">Generate</button>
+            <button class="btn danger" id="btn-stop" style="display:none" data-i18n="pg.stop">Stop</button>
+            <button class="btn primary" id="btn-run" data-i18n="pg.run">Run</button>
+          </div>
+        </div>
+        <div class="editor-wrap">
+          <div id="code-overlay" aria-hidden="true"></div>
+          <textarea id="code-area" spellcheck="false" autocapitalize="off" autocomplete="off" aria-label="Pipe code"></textarea>
+        </div>
+        <div class="status-bar">
+          <span class="status-dot" id="status-dot"></span>
+          <span id="status-text" data-i18n="pg.status.loading">Loading runtime…</span>
+          <span id="status-version"></span>
+        </div>
+        <div class="ai-bar">
+          <label for="ai-provider" data-i18n="pg.ai.label">AI provider</label>
+          <select id="ai-provider">
+            <option value="deepseek">DeepSeek</option>
+            <option value="openai">OpenAI</option>
+            <option value="anthropic">Anthropic</option>
+            <option value="ollama">Ollama (local)</option>
+          </select>
+          <input id="ai-key" type="password" placeholder="API key" autocomplete="off">
+          <span id="ai-status" class="badge" style="display:none" data-i18n="pg.ai.saved">Key saved</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right: output / graph -->
+    <div>
+      <div class="card">
+        <div class="tabs">
+          <button class="tab-btn active" data-tab="output" data-i18n="pg.output">Output</button>
+          <button class="tab-btn" data-tab="graph" data-i18n="pg.graph">Graph</button>
+        </div>
+        <div class="tab-panel active" id="output-panel">
+          <pre id="output"></pre>
+          <div class="out-meta" id="out-meta" style="display:none">
+            <span id="out-time"></span>
+            <span id="out-lines"></span>
+            <span id="out-gen"></span>
+          </div>
+        </div>
+        <div class="tab-panel" id="graph-panel">
+          <div class="graph-toolbar">
+            <label><input type="checkbox" id="graph-consts" checked> <span data-i18n="pg.graph.consts">Constants</span></label>
+            <label><input type="checkbox" id="graph-fns" checked> <span data-i18n="pg.graph.fns">Function nodes</span></label>
+            <div class="spacer"></div>
+            <button class="btn" id="graph-zoom-in" data-i18n="pg.graph.zin">+</button>
+            <button class="btn" id="graph-zoom-out" data-i18n="pg.graph.zout">−</button>
+          </div>
+          <div id="graph-body"></div>
+          <div class="legend">
+            <span class="chip"><span class="swatch" style="background:#6d5ef2"></span><span data-i18n="pg.graph.lbuiltin">Builtin</span></span>
+            <span class="chip"><span class="swatch" style="background:#f97316"></span><span data-i18n="pg.graph.lfn">Function</span></span>
+            <span class="chip"><span class="swatch" style="background:#ec4899"></span><span data-i18n="pg.graph.lai">AI</span></span>
+            <span class="chip"><span class="swatch" style="background:#ef4444"></span><span data-i18n="pg.graph.lsandbox">Sandbox</span></span>
+            <span class="chip"><span class="swatch" style="background:#34d399"></span><span data-i18n="pg.graph.lconst">Value</span></span>
+          </div>
+        </div>
+        <div id="rating-bar">
+          <span data-i18n="pg.rate">Rate this snippet</span>
+          <div class="stars" id="rate-stars">
+            <span class="star" data-v="1">★</span>
+            <span class="star" data-v="2">★</span>
+            <span class="star" data-v="3">★</span>
+            <span class="star" data-v="4">★</span>
+            <span class="star" data-v="5">★</span>
+          </div>
+          <span class="avg" id="rate-avg"></span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Top rated snippets -->
+  <section class="top-section" id="top-section" style="display:none">
+    <h3 data-i18n="pg.top.title">Top rated snippets</h3>
+    <p class="top-sub" data-i18n="pg.top.sub">Community favorites from the playground. No account needed — just share a link.</p>
+    <div class="top-list" id="top-list"></div>
+  </section>
+</main>
+
+<footer>
+  <div class="container">
+    <div class="footer-grid">
+      <div class="footer-col">
+        <span class="footer-brand"><img src="logo.svg" alt="Pipe" style="height:20px;vertical-align:middle;margin-right:4px">Pipe<span>.lang</span></span>
+        <p style="color:var(--fg2);font-size:0.8rem;margin-top:8px">The first language with built-in MCP.<br>Build, sandbox, and deploy LLM pipelines.<br>One ~7 MB binary. Zero dependencies.</p>
+      </div>
+      <div class="footer-col">
+        <h5>Product</h5>
+        <a href="index.html#mcp">MCP Ecosystem</a>
+        <a href="index.html#features">Features</a>
+        <a href="index.html#play">Try Online</a>
+        <a href="playground.html">Playground</a>
+        <a href="blog.html">Blog</a>
+        <a href="install.html">Install</a>
+      </div>
+      <div class="footer-col">
+        <h5>Resources</h5>
+        <a href="docs.html">Documentation</a>
+        <a href="https://github.com/MachuraHarry/pipe-modules">Modules</a>
+        <a href="benchmarks.html">Benchmarks</a>
+        <a href="https://github.com/MachuraHarry/pipe/releases">Releases</a>
+        <a href="blog.html">Blog</a>
+        <a href="https://github.com/MachuraHarry/pipe">GitHub</a>
+      </div>
+      <div class="footer-col">
+        <h5>Community</h5>
+        <a href="https://github.com/MachuraHarry/pipe/discussions">Discussions</a>
+        <a href="https://github.com/MachuraHarry/pipe/blob/master/SECURITY.md">Security</a>
+        <a href="https://github.com/MachuraHarry/pipe/blob/master/CONTRIBUTING.md">Contribute</a>
+        <a href="https://github.com/MachuraHarry/pipe-modules/blob/master/CONTRIBUTING.md">Submit Module</a>
+        <a href="impressum.html">Impressum</a>
+      </div>
+    </div>
+    <div class="footer-bottom">© 2026 Pipe (SPR) · MIT License · Built with Go · Running in your browser via WebAssembly</div>
+  </div>
+</footer>
+
+<div id="toast"></div>
+
 <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-database-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-check-compat.js"></script>
-<script src="firebase-config.js"></script>
-<script>firebase.appCheck().activate("6LdUI2wtAAAAANmErvrSF525_nlzAggn6os6Sb9a", true);</script>
 <script>
-Prism.languages.pipe={
-  comment:/--.*/,
-  string:{pattern:/"(?:[^"\\]|\\.)*"/,greedy:!0},
-  number:/\b\d+(?:\.\d+)?\b/,
-  keyword:/\b(?:fn|match|if|else|while|for|break|continue|import|export|enum|defer|return|try|catch|true|false|nil)\b/,
-  operator:/>>|->|\+\+|\*\*|\.\.|\+=|-=|\*=|\/=|%=|==|!=|<=|>=|&&|\|\||[+\-*\/%<>=!]/,
-  punctuation:/[{}[\]();,.:]/,
-  'function':{pattern:/\b[a-zA-Z_]\w*(?=\s*\()/,alias:'function'},
-  variable:/\b[a-zA-Z_]\w*\b/
-};
+'use strict';
 
-let pipeReady = false;
-const pipeGo = new Go();
-
-fetch("pipe.wasm?v=15").then(r => {
-  if (!r.ok) throw new Error("HTTP " + r.status);
-  return WebAssembly.instantiateStreaming(r, pipeGo.importObject);
-}).then(r => {
-  pipeGo.run(r.instance);
-  pipeReady = true;
-  restoreAPIKey();
-  document.getElementById("play-status").textContent = "✓ ready";
-  document.getElementById("sandbox-notice").classList.add("show");
-  document.getElementById("play-btn").disabled = false;
-  document.getElementById("gen-btn").disabled = false;
-  updateBar();
-  renderGraph();
-}).catch(e => {
-  document.getElementById("play-status").textContent = "✗ " + e.message;
-  console.error("WASM:", e);
-  updateBar();
-});
-
-function setAPIKey(provider, key) {
-  if (!pipeReady || !provider || !key) return;
-  try {
-    var envVar = {"deepseek":"DEEPSEEK_API_KEY","openai":"OPENAI_API_KEY","anthropic":"ANTHROPIC_API_KEY"}[provider];
-    if (!envVar) return;
-    pipeSetKey(envVar, key);
-    localStorage.setItem("pipe-provider", provider);
-    localStorage.setItem("pipe-key", key);
-    document.getElementById("play-status").textContent = "✓ key set for " + provider;
-  } catch(e) { console.error(e); }
-}
-
-function restoreAPIKey() {
-  var provider = localStorage.getItem("pipe-provider");
-  var key = localStorage.getItem("pipe-key");
-  if (provider && key) {
-    var envVar = {"deepseek":"DEEPSEEK_API_KEY","openai":"OPENAI_API_KEY","anthropic":"ANTHROPIC_API_KEY"}[provider];
-    if (envVar && pipeReady) pipeSetKey(envVar, key);
+/* ================================================================
+ * i18n
+ * ================================================================ */
+var I18N = {
+  en: {
+    "nav.home":"Home","nav.playground":"Playground","nav.modules":"Modules","nav.docs":"Docs","nav.faq":"FAQ","nav.en":"EN","nav.de":"DE",
+    "pg.title":"Pipe Playground","pg.subtitle":"Run Pipe in your browser via WebAssembly — no install needed. <code>ai_with_tools</code>, MCP and HTTP work here too.",
+    "pg.editor":"Editor","pg.run":"Run","pg.stop":"Stop","pg.clear":"Clear","pg.copy":"Copy","pg.download":"Download","pg.share":"Share","pg.generate":"Generate",
+    "pg.output":"Output","pg.graph":"Graph","pg.status.loading":"Loading runtime…","pg.status.ready":"Ready · v{v}","pg.status.error":"Runtime error: {m}",
+    "pg.status.running":"Executing…","pg.status.stopped":"Stopped","pg.status.generating":"Generating code…","pg.status.generated":"Generated by Pipe",
+    "pg.status.saved":"Saved","pg.status.cleared":"Cleared","pg.status.copied":"Copied to clipboard","pg.status.downloaded":"Downloaded playground.pipe",
+    "pg.status.nofirebase":"Firebase unavailable — sharing is offline","pg.status.shared":"Copied share link to clipboard","pg.status.sharewait":"Sharing…",
+    "pg.status.prep":"Preparing runtime…","pg.status.snippot":"Loading shared snippet…","pg.status.snip404":"Shared snippet not found.",
+    "pg.status.rating":"Rating saved","pg.status.timerun":"stopped — took too long","pg.status.aborted":"Stopped by user",
+    "pg.status.done":"Done","pg.status.errors":"Errors in output",
+    "pg.run.error":"Error: {m}","pg.time":"{t} ms","pg.lines":"{n} lines of output","pg.gen.badge":"generated",
+    "pg.top.lines":"{n} lines",
+    "pg.templates.label":"Templates…","pg.templates.hello":"Hello World","pg.templates.pipeline":"Pipeline","pg.templates.mapfilter":"Map & Filter","pg.templates.fizzbuzz":"FizzBuzz","pg.templates.textstats":"Text Stats","pg.templates.ai":"AI Summarize",
+    "pg.ai.label":"AI provider","pg.ai.saved":"Key saved","pg.ai.pending":"key set when ready",
+    "pg.rate":"Rate this snippet","pg.graph.consts":"Constants","pg.graph.fns":"Function nodes","pg.graph.zin":"+","pg.graph.zout":"−",
+    "pg.graph.lbuiltin":"Builtin","pg.graph.lfn":"Function","pg.graph.lai":"AI","pg.graph.lsandbox":"Sandbox","pg.graph.lconst":"Value",
+    "pg.graph.empty":"Run your code to render the graph.","pg.graph.err":"Could not parse for graph.",
+    "pg.top.title":"Top rated snippets","pg.top.sub":"Community favorites from the playground. No account needed — just share a link.","pg.top.empty":"No rated snippets yet — be the first!","pg.top.open":"Open",
+    "footer.tagline":"The MCP-first scripting language. Sandbox AI agents, build pipelines, control everything."
+  },
+  de: {
+    "nav.home":"Start","nav.playground":"Playground","nav.modules":"Module","nav.docs":"Doku","nav.faq":"FAQ","nav.en":"EN","nav.de":"DE",
+    "pg.title":"Pipe Playground","pg.subtitle":"Pipe direkt im Browser via WebAssembly ausführen — keine Installation nötig. <code>ai_with_tools</code>, MCP und HTTP funktionieren hier ebenfalls.",
+    "pg.editor":"Editor","pg.run":"Ausführen","pg.stop":"Stop","pg.clear":"Leeren","pg.copy":"Kopieren","pg.download":"Download","pg.share":"Teilen","pg.generate":"Generieren",
+    "pg.output":"Ausgabe","pg.graph":"Graph","pg.status.loading":"Lade Runtime…","pg.status.ready":"Bereit · v{v}","pg.status.error":"Runtime-Fehler: {m}",
+    "pg.status.running":"Führe aus…","pg.status.stopped":"Gestoppt","pg.status.generating":"Generiere Code…","pg.status.generated":"Von Pipe generiert",
+    "pg.status.saved":"Gespeichert","pg.status.cleared":"Gelöscht","pg.status.copied":"In Zwischenablage kopiert","pg.status.downloaded":"playground.pipe heruntergeladen",
+    "pg.status.nofirebase":"Firebase nicht verfügbar — Teilen ist offline","pg.status.shared":"Link in Zwischenablage kopiert","pg.status.sharewait":"Teile…",
+    "pg.status.prep":"Bereite Runtime vor…","pg.status.snippot":"Lade geteiltes Snippet…","pg.status.snip404":"Geteiltes Snippet nicht gefunden.",
+    "pg.status.rating":"Bewertung gespeichert","pg.status.timerun":"gestoppt — dauerte zu lange","pg.status.aborted":"Vom Benutzer gestoppt",
+    "pg.status.done":"Fertig","pg.status.errors":"Fehler in der Ausgabe",
+    "pg.run.error":"Fehler: {m}","pg.time":"{t} ms","pg.lines":"{n} Ausgabezeilen","pg.gen.badge":"generiert",
+    "pg.top.lines":"{n} Zeilen",
+    "pg.templates.label":"Vorlagen…","pg.templates.hello":"Hallo Welt","pg.templates.pipeline":"Pipeline","pg.templates.mapfilter":"Map & Filter","pg.templates.fizzbuzz":"FizzBuzz","pg.templates.textstats":"Text-Statistik","pg.templates.ai":"KI-Zusammenfassung",
+    "pg.ai.label":"KI-Anbieter","pg.ai.saved":"Schlüssel gespeichert","pg.ai.pending":"Schlüssel wird gesetzt",
+    "pg.rate":"Dieses Snippet bewerten","pg.graph.consts":"Konstanten","pg.graph.fns":"Funktionsknoten","pg.graph.zin":"+","pg.graph.zout":"−",
+    "pg.graph.lbuiltin":"Builtin","pg.graph.lfn":"Funktion","pg.graph.lai":"KI","pg.graph.lsandbox":"Sandbox","pg.graph.lconst":"Wert",
+    "pg.graph.empty":"Führe Code aus, um den Graphen zu rendern.","pg.graph.err":"Für den Graphen nicht analysierbar.",
+    "pg.top.title":"Top bewertete Snippets","pg.top.sub":"Community-Favoriten aus dem Playground. Kein Konto nötig — teile einfach einen Link.","pg.top.empty":"Noch keine Bewertungen — sei der Erste!","pg.top.open":"Öffnen",
+    "footer.tagline":"Die MCP-first Skriptsprache. KI-Agenten sandboxen, Pipelines bauen, alles kontrollieren."
   }
+};
+var lang = 'en';
+
+function t(key) {
+  var dict = I18N[lang] || I18N.en;
+  var v = dict[key];
+  if (v === undefined) v = I18N.en[key];
+  if (v === undefined) return key;
+  return v;
+}
+function tpl(key, vars) {
+  var s = t(key);
+  Object.keys(vars).forEach(function (k) { s = s.replace(new RegExp('\\{' + k + '\\}', 'g'), vars[k]); });
+  return s;
+}
+function setLang(l) {
+  lang = l;
+  document.querySelectorAll('[data-lang]').forEach(function (e) { e.classList.remove('active'); });
+  document.querySelectorAll('[data-lang="' + l + '"]').forEach(function (e) { e.classList.add('active'); });
+  document.documentElement.lang = l;
+  document.querySelectorAll('[data-i18n]').forEach(function (el) { el.innerHTML = t(el.getAttribute('data-i18n')); });
+  document.getElementById('btn-en').classList.toggle('active', l === 'en');
+  document.getElementById('btn-de').classList.toggle('active', l === 'de');
+  var sel = document.getElementById('template-select');
+  sel.options[0].textContent = t('pg.templates.label');
+  for (var i = 1; i < sel.options.length; i++) {
+    var key = 'pg.templates.' + sel.options[i].value;
+    sel.options[i].textContent = t(key);
+  }
+  if (graphBody) renderGraph(graphBody);
+  localStorage.setItem('pipe-lang', l);
+}
+(function () {
+  lang = localStorage.getItem('pipe-lang') || (navigator.language && navigator.language.toLowerCase().startsWith('de') ? 'de' : 'en');
+})();
+
+/* ================================================================
+ * Nav
+ * ================================================================ */
+function closeMenu() { document.getElementById('nav-menu').classList.remove('open'); }
+
+/* ================================================================
+ * Toast
+ * ================================================================ */
+var toastTimer = null;
+function toast(msg) {
+  var el = document.getElementById('toast');
+  el.innerHTML = msg;
+  el.classList.add('show');
+  if (toastTimer) clearTimeout(toastTimer);
+  toastTimer = setTimeout(function () { el.classList.remove('show'); }, 2600);
 }
 
-function pipeFetchSync(url, opts) {
-  var method = (opts && opts.method) || "GET";
+/* ================================================================
+ * Utils
+ * ================================================================ */
+function loadScript(src) {
+  return new Promise(function (resolve, reject) {
+    var s = document.createElement('script');
+    s.src = src;
+    s.onload = resolve;
+    s.onerror = function () { reject(new Error('failed to load ' + src)); };
+    document.head.appendChild(s);
+  });
+}
+function escapeHtml(s) {
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+function getEditor() { return document.getElementById('code-area'); }
+
+/* ================================================================
+ * Runtime (worker with main-thread fallback)
+ * ================================================================ */
+var PROVIDER_ENV = { deepseek: 'DEEPSEEK_API_KEY', openai: 'OPENAI_API_KEY', anthropic: 'ANTHROPIC_API_KEY', ollama: 'OLLAMA_API_KEY' };
+
+/* pipeFetchSync used by the main-thread fallback runtime */
+window.pipeFetchSync = function (url, opts) {
+  var method = (opts && opts.method) || 'GET';
   var body = (opts && opts.body) || undefined;
   var headers = (opts && opts.headers) || {};
   var xhr = new XMLHttpRequest();
   xhr.open(method, url, false);
   try {
-    Object.keys(headers).forEach(function(k) {
-      try { xhr.setRequestHeader(k, String(headers[k])); } catch(e) {}
+    Object.keys(headers).forEach(function (k) {
+      try { xhr.setRequestHeader(k, String(headers[k])); } catch (e) {}
     });
-  } catch(e) {}
+  } catch (e) {}
   try {
     xhr.send(body);
-    return { body: xhr.responseText, error: xhr.status >= 400 ? "HTTP " + xhr.status : "" };
-  } catch(e) {
-    return { body: "", error: "error: " + e.message };
+    return { body: xhr.responseText, error: xhr.status >= 400 ? 'HTTP ' + xhr.status : '' };
+  } catch (e) {
+    return { body: '', error: 'error: ' + e.message };
   }
-}
+};
 
-function updateBar() {
-  const bar = document.getElementById("play-bar");
-  const s = document.getElementById("play-status").textContent;
-  if (s.startsWith("✓")) { bar.className = "play-bar success"; }
-  else if (s.startsWith("✗")) { bar.className = "play-bar error"; }
-  else { bar.className = "play-bar"; }
+function WorkerRuntime() {
+  this.impl = 'worker';
+  this.ready = false;
+  this.version = null;
+  this.seq = 0;
+  this.pending = {};
+  this.worker = null;
+  this.readyPromise = null;
 }
-
-function generatePlay() {
-  const btn = document.getElementById("gen-btn"), out = document.getElementById("play-out"), bar = document.getElementById("play-bar");
-  if (!pipeReady || btn.disabled) return;
-  btn.disabled = true;
-  btn.textContent = "⏳";
-  bar.className = "play-bar";
-  bar.innerHTML = '<span>generating…</span>';
-  out.className = "play-out";
-  out.textContent = "";
-  setTimeout(function () {
-    try {
-      const code = pipeGenerate();
-      const hasV2 = code.startsWith("-- gen v2:");
-      document.getElementById("play-editor").value = code;
-      syncHighlight();
-      saveDraft();
-      btn.disabled = false;
-      btn.textContent = "✦";
-      bar.className = "play-bar success";
-      bar.innerHTML = '<span>✓ generated ' + (hasV2 ? '(v2)' : '(v1)') + '</span>';
-      renderGraph();
-    } catch (e) {
-      btn.disabled = false;
-      btn.textContent = "✦";
-      bar.className = "play-bar error";
-      bar.innerHTML = '<span>✗ generate error</span>';
-      out.className = "play-out error";
-      out.textContent = "Error: " + e.message;
-    }
-  }, 50);
-}
-
-function runPlay() {
-  const btn=document.getElementById("play-btn"),out=document.getElementById("play-out"),bar=document.getElementById("play-bar");
-  if(!pipeReady||btn.disabled)return;
-  btn.disabled=true;btn.textContent="⏳";
-  bar.className="play-bar";bar.innerHTML='<span>executing…</span>';
-  out.className="play-out";
-  out.textContent="";
-  setTimeout(function(){
-    try{
-      const code=document.getElementById("play-editor").value;
-      const t0=performance.now();
-      const result=pipeRun(code);
-      const t1=performance.now();
-      btn.disabled=false;btn.textContent="▶ Run";
-      const elapsed=((t1-t0)/1000).toFixed(2);
-      if(result&&(result.includes("Error:")||result.includes("Parse error"))){
-        bar.className="play-bar error";
-        bar.innerHTML='<span>✗ error ('+elapsed+'s)</span>';
-        out.className="play-out error";
-        out.textContent = result||"(no output)";
-      }else{
-        bar.className="play-bar success";
-        bar.innerHTML='<span>✓ done ('+elapsed+'s)</span>';
-        out.className="play-out";
+WorkerRuntime.prototype.spawn = function () {
+  var self = this;
+  if (this.worker) { try { this.worker.terminate(); } catch (e) {} this.worker = null; }
+  this.ready = false;
+  this.readyPromise = new Promise(function (resolve, reject) {
+    var w;
+    try { w = new Worker('playground-worker.js'); }
+    catch (e) { reject(e); return; }
+    self.worker = w;
+    w.onerror = function (e) { reject(new Error(e.message || 'worker error')); };
+    w.onmessage = function (e) {
+      var d = e.data;
+      if (!d) return;
+      if (d.type === 'ready') {
+        self.ready = true;
+        self.version = d.version;
+        resolve();
+      } else if (d.type === 'error') {
+        reject(new Error(d.message));
+      } else if (d.type === 'result') {
+        var p = self.pending[d.id];
+        if (p) { delete self.pending[d.id]; p(d); }
       }
-      out.textContent=result||"(no output)";
-    }catch(e){
-      btn.disabled=false;btn.textContent="▶ Run";
-      bar.className="play-bar error";
-      bar.innerHTML='<span>✗ error</span>';
-      out.className="play-out error";
-      out.textContent="Error: "+e.message;
-    }
-  },50);
+    };
+  });
+  return this.readyPromise;
+};
+WorkerRuntime.prototype._send = function (msg) {
+  var self = this;
+  var id = ++this.seq;
+  msg.id = id;
+  return new Promise(function (resolve, reject) {
+    var timer = setTimeout(function () { delete self.pending[id]; reject(new Error('worker timeout')); }, 120000);
+    self.pending[id] = function (d) { clearTimeout(timer); resolve(d); };
+    self.worker.postMessage(msg);
+  });
+};
+WorkerRuntime.prototype.run = function (code) { return this._send({ type: 'run', code: code }); };
+WorkerRuntime.prototype.parse = function (code) { return this._send({ type: 'parse', code: code }); };
+WorkerRuntime.prototype.generate = function () { return this._send({ type: 'generate' }); };
+WorkerRuntime.prototype.setkey = function (provider, key) { return this._send({ type: 'setkey', provider: provider, key: key }); };
+WorkerRuntime.prototype.stop = function () {
+  var self = this;
+  var pend = this.pending;
+  this.pending = {};
+  if (this.worker) { try { this.worker.terminate(); } catch (e) {} this.worker = null; }
+  Object.keys(pend).forEach(function (id) { pend[id]({ kind: 'aborted' }); });
+  return this.spawn();
+};
+
+function MainRuntime() {
+  this.impl = 'main';
+  this.ready = false;
+  this.version = null;
+  this.seq = 0;
+  this.pending = {};
+  var self = this;
+  this.readyPromise = loadScript('wasm_exec.js')
+    .then(function () {
+      var go = new Go();
+      return fetch('pipe.wasm').then(function (r) {
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        return r.arrayBuffer();
+      }).then(function (buf) {
+        return WebAssembly.instantiate(buf, go.importObject);
+      }).then(function (res) {
+        go.run(res.instance);
+        self.ready = true;
+        self.version = window.pipeVersion || 'unknown';
+      });
+    });
+}
+MainRuntime.prototype._whenReady = function () { return this.readyPromise; };
+MainRuntime.prototype.run = function (code) {
+  var self = this;
+  return this.readyPromise.then(function () {
+    var t0 = performance.now();
+    var out = window.pipeRun(code);
+    var ms = Math.round(performance.now() - t0);
+    return { kind: 'run', output: out, ms: ms };
+  });
+};
+MainRuntime.prototype.parse = function (code) {
+  var self = this;
+  return this.readyPromise.then(function () {
+    var t0 = performance.now();
+    var json = window.pipeParse(code);
+    var ms = Math.round(performance.now() - t0);
+    return { kind: 'parse', output: json, ms: ms };
+  });
+};
+MainRuntime.prototype.generate = function () {
+  var self = this;
+  return this.readyPromise.then(function () {
+    var out = window.pipeGenerate();
+    return { kind: 'generate', output: out };
+  });
+};
+MainRuntime.prototype.setkey = function (provider, key) {
+  var self = this;
+  return this.readyPromise.then(function () {
+    window.pipeSetKey(provider, key);
+    return { kind: 'setkey', output: 'ok' };
+  });
+};
+MainRuntime.prototype.stop = function () { return Promise.resolve(); };
+
+var rt = (typeof Worker !== 'undefined') ? new WorkerRuntime() : new MainRuntime();
+
+/* ================================================================
+ * Editor highlight
+ * ================================================================ */
+var PIPE_KEYWORDS = /\b(if|else|elif|elseif|while|for|in|fn|return|and|or|not|true|false|none|null|pipe|end|from|import|as|sandbox_profile|include|expand|stage|assume|exec|spawn|await|map|out|def|let|var|const|func|fun|λ|lambda)\b/g;
+var PIPE_STR = /"(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'/g;
+var PIPE_NUM = /\b\d+(?:\.\d+)?\b/g;
+var PIPE_COMMENT = /--[^\n]*/g;
+var PIPE_OP = /(->|<-|=>|==|!=|<=|>=|\+|-|\*|\/|%|=|<|>|&&|\|\|)/g;
+
+function highlight(code) {
+  code = code || '';
+  if (window.Prism && Prism.languages && Prism.languages.pipe) {
+    try { return Prism.highlight(code, Prism.languages.pipe, 'pipe'); } catch (e) {}
+  }
+  var out = escapeHtml(code);
+  var pieces = [];
+  var last = 0;
+  var re = new RegExp([
+    '("(?:[^"\\\\]|\\\\.)*"|\'(?:[^\'\\\\]|\\\\.)*\')',
+    '(--[^\\n]*)',
+    '(\\b\\d+(?:\\.\\d+)?\\b)',
+    '(\\b(?:if|else|elif|elseif|while|for|in|fn|return|and|or|not|true|false|none|null|end|from|import|as|pipe)\\b)',
+    '(->|<-|=>|==|!=|<=|>=|\\+|-|\\*|/|%|=|<|>|&&|\\|\\|)'
+  ].join('|'), 'g');
+  var m;
+  var lastIndex = 0;
+  while ((m = re.exec(code)) !== null) {
+    if (m.index > lastIndex) pieces.push(escapeHtml(code.slice(lastIndex, m.index)));
+    var cls = 'pipe-var';
+    if (m[1]) cls = 'pipe-str';
+    else if (m[2]) cls = 'pipe-comment';
+    else if (m[3]) cls = 'pipe-num';
+    else if (m[4]) cls = 'pipe-kw';
+    else if (m[5]) cls = 'pipe-op';
+    pieces.push('<span class="token ' + cls + '">' + escapeHtml(m[0]) + '</span>');
+    lastIndex = m.index + m[0].length;
+  }
+  if (lastIndex < code.length) pieces.push(escapeHtml(code.slice(lastIndex)));
+  return pieces.join('');
 }
 
-document.getElementById("play-editor").addEventListener("keydown",function(e){
-  if((e.ctrlKey||e.metaKey)&&e.key==="Enter")runPlay();
+var scrollLock = false;
+function updateOverlay() {
+  var ta = getEditor();
+  var ov = document.getElementById('code-overlay');
+  if (scrollLock) return;
+  ov.innerHTML = highlight(ta.value) + '\u200b';
+  ov.scrollTop = ta.scrollTop;
+  ov.scrollLeft = ta.scrollLeft;
+}
+getEditor().addEventListener('scroll', function () {
+  var ov = document.getElementById('code-overlay');
+  ov.scrollTop = this.scrollTop;
+  ov.scrollLeft = this.scrollLeft;
+});
+getEditor().addEventListener('input', function () { updateOverlay(); saveDraft(); scheduleRenderGraph(); });
+document.getElementById('code-overlay').addEventListener('scroll', function () {
+  /* ignore synthetic scrolls caused by content changes */
 });
 
-function syncHighlight(){
-  const ta=document.getElementById('play-editor'),pre=document.getElementById('play-hl');
-  if(!ta||!pre)return;
-  pre.innerHTML=Prism.highlight(ta.value,Prism.languages.pipe,'pipe')+'\n';
-}
-function syncScroll(){
-  const ta=document.getElementById('play-editor'),pre=document.getElementById('play-hl');
-  if(!ta||!pre)return;
-  pre.scrollTop=ta.scrollTop;pre.scrollLeft=ta.scrollLeft;
-}
+function highlightNow() { updateOverlay(); }
 
-const STORAGE_KEY = "pipe-playground-code";
-
-function onEdit() {
-  syncHighlight();
-  saveDraft();
-  scheduleRenderGraph();
-}
-
-function saveDraft() {
-  const code = document.getElementById("play-editor").value;
-  try { localStorage.setItem(STORAGE_KEY, code); } catch(e) {}
-}
-
-function loadDraft() {
-  const params = new URLSearchParams(window.location.search);
-  if (params.has("code")) return;
-  try {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved) {
-      document.getElementById("play-editor").value = saved;
-      syncHighlight();
-    }
-  } catch(e) {}
-}
-
-function downloadCode() {
-  const code = document.getElementById("play-editor").value;
-  const blob = new Blob([code], { type: "text/plain;charset=utf-8" });
-  const a = document.createElement("a");
-  a.href = URL.createObjectURL(blob);
-  a.download = "playground.pipe";
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(a.href);
-}
-
-// ---------- View Toggle ----------
-
-function setView(mode) {
-  document.querySelectorAll('.view-btn').forEach(function(b) {
-    b.classList.toggle('active', b.dataset.view === mode);
+/* ================================================================
+ * Tabs
+ * ================================================================ */
+document.querySelectorAll('.tab-btn').forEach(function (btn) {
+  btn.addEventListener('click', function () {
+    var name = this.getAttribute('data-tab');
+    document.querySelectorAll('.tab-btn').forEach(function (b) { b.classList.toggle('active', b === btn); });
+    document.querySelectorAll('.tab-panel').forEach(function (p) { p.classList.toggle('active', p.id === name + '-panel'); });
   });
-  var container = document.getElementById('view-split');
-  container.classList.remove('split', 'graph-only');
-  if (mode === 'split') container.classList.add('split');
-  if (mode === 'graph') container.classList.add('graph-only');
-  renderGraph();
+});
+function showTab(name) {
+  document.querySelectorAll('.tab-btn').forEach(function (b) { b.classList.toggle('active', b.getAttribute('data-tab') === name); });
+  document.querySelectorAll('.tab-panel').forEach(function (p) { p.classList.toggle('active', p.id === name + '-panel'); });
 }
 
-// ---------- Pipeline Graph ----------
-
-var renderGraphTimer = null;
-
-function scheduleRenderGraph() {
-  if (renderGraphTimer) clearTimeout(renderGraphTimer);
-  renderGraphTimer = setTimeout(renderGraph, 400);
+/* ================================================================
+ * Output rendering
+ * ================================================================ */
+var OUTPUT_ANSI = /\x1b\[[0-9;]*m/g;
+function stripAnsi(s) { return String(s || '').replace(OUTPUT_ANSI, ''); }
+function renderOutput(text) {
+  var out = document.getElementById('output');
+  var raw = stripAnsi(text);
+  var lines = raw.split('\n').filter(function (l) { return l.trim() !== ''; });
+  var hasError = /error|panic|fatal|exception/i.test(raw);
+  var html = '';
+  lines.forEach(function (l) {
+    var cls = hasError ? 'out-err' : 'out-ok';
+    html += '<p class="' + cls + '">' + escapeHtml(l) + '</p>';
+  });
+  if (!html) html = '<p class="out-dim">·</p>';
+  out.innerHTML = html;
+  var meta = document.getElementById('out-meta');
+  meta.style.display = 'flex';
+  document.getElementById('out-lines').textContent = tpl('pg.lines', { n: lines.length });
+  return { lines: lines.length, hasError: hasError };
 }
 
-function getNodeColor(type) {
+/* ================================================================
+ * Graph rendering
+ * ================================================================ */
+var graphBody = null;
+var graphScale = 1;
+
+function stageColor(type) {
   switch (type) {
-    case 'ai':       return {fill:'rgba(168,85,247,0.18)', stroke:'var(--accent)', text:'#c084fc', badge:'#a855f7'};
-    case 'builtin':  return {fill:'rgba(60,224,150,0.14)', stroke:'var(--green)', text:'#3ce096', badge:'#3ce096'};
-    case 'hof':      return {fill:'rgba(92,224,252,0.14)', stroke:'#5ce0fc', text:'#5ce0fc', badge:'#5ce0fc'};
-    case 'io':       return {fill:'rgba(252,140,60,0.14)', stroke:'var(--orange)', text:'#fc8c3c', badge:'#fc8c3c'};
-    case 'sandbox':  return {fill:'rgba(251,191,36,0.14)', stroke:'#fbbf24', text:'#fbbf24', badge:'#fbbf24'};
-    case 'function': return {fill:'rgba(160,120,240,0.10)', stroke:'#7c7c9c', text:'#b0b0c0', badge:'#9090a8'};
-    case 'string':   return {fill:'rgba(255,255,255,0.04)', stroke:'#3a3a50', text:'#3ce096', badge:'#888'};
-    case 'number':   return {fill:'rgba(255,255,255,0.04)', stroke:'#3a3a50', text:'#fc8c3c', badge:'#888'};
-    case 'variable': return {fill:'rgba(255,255,255,0.04)', stroke:'#3a3a50', text:'#e0e0e8', badge:'#888'};
-    default:         return {fill:'rgba(255,255,255,0.03)', stroke:'#2a2a3c', text:'#888', badge:'#666'};
+    case 'builtin': return '#6d5ef2';
+    case 'function': return '#f97316';
+    case 'ai': return '#ec4899';
+    case 'sandbox': return '#ef4444';
+    case 'hof': return '#f59e0b';
+    case 'io': return '#14b8a6';
+    default: return '#34d399';
   }
 }
+function isConstType(type) {
+  return type === 'value' || type === 'variable' || type === 'number' || type === 'string' || type === 'expression';
+}
 
-function renderGraph() {
-  var container = document.getElementById('graph-body');
-  if (!container) return;
-
-  if (!pipeReady) {
-    container.innerHTML = '<div class="graph-empty"><span class="icon">⏳</span><span>loading runtime…</span></div>';
+function renderGraph(data) {
+  var body = document.getElementById('graph-body');
+  graphBody = data;
+  body.innerHTML = '';
+  if (!data || !data.pipelines || !data.pipelines.length) {
+    body.innerHTML = '<div class="graph-msg">' + escapeHtml(t('pg.graph.empty')) + '</div>';
     return;
   }
-
-  var code = document.getElementById('play-editor').value;
-  if (!code.trim()) {
-    container.innerHTML = '<div class="graph-empty"><span class="icon">◧</span><span>pipeline will appear here</span></div>';
-    return;
+  if (data.errors && data.errors.length) {
+    var emsg = document.createElement('div');
+    emsg.className = 'graph-msg err';
+    emsg.textContent = t('pg.graph.err') + ': ' + data.errors.join('; ');
+    body.appendChild(emsg);
   }
+  var showConsts = document.getElementById('graph-consts').checked;
+  var showFns = document.getElementById('graph-fns').checked;
 
-  try {
-    var json = pipeParse(code);
-    var data = JSON.parse(json);
-  } catch (e) {
-    container.innerHTML = '<div class="graph-error">parse error</div>';
-    return;
-  }
-
-  if (data.errors && data.errors.length > 0) {
-    container.innerHTML = '<div class="graph-error">' +
-      data.errors.map(function(e){ return escapeHtml(e); }).join('<br>') +
-      '</div>';
-    return;
-  }
-
-  if (!data.pipelines || data.pipelines.length === 0) {
-    container.innerHTML = '<div class="graph-empty"><span class="icon">◧</span><span>no pipeline detected</span></div>';
-    return;
-  }
-
-  var width = container.clientWidth - 10;
-  if (width < 160) width = 160;
-
-  var nodeW, nodeH, vGap, fontSize, fsSmall;
-  if (width < 250) {
-    nodeW = width - 12; nodeH = 28; vGap = 14; fontSize = '9'; fsSmall = '8';
-  } else if (width < 380) {
-    nodeW = width - 32; nodeH = 30; vGap = 16; fontSize = '10'; fsSmall = '9';
-  } else if (width < 500) {
-    nodeW = 190; nodeH = 32; vGap = 18; fontSize = '10'; fsSmall = '9';
-  } else {
-    nodeW = 210; nodeH = 38; vGap = 22; fontSize = '11'; fsSmall = '10';
-  }
-  var paddingTop = 16;
-  var paddingBot = 16;
-
-  var totalH = paddingTop + paddingBot;
-  data.pipelines.forEach(function(p) {
-    totalH += p.stages.length * (nodeH + vGap);
-    if (p.stages.length > 1) totalH += 8;
+  var lanes = [];
+  var y = 40, maxX = 200;
+  (data.pipelines || []).forEach(function (pipe) {
+    var stages = (pipe.stages || []).filter(function (s) {
+      if (isConstType(s.type)) return showConsts;
+      if (s.type === 'function') return showFns;
+      return true;
+    });
+    if (!stages.length) return;
+    var x = 60;
+    var lane = { y: y, items: [] };
+    stages.forEach(function (s) {
+      var w = Math.max(72, s.label.length * 7.4 + 24);
+      lane.items.push({ x: x, w: w, s: s });
+      x += w + 64;
+    });
+    lanes.push(lane);
+    maxX = Math.max(maxX, x);
+    y += 96;
   });
-  if (totalH < 160) totalH = 160;
+  if (!lanes.length) {
+    body.innerHTML = '<div class="graph-msg">' + escapeHtml(t('pg.graph.empty')) + '</div>';
+    return;
+  }
+  var H = y + 30;
 
-  var svgNS = 'http://www.w3.org/2000/svg';
-  var svg = document.createElementNS(svgNS, 'svg');
-  svg.setAttribute('width', width);
-  svg.setAttribute('height', totalH);
-  svg.setAttribute('viewBox', '0 0 ' + width + ' ' + totalH);
+  var ns = 'http://www.w3.org/2000/svg';
+  var svg = document.createElementNS(ns, 'svg');
+  svg.id = 'graph-svg';
+  svg.setAttribute('viewBox', '0 0 ' + maxX + ' ' + H);
+  svg.setAttribute('width', Math.max(320, Math.min(1200, body.clientWidth || 600)));
+  svg.setAttribute('height', H);
+  body.appendChild(svg);
 
-  var defs = document.createElementNS(svgNS, 'defs');
-
-  var marker = document.createElementNS(svgNS, 'marker');
-  marker.setAttribute('id', 'arrowhead');
-  marker.setAttribute('markerWidth', '8');
-  marker.setAttribute('markerHeight', '6');
-  marker.setAttribute('refX', '8');
-  marker.setAttribute('refY', '3');
-  marker.setAttribute('orient', 'auto');
-  var mp = document.createElementNS(svgNS, 'polygon');
-  mp.setAttribute('points', '0 0, 8 3, 0 6');
-  mp.setAttribute('fill', '#555');
-  marker.appendChild(mp);
+  var defs = document.createElementNS(ns, 'defs');
+  var marker = document.createElementNS(ns, 'marker');
+  marker.setAttribute('id', 'arrow');
+  marker.setAttribute('viewBox', '0 0 10 10');
+  marker.setAttribute('refX', 9);
+  marker.setAttribute('refY', 5);
+  marker.setAttribute('markerWidth', 6);
+  marker.setAttribute('markerHeight', 6);
+  marker.setAttribute('orient', 'auto-start-reverse');
+  var mkPath = document.createElementNS(ns, 'path');
+  mkPath.setAttribute('d', 'M 0 0 L 10 5 L 0 10 z');
+  mkPath.setAttribute('fill', '#7c3aed');
+  marker.appendChild(mkPath);
   defs.appendChild(marker);
-
-  var markerP = document.createElementNS(svgNS, 'marker');
-  markerP.setAttribute('id', 'arrowhead-p');
-  markerP.setAttribute('markerWidth', '8');
-  markerP.setAttribute('markerHeight', '6');
-  markerP.setAttribute('refX', '8');
-  markerP.setAttribute('refY', '3');
-  markerP.setAttribute('orient', 'auto');
-  var mpp = document.createElementNS(svgNS, 'polygon');
-  mpp.setAttribute('points', '0 0, 8 3, 0 6');
-  mpp.setAttribute('fill', '#c084fc');
-  markerP.appendChild(mpp);
-  defs.appendChild(markerP);
-
   svg.appendChild(defs);
 
-  var yOff = paddingTop;
-  var cx = width / 2;
-
-  data.pipelines.forEach(function(pipeline, pidx) {
-    var stages = pipeline.stages;
-    if (stages.length === 0) return;
-
-    for (var i = 0; i < stages.length; i++) {
-      var s = stages[i];
-      var nx = cx - nodeW / 2;
-      var ny = yOff + i * (nodeH + vGap);
-
-      var g = document.createElementNS(svgNS, 'g');
-
-      var rect = document.createElementNS(svgNS, 'rect');
-      rect.setAttribute('x', nx);
-      rect.setAttribute('y', ny);
-      rect.setAttribute('width', nodeW);
-      rect.setAttribute('height', nodeH);
-      rect.setAttribute('rx', '8');
-      rect.setAttribute('ry', '8');
-
-      var col = getNodeColor(s.type);
-      rect.setAttribute('fill', col.fill);
-      rect.setAttribute('stroke', col.stroke);
-      rect.setAttribute('stroke-width', '1.5');
-      g.appendChild(rect);
-
-      var display = s.label;
-      if (s.args && s.args.length > 0) {
-        var argsStr = s.args.join(' ').replace(/^"(.*)"$/, '$1');
-        if (argsStr.length > 18) argsStr = argsStr.substring(0, 16) + '…';
-        display = s.label + argsStr ? '<tspan fill="' + col.text + '" fill-opacity="0.7" font-size="10"> ' + argsStr + '</tspan>' : display;
-      }
-
-      var labelEl = document.createElementNS(svgNS, 'text');
-      labelEl.setAttribute('x', nx + 12);
-      labelEl.setAttribute('y', ny + nodeH / 2 + 4);
-      labelEl.setAttribute('fill', col.text);
-      labelEl.setAttribute('font-family', '"JetBrains Mono", "Fira Code", monospace');
-      labelEl.setAttribute('font-size', fontSize);
-      labelEl.setAttribute('font-weight', '600');
-      labelEl.textContent = s.label;
-      g.appendChild(labelEl);
-
-      if (s.args && s.args.length > 0) {
-        var argsDisplay = s.args.map(function(a) {
-          return a.replace(/^"(.*)"$/, '$1');
-        }).join(' ');
-        var maxArgs = width < 300 ? 10 : width < 450 ? 15 : 20;
-        if (argsDisplay.length > maxArgs) argsDisplay = argsDisplay.substring(0, maxArgs - 2) + '…';
-        var argsEl = document.createElementNS(svgNS, 'text');
-        argsEl.setAttribute('x', nx + 12 + (s.label.length * 6.5) + 4);
-        argsEl.setAttribute('y', ny + nodeH / 2 + 4);
-        argsEl.setAttribute('fill', col.text);
-        argsEl.setAttribute('fill-opacity', '0.55');
-        argsEl.setAttribute('font-family', '"JetBrains Mono", "Fira Code", monospace');
-        argsEl.setAttribute('font-size', fsSmall);
-        argsEl.textContent = argsDisplay;
-        g.appendChild(argsEl);
-      }
-
-      var typeLabel = s.type === 'variable' ? 'var' :
-                      s.type === 'expression' ? 'expr' : s.type;
-      if (typeLabel.length > 3) typeLabel = typeLabel.substring(0, 3);
-      var badge = document.createElementNS(svgNS, 'text');
-      badge.setAttribute('x', nx + nodeW - 10);
-      badge.setAttribute('y', ny + nodeH / 2 + 4);
-      badge.setAttribute('fill', col.badge);
-      badge.setAttribute('font-family', '"JetBrains Mono", "Fira Code", monospace');
-      badge.setAttribute('font-size', fsSmall);
-      badge.setAttribute('font-weight', '700');
-      badge.setAttribute('text-anchor', 'end');
-      badge.textContent = typeLabel;
-      g.appendChild(badge);
-
-      svg.appendChild(g);
-    }
-
-    for (var i = 0; i < stages.length - 1; i++) {
-      var sy = yOff + i * (nodeH + vGap) + nodeH;
-      var ey = yOff + (i + 1) * (nodeH + vGap);
-
-      var line = document.createElementNS(svgNS, 'line');
-      line.setAttribute('x1', cx);
-      line.setAttribute('y1', sy);
-      line.setAttribute('x2', cx);
-      line.setAttribute('y2', ey - 6);
-
-      if (stages[i + 1].parallel) {
-        line.setAttribute('stroke', '#c084fc');
-        line.setAttribute('stroke-dasharray', '6,4');
-        line.setAttribute('stroke-width', '2');
-        line.setAttribute('marker-end', 'url(#arrowhead-p)');
-      } else {
-        line.setAttribute('stroke', '#4a4a5e');
-        line.setAttribute('stroke-width', '2');
-        line.setAttribute('marker-end', 'url(#arrowhead)');
-      }
+  lanes.forEach(function (lane) {
+    var mid = lane.y + 26;
+    for (var i = 0; i < lane.items.length - 1; i++) {
+      var a = lane.items[i], b = lane.items[i + 1];
+      var line = document.createElementNS(ns, 'line');
+      line.setAttribute('x1', a.x + a.w + 4);
+      line.setAttribute('y1', mid);
+      line.setAttribute('x2', b.x - 4);
+      line.setAttribute('y2', mid);
+      line.setAttribute('stroke', '#7c3aed');
+      line.setAttribute('stroke-width', '2');
+      line.setAttribute('marker-end', 'url(#arrow)');
       svg.appendChild(line);
-
-      if (stages[i + 1].parallel) {
-        var plb = document.createElementNS(svgNS, 'text');
-        plb.setAttribute('x', cx + 6);
-        plb.setAttribute('y', sy + (ey - sy) / 2);
-        plb.setAttribute('fill', '#c084fc');
-        plb.setAttribute('font-family', '"JetBrains Mono", "Fira Code", monospace');
-        plb.setAttribute('font-size', '8');
-        plb.textContent = '∥';
-        svg.appendChild(plb);
+    }
+    lane.items.forEach(function (it) {
+      var s = it.s;
+      var color = stageColor(s.type);
+      var g = document.createElementNS(ns, 'g');
+      var rect = document.createElementNS(ns, 'rect');
+      rect.setAttribute('x', it.x);
+      rect.setAttribute('y', lane.y);
+      rect.setAttribute('width', it.w);
+      rect.setAttribute('height', 52);
+      rect.setAttribute('rx', 8);
+      rect.setAttribute('fill', '#1b1c26');
+      rect.setAttribute('stroke', color);
+      rect.setAttribute('stroke-width', '1.6');
+      g.appendChild(rect);
+      var txt = document.createElementNS(ns, 'text');
+      txt.setAttribute('x', it.x + it.w / 2);
+      txt.setAttribute('y', lane.y + 20);
+      txt.setAttribute('text-anchor', 'middle');
+      txt.setAttribute('fill', '#e4e5f1');
+      txt.setAttribute('font-size', '12');
+      txt.setAttribute('font-weight', '600');
+      txt.textContent = s.label + (s.parallel ? ' ∥' : '');
+      g.appendChild(txt);
+      if (s.args && s.args.length) {
+        var argsTxt = s.args.join(', ');
+        if (argsTxt.length > 18) argsTxt = argsTxt.slice(0, 17) + '…';
+        var sub = document.createElementNS(ns, 'text');
+        sub.setAttribute('x', it.x + it.w / 2);
+        sub.setAttribute('y', lane.y + 38);
+        sub.setAttribute('text-anchor', 'middle');
+        sub.setAttribute('fill', '#8b8fa3');
+        sub.setAttribute('font-size', '10');
+        sub.textContent = argsTxt;
+        g.appendChild(sub);
       }
-    }
-
-    yOff += stages.length * (nodeH + vGap) + 12;
-  });
-
-  container.innerHTML = '';
-  container.appendChild(svg);
-}
-
-// ---------- Firebase Code-Sharing ----------
-
-const db = firebase.database();
-const statusEl = document.getElementById("play-status");
-let currentHash = null;
-
-function showToast(msg) {
-  const t = document.getElementById("toast");
-  t.textContent = msg;
-  t.classList.add("show");
-  clearTimeout(t._hide);
-  t._hide = setTimeout(() => t.classList.remove("show"), 3000);
-}
-
-function sha256(str) {
-  const enc = new TextEncoder().encode(str);
-  return crypto.subtle.digest("SHA-256", enc).then(hash =>
-    Array.from(new Uint8Array(hash)).map(b => b.toString(16).padStart(2,"0")).join("")
-  );
-}
-
-async function sharePlay() {
-  const btn = document.getElementById("share-btn");
-  const code = document.getElementById("play-editor").value;
-  if (!code.trim()) { showToast("No code to share"); return; }
-  if (code.length > 10000) { showToast("Code too long (max 10,000 chars)"); return; }
-
-  btn.disabled = true;
-  btn.textContent = "⏳";
-
-  try {
-    const hash = await sha256(code);
-    const ref = db.ref("shared/" + hash);
-
-    try {
-      await ref.set({ code, created: Date.now() });
-    } catch (writeErr) {
-      const snap = await ref.once("value");
-      if (!snap.val()) {
-        showToast("Save failed: " + writeErr.message);
-        btn.disabled = false; btn.textContent = "Share";
-        return;
-      }
-    }
-
-    const url = window.location.origin + window.location.pathname + "?code=" + hash;
-    try {
-      await navigator.clipboard.writeText(url);
-      showToast("Link copied!");
-    } catch {
-      const ta = document.createElement("textarea");
-      ta.value = url;
-      ta.style.position = "fixed"; ta.style.left = "-9999px";
-      document.body.appendChild(ta);
-      ta.select();
-      document.execCommand("copy");
-      document.body.removeChild(ta);
-      showToast("Link copied!");
-    }
-  } catch (e) {
-    showToast("Error: " + e.message);
-  }
-
-  btn.disabled = false;
-  btn.textContent = "Share";
-}
-
-// ---------- Rating System ----------
-
-function getVoterId() {
-  let id = localStorage.getItem("voter-id");
-  if (!id) {
-    id = crypto.randomUUID ? crypto.randomUUID() : "xxxx-xxxx-4xxx-yxxx".replace(/[xy]/g, c => {
-      const r = Math.random() * 16 | 0;
-      return (c === "x" ? r : r & 3 | 8).toString(16);
+      svg.appendChild(g);
     });
-    localStorage.setItem("voter-id", id);
-  }
-  return id;
-}
-
-const VOTER_ID = getVoterId();
-
-function renderStars(rating) {
-  const stars = document.querySelectorAll("#rating-stars span");
-  stars.forEach(s => s.classList.toggle("active", parseInt(s.dataset.val) <= rating));
-}
-
-function setRatingInfo(avg, count) {
-  const el = document.getElementById("rating-info");
-  if (avg === null) {
-    el.textContent = "not yet rated";
-  } else {
-    el.textContent = avg.toFixed(1) + " ★ avg · " + count + " rating" + (count !== 1 ? "s" : "");
-  }
-}
-
-async function loadRating(hash) {
-  const section = document.getElementById("rating-section");
-  section.style.display = "flex";
-
-  const stars = document.querySelectorAll("#rating-stars span");
-  stars.forEach(s => {
-    s.onmouseenter = () => renderStars(parseInt(s.dataset.val));
-    s.onmouseleave = () => loadRating._last && renderStars(loadRating._last);
-    s.onclick = () => submitRating(hash, parseInt(s.dataset.val));
   });
+}
 
+var renderGraphTimer = null;
+function scheduleRenderGraph() {
+  if (renderGraphTimer) clearTimeout(renderGraphTimer);
+  renderGraphTimer = setTimeout(function () {
+    var code = getEditor().value.trim();
+    if (!code) { renderGraph(null); return; }
+    rt.parse(code).then(function (res) {
+      if (res.kind === 'aborted') return;
+      var data = null;
+      try { data = JSON.parse(res.output); } catch (e) {}
+      renderGraph(data);
+    }).catch(function () {
+      var body = document.getElementById('graph-body');
+      body.innerHTML = '<div class="graph-msg err">' + escapeHtml(t('pg.graph.err')) + '</div>';
+    });
+  }, 400);
+}
+
+document.getElementById('graph-consts').addEventListener('change', function () {
+  if (graphBody) renderGraph(graphBody);
+});
+document.getElementById('graph-fns').addEventListener('change', function () {
+  if (graphBody) renderGraph(graphBody);
+});
+document.getElementById('graph-zoom-in').addEventListener('click', function () {
+  graphScale = Math.min(3, graphScale * 1.2);
+  var svg = document.getElementById('graph-svg');
+  if (svg) svg.setAttribute('style', 'transform:scale(' + graphScale + ');transform-origin:top center');
+});
+document.getElementById('graph-zoom-out').addEventListener('click', function () {
+  graphScale = Math.max(0.3, graphScale / 1.2);
+  var svg = document.getElementById('graph-svg');
+  if (svg) svg.setAttribute('style', 'transform:scale(' + graphScale + ');transform-origin:top center');
+});
+
+/* ================================================================
+ * Draft persistence
+ * ================================================================ */
+function saveDraft() {
   try {
-    const snap = await db.ref("shared/" + hash + "/rating_sum").once("value");
-    const countSnap = await db.ref("shared/" + hash + "/rating_count").once("value");
-    const sum = snap.val();
-    const count = countSnap.val();
-
-    if (sum != null && count > 0) {
-      const avg = sum / count;
-      loadRating._last = avg;
-      renderStars(Math.round(avg));
-      setRatingInfo(avg, count);
-    } else {
-      loadRating._last = 0;
-      renderStars(0);
-      setRatingInfo(null, 0);
-    }
+    var params = new URLSearchParams(location.search);
+    if (params.has('code')) return;
+    localStorage.setItem('pipe-playground-draft', getEditor().value);
+  } catch (e) {}
+}
+function loadDraft() {
+  try {
+    var params = new URLSearchParams(location.search);
+    if (params.has('code')) return;
+    var d = localStorage.getItem('pipe-playground-draft');
+    getEditor().value = d || TEMPLATES.hello;
   } catch (e) {
-    document.getElementById("rating-info").textContent = "rate unavailable";
+    getEditor().value = TEMPLATES.hello;
   }
 }
 
-async function submitRating(hash, stars) {
-  const ref = db.ref("shared/" + hash);
-  const snap = await ref.once("value");
-  const data = snap.val();
-  if (!data) return;
+/* ================================================================
+ * Run / Stop / Generate
+ * ================================================================ */
+var RUN_TIMEOUT = 15000;
+var runTimer = null;
+var running = false;
 
-  const old = data.ratings && data.ratings[VOTER_ID];
-  const sum = data.rating_sum || 0;
-  const count = data.rating_count || 0;
+function setStatus(type, text) {
+  var dot = document.getElementById('status-dot');
+  dot.classList.toggle('ok', type === 'ok');
+  dot.classList.toggle('err', type === 'err');
+  document.getElementById('status-text').innerHTML = text;
+}
 
-  let newSum, newCount;
-  if (old) {
-    newSum = sum - old + stars;
-    newCount = count;
+function statusReady() {
+  setStatus('ok', tpl('pg.status.ready', { v: rt.version || '?' }));
+  document.getElementById('badge-version').textContent = 'Pipe ' + (rt.version || '?');
+  document.getElementById('btn-run').disabled = false;
+  document.getElementById('btn-generate').disabled = false;
+  applyStoredKey();
+  restoreRatingUi();
+}
+
+function startRunning() {
+  running = true;
+  document.getElementById('btn-run').disabled = true;
+  document.getElementById('btn-generate').disabled = true;
+  document.getElementById('btn-stop').style.display = '';
+  setStatus('ok', t('pg.status.running'));
+  runTimer = setTimeout(function () {
+    rt.stop().then(statusReady);
+    running = false;
+    document.getElementById('btn-run').disabled = false;
+    document.getElementById('btn-generate').disabled = false;
+    document.getElementById('btn-stop').style.display = 'none';
+    document.getElementById('out-meta').style.display = 'flex';
+    document.getElementById('out-lines').textContent = '';
+    renderOutput('\n-- ' + t('pg.status.timerun') + ' (max ' + (RUN_TIMEOUT / 1000) + 's) --');
+    document.getElementById('out-time').textContent = '';
+    showTab('output');
+  }, RUN_TIMEOUT);
+}
+function endRunning() {
+  running = false;
+  if (runTimer) { clearTimeout(runTimer); runTimer = null; }
+  document.getElementById('btn-run').disabled = false;
+  document.getElementById('btn-generate').disabled = false;
+  document.getElementById('btn-stop').style.display = 'none';
+}
+
+function runCode() {
+  var code = getEditor().value;
+  if (!code.trim()) { toast(t('pg.editor')); return; }
+  if (!rt.ready) { toast(t('pg.status.prep')); return; }
+  startRunning();
+  showTab('output');
+  renderOutput('…');
+  rt.run(code).then(function (res) {
+    endRunning();
+    if (res.kind === 'aborted') {
+      renderOutput('\n-- ' + t('pg.status.aborted') + ' --');
+      document.getElementById('out-meta').style.display = 'none';
+      statusReady();
+      return;
+    }
+    var info = renderOutput(res.output);
+    document.getElementById('out-time').textContent = tpl('pg.time', { t: res.ms });
+    document.getElementById('out-gen').textContent = '';
+    document.getElementById('out-meta').style.display = 'flex';
+    setStatus(info.hasError ? 'err' : 'ok', info.hasError ? t('pg.status.errors') : t('pg.status.done'));
+    scheduleRenderGraph();
+  }).catch(function (err) {
+    endRunning();
+    renderOutput(tpl('pg.run.error', { m: (err && err.message) || err }));
+    document.getElementById('out-meta').style.display = 'none';
+    setStatus('err', tpl('pg.run.error', { m: (err && err.message) || err }));
+  });
+}
+document.getElementById('btn-run').addEventListener('click', runCode);
+document.getElementById('btn-stop').addEventListener('click', function () {
+  if (!running) return;
+  rt.stop().then(function () {
+    endRunning();
+    statusReady();
+    renderOutput('\n-- ' + t('pg.status.aborted') + ' --');
+    document.getElementById('out-meta').style.display = 'none';
+    showTab('output');
+  });
+});
+
+function generateCode() {
+  if (!rt.ready) { toast(t('pg.status.prep')); return; }
+  setStatus('ok', t('pg.status.generating'));
+  document.getElementById('btn-generate').disabled = true;
+  rt.generate().then(function (res) {
+    var code = res.output || '';
+    getEditor().value = code;
+    updateOverlay();
+    saveDraft();
+    scheduleRenderGraph();
+    setStatus('ok', t('pg.status.generated'));
+    document.getElementById('btn-generate').disabled = false;
+  }).catch(function (err) {
+    setStatus('err', tpl('pg.run.error', { m: (err && err.message) || err }));
+    document.getElementById('btn-generate').disabled = false;
+  });
+}
+document.getElementById('btn-generate').addEventListener('click', generateCode);
+
+/* ================================================================
+ * Templates / Clear / Copy / Download
+ * ================================================================ */
+var TEMPLATES = {
+  hello: '"hello pipe"\n    > upper\n    > print',
+  pipeline: 'fn double x\n    x * 2\n\nfn add10 x\n    x + 10\n\n5\n    > double\n    > add10\n    > print',
+  mapfilter: 'is_even: (fn x\n    x % 2 == 0)\ntriple: fn x\n    x * 3\n\nnums: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]\nprint (map nums (filter nums is_even) triple)',
+  fizzbuzz: 'n: 1\nwhile n <= 15\n  out: ""\n  if n % 15 == 0\n    out: "FizzBuzz"\n  else if n % 3 == 0\n    out: "Fizz"\n  else if n % 5 == 0\n    out: "Buzz"\n  else\n    out: n\n  print out\n  n: n + 1',
+  textstats: 'text: "The quick brown fox jumps over the lazy dog"\nwords: split text " "\ncount: length words\nprint "words:"\n> print count\n\ndistinct: unique words\nprint "unique:"\n> print (length distinct)',
+  ai: '-- Summarize a text with the configured AI provider\n-- Set your API key in the panel below first.\n\n-- text: "Your text goes here"\n-- summary: ai_summarize text\n-- print summary'
+};
+document.getElementById('template-select').addEventListener('change', function () {
+  var id = this.value;
+  if (!id) return;
+  var code = TEMPLATES[id];
+  if (!code) return;
+  getEditor().value = code;
+  updateOverlay();
+  saveDraft();
+  scheduleRenderGraph();
+  this.value = '';
+});
+
+document.getElementById('btn-clear').addEventListener('click', function () {
+  getEditor().value = '';
+  updateOverlay();
+  saveDraft();
+  scheduleRenderGraph();
+  document.getElementById('output').innerHTML = '';
+  document.getElementById('out-meta').style.display = 'none';
+  toast(t('pg.status.cleared'));
+});
+document.getElementById('btn-copy').addEventListener('click', function () {
+  var code = getEditor().value;
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(code).then(function () { toast(t('pg.status.copied')); });
   } else {
-    newSum = sum + stars;
-    newCount = count + 1;
+    var ta = document.createElement('textarea');
+    ta.value = code;
+    document.body.appendChild(ta);
+    ta.select();
+    try { document.execCommand('copy'); toast(t('pg.status.copied')); } catch (e) {}
+    document.body.removeChild(ta);
   }
-  const newAvg = newSum / newCount;
+});
+document.getElementById('btn-download').addEventListener('click', function () {
+  var blob = new Blob([getEditor().value], { type: 'text/plain' });
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement('a');
+  a.href = url;
+  a.download = 'playground.pipe';
+  a.click();
+  setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
+  toast(t('pg.status.downloaded'));
+});
 
-  const updates = {};
-  updates["shared/" + hash + "/rating_sum"] = newSum;
-  updates["shared/" + hash + "/rating_count"] = newCount;
-  updates["shared/" + hash + "/rating_avg"] = newAvg;
-  updates["shared/" + hash + "/ratings/" + VOTER_ID] = stars;
-  updates["popular/" + hash] = newAvg;
-
-  await db.ref().update(updates);
-  showToast("Rated " + stars + " ★");
-  loadRating._last = newAvg;
-  renderStars(Math.round(newAvg));
-  setRatingInfo(newAvg, newCount);
+/* ================================================================
+ * AI key
+ * ================================================================ */
+var aiInited = false;
+function applyStoredKey() {
+  if (aiInited) return;
+  aiInited = true;
+  var provider = document.getElementById('ai-provider').value;
+  var key = sessionStorage.getItem('pipe-key') || localStorage.getItem('pipe-key-' + provider) || '';
+  if (!key) return;
+  document.getElementById('ai-key').value = key;
+  setkeyFor(provider, key);
 }
-
-async function loadTopSnippets() {
-  const panel = document.getElementById("top-panel");
-  const list = document.getElementById("top-list");
-
-  try {
-    const snap = await db.ref("popular").orderByValue().limitToLast(5).once("value");
-    const entries = snap.val();
-    if (!entries) {
-      list.innerHTML = '<div style="padding:14px 18px;font-size:.78rem;color:var(--fg3)">no ratings yet</div>';
-      panel.style.display = "block";
-      return;
-    }
-
-    const hashes = Object.keys(entries).sort((a, b) => entries[b] - entries[a]);
-    const items = [];
-    for (const hash of hashes) {
-      const s = await db.ref("shared/" + hash + "/code").once("value");
-      const code = s.val();
-      if (code) items.push({ hash, avg: entries[hash], code });
-    }
-
-    if (items.length === 0) {
-      list.innerHTML = '<div style="padding:14px 18px;font-size:.78rem;color:var(--fg3)">no ratings yet</div>';
-      panel.style.display = "block";
-      return;
-    }
-
-    panel.style.display = "block";
-    list.innerHTML = items.map((item, i) => {
-      const firstLine = item.code.trim().split("\n")[0];
-      return '<div class="top-item" onclick="window.location.href=\'?code=' + item.hash + '\'">' +
-        '<span class="top-rank">#' + (i + 1) + '</span>' +
-        '<span class="top-stars">' + "★".repeat(Math.round(item.avg)) + "☆".repeat(5 - Math.round(item.avg)) + '</span>' +
-        '<span class="top-preview">' + escapeHtml(firstLine) + '</span>' +
-        '</div>';
-    }).join("");
-  } catch (e) {
-    list.innerHTML = '<div style="padding:14px 18px;font-size:.78rem;color:var(--fg3)">load failed</div>';
-    panel.style.display = "block";
+function setkeyFor(provider, key) {
+  var env = PROVIDER_ENV[provider] || provider;
+  localStorage.setItem('pipe-provider', provider);
+  sessionStorage.setItem('pipe-key', key);
+  localStorage.setItem('pipe-key-' + provider, key);
+  if (rt.ready) {
+    rt.setkey(env, key).catch(function () {});
+    var badge = document.getElementById('ai-status');
+    badge.style.display = '';
+    setTimeout(function () { badge.style.display = 'none'; }, 2000);
   }
 }
+document.getElementById('ai-provider').addEventListener('change', function () {
+  localStorage.setItem('pipe-provider', this.value);
+  var key = document.getElementById('ai-key').value;
+  if (key) setkeyFor(this.value, key);
+});
+document.getElementById('ai-key').addEventListener('input', function () {
+  if (!this.value) return;
+  setkeyFor(document.getElementById('ai-provider').value, this.value);
+});
 
-function escapeHtml(s) {
-  const d = document.createElement("div");
-  d.textContent = s;
-  return d.innerHTML;
-}
+/* ================================================================
+ * Firebase (robust load — site works fully without it)
+ * ================================================================ */
+var firebaseAvailable = false;
+var sharedHash = null;
+var userRating = null;
+var firebaseModules = null;
 
-// ---------- Init ----------
-
-async function loadSharedCode() {
-  const params = new URLSearchParams(window.location.search);
-  const hash = params.get("code");
-  if (!hash) return;
-  currentHash = hash;
-
-  const editor = document.getElementById("play-editor");
-  statusEl.textContent = "⌛ loading shared code…";
-  updateBar();
-
-  try {
-    const snap = await db.ref("shared/" + hash).once("value");
-    const data = snap.val();
-    if (data && data.code) {
-      editor.value = data.code;
-      syncHighlight();
-      renderGraph();
-      if (pipeReady) {
-        statusEl.textContent = "✓ shared code loaded";
-      } else {
-        const check = setInterval(() => {
-          if (pipeReady) {
-            clearInterval(check);
-            statusEl.textContent = "✓ shared code loaded";
-            updateBar();
-            renderGraph();
-          }
-        }, 100);
+function initFirebase() {
+  var cdn = [
+    'https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js',
+    'https://www.gstatic.com/firebasejs/10.14.1/firebase-database-compat.js',
+    'https://www.gstatic.com/firebasejs/10.14.1/firebase-app-check-compat.js'
+  ];
+  return loadScriptsSeq(cdn)
+    .then(function () { return loadScript('firebase-config.js'); })
+    .then(function () {
+      firebaseModules = firebase;
+      firebaseModules.appCheck().activate('6LdUI2wtAAAAANmErvrSF525_nlzAggn6os6Sb9a', true);
+      firebaseAvailable = true;
+      loadTopSnippets();
+      if (sharedHash) loadSharedCode(sharedHash);
+      else setupRatingIfShared();
+    })
+    .catch(function () {
+      firebaseAvailable = false;
+      document.getElementById('btn-share').disabled = true;
+      document.getElementById('btn-share').title = t('pg.status.nofirebase');
+      var sec = document.getElementById('top-section');
+      sec.style.display = '';
+      document.getElementById('top-list').innerHTML = '<div class="top-none">' + escapeHtml(t('pg.status.nofirebase')) + '</div>';
+      if (sharedHash) {
+        document.getElementById('output').innerHTML = '<p class="out-dim">' + escapeHtml(t('pg.status.nofirebase')) + '</p>';
+        setupRatingIfShared();
       }
-      updateBar();
-      loadRating(hash);
-    } else {
-      statusEl.textContent = "✗ code not found";
-      updateBar();
+    });
+}
+function loadScriptsSeq(list) {
+  return list.reduce(function (p, s) { return p.then(function () { return loadScript(s); }); }, Promise.resolve());
+}
+
+function getDb() {
+  if (!firebaseModules) return null;
+  try { return firebaseModules.database(); } catch (e) { return null; }
+}
+
+/* ---------------- share ---------------- */
+function sha256Hex(str) {
+  var buf = new TextEncoder().encode(str);
+  return crypto.subtle.digest('SHA-256', buf).then(function (h) {
+    return Array.from(new Uint8Array(h)).map(function (b) { return b.toString(16).padStart(2, '0'); }).join('');
+  });
+}
+function showShareStatus() {
+  var st = document.getElementById('status-text');
+  st.textContent = t('pg.status.sharewait');
+}
+document.getElementById('btn-share').addEventListener('click', function () {
+  if (!firebaseAvailable || !getDb()) { toast(t('pg.status.nofirebase')); return; }
+  var code = getEditor().value;
+  if (!code.trim()) { toast(t('pg.editor')); return; }
+  showShareStatus();
+  sha256Hex(code).then(function (hash) {
+    return getDb().ref('snippets/' + hash).set({ code: code }).then(function () { return hash; });
+  }).then(function (hash) {
+    var url = location.origin + location.pathname + '?code=' + hash;
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      return navigator.clipboard.writeText(url).then(function () { return url; });
     }
-  } catch (e) {
-    statusEl.textContent = "✗ load failed: " + e.message;
-    updateBar();
+    var ta = document.createElement('textarea');
+    ta.value = url;
+    document.body.appendChild(ta);
+    ta.select();
+    try { document.execCommand('copy'); } catch (e) {}
+    document.body.removeChild(ta);
+    return url;
+  }).then(function () {
+    toast(t('pg.status.shared'));
+    statusReady();
+  }).catch(function (err) {
+    statusReady();
+    toast(tpl('pg.run.error', { m: (err && err.message) || err }));
+  });
+});
+
+/* ---------------- load shared ---------------- */
+function loadSharedCode(hash) {
+  if (!firebaseAvailable || !getDb()) {
+    document.getElementById('output').innerHTML = '<p class="out-dim">' + escapeHtml(t('pg.status.nofirebase')) + '</p>';
+    setupRatingIfShared();
+    return;
+  }
+  setStatus('ok', t('pg.status.snippot'));
+  getDb().ref('snippets/' + hash).once('value').then(function (snap) {
+    var v = snap.val();
+    if (!v || !v.code) {
+      document.getElementById('output').innerHTML = '<p class="out-err">' + escapeHtml(t('pg.status.snip404')) + '</p>';
+      setStatus('err', t('pg.status.snip404'));
+      setupRatingIfShared();
+      return;
+    }
+    getEditor().value = v.code;
+    updateOverlay();
+    scheduleRenderGraph();
+    setupRatingIfShared();
+    if (rt.ready) statusReady();
+    else setStatus('ok', t('pg.status.snippot'));
+  }).catch(function (err) {
+    document.getElementById('output').innerHTML = '<p class="out-err">' + escapeHtml(tpl('pg.run.error', { m: (err && err.message) || err })) + '</p>';
+    setupRatingIfShared();
+  });
+}
+
+/* ---------------- rating ---------------- */
+function setupRatingIfShared() {
+  var bar = document.getElementById('rating-bar');
+  if (!sharedHash) { bar.style.display = 'none'; return; }
+  bar.style.display = 'flex';
+  userRating = null;
+  var stars = document.querySelectorAll('#rate-stars .star');
+  stars.forEach(function (s) { s.classList.remove('active'); });
+  document.getElementById('rate-avg').textContent = '';
+  if (!firebaseAvailable || !getDb()) { document.getElementById('rate-avg').textContent = t('pg.status.nofirebase'); return; }
+  getDb().ref('snippets/' + sharedHash + '/rating').once('value').then(function (snap) {
+    var v = snap.val();
+    if (v && v.count) {
+      document.getElementById('rate-avg').textContent = '★ ' + (v.sum / v.count).toFixed(1) + ' (' + v.count + ')';
+    }
+  }).catch(function () {});
+  try {
+    userRating = sessionStorage.getItem('pipe-rating-' + sharedHash);
+    if (userRating) {
+      stars.forEach(function (s) { if (+s.getAttribute('data-v') <= +userRating) s.classList.add('active'); });
+    }
+  } catch (e) {}
+}
+document.querySelectorAll('#rate-stars .star').forEach(function (star) {
+  star.addEventListener('click', function () {
+    if (!firebaseAvailable || !getDb()) { toast(t('pg.status.nofirebase')); return; }
+    if (!sharedHash) return;
+    var v = +this.getAttribute('data-v');
+    var ref = getDb().ref('snippets/' + sharedHash + '/rating');
+    ref.transaction(function (cur) {
+      cur = cur || { sum: 0, count: 0 };
+      if (userRating) { cur.sum -= +userRating; cur.count--; }
+      cur.sum += v;
+      cur.count++;
+      userRating = v;
+      return cur;
+    }).then(function () {
+      try { sessionStorage.setItem('pipe-rating-' + sharedHash, String(v)); } catch (e) {}
+      toast(t('pg.status.rating'));
+      setupRatingIfShared();
+    }).catch(function () { toast(t('pg.status.nofirebase')); });
+  });
+});
+function restoreRatingUi() {
+  if (sharedHash && userRating) {
+    var stars = document.querySelectorAll('#rate-stars .star');
+    stars.forEach(function (s) { if (+s.getAttribute('data-v') <= +userRating) s.classList.add('active'); });
   }
 }
 
-loadDraft();
-loadSharedCode();
-loadTopSnippets();
-syncHighlight();
+/* ---------------- top rated ---------------- */
+function loadTopSnippets() {
+  if (!firebaseAvailable || !getDb()) return;
+  var sec = document.getElementById('top-section');
+  sec.style.display = '';
+  getDb().ref('snippets').orderByChild('rating/count').limitToLast(8).once('value').then(function (snap) {
+    var items = [];
+    snap.forEach(function (child) {
+      var v = child.val();
+      if (!v || !v.code) return;
+      items.push({ hash: child.key, code: v.code, rating: (v.rating && v.rating.count) ? v.rating.sum / v.rating.count : 0, count: (v.rating && v.rating.count) || 0, lines: v.code.split('\n').length });
+    });
+    items.sort(function (a, b) { return (b.rating - a.rating) || (b.count - a.count); });
+    items = items.slice(0, 8);
+    var list = document.getElementById('top-list');
+    list.innerHTML = '';
+    if (!items.length) {
+      list.innerHTML = '<div class="top-none">' + escapeHtml(t('pg.top.empty')) + '</div>';
+      return;
+    }
+    items.forEach(function (it) {
+      var div = document.createElement('div');
+      div.className = 'top-item';
+      div.innerHTML = '<div class="t-head"><span class="t-name">' + escapeHtml(it.lines > 40 ? it.code.slice(0, 40) + '…' : it.code.split('\n')[0] || 'pipe snippet') + '</span>' +
+        '<span class="t-stars">★ ' + it.rating.toFixed(1) + ' (' + it.count + ')</span></div>' +
+        '<div class="t-lines">' + tpl('pg.top.lines', { n: it.lines }) + '</div>';
+      var btn = document.createElement('button');
+      btn.className = 'btn';
+      btn.textContent = t('pg.top.open');
+      btn.addEventListener('click', function () {
+        location.href = 'playground.html?code=' + it.hash;
+      });
+      div.appendChild(btn);
+      list.appendChild(div);
+    });
+  }).catch(function () {});
+}
+
+/* ================================================================
+ * Keyboard
+ * ================================================================ */
+document.addEventListener('keydown', function (e) {
+  if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+    e.preventDefault();
+    runCode();
+  }
+  if (e.key === 'Escape') {
+    document.getElementById('nav-menu').classList.remove('open');
+  }
+});
+
+/* ================================================================
+ * Init
+ * ================================================================ */
+(function init() {
+  /* Prism pipe grammar */
+  if (window.Prism && Prism.languages && !Prism.languages.pipe) {
+    Prism.languages.pipe = {
+      comment: /--[^\n]*/,
+      string: { pattern: /"(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'/, greedy: true },
+      keyword: /\b(?:if|else|elif|elseif|while|for|in|fn|return|and|or|not|true|false|none|null|end|from|import|as|pipe|sandbox_profile)\b/,
+      number: /\b\d+(?:\.\d+)?\b/,
+      operator: /->|<-|=>|==|!=|<=|>=|\+|-|\*|\/|%|=|<|>|&&|\|\|/,
+      function: /\b[a-zA-Z_][a-zA-Z0-9_]*\s*(?=\()/
+    };
+  }
+
+  setLang(lang);
+  loadDraft();
+  updateOverlay();
+
+  /* URL params: ?code=hash */
+  var params = new URLSearchParams(location.search);
+  sharedHash = params.get('code');
+  if (sharedHash) {
+    document.getElementById('btn-share').disabled = true;
+    document.getElementById('btn-share').title = t('pg.status.sharewait');
+    setStatus('ok', t('pg.status.snippot'));
+  }
+
+  /* runtime boot */
+  var retriedFallback = false;
+  var boot = function () { return rt.spawn ? rt.spawn() : rt._whenReady(); };
+  boot()
+    .then(function () {
+      statusReady();
+      if (sharedHash && firebaseAvailable) loadSharedCode(sharedHash);
+      else if (!sharedHash) scheduleRenderGraph();
+    })
+    .catch(function (err) {
+      setStatus('err', tpl('pg.status.error', { m: (err && err.message) || err }));
+      document.getElementById('output').innerHTML = '<p class="out-err">' + escapeHtml(tpl('pg.status.error', { m: (err && err.message) || err })) + '</p>';
+      if (!retriedFallback && rt instanceof WorkerRuntime) {
+        retriedFallback = true;
+        rt = new MainRuntime();
+        rt._whenReady().then(function () {
+          statusReady();
+          if (sharedHash && firebaseAvailable) loadSharedCode(sharedHash);
+          else if (!sharedHash) scheduleRenderGraph();
+        }).catch(function (e2) {
+          setStatus('err', tpl('pg.status.error', { m: (e2 && e2.message) || e2 }));
+        });
+      }
+    });
+
+  /* firebase is best-effort, never blocks the playground */
+  initFirebase();
+
+  /* restore AI provider */
+  try {
+    var p = localStorage.getItem('pipe-provider');
+    if (p && PROVIDER_ENV[p]) document.getElementById('ai-provider').value = p;
+  } catch (e) {}
+})();
 </script>
 </body>
 </html>

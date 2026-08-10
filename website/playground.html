@@ -114,6 +114,48 @@ nav a.active { color: var(--fg); }
 /* ---------- Toast ---------- */
 #toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%) translateY(20px); background: #1b1c26; border: 1px solid #4b4d6b; color: #e4e5f1; padding: 10px 18px; border-radius: 10px; font-size: 13px; opacity: 0; pointer-events: none; transition: opacity .2s, transform .2s; z-index: 1000; max-width: 90vw; }
 #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+/* ---------- Responsive ---------- */
+@media (max-width: 768px) {
+  .pg-container { padding: 96px 14px 40px; }
+  .pg-title h1 { font-size: 22px; }
+  .pg-badges { margin-left: 0; }
+  .editor-wrap { height: 340px; }
+  #code-area, #code-overlay { font-size: 12px; }
+  #output { min-height: 200px; max-height: 360px; }
+  .btn { font-size: 12px; padding: 6px 10px; }
+  .toolbar { gap: 6px; }
+  .ai-bar input { flex: 1; min-width: 130px; }
+}
+@media (max-width: 480px) {
+  .pg-container { padding: 84px 10px 32px; }
+  .pg-header { gap: 8px 12px; }
+  .pg-title h1 { font-size: 20px; }
+  .pg-title p { font-size: 12px; }
+  .card-head { gap: 8px; padding: 10px 10px; }
+  #template-select { flex: 1; min-width: 0; max-width: 180px; }
+  .card-head .spacer { display: none; }
+  .card-head .toolbar { flex: 1 1 100%; }
+  .toolbar .btn { flex: 1 1 30%; text-align: center; }
+  .editor-wrap { height: 280px; }
+  .ai-bar { gap: 8px; padding: 8px 10px; }
+  .ai-bar select { flex: 1; min-width: 0; }
+  .ai-bar input { flex: 1 1 100%; width: 100%; }
+  .tabs { overflow-x: auto; }
+  .tab-btn { padding: 10px 12px; font-size: 12px; }
+  .graph-toolbar { gap: 6px; padding: 8px 8px; }
+  .legend { gap: 8px; padding: 8px 12px; font-size: 11px; }
+  #output { padding: 12px; font-size: 12px; }
+  .out-meta { font-size: 11px; gap: 8px 14px; padding: 8px 12px; }
+  .top-list { grid-template-columns: 1fr; }
+}
+@media (max-width: 380px) {
+  .pg-container { padding: 80px 8px 28px; }
+  .editor-wrap { height: 240px; }
+  .toolbar .btn { font-size: 11px; padding: 7px 4px; }
+  #btn-run { flex: 1.3; }
+  .graph-msg { font-size: 12px; }
+}
 </style>
 </head>
 <body>

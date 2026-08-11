@@ -369,6 +369,6 @@ func main() {
 	js.Global().Set("pipeGenerate", js.FuncOf(pipeGenerate))
 	js.Global().Set("pipeSetKey", js.FuncOf(pipeSetKey))
 	js.Global().Set("pipeParse", js.FuncOf(pipeParse))
-	js.Global().Set("pipeVersion", js.ValueOf("v0.9.3"))
+	js.Global().Set("pipeVersion", js.ValueOf("v0.9.3.1"))
 	select {}
 }

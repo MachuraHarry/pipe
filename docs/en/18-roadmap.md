@@ -2,9 +2,9 @@
 
 This document outlines the past, present, and future of the Pipe language. The roadmap is organized into phases, with completed features marked accordingly.
 
-## Current Version: v0.9.3
+## Current Version: v0.9.3.1
 
-Pipe is currently at version **v0.9.3**, which adds a zero-dependency MCP server (exposing `ai_tool` functions as standard-conforming MCP tools over stdio for Claude Desktop, Cursor, etc.), the X (Twitter) API v2 module and the Discord module (webhook + bot token, both in development), and richer CI notifications with Discord + Telegram dual delivery including AI code reviews. It builds on v0.9.2's `max_tokens` limit for `ai_chat`/`ai_chat_json`, official cross-platform installer (`install.sh`/`install.ps1`), and v0.9.0's structs with named fields, package manifests (`pipe.json`, `pipe -init` / `-install`), network builtins (`http_request`, `http_server`), crypto builtins (AES-GCM, HMAC, secure random), call-stack error traces, and many new string/list builtins (`replace`, `unique`, `ceil`, `floor`, `parse_date`).
+Pipe is currently at version **v0.9.3.1**, a patch release that refreshes the MCP registry entry (corrected builtin count in the metadata) and republishes the MCPB packages. The feature set is that of **v0.9.3**, which adds a zero-dependency MCP server (exposing `ai_tool` functions as standard-conforming MCP tools over stdio for Claude Desktop, Cursor, etc.), the X (Twitter) API v2 module and the Discord module (webhook + bot token, both in development), and richer CI notifications with Discord + Telegram dual delivery including AI code reviews. It builds on v0.9.2's `max_tokens` limit for `ai_chat`/`ai_chat_json`, official cross-platform installer (`install.sh`/`install.ps1`), and v0.9.0's structs with named fields, package manifests (`pipe.json`, `pipe -init` / `-install`), network builtins (`http_request`, `http_server`), crypto builtins (AES-GCM, HMAC, secure random), call-stack error traces, and many new string/list builtins (`replace`, `unique`, `ceil`, `floor`, `parse_date`).
 
 ---
 

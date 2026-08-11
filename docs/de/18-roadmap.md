@@ -1,8 +1,8 @@
 # 18. Roadmap
 
-## Aktuelle Version: v0.9.3
+## Aktuelle Version: v0.9.3.1
 
-Pipe ist aktuell in Version **v0.9.3**. Neu: ein zero-dependency MCP-Server (exponiert `ai_tool`-Funktionen als standardkonforme MCP-Tools über stdio für Claude Desktop, Cursor etc.), das X-API-v2-Modul und das Discord-Modul (Webhook + Bot-Token, beide in Entwicklung) sowie reichere CI-Benachrichtigungen mit Discord + Telegram Dual-Versand inklusive KI-Code-Reviews. Dazu kommen aus v0.9.2: `max_tokens` als optionales drittes Argument für `ai_chat`/`ai_chat_json` (Kostenkontrolle für LLM-Aufrufe), ein offizieller plattformübergreifender Installer (`install.sh`/`install.ps1`) sowie eine automatisierte GitHub Action, die den Installer mit der Website synchron hält.
+Pipe ist aktuell in Version **v0.9.3.1**, einem Patch-Release, das den MCP-Registry-Eintrag aktualisiert (korrigierte Builtin-Anzahl in den Metadaten) und die MCPB-Pakete neu publiziert. Der Funktionsumfang entspricht **v0.9.3**: ein zero-dependency MCP-Server (exponiert `ai_tool`-Funktionen als standardkonforme MCP-Tools über stdio für Claude Desktop, Cursor etc.), das X-API-v2-Modul und das Discord-Modul (Webhook + Bot-Token, beide in Entwicklung) sowie reichere CI-Benachrichtigungen mit Discord + Telegram Dual-Versand inklusive KI-Code-Reviews. Dazu kommen aus v0.9.2: `max_tokens` als optionales drittes Argument für `ai_chat`/`ai_chat_json` (Kostenkontrolle für LLM-Aufrufe), ein offizieller plattformübergreifender Installer (`install.sh`/`install.ps1`) sowie eine automatisierte GitHub Action, die den Installer mit der Website synchron hält.
 
 ---
 

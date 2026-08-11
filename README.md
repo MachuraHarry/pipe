@@ -2,7 +2,7 @@
 
 [![CI](https://github.com/MachuraHarry/pipe/actions/workflows/ci.yml/badge.svg)](https://github.com/MachuraHarry/pipe/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-purple.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-0.9.3-blue.svg)](https://github.com/MachuraHarry/pipe/releases)
+[![Version](https://img.shields.io/badge/version-0.9.3.1-blue.svg)](https://github.com/MachuraHarry/pipe/releases)
 [![SPR](https://img.shields.io/badge/SPR-Semantic%20Pipeline%20Runtime-7c5cfc.svg)](#)
 [![MCP](https://img.shields.io/badge/MCP-Server%20%2B%20Client-3ce096.svg)](#model-context-protocol)
 [![GitHub MCP Registry](https://img.shields.io/badge/GitHub_MCP_Registry-Listed-6e5494.svg)](https://github.com/mcp/io.github.MachuraHarry/pipe)
@@ -18,7 +18,7 @@ curl -fsSL https://pipe-lang.com/install.sh | bash   # Linux & macOS
 
 Windows (PowerShell): `irm https://pipe-lang.com/install.ps1 | iex`
 
-The installer downloads the latest release, verifies its SHA256 checksum and installs `pipe` into `~/.local/bin` (or `/usr/local/bin` when run as root). Pin a version with `PIPE_VERSION=v0.9.3`. See the [full install docs](docs/en/01-getting-started.md).
+The installer downloads the latest release, verifies its SHA256 checksum and installs `pipe` into `~/.local/bin` (or `/usr/local/bin` when run as root). Pin a version with `PIPE_VERSION=v0.9.3.1`. See the [full install docs](docs/en/01-getting-started.md).
 
 ## Privacy & DSGVO
 

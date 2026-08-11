@@ -42,7 +42,7 @@ Der Installer erkennt Betriebssystem und Architektur, lädt die neueste
 Release-Binary herunter, prüft ihre SHA256-Prüfsumme und installiert `pipe`
 nach `~/.local/bin` (als root nach `/usr/local/bin`). Optionen:
 
-- `PIPE_VERSION=v0.9.3` — bestimmte Version installieren
+- `PIPE_VERSION=v0.9.3.1` — bestimmte Version installieren
 - `PIPE_DIR=/ein/verzeichnis` — Installationsverzeichnis wählen
 - `install.sh --uninstall` — Binary entfernen
 
@@ -94,7 +94,7 @@ Starte `./bin/pipe` ohne Dateinamen, um in die REPL zu gelangen:
 
 ```
 $ ./bin/pipe
-Pipe v0.9.3 — REPL
+Pipe v0.9.3.1 — REPL
 >>> 1 + 2
 3
 >>> print "Hallo"

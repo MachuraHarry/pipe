@@ -15,6 +15,10 @@ on:
         description: 'Deprecate all previously active versions of the server'
         required: false
         default: 'true'
+      set-status:
+        description: 'Manually set a version status: "<active|deprecated> <version>" (e.g. "active 0.9.3")'
+        required: false
+        default: ''
 
 permissions:
   contents: read
@@ -70,6 +74,16 @@ jobs:
 
     - name: Authenticate to MCP Registry
       run: ./mcp-publisher login github-oidc
+
+    - name: Set version status
+      if: inputs.set-status != ''
+      env:
+        SET_STATUS: ${{ inputs.set-status }}
+        SERVER: io.github.MachuraHarry/pipe
+      run: |
+        read -r ST VAL <<< "$SET_STATUS"
+        echo "Setting ${SERVER} ${VAL} to ${ST}..."
+        ./mcp-publisher status --status "$ST" "$SERVER" "$VAL"
 
     - name: Publish to MCP Registry
       if: inputs.skip-publish == 'false'

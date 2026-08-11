@@ -7,6 +7,14 @@ on:
         description: 'Release tag to publish (default: v0.9.3.1)'
         required: false
         default: 'v0.9.3.1'
+      skip-publish:
+        description: 'Skip publishing and only manage version status'
+        required: false
+        default: 'false'
+      deprecate-old:
+        description: 'Deprecate all previously active versions of the server'
+        required: false
+        default: 'true'
 
 permissions:
   contents: read
@@ -25,6 +33,7 @@ jobs:
         ./mcp-publisher --help >/dev/null
 
     - name: Download MCPB assets
+      if: inputs.skip-publish == 'false'
       env:
         GH_TOKEN: ${{ github.token }}
         TAG: ${{ inputs.tag }}
@@ -34,6 +43,7 @@ jobs:
         done
 
     - name: Update server.json
+      if: inputs.skip-publish == 'false'
       env:
         REPO: ${{ github.repository }}
         TAG: ${{ inputs.tag }}
@@ -62,4 +72,28 @@ jobs:
       run: ./mcp-publisher login github-oidc
 
     - name: Publish to MCP Registry
+      if: inputs.skip-publish == 'false'
       run: ./mcp-publisher publish
+
+    - name: Deprecate previous versions
+      if: inputs.deprecate-old == 'true'
+      env:
+        TAG: ${{ inputs.tag }}
+        SERVER: io.github.MachuraHarry/pipe
+      run: |
+        VERSION="${TAG#v}"
+        echo "Deprecating active versions of ${SERVER} other than ${VERSION}..."
+        OLD=$(curl -s "https://registry.modelcontextprotocol.io/v0/servers/io.github.MachuraHarry%2Fpipe/versions" \
+          | jq -r --arg keep "$VERSION" \
+            '.servers[]
+             | select((._meta["io.modelcontextprotocol.registry/official"].status // "") == "active")
+             | select(.server.version != $keep)
+             | .server.version')
+        if [ -z "$OLD" ]; then
+          echo "No previous active versions to deprecate."
+        else
+          for v in $OLD; do
+            echo "Deprecating ${SERVER} ${v}..."
+            ./mcp-publisher status --status deprecated "$SERVER" "$v"
+          done
+        fi

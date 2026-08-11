@@ -1,0 +1,65 @@
+name: Publish MCP Registry (manual)
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Release tag to publish (default: v0.9.3)'
+        required: false
+        default: 'v0.9.3'
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  publish:
+    name: Publish to MCP Registry
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Install mcp-publisher
+      run: |
+        curl -L "https://github.com/modelcontextprotocol/registry/releases/latest/download/mcp-publisher_linux_amd64.tar.gz" | tar xz mcp-publisher
+        ./mcp-publisher --help >/dev/null
+
+    - name: Download MCPB assets
+      env:
+        GH_TOKEN: ${{ github.token }}
+        TAG: ${{ inputs.tag }}
+      run: |
+        for p in linux-amd64 linux-arm64 darwin-amd64 darwin-arm64 windows-amd64; do
+          gh release download "$TAG" -p "pipe-server-$p.mcpb" -R "${{ github.repository }}"
+        done
+
+    - name: Update server.json
+      env:
+        REPO: ${{ github.repository }}
+        TAG: ${{ inputs.tag }}
+      run: |
+        VERSION="${TAG#v}"
+        H="https://github.com/$REPO/releases/download/$TAG"
+        h0=$(openssl dgst -sha256 -r pipe-server-linux-amd64.mcpb | awk '{print $1}')
+        h1=$(openssl dgst -sha256 -r pipe-server-linux-arm64.mcpb | awk '{print $1}')
+        h2=$(openssl dgst -sha256 -r pipe-server-darwin-amd64.mcpb | awk '{print $1}')
+        h3=$(openssl dgst -sha256 -r pipe-server-darwin-arm64.mcpb | awk '{print $1}')
+        h4=$(openssl dgst -sha256 -r pipe-server-windows-amd64.mcpb | awk '{print $1}')
+        jq \
+          --arg v "$VERSION" \
+          --arg h "$H" \
+          --arg a "$h0" --arg b "$h1" --arg c "$h2" --arg d "$h3" --arg e "$h4" \
+          '.version = $v
+           | .packages[0].identifier = ($h + "/pipe-server-linux-amd64.mcpb")  | .packages[0].fileSha256 = $a
+           | .packages[1].identifier = ($h + "/pipe-server-linux-arm64.mcpb")  | .packages[1].fileSha256 = $b
+           | .packages[2].identifier = ($h + "/pipe-server-darwin-amd64.mcpb") | .packages[2].fileSha256 = $c
+           | .packages[3].identifier = ($h + "/pipe-server-darwin-arm64.mcpb") | .packages[3].fileSha256 = $d
+           | .packages[4].identifier = ($h + "/pipe-server-windows-amd64.mcpb") | .packages[4].fileSha256 = $e' \
+          server.json > server.json.tmp && mv server.json.tmp server.json
+        cat server.json
+
+    - name: Authenticate to MCP Registry
+      run: ./mcp-publisher login github-oidc
+
+    - name: Publish to MCP Registry
+      run: ./mcp-publisher publish

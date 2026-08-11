@@ -70,3 +70,13 @@ read_file "errors.log"
 5. Öffne einen Pull Request
 
 Siehe [CONTRIBUTING.md](https://github.com/MachuraHarry/pipe-modules/blob/master/CONTRIBUTING.md) für Details.
+
+## Datenschutz & DSGVO
+
+Pipe ist **DSGVO-konform / GDPR-compliant by design**:
+
+- **Zero Telemetrie & Analytics** — die Binary meldet sich nie nach Hause, nichts verlässt deine Maschine
+- **Self-hosted Single-Binary** — läuft vollständig auf deiner Infrastruktur
+- **Kein Cloud-Zwang** — kein Vendor-Server verarbeitet deine Daten
+- **Open Source (MIT)** — vollständig auditierbar
+- **Lokale KI** — mit Ollama verlässt kein einziges Byte dein Netzwerk; Cloud-Provider werden nur genutzt, wenn du einen konfigurierst (die Daten gehen dann direkt an den von dir gewählten Provider)

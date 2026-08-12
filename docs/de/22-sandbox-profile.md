@@ -124,8 +124,10 @@ dieses Profil geprüft.
 > Sandbox **nur noch einschränken**. Ein Wechsel zu einem Profil, das *mehr*
 > Rechte als das aktive gewährt — einschließlich zurück zu `none` — wird mit
 > einem `E_SANDBOX`-Fehler abgelehnt. Ein Zielprofil gilt als Teilmenge
-> (erlaubt), wenn es über `fs`, `network` (inkl. Whitelist), `exec` und `ai`
-> nicht mehr Rechte als das aktive Profil einräumt.
+> (erlaubt), wenn es über `fs`, `network` (inkl. Whitelist und deren
+> Port-Bindung), `exec`, `ai`, `budget`, `max_tool_calls` und `timeout` nicht
+> mehr Rechte als das aktive Profil einräumt (`0` bei den letzten drei bedeutet
+> „unbegrenzt").
 >
 > **Sperre:** Wenn der Sandbox mit dem CLI-Flag `--sandbox-profile` gestartet
 > wurde (oder der Builtin `sandbox_lock` verwendet wird), kann sandboxisierter

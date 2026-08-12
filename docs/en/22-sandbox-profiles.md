@@ -124,8 +124,9 @@ against this profile.
 > ratchet down**. Switching to a profile that is *more* permissive than the
 > active one — including back to `none` — is rejected with an `E_SANDBOX`
 > error. A target profile is considered a subset (permitted) if it grants no
-> more than the active profile across `fs`, `network` (incl. whitelist), `exec`
-> and `ai`.
+> more than the active profile across `fs`, `network` (incl. whitelist and its
+> port pinning), `exec`, `ai`, `budget`, `max_tool_calls` and `timeout`
+> (`0` in the latter three means "unlimited").
 >
 > **Locking:** When the sandbox was started with the `--sandbox-profile` CLI
 > flag (or the `sandbox_lock` builtin was used), sandboxed code can **not**

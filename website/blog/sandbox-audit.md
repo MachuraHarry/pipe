@@ -3,6 +3,10 @@
 **A red-team audit of Pipe's AI agent sandbox, 23 escape vectors, and the one bug
 that almost invalidated everything.**
 
+> **Follow-up:** This post covers round 1. A second round found three real
+> ratchet escapes (empty whitelist, port ratchet, budget/calls) — all fixed —
+> see **[Sandbox Audit Round 2](?post=sandbox-audit-2)**.
+
 ---
 
 On paper, Pipe's sandbox profiles look solid. Declarative, five-layer defense,

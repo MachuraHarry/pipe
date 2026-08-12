@@ -1,5 +1,13 @@
 [
   {
+    "id": "sandbox-audit-2",
+    "file": "sandbox-audit-2.md",
+    "date": "2026-08-12",
+    "tag": "security",
+    "title": {"en": "🔐 Sandbox Audit Round 2 — Three Real Escapes, Then Zero", "de": "🔐 Sandbox-Audit Runde 2 — drei echte Escapes, danach null"},
+    "excerpt": {"en": "A second red-team pass found three ratchet holes a confined script could actually use: an empty whitelist meant allow-all, the port ratchet silently dropped port restrictions, and budget/max_tool_calls were never compared. All three fixed, then two LLM runs came back with zero escapes.", "de": "Ein zweiter Red-Team-Durchgang fand drei Ratchet-Lücken, die ein eingesperrtes Skript wirklich ausnutzen konnte: leere Whitelist = alle erlaubt, der Port-Ratchet hob Port-Restriktionen auf, und Budget/max_tool_calls wurden nie verglichen. Alle drei gefixt, danach kamen zwei LLM-Läufe mit null Escapes zurück."}
+  },
+  {
     "id": "sandbox-audit",
     "file": "sandbox-audit.md",
     "date": "2026-08-09",

@@ -32,6 +32,9 @@ func sandboxBlock(feature string) *Error {
 // ---- Sandbox Profile Builtins ----
 
 func bSandboxProfile(args ...Object) Object {
+	toolExecMu.Lock()
+	defer toolExecMu.Unlock()
+
 	if len(args) < 2 {
 		return err("sandbox_profile needs name and config block")
 	}
@@ -148,6 +151,13 @@ func bSandboxProfile(args ...Object) Object {
 		}
 	}
 
+	// The sandbox can only ratchet down: while a restricted profile is
+	// active, registering a more permissive profile would let sandboxed code
+	// escape by switching to it, so it is rejected here.
+	if cur := ActiveProfile.Load(); cur.Name != "none" && !profile.IsSubsetOf(cur) {
+		return err(ratchetError(profile.Name, cur.Name).Error())
+	}
+
 	if regErr := RegisterProfile(name.Value, profile); regErr != nil {
 		return err(regErr.Error())
 	}
@@ -164,6 +174,9 @@ var sandboxStartLocked bool
 func SetSandboxStartLocked() { sandboxStartLocked = true }
 
 func bSandboxLock(args ...Object) Object {
+	toolExecMu.Lock()
+	defer toolExecMu.Unlock()
+
 	if len(args) > 1 {
 		return err("sandbox_lock expects 0 or 1 argument (profile name)")
 	}
@@ -184,6 +197,9 @@ func bSandboxLock(args ...Object) Object {
 }
 
 func bSetSandbox(args ...Object) Object {
+	toolExecMu.Lock()
+	defer toolExecMu.Unlock()
+
 	if len(args) < 1 {
 		return err("set_sandbox needs a profile name")
 	}
@@ -201,6 +217,11 @@ func bSetSandbox(args ...Object) Object {
 	prof, profErr := GetProfile(name.Value)
 	if profErr != nil {
 		return err(profErr.Error())
+	}
+	// Ratchet: from a restricted profile only equal-or-more-restrictive
+	// profiles are reachable, so sandboxed code cannot free itself.
+	if cur.Name != "none" && !prof.IsSubsetOf(cur) {
+		return err(ratchetError(prof.Name, cur.Name).Error())
 	}
 	ActiveProfile.Store(prof)
 	return TRUE
@@ -222,13 +243,26 @@ func bWithSandbox(args ...Object) Object {
 	if name.Value == "none" && sandboxStartLocked {
 		return err("E_SANDBOX: the sandbox is locked; switching to profile 'none' is not allowed")
 	}
-	defer func() { ActiveProfile.Store(prev) }()
 
 	prof, profErr := GetProfile(name.Value)
 	if profErr != nil {
 		return err(profErr.Error())
 	}
+	if prev.Name != "none" && !prof.IsSubsetOf(prev) {
+		return err(ratchetError(prof.Name, prev.Name).Error())
+	}
+
+	// The lock is held only around the pointer swaps, never while running the
+	// user block: the block may itself call sandbox builtins, which would
+	// otherwise deadlock on the non-reentrant toolExecMu.
+	toolExecMu.Lock()
 	ActiveProfile.Store(prof)
+	toolExecMu.Unlock()
+	defer func() {
+		toolExecMu.Lock()
+		ActiveProfile.Store(prev)
+		toolExecMu.Unlock()
+	}()
 
 	switch fn := args[1].(type) {
 	case *Function:

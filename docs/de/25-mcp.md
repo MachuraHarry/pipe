@@ -180,6 +180,13 @@ Pipe kann sich mit externen MCP-Servern verbinden und deren Tools in `ai_with_to
 | `mcp_use_stdio(command, args...)` | Startet einen Subprocess und verbindet sich über stdio. Entdeckt Tools und registriert sie im Tool-Registry mit einem `mcp0_`-, `mcp1_`-, …-Präfix. |
 | `mcp_use_sse(url)` | Verbindet sich per POST + SSE mit einem Streamable-HTTP-MCP-Server (session-verwaltet). |
 
+> **Sandbox:** MCP-Client-Verbindungen unterliegen dem aktiven
+> Sandbox-Profil. `mcp_use_stdio` startet einen Subprocess und benötigt daher
+> `exec: true`; `mcp_use_sse` führt HTTP-Anfragen aus und benötigt
+> `network: true` — die Endpunkt-URL wird gegen die `network_whitelist` des
+> Profils geprüft, ebenso jede weitere Anfrage (inkl. Redirect-Ziele). Unter
+> dem Profil `none` greift kein Sandbox-Gate.
+
 > **Hinweis:** Client-Calls haben ein konfigurierbares Timeout (Standard 120 s, via
 > `client.SetCallTimeout`); Subprocess-stderr wird erfasst (letzte 64 KB) und in
 > Fehlermeldungen einbezogen. Remote-Tool-Argumente unterstützen verschachtelte

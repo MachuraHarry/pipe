@@ -2076,7 +2076,7 @@ for r in results
 
 ### `sandbox_profile`
 **Signature:** `sandbox_profile(name)`
-**Description:** Selects a sandbox profile (`none`, `strict`, `noexec`, `isolated`, `networked`).
+**Description:** Selects a sandbox profile (`none`, `strict`, `noexec`, `isolated`, `networked`). Defines a named profile with `sandbox_profile "name" {fs: ..., network: ..., exec: ..., ai: ...}`. While a restricted profile is active, only profiles that are no more permissive (a subset) can be registered.
 **Returns:** `string`
 ```pipe
 sandbox_profile "strict"
@@ -2084,7 +2084,7 @@ sandbox_profile "strict"
 
 ### `set_sandbox`
 **Signature:** `set_sandbox(profile)`
-**Description:** Sets the active sandbox from a profile map or name.
+**Description:** Sets the active sandbox from a profile map or name. From a non-`none` profile only equal-or-more-restrictive profiles are reachable (the sandbox ratchets down; `none` is unreachable once any other profile is active).
 **Returns:** `string`
 ```pipe
 set_sandbox ({type: "strict", write: false})
@@ -2538,7 +2538,7 @@ print (mcp_prompt_get "summarize" {text: "A long article ..."})
 
 **Signature:** `mcp_use_stdio(command, args...)`
 
-**Description:** Spawns a subprocess and connects to it as an MCP server via stdio. Discovers its tools and registers them in the tool registry with a `mcp0_`, `mcp1_`, ... prefix. Also discovers resources and prompts if advertised.
+**Description:** Spawns a subprocess and connects to it as an MCP server via stdio. Discovers its tools and registers them in the tool registry with a `mcp0_`, `mcp1_`, ... prefix. Also discovers resources and prompts if advertised. Gated by the active sandbox profile's `exec` policy (blocked unless `exec: true`).
 
 **Returns:** `string` (confirmation message)
 ```pipe
@@ -2549,7 +2549,7 @@ mcp_use_stdio "npx" "-y" "@modelcontextprotocol/server-everything"
 
 **Signature:** `mcp_use_sse(url)`
 
-**Description:** Connects to a Streamable HTTP MCP server via POST + SSE (session-managed). Registers its tools with a `mcp2_`, `mcp3_`, ... prefix.
+**Description:** Connects to a Streamable HTTP MCP server via POST + SSE (session-managed). Registers its tools with a `mcp2_`, `mcp3_`, ... prefix. Gated by the active sandbox profile's `network` policy: the URL and every subsequent request (including redirects) are checked against the profile's `network_whitelist`.
 
 **Returns:** `string` (confirmation message)
 ```pipe

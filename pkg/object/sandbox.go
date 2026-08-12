@@ -302,6 +302,52 @@ func (p *SandboxProfile) CanNetwork() error {
 	return nil
 }
 
+// IsSubsetOf reports whether sub is no more permissive than super across every
+// sandbox dimension. The sandbox can only "ratchet down": once a restricted
+// profile is active, switching to (or registering) a profile that grants more
+// rights is rejected. A profile with an empty network whitelist (allow all) is
+// treated as the least restrictive case and therefore a superset of any
+// whitelist.
+func (sub *SandboxProfile) IsSubsetOf(super *SandboxProfile) bool {
+	if sub.FSAccess > super.FSAccess {
+		return false
+	}
+	if sub.Network && !super.Network {
+		return false
+	}
+	if sub.Exec && !super.Exec {
+		return false
+	}
+	if sub.AI && !super.AI {
+		return false
+	}
+	if len(super.NetworkWhitelist) > 0 {
+		for _, entry := range sub.NetworkWhitelist {
+			host, port, path := splitNetworkTarget(entry)
+			if host == "" {
+				return false
+			}
+			matched := false
+			for _, pattern := range super.NetworkWhitelist {
+				if matchNetworkPattern(pattern, host, port, path) {
+					matched = true
+					break
+				}
+			}
+			if !matched {
+				return false
+			}
+		}
+	}
+	return true
+}
+
+// ratchetError builds the error returned when a profile change would escalate
+// beyond the rights of the currently active profile.
+func ratchetError(target, current string) error {
+	return fmt.Errorf("E_SANDBOX: profile '%s' is not a subset of active profile '%s'; the sandbox can only ratchet down", target, current)
+}
+
 func (p *SandboxProfile) CanExec() error {
 	if !p.Exec {
 		return fmt.Errorf("E_SANDBOX: exec blocked by profile '%s'", p.Name)

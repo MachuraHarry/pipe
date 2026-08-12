@@ -1217,7 +1217,7 @@ print "Hauptprogramm"
 ```
 sandbox_profile name
 ```
-Wählt ein Sandbox-Profil aus (`none`, `strict`, `noexec`, `isolated`, `networked`).
+Wählt ein Sandbox-Profil aus (`none`, `strict`, `noexec`, `isolated`, `networked`). Definiert ein benanntes Profil mit `sandbox_profile "name" {fs: ..., network: ..., exec: ..., ai: ...}`. Während ein restriktives Profil aktiv ist, können nur Profile registriert werden, die nicht mehr Rechte (eine Teilmenge) einräumen.
 ```pipe
 sandbox_profile "strict"
 ```
@@ -1226,7 +1226,7 @@ sandbox_profile "strict"
 ```
 set_sandbox(profil)
 ```
-Setzt die aktive Sandbox aus einem Profil-Map oder einem Namen.
+Setzt die aktive Sandbox aus einem Profil-Map oder einem Namen. Von einem Nicht-`none`-Profil aus sind nur gleich- oder restriktivere Profile erreichbar (der Sandbox kann nur einschränken; `none` ist unerreichbar, sobald ein anderes Profil aktiv ist).
 ```pipe
 set_sandbox ({type: "strict", write: false})
 ```
@@ -1592,7 +1592,7 @@ print (mcp_prompt_get "summarize" {text: "Ein langer Artikel ..."})
 ```
 mcp_use_stdio(command, args...)
 ```
-Startet einen Subprozess und verbindet sich per stdio als MCP-Client. Entdeckt dessen Tools und registriert sie mit Präfix `mcp0_`, `mcp1_`, ... im Tool-Registry. Ressourcen und Prompts werden ebenfalls entdeckt, falls beworben.
+Startet einen Subprozess und verbindet sich per stdio als MCP-Client. Entdeckt dessen Tools und registriert sie mit Präfix `mcp0_`, `mcp1_`, ... im Tool-Registry. Ressourcen und Prompts werden ebenfalls entdeckt, falls beworben. Unterliegt der `exec`-Richtlinie des aktiven Sandbox-Profils (blockiert, außer `exec: true`).
 ```pipe
 mcp_use_stdio "npx" "-y" "@modelcontextprotocol/server-everything"
 ```
@@ -1601,7 +1601,7 @@ mcp_use_stdio "npx" "-y" "@modelcontextprotocol/server-everything"
 ```
 mcp_use_sse(url)
 ```
-Verbindet sich per POST + SSE mit einem Streamable-HTTP-MCP-Server (Session-verwaltet). Registriert dessen Tools mit Präfix `mcp2_`, `mcp3_`, ...
+Verbindet sich per POST + SSE mit einem Streamable-HTTP-MCP-Server (Session-verwaltet). Registriert dessen Tools mit Präfix `mcp2_`, `mcp3_`, ... Unterliegt der `network`-Richtlinie des aktiven Sandbox-Profils: Die URL und jede weitere Anfrage (inkl. Redirects) werden gegen die `network_whitelist` des Profils geprüft.
 ```pipe
 mcp_use_sse "http://localhost:9090/"
 ```

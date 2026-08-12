@@ -38,6 +38,12 @@ type Client struct {
 	pendMu       sync.Mutex
 	closed       bool
 	callTimeout  time.Duration
+
+	// NetworkGate, when set, is consulted before every HTTP request of this
+	// client (including redirect targets). It is how the sandbox applies its
+	// network profile to MCP connections without pkg/mcp importing the
+	// sandbox package. A nil gate means no restriction.
+	NetworkGate func(url string) error
 }
 
 func NewStdioClient(command string, args []string, env map[string]string) (*Client, error) {
@@ -405,11 +411,25 @@ func (c *Client) httpPostLocked(raw []byte) error {
 		httpReq.Header.Set(k, v)
 	}
 
+	if c.NetworkGate != nil {
+		if gateErr := c.NetworkGate(httpReq.URL.String()); gateErr != nil {
+			return gateErr
+		}
+	}
+
 	timeout := c.callTimeout
 	if timeout <= 0 {
 		timeout = defaultCallTimeout
 	}
-	client := &http.Client{Timeout: timeout}
+	client := &http.Client{
+		Timeout: timeout,
+		CheckRedirect: func(req *http.Request, via []*http.Request) error {
+			if c.NetworkGate == nil {
+				return nil
+			}
+			return c.NetworkGate(req.URL.String())
+		},
+	}
 	resp, err := client.Do(httpReq)
 	if err != nil {
 		if ne, ok := err.(net.Error); ok && ne.Timeout() {

@@ -115,16 +115,28 @@ Registriert ein benanntes Profil in der globalen Registry. Gibt einen Fehler zur
 ```pipe
 -- Alle folgenden Operationen nutzen dieses Profil
 set_sandbox "strict"
--- Zurücksetzen auf uneingeschränkt
-set_sandbox "none"
 ```
 
-Ändert das aktive Profil global. Alle nachfolgenden Builtin-Aufrufe werden gegen dieses Profil geprüft.
+Ändert das aktive Profil global. Alle nachfolgenden Builtin-Aufrufe werden gegen
+dieses Profil geprüft.
 
+> **Ratschen-Prinzip:** Sobald ein Nicht-`none`-Profil aktiv ist, kann der
+> Sandbox **nur noch einschränken**. Ein Wechsel zu einem Profil, das *mehr*
+> Rechte als das aktive gewährt — einschließlich zurück zu `none` — wird mit
+> einem `E_SANDBOX`-Fehler abgelehnt. Ein Zielprofil gilt als Teilmenge
+> (erlaubt), wenn es über `fs`, `network` (inkl. Whitelist), `exec` und `ai`
+> nicht mehr Rechte als das aktive Profil einräumt.
+>
 > **Sperre:** Wenn der Sandbox mit dem CLI-Flag `--sandbox-profile` gestartet
 > wurde (oder der Builtin `sandbox_lock` verwendet wird), kann sandboxisierter
 > Code **nicht** zu Profil `none` zurückschalten. Dadurch kann nicht
 > vertrauenswürdiger Code seinen eigenen Sandbox nicht deaktivieren.
+>
+> **Auch das Registrieren ist begrenzt:** Während ein restriktives Profil aktiv
+> ist, weigert sich `sandbox_profile`, ein Profil zu registrieren, das mehr
+> Rechte als das aktive einräumt. Sandboxisierter Code kann sich so keine
+> eigene Hintertür anlegen. Alle Profile sollten vorab definiert werden, bevor
+> ein restriktives Profil aktiviert wird.
 
 ### `sandbox_lock` — Aktives Profil einfrieren
 

@@ -115,16 +115,27 @@ Registers a named profile in the global registry. Returns an error if the name a
 ```pipe
 -- All following operations use this profile
 set_sandbox "strict"
--- Reset to unrestricted
-set_sandbox "none"
 ```
 
-Changes the active profile globally. All subsequent builtin calls are checked against this profile.
+Changes the active profile globally. All subsequent builtin calls are checked
+against this profile.
 
-> **Locking:** When the sandbox was started with the `--sandbox-profile` CLI flag
-> (or the `sandbox_lock` builtin was used), sandboxed code can **not** switch
-> back to profile `none`. This prevents untrusted code from disabling its own
-> sandbox.
+> **Ratchet:** Once a non-`none` profile is active, the sandbox can **only
+> ratchet down**. Switching to a profile that is *more* permissive than the
+> active one — including back to `none` — is rejected with an `E_SANDBOX`
+> error. A target profile is considered a subset (permitted) if it grants no
+> more than the active profile across `fs`, `network` (incl. whitelist), `exec`
+> and `ai`.
+>
+> **Locking:** When the sandbox was started with the `--sandbox-profile` CLI
+> flag (or the `sandbox_lock` builtin was used), sandboxed code can **not**
+> switch back to profile `none` at all. This prevents untrusted code from
+> disabling its own sandbox.
+>
+> **Registration is ratcheted too:** while a restricted profile is active,
+> `sandbox_profile` refuses to register a profile that is more permissive than
+> the active one, so sandboxed code cannot simply mint its own escape hatch.
+> Define all profiles up front, before entering a restricted profile.
 
 ### `sandbox_lock` — Freeze the Active Profile
 

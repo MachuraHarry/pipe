@@ -788,6 +788,14 @@ func promptResultText(result *mcp.GetPromptResult) string {
 }
 
 func bMcpUseStdio(args ...Object) Object {
+	// A stdio client spawns a subprocess, so it is gated by the active
+	// profile's exec policy just like the exec builtin.
+	if p := ActiveProfile.Load(); p.Name != "none" {
+		if canErr := p.CanExec(); canErr != nil {
+			return err(canErr.Error())
+		}
+	}
+
 	if len(args) < 1 {
 		return err("mcp_use_stdio expects at least 1 argument (command, args..., env?)")
 	}
@@ -843,9 +851,23 @@ func bMcpUseSSE(args ...Object) Object {
 		return err("mcp_use_sse: argument must be a string (url)")
 	}
 
+	// An SSE client makes HTTP requests, so it is gated by the active
+	// profile's network policy and whitelist — at connect time and for every
+	// subsequent request (including redirects) via the client's NetworkGate.
+	if p := ActiveProfile.Load(); p.Name != "none" {
+		if netErr := p.CanNetworkTo(url.Value); netErr != nil {
+			return err(netErr.Error())
+		}
+	}
+
 	client, clientErr := mcp.NewHTTPClient(url.Value)
 	if clientErr != nil {
 		return err("mcp_use_sse: " + clientErr.Error())
+	}
+	if ActiveProfile.Load().Name != "none" {
+		client.NetworkGate = func(u string) error {
+			return ActiveProfile.Load().CanNetworkTo(u)
+		}
 	}
 
 	prefix := fmt.Sprintf("mcp%d_", len(mcpClients))

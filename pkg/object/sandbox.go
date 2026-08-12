@@ -107,7 +107,9 @@ func (p *defaultPathPolicy) ensureTempDirLocked() string {
 	if p.tempDir == "" {
 		p.tempDir, _ = filepath.Abs(filepath.Join(p.workingDir, ".pipe_sandbox"))
 		if err := os.MkdirAll(p.tempDir, 0755); err != nil {
-			p.tempDir = ""
+			if _, sErr := os.Stat(p.tempDir); os.IsNotExist(sErr) {
+				p.tempDir = ""
+			}
 		}
 	}
 	return p.tempDir

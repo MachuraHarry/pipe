@@ -312,9 +312,14 @@ func TestIsSubsetOf(t *testing.T) {
 		{"ai subset", testProfile("a", FSNone, false, false, false, nil), testProfile("a", FSNone, false, false, true, nil), true},
 		{"ai superset rejected", testProfile("a", FSNone, false, false, true, nil), testProfile("a", FSNone, false, false, false, nil), false},
 		{"empty whitelist is superset", testProfile("a", FSNone, true, false, false, []string{"evil.com"}), testProfile("a", FSNone, true, false, false, nil), true},
+		{"empty sub whitelist is not subset of whitelisted super", testProfile("a", FSNone, true, false, false, nil), testProfile("a", FSNone, true, false, false, []string{"api.github.com"}), false},
 		{"whitelist containment", testProfile("a", FSNone, true, false, false, []string{"api.github.com"}), testProfile("a", FSNone, true, false, false, []string{"api.github.com", "openai.com"}), true},
 		{"whitelist subdomain", testProfile("a", FSNone, true, false, false, []string{"sub.api.github.com"}), testProfile("a", FSNone, true, false, false, []string{"api.github.com"}), true},
 		{"whitelist extra entry rejected", testProfile("a", FSNone, true, false, false, []string{"api.github.com", "evil.com"}), testProfile("a", FSNone, true, false, false, []string{"api.github.com"}), false},
+		{"portless entry not subset of ported pattern", testProfile("a", FSNone, true, false, false, []string{"api.github.com"}), testProfile("a", FSNone, true, false, false, []string{"api.github.com:443"}), false},
+		{"same port is subset", testProfile("a", FSNone, true, false, false, []string{"api.github.com:443"}), testProfile("a", FSNone, true, false, false, []string{"api.github.com:443"}), true},
+		{"ported entry subset of portless pattern", testProfile("a", FSNone, true, false, false, []string{"api.github.com:443"}), testProfile("a", FSNone, true, false, false, []string{"api.github.com"}), true},
+		{"different port rejected", testProfile("a", FSNone, true, false, false, []string{"api.github.com:8080"}), testProfile("a", FSNone, true, false, false, []string{"api.github.com:443"}), false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -322,6 +327,54 @@ func TestIsSubsetOf(t *testing.T) {
 				t.Fatalf("IsSubsetOf() = %v, want %v", got, tt.want)
 			}
 		})
+	}
+}
+
+// TestIsSubsetOfLimits verifies that budget/max_tool_calls/timeout participate
+// in the ratchet: an unlimited (0) or higher limit is more permissive and must
+// not count as a subset.
+func TestIsSubsetOfLimits(t *testing.T) {
+	base := testProfile("base", FSNone, false, false, false, nil)
+	base.Budget = 0.01
+	base.MaxToolCalls = 3
+	base.Timeout = 60
+
+	limited := func(budget float64, calls, timeout int) *SandboxProfile {
+		p := testProfile("sub", FSNone, false, false, false, nil)
+		p.Budget = budget
+		p.MaxToolCalls = calls
+		p.Timeout = timeout
+		return p
+	}
+
+	tests := []struct {
+		name string
+		sub  *SandboxProfile
+		want bool
+	}{
+		{"identical limits", limited(0.01, 3, 60), true},
+		{"lower budget", limited(0.005, 3, 60), true},
+		{"higher budget", limited(0.02, 3, 60), false},
+		{"unlimited budget", limited(0, 3, 60), false},
+		{"lower max_tool_calls", limited(0.01, 2, 60), true},
+		{"higher max_tool_calls", limited(0.01, 4, 60), false},
+		{"unlimited max_tool_calls", limited(0.01, 0, 60), false},
+		{"lower timeout", limited(0.01, 3, 30), true},
+		{"higher timeout", limited(0.01, 3, 120), false},
+		{"unlimited timeout", limited(0.01, 3, 0), false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := tt.sub.IsSubsetOf(base); got != tt.want {
+				t.Fatalf("IsSubsetOf() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+
+	// Two fully-unlimited profiles are equal and therefore subsets.
+	both0 := testProfile("s", FSNone, false, false, false, nil)
+	if !both0.IsSubsetOf(both0) {
+		t.Fatal("two fully-unlimited profiles must be subsets of each other")
 	}
 }
 

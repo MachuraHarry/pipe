@@ -305,9 +305,9 @@ func (p *SandboxProfile) CanNetwork() error {
 // IsSubsetOf reports whether sub is no more permissive than super across every
 // sandbox dimension. The sandbox can only "ratchet down": once a restricted
 // profile is active, switching to (or registering) a profile that grants more
-// rights is rejected. A profile with an empty network whitelist (allow all) is
-// treated as the least restrictive case and therefore a superset of any
-// whitelist.
+// rights is rejected. An empty network whitelist (allow all) and a zero
+// budget/max_tool_calls/timeout (unlimited) are treated as the least
+// restrictive value in their dimension.
 func (sub *SandboxProfile) IsSubsetOf(super *SandboxProfile) bool {
 	if sub.FSAccess > super.FSAccess {
 		return false
@@ -321,22 +321,75 @@ func (sub *SandboxProfile) IsSubsetOf(super *SandboxProfile) bool {
 	if sub.AI && !super.AI {
 		return false
 	}
-	if len(super.NetworkWhitelist) > 0 {
-		for _, entry := range sub.NetworkWhitelist {
-			host, port, path := splitNetworkTarget(entry)
-			if host == "" {
-				return false
+	if !budgetIsSubset(sub.Budget, super.Budget) {
+		return false
+	}
+	if !limitIsSubset(sub.MaxToolCalls, super.MaxToolCalls) {
+		return false
+	}
+	if !limitIsSubset(sub.Timeout, super.Timeout) {
+		return false
+	}
+	return whitelistIsSubset(sub.NetworkWhitelist, super.NetworkWhitelist)
+}
+
+// budgetIsSubset treats a budget of 0 as "unlimited" (the most permissive
+// value). A subset must have a cap no larger than the super profile's.
+func budgetIsSubset(sub, super float64) bool {
+	if super <= 0 {
+		return true
+	}
+	if sub <= 0 {
+		return false
+	}
+	return sub <= super
+}
+
+// limitIsSubset treats 0 as "unlimited" (the most permissive value). A subset
+// must have a limit no larger than the super profile's.
+func limitIsSubset(sub, super int) bool {
+	if super <= 0 {
+		return true
+	}
+	if sub <= 0 {
+		return false
+	}
+	return sub <= super
+}
+
+// whitelistIsSubset reports whether every target allowed by sub is also
+// allowed by super. An empty whitelist means "allow all", so it is a subset
+// only when super also allows all.
+func whitelistIsSubset(sub, super []string) bool {
+	if len(super) == 0 {
+		return true
+	}
+	if len(sub) == 0 {
+		return false
+	}
+	for _, entry := range sub {
+		host, port, path := splitNetworkTarget(entry)
+		if host == "" {
+			return false
+		}
+		matched := false
+		for _, pattern := range super {
+			if !matchNetworkPattern(pattern, host, port, path) {
+				continue
 			}
-			matched := false
-			for _, pattern := range super.NetworkWhitelist {
-				if matchNetworkPattern(pattern, host, port, path) {
-					matched = true
-					break
+			// If the sub entry allows any port but the matching super pattern
+			// pins a specific port, sub is more permissive on ports: it does
+			// not fully inherit super's restriction.
+			if port == "" {
+				if _, pport, _ := splitNetworkTarget(pattern); pport != "" {
+					continue
 				}
 			}
-			if !matched {
-				return false
-			}
+			matched = true
+			break
+		}
+		if !matched {
+			return false
 		}
 	}
 	return true

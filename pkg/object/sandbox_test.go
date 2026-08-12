@@ -10,6 +10,8 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/MachuraHarry/pipe/pkg/ai"
 )
 
 func tempOnlyProfile(t *testing.T) (*SandboxProfile, string) {
@@ -32,6 +34,21 @@ func withProfile(p *SandboxProfile) func() {
 	prev := ActiveProfile.Load()
 	ActiveProfile.Store(p)
 	return func() { ActiveProfile.Store(prev) }
+}
+
+// registerTestProfile registers a profile and schedules its removal from the
+// global registry when the test ends, so repeated runs (-count=N) do not
+// collide on the fixed profile name.
+func registerTestProfile(t *testing.T, p *SandboxProfile) {
+	t.Helper()
+	if err := RegisterProfile(p.Name, p); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() {
+		profileRegistryMu.Lock()
+		delete(profileRegistry, p.Name)
+		profileRegistryMu.Unlock()
+	})
 }
 
 // ---- temp-only redirects ----
@@ -386,13 +403,9 @@ func TestSetSandboxRatchetBlocksEscalation(t *testing.T) {
 	defer ActiveProfile.Store(prev)
 
 	cage := testProfile("r-cage", FSNone, false, false, false, nil)
-	if err := RegisterProfile(cage.Name, cage); err != nil {
-		t.Fatal(err)
-	}
+	registerTestProfile(t, cage)
 	escape := testProfile("r-escape", FSFull, true, true, true, nil)
-	if err := RegisterProfile(escape.Name, escape); err != nil {
-		t.Fatal(err)
-	}
+	registerTestProfile(t, escape)
 	ActiveProfile.Store(cage)
 
 	res := bSetSandbox(&String{Value: escape.Name})
@@ -413,9 +426,7 @@ func TestSetSandboxRatchetBlocksEscalation(t *testing.T) {
 
 	// A strictly more restrictive profile is still reachable.
 	sub := testProfile("r-sub", FSNone, false, false, false, nil)
-	if err := RegisterProfile(sub.Name, sub); err != nil {
-		t.Fatal(err)
-	}
+	registerTestProfile(t, sub)
 	res = bSetSandbox(&String{Value: sub.Name})
 	if res.Type() == ERROR {
 		t.Fatalf("set_sandbox to a subset profile must be allowed, got: %s", res.Inspect())
@@ -432,13 +443,9 @@ func TestWithSandboxRatchetBlocksEscalation(t *testing.T) {
 	defer ActiveProfile.Store(prev)
 
 	cage := testProfile("w-cage", FSNone, false, false, false, nil)
-	if err := RegisterProfile(cage.Name, cage); err != nil {
-		t.Fatal(err)
-	}
+	registerTestProfile(t, cage)
 	escape := testProfile("w-escape", FSFull, true, true, true, nil)
-	if err := RegisterProfile(escape.Name, escape); err != nil {
-		t.Fatal(err)
-	}
+	registerTestProfile(t, escape)
 	ActiveProfile.Store(cage)
 
 	res := bWithSandbox(&String{Value: escape.Name}, &BuiltinInfo{Name: "noop", Fn: func(args ...Object) Object { return NILOBJ }})
@@ -458,9 +465,12 @@ func TestSandboxProfileRegistrationRatchet(t *testing.T) {
 	defer ActiveProfile.Store(prev)
 
 	cage := testProfile("reg-cage", FSReadOnly, false, false, false, nil)
-	if err := RegisterProfile(cage.Name, cage); err != nil {
-		t.Fatal(err)
-	}
+	registerTestProfile(t, cage)
+	t.Cleanup(func() {
+		profileRegistryMu.Lock()
+		delete(profileRegistry, "reg-ok")
+		profileRegistryMu.Unlock()
+	})
 	ActiveProfile.Store(cage)
 
 	permissive := &Map{Pairs: map[string]Object{
@@ -495,9 +505,7 @@ func TestMcpUseStdioBlockedUnderNoExec(t *testing.T) {
 	defer ActiveProfile.Store(prev)
 
 	cage := testProfile("mcp-exec", FSNone, false, false, false, nil)
-	if err := RegisterProfile(cage.Name, cage); err != nil {
-		t.Fatal(err)
-	}
+	registerTestProfile(t, cage)
 	ActiveProfile.Store(cage)
 
 	res := bMcpUseStdio(&String{Value: "true"})
@@ -546,9 +554,7 @@ func TestMcpUseSSEBlockedUnderNoNetwork(t *testing.T) {
 	defer ts.Close()
 
 	cage := testProfile("mcp-net", FSNone, false, false, false, nil)
-	if err := RegisterProfile(cage.Name, cage); err != nil {
-		t.Fatal(err)
-	}
+	registerTestProfile(t, cage)
 	ActiveProfile.Store(cage)
 
 	res := bMcpUseSSE(&String{Value: ts.URL})
@@ -568,9 +574,7 @@ func TestMcpUseSSEBlockedByWhitelist(t *testing.T) {
 	defer ts.Close()
 
 	wl := testProfile("mcp-wl", FSNone, true, false, false, []string{"allowed.example"})
-	if err := RegisterProfile(wl.Name, wl); err != nil {
-		t.Fatal(err)
-	}
+	registerTestProfile(t, wl)
 	ActiveProfile.Store(wl)
 
 	res := bMcpUseSSE(&String{Value: ts.URL})
@@ -591,9 +595,7 @@ func TestMcpUseSSEAllowedByWhitelist(t *testing.T) {
 
 	host := strings.TrimPrefix(ts.URL, "http://")
 	wl := testProfile("mcp-ok", FSNone, true, false, false, []string{host})
-	if err := RegisterProfile(wl.Name, wl); err != nil {
-		t.Fatal(err)
-	}
+	registerTestProfile(t, wl)
 	ActiveProfile.Store(wl)
 
 	res := bMcpUseSSE(&String{Value: ts.URL})
@@ -623,9 +625,7 @@ func TestMcpUseSSERedirectGate(t *testing.T) {
 
 	hostA := strings.TrimPrefix(tsA.URL, "http://")
 	wl := testProfile("mcp-redir", FSNone, true, false, false, []string{hostA})
-	if err := RegisterProfile(wl.Name, wl); err != nil {
-		t.Fatal(err)
-	}
+	registerTestProfile(t, wl)
 	ActiveProfile.Store(wl)
 
 	res := bMcpUseSSE(&String{Value: tsA.URL})
@@ -684,10 +684,17 @@ func TestToolExecutorDoesNotGateOnExec(t *testing.T) {
 	p.Exec = false
 	p.AI = true
 	p.AuditLog = true
-	RegisterProfile(p.Name, p)
+	registerTestProfile(t, p)
 	defer withProfile(p)()
 
-	toolRegistry["rt_write"] = ToolEntry{Fn: &BuiltinInfo{Name: "write_file", Fn: bWriteFile}}
+	toolRegistry["rt_write"] = ToolEntry{
+		Def: ai.ToolDef{Name: "write_file", Parameters: map[string]interface{}{
+			"type":       "object",
+			"properties": map[string]interface{}{},
+			"required":   []string{"path", "content"},
+		}},
+		Fn: &BuiltinInfo{Name: "write_file", Fn: bWriteFile},
+	}
 	toolRegistry["rt_exec"] = ToolEntry{Fn: &BuiltinInfo{Name: "exec", Fn: bExec}}
 
 	outside := filepath.Join(dir, "secret.txt")

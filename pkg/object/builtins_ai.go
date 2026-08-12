@@ -3,6 +3,7 @@ package object
 import (
 	"encoding/json"
 	"fmt"
+	"sort"
 	"strings"
 
 	"github.com/MachuraHarry/pipe/pkg/ai"
@@ -971,6 +972,7 @@ func keysToStrings(m *Map) []string {
 	for k := range m.Pairs {
 		keys = append(keys, k)
 	}
+	sort.Strings(keys)
 	return keys
 }
 
@@ -1053,23 +1055,7 @@ func executeTool(profile *SandboxProfile, toolName string, args map[string]inter
 		profile.Audit("tool_call", toolName)
 	}
 
-	argObjects := make([]Object, 0, len(args))
-	for _, v := range args {
-		switch val := v.(type) {
-		case string:
-			argObjects = append(argObjects, &String{Value: val})
-		case float64:
-			if val == float64(int64(val)) {
-				argObjects = append(argObjects, &Integer{Value: int64(val)})
-			} else {
-				argObjects = append(argObjects, &Float{Value: val})
-			}
-		case bool:
-			argObjects = append(argObjects, NativeBoolToBoolean(val))
-		default:
-			argObjects = append(argObjects, &String{Value: fmt.Sprintf("%v", val)})
-		}
-	}
+	argObjects := orderedToolArgs(entry, args)
 
 	run := func() Object {
 		if callUserFn != nil {
@@ -1085,6 +1071,62 @@ func executeTool(profile *SandboxProfile, toolName string, args map[string]inter
 		return run().Inspect(), nil
 	}
 	return withActiveProfile(profile, run).Inspect(), nil
+}
+
+// toolParamNames returns the ordered parameter names declared by a tool's
+// schema (from "required", falling back to the sorted "properties" keys).
+func toolParamNames(entry ToolEntry) []string {
+	params := entry.Def.Parameters
+	if params == nil {
+		return nil
+	}
+	if req, ok := params["required"]; ok {
+		switch r := req.(type) {
+		case []string:
+			return r
+		case []interface{}:
+			names := make([]string, 0, len(r))
+			for _, e := range r {
+				if s, ok := e.(string); ok {
+					names = append(names, s)
+				}
+			}
+			return names
+		}
+	}
+	if props, ok := params["properties"].(map[string]interface{}); ok {
+		names := make([]string, 0, len(props))
+		for k := range props {
+			names = append(names, k)
+		}
+		sort.Strings(names)
+		return names
+	}
+	return nil
+}
+
+// orderedToolArgs maps the model's named arguments to a deterministic
+// positional slice, ordered by the tool's declared parameters. Without a
+// declared order it falls back to sorted names, so multi-parameter tools are
+// never passed arguments in map-iteration order.
+func orderedToolArgs(entry ToolEntry, args map[string]interface{}) []Object {
+	names := toolParamNames(entry)
+	if len(names) == 0 {
+		names = make([]string, 0, len(args))
+		for k := range args {
+			names = append(names, k)
+		}
+		sort.Strings(names)
+	}
+	argObjects := make([]Object, 0, len(names))
+	for _, n := range names {
+		v, ok := args[n]
+		if !ok {
+			continue
+		}
+		argObjects = append(argObjects, interfaceToObject(v))
+	}
+	return argObjects
 }
 
 // ---- AI — Agents ----

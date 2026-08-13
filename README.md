@@ -5,11 +5,11 @@
 [![Version](https://img.shields.io/badge/version-0.9.3.5-blue.svg)](https://github.com/MachuraHarry/pipe/releases)
 [![SPR](https://img.shields.io/badge/SPR-Semantic%20Pipeline%20Runtime-7c5cfc.svg)](#)
 [![MCP](https://img.shields.io/badge/MCP-Server%20%2B%20Client-3ce096.svg)](#model-context-protocol)
-[![GitHub MCP Registry](https://img.shields.io/badge/GitHub_MCP_Registry-Listed-6e5494.svg)](https://github.com/mcp/io.github.MachuraHarry/pipe)
+[![GitHub MCP Registry](https://img.shields.io/badge/GitHub_MCP_Registry-Onboarding-6e5494.svg)](https://github.com/github/github-mcp-server/discussions/3057)
 [![MCP Registry](https://img.shields.io/badge/MCP_Registry-Listed-4a90d9.svg)](https://registry.modelcontextprotocol.io/?q=MachuraHarry)
 
 > **The first language with built-in MCP — server and client. 206 builtins, single ~7 MB binary. Zero dependencies.**
-> **Officially listed in the [GitHub MCP Registry](https://github.com/mcp/io.github.MachuraHarry/pipe)** — one-click install for GitHub Copilot & VS Code. Also in the [official MCP Registry](https://registry.modelcontextprotocol.io/?q=MachuraHarry) (v0.9.3.5, active).
+> **Officially listed in the [official MCP Registry](https://registry.modelcontextprotocol.io/?q=MachuraHarry)** (v0.9.3.5, active). GitHub MCP Registry [onboarding requested](https://github.com/github/github-mcp-server/discussions/3057) for one-click install in GitHub Copilot & VS Code.
 
 ## Quick Install
 

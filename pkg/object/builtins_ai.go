@@ -768,9 +768,11 @@ func bAiBatch(args ...Object) Object {
 
 func bEmbed(args ...Object) Object {
 	if ActiveProfile.Load().Name != "none" {
-		if canErr := ActiveProfile.Load().CanNetwork(); canErr != nil {
+		if canErr := ActiveProfile.Load().CanAI(); canErr != nil {
 			return err(canErr.Error())
 		}
+	} else if Sandbox.Enabled && !Sandbox.AllowAI {
+		return sandboxBlock("embed (AI calls)")
 	}
 	if len(args) < 1 {
 		return err("embed expects 1 argument (text)")
@@ -793,6 +795,13 @@ func bEmbed(args ...Object) Object {
 }
 
 func bEmbedBatch(args ...Object) Object {
+	if ActiveProfile.Load().Name != "none" {
+		if canErr := ActiveProfile.Load().CanAI(); canErr != nil {
+			return err(canErr.Error())
+		}
+	} else if Sandbox.Enabled && !Sandbox.AllowAI {
+		return sandboxBlock("embed_batch (AI calls)")
+	}
 	if len(args) < 1 {
 		return err("embed_batch expects 1 argument (list of texts)")
 	}
@@ -1132,6 +1141,13 @@ func orderedToolArgs(entry ToolEntry, args map[string]interface{}) []Object {
 // ---- AI — Agents ----
 
 func bAgent(args ...Object) Object {
+	if ActiveProfile.Load().Name != "none" {
+		if canErr := ActiveProfile.Load().CanAI(); canErr != nil {
+			return err(canErr.Error())
+		}
+	} else if Sandbox.Enabled && !Sandbox.AllowAI {
+		return sandboxBlock("agent (AI)")
+	}
 	if len(args) < 2 {
 		return err("agent expects 2 arguments (name, system_prompt)")
 	}

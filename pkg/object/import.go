@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
@@ -152,6 +151,14 @@ func fetchURLModule(url string) (string, string, error) {
 		return url, string(data), nil
 	}
 
+	if ActiveProfile.Load().Name != "none" {
+		if canErr := ActiveProfile.Load().CanNetworkTo(url); canErr != nil {
+			return "", "", canErr
+		}
+	} else if Sandbox.Enabled && !Sandbox.AllowNet {
+		return "", "", fmt.Errorf("E_SANDBOX: network access blocked for module import")
+	}
+
 	// Fetch from URL
 	resp, err := httpGet(url)
 	if err != nil {
@@ -177,7 +184,7 @@ func urlToCacheKey(url string) string {
 }
 
 func httpGet(url string) (string, error) {
-	client := &http.Client{Timeout: 15 * time.Second}
+	client := sandboxHTTPClient(15 * time.Second)
 	resp, err := client.Get(url)
 	if err != nil {
 		return "", fmt.Errorf("HTTP request: %w", err)

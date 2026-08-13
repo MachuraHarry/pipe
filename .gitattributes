@@ -1,0 +1,4 @@
+# Line endings: LF on checkout everywhere. Windows CI runs .pipe scripts and
+# compares byte-identical output, so CRLF conversion must not happen.
+*.pipe text eol=lf
+*.sh    text eol=lf

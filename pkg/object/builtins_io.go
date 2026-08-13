@@ -258,13 +258,14 @@ func bExec(args ...Object) Object {
 		return sandboxBlock("exec")
 	}
 	profile := ActiveProfile.Load()
+	shell, flag := execShell()
 	var c *exec.Cmd
 	if profile.Name != "none" && profile.Timeout > 0 {
 		ctx, cancel := context.WithTimeout(context.Background(), time.Duration(profile.Timeout)*time.Second)
 		defer cancel()
-		c = exec.CommandContext(ctx, execShell(), "-c", cmd.Value)
+		c = exec.CommandContext(ctx, shell, flag, cmd.Value)
 	} else {
-		c = exec.Command(execShell(), "-c", cmd.Value)
+		c = exec.Command(shell, flag, cmd.Value)
 	}
 	if profile.Name != "none" {
 		env := os.Environ()
@@ -288,12 +289,13 @@ func bExec(args ...Object) Object {
 	}}
 }
 
-// execShell returns the shell used to run `exec` commands. Unix uses sh, which
-// is guaranteed by POSIX; Windows prefers cmd.exe, which is always present,
-// so the sandboxed exec path stays functional without a bash installation.
-func execShell() string {
+// execShell returns the shell (and its run-command flag) used to execute
+// `exec` commands. Unix uses sh -c, which is guaranteed by POSIX; Windows
+// prefers cmd.exe /c, which is always present, so the sandboxed exec path
+// stays functional without a bash installation.
+func execShell() (string, string) {
 	if runtime.GOOS == "windows" {
-		return "cmd.exe"
+		return "cmd.exe", "/c"
 	}
-	return "sh"
+	return "sh", "-c"
 }

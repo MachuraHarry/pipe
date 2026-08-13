@@ -8,6 +8,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 
@@ -770,11 +771,25 @@ func TestExecWhitelistBinaryParsing(t *testing.T) {
 		{"'git' status", "git"},
 		{"curl -s http://x", "curl"},
 		{"echo hi | grep x", "echo"},
+		{`git -C "D:\a\_temp\fixture" diff --numstat`, "git"},
 		{"", ""},
 	}
 	for _, c := range cases {
 		if got := execCommandBinary(c.cmd); got != c.want {
 			t.Errorf("execCommandBinary(%q) = %q, want %q", c.cmd, got, c.want)
+		}
+	}
+}
+
+func TestExecShellFlags(t *testing.T) {
+	shell, flag := execShell()
+	if runtime.GOOS == "windows" {
+		if shell != "cmd.exe" || flag != "/c" {
+			t.Fatalf("windows execShell = %q %q, want cmd.exe /c", shell, flag)
+		}
+	} else {
+		if shell != "sh" || flag != "-c" {
+			t.Fatalf("unix execShell = %q %q, want sh -c", shell, flag)
 		}
 	}
 }

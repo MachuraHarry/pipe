@@ -29,15 +29,32 @@ jobs:
     name: Publish to MCP Registry
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v5
 
     - name: Install mcp-publisher
       run: |
         curl -L "https://github.com/modelcontextprotocol/registry/releases/latest/download/mcp-publisher_linux_amd64.tar.gz" | tar xz mcp-publisher
         ./mcp-publisher --help >/dev/null
 
+    - name: Check if version already published
+      id: registry-check
+      env:
+        VERSION: ${{ inputs.tag }}
+      run: |
+        VERSION="${VERSION#v}"
+        PUBLISHED=$(curl -s "https://registry.modelcontextprotocol.io/v0/servers/io.github.MachuraHarry%2Fpipe/versions" \
+          | jq -r --arg v "$VERSION" \
+            '.servers[] | select(.server.version == $v) | .server.version' | head -1)
+        if [ -n "$PUBLISHED" ]; then
+          echo "Version ${VERSION} is already published in the registry — skipping publish."
+          echo "already_published=true" >> "$GITHUB_OUTPUT"
+        else
+          echo "Version ${VERSION} is new — will publish."
+          echo "already_published=false" >> "$GITHUB_OUTPUT"
+        fi
+
     - name: Download MCPB assets
-      if: inputs.skip-publish == 'false'
+      if: inputs.skip-publish == 'false' && steps.registry-check.outputs.already_published == 'false'
       env:
         GH_TOKEN: ${{ github.token }}
         TAG: ${{ inputs.tag }}
@@ -47,7 +64,7 @@ jobs:
         done
 
     - name: Update server.json
-      if: inputs.skip-publish == 'false'
+      if: inputs.skip-publish == 'false' && steps.registry-check.outputs.already_published == 'false'
       env:
         REPO: ${{ github.repository }}
         TAG: ${{ inputs.tag }}
@@ -86,7 +103,7 @@ jobs:
         ./mcp-publisher status --status "$ST" "$SERVER" "$VAL"
 
     - name: Publish to MCP Registry
-      if: inputs.skip-publish == 'false'
+      if: inputs.skip-publish == 'false' && steps.registry-check.outputs.already_published == 'false'
       run: ./mcp-publisher publish
 
     - name: Deprecate previous versions

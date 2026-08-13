@@ -47,10 +47,10 @@ install_pipe() {
   fi
 
   echo "pipe-action: downloading Pipe ${version} (${os}/${arch})"
-  curl -fsSL -o "/tmp/${artifact}" "$url"
+  curl -fsSL --retry 5 --retry-all-errors --retry-delay 2 -o "/tmp/${artifact}" "$url"
 
   # Verify SHA256 when the release ships one (releases after v0.7.0 do); warn and continue otherwise.
-  if curl -fsSL -o "/tmp/${artifact}.sha256" "$url.sha256" 2>/dev/null; then
+  if curl -fsSL --retry 5 --retry-all-errors --retry-delay 2 -o "/tmp/${artifact}.sha256" "$url.sha256" 2>/dev/null; then
     (cd /tmp && sha256sum -c "${artifact}.sha256" >/dev/null) || {
       echo "pipe-action: SHA256 verification failed" >&2
       exit 1

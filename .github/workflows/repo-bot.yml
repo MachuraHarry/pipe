@@ -15,7 +15,7 @@ jobs:
       github.event.comment.user.type != 'Bot' &&
       startsWith(github.event.comment.body, '/')
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Slash-Command ausfuehren
         uses: ./.github/actions/pipe-action
         with:

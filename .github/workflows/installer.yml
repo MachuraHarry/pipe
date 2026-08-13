@@ -27,7 +27,7 @@ jobs:
       matrix:
         os: [ubuntu-latest, macos-latest]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Run install.sh into a temp dir
         env:
@@ -42,7 +42,7 @@ jobs:
     name: Smoke test (windows-latest)
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Run install.ps1 into a temp dir
         shell: pwsh
@@ -58,7 +58,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: [smoke, smoke-windows]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Copy installers into website/
         run: |

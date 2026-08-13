@@ -1,5 +1,13 @@
 [
   {
+    "id": "sandbox-audit-continued",
+    "file": "sandbox-audit-continued.md",
+    "date": "2026-08-13",
+    "tag": "security",
+    "title": {"en": "🔬 The Audit Continues: try_ai Lied, embed Slipped, and We Made the Gates Structural", "de": "🔬 Der Audit geht weiter: try_ai log, embed schlüpfte durch — und die Gates wurden strukturell"},
+    "excerpt": {"en": "Rounds 3–6 of Pipe's sandbox audit: try_ai ignored ai:false and budget, embed/embed_batch/import were un- or mis-gated, and the CLI --sandbox flag path let http_post and tcp_connect through. The last two fixes weren't more if-branches — a central egress gate and a central network helper make the bug classes structurally impossible.", "de": "Runden 3–6 des Pipe-Sandbox-Audits: try_ai ignorierte ai:false und Budget, embed/embed_batch/import waren un- oder falsch gegatet, und der CLI-Flag-Pfad von --sandbox ließ http_post und tcp_connect durch. Die letzten beiden Fixes waren keine weiteren if-Branches — ein zentraler Egress-Gate und ein zentraler Netz-Helper machen die Fehlerklassen strukturell unmöglich."}
+  },
+  {
     "id": "sandbox-audit-2",
     "file": "sandbox-audit-2.md",
     "date": "2026-08-12",

@@ -4,6 +4,11 @@
 confined script could actually use, one latent bug, and two LLM runs that came
 back empty-handed.**
 
+> **Follow-up:** The audit didn't stop here. Rounds 3–6 found `try_ai` ignoring
+> `ai:false`, mis-gated `embed`/`import`, and a CLI `--sandbox` flag gap — plus
+> the structural fixes that kill those bug classes — see
+> **[The Audit Continues](?post=sandbox-audit-continued)**.
+
 ---
 
 Round 1 ended with a confident "no escape." Round 2 started by *not* trusting

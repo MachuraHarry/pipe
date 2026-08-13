@@ -29,6 +29,26 @@ func sandboxBlock(feature string) *Error {
 	return &Error{Message: msg}
 }
 
+// checkNetworkAccess enforces network restrictions on a network-capable
+// builtin. Registered profiles are checked via CanNetwork (which also applies
+// the whitelist-independent network flag), while the default "none" profile is
+// governed by the CLI sandbox flags. Every network-capable builtin must call
+// this before performing network I/O so that a future builtin cannot silently
+// bypass --sandbox.
+func checkNetworkAccess(feature string) *Error {
+	p := ActiveProfile.Load()
+	if p.Name != "none" {
+		if canErr := p.CanNetwork(); canErr != nil {
+			return &Error{Message: canErr.Error()}
+		}
+		return nil
+	}
+	if Sandbox.Enabled && !Sandbox.AllowNet {
+		return sandboxBlock(feature)
+	}
+	return nil
+}
+
 // ---- Sandbox Profile Builtins ----
 
 func bSandboxProfile(args ...Object) Object {

@@ -39,12 +39,8 @@ func getStream(handle int) (*streamHandle, bool) {
 }
 
 func bHttpStreamOpen(args ...Object) Object {
-	if ActiveProfile.Load().Name != "none" {
-		if canErr := ActiveProfile.Load().CanNetwork(); canErr != nil {
-			return err(canErr.Error())
-		}
-	} else if Sandbox.Enabled && !Sandbox.AllowNet {
-		return sandboxBlock("http_stream_open (network)")
+	if blockErr := checkNetworkAccess("http_stream_open (network)"); blockErr != nil {
+		return blockErr
 	}
 	if len(args) < 1 || len(args) > 2 {
 		return err("http_stream_open expects 1-2 arguments (url, headers?)")

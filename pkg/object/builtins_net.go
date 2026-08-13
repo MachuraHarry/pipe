@@ -61,12 +61,8 @@ func sandboxHTTPClient(timeout time.Duration) *http.Client {
 }
 
 func bHttpGet(args ...Object) Object {
-	if ActiveProfile.Load().Name != "none" {
-		if canErr := ActiveProfile.Load().CanNetwork(); canErr != nil {
-			return err(canErr.Error())
-		}
-	} else if Sandbox.Enabled && !Sandbox.AllowNet {
-		return sandboxBlock("http_get (network)")
+	if blockErr := checkNetworkAccess("http_get (network)"); blockErr != nil {
+		return blockErr
 	}
 	if len(args) != 1 {
 		return err("http_get expects 1 argument (URL)")
@@ -96,10 +92,8 @@ func bHttpGet(args ...Object) Object {
 }
 
 func bHttpPost(args ...Object) Object {
-	if ActiveProfile.Load().Name != "none" {
-		if canErr := ActiveProfile.Load().CanNetwork(); canErr != nil {
-			return err(canErr.Error())
-		}
+	if blockErr := checkNetworkAccess("http_post (network)"); blockErr != nil {
+		return blockErr
 	}
 	if len(args) < 1 || len(args) > 2 {
 		return err("http_post expects 1-2 arguments (URL, Body?)")
@@ -141,12 +135,8 @@ func bHttpPost(args ...Object) Object {
 }
 
 func bHttpRequest(args ...Object) Object {
-	if ActiveProfile.Load().Name != "none" {
-		if canErr := ActiveProfile.Load().CanNetwork(); canErr != nil {
-			return err(canErr.Error())
-		}
-	} else if Sandbox.Enabled && !Sandbox.AllowNet {
-		return sandboxBlock("http_request (network)")
+	if blockErr := checkNetworkAccess("http_request (network)"); blockErr != nil {
+		return blockErr
 	}
 	if len(args) < 2 || len(args) > 4 {
 		return err("http_request expects 2-4 arguments (method, url, headers?, body?)")
@@ -331,10 +321,8 @@ func objectToJSON(obj Object) interface{} {
 // ---- TCP ----
 
 func bTcpListen(args ...Object) Object {
-	if ActiveProfile.Load().Name != "none" {
-		if canErr := ActiveProfile.Load().CanNetwork(); canErr != nil {
-			return err(canErr.Error())
-		}
+	if blockErr := checkNetworkAccess("tcp_listen (network)"); blockErr != nil {
+		return blockErr
 	}
 	if len(args) != 2 {
 		return err("tcp_listen expects 2 arguments (Host, Port)")
@@ -366,10 +354,8 @@ func bTcpListen(args ...Object) Object {
 }
 
 func bTcpConnect(args ...Object) Object {
-	if ActiveProfile.Load().Name != "none" {
-		if canErr := ActiveProfile.Load().CanNetwork(); canErr != nil {
-			return err(canErr.Error())
-		}
+	if blockErr := checkNetworkAccess("tcp_connect (network)"); blockErr != nil {
+		return blockErr
 	}
 	if len(args) != 2 {
 		return err("tcp_connect expects 2 arguments (Host, Port)")

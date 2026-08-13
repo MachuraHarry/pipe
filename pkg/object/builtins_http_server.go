@@ -27,12 +27,8 @@ var (
 )
 
 func bHttpServer(args ...Object) Object {
-	if ActiveProfile.Load().Name != "none" {
-		if canErr := ActiveProfile.Load().CanNetwork(); canErr != nil {
-			return err(canErr.Error())
-		}
-	} else if Sandbox.Enabled && !Sandbox.AllowNet {
-		return sandboxBlock("http_server (network)")
+	if blockErr := checkNetworkAccess("http_server (network)"); blockErr != nil {
+		return blockErr
 	}
 	if len(args) != 2 {
 		return err("http_server expects 2 arguments (addr, handler)")

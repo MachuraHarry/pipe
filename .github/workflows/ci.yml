@@ -81,7 +81,9 @@ jobs:
       run: |
         mkdir -p "$RUNNER_TEMP/out"
         cp "$RUNNER_TEMP/pipe.json" "$RUNNER_TEMP/out/pipe.json"
-        [ -f "$RUNNER_TEMP/ref.json" ] && cp "$RUNNER_TEMP/ref.json" "$RUNNER_TEMP/out/ref.json"
+        if [ -f "$RUNNER_TEMP/ref.json" ]; then
+          cp "$RUNNER_TEMP/ref.json" "$RUNNER_TEMP/out/ref.json"
+        fi
 
     - uses: actions/upload-artifact@v4
       with:

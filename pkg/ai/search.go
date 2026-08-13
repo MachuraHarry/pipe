@@ -37,6 +37,10 @@ func WebSearch(query string) ([]SearchResult, error) {
 	encoded := url.QueryEscape(strings.TrimSpace(query))
 	apiURL := fmt.Sprintf("https://api.duckduckgo.com/?q=%s&format=json&no_html=1&skip_disambig=1", encoded)
 
+	if err := gateEgress(EgressSearch, apiURL); err != nil {
+		return nil, err
+	}
+
 	body, err := httpGetString(apiURL)
 	if err != nil {
 		return nil, fmt.Errorf("web_search: %w", err)

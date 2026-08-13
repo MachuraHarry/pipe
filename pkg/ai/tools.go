@@ -39,6 +39,9 @@ func ChatWithTools(
 	executor ToolExecutor,
 	maxRounds int,
 ) (string, error) {
+	if err := gateEgress(EgressChat, ActiveConfig.APIHost); err != nil {
+		return "", err
+	}
 	if maxRounds <= 0 {
 		maxRounds = 5
 	}

@@ -162,6 +162,9 @@ func SetTimeout(seconds int) {
 }
 
 func Chat(req ChatRequest) (ChatResponse, error) {
+	if err := gateEgress(EgressChat, ActiveConfig.APIHost); err != nil {
+		return ChatResponse{}, err
+	}
 	systemPrompt, userPrompt := extractPromptStrings(req)
 	key := cacheKey(ActiveConfig.Provider, ActiveConfig.Model, systemPrompt, userPrompt)
 
@@ -214,6 +217,9 @@ func extractPromptStrings(req ChatRequest) (systemPrompt, userPrompt string) {
 type StreamCallback func(token string) error
 
 func Stream(req ChatRequest, onToken StreamCallback) error {
+	if err := gateEgress(EgressStream, ActiveConfig.APIHost); err != nil {
+		return err
+	}
 	switch ActiveConfig.Provider {
 	case "openai":
 		return openAIStream(ActiveConfig, req, onToken)
@@ -388,6 +394,13 @@ type ParallelResult struct {
 }
 
 func ChatParallel(requests []ChatRequest, concurrency int) ([]ChatResponse, []error) {
+	if err := gateEgress(EgressChat, ActiveConfig.APIHost); err != nil {
+		errs := make([]error, len(requests))
+		for i := range errs {
+			errs[i] = err
+		}
+		return make([]ChatResponse, len(requests)), errs
+	}
 	if concurrency <= 0 {
 		concurrency = runtime.NumCPU() * 2
 	}
@@ -450,6 +463,54 @@ func SetCostHook(fn func(CostEntry)) {
 	costMu.Lock()
 	defer costMu.Unlock()
 	costHook = fn
+}
+
+// EgressKind classifies AI-provider egress for the central sandbox gate.
+type EgressKind int
+
+const (
+	// EgressChat is a chat/completion call (ai_chat, ai_with_tools, try_ai, ...).
+	EgressChat EgressKind = iota
+	// EgressStream is a streaming chat call.
+	EgressStream
+	// EgressEmbed is an embeddings call (embed, embed_batch).
+	EgressEmbed
+	// EgressSearch is a web-search call.
+	EgressSearch
+)
+
+// EgressInfo describes a single provider egress that is about to happen.
+type EgressInfo struct {
+	Kind EgressKind
+	URL  string
+}
+
+var (
+	egressGate   func(EgressInfo) error
+	egressGateMu sync.Mutex
+)
+
+// SetEgressGate installs a central sandbox gate that every AI-provider egress
+// must pass before a network call is made. It is invoked by the egress entry
+// points (Chat, Stream, ChatParallel, ChatWithTools, Embed, EmbedBatch,
+// WebSearch) and can reject a call, e.g. when the active profile has ai:false
+// or an exhausted budget. A nil gate permits all egress.
+func SetEgressGate(fn func(EgressInfo) error) {
+	egressGateMu.Lock()
+	defer egressGateMu.Unlock()
+	egressGate = fn
+}
+
+// gateEgress invokes the installed gate, if any, for the given egress kind and
+// target URL. A nil error means the call is allowed.
+func gateEgress(kind EgressKind, url string) error {
+	egressGateMu.Lock()
+	fn := egressGate
+	egressGateMu.Unlock()
+	if fn == nil {
+		return nil
+	}
+	return fn(EgressInfo{Kind: kind, URL: url})
 }
 
 func recordCost(resp ChatResponse) {

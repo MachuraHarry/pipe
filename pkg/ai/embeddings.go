@@ -73,6 +73,9 @@ func providerSupportsEmbeddings() bool {
 }
 
 func Embed(text string) ([]float64, error) {
+	if err := gateEgress(EgressEmbed, ActiveConfig.APIHost); err != nil {
+		return nil, err
+	}
 	if !providerSupportsEmbeddings() {
 		return localEmbed(text), nil
 	}
@@ -105,6 +108,13 @@ func Embed(text string) ([]float64, error) {
 }
 
 func EmbedBatch(texts []string, concurrency int) ([][]float64, []error) {
+	if err := gateEgress(EgressEmbed, ActiveConfig.APIHost); err != nil {
+		errs := make([]error, len(texts))
+		for i := range errs {
+			errs[i] = err
+		}
+		return make([][]float64, len(texts)), errs
+	}
 	if concurrency <= 0 {
 		concurrency = 4
 	}

@@ -31,6 +31,39 @@ func init() {
 			}
 		}
 	})
+
+	// Central sandbox gate: every AI-provider egress must pass before any
+	// network call is made. This is the backstop that makes the round-3/4 bug
+	// class (a builtin that forgot its own CanAI check) structurally impossible.
+	ai.SetEgressGate(func(info ai.EgressInfo) error {
+		p := ActiveProfile.Load()
+		if p == nil {
+			return nil
+		}
+		if p.Name == "none" {
+			if !Sandbox.Enabled {
+				return nil
+			}
+			switch info.Kind {
+			case ai.EgressChat, ai.EgressStream, ai.EgressEmbed:
+				if !Sandbox.AllowAI {
+					return fmt.Errorf("E_SANDBOX: AI calls blocked by sandbox")
+				}
+			case ai.EgressSearch:
+				if !Sandbox.AllowNet {
+					return fmt.Errorf("E_SANDBOX: network access blocked by sandbox")
+				}
+			}
+			return nil
+		}
+		switch info.Kind {
+		case ai.EgressChat, ai.EgressStream, ai.EgressEmbed:
+			return p.CanAI()
+		case ai.EgressSearch:
+			return p.CanNetwork()
+		}
+		return nil
+	})
 }
 
 func bTryAIEval(args ...Object) Object {

@@ -1,8 +1,13 @@
 package eval
 
 import (
+	"net/http"
+	"net/http/httptest"
+	"sync/atomic"
 	"testing"
+	"time"
 
+	"github.com/MachuraHarry/pipe/pkg/ai"
 	"github.com/MachuraHarry/pipe/pkg/lexer"
 	"github.com/MachuraHarry/pipe/pkg/object"
 	"github.com/MachuraHarry/pipe/pkg/parser"
@@ -392,4 +397,64 @@ func TestEvalParallelPipeline(t *testing.T) {
 func TestEvalParallelPipelineVar(t *testing.T) {
 	input := "fn triple x\n    x * 3\n\nresult: 5\n    >> triple\n\nresult + 10"
 	expectValue(t, input, "25")
+}
+
+func TestTryAIFixBlockedByProfile(t *testing.T) {
+	var hits atomic.Int32
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		hits.Add(1)
+		w.Header().Set("Content-Type", "application/json")
+		w.Write([]byte(`{"choices":[{"message":{"role":"assistant","content":"(no_such_var + 1)"}}]}`))
+	}))
+	defer srv.Close()
+
+	prevCfg := ai.ActiveConfig
+	ai.ActiveConfig = ai.Config{Provider: "openai", Model: "gpt-4o-mini", APIHost: srv.URL, Timeout: time.Second}
+	defer func() { ai.ActiveConfig = prevCfg }()
+	ai.SetAPIKey("openai", "test-key")
+
+	prev := object.ActiveProfile.Load()
+	blocked := object.NewSandboxProfile("no_ai")
+	blocked.AI = false
+	object.ActiveProfile.Store(blocked)
+	defer object.ActiveProfile.Store(prev)
+
+	result := parseAndEval(t, "try_ai\n    no_such_var\ncatch e\n    \"caught\"")
+	if result == nil || result.Inspect() != "caught" {
+		t.Fatalf("expected catch result, got %v", result)
+	}
+	if got := hits.Load(); got != 0 {
+		t.Fatalf("expected no AI requests with ai:false, got %d", got)
+	}
+}
+
+func TestTryAIRing2InheritsLimits(t *testing.T) {
+	prev := object.NewSandboxProfile("caller")
+	prev.Budget = 0.01
+	prev.MaxToolCalls = 3
+	prev.Timeout = 7
+	prev.AuditLog = true
+
+	ring2 := newTryAIRing2Profile(prev)
+	if ring2.Name != "try_ai_ring2" {
+		t.Errorf("name = %q, want try_ai_ring2", ring2.Name)
+	}
+	if !ring2.AI {
+		t.Error("ring2 must allow the fix expression to use AI")
+	}
+	if ring2.FSAccess != object.FSNone || ring2.Network || ring2.Exec {
+		t.Error("ring2 must be sandboxed (FS none, no network, no exec)")
+	}
+	if ring2.Budget != 0.01 {
+		t.Errorf("budget = %v, want 0.01", ring2.Budget)
+	}
+	if ring2.MaxToolCalls != 3 {
+		t.Errorf("max tool calls = %d, want 3", ring2.MaxToolCalls)
+	}
+	if ring2.Timeout != 7 {
+		t.Errorf("timeout = %d, want 7", ring2.Timeout)
+	}
+	if !ring2.AuditLog {
+		t.Error("audit log not inherited")
+	}
 }

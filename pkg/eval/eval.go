@@ -888,6 +888,17 @@ func (ctx *EvalContext) tryAIFix(err *object.Error, block *ast.BlockStatement, e
 	src := blockSource(block)
 
 	for attempt := 1; attempt <= 3; attempt++ {
+		profile := object.ActiveProfile.Load()
+		if profile.Name != "none" {
+			if canErr := profile.CanAI(); canErr != nil {
+				ai.LogTryAIFix(code, src, canErr.Error(), attempt, false)
+				return nil
+			}
+		} else if object.Sandbox.Enabled && !object.Sandbox.AllowAI {
+			ai.LogTryAIFix(code, src, "AI fix blocked by sandbox", attempt, false)
+			return nil
+		}
+
 		var prompt string
 		if attempt == 1 {
 			prompt = fmt.Sprintf("Error: %s\nExpression: %s\nFix it.", err.Message, src)
@@ -998,13 +1009,7 @@ func (ctx *EvalContext) validateAndApply(fix string, env *object.Environment) ob
 	}
 
 	prevProfile := object.ActiveProfile.Load()
-	object.ActiveProfile.Store(&object.SandboxProfile{
-		Name:     "try_ai_ring2",
-		FSAccess: object.FSNone,
-		Network:  false,
-		Exec:     false,
-		AI:       true,
-	})
+	object.ActiveProfile.Store(newTryAIRing2Profile(prevProfile))
 	defer func() { object.ActiveProfile.Store(prevProfile) }()
 
 	sandbox := env.Copy()
@@ -1014,6 +1019,24 @@ func (ctx *EvalContext) validateAndApply(fix string, env *object.Environment) ob
 	}
 
 	return ctx.Eval(es.Expression, env)
+}
+
+// newTryAIRing2Profile builds the sandboxed profile used to re-run an
+// AI-generated fix expression. It ratchets down FS/network/exec access and
+// inherits the caller's budget and call limits, so a nested AI call in a fix
+// cannot spend beyond the caller's caps.
+func newTryAIRing2Profile(prev *object.SandboxProfile) *object.SandboxProfile {
+	return &object.SandboxProfile{
+		Name:         "try_ai_ring2",
+		FSAccess:     object.FSNone,
+		Network:      false,
+		Exec:         false,
+		AI:           true,
+		Budget:       prev.Budget,
+		MaxToolCalls: prev.MaxToolCalls,
+		Timeout:      prev.Timeout,
+		AuditLog:     prev.AuditLog,
+	}
 }
 
 func extractErrorCode(msg string) string {

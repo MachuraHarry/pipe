@@ -105,7 +105,16 @@ func (vm *VM) LastPoppedStackElem() object.Object {
 	return vm.stack[vm.sp]
 }
 
-func (vm *VM) Run() error {
+func (vm *VM) Run() (err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			if s, ok := r.(string); ok && s == "stack overflow" {
+				err = fmt.Errorf("stack overflow: recursion too deep (operand stack exhausted)")
+				return
+			}
+			panic(r)
+		}
+	}()
 	for {
 		frame := vm.currentFrame()
 		ins := frame.instructions
@@ -421,7 +430,12 @@ func (vm *VM) callFunction(numArgs int) {
 
 		vm.frameIndex++
 		if vm.frameIndex >= MaxFrames {
-			panic("stack overflow: too many frames")
+			// Reject the call with a catchable error object instead of
+			// panicking; try/catch in the VM (OpCheckError) can handle it.
+			vm.frameIndex--
+			vm.sp = basePtr
+			vm.stack[basePtr-1] = &object.Error{Message: fmt.Sprintf("E008: call stack depth exceeded (%d)", MaxFrames)}
+			return
 		}
 		vm.frames[vm.frameIndex] = frame
 

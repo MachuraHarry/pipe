@@ -6,6 +6,7 @@ import (
 
 	"github.com/MachuraHarry/pipe/pkg/compiler"
 	"github.com/MachuraHarry/pipe/pkg/lexer"
+	"github.com/MachuraHarry/pipe/pkg/object"
 	"github.com/MachuraHarry/pipe/pkg/parser"
 )
 
@@ -174,6 +175,36 @@ func TestRecursiveFunction(t *testing.T) {
 	result := runVM(t, bc)
 	if result != "120" {
 		t.Errorf("expected 120, got %s", result)
+	}
+}
+
+func TestVMDeepButLegalRecursion(t *testing.T) {
+	input := "fn count n acc\n    if n <= 0\n        acc\n    else\n        count (n - 1) (acc + 1)\n\ncount 300 0"
+	bc := parseAndCompile(t, input)
+	result := runVM(t, bc)
+	if result != "300" {
+		t.Errorf("expected 300, got %s", result)
+	}
+}
+
+func TestVMRecursionOverflowNoCrash(t *testing.T) {
+	// Unbounded recursion must not crash the process. Depending on which
+	// limit fires first, Run() either returns an error (operand-stack
+	// recovery) or the script's result is a catchable E008 error object
+	// (frame guard) — never a Go panic.
+	for _, input := range []string{
+		"fn f x\n    f x\n\nf 0",
+		"fn count n acc\n    if n <= 0\n        acc\n    else\n        count (n - 1) (acc + 1)\n\ncount 100000 0",
+	} {
+		bc := parseAndCompile(t, input)
+		v := New(bc)
+		err := v.Run()
+		if err == nil {
+			top := v.LastPoppedStackElem()
+			if _, isErr := top.(*object.Error); !isErr {
+				t.Errorf("expected error or error object for unbounded recursion, got %s (%v)", top.Inspect(), err)
+			}
+		}
 	}
 }
 

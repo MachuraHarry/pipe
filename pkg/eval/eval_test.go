@@ -368,8 +368,10 @@ func TestEvalPipeResultType(t *testing.T) {
 	expectValue(t, "Ok 42", "Ok(42)")
 }
 
-func TestEvalTailCallOptimization(t *testing.T) {
-	// Deep recursion without TCO would overflow the Go stack
+func TestEvalRecursionDepthGuard(t *testing.T) {
+	// Unbounded recursion must not overflow the Go stack: the evaluator
+	// rejects calls deeper than MaxCallDepth with a catchable E008 error
+	// instead of crashing the process.
 	input := `fn count n acc
     if n <= 0
         acc
@@ -377,7 +379,44 @@ func TestEvalTailCallOptimization(t *testing.T) {
         count (n - 1) (acc + 1)
 
 count 5000 0`
-	expectValue(t, input, "5000")
+	expectError(t, input)
+
+	input = "fn f x\n    if x\n        f x\n    else\n        f x\n\nf true"
+	expectError(t, input)
+
+	// Deep but legal recursion still works.
+	expectValue(t, `fn count n acc
+    if n <= 0
+        acc
+    else
+        count (n - 1) (acc + 1)
+
+count 500 0`, "500")
+
+	// The error is catchable via try/catch, so scripts can recover.
+	input = `fn count n acc
+    if n <= 0
+        acc
+    else
+        count (n - 1) (acc + 1)
+
+try
+    count 5000 0
+catch e
+    "caught"`
+	expectValue(t, input, "caught")
+}
+
+func TestEvalTailCallOptimization(t *testing.T) {
+	// A direct self-call as the last statement of the body runs in constant
+	// stack space via the TCO loop, well beyond the recursion depth guard.
+	input := `fn countdown n
+    if n <= 0
+        return n
+    countdown (n - 1)
+
+countdown 5000`
+	expectValue(t, input, "0")
 }
 
 func TestEvalBuiltinsTypeCheck(t *testing.T) {

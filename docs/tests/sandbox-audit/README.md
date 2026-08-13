@@ -10,6 +10,8 @@ Alle Versuche werden im Audit-Log dokumentiert.
 
 ## Reports
 
+- [report6.en.md](report6.en.md) — Runde 6 (EN): `--sandbox`-Flag-Pfad ließ `http_post`/`tcp_connect`/`tcp_listen` durch — zentraler `checkNetworkAccess`-Helper, gefixt & live verifiziert
+- [report6.de.md](report6.de.md) — Runde 6 (DE): `--sandbox`-Flag-Pfad ließ `http_post`/`tcp_connect`/`tcp_listen` durch — zentraler `checkNetworkAccess`-Helper, gefixt & live verifiziert
 - [report4.en.md](report4.en.md) — Runde 4 (EN): `embed` gated falsche Dimension, `embed_batch` ohne Gate, `import`-SSRF — gefixt, live verifiziert
 - [report4.de.md](report4.de.md) — Runde 4 (DE): `embed` gated falsche Dimension, `embed_batch` ohne Gate, `import`-SSRF — gefixt, live verifiziert
 - [report3.en.md](report3.en.md) — Runde 3 (EN): `try_ai` umging `ai: false` & Budget — gefixt, live verifiziert
@@ -18,6 +20,16 @@ Alle Versuche werden im Audit-Log dokumentiert.
 - [report2.de.md](report2.de.md) — Runde 2 (DE): 3 Ratchet-Lücken gefunden & gefixt, danach kein Escape
 - [report.en.md](report.en.md) — Runde 1 (EN), detailed audit report
 - [report.de.md](report.de.md) — Runde 1 (DE), ausführlicher Audit-Report
+
+## Architektur-Härtung (Runde 6)
+
+- Seit Branch `network-gate-6` erzwingt ein **zentraler Netz-Gate-Helper**
+  `checkNetworkAccess` in `pkg/object/builtins_sandbox.go` das Netz-Verbot in
+  **beiden** Pfaden (Profil-`CanNetwork` **und** CLI-`Sandbox.AllowNet`). Alle
+  sieben netzwerkfähigen Builtins (`http_get`, `http_post`, `http_request`,
+  `http_stream_open`, `http_server`, `tcp_connect`, `tcp_listen`) laufen über
+  ihn. Regressionstests in `pkg/object/network_gate_test.go` decken blockiert
+  **und** erlaubt ab (Flag- und Profil-Pfad).
 
 ## Architektur-Härtung (Runde 5)
 

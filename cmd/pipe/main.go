@@ -25,7 +25,7 @@ import (
 	"github.com/MachuraHarry/pipe/pkg/vm"
 )
 
-var version = "v0.9.3.1"
+var version = "v0.9.3.5"
 
 func main() {
 	// Self-extracting binary detection

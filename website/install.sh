@@ -8,7 +8,7 @@
 #   curl -fsSL https://pipe-lang.com/install.sh | bash
 #
 # Environment overrides:
-#   PIPE_VERSION  Release tag to install, e.g. v0.9.3.1 (default: latest)
+#   PIPE_VERSION  Release tag to install, e.g. v0.9.3.5 (default: latest)
 #   PIPE_DIR      Install directory (default: ~/.local/bin, or /usr/local/bin when root)
 #   PREFIX        Alias for PIPE_DIR
 #   PIPE_OS       Force platform override for testing (linux|darwin|windows)

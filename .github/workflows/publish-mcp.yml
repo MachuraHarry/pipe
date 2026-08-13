@@ -4,9 +4,9 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: 'Release tag to publish (default: v0.9.3.1)'
+        description: 'Release tag to publish (default: v0.9.3.5)'
         required: false
-        default: 'v0.9.3.1'
+        default: 'v0.9.3.5'
       skip-publish:
         description: 'Skip publishing and only manage version status'
         required: false

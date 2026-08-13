@@ -2,7 +2,7 @@
   "name": "pipe-syntax",
   "displayName": "Pipe Language Support",
   "description": "Syntax highlighting & IntelliSense (LSP) for the Pipe scripting language (.pipe files)",
-  "version": "0.9.3.5",
+  "version": "0.9.5",
   "publisher": "pipe-lang",
   "license": "MIT",
   "icon": "icons/pipe-icon.png",

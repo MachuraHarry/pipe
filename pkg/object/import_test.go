@@ -1,6 +1,10 @@
 package object
 
-import "testing"
+import (
+	"os"
+	"strings"
+	"testing"
+)
 
 func TestParseModuleSpec(t *testing.T) {
 	tests := []struct {
@@ -31,5 +35,38 @@ func TestParseModuleSpecEdgeCases(t *testing.T) {
 	name, ver := parseModuleSpec("@latest")
 	if name != "@latest" || ver != "" {
 		t.Errorf("parseModuleSpec(@latest) = (%q, %q), want (@latest, '')", name, ver)
+	}
+}
+
+func TestResolveImportAbsolutePath(t *testing.T) {
+	tmp := t.TempDir()
+	src := tmp + "/mathlib.pipe"
+	if err := os.WriteFile(src, []byte("fn square x\n    x * x\n"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	defer withProfile(testProfile("imp-abs", FSFull, true, false, true, nil))()
+
+	path, content, err := ResolveImportFrom(src, "")
+	if err != nil {
+		t.Fatalf("absolute path import failed: %v", err)
+	}
+	if path != src {
+		t.Errorf("path = %q, want %q", path, src)
+	}
+	if !strings.Contains(content, "fn square") {
+		t.Errorf("content = %q, want to contain 'fn square'", content)
+	}
+}
+
+func TestResolveImportAbsolutePathBlockedBySandbox(t *testing.T) {
+	tmp := t.TempDir()
+	secret := tmp + "/secret.pipe"
+	if err := os.WriteFile(secret, []byte("print \"leak\""), 0644); err != nil {
+		t.Fatal(err)
+	}
+	defer withProfile(testProfile("imp-locked", FSTempOnly, true, false, true, nil))()
+
+	if _, _, err := ResolveImportFrom(secret, ""); err == nil {
+		t.Fatal("expected import of file outside temp-only policy to be blocked, got nil")
 	}
 }

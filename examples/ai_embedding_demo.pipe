@@ -8,12 +8,12 @@ print ""
 dokumente: ["Bytecode-Compiler übersetzt AST in 47 Opcodes.", "Pipeline-Syntax: Daten fließen von oben nach unten.", "Pipe hat 81 Builtins für IO und HTTP.", "Lexer nutzt INDENT/DEDENT-Tokens.", "HTTP GET mit http_get, liefert Status und Body.", "Die VM führt Bytecode 7x schneller aus als Tree-Walker."]
 
 print "─── 1. Dokumente einbetten ───"
-ts: now 0
+ts: now
 print ("Embedding " ++ (to_str (len dokumente)) ++ " Dokumente...")
 
 vektoren: embed_batch dokumente
 
-d: (now 0) - ts
+d: (now) - ts
 print ("Dauer: " ++ (to_str d) ++ "s")
 print ""
 

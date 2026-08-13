@@ -20,12 +20,12 @@ fn demo_setup _
 
 -- Helfer: Timestamp + AI-Call-Bestätigung
 fn ai_start label
-    t: now 0
+    t: now
     print (label ++ "...")
     t
 
 fn ai_done label start
-    dauer: (now 0) - start
+    dauer: (now) - start
     print (label ++ " ✓ (" ++ (to_str dauer) ++ "s)")
     print ""
 

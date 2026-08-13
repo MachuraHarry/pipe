@@ -51,7 +51,7 @@ print ""
 
 -- Disable cache
 print "─── 6. Disable cache ───"
-ai_cache off
+ai_cache "off"
     > print
 print ""
 

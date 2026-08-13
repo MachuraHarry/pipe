@@ -93,7 +93,7 @@ print ""
 print "► Erstelle Incident Report..."
 
 -- Timestamp
-ts: now 0
+ts: now
 datum: format_time ts "2006-01-02 15:04:05"
 
 -- Executive Summary generieren

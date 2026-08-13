@@ -21,7 +21,7 @@ ai_provider "deepseek"
 count: 10
 all_mode: false
 cnt: env "SUMMARY_COUNT"
-if (len cnt) > 0
+if cnt
     if cnt == "all"
         all_mode: true
     else
@@ -49,7 +49,7 @@ if (len texts) == 0
     print "Keine Commits gefunden. Läuft das Skript in einem Git-Repo?"
 else
     key: env "DEEPSEEK_API_KEY"
-    if (len key) == 0
+    if is_nil key
         print "Kein API-Key gesetzt. Bitte setze:"
         print "  export DEEPSEEK_API_KEY=\"sk-...\""
     else
@@ -77,11 +77,11 @@ else
                 else
                     md: md ++ "_Keine Zusammenfassung verfügbar._\n\n"
 
-            ts: now 0
+            ts: now
             md: md ++ "---\n\n"
             md: md ++ "_Automatisch generiert mit Pipe am " ++ (format_time ts "2006-01-02 15:04") ++ "._\n"
 
-            if (len outfile) > 0
+            if outfile
                 write_file outfile md
                 print ""
                 print ("✓ Zusammenfassung gespeichert: " ++ outfile)

@@ -3,11 +3,11 @@ ai_provider "deepseek"
 print "═══ TEST ═══"
 print ""
 
-ts: now 0
+ts: now
 ask "Was sind die Vorteile von Pipeline-basierten Skriptsprachen? Antworte in 3 Stichpunkten auf Deutsch."
     > print
 print ""
-d: (now 0) - ts
+d: (now) - ts
 print ("Dauer: " ++ (to_str d) ++ "s")
 print ""
 print "═══ DONE ═══"

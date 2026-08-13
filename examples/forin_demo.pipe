@@ -31,7 +31,7 @@ print (regex_replace "[0-9]" "#" "Tel: 0123-45678")
 
 print ""
 print "===== DATE/TIME ====="
-ts: now 0
+ts: now
 print "Unix:   "
 print ts
 print "Date:  "

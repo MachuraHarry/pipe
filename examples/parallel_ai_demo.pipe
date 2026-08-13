@@ -17,12 +17,12 @@ print "Parallel AI Demo: >> mit KI-Operationen"
 print ""
 
 fn clock label
-    t: now 0
+    t: now
     print (label ++ " Start: " ++ (format_time t "15:04:05"))
     t
 
 fn elapsed label start
-    d: (now 0) - start
+    d: (now) - start
     print (label ++ " Dauer: " ++ (to_str d) ++ "s")
     print ""
 

@@ -111,6 +111,24 @@ func ResolveImportFrom(path string, sourceFile string) (string, string, error) {
 		return fetchURLModule(path)
 	}
 
+	// Absolute filesystem path: read it directly, honoring the sandbox read
+	// policy so import cannot bypass read_file restrictions.
+	if filepath.IsAbs(path) {
+		p := ActiveProfile.Load()
+		if p != nil && p.Name != "none" {
+			canon, cerr := p.canonicalRead(path)
+			if cerr != nil {
+				return "", "", cerr
+			}
+			path = canon
+		}
+		data, err := os.ReadFile(path)
+		if err != nil {
+			return "", "", fmt.Errorf("import not found: %s (searched: absolute path)", path)
+		}
+		return path, string(data), nil
+	}
+
 	name, version := parseModuleSpec(path)
 
 	// Try local file first (exact path, then in search dirs)

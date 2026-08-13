@@ -5,12 +5,12 @@ print "═══ PARALLEL AI TEST ═══"
 print ""
 
 fn show_clock label
-    ts: now 0
+    ts: now
     print (label ++ " Start: " ++ (format_time ts "15:04:05"))
     ts
 
 fn show_elapsed label start
-    d: (now 0) - start
+    d: (now) - start
     print (label ++ " Dauer: " ++ (to_str d) ++ "s")
 
 -- Test 1: Sequentiell als Baseline

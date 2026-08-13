@@ -40,11 +40,6 @@ func NewEvalContext(sourceFile string) *EvalContext {
 	return ctx
 }
 
-// MaxCallDepth caps active function call depth. Without it, unbounded
-// recursion exhausts the Go stack and crashes the process. 1024 matches the
-// VM's frame limit (pkg/vm MaxFrames) so both engines behave identically.
-const MaxCallDepth = 1024
-
 func (ctx *EvalContext) pushCall(name string) { ctx.callStack = append(ctx.callStack, name) }
 func (ctx *EvalContext) popCall() {
 	if len(ctx.callStack) > 0 {
@@ -610,8 +605,8 @@ func (ctx *EvalContext) applyFunction(fn object.Object, args []object.Object) ob
 				fnCtx = ec
 			}
 		}
-		if len(fnCtx.callStack) >= MaxCallDepth {
-			return ctx.newErrorCode("E008", "call stack depth exceeded (%d)", MaxCallDepth)
+		if len(fnCtx.callStack) >= object.MaxCallDepth {
+			return ctx.newErrorCode("E008", "call stack depth exceeded (%d)", object.MaxCallDepth)
 		}
 		fnCtx.pushCall("fn(" + fnName(f) + ")")
 		name := fnName(f)

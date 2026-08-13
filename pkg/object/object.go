@@ -34,6 +34,11 @@ type Object interface {
 	Inspect() string
 }
 
+// MaxCallDepth caps active function call depth in both the tree-walker
+// (pkg/eval) and the bytecode VM (pkg/vm). Without it, unbounded recursion
+// exhausts the Go stack and crashes the process.
+const MaxCallDepth = 1024
+
 type Integer struct{ Value int64 }
 
 func (i *Integer) Type() ObjectType { return INTEGER }

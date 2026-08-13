@@ -188,23 +188,106 @@ func TestVMDeepButLegalRecursion(t *testing.T) {
 }
 
 func TestVMRecursionOverflowNoCrash(t *testing.T) {
-	// Unbounded recursion must not crash the process. Depending on which
-	// limit fires first, Run() either returns an error (operand-stack
-	// recovery) or the script's result is a catchable E008 error object
-	// (frame guard) — never a Go panic.
+	// Unbounded recursion must surface as a catchable E008 error object, not
+	// a Go panic. The operand-space guard covers deep calls that would
+	// exhaust the 2048-slot operand stack before the frame limit.
 	for _, input := range []string{
 		"fn f x\n    f x\n\nf 0",
 		"fn count n acc\n    if n <= 0\n        acc\n    else\n        count (n - 1) (acc + 1)\n\ncount 100000 0",
 	} {
 		bc := parseAndCompile(t, input)
 		v := New(bc)
-		err := v.Run()
-		if err == nil {
-			top := v.LastPoppedStackElem()
-			if _, isErr := top.(*object.Error); !isErr {
-				t.Errorf("expected error or error object for unbounded recursion, got %s (%v)", top.Inspect(), err)
-			}
+		if err := v.Run(); err != nil {
+			t.Errorf("%q: expected error value, got Run error %s", input, err)
+			continue
 		}
+		top := v.LastPoppedStackElem()
+		if _, isErr := top.(*object.Error); !isErr {
+			t.Errorf("%q: expected E008 error object, got %s", input, top.Inspect())
+		}
+	}
+}
+
+func TestVMFrameGuardRejectsCall(t *testing.T) {
+	// The frame-limit branch of the guard is not reachable through the
+	// language (≥1-arg recursion exhausts the operand stack first), so drive
+	// it directly: callFunction at frameIndex MaxCallDepth-1 must inject a
+	// catchable E008 error object and restore a consistent stack/frame state.
+	v := New(&compiler.Bytecode{})
+	fn := &object.Closure{Fn: &object.CompiledFunction{Instructions: compiler.Instructions{byte(compiler.OpReturn)}}}
+	v.stack[0] = fn
+	v.stack[1] = &object.Integer{Value: 42}
+	v.sp = 2
+	v.frameIndex = object.MaxCallDepth - 1
+
+	v.callFunction(1)
+
+	if v.frameIndex != object.MaxCallDepth-1 {
+		t.Errorf("frameIndex should be restored, got %d", v.frameIndex)
+	}
+	// basePtr = sp(2) - numArgs(1) = 1; error lands at basePtr-1, sp = basePtr
+	if v.sp != 1 {
+		t.Errorf("sp should be restored to basePtr (1), got %d", v.sp)
+	}
+	err, ok := v.stack[v.sp-1].(*object.Error)
+	if !ok || !strings.Contains(err.Message, "E008") {
+		t.Errorf("expected E008 error object at stack[sp-1], got %v", v.stack[v.sp-1])
+	}
+}
+
+func TestVMTryCatchCatchesRecursionError(t *testing.T) {
+	// Deep recursion (operand-guard path) must be catchable via try/catch.
+	input := `fn f x
+    f x
+
+try
+    f 0
+catch e
+    "caught: " ++ e`
+	bc := parseAndCompile(t, input)
+	result := runVM(t, bc)
+	if !strings.HasPrefix(result, "caught: ") || !strings.Contains(result, "E008") {
+		t.Errorf("expected catch of E008, got %q", result)
+	}
+}
+
+func TestVMTryCatchCatchesDeepArgRecursionError(t *testing.T) {
+	// Multi-arg recursion exhausts the operand stack before the frame limit;
+	// the operand-space guard must still surface a catchable E008.
+	input := `fn count n acc
+    if n <= 0
+        acc
+    else
+        count (n - 1) (acc + 1)
+
+try
+    count 100000 0
+catch e
+    "caught: " ++ e`
+	bc := parseAndCompile(t, input)
+	result := runVM(t, bc)
+	if !strings.HasPrefix(result, "caught: ") || !strings.Contains(result, "E008") {
+		t.Errorf("expected catch of E008, got %q", result)
+	}
+}
+
+func TestVMContinuesAfterCaughtRecursionError(t *testing.T) {
+	// After catching the recursion error, operand stack and frame state must
+	// be consistent: subsequent statements evaluate correctly.
+	input := `fn f x
+    f x
+
+try
+    f 0
+catch e
+    "recovered"
+
+n: 40
+n + 2`
+	bc := parseAndCompile(t, input)
+	result := runVM(t, bc)
+	if result != "42" {
+		t.Errorf("expected 42 after caught recursion error, got %s", result)
 	}
 }
 

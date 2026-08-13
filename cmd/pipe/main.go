@@ -674,12 +674,24 @@ func runVM(program *ast.Program, quiet bool, filePath string, scriptArgs []strin
 		fmt.Fprintf(os.Stderr, "VM error: %s\n", err)
 		os.Exit(1)
 	}
+	checkVMTopResult(machine)
 	elapsed := time.Since(start)
 
 	if !quiet {
 		fmt.Fprintf(os.Stderr, "--- VM: %v ---\n", elapsed)
 	}
 	printCostTrace()
+}
+
+// checkVMTopResult mirrors the tree-walker's top-level error handling
+// (runEval): a script whose final value is an Error object is reported as a
+// runtime error, not silently accepted.
+func checkVMTopResult(machine *vm.VM) {
+	result := machine.LastPoppedStackElem()
+	if result != nil && result.Type() == object.ERROR {
+		fmt.Fprintf(os.Stderr, "Runtime error: %s\n", result.Inspect())
+		os.Exit(1)
+	}
 }
 
 func runVMWithCache(filePath string, quiet bool) {
@@ -704,6 +716,7 @@ func runVMWithCache(filePath string, quiet bool) {
 		fmt.Fprintf(os.Stderr, "VM error: %s\n", err)
 		os.Exit(1)
 	}
+	checkVMTopResult(machine)
 	elapsed := time.Since(start)
 
 	if !quiet {
@@ -783,7 +796,14 @@ func runTestVM(program *ast.Program) error {
 	}
 	bc := comp.Bytecode()
 	machine := vm.New(bc)
-	return machine.Run()
+	if err := machine.Run(); err != nil {
+		return err
+	}
+	result := machine.LastPoppedStackElem()
+	if result != nil && result.Type() == object.ERROR {
+		return fmt.Errorf("%s", result.Inspect())
+	}
+	return nil
 }
 
 func runBenchmark() {

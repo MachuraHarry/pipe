@@ -12,7 +12,10 @@ import (
 
 const (
 	StackSize = 2048
-	MaxFrames = 1024
+	// operandHeadroom keeps a few free slots after the recursion guard fires
+	// so the innermost caller can finish unwinding (try/catch handling)
+	// without tripping the operand stack in the same breath.
+	operandHeadroom = 32
 )
 
 type Frame struct {
@@ -26,7 +29,7 @@ type Frame struct {
 func New(bc *compiler.Bytecode) *VM {
 	stack := make([]object.Object, StackSize)
 	globals := make([]object.Object, 65536)
-	frames := make([]*Frame, MaxFrames)
+	frames := make([]*Frame, object.MaxCallDepth)
 
 	mainFn := &object.CompiledFunction{
 		Instructions: bc.Instructions,
@@ -429,12 +432,15 @@ func (vm *VM) callFunction(numArgs int) {
 		}
 
 		vm.frameIndex++
-		if vm.frameIndex >= MaxFrames {
+		if vm.frameIndex >= object.MaxCallDepth || vm.sp >= StackSize-operandHeadroom {
 			// Reject the call with a catchable error object instead of
 			// panicking; try/catch in the VM (OpCheckError) can handle it.
+			// The frame limit bounds recursion depth; the operand-space check
+			// catches deep calls (many args per frame) that would exhaust the
+			// operand stack before the frame limit is reached.
 			vm.frameIndex--
 			vm.sp = basePtr
-			vm.stack[basePtr-1] = &object.Error{Message: fmt.Sprintf("E008: call stack depth exceeded (%d)", MaxFrames)}
+			vm.stack[basePtr-1] = &object.Error{Message: fmt.Sprintf("E008: call stack depth exceeded (%d)", object.MaxCallDepth)}
 			return
 		}
 		vm.frames[vm.frameIndex] = frame

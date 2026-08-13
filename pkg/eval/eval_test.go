@@ -1,8 +1,11 @@
 package eval
 
 import (
+	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"regexp"
+	"strings"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -405,6 +408,44 @@ try
 catch e
     "caught"`
 	expectValue(t, input, "caught")
+}
+
+func TestEvalStackTraceCap(t *testing.T) {
+	// Deep errors must not produce a multi-thousand-line trace: it is capped
+	// at maxTraceFrames entries followed by a "  ... (N more)" suffix.
+	input := `fn count n acc
+    if n <= 0
+        acc
+    else
+        count (n - 1) (acc + 1)
+
+count 5000 0`
+	result := parseAndEval(t, input)
+	if result == nil || result.Type() != object.ERROR {
+		t.Fatalf("expected error, got %v", result)
+	}
+	msg := result.Inspect()
+	if !strings.Contains(msg, "E008") {
+		t.Errorf("expected E008, got %q", msg)
+	}
+	if frames := strings.Count(msg, "  in fn(count)"); frames != maxTraceFrames {
+		t.Errorf("expected %d trace frames, got %d", maxTraceFrames, frames)
+	}
+	if !regexp.MustCompile(`\n  \.\.\. \(\d+ more\)$`).MatchString(msg) {
+		t.Errorf("expected trace cap suffix, got %q", msg)
+	}
+}
+
+func TestEvalErrorDepthMatchesSharedLimit(t *testing.T) {
+	// The error message must report the same shared limit that both engines
+	// enforce (object.MaxCallDepth), so the two engines cannot drift apart.
+	result := parseAndEval(t, "fn f x\n    if x\n        f x\n    else\n        f x\n\nf true")
+	if result == nil || result.Type() != object.ERROR {
+		t.Fatalf("expected error, got %v", result)
+	}
+	if !strings.Contains(result.Inspect(), fmt.Sprintf("E008: call stack depth exceeded (%d)", object.MaxCallDepth)) {
+		t.Errorf("expected shared limit %d in message, got %q", object.MaxCallDepth, result.Inspect())
+	}
 }
 
 func TestEvalTailCallOptimization(t *testing.T) {

@@ -98,6 +98,18 @@ func bSandboxProfile(args ...Object) Object {
 			}
 			profile.Exec = b.Value
 
+		case "exec_whitelist":
+			lst, ok := val.(*List)
+			if !ok {
+				return err("sandbox_profile: exec_whitelist must be a list of strings")
+			}
+			profile.ExecWhitelist = make([]string, 0, len(lst.Elements))
+			for _, e := range lst.Elements {
+				if s, ok := e.(*String); ok {
+					profile.ExecWhitelist = append(profile.ExecWhitelist, s.Value)
+				}
+			}
+
 		case "ai":
 			b, ok := val.(*Boolean)
 			if !ok {

@@ -788,14 +788,6 @@ func promptResultText(result *mcp.GetPromptResult) string {
 }
 
 func bMcpUseStdio(args ...Object) Object {
-	// A stdio client spawns a subprocess, so it is gated by the active
-	// profile's exec policy just like the exec builtin.
-	if p := ActiveProfile.Load(); p.Name != "none" {
-		if canErr := p.CanExec(); canErr != nil {
-			return err(canErr.Error())
-		}
-	}
-
 	if len(args) < 1 {
 		return err("mcp_use_stdio expects at least 1 argument (command, args..., env?)")
 	}
@@ -803,6 +795,14 @@ func bMcpUseStdio(args ...Object) Object {
 	if !ok {
 		return err("mcp_use_stdio: first argument must be a string (command)")
 	}
+	// A stdio client spawns a subprocess, so it is gated by the active
+	// profile's exec policy just like the exec builtin.
+	if p := ActiveProfile.Load(); p.Name != "none" {
+		if canErr := p.CanExecCommand(command.Value); canErr != nil {
+			return err(canErr.Error())
+		}
+	}
+
 	cmdArgs := make([]string, 0)
 	envVars := make(map[string]string)
 	argEnd := len(args)

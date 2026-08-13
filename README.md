@@ -382,7 +382,7 @@ Source (.pipe) → Lexer → Parser → AST → [ Tree-Walker | Compiler + VM ]
 ```
 
 - 67 token types, 36 AST node types, 42 opcodes
-- ~25,000 LoC Go, 503 tests, 75 example programs
+- ~25,000 LoC Go, 503 tests, 79 example programs
 - Zero dependencies — pure Go stdlib
 
 ## Documentation
@@ -444,7 +444,7 @@ pipe/
 │   └── vm/                    # Bytecode VM
 │       ├── vm.go
 │       └── vm_test.go
-├── examples/                  # 75 example programs
+├── examples/                  # 79 example programs
 │   ├── mcp_server.pipe        # MCP server with weather/docs/shell tools
 │   ├── mcp_filesystem.pipe    # MCP client using filesystem server
 │   ├── mcp_github.pipe        # MCP client using GitHub server

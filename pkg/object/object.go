@@ -322,6 +322,7 @@ func ValuesEqual(a, b Object) bool {
 var Builtins = []BuiltinInfo{
 	// IO / File System
 	{"print", bPrint},
+	{"print_raw", bPrintRaw},
 	{"input", bInput},
 	{"exec", bExec},
 	{"read_file", bReadFile},

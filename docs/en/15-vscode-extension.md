@@ -71,7 +71,7 @@ The TextMate grammar (`pipe.tmLanguage.json`) provides scoped highlighting for a
 
 | Category | Scope Name | Functions |
 |----------|-----------|-----------|
-| I/O | `support.function.builtin.io.pipe` | `print`, `input` |
+| I/O | `support.function.builtin.io.pipe` | `print`, `print_raw`, `input` |
 | File | `support.function.builtin.file.pipe` | `read_file`, `write_file`, `append_file`, `read_lines`, `file_exists`, `file_delete`, `file_move`, `file_copy`, `file_size`, `file_type`, `list_dir`, `make_dir`, `remove_dir` |
 | Path | `support.function.builtin.path.pipe` | `path_join`, `path_base`, `path_dir`, `path_ext` |
 | String | `support.function.builtin.string.pipe` | `upper`, `lower`, `trim`, `split`, `join`, `contains` |

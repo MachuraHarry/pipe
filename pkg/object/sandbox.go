@@ -205,6 +205,7 @@ type SandboxProfile struct {
 	Network          bool
 	NetworkWhitelist []string
 	Exec             bool
+	ExecWhitelist    []string
 	AI               bool
 	Timeout          int
 	MaxToolCalls     int
@@ -330,7 +331,8 @@ func (sub *SandboxProfile) IsSubsetOf(super *SandboxProfile) bool {
 	if !limitIsSubset(sub.Timeout, super.Timeout) {
 		return false
 	}
-	return whitelistIsSubset(sub.NetworkWhitelist, super.NetworkWhitelist)
+	return whitelistIsSubset(sub.NetworkWhitelist, super.NetworkWhitelist) &&
+		execWhitelistIsSubset(sub.ExecWhitelist, super.ExecWhitelist)
 }
 
 // budgetIsSubset treats a budget of 0 as "unlimited" (the most permissive
@@ -406,6 +408,79 @@ func (p *SandboxProfile) CanExec() error {
 		return fmt.Errorf("E_SANDBOX: exec blocked by profile '%s'", p.Name)
 	}
 	return nil
+}
+
+// CanExecCommand reports whether the profile allows running the given shell
+// command. When the profile has an exec_whitelist, the first token of the
+// command (after shell metacharacter stripping) must match one of the allowed
+// executables.
+func (p *SandboxProfile) CanExecCommand(command string) error {
+	if err := p.CanExec(); err != nil {
+		return err
+	}
+	if len(p.ExecWhitelist) == 0 {
+		return nil
+	}
+	bin := execCommandBinary(command)
+	if bin == "" {
+		return fmt.Errorf("E_SANDBOX: could not determine executable for command in profile '%s'", p.Name)
+	}
+	for _, allowed := range p.ExecWhitelist {
+		if bin == allowed {
+			return nil
+		}
+	}
+	return fmt.Errorf("E_SANDBOX: command '%s' (%s) not in exec whitelist of profile '%s'", command, bin, p.Name)
+}
+
+// execCommandBinary extracts the executable's name from a shell command
+// string. It skips leading environment assignments (FOO=bar cmd), shell
+// operators (&&, ||, ;, |, cd ... &&), and strips quoting, so an allowlist
+// entry like "git" matches "git diff", "cd repo && git log", or
+// "GIT_PAGER= git diff".
+func execCommandBinary(command string) string {
+	fields := strings.Fields(command)
+	for i := 0; i < len(fields); i++ {
+		f := fields[i]
+		switch {
+		case f == "cd":
+			i++ // skip the directory argument
+		case f == "&&" || f == "||" || f == ";" || f == "|" || f == "&":
+			continue
+		case strings.Contains(f, "=") && !strings.HasPrefix(f, "-"):
+			// environment assignment (FOO=bar), skip
+		default:
+			bin := strings.Trim(f, "'\"")
+			// strip leading path (./foo, /usr/bin/git) down to the basename
+			if i := strings.LastIndexByte(bin, '/'); i >= 0 {
+				bin = bin[i+1:]
+			}
+			return bin
+		}
+	}
+	return ""
+}
+
+// execWhitelistIsSubset reports whether every executable allowed by sub is
+// also allowed by super. An empty whitelist means "allow all", so it is a
+// subset only when super also allows all.
+func execWhitelistIsSubset(sub, super []string) bool {
+	if len(super) == 0 {
+		return true
+	}
+	if len(sub) == 0 {
+		return false
+	}
+	seen := make(map[string]bool, len(super))
+	for _, allowed := range super {
+		seen[allowed] = true
+	}
+	for _, entry := range sub {
+		if !seen[entry] {
+			return false
+		}
+	}
+	return true
 }
 
 func (p *SandboxProfile) CanAI() error {

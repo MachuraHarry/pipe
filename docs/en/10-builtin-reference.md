@@ -1,10 +1,10 @@
 # 10. Built-in Function Reference
 
-Pipe includes 206 built-in functions organized by category. This chapter documents each function with its signature, description, return type, and usage example.
+Pipe includes 207 built-in functions organized by category. This chapter documents each function with its signature, description, return type, and usage example.
 
 ---
 
-## 10.1 IO & System (8 functions)
+## 10.1 IO & System (9 functions)
 
 ### `print`
 **Signature:** `print(value ...)`
@@ -17,6 +17,16 @@ print "Hello"
 print "The answer is" 42
 -- x: 10 y: 20
 print "x:" x "y:" y
+```
+
+### `print_raw`
+**Signature:** `print_raw(value ...)`
+**Description:** Prints the string representation of one or more values to stdout with no separator, no trailing space and no added newline. Useful when the exact output bytes matter (e.g. emitting JSON or machine-readable data).
+**Returns:** `nil`
+```pipe
+out: "{\"status\":\"ok\"}\n"
+print_raw out
+-- identical bytes to what was placed in out
 ```
 
 ### `input`
@@ -2560,11 +2570,12 @@ mcp_use_sse "http://localhost:9090/"
 
 ## 10.34 Summary Table
 
-### IO & System (8)
+### IO & System (9)
 
 | # | Function | Signature | Returns |
 |---|----------|-----------|---------|
 | 1 | `print` | `print(value ...)` | `nil` |
+| 1a | `print_raw` | `print_raw(value ...)` | `nil` |
 | 2 | `input` | `input(prompt)` | `string` |
 | 3 | `exec` | `exec(command)` | `string` |
 | 4 | `env` | `env(name)` | `string` or `nil` |

@@ -1,0 +1,247 @@
+-- fluencyloop-slice-context.pipe
+-- A Pipe port of FluencyLoop's slice-context.sh / slice-context.ps1.
+--
+-- Renders the current "slice" of a FluencyLoop repo: the changed hunks plus
+-- metadata since the last journaled session, so a model can spot decisions
+-- from the diff instead of re-reading whole files. Byte-identical --json
+-- output to the bash / PowerShell originals.
+--
+-- Deterministic plumbing only: no AI, no network. Runs confined in the
+-- "slice" sandbox profile — filesystem read-only, only `git` may be executed.
+--
+-- Usage:
+--   pipe examples/fluencyloop-slice-context.pipe [--json]
+-- Run from the FluencyLoop repo root.
+
+-- ---- confine ourselves ----
+sandbox_profile "slice" {fs: "read-only", exec: true, exec_whitelist: ["git"], network: false, ai: false}
+set_sandbox "slice"
+sandbox_lock "slice"
+
+-- ---- options ----
+json_mode: false
+for a in args
+    if a == "--json"
+        json_mode: true
+    else
+        raise ("Unknown option: " ++ a)
+
+-- ---- repo + paths ----
+root: trim (get (exec "git rev-parse --show-toplevel") "output")
+if (len root) == 0
+    raise "not a git repository"
+gitc: "git -C \"" ++ root ++ "\""
+
+state_raw: read_file (root ++ "/.fluencyloop/state.json")
+state: parse_json state_raw
+
+fn state_get key
+    v: get state key
+    if is_nil v
+        ""
+    else
+        to_str v
+
+feature: state_get "feature"
+if (len feature) == 0
+    branch: trim (get (exec (gitc ++ " rev-parse --abbrev-ref HEAD")) "output")
+    if regex_match "^feature\\/" branch
+        feature: substring branch 8 (len branch)
+base_ref: state_get "base_ref"
+if (len base_ref) == 0
+    base_ref: "main"
+
+-- ---- where the slice starts ----
+since: ""
+base_kind: "base-ref"
+last_session: state_get "last_session"
+if (len feature) > 0 && (len last_session) > 0
+    store: "docs/fluencyloop/store/features/" ++ feature ++ ".jsonl"
+    if file_exists (root ++ "/" ++ store)
+        r: exec (gitc ++ " log -1 --format=%H -- " ++ store)
+    else
+        sdir: state_get "feature_dir"
+        if (len sdir) > 0
+            sdir: sdir ++ "/sessions"
+        else
+            sdir: "docs/fluencyloop/features/" ++ feature ++ "/sessions"
+        r: exec (gitc ++ " log -1 --format=%H -- " ++ sdir)
+    last_journal: trim (get r "output")
+    if (len last_journal) > 0
+        since: last_journal
+        base_kind: "last-session"
+if (len since) == 0
+    since: base_ref
+    base_kind: "base-ref"
+verify: exec (gitc ++ " rev-parse --verify --quiet " ++ since)
+if (get verify "status") != 0
+    head_ok: exec (gitc ++ " rev-parse --verify --quiet HEAD")
+    if (get head_ok "status") == 0
+        since: "HEAD"
+        base_kind: "head"
+    else
+        since: ""
+        base_kind: "unborn"
+
+-- ---- files of the slice ----
+exclude: " -- . ':!.fluencyloop' ':!docs/fluencyloop'"
+
+untracked: split (get (exec (gitc ++ " ls-files --others --exclude-standard" ++ exclude)) "output") "\n"
+fn nonempty s
+    (len s) > 0
+untracked: filter untracked nonempty
+
+fn unborn_files dummy
+    split (get (exec (gitc ++ " ls-files --cached --others --exclude-standard" ++ exclude)) "output") "\n"
+
+fn file_diff f
+    get (exec (gitc ++ " diff --no-index -- /dev/null \"" ++ f ++ "\"")) "output"
+
+-- ---- build the diff ----
+diff_text: ""
+ins: 0
+del: 0
+tracked: 0
+if (len since) > 0
+    diff_text: get (exec (gitc ++ " diff " ++ since ++ exclude)) "output"
+    for f in untracked
+        diff_text: diff_text ++ (file_diff f)
+    numstat: split (get (exec (gitc ++ " diff --numstat " ++ since ++ exclude)) "output") "\n"
+    for ln in numstat
+        cols: split ln "\t"
+        if (len cols) >= 2
+            if (at cols 0) != "-"
+                ins: ins + (to_num (at cols 0))
+            if (at cols 1) != "-"
+                del: del + (to_num (at cols 1))
+            tracked: tracked + 1
+else
+    uf: unborn_files 0
+    uf: filter uf nonempty
+    for f in uf
+        if file_exists (root ++ "/" ++ f)
+            diff_text: diff_text ++ (file_diff f)
+            numstat: split (get (exec (gitc ++ " diff --no-index --numstat -- /dev/null \"" ++ f ++ "\"")) "output") "\n"
+            for ln in numstat
+                cols: split ln "\t"
+                if (len cols) >= 2
+                    if (at cols 0) != "-"
+                        ins: ins + (to_num (at cols 0))
+                    if (at cols 1) != "-"
+                        del: del + (to_num (at cols 1))
+    tracked: len (filter (split (get (exec (gitc ++ " diff --cached --name-status" ++ exclude)) "output") "\n") nonempty)
+
+files_changed: tracked + (len untracked)
+diff_text: regex_replace "\n+$" "" diff_text
+if (len since) > 0
+    short: trim (get (exec (gitc ++ " rev-parse --short " ++ since)) "output")
+else
+    short: "unborn"
+
+-- ---- decision pre-filter (added-line heuristics) ----
+code: 0
+imp: 0
+dep: 0
+api: 0
+ctl: 0
+manifest: false
+manifest_re: "^(package\\.json|pom\\.xml|go\\.mod|Cargo\\.toml|Gemfile|composer\\.json|pyproject\\.toml|requirements[^ ]*\\.txt|Pipfile|build\\.gradle(\\.kts)?)$"
+imp_re: "^(import|from|#include|using|use)[[:space:]]|require[[:space:]]*\\("
+api_re: "^(export|public)[[:space:]]|^(export[[:space:]]+)?(default[[:space:]]+)?(async[[:space:]]+)?function[[:space:]]|^(public[[:space:]]+|export[[:space:]]+|abstract[[:space:]]+)*(class|interface|enum|trait|struct)[[:space:]]|^(pub[[:space:]]+)?fn[[:space:]]|^func[[:space:]]|^def[[:space:]]|^@[A-Za-z_.]*(route|mapping|[GgPpDd][a-z]+)[(:]?"
+ctl_re: "(^|[^A-Za-z_])(if|else|for|while|switch|case|try|catch|except|match)([^A-Za-z_]|$)"
+comment_re: "^(//|#|\\*|/\\*|--|<!--)"
+
+for ln in (split diff_text "\n")
+    if regex_match "^\\+\\+\\+ " ln
+        f: at (split ln " ") 1
+        f: regex_replace "^b\\/" "" f
+        manifest: regex_match manifest_re (path_base f)
+    else if regex_match "^(---|diff |index |@@|new file|deleted file|similarity|rename|Binary)" ln
+        _: 0
+    else if regex_match "^\\+" ln
+        t: substring ln 1 (len ln)
+        t: regex_replace "^[[:space:]]+" "" t
+        if (len t) > 0
+            isc: regex_match comment_re t
+            if not isc
+                code: code + 1
+            if regex_match imp_re t
+                imp: imp + 1
+            if manifest && !isc
+                dep: dep + 1
+            if regex_match api_re t
+                api: api + 1
+            if regex_match ctl_re t
+                ctl: ctl + 1
+
+score: 0
+sig: ""
+if (imp > 0) || (dep > 0)
+    score: score + 2
+    sig: sig ++ "dep-or-import "
+if api > 0
+    score: score + 2
+    sig: sig ++ "new-api "
+if (ctl > 0) && (code >= 8)
+    score: score + 2
+    sig: sig ++ "control-flow "
+if code >= 15
+    score: score + 1
+    sig: sig ++ "size "
+if code >= 40
+    score: score + 1
+if code == 0
+    score: 0
+    sig: "trivial"
+sig: regex_replace "[[:space:]]+$" "" sig
+likely: "false"
+if score >= 2
+    likely: "true"
+
+-- ---- JSON helpers ----
+fn json_escape s
+    s: regex_replace "\\\\" "\\\\" s
+    s: regex_replace "\"" "\\\"" s
+    s: regex_replace "\n" "\\n" s
+    s
+
+fn path_json p
+    p: regex_replace "\\\\" "\\\\" p
+    p: regex_replace "\"" "\\\"" p
+    p
+
+fn quote s
+    "\"" ++ s ++ "\""
+
+-- ---- emit ----
+if json_mode
+    sig_json: ""
+    if (len sig) > 0
+        sig_json: join (map (split sig " ") quote) ","
+    files_json: ""
+    sep: ""
+    if (len since) > 0
+        statuses: split (get (exec (gitc ++ " diff --name-status " ++ since ++ exclude)) "output") "\n"
+    else
+        statuses: split (get (exec (gitc ++ " diff --cached --name-status" ++ exclude)) "output") "\n"
+    for ln in statuses
+        cols: split ln "\t"
+        if (len cols) >= 2
+            files_json: files_json ++ sep ++ "{\"status\":\"" ++ (at cols 0) ++ "\",\"path\":\"" ++ (path_json (at cols ((len cols) - 1))) ++ "\"}"
+            sep: ","
+    untracked_json: join (map untracked (fn p: quote (path_json p))) ","
+    diff_esc: json_escape diff_text
+    out: "{\"feature\":\"" ++ (json_escape feature) ++ "\",\"base_kind\":\"" ++ base_kind ++ "\",\"base\":\"" ++ (json_escape short) ++ "\",\"files_changed\":" ++ (to_str files_changed) ++ ",\"insertions\":" ++ (to_str ins) ++ ",\"deletions\":" ++ (to_str del) ++ ",\"likely_decision\":" ++ likely ++ ",\"decision_score\":" ++ (to_str score) ++ ",\"decision_signals\":[" ++ sig_json ++ "],\"files\":[" ++ files_json ++ "],\"untracked\":[" ++ untracked_json ++ "],\"diff\":\"" ++ diff_esc ++ "\"}"
+    print_raw (out ++ "\n")
+else
+    feat: "<none>"
+    if (len feature) > 0
+        feat: feature
+    print ("# Slice context — feature: " ++ feat ++ " (since " ++ base_kind ++ " " ++ short ++ ")")
+    print ("# " ++ (to_str files_changed) ++ " file(s), +" ++ (to_str ins) ++ " -" ++ (to_str del))
+    sigs: ""
+    if (len sig) > 0
+        sigs: ": " ++ sig
+    print ("# likely_decision: " ++ likely ++ " (score " ++ (to_str score) ++ sigs ++ ")")
+    print ""
+    print diff_text

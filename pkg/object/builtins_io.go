@@ -6,6 +6,7 @@ import (
 	"io"
 	"os"
 	"os/exec"
+	"runtime"
 	"strings"
 	"time"
 
@@ -90,6 +91,17 @@ func bPrint(args ...Object) Object {
 		fmt.Print(" ")
 	}
 	fmt.Println()
+	return NILOBJ
+}
+
+func bPrintRaw(args ...Object) Object {
+	if PrintHook != nil {
+		PrintHook(args...)
+		return NILOBJ
+	}
+	for _, arg := range args {
+		fmt.Print(arg.Inspect())
+	}
 	return NILOBJ
 }
 
@@ -231,13 +243,6 @@ func bReadStdin(args ...Object) Object {
 }
 
 func bExec(args ...Object) Object {
-	if ActiveProfile.Load().Name != "none" {
-		if canErr := ActiveProfile.Load().CanExec(); canErr != nil {
-			return err(canErr.Error())
-		}
-	} else if Sandbox.Enabled && !Sandbox.AllowExec {
-		return sandboxBlock("exec")
-	}
 	if len(args) != 1 {
 		return err("exec expects 1 argument (command)")
 	}
@@ -245,14 +250,21 @@ func bExec(args ...Object) Object {
 	if !ok {
 		return err("exec: command must be a string")
 	}
+	if ActiveProfile.Load().Name != "none" {
+		if canErr := ActiveProfile.Load().CanExecCommand(cmd.Value); canErr != nil {
+			return err(canErr.Error())
+		}
+	} else if Sandbox.Enabled && !Sandbox.AllowExec {
+		return sandboxBlock("exec")
+	}
 	profile := ActiveProfile.Load()
 	var c *exec.Cmd
 	if profile.Name != "none" && profile.Timeout > 0 {
 		ctx, cancel := context.WithTimeout(context.Background(), time.Duration(profile.Timeout)*time.Second)
 		defer cancel()
-		c = exec.CommandContext(ctx, "sh", "-c", cmd.Value)
+		c = exec.CommandContext(ctx, execShell(), "-c", cmd.Value)
 	} else {
-		c = exec.Command("sh", "-c", cmd.Value)
+		c = exec.Command(execShell(), "-c", cmd.Value)
 	}
 	if profile.Name != "none" {
 		env := os.Environ()
@@ -274,4 +286,14 @@ func bExec(args ...Object) Object {
 		"error":  &String{Value: ""},
 		"status": &Integer{Value: 0},
 	}}
+}
+
+// execShell returns the shell used to run `exec` commands. Unix uses sh, which
+// is guaranteed by POSIX; Windows prefers cmd.exe, which is always present,
+// so the sandboxed exec path stays functional without a bash installation.
+func execShell() string {
+	if runtime.GOOS == "windows" {
+		return "cmd.exe"
+	}
+	return "sh"
 }

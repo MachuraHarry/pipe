@@ -1,6 +1,6 @@
 # 10. Builtin-Referenz
 
-Pipe hat **206 eingebaute Funktionen** — keine externen Abhängigkeiten
+Pipe hat **207 eingebaute Funktionen** — keine externen Abhängigkeiten
 (alle in Go implementiert, nutzen nur die Standardbibliothek).
 
 Die Builtins sind in **allen Ausführungsmodi** verfügbar (Tree-Walker und VM).
@@ -21,6 +21,16 @@ print "Hallo"
 print "Wert:" 42
 -- "3"
 print (1 + 2)
+```
+
+### print_raw
+```
+print_raw werte...
+```
+Gibt Werte ohne Trennzeichen, ohne abschließendes Leerzeichen und ohne Newline aus. Nützlich, wenn exakte Bytes ausgegeben werden müssen (z. B. Byte-identisches JSON in Skripten).
+```pipe
+-- Ausgabe exakt "{\"a\":1}" ohne Newline
+print_raw "{\"a\":1}"
 ```
 
 ### input
@@ -1610,8 +1620,8 @@ mcp_use_sse "http://localhost:9090/"
 
 ## 10.22 Übersicht aller Builtins
 
-### IO & System (8)
-`print`, `input`, `exec`, `env`, `sleep`, `args`, `read_stdin`, `go`
+### IO & System (9)
+`print`, `print_raw`, `input`, `exec`, `env`, `sleep`, `args`, `read_stdin`, `go`
 
 ### Dateisystem (23)
 `read_file`, `write_file`, `append_file`, `read_lines`, `file_exists`,

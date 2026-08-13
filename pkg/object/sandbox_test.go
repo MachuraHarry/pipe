@@ -753,3 +753,122 @@ func TestToolExecutorMaxCallsEnforced(t *testing.T) {
 
 	delete(toolRegistry, "rt_noop")
 }
+
+// ---- exec whitelist ----
+
+func TestExecWhitelistBinaryParsing(t *testing.T) {
+	cases := []struct {
+		cmd  string
+		want string
+	}{
+		{"git diff", "git"},
+		{"git log -1 --format=%H -- file", "git"},
+		{"/usr/bin/git rev-parse --short HEAD", "git"},
+		{"./bin/pipe run.x", "pipe"},
+		{"cd repo && git status", "git"},
+		{"FOO=bar GIT_PAGER= git log", "git"},
+		{"'git' status", "git"},
+		{"curl -s http://x", "curl"},
+		{"echo hi | grep x", "echo"},
+		{"", ""},
+	}
+	for _, c := range cases {
+		if got := execCommandBinary(c.cmd); got != c.want {
+			t.Errorf("execCommandBinary(%q) = %q, want %q", c.cmd, got, c.want)
+		}
+	}
+}
+
+func TestExecWhitelistAllowsGitBlocksOthers(t *testing.T) {
+	p := NewSandboxProfile("exw")
+	p.Exec = true
+	p.ExecWhitelist = []string{"git"}
+	defer withProfile(p)()
+
+	if err := p.CanExecCommand("git diff --numstat"); err != nil {
+		t.Fatalf("git must be allowed: %v", err)
+	}
+	if err := p.CanExecCommand("cd /tmp && git status"); err != nil {
+		t.Fatalf("git after cd must be allowed: %v", err)
+	}
+	if err := p.CanExecCommand("curl http://example.com"); err == nil {
+		t.Fatal("curl must be blocked by exec whitelist")
+	}
+	if err := p.CanExecCommand("sh -c 'echo hi'"); err == nil {
+		t.Fatal("sh must be blocked by exec whitelist")
+	}
+	if err := p.CanExecCommand(""); err == nil {
+		t.Fatal("empty command must be rejected")
+	}
+}
+
+func TestExecWhitelistEmptyMeansAllowAll(t *testing.T) {
+	p := NewSandboxProfile("exw-all")
+	p.Exec = true
+	defer withProfile(p)()
+
+	if err := p.CanExecCommand("anything --goes"); err != nil {
+		t.Fatalf("empty whitelist must allow all: %v", err)
+	}
+}
+
+func TestExecWhitelistSubsetRatchet(t *testing.T) {
+	all := NewSandboxProfile("exw-super")
+	all.Exec = true
+
+	gitOnly := NewSandboxProfile("exw-sub")
+	gitOnly.Exec = true
+	gitOnly.ExecWhitelist = []string{"git"}
+
+	curlOnly := NewSandboxProfile("exw-curl")
+	curlOnly.Exec = true
+	curlOnly.ExecWhitelist = []string{"curl"}
+
+	gitAndCurl := NewSandboxProfile("exw-both")
+	gitAndCurl.Exec = true
+	gitAndCurl.ExecWhitelist = []string{"git", "curl"}
+
+	if !gitOnly.IsSubsetOf(all) {
+		t.Error("git-only must be a subset of allow-all")
+	}
+	if !curlOnly.IsSubsetOf(gitAndCurl) {
+		t.Error("curl-only must be a subset of git+curl")
+	}
+	if gitOnly.IsSubsetOf(curlOnly) {
+		t.Error("git-only must NOT be a subset of curl-only")
+	}
+	if gitAndCurl.IsSubsetOf(gitOnly) {
+		t.Error("git+curl must NOT be a subset of git-only")
+	}
+	if all.IsSubsetOf(gitOnly) {
+		t.Error("allow-all must NOT be a subset of git-only")
+	}
+}
+
+func TestExecWhitelistBlocksViaProfileBuiltin(t *testing.T) {
+	// Register the profile through bSandboxProfile and verify a stray exec is
+	// rejected while git is accepted, mirroring the fluentloop use case.
+	config := &Map{Pairs: map[string]Object{
+		"fs":             &String{Value: "read-only"},
+		"exec":           TRUE,
+		"exec_whitelist": &List{Elements: []Object{&String{Value: "git"}}},
+		"network":        FALSE,
+		"ai":             FALSE,
+	}}
+	if res := bSandboxProfile(&String{Value: "exw-builtin"}, config); res.Type() == ERROR {
+		t.Fatalf("sandbox_profile rejected: %s", res.Inspect())
+	}
+
+	p, _ := GetProfile("exw-builtin")
+	t.Cleanup(func() {
+		profileRegistryMu.Lock()
+		delete(profileRegistry, "exw-builtin")
+		profileRegistryMu.Unlock()
+	})
+	if err := p.CanExecCommand("git rev-parse --short HEAD"); err != nil {
+		t.Fatalf("git must be allowed in exw-builtin: %v", err)
+	}
+	if err := p.CanExecCommand("curl http://x"); err == nil {
+		t.Fatal("curl must be blocked in exw-builtin")
+	}
+}

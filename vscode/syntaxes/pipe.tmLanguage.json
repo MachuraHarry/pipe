@@ -96,7 +96,7 @@
       "patterns": [
         {
           "name": "support.function.builtin.io.pipe",
-          "match": "\\b(print|input)\\b"
+          "match": "\\b(print|print_raw|input)\\b"
         },
         {
           "name": "support.function.builtin.file.pipe",

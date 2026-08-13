@@ -1,6 +1,10 @@
 package object
 
-import "testing"
+import (
+	"io"
+	"os"
+	"testing"
+)
 
 func TestIntegerType(t *testing.T) {
 	obj := &Integer{Value: 42}
@@ -561,5 +565,26 @@ func TestRandomRangeBuiltin(t *testing.T) {
 	i, ok := result.(*Integer)
 	if !ok || i.Value < 1 || i.Value >= 7 {
 		t.Errorf("bRandomRange(1,7) = %s, want int in [1,6]", result.Inspect())
+	}
+}
+
+func TestPrintRawExactOutput(t *testing.T) {
+	if PrintHook != nil {
+		t.Skip("PrintHook set by embedding host; direct stdout test not possible")
+	}
+	old := os.Stdout
+	r, w, err := os.Pipe()
+	if err != nil {
+		t.Fatal(err)
+	}
+	os.Stdout = w
+	defer func() { os.Stdout = old }()
+
+	bPrintRaw(&String{Value: "{\"a\":1}\n"})
+	w.Close()
+	out, _ := io.ReadAll(r)
+
+	if got := string(out); got != "{\"a\":1}\n" {
+		t.Fatalf("print_raw output = %q, want exact bytes without trailing space", got)
 	}
 }

@@ -35,3 +35,77 @@ jobs:
       run: |
         go build -o /tmp/pipe ./cmd/pipe
         cd test/integration && /tmp/pipe -test
+
+  byte-identity:
+    name: Byte-identity (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+
+    steps:
+    - uses: actions/checkout@v5
+
+    - name: Set up Go
+      uses: actions/setup-go@v6
+      with:
+        go-version: '1.25'
+
+    - name: Build pipe
+      shell: bash
+      run: |
+        go build -o "$RUNNER_TEMP/pipe" ./cmd/pipe
+        PIPE="$RUNNER_TEMP/pipe"
+        [ -f "$PIPE.exe" ] && PIPE="$PIPE.exe"
+        echo "PIPE=$PIPE" >> "$GITHUB_ENV"
+
+    - name: Generate fixture repo
+      shell: bash
+      run: bash test/fixtures/fluencyloop/make-fixture.sh "$RUNNER_TEMP/fixture"
+
+    - name: Run pipe slice-context (--json)
+      shell: bash
+      run: |
+        cd "$RUNNER_TEMP/fixture"
+        "$PIPE" "$GITHUB_WORKSPACE/examples/fluencyloop-slice-context.pipe" --json > "$RUNNER_TEMP/pipe.json"
+
+    - name: Run bash reference (--json)
+      if: runner.os == 'Linux'
+      shell: bash
+      run: |
+        cd "$RUNNER_TEMP/fixture"
+        bash "$GITHUB_WORKSPACE/test/fixtures/fluencyloop/slice-context.sh" --json > "$RUNNER_TEMP/ref.json"
+
+    - name: Stage outputs
+      shell: bash
+      run: |
+        mkdir -p "$RUNNER_TEMP/out"
+        cp "$RUNNER_TEMP/pipe.json" "$RUNNER_TEMP/out/pipe.json"
+        [ -f "$RUNNER_TEMP/ref.json" ] && cp "$RUNNER_TEMP/ref.json" "$RUNNER_TEMP/out/ref.json"
+
+    - uses: actions/upload-artifact@v4
+      with:
+        name: byte-identity-${{ matrix.os }}
+        path: ${{ runner.temp }}/out
+
+  compare-byte-identity:
+    name: Compare byte-identity
+    needs: byte-identity
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/download-artifact@v4
+      with:
+        name: byte-identity-ubuntu-latest
+        path: linux
+
+    - uses: actions/download-artifact@v4
+      with:
+        name: byte-identity-windows-latest
+        path: windows
+
+    - name: Compare outputs
+      run: |
+        cmp linux/ref.json linux/pipe.json
+        cmp linux/pipe.json windows/pipe.json
+        echo "Byte-identity verified: bash reference == Linux pipe == Windows pipe"

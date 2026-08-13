@@ -30,7 +30,16 @@ for a in args
 root: trim (get (exec "git rev-parse --show-toplevel") "output")
 if (len root) == 0
     raise "not a git repository"
-gitc: "git -C \"" ++ root ++ "\""
+-- On Windows, git is an MSYS2 binary and cmd.exe passes quoted arguments
+-- through literally, so "git -C \"C:/path\"" would chdir into a directory
+-- named with embedded quotes. git -C accepts forward slashes unquoted when
+-- the path has no spaces (the normal case here), so only quote on POSIX.
+win: regex_match "^[A-Za-z]:" root
+fn gcmd cmd
+    if win
+        "git -C " ++ root ++ " " ++ cmd
+    else
+        "git -C \"" ++ root ++ "\" " ++ cmd
 
 state_raw: read_file (root ++ "/.fluencyloop/state.json")
 state: parse_json state_raw
@@ -44,7 +53,7 @@ fn state_get key
 
 feature: state_get "feature"
 if (len feature) == 0
-    branch: trim (get (exec (gitc ++ " rev-parse --abbrev-ref HEAD")) "output")
+    branch: trim (get (exec (gcmd "rev-parse --abbrev-ref HEAD")) "output")
     if regex_match "^feature\\/" branch
         feature: substring branch 8 (len branch)
 base_ref: state_get "base_ref"
@@ -58,14 +67,14 @@ last_session: state_get "last_session"
 if (len feature) > 0 && (len last_session) > 0
     store: "docs/fluencyloop/store/features/" ++ feature ++ ".jsonl"
     if file_exists (root ++ "/" ++ store)
-        r: exec (gitc ++ " log -1 --format=%H -- " ++ store)
+        r: exec (gcmd ("log -1 --format=%H -- " ++ store))
     else
         sdir: state_get "feature_dir"
         if (len sdir) > 0
             sdir: sdir ++ "/sessions"
         else
             sdir: "docs/fluencyloop/features/" ++ feature ++ "/sessions"
-        r: exec (gitc ++ " log -1 --format=%H -- " ++ sdir)
+        r: exec (gcmd ("log -1 --format=%H -- " ++ sdir))
     last_journal: trim (get r "output")
     if (len last_journal) > 0
         since: last_journal
@@ -73,9 +82,9 @@ if (len feature) > 0 && (len last_session) > 0
 if (len since) == 0
     since: base_ref
     base_kind: "base-ref"
-verify: exec (gitc ++ " rev-parse --verify --quiet " ++ since)
+verify: exec (gcmd ("rev-parse --verify --quiet " ++ since))
 if (get verify "status") != 0
-    head_ok: exec (gitc ++ " rev-parse --verify --quiet HEAD")
+    head_ok: exec (gcmd "rev-parse --verify --quiet HEAD")
     if (get head_ok "status") == 0
         since: "HEAD"
         base_kind: "head"
@@ -84,18 +93,27 @@ if (get verify "status") != 0
         base_kind: "unborn"
 
 -- ---- files of the slice ----
-exclude: " -- . ':!.fluencyloop' ':!docs/fluencyloop'"
+-- Pathspec excludes without shell quoting: exec runs sh -c on POSIX and
+-- cmd /c on Windows, and only POSIX sh strips single quotes. git itself
+-- accepts the unquoted :! exclude form, so this is identical everywhere.
+exclude: " -- . :!.fluencyloop :!docs/fluencyloop"
 
-untracked: split (get (exec (gitc ++ " ls-files --others --exclude-standard" ++ exclude)) "output") "\n"
+untracked: split (get (exec (gcmd ("ls-files --others --exclude-standard" ++ exclude))) "output") "\n"
 fn nonempty s
     (len s) > 0
 untracked: filter untracked nonempty
 
 fn unborn_files dummy
-    split (get (exec (gitc ++ " ls-files --cached --others --exclude-standard" ++ exclude)) "output") "\n"
+    split (get (exec (gcmd ("ls-files --cached --others --exclude-standard" ++ exclude))) "output") "\n"
+
+fn qpath p
+    if win
+        p
+    else
+        "\"" ++ p ++ "\""
 
 fn file_diff f
-    get (exec (gitc ++ " diff --no-index -- /dev/null \"" ++ f ++ "\"")) "output"
+    get (exec (gcmd ("diff --no-index -- /dev/null " ++ (qpath f)))) "output"
 
 -- ---- build the diff ----
 diff_text: ""
@@ -103,10 +121,10 @@ ins: 0
 del: 0
 tracked: 0
 if (len since) > 0
-    diff_text: get (exec (gitc ++ " diff " ++ since ++ exclude)) "output"
+    diff_text: get (exec (gcmd ("diff " ++ since ++ exclude))) "output"
     for f in untracked
         diff_text: diff_text ++ (file_diff f)
-    numstat: split (get (exec (gitc ++ " diff --numstat " ++ since ++ exclude)) "output") "\n"
+    numstat: split (get (exec (gcmd ("diff --numstat " ++ since ++ exclude))) "output") "\n"
     for ln in numstat
         cols: split ln "\t"
         if (len cols) >= 2
@@ -121,7 +139,7 @@ else
     for f in uf
         if file_exists (root ++ "/" ++ f)
             diff_text: diff_text ++ (file_diff f)
-            numstat: split (get (exec (gitc ++ " diff --no-index --numstat -- /dev/null \"" ++ f ++ "\"")) "output") "\n"
+            numstat: split (get (exec (gcmd ("diff --no-index --numstat -- /dev/null " ++ (qpath f)))) "output") "\n"
             for ln in numstat
                 cols: split ln "\t"
                 if (len cols) >= 2
@@ -129,12 +147,12 @@ else
                         ins: ins + (to_num (at cols 0))
                     if (at cols 1) != "-"
                         del: del + (to_num (at cols 1))
-    tracked: len (filter (split (get (exec (gitc ++ " diff --cached --name-status" ++ exclude)) "output") "\n") nonempty)
+    tracked: len (filter (split (get (exec (gcmd ("diff --cached --name-status" ++ exclude))) "output") "\n") nonempty)
 
 files_changed: tracked + (len untracked)
 diff_text: regex_replace "\n+$" "" diff_text
 if (len since) > 0
-    short: trim (get (exec (gitc ++ " rev-parse --short " ++ since)) "output")
+    short: trim (get (exec (gcmd ("rev-parse --short " ++ since))) "output")
 else
     short: "unborn"
 
@@ -221,9 +239,9 @@ if json_mode
     files_json: ""
     sep: ""
     if (len since) > 0
-        statuses: split (get (exec (gitc ++ " diff --name-status " ++ since ++ exclude)) "output") "\n"
+        statuses: split (get (exec (gcmd ("diff --name-status " ++ since ++ exclude))) "output") "\n"
     else
-        statuses: split (get (exec (gitc ++ " diff --cached --name-status" ++ exclude)) "output") "\n"
+        statuses: split (get (exec (gcmd ("diff --cached --name-status" ++ exclude))) "output") "\n"
     for ln in statuses
         cols: split ln "\t"
         if (len cols) >= 2

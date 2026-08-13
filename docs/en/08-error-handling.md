@@ -142,6 +142,7 @@ try_ai
 | Not a function | E004 | Wrap in parens or use builtin | `42(x)` → `42` |
 | Unsupported operator | E005 | Convert operand type | `"hi" - 1` → type fix |
 | Invalid index | E006 | Guard with `len` or use `get` | `list[99]` → guarded access |
+| Recursion too deep | E008 | Reduce recursion depth or restructure with `while` | bounded by depth guard (1024) |
 
 #### Execution Modes
 

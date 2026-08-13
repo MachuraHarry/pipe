@@ -120,6 +120,7 @@ try_ai
 | Keine Funktion | E004 | Klammern oder Builtin |
 | Operator nicht unterstützt | E005 | Typ-Konvertierung |
 | Ungültiger Index | E006 | Guard mit `len` oder `get` |
+| Rekursion zu tief | E008 | Rekursionstiefe reduzieren oder mit `while` umbauen |
 
 #### Ausführungsmodi
 

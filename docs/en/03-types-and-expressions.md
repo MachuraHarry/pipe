@@ -237,7 +237,9 @@ origin.x      -- 0
 -- Field access error on unknown field
 origin.z      -- ERROR: struct Point has no field 'z'
 
--- Dot access only works on structs, maps, and for .message on errors
+-- Dot access works on structs, maps, and on Result error values (.message)
+-- Note: `catch e` binds a plain string with the error message — use it directly:
+--   try ... catch e → print e
 42.x          -- ERROR: cannot use .x on INTEGER
 ```
 

@@ -13,9 +13,10 @@ Pipe bietet ein **deklaratives Sandbox-Profil-System**, um zur Laufzeit einzusch
 
 ```pipe
 -- Oder eigenes Profil im Code definieren
-sandbox_profile "strict" {fs: "read-only", network: false, exec: false, ai: false}
+-- (Hinweis: "strict" ist bereits ein eingebautes Profil — eigenen Namen verwenden)
+sandbox_profile "locked-down" {fs: "read-only", network: false, exec: false, ai: false}
 
-set_sandbox "strict"
+set_sandbox "locked-down"
 
 -- E_SANDBOX: blockiert
 write_file "/tmp/test.txt" "blockiert"
@@ -191,11 +192,17 @@ Die folgenden Builtins prüfen das aktive Sandbox-Profil:
 
 **Ausführung:** `exec`
 
-**Netzwerk:** `http_get`, `http_post`, `http_request`, `http_stream_open`, `tcp_listen`, `tcp_connect`
+**Netzwerk:** `http_get`, `http_post`, `http_request`, `http_stream_open`, `http_server`, `tcp_listen`, `tcp_connect`
 
 **Umgebung:** `env` (liefert unter aktiven Profilen nur die injizierte Profil-Umgebung; geheime Variablennamen wie `*KEY*`/`*TOKEN*`/`*SECRET*` sind immer blockiert)
 
-**KI:** `ai_chat`, `ai_chat_json`, `ai_stream`, `ai_with_tools`, `summarize`, `translate`, `classify`, `extract`, `generate`, `ask`, `ai_parallel`, `ai_batch`, `embed`, `embed_batch`
+**KI:** `ai_chat`, `ai_chat_json`, `ai_stream`, `ai_with_tools`, `summarize`, `translate`, `classify`, `extract`, `generate`, `generate_json`, `ask`, `agent`, `agent_ask`, `ai_parallel`, `ai_batch`, `embed`, `embed_batch`
+
+**Suche (netzwerk-gebeeint):** `web_search`, `wiki_search` machen ausgehende Requests und werden gegen die Netzwerk-Policy (`network`/`network_whitelist`) geprüft, nicht gegen die KI-Policy.
+
+**MCP:** `mcp_use_stdio` startet einen Subprozess und ist daher durch die `exec`-Policy gebeeint; `mcp_use_sse` macht HTTP-Requests und ist durch die Netzwerk-Policy gebeeint, inklusive erneuter Whitelist-Prüfung bei jedem Request samt Redirects.
+
+**Modul-Import:** `import` von URL-Modulen ist durch die Netzwerk-Policy gebeeint; Imports über absolute Dateisystempfade werden gegen die FS-Read-Policy geprüft, sodass `import` keine `read_file`-Beschränkungen umgehen kann.
 
 ---
 
@@ -248,7 +255,7 @@ print (budget_spent)               -- z.B. 0.000079
 try
     print (ask "Funktioniert es noch?")
 catch e
-    print e.message
+    print e
     -- -> E_SANDBOX: budget exceeded (0.0100 USD) in profile 'agent'
 ```
 
@@ -302,7 +309,7 @@ ask "Hallo" > print
 for eintrag in audit_log
     print eintrag.time ++ " | " ++ eintrag.event ++ " | " ++ eintrag.detail
 -- -> ... | http_get | https://example.com
--- -> ... | ai_call | provider=deepseek model=deepseek-chat tokens=50 cost=0.000045 cached=false
+-- -> ... | ai_call | provider=deepseek model=deepseek-v4-flash tokens=50 cost=0.000045 cached=false
 -- -> ... | tool_call | mein_tool
 ```
 

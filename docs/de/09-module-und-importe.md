@@ -120,11 +120,11 @@ Mit `@version` wird eine bestimmte Version eines Moduls angefordert:
 
 ```pipe
 -- exakte Version
-import "log-analyzer@1.0[0]"
--- neueste (implizit @latest)
+import "log-analyzer@1.0.0"
+-- latest (implizit @latest)
 import "log-analyzer"
 -- Version mit Alias
-import "sentiment@0.9[0]" as s
+import "sentiment@0.9.0" as s
 ```
 
 Falls die lokale Datei nicht existiert, fragt Pipe die Registry nach der Versions-URL, lädt das Modul herunter und speichert es im Cache.
@@ -148,7 +148,27 @@ Falls die lokale Datei nicht existiert, fragt Pipe die Registry nach der Version
 - Ohne `@version` wird automatisch `latest` verwendet
 - Legacy-Format mit nur `url`-Feld wird ebenfalls unterstützt
 
-## 9.5 Modul-Struktur
+## 9.5 Remote-Module (URL-Importe)
+
+Pipe kann Module direkt von URLs importieren:
+
+```pipe
+import "https://raw.githubusercontent.com/user/repo/main/module.pipe"
+import "https://example.com/lib/utils.pipe" as utils
+```
+
+URL-Importe werden beim ersten Gebrauch heruntergeladen und in
+`~/.pipe/modules/` gecacht. Spätere Importe verwenden die gecachte Version.
+
+> **Sandbox-Gate:** URL-Importe zählen als **Netzwerkzugriff**. Unter einem
+> Sandbox-Profil, das Netzwerk verbietet (oder mit `-sandbox`-Default), wird
+> ein URL-Import blockiert (`E_SANDBOX: network access blocked for module
+> import`), sofern das Profil keinen Netzwerkzugriff / keine Host-Whitelist
+> erlaubt. Importe mit absolutem Pfad (`/home/.../lib.pipe`) zählen als
+> **Dateisystem-Lesevorgänge** und unterliegen der Lese-Policy des Profils.
+> Siehe [Sandbox-Profile](22-sandbox-profile.md).
+
+## 9.6 Modul-Struktur
 
 Empfohlene Projektstruktur:
 
@@ -163,7 +183,7 @@ mein_projekt/
     └── test_math.pipe     -- Tests
 ```
 
-## 9.6 Best Practices
+## 9.7 Best Practices
 
 ### 1. Exportiere nur, was gebraucht wird
 

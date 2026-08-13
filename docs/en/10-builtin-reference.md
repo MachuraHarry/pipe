@@ -1,6 +1,6 @@
 # 10. Built-in Function Reference
 
-Pipe includes 196 built-in functions organized by category. This chapter documents each function with its signature, description, return type, and usage example.
+Pipe includes 206 built-in functions organized by category. This chapter documents each function with its signature, description, return type, and usage example.
 
 ---
 
@@ -615,7 +615,7 @@ each ([1, 2, 3]) print_x
 
 ---
 
-## 10.5 CSV (2 functions)
+## 10.5 CSV (6 functions)
 
 ### `replace`
 **Signature:** `replace(str, old, new)`
@@ -687,7 +687,7 @@ print csv
 ```
 
 
-## 10.6 Map (4 functions)
+## 10.6 Map (6 functions)
 
 ### `get`
 **Signature:** `get(map, key)`
@@ -757,7 +757,7 @@ values m
 
 ---
 
-## 10.7 Math (6 functions)
+## 10.7 Math (8 functions)
 
 ### `abs`
 **Signature:** `abs(x)`
@@ -861,7 +861,7 @@ floor (-1.5) -- -2
 
 ---
 
-## 10.8 Network & HTTP (6 functions)
+## 10.8 Network & HTTP (8 functions)
 
 ### `http_get`
 **Signature:** `http_get(url)`
@@ -1135,7 +1135,7 @@ coin: random_range 0 1
 
 ---
 
-## 10.13 Cryptography (9 functions)
+## 10.13 Cryptography (8 functions)
 
 > **Note:** Unlike `random` and `random_range` (which use pseudo-random `math/rand`), the `secure_*` functions use `crypto/rand` and are suitable for cryptographic purposes like key generation, tokens, and nonces.
 
@@ -1554,7 +1554,7 @@ unwrap_or (Ok "hi") ""
 ```
 ---
 
-## 10.20 AI — Configuration (7 functions)
+## 10.20 AI — Configuration (6 functions)
 
 ### `ai_provider`
 
@@ -2167,7 +2167,7 @@ print (ai_cache_misses) -- 1
 
 ---
 
-## 10.31 Test Assertions (6 functions)
+## 10.31 Test Assertions (7 functions)
 
 **Note:** `test` blocks and assert builtins are available in all execution modes, but are designed for use with `pipe -test`.
 
@@ -2256,7 +2256,7 @@ test "addition"
 
 ---
 
-## 10.32 Bytes ## 10.31 Bytes & Binary Binary (15 functions)
+## 10.32 Bytes & Binary (15 functions)
 
 ### `to_bytes`
 **Signature:** `to_bytes(value)`
@@ -2601,7 +2601,7 @@ mcp_use_sse "http://localhost:9090/"
 | 30 | `file_truncate` | `file_truncate(handle, size)` | `nil` |
 | 31 | `file_sync` | `file_sync(handle)` | `nil` |
 
-### String (9)
+### String (11)
 
 | # | Function | Signature | Returns |
 |---|----------|-----------|---------|
@@ -2617,7 +2617,7 @@ mcp_use_sse "http://localhost:9090/"
 | 39 | `substring` | `substring(str, start, end)` | `string` |
 | 40 | `index_of` | `index_of(haystack, needle)` | `number` (string or list) |
 
-### List (13)
+### List (14)
 
 | # | Function | Signature | Returns |
 |---|----------|-----------|---------|
@@ -2729,7 +2729,7 @@ mcp_use_sse "http://localhost:9090/"
 | 96 | `random` | `random()` | `number` |
 | 97 | `random_range` | `random_range(min, max)` | `number` (integer) |
 
-### Cryptography (3)
+### Cryptography (8)
 
 | # | Function | Signature | Returns |
 |---|----------|-----------|---------|

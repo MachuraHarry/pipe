@@ -227,8 +227,8 @@ oninput="syncHighlight();scheduleRenderGraph()" onscroll="syncScroll()">"hello w
       <div class="feature-text">
         <h3 data-lang="en" class="active"><span>AI Agents</span> — Sandboxed & Parallel</h3>
         <h3 data-lang="de"><span>KI-Agenten</span> — Sandboxed & Parallel</h3>
-        <p data-lang="en" class="active">Define a tool, register it with the LLM, and let the model call it autonomously. Sandbox profiles lock down <code>exec</code>, <code>write_file</code>, and network access — safe by default. The same code swaps between OpenAI, DeepSeek, and Ollama with one line.</p>
-        <p data-lang="de">Ein Tool definieren, beim LLM registrieren und das Modell autonom aufrufen lassen. Sandbox-Profile sperren <code>exec</code>, <code>write_file</code> und Netzwerkzugriff — standardmäßig sicher. Derselbe Code wechselt mit einer Zeile zwischen OpenAI, DeepSeek und Ollama.</p>
+        <p data-lang="en" class="active">Define a tool, register it with the LLM, and let the model call it autonomously. Sandbox profiles lock down <code>exec</code>, <code>write_file</code>, and network access. The same code swaps between OpenAI, DeepSeek, and Ollama with one line.</p>
+        <p data-lang="de">Ein Tool definieren, beim LLM registrieren und das Modell autonom aufrufen lassen. Sandbox-Profile sperren <code>exec</code>, <code>write_file</code> und Netzwerkzugriff. Derselbe Code wechselt mit einer Zeile zwischen OpenAI, DeepSeek und Ollama.</p>
       </div>
       <div class="feature-code"><div class="bar"><span class="dot" style="background:var(--red)"></span><span class="dot" style="background:var(--orange)"></span><span class="dot" style="background:var(--green)"></span></div><pre><span class="cmt">-- Declare a sandbox: temp files only, network ok, no exec</span>
 <span class="fn">sandbox_profile</span> <span class="str">"agent"</span> {<span class="kw">fs</span>: <span class="str">"temp-only"</span>, <span class="kw">network</span>: <span class="kw">true</span>, <span class="kw">exec</span>: <span class="kw">false</span>, <span class="kw">ai</span>: <span class="kw">true</span>}
@@ -304,7 +304,7 @@ oninput="syncHighlight();scheduleRenderGraph()" onscroll="syncScroll()">"hello w
         <tr><td><span data-lang="en" class="active">Deploy to server</span><span data-lang="de">Auf Server deployen</span></td><td><span data-lang="en" class="active">Docker + venv + pip</span><span data-lang="de">Docker + venv + pip</span></td><td><span data-lang="en" class="active">scp pipe binary</span><span data-lang="de">scp pipe binary</span></td></tr>
         <tr><td><span data-lang="en" class="active">Expose an HTTP API</span><span data-lang="de">HTTP-API bereitstellen</span></td><td><span data-lang="en" class="active">FastAPI + uvicorn + deps</span><span data-lang="de">FastAPI + uvicorn + Deps</span></td><td style="font-family:var(--mono);color:var(--green)">route_get + serve</td></tr>
         <tr><td><span data-lang="en" class="active">Parallel LLM calls</span><span data-lang="de">Parallele LLM-Calls</span></td><td><span data-lang="en" class="active">asyncio.gather() boilerplate</span><span data-lang="de">asyncio.gather()-Boilerplate</span></td><td style="font-family:var(--mono);color:var(--green)">>> operator, ai_batch</td></tr>
-        <tr><td><span data-lang="en" class="active">MCP Server + Client</span><span data-lang="de">MCP Server + Client</span></td><td><span data-lang="en" class="active">Not available</span><span data-lang="de">Nicht verfügbar</span></td><td style="font-family:var(--mono);color:var(--green)">6 MCP builtins, zero deps, any stdio server</td></tr>
+        <tr><td><span data-lang="en" class="active">MCP Server + Client</span><span data-lang="de">MCP Server + Client</span></td><td><span data-lang="en" class="active">Not available</span><span data-lang="de">Nicht verfügbar</span></td><td style="font-family:var(--mono);color:var(--green)">13 MCP builtins, zero deps, any stdio server</td></tr>
         <tr><td><span data-lang="en" class="active">Binary size (with deps)</span><span data-lang="de">Binary-Größe (mit Deps)</span></td><td><span data-lang="en" class="active">~500 MB</span><span data-lang="de">~500 MB</span></td><td><span data-lang="en" class="active">~7 MB</span><span data-lang="de">~7 MB</span></td></tr>
       </table>
     </div>
@@ -323,8 +323,8 @@ oninput="syncHighlight();scheduleRenderGraph()" onscroll="syncScroll()">"hello w
         <div class="icon">⚡</div>
         <h4 data-lang="en" class="active">Ship AI pipelines 10× faster</h4>
         <h4 data-lang="de">KI-Pipelines 10× schneller bauen</h4>
-<p data-lang="en" class="active">18 AI operations are language primitives — not library calls. <code>summarize</code>, <code>translate</code>, <code>classify</code> work without imports, SDKs, or API wrappers.</p>
-<p data-lang="de">18 KI-Operationen sind Sprach-Primitives — keine Library-Calls. <code>summarize</code>, <code>translate</code>, <code>classify</code> funktionieren ohne Imports, SDKs oder API-Wrapper.</p>
+<p data-lang="en" class="active">36 AI operations are language primitives — not library calls. <code>summarize</code>, <code>translate</code>, <code>classify</code> work without imports, SDKs, or API wrappers.</p>
+<p data-lang="de">36 KI-Operationen sind Sprach-Primitives — keine Library-Calls. <code>summarize</code>, <code>translate</code>, <code>classify</code> funktionieren ohne Imports, SDKs oder API-Wrapper.</p>
       </div>
       <div class="card">
         <div class="icon">🔒</div>
@@ -372,8 +372,8 @@ oninput="syncHighlight();scheduleRenderGraph()" onscroll="syncScroll()">"hello w
         <div class="icon">🔌</div>
         <h4 data-lang="en" class="active">VSCode & CI/CD ready</h4>
         <h4 data-lang="de">VSCode & CI/CD ready</h4>
-        <p data-lang="en" class="active">LSP-powered IntelliSense: completion, hover docs, go-to-definition, diagnostics. GitHub Action runs Pipe in CI — no install, sandboxed by default.</p>
-        <p data-lang="de">LSP-powered IntelliSense: Completion, Hover-Docs, Go-to-Definition, Diagnostics. GitHub Action führt Pipe in CI aus — keine Installation, standardmäßig sandboxed.</p>
+        <p data-lang="en" class="active">LSP-powered IntelliSense: completion, hover docs, go-to-definition, diagnostics. GitHub Action runs Pipe in CI — no install, sandbox profiles on demand.</p>
+        <p data-lang="de">LSP-powered IntelliSense: Completion, Hover-Docs, Go-to-Definition, Diagnostics. GitHub Action führt Pipe in CI aus — keine Installation, Sandbox-Profile bei Bedarf.</p>
       </div>
       <div class="card">
         <div class="icon">⚙️</div>
@@ -407,8 +407,8 @@ oninput="syncHighlight();scheduleRenderGraph()" onscroll="syncScroll()">"hello w
         <div class="icon">🚀</div>
         <h4 data-lang="en" class="active">Self-Contained Binaries</h4>
         <h4 data-lang="de">Eigenständige Binaries</h4>
-        <p data-lang="en" class="active"><code>pipe -build</code> embeds your script + modules into a single executable. <code>pipe -build -upx</code> compresses to ~2.8 MB. Ship one file, zero dependencies.</p>
-        <p data-lang="de"><code>pipe -build</code> bettet dein Skript + Module in eine einzige Binary ein. <code>pipe -build -upx</code> komprimiert auf ~2,8 MB. Eine Datei, null Abhängigkeiten.</p>
+        <p data-lang="en" class="active"><code>pipe -build</code> embeds your script + modules into a single executable. <code>pipe -build -upx</code> compresses to ~2.9 MB. Ship one file, zero dependencies.</p>
+        <p data-lang="de"><code>pipe -build</code> bettet dein Skript + Module in eine einzige Binary ein. <code>pipe -build -upx</code> komprimiert auf ~2,9 MB. Eine Datei, null Abhängigkeiten.</p>
       </div>
     </div>
   </div>
@@ -449,14 +449,14 @@ oninput="syncHighlight();scheduleRenderGraph()" onscroll="syncScroll()">"hello w
 <!-- Builtins -->
 <section id="builtins" style="background:var(--bg2)">
   <div class="container">
-     <div class="section-head"><h2 data-lang="en" class="active"><span>31 AI + MCP Builtins</span> (18 ai_* + 13 mcp_*) + 175 Standard = 206 Total</h2><h2 data-lang="de"><span>31 KI + MCP-Builtins</span> (18 ai_* + 13 mcp_*) + 175 Standard = 206 Gesamt</h2></div>
+     <div class="section-head"><h2 data-lang="en" class="active"><span>49 AI + MCP Builtins</span> (36 AI + 13 MCP) + 157 Standard = 206 Total</h2><h2 data-lang="de"><span>49 KI + MCP-Builtins</span> (36 KI + 13 MCP) + 157 Standard = 206 Gesamt</h2></div>
     <div class="builtins-grid reveal">
       <div class="builtin-group"><h4>🧠 Understanding</h4><table><tr><td>summarize</td><td>Text summarization</td></tr><tr><td>translate</td><td>Translation</td></tr><tr><td>classify</td><td>Classification</td></tr><tr><td>extract</td><td>Data extraction (JSON)</td></tr><tr><td>ask</td><td>Question answering</td></tr><tr><td>generate</td><td>Free-text generation</td></tr></table></div>
       <div class="builtin-group"><h4>⚡ Speed & Parallel</h4><table><tr><td>ai_stream</td><td>Real-time token streaming</td></tr><tr><td>ai_batch</td><td>Auto-parallel batch</td></tr><tr><td>ai_parallel</td><td>Concurrency control</td></tr><tr><td>ai_rate_limit</td><td>Rate limiting</td></tr><tr><td>ai_chat</td><td>Low-level chat</td></tr><tr><td>ai_chat_json</td><td>Chat → structured JSON</td></tr></table></div>
       <div class="builtin-group"><h4>🔍 Embeddings & Search</h4><table><tr><td>embed</td><td>Text → vector</td></tr><tr><td>embed_batch</td><td>Batch embeddings</td></tr><tr><td>cosine_sim</td><td>Semantic similarity</td></tr><tr><td>dot_product</td><td>Dot product</td></tr><tr><td>nearest</td><td>Top-K nearest</td></tr></table></div>
       <div class="builtin-group"><h4>🤖 Tool Calling & Config</h4><table><tr><td>ai_tool</td><td>Register function as tool</td></tr><tr><td>ai_with_tools</td><td>Chat with tool access</td></tr><tr><td>ai_provider</td><td>Select AI provider</td></tr><tr><td>ai_model</td><td>Select model</td></tr><tr><td>ai_timeout</td><td>Set timeout</td></tr></table></div>
-      <div class="builtin-group"><h4>🔌 MCP — Model Context Protocol</h4><table><tr><td>mcp_server</td><td>Create MCP server</td></tr><tr><td>mcp_serve_stdio</td><td>Start stdio server</td></tr><tr><td>mcp_serve_sse</td><td>Start HTTP server</td></tr><tr><td>mcp_tools</td><td>List tools</td></tr><tr><td>mcp_use_stdio</td><td>Connect to MCP server</td></tr><tr><td>mcp_use_sse</td><td>Connect via HTTP</td></tr></table></div>
-      <div class="builtin-group"><h4>🔒 Sandbox Profiles</h4><table><tr><td>sandbox_profile</td><td>Define a sandbox profile</td></tr><tr><td>set_sandbox</td><td>Activate a profile</td></tr><tr><td>with_sandbox</td><td>Temp profile override</td></tr></table></div>
+      <div class="builtin-group"><h4>🔌 MCP — Model Context Protocol</h4><table><tr><td>mcp_server</td><td>Create MCP server</td></tr><tr><td>mcp_serve_stdio</td><td>Start stdio server</td></tr><tr><td>mcp_serve_sse</td><td>Start HTTP server</td></tr><tr><td>mcp_tools</td><td>List tools</td></tr><tr><td>mcp_resource</td><td>Define resource</td></tr><tr><td>mcp_resource_template</td><td>Dynamic resource</td></tr><tr><td>mcp_prompt</td><td>Define prompt</td></tr><tr><td>mcp_resources</td><td>List resources</td></tr><tr><td>mcp_read_resource</td><td>Read resource</td></tr><tr><td>mcp_prompts</td><td>List prompts</td></tr><tr><td>mcp_prompt_get</td><td>Get prompt</td></tr><tr><td>mcp_use_stdio</td><td>Connect to MCP server</td></tr><tr><td>mcp_use_sse</td><td>Connect via HTTP</td></tr></table></div>
+      <div class="builtin-group"><h4>🔒 Sandbox Profiles</h4><table><tr><td>sandbox_profile</td><td>Define a sandbox profile</td></tr><tr><td>set_sandbox</td><td>Activate a profile</td></tr><tr><td>with_sandbox</td><td>Temp profile override</td></tr><tr><td>sandbox_lock</td><td>Lock sandbox state</td></tr></table></div>
       <div class="builtin-group"><h4>🧪 Testing</h4><table><tr><td>test</td><td>Grouped test block</td></tr><tr><td>assert</td><td>Truthy check</td></tr><tr><td>assert_eq</td><td>Equality check</td></tr><tr><td>assert_lt</td><td>Less-than check</td></tr><tr><td>assert_gt</td><td>Greater-than check</td></tr><tr><td>assert_error</td><td>Expect an error</td></tr></table></div>
     </div>
   </div>
@@ -491,8 +491,8 @@ oninput="syncHighlight();scheduleRenderGraph()" onscroll="syncScroll()">"hello w
         <div style="font-size:2rem;margin-bottom:8px">🔄</div>
         <h4 data-lang="en" class="active">CI/CD Action</h4>
         <h4 data-lang="de">CI/CD-Action</h4>
-        <p data-lang="en" class="active">Run Pipe in GitHub Actions. Sandboxed by default. No installation. AI-enabled on demand.</p>
-        <p data-lang="de">Pipe in GitHub Actions ausführen. Standardmäßig sandboxed. Keine Installation. KI bei Bedarf aktivierbar.</p>
+        <p data-lang="en" class="active">Run Pipe in GitHub Actions. No installation. AI-enabled on demand. Add sandbox on demand via the <code>flags</code> input (e.g. <code>-vm -q --sandbox</code>).</p>
+        <p data-lang="de">Pipe in GitHub Actions ausführen. Keine Installation. KI bei Bedarf aktivierbar. Sandbox bei Bedarf über den <code>flags</code>-Input (z. B. <code>-vm -q --sandbox</code>).</p>
         <a href="docs.html#ecosystem" class="cta-secondary" style="display:inline-block;margin-top:12px;font-size:0.8rem;padding:10px 22px">GitHub Action Docs</a>
       </div>
     </div>

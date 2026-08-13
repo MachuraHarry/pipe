@@ -1,4 +1,7 @@
-.PHONY: build run test clean repl api lsp vsix fmt
+.PHONY: build run test clean repl api lsp vsix fmt stats
+
+stats:
+	go run ./scripts/stats
 
 build:
 	go build -ldflags="-s -w" -trimpath -o bin/pipe ./cmd/pipe

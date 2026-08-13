@@ -1,6 +1,6 @@
 # 10. Builtin-Referenz
 
-Pipe hat **181 eingebaute Funktionen** — keine externen Abhängigkeiten
+Pipe hat **206 eingebaute Funktionen** — keine externen Abhängigkeiten
 (alle in Go implementiert, nutzen nur die Standardbibliothek).
 
 Die Builtins sind in **allen Ausführungsmodi** verfügbar (Tree-Walker und VM).
@@ -882,7 +882,7 @@ print (random_range 1 101)
 
 ---
 
-## 10.12 Kryptographie (9 Funktionen)
+## 10.12 Kryptographie (8 Funktionen)
 
 > **Hinweis:** Im Gegensatz zu `random` und `random_range` (die `math/rand` verwenden) nutzen diese Funktionen `crypto/rand` und sind für kryptografische Zwecke wie Schlüsselgenerierung, Token und Nonces geeignet.
 
@@ -968,7 +968,7 @@ sig: hmac_sha512 "key" "data"
 
 ---
 
-## 10.14 Encoding
+## 10.13 Encoding (2 Funktionen)
 
 ### base64_encode
 ```
@@ -992,7 +992,7 @@ print (base64_decode "SGFsbG8=")
 
 ---
 
-## 10.15 Typ-Prüfung
+## 10.14 Typ-Prüfung (6 Funktionen)
 
 ### type_of
 ```
@@ -1085,7 +1085,7 @@ print (is_nil 0)
 
 ---
 
-## 10.16 Typ-Konvertierung
+## 10.15 Typ-Konvertierung (2 Funktionen)
 
 ### to_str
 ```
@@ -1122,7 +1122,7 @@ print (to_num false)
 
 ---
 
-## 10.17 Result-Typ
+## 10.16 Result-Typ (6 Funktionen)
 
 ### Ok
 ```
@@ -1195,7 +1195,7 @@ print (unwrap_or (Err "x") 0)
 
 ---
 
-## 10.16 Konkurrenz (Tree-Walker only)
+## 10.17 Konkurrenz (Tree-Walker only)
 
 ### go
 ```
@@ -1211,7 +1211,7 @@ print "Hauptprogramm"
 
 ---
 
-## 10.17 Sandbox (5 Funktionen)
+## 10.18 Sandbox (5 Funktionen)
 
 ### sandbox_profile
 ```
@@ -1275,7 +1275,7 @@ print (budget_spent)
 
 ---
 
-## 10.18 KI — Kosten-Tracking (4 Funktionen)
+## 10.19 KI — Kosten-Tracking (4 Funktionen)
 
 ### ai_cost
 ```
@@ -1317,7 +1317,7 @@ print (ai_cache_misses) -- 1
 
 ---
 
-## 10.19 Bytes und Binär (15 Funktionen)
+## 10.20 Bytes und Binär (15 Funktionen)
 
 ### to_bytes
 ```
@@ -1473,7 +1473,7 @@ print (crc32 "hello")
 
 ---
 
-## 10.20 MCP — Model Context Protocol (13 Funktionen)
+## 10.21 MCP — Model Context Protocol (13 Funktionen)
 
 Pipe implementiert das Model Context Protocol sowohl als **Server** (stellt Tools, Ressourcen und Prompts für externe Clients wie Claude Desktop bereit) als auch als **Client** (nutzt externe MCP-Server in `ai_with_tools`). Transporte: stdio und Streamable HTTP. Die vollständige Anleitung steht in [Kapitel 25](25-mcp.md).
 
@@ -1608,7 +1608,7 @@ mcp_use_sse "http://localhost:9090/"
 
 ---
 
-## 10.21 Übersicht aller Builtins
+## 10.22 Übersicht aller Builtins
 
 ### IO & System (8)
 `print`, `input`, `exec`, `env`, `sleep`, `args`, `read_stdin`, `go`
@@ -1653,10 +1653,10 @@ mcp_use_sse "http://localhost:9090/"
 `random`, `random_range`
 
 ### Encoding (2)
+`base64_encode`, `base64_decode`
 
 ### CSV (2)
 `csv_parse`, `csv_format`
-`base64_encode`, `base64_decode`
 
 ### Hashing (4)
 `sha256`, `md5`, `sha1`, `sha512`
@@ -1725,7 +1725,7 @@ Siehe das Kapitel [SQLite-Modul](26-sqlite-modul.md) für Architektur-Details un
 ### KI — Streaming (1)
 `ai_stream`
 
-### KI — Convenience (8)
+### KI — Convenience (7)
 `summarize`, `translate`, `classify`, `extract`, `generate`, `generate_json`, `ask`
 
 ### KI — Parallel (3)
@@ -1734,7 +1734,7 @@ Siehe das Kapitel [SQLite-Modul](26-sqlite-modul.md) für Architektur-Details un
 ### KI — Tool Calling (2)
 `ai_tool`, `ai_with_tools`
 
-### KI — Agenten (4)
+### KI — Agenten (3)
 `agent`, `agent_ask`, `agent_clear`
 
 ### KI — Embeddings (5)
@@ -1757,4 +1757,4 @@ Siehe das Kapitel [SQLite-Modul](26-sqlite-modul.md) für Architektur-Details un
 `mcp_resource_template`, `mcp_prompt`, `mcp_resources`, `mcp_read_resource`,
 `mcp_prompts`, `mcp_prompt_get`, `mcp_use_stdio`, `mcp_use_sse`
 
-**Gesamt: 181 Builtins**
+**Gesamt: 206 Builtins**

@@ -43,7 +43,7 @@ Sie kompiliert den AST zu Bytecode und führt ihn effizient aus.
 - **Stack-Größe**: 2048 Werte
 - **Maximale Frames**: 1024
 
-## 13.3 Alle Opcodes (47)
+## 13.3 Alle Opcodes (42)
 
 ### Konstanten & Literale
 
@@ -100,7 +100,6 @@ Sie kompiliert den AST zu Bytecode und führt ihn effizient aus.
 | `OpGetLocal` | idx (2 Bytes) | Lokale Variable auf Stack |
 | `OpSetLocal` | idx (2 Bytes) | Lokalen Wert setzen (peek) |
 | `OpGetBuiltin` | idx (2 Bytes) | Builtin-Funktion auf Stack |
-| `OpGetFree` | idx (2 Bytes) | Free-Variable (Closure) auf Stack |
 
 ### Kontrollfluss
 
@@ -116,9 +115,11 @@ Sie kompiliert den AST zu Bytecode und führt ihn effizient aus.
 | Opcode | Operanden | Beschreibung |
 |--------|-----------|-------------|
 | `OpCall` | num_args (2 Bytes) | Funktion mit N Argumenten aufrufen |
+| `OpSpawn` | num_args (2 Bytes) | Parallelen Aufruf starten (für `>>`-Pipelines) |
 | `OpReturn` | — | Zurückkehren (nil) |
 | `OpReturnValue` | — | Zurückkehren (obersten Wert vom Stack) |
 | `OpClosure` | const_idx, num_free (2+2 Bytes) | Closure aus CompiledFunction + Free-Vars erstellen |
+| `OpGetFree` | idx (2 Bytes) | Free-Variable (Closure) auf Stack |
 | `OpHalt` | — | Programm beenden |
 
 ### Datenstrukturen
@@ -128,6 +129,13 @@ Sie kompiliert den AST zu Bytecode und führt ihn effizient aus.
 | `OpList` | num_elems (2 Bytes) | Liste aus N Stack-Werten erstellen |
 | `OpMap` | num_pairs (2 Bytes) + key_idxs | Map aus N×2 Stack-Werten erstellen |
 | `OpDot` | key_idx (2 Bytes) | Feldzugriff auf Map (Dot-Notation) |
+| `OpStruct` | num_fields (2 Bytes) + feldnamen-idxs | Struktur aus N Stack-Werten + Feldnamen erstellen |
+
+### KI
+
+| Opcode | Operanden | Beschreibung |
+|--------|-----------|-------------|
+| `OpTryAIFix` | — | Quelltext-String poppen, `try_ai`-Fix ausführen, Ergebnis pushen |
 
 ## 13.4 Wie Kompilierung funktioniert
 
@@ -259,4 +267,9 @@ Die Symbol-Tabelle wird während der Kompilierung aufgebaut:
 | `MaxFrames` | 1024 |
 | `GlobalsSize` | 65536 |
 
-Stack-Overflow führt zu einem Laufzeitfehler.
+Der Rekursions-Guard (`MaxCallDepth = 1024`) begrenzt die Frame-Tiefe in der VM
+(und im Tree-Walker) und verwandelt unbegrenzte Rekursion in einen **fangbaren
+Fehler** (`E008: call stack depth exceeded (1024)`) statt in einen Absturz. Eine
+erschöpfte Operanden-Stack wird als `"stack overflow: recursion too deep
+(operand stack exhausted)"` abgefangen. Beides sind Error-Objekte und können
+mit `try/catch` behandelt werden — siehe Kapitel 8.

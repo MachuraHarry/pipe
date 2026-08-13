@@ -468,8 +468,8 @@ a[data-lang].active { display: inline-block; }
       <div class="ex-num">11</div>
       <h3 data-lang="en" class="active">Pipe in GitHub Actions</h3>
       <h3 data-lang="de">Pipe in GitHub Actions</h3>
-      <p class="ex-desc" data-lang="en" class="active">The official pipe-action runs any Pipe script or test suite in CI — no setup, sandboxed by default, AI-enabled on demand.</p>
-      <p class="ex-desc" data-lang="de">Die offizielle pipe-action führt jedes Pipe-Skript oder jede Test-Suite in der CI aus — ohne Setup, standardmäßig sandboxed, KI bei Bedarf.</p>
+      <p class="ex-desc" data-lang="en" class="active">The official pipe-action runs any Pipe script or test suite in CI — no setup, AI-enabled on demand, sandbox on demand via flags.</p>
+      <p class="ex-desc" data-lang="de">Die offizielle pipe-action führt jedes Pipe-Skript oder jede Test-Suite in der CI aus — ohne Setup, KI bei Bedarf, Sandbox bei Bedarf über Flags.</p>
       <pre class="example-code"><span class="cmt"># .github/workflows/pipe.yml</span>
 <span class="kw">on</span>: [push]
 
@@ -480,7 +480,7 @@ jobs:
       - <span class="kw">uses</span>: actions/checkout@v4
       - <span class="kw">uses</span>: MachuraHarry/pipe/pipe-action@master
         <span class="kw">with</span>:
-          <span class="fn">sandbox</span>: true
+          <span class="fn">flags</span>: "-vm -q --sandbox"
           <span class="fn">script</span>: |
             test "ci"
                 assert_eq (1 + 1) 2
@@ -488,8 +488,8 @@ jobs:
       <div class="example-flow">
         <h4 data-lang="en" class="active">Pipeline Flow</h4>
         <h4 data-lang="de">Pipeline-Ablauf</h4>
-        <p data-lang="en" class="active">The action downloads a prebuilt Pipe binary, runs your script or <code>test</code> blocks, and fails the job on any assertion error. <code>sandbox: true</code> blocks AI, exec, network, and filesystem writes; <code>allow-ai: true</code> plus a provider key re-enables AI builtins. The same action powers this project's own <code>live-demo.yml</code> — Pipe's CI is written in Pipe.</p>
-        <p data-lang="de">Die Action lädt eine vorgefertigte Pipe-Binary herunter, führt dein Skript oder deine <code>test</code>-Blöcke aus und lässt den Job bei jedem Assertion-Fehler fehlschlagen. <code>sandbox: true</code> blockiert KI, exec, Netzwerk und Dateisystem-Schreibzugriffe; <code>allow-ai: true</code> plus Provider-Key aktiviert die KI-Builtins wieder. Dieselbe Action betreibt auch das eigene <code>live-demo.yml</code> — Pipes CI ist in Pipe geschrieben.</p>
+        <p data-lang="en" class="active">The action downloads a prebuilt Pipe binary and runs your code via the <code>script</code>/<code>file</code> inputs (extra args via <code>flags</code>, default <code>-vm -q</code>), failing the job on any assertion error. Adding <code>--sandbox</code> blocks AI, exec, network, and filesystem writes; <code>--allow-ai</code> or the action's <code>provider</code> input re-enables AI builtins. The same action powers this project's own <code>live-demo.yml</code> — Pipe's CI is written in Pipe.</p>
+        <p data-lang="de">Die Action lädt eine vorgefertigte Pipe-Binary herunter und führt deinen Code über die <code>script</code>-/<code>file</code>-Inputs aus (weitere Argumente via <code>flags</code>, Default <code>-vm -q</code>) und lässt den Job bei jedem Assertion-Fehler fehlschlagen. <code>--sandbox</code> blockiert KI, exec, Netzwerk und Dateisystem-Schreibzugriffe; <code>--allow-ai</code> oder der <code>provider</code>-Input aktiviert die KI-Builtins wieder. Dieselbe Action betreibt auch das eigene <code>live-demo.yml</code> — Pipes CI ist in Pipe geschrieben.</p>
       </div>
     </div>
 

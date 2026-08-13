@@ -132,47 +132,55 @@ Comparisons support integers, floats, strings (equality only), and booleans (equ
 
 | Opcode | Index | Operands | Description |
 |--------|-------|----------|-------------|
-| `OpMinus` | 18 | 0 | Pop one value, push its arithmetic negation (`-x`) |
-| `OpNot` | 19 | 0 | Pop one value, push logical negation (`!x`) |
-| `OpConcat` | 20 | 0 | Pop two strings, push `left ++ right` |
-
-### Variables
-
-| Opcode | Index | Operands | Description |
-|--------|-------|----------|-------------|
-| `OpGetGlobal` | 21 | 1 (index, 16-bit) | Push a global variable by index |
-| `OpSetGlobal` | 22 | 1 (index, 16-bit) | Set a global variable by index (stores `peek()`) |
-| `OpGetLocal` | 23 | 1 (index, 16-bit) | Push a local variable: `stack[basePointer + idx]` |
-| `OpSetLocal` | 24 | 1 (index, 16-bit) | Set a local variable: `stack[basePointer + idx] = peek()` |
-| `OpGetBuiltin` | 25 | 1 (index, 16-bit) | Push a builtin function wrapper by index |
-| `OpGetFree` | 26 | 1 (index, 16-bit) | Push a free variable from the closure's captured values |
+| `OpConcat` | 18 | 0 | Pop two strings, push `left ++ right` |
+| `OpMinus` | 19 | 0 | Pop one value, push its arithmetic negation (`-x`) |
+| `OpNot` | 20 | 0 | Pop one value, push logical negation (`!x`) |
 
 ### Control Flow
 
 | Opcode | Index | Operands | Description |
 |--------|-------|----------|-------------|
-| `OpJump` | 27 | 1 (target, 16-bit) | Unconditional jump: set `ip = target` |
-| `OpJumpNotTruthy` | 28 | 1 (target, 16-bit) | Pop a value; if not truthy, set `ip = target` |
-| `OpJumpBackward` | 29 | 1 (target, 16-bit) | Unconditional backward jump (for loops) |
-| `OpCheckError` | 30 | 0 | Push `true` if stack top is an `Error` object, else `false` |
+| `OpJump` | 21 | 1 (target, 16-bit) | Unconditional jump: set `ip = target` |
+| `OpJumpNotTruthy` | 22 | 1 (target, 16-bit) | Pop a value; if not truthy, set `ip = target` |
+| `OpJumpBackward` | 23 | 1 (target, 16-bit) | Unconditional backward jump (for loops) |
+| `OpCheckError` | 39 | 0 | Push `true` if stack top is an `Error` object, else `false` |
+
+### Variables
+
+| Opcode | Index | Operands | Description |
+|--------|-------|----------|-------------|
+| `OpGetGlobal` | 24 | 1 (index, 16-bit) | Push a global variable by index |
+| `OpSetGlobal` | 25 | 1 (index, 16-bit) | Set a global variable by index (stores `peek()`) |
+| `OpGetLocal` | 26 | 1 (index, 16-bit) | Push a local variable: `stack[basePointer + idx]` |
+| `OpSetLocal` | 27 | 1 (index, 16-bit) | Set a local variable: `stack[basePointer + idx] = peek()` |
+| `OpGetBuiltin` | 28 | 1 (index, 16-bit) | Push a builtin function wrapper by index |
 
 ### Functions
 
 | Opcode | Index | Operands | Description |
 |--------|-------|----------|-------------|
-| `OpCall` | 31 | 1 (arg count, 16-bit) | Call a function with N arguments on the stack |
-| `OpReturn` | 32 | 0 | Return from a function, pushing `nil` |
-| `OpReturnValue` | 33 | 0 | Return from a function, pushing the return value |
-| `OpClosure` | 34 | 2 (const index, free count; both 16-bit) | Create a closure from a compiled function constant |
-| `OpHalt` | 35 | 0 | Halt VM execution immediately |
+| `OpCall` | 29 | 1 (arg count, 16-bit) | Call a function with N arguments on the stack |
+| `OpSpawn` | 30 | 1 (arg count, 16-bit) | Spawn a parallel call (for `>>` pipelines) on a worker goroutine |
+| `OpReturn` | 31 | 0 | Return from a function, pushing `nil` |
+| `OpReturnValue` | 32 | 0 | Return from a function, pushing the return value |
+| `OpClosure` | 33 | 2 (const index, free count; both 16-bit) | Create a closure from a compiled function constant |
+| `OpGetFree` | 38 | 1 (index, 16-bit) | Push a free variable from the closure's captured values |
 
 ### Data Structures
 
 | Opcode | Index | Operands | Description |
 |--------|-------|----------|-------------|
-| `OpList` | 36 | 1 (elem count, 16-bit) | Pop N elements, push a `List` object |
-| `OpMap` | 37 | 1+ (pair count + key indices) | Pop N values, push a `Map` with string keys from constants |
-| `OpDot` | 38 | 1 (key index, 16-bit) | Pop an object, push `obj.field` (lookup in constant pool) |
+| `OpList` | 34 | 1 (elem count, 16-bit) | Pop N elements, push a `List` object |
+| `OpMap` | 35 | 1+ (pair count + key indices) | Pop N values, push a `Map` with string keys from constants |
+| `OpDot` | 36 | 1 (key index, 16-bit) | Pop an object, push `obj.field` (lookup in constant pool) |
+| `OpHalt` | 37 | 0 | Halt VM execution immediately |
+| `OpStruct` | 41 | 1+ (field count + field-name constant indices) | Pop N values, push a `Struct` with field names from constants |
+
+### AI
+
+| Opcode | Index | Operands | Description |
+|--------|-------|----------|-------------|
+| `OpTryAIFix` | 40 | 0 | Pop a source string, run `try_ai` fix, push the fixed result |
 
 ## Instruction Encoding
 
@@ -381,4 +389,9 @@ This mechanism ensures that closures correctly capture variables from enclosing 
 | Constant pool | 65536 entries | Maximum size (limited by 16-bit index) |
 | Bytecode size | 65536 bytes | Maximum instruction stream size (16-bit jump targets) |
 
-Exceeding stack capacity triggers a runtime panic (`"stack overflow"`). Exceeding max frames triggers `"stack overflow: too many frames"`.
+The recursion guard (`MaxCallDepth = 1024`) caps the frame depth in the VM (and
+in the tree-walker) and turns unbounded recursion into a **catchable error**
+(`E008: call stack depth exceeded (1024)`), not a crash. Exhausting the operand
+stack itself is recovered as `"stack overflow: recursion too deep (operand
+stack exhausted)"`. Both are Error objects, so `try/catch` can handle them —
+see Chapter 8.

@@ -142,7 +142,22 @@ try_ai
 | Not a function | E004 | Wrap in parens or use builtin | `42(x)` → `42` |
 | Unsupported operator | E005 | Convert operand type | `"hi" - 1` → type fix |
 | Invalid index | E006 | Guard with `len` or use `get` | `list[99]` → guarded access |
-| Recursion too deep | E008 | Reduce recursion depth or restructure with `while` | bounded by depth guard (1024) |
+
+Only E001–E006 are AI-fixable. **E008 is not**: the recursion guard
+(`MaxCallDepth = 1024`) caps the call depth in both engines and raises
+`E008: call stack depth exceeded (1024)`. Because the guard runs before the Go
+stack can be exhausted, the error is a **catchable Error object** — `try/catch`
+can handle it, but `try_ai` will not attempt to fix it:
+
+```pipe
+try
+    fn loop n
+        loop (n + 1)
+    loop 0
+catch e
+    print "Caught: " ++ e
+    -- -> Caught: E008: call stack depth exceeded (1024)
+```
 
 #### Execution Modes
 

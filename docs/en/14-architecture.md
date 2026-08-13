@@ -165,9 +165,9 @@ print "a" "b" "c"
 
 ## AST (`pkg/ast/`)
 
-The AST defines 34 node types implemented in ~417 lines: 12 statements, 20 expressions, the root `Program`, and the `MatchCase` helper node.
+The AST defines 36 node types implemented in ~433 lines: 13 statements, 20 expressions, the root `Program`, and the `MatchCase`/`StructField` helper nodes.
 
-### 12 Statements
+### 13 Statements
 
 | Node | Description |
 |------|-------------|
@@ -183,6 +183,7 @@ The AST defines 34 node types implemented in ~417 lines: 12 statements, 20 expre
 | `ExportStatement` | Symbol export (wraps an `FnStatement`) |
 | `EnumStatement` | Enumeration definition |
 | `TestStatement` | Test block: `test "name": ...` |
+| `StructStatement` | Struct definition |
 
 ### 20 Expressions
 

@@ -8,7 +8,7 @@
 [![GitHub MCP Registry](https://img.shields.io/badge/GitHub_MCP_Registry-Listed-6e5494.svg)](https://github.com/mcp/io.github.MachuraHarry/pipe)
 [![MCP Registry](https://img.shields.io/badge/MCP_Registry-Listed-4a90d9.svg)](https://registry.modelcontextprotocol.io/?q=MachuraHarry)
 
-> **The first language with built-in MCP — server and client. 198 builtins, single ~7 MB binary. Zero dependencies.**
+> **The first language with built-in MCP — server and client. 206 builtins, single ~7 MB binary. Zero dependencies.**
 > **Officially listed in the [GitHub MCP Registry](https://github.com/mcp/io.github.MachuraHarry/pipe)** — one-click install for GitHub Copilot & VS Code. Also in the [official MCP Registry](https://registry.modelcontextprotocol.io/?q=MachuraHarry) (v0.9.3.5, active).
 
 ## Quick Install
@@ -191,13 +191,13 @@ d.d_webhook_embed (env "DISCORD_WEBHOOK") {
 | **Switch AI provider**   | Rewrite SDK calls              | `ai_provider "deepseek"`       |
 | **Deploy to server**     | Docker + venv + pip            | `scp pipe binary`              |
 | **Parallel LLM calls**   | `asyncio.gather()` boilerplate | `>>` operator, `ai_batch`      |
-| **MCP Server + Client**  | Library-dependent              | 7 builtins, zero deps, 100+ servers |
+| **MCP Server + Client**  | Library-dependent              | 13 builtins, zero deps, 100+ servers |
 | **Binary size**          | ~500 MB (with deps)            | ~7 MB                          |
 
 ## Features
 
 - **MCP-native** — 6 builtins for MCP Server + Client. Pure Go stdlib. Connect to any stdio MCP server
-- **Ship AI pipelines 10× faster** — 18 AI + 6 MCP builtins: no imports, no SDKs, no API wrappers
+- **Ship AI pipelines 10× faster** — 36 AI + 13 MCP builtins: no imports, no SDKs, no API wrappers
 - **Lock down AI agents in one line** — Declarative sandbox profiles: restrict `exec`, `write_file`, `http_get` with a single block
 - **Deploy in seconds** — One statically-linked ~7 MB binary. No venv, no pip, no Docker. Linux, macOS, Windows, Raspberry Pi, or your browser via WebAssembly
 - **3 LLM calls in 1.5s, not 4s** — `>>` starts any pipeline stage in the background. Futures auto-resolve. `ai_batch` handles hundreds of texts concurrently with built-in rate limiting
@@ -263,22 +263,22 @@ Syntax highlighting and full IntelliSense for `.pipe` files, powered by a Langua
 - Format document, auto-completion of brackets, auto-indent and code folding
 
 ```sh
-make vsix     # builds the server and packages vscode/pipe-syntax-0.1.0.vsix
+make vsix     # builds the server and packages vscode/pipe-syntax-0.9.5.vsix
 ```
 
 Or run the extension in development with F5 from the `vscode/` folder. See [VSCode Extension Documentation](docs/en/15-vscode-extension.md).
 
 ## Module Ecosystem
 
-Pipe has a [curated module library](https://github.com/MachuraHarry/pipe-modules) — **23 reusable modules** with version pinning:
+Pipe has a [curated module library](https://github.com/MachuraHarry/pipe-modules) — **21 reusable modules** (2 more in development) with version pinning:
 
 | Infrastructure | Data & CLI | AI & Agents | DevTools | Social |
 |---|---|---|---|---|
 | `pipe-http` | `sqlite` | `rag-pipe` 🆕 | `pipe-test` | `discord` 🆕 |
 | `pipe-cli` | `jpipe` | `log-analyzer` | `pipe-validate` 🆕 | `x` 🆕 (in dev) |
 | `pipe-orm` 🆕 | `pipe-tpl` | `sentiment` | | `telegram-bot` |
-| `pipe-web` 🆕 | `pipe-date` | `code-review` | | |
-| | | `translate-batch` | | |
+| `pipe-web` 🆕 | `pipe-date` | `code-review` | | `discord` (in dev) |
+| | | `translate-batch` | | `x` (in dev) |
 | | | `changelog-gen` | | |
 | | | `email-classifier` | | |
 | | | `incident-report` | | |
@@ -312,7 +312,7 @@ index_search idx "language" 3 > each print
 | Tree-Walker | `./bin/pipe script.pipe` | Baseline |
 | Bytecode VM | `./bin/pipe -vm -q script.pipe` | ~7× faster |
 
-## 24 AI + MCP Builtins (18 AI + 6 MCP)
+## 49 AI + MCP Builtins (36 AI + 13 MCP)
 
 ### Understanding
 `summarize`, `translate`, `classify`, `extract`, `ask`, `generate`, `generate_json`
@@ -326,11 +326,11 @@ index_search idx "language" 3 > each print
 ### Agents & Tools
 `agent`, `agent_ask`, `agent_clear`, `ai_tool`, `ai_with_tools`
 
-### MCP — Model Context Protocol
-`mcp_server`, `mcp_serve_stdio`, `mcp_serve_sse`, `mcp_tools`, `mcp_use_stdio`, `mcp_use_sse`
+### Config & Cost
+`ai_provider`, `ai_model`, `ai_host`, `ai_set_key`, `ai_timeout`, `ai_cache`, `ai_cost`, `ai_tokens`, `ai_cache_hits`, `ai_cache_misses`
 
-### Configuration
-`ai_provider`, `ai_model`, `ai_timeout`, `ai_host`, `ai_cache`, `ai_set_key`
+### MCP — Model Context Protocol
+`mcp_server`, `mcp_serve_stdio`, `mcp_serve_sse`, `mcp_tools`, `mcp_resource`, `mcp_resource_template`, `mcp_prompt`, `mcp_resources`, `mcp_read_resource`, `mcp_prompts`, `mcp_prompt_get`, `mcp_use_stdio`, `mcp_use_sse`
 
 ### Self-Healing
 `try_ai`, `try_ai_log`
@@ -376,13 +376,13 @@ write_file "/etc/config"    -- ❌ E_SANDBOX blocked
 ```
 Source (.pipe) → Lexer → Parser → AST → [ Tree-Walker | Compiler + VM ]
                                             ↓
-                                  Builtins (198 total: 18 ai_*, 6 mcp_*, 174 stdlib)
+                                  Builtins (206 total: 36 AI + 13 MCP + 157 standard)
                                             ↓
                               MCP Server ↔ MCP Clients (stdio + HTTP)
 ```
 
-- 67 token types, 35 AST node types, 42 opcodes
-- ~29,000 LoC Go, 416 tests, 72 example programs
+- 67 token types, 36 AST node types, 42 opcodes
+- ~25,000 LoC Go, 503 tests, 75 example programs
 - Zero dependencies — pure Go stdlib
 
 ## Documentation
@@ -444,7 +444,7 @@ pipe/
 │   └── vm/                    # Bytecode VM
 │       ├── vm.go
 │       └── vm_test.go
-├── examples/                  # ~60 example programs
+├── examples/                  # 75 example programs
 │   ├── mcp_server.pipe        # MCP server with weather/docs/shell tools
 │   ├── mcp_filesystem.pipe    # MCP client using filesystem server
 │   ├── mcp_github.pipe        # MCP client using GitHub server
@@ -458,8 +458,8 @@ pipe/
 │   ├── syntaxes/pipe.tmLanguage.json
 │   └── package.json
 ├── docs/                      # Documentation (DE + EN)
-│   ├── en/                    # English docs (25 chapters)
-│   └── de/                    # German docs (25 chapters)
+│   ├── en/                    # English docs (27 chapters)
+│   └── de/                    # German docs (27 chapters)
 ├── website/                   # Project website
 ├── Makefile
 ├── go.mod

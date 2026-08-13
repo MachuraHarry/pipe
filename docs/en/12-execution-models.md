@@ -156,7 +156,7 @@ pipe -vm large_app.pipe
 
 2. **AI Builtins:** All AI operations (`ask`, `summarize`, `try_ai`, `embed`, agents, etc.) are fully supported via Tree-Walker bridge integration. Bytecode VM performance with Tree-Walker AI capabilities.
 
-3. **Limited Tail Calls:** Deep recursion without TCO can cause stack overflow in the VM.
+3. **Limited Tail Calls:** The VM does not perform tail-call optimization. The recursion guard (`MaxCallDepth = 1024`) caps call depth in both engines and raises a **catchable** `E008: call stack depth exceeded (1024)` error instead of crashing. So deep recursion in VM mode is not a crash risk — it fails cleanly and can be handled with `try/catch`. See [Error Handling](08-error-handling.md).
 
 ### When to Use Bytecode VM
 
@@ -274,8 +274,8 @@ pipe -vm large_app.pipe     # Recompiles from source
 | Blocks `{ }` | Yes | Yes | |
 | Functions (first-class) | Yes | Yes | |
 | Closures | Yes | Yes | |
-| Recursion | Yes | Yes | VM limited depth without TCO |
-| Tail-Call Optimization (TCO) | Yes | No | VM may stack overflow on deep recursion |
+| Recursion | Yes | Yes | guard raises catchable E008 at depth 1024 |
+| Tail-Call Optimization (TCO) | Yes | No | deep recursion hits E008 guard, not a crash |
 | Pipeline operator (`>`) | Yes | Yes | |
 | Parallel pipeline (`>>`) | Yes | Yes (builtins) | User closures: sync in VM |
 | `try`/`catch` | Yes | Yes | |

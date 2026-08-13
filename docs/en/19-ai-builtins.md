@@ -1,6 +1,6 @@
 # 19. AI Builtins
 
-Pipe provides **27 AI builtins** for working with Large Language Models.
+Pipe provides **36 AI builtins** for working with Large Language Models.
 Communication happens via REST APIs to OpenAI, Anthropic, or DeepSeek.
 
 ---
@@ -31,7 +31,7 @@ block passed to `ai_provider`, or at any time with `ai_model`:
 --   ollama    → llama3.1:8b
 
 -- Set provider + override model & timeout in one go
-ai_provider "deepseek" {model: "deepseek-v4-pro", timeout: 120}
+ai_provider "deepseek" {model: "deepseek-v4-flash", timeout: 120}
 
 -- Later overrides (apply immediately)
 ai_model "deepseek-v4-flash"
@@ -47,16 +47,16 @@ parameters. Pipe maps them onto `ai_provider` config keys `thinking` and
 
 ```pipe
 -- Thinking mode ON + high effort (V4 default is enabled/high)
-ai_provider "deepseek" {model: "deepseek-v4-pro", thinking: true, effort: "high"}
+ai_provider "deepseek" {model: "deepseek-v4-flash", thinking: true, effort: "high"}
 
 -- Thinking OFF (fast & cheap, no reasoning trace)
 ai_provider "deepseek" {model: "deepseek-v4-flash", thinking: false}
 
 -- Max effort for hard agentic tasks
-ai_provider "deepseek" {model: "deepseek-v4-pro", effort: "max"}
+ai_provider "deepseek" {model: "deepseek-v4-flash", effort: "max"}
 
 -- "none" disables thinking entirely (same as thinking: false)
-ai_provider "deepseek" {model: "deepseek-v4-pro", effort: "none"}
+ai_provider "deepseek" {model: "deepseek-v4-flash", effort: "none"}
 ```
 
 Accepted `effort` values are forwarded verbatim; DeepSeek performs the final
@@ -600,7 +600,7 @@ network issues, or timeouts. These errors can be caught with
 try
     print (summarize "A long text...")
 catch e
-    print "AI error: " ++ e.message
+    print "AI error: " ++ e
     print "Please set your API key!"
 
 -- Catch timeout
@@ -609,10 +609,10 @@ ai_timeout 5
 try
     print (generate "Write a 10-page essay about philosophy"))
 catch e
-    if contains e.message "timeout"
+    if contains e "timeout"
         print "Request took too long"
     else
-        throw e
+        raise e
 
 -- Fallback strategy
 try
@@ -633,8 +633,8 @@ catch e
 | Provider | API Endpoint | Default Model | Environment Variable |
 |----------|-------------|---------------|---------------------|
 | OpenAI | `https://api.openai.com/v1/chat/completions` | `gpt-4o-mini` | `OPENAI_API_KEY` |
-| Anthropic | `https://api.anthropic.com/v1/messages` | `claude-3-5-sonnet-20241022` | `ANTHROPIC_API_KEY` |
-| DeepSeek | `https://api.deepseek.com/v1/chat/completions` | `deepseek-v4-pro` | `DEEPSEEK_API_KEY` |
+| Anthropic | `https://api.anthropic.com/v1/messages` | `claude-3-5-haiku-20241022` | `ANTHROPIC_API_KEY` |
+| DeepSeek | `https://api.deepseek.com/v1/chat/completions` | `deepseek-v4-flash` | `DEEPSEEK_API_KEY` |
 | **Ollama** | `http://localhost:11434/v1/chat/completions` | `llama3.1:8b` | **No key needed!** |
 
 ### Ollama — Local AI Without the Cloud
@@ -652,7 +652,7 @@ ollama pull llama3.2:3b
 
 ```pipe
 ai_provider "ollama"
-ai_model "llama3[2]:3b"
+ai_model "llama3.2:3b"
 
 ask "What is a pipeline?" > print
 ```
@@ -662,13 +662,13 @@ ask "What is a pipeline?" > print
 - No data leaves your system (GDPR/compliance)
 - Works completely offline
 - Free, unlimited usage
-- All 27 AI builtins work with Ollama
+- All 36 AI builtins work with Ollama
 
 **Remote Ollama** (e.g., on a local network):
 ```pipe
 ai_provider "ollama"
-ai_host "http://192.168.1[50]:11434"
-ai_model "qwen2[5]-coder:7b"
+ai_host "http://192.168.1.50:11434"
+ai_model "qwen2.5-coder:7b"
 ```
 
 ---
@@ -847,7 +847,7 @@ try
     ai_provider "deepseek"
     print (ask "What is TDD?"))
 catch e
-    print "DeepSeek unavailable: " ++ e.message
+    print "DeepSeek unavailable: " ++ e
     print "Falling back to OpenAI..."
     ai_provider "openai"
     print (ask "What is TDD?"))

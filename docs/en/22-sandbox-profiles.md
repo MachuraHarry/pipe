@@ -13,9 +13,10 @@ Pipe provides a **declarative sandbox profile system** to restrict what builtins
 
 ```pipe
 -- Or define your own profile in code
-sandbox_profile "strict" {fs: "read-only", network: false, exec: false, ai: false}
+-- (note: "strict" is already a built-in profile, so use your own name)
+sandbox_profile "locked-down" {fs: "read-only", network: false, exec: false, ai: false}
 
-set_sandbox "strict"
+set_sandbox "locked-down"
 
 -- E_SANDBOX: blocked
 write_file "/tmp/test.txt" "blocked"
@@ -188,11 +189,17 @@ The following builtins check the active sandbox profile:
 
 **Execution:** `exec`
 
-**Network:** `http_get`, `http_post`, `http_request`, `http_stream_open`, `tcp_listen`, `tcp_connect`
+**Network:** `http_get`, `http_post`, `http_request`, `http_stream_open`, `http_server`, `tcp_listen`, `tcp_connect`
 
 **Environment:** `env` (returns only the profile's injected environment under an active profile; secret variable names such as `*KEY*`/`*TOKEN*`/`*SECRET*` are always blocked)
 
-**AI:** `ai_chat`, `ai_chat_json`, `ai_stream`, `ai_with_tools`, `summarize`, `translate`, `classify`, `extract`, `generate`, `ask`, `ai_parallel`, `ai_batch`, `embed`, `embed_batch`
+**AI:** `ai_chat`, `ai_chat_json`, `ai_stream`, `ai_with_tools`, `summarize`, `translate`, `classify`, `extract`, `generate`, `generate_json`, `ask`, `agent`, `agent_ask`, `ai_parallel`, `ai_batch`, `embed`, `embed_batch`
+
+**Search (network-gated):** `web_search`, `wiki_search` make outbound requests and are checked against the network policy (`network`/`network_whitelist`), not the AI policy.
+
+**MCP:** `mcp_use_stdio` spawns a subprocess and is therefore gated by the `exec` policy; `mcp_use_sse` makes HTTP requests and is gated by the network policy, re-checked against the whitelist on every request including redirects.
+
+**Module import:** `import` of URL modules is gated by the network policy; imports of absolute filesystem paths are checked against the FS read policy, so `import` cannot bypass `read_file` restrictions.
 
 ---
 
@@ -244,7 +251,7 @@ print (budget_spent)               -- e.g. 0.000079
 try
     print (ask "Still working?")
 catch e
-    print e.message
+    print e
     -- -> E_SANDBOX: budget exceeded (0.0100 USD) in profile 'agent'
 ```
 
@@ -299,7 +306,7 @@ ask "Hello" > print
 for entry in audit_log
     print entry.time ++ " | " ++ entry.event ++ " | " ++ entry.detail
 -- -> ... | http_get | https://example.com
--- -> ... | ai_call | provider=deepseek model=deepseek-chat tokens=50 cost=0.000045 cached=false
+-- -> ... | ai_call | provider=deepseek model=deepseek-v4-flash tokens=50 cost=0.000045 cached=false
 -- -> ... | tool_call | my_tool
 ```
 

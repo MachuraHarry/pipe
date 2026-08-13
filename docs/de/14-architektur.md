@@ -123,7 +123,7 @@ def add(a, b):          ← Level 0
 
 ### Evaluator
 
-Rekursive AST-Evaluation über eine große Switch-Anweisung. Jeder der 35 AST-Knoten
+Rekursive AST-Evaluation über eine große Switch-Anweisung. Jeder der 36 AST-Knoten
 wird einzeln behandelt.
 
 ### Environment (Scope-Chain)

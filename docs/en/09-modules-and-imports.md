@@ -199,6 +199,13 @@ import "https://example.com/lib/utils.pipe" as utils
 
 URL imports are downloaded on first use and cached in `~/.pipe/modules/`. Subsequent imports use the cached version.
 
+> **Sandbox gate:** URL imports count as **network access**. Under a sandbox
+> profile that forbids network (or with `-sandbox` default), a URL import is
+> blocked (`E_SANDBOX: network access blocked for module import`) unless the
+> profile allows network access / whitelists the host. Absolute-path imports
+> (`/home/.../lib.pipe`) count as **filesystem reads** and honor the profile's
+> read policy. See [Sandbox Profiles](22-sandbox-profiles.md).
+
 ---
 
 ## 9.6 Module Registry and Versions
@@ -228,11 +235,11 @@ Use `@version` to pin a module to a specific release:
 
 ```pipe
 -- exact version
-import "log-analyzer@1.0[0]"
+import "log-analyzer@1.0.0"
 -- latest (implicit @latest)
 import "log-analyzer"
 -- version with alias
-import "sentiment@0.9[0]" as s
+import "sentiment@0.9.0" as s
 ```
 
 The versioned import first checks the local module cache for the exact `name@version` file. If not found, it queries the registry for the version URL, downloads the module, and caches it.

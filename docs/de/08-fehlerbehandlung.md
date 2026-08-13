@@ -120,7 +120,22 @@ try_ai
 | Keine Funktion | E004 | Klammern oder Builtin |
 | Operator nicht unterstützt | E005 | Typ-Konvertierung |
 | Ungültiger Index | E006 | Guard mit `len` oder `get` |
-| Rekursion zu tief | E008 | Rekursionstiefe reduzieren oder mit `while` umbauen |
+
+Nur E001–E006 sind KI-fixbar. **E008 ist es nicht**: Der Rekursions-Guard
+(`MaxCallDepth = 1024`) begrenzt die Aufruftiefe in beiden Engines und erzeugt
+`E008: call stack depth exceeded (1024)`. Da der Guard greift, bevor der
+Go-Stack erschöpft werden kann, ist der Fehler ein **fangbares Error-Objekt** —
+`try/catch` kann ihn behandeln, aber `try_ai` versucht ihn nicht zu fixen:
+
+```pipe
+try
+    fn loop n
+        loop (n + 1)
+    loop 0
+catch e
+    print "Gefangen: " ++ e
+    -- -> Gefangen: E008: call stack depth exceeded (1024)
+```
 
 #### Ausführungsmodi
 

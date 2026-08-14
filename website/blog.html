@@ -104,6 +104,10 @@ footer .ft a{color:var(--accent);text-decoration:none}
 <nav>
   <div class="container">
     <a href="index.html" class="logo"><img src="logo.svg" alt="Pipe">Pipe<span>.lang</span></a>
+    <div class="lang-switch">
+      <button id="btn-en" class="active" onclick="setLang('en')">EN</button>
+      <button id="btn-de" onclick="setLang('de')">DE</button>
+    </div>
     <button class="hamburger" onclick="document.getElementById('nm').classList.toggle('open')">☰</button>
     <div class="nl" id="nm">
       <a class="nl-a" href="index.html">Home</a>
@@ -114,10 +118,6 @@ footer .ft a{color:var(--accent);text-decoration:none}
       <a class="nl-a" href="playground.html">Playground</a>
       <a class="nl-a" href="blog.html">Blog</a>
       <a class="nl-a" href="https://github.com/MachuraHarry/pipe">GitHub</a>
-      <div class="lang-switch">
-        <button id="btn-en" class="active" onclick="setLang('en')">EN</button>
-        <button id="btn-de" onclick="setLang('de')">DE</button>
-      </div>
     </div>
   </div>
 </nav>

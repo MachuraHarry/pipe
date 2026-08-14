@@ -1,0 +1,138 @@
+--- ============================================================
+--- mcp_sandbox_agent.pipe — KI in einer Sandbox, die nur über
+--- Pipes eigenen MCP-Server agieren kann.
+--- ============================================================
+--- Das Skript beweist: Die KI hat KEINEN freien Netz-, Datei- oder
+--- Shell-Zugriff. Sie kann ausschließlich die unten registrierten
+--- MCP-Tools (sb_*) nutzen — und darin frei schalten. Alles läuft
+--- im Sandbox-Profil "mcp-cell":
+---
+---   fs:   "temp-only"  -> Dateien landen nur in ./.pipe_sandbox
+---   exec: false        -> kein Shell-Zugriff
+---   network: true      -> nur der AI-Provider-Host ist erlaubt
+---   ai:   true         -> KI-Provider-Call (einziger Netz-Egress)
+---   budget / max_tool_calls / audit_log / timeout
+---
+--- Zwei Modi (CLI-Argument):
+---   agent  (Default)  KI läuft IN Pipe (ai_with_tools), nur sb_*-Tools.
+---   serve              Startet den MCP-Server auf stdio; ein externer
+---                      Client (Claude Desktop, Cursor, ...) verbindet
+---                      sich und bekommt genau dieselben Tools — jede
+---                      Tool-Ausführung läuft ebenfalls im Profil.
+---
+--- Nutzung:
+---   DEEPSEEK_API_KEY=sk-... pipe examples/mcp_sandbox_agent.pipe agent
+---   DEEPSEEK_API_KEY=sk-... pipe examples/mcp_sandbox_agent.pipe serve
+---   pipe examples/mcp_sandbox_agent.pipe serve ollama   (lokale KI)
+--- ============================================================
+
+--- ---- Modus + Provider aus CLI-Args ----
+mode: "agent"
+provider: "deepseek"
+for a in args
+    if a == "serve" || a == "agent"
+        mode: a
+    else if a == "ollama"
+        provider: "ollama"
+    else
+        raise ("Unbekanntes Argument: " ++ a)
+
+ai_provider provider
+
+--- Key lesen VOR set_sandbox: unter dem aktiven Profil wäre
+--- DEEPSEEK_API_KEY gesperrt (blockedEnvName "*KEY*").
+if provider == "deepseek"
+    key: env "DEEPSEEK_API_KEY"
+    if is_nil key || (len key) == 0
+        raise "DEEPSEEK_API_KEY ist nicht gesetzt (siehe Kopfkommentar)"
+    ai_set_key "deepseek" key
+else
+    ai_provider "ollama" {host: "http://localhost:11434", model: "llama3.2:3b"}
+
+--- Whitelist: der einzige Netz-Ziel des Profils ist der Provider.
+provider_host: "api.deepseek.com"
+if provider == "ollama"
+    provider_host: "localhost:11434"
+
+--- ---- Sandbox-Profil: die Zelle ----
+sandbox_profile "mcp-cell" {fs: "temp-only", network: true, network_whitelist: [provider_host], exec: false, ai: true, budget: 0.5, max_tool_calls: 25, audit_log: true, timeout: 30}
+
+--- ---- Die 5 MCP-Tools (genau diese kann die KI nutzen) ----
+__cell_notes: {}
+
+fn sb_write name content
+    write_file name content
+    "geschrieben: " ++ name ++ " (" ++ (to_str (len content)) ++ " Bytes)"
+
+fn sb_read name
+    read_file name
+
+fn sb_list dummy
+    files: list_dir "."
+    if is_nil files || (len files) == 0
+        return "keine Dateien in der Sandbox"
+    out: ""
+    for e in files
+        if (len out) > 0
+            out: out ++ "\n"
+        out: out ++ "- " ++ e
+    return out
+
+fn sb_note key value
+    set __cell_notes key value
+    "Notiz gesetzt: " ++ key ++ " = " ++ value
+
+fn sb_ping dummy
+    "pong (" ++ mode ++ "-Modus, Profil mcp-cell aktiv)"
+
+--- Registrieren — werden automatisch zu MCP-Tools des Servers.
+ai_tool "sb_write" "Schreibt eine Datei in die Sandbox (nur .pipe_sandbox)" {name: "Dateiname", content: "Inhalt"} sb_write
+ai_tool "sb_read" "Liest eine Datei aus der Sandbox" {name: "Dateiname"} sb_read
+ai_tool "sb_list" "Listet Dateien in der Sandbox" {} sb_list
+ai_tool "sb_note" "Legt eine In-Memory-Notiz an" {key: "Schluessel", value: "Wert"} sb_note
+ai_tool "sb_ping" "Lebenszeichen des Servers" {} sb_ping
+
+--- Server-Objekt: bridged dieselben ai_tool-Registrierungen.
+mcp_server "Pipe MCP Cell" "1.0.0"
+
+--- ---- Sandbox aktivieren (Ratchet: danach nur noch runter) ----
+set_sandbox "mcp-cell"
+
+--- ============================================================
+--- Modus "serve": an externe Clients ausliefern (blockierend).
+--- ============================================================
+if mode == "serve"
+    print ""
+    print "MCP-Server laeuft auf stdio (Profil: mcp-cell)."
+    print "Konfiguration fuer Claude Desktop / Cursor:"
+    print "  { \"mcpServers\": { \"pipe-cell\": { \"command\": \"pipe\", \"args\": [\"examples/mcp_sandbox_agent.pipe\", \"serve\"] } } }"
+    print ""
+    mcp_serve_stdio
+    print "MCP-Server beendet (Verbindung geschlossen)."
+
+--- ============================================================
+--- Modus "agent": KI in-process, eingesperrt auf die sb_*-Tools.
+--- ============================================================
+if mode == "agent"
+    print ""
+    print "=== KI in der MCP-Sandbox (Profil: mcp-cell) ==="
+    print "Tools: sb_write, sb_read, sb_list, sb_note, sb_ping"
+    print "Erlaubtes Netz: nur " ++ provider_host
+    print "Dateien: nur ./.pipe_sandbox (temp-only); exec: false"
+    print ""
+
+    system_prompt: "Du bist eine KI in einer Sandbox. Du hast NUR folgende Tools: sb_write, sb_read, sb_list, sb_note, sb_ping. Es gibt KEINEN Shell-Zugriff, KEINEN Internetzugriff (nur dein eigener Provider-Call) und Dateien landen nur im Sandbox-Verzeichnis. Nutze die Tools frei, um die Aufgabe zu loesen. Antworte kurz und auf Deutsch."
+
+    user_prompt: "Erstelle drei Notizen (sb_note): 'idee', 'prioritaet', 'check'. Schreibe danach eine Zusammenfassung mit sb_write in 'status.md' (Inhalt in Deutsch, 2-3 Zeilen). Rufe danach sb_list auf und sag mir, welche Dateien in der Sandbox liegen."
+
+    result: ai_with_tools system_prompt user_prompt 8
+
+    print ""
+    print "=== Ergebnis der KI ==="
+    print result
+
+    --- ---- Audit-Trail: beweist, dass nur erlaubte Events passierten ----
+    print ""
+    print "=== Audit-Log des Profils mcp-cell ==="
+    for entry in audit_log
+        print (get entry "time") ++ " | " ++ (get entry "event") ++ " | " ++ (get entry "detail")

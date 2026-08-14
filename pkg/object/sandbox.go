@@ -245,8 +245,19 @@ func NewSandboxProfile(name string) *SandboxProfile {
 		AI:       true,
 		Budget:   0,
 		Env:      make(map[string]string),
-		WorkDir:  ".",
+		WorkDir:  currentDir(),
 	}
+}
+
+// currentDir returns the absolute process working directory. A relative
+// workingDir would break the temp-only redirect, because filepath.Rel cannot
+// relate an absolute path to a relative base.
+func currentDir() string {
+	d, err := os.Getwd()
+	if err != nil || d == "" {
+		return "."
+	}
+	return d
 }
 
 func (p *SandboxProfile) CanRead(path string) error {
@@ -659,28 +670,28 @@ var (
 	profileRegistry   = map[string]*SandboxProfile{
 		"none": {
 			Name: "none", FSAccess: FSFull, Network: true, Exec: true, AI: true,
-			Env: make(map[string]string), WorkDir: ".",
+			Env: make(map[string]string), WorkDir: currentDir(),
 			PathPolicy: &defaultPathPolicy{access: FSFull},
 		},
 		"strict": {
 			Name: "strict", FSAccess: FSReadOnly, Network: false, Exec: false, AI: false,
-			Env: make(map[string]string), WorkDir: ".",
+			Env: make(map[string]string), WorkDir: currentDir(),
 			PathPolicy: &defaultPathPolicy{access: FSReadOnly},
 		},
 		"noexec": {
 			Name: "noexec", FSAccess: FSFull, Network: false, Exec: false, AI: false,
-			Env: make(map[string]string), WorkDir: ".",
+			Env: make(map[string]string), WorkDir: currentDir(),
 			PathPolicy: &defaultPathPolicy{access: FSFull},
 		},
 		"isolated": {
 			Name: "isolated", FSAccess: FSNone, Network: false, Exec: false, AI: false,
-			Env: make(map[string]string), WorkDir: ".",
+			Env: make(map[string]string), WorkDir: currentDir(),
 			PathPolicy: &defaultPathPolicy{access: FSNone},
 		},
 		"networked": {
 			Name: "networked", FSAccess: FSTempOnly, Network: true, Exec: false, AI: true,
-			Env: make(map[string]string), WorkDir: ".",
-			PathPolicy: &defaultPathPolicy{access: FSTempOnly, workingDir: "."},
+			Env: make(map[string]string), WorkDir: currentDir(),
+			PathPolicy: &defaultPathPolicy{access: FSTempOnly, workingDir: currentDir()},
 		},
 	}
 )

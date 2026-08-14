@@ -129,7 +129,7 @@ footer .ft a{color:var(--accent);text-decoration:none}
 <footer><div class="ft">© 2026 Pipe (SPR) · MIT License · <a href="feed.xml">RSS</a></div></footer>
 
 <script>
-var LANG='en',POSTS=[],MODE='list',ACTIVE='';
+var LANG='en',POSTS=[],MODE='list',ACTIVE='',MD_V='2';
 
 function setLang(l){
   LANG=l;
@@ -171,7 +171,7 @@ function renderPost(id){
   el.innerHTML='<div class="pdetail"><div class="pdetail-back" style="cursor:pointer">← '+T.back[l]+'</div><div class="pdetail-meta"><span>'+fmtDate(p.date)+'</span>'+(p.tag?' <span class="pdetail-tag">'+p.tag+'</span>':'')+'<span>'+wpm(p.excerpt[l])+'</span></div><div class="md" style="padding:20px 0;color:var(--fg2)">'+T.loading[l]+'</div></div>';
   el.querySelector('.pdetail-back').onclick=renderList;
 
-  fetch('blog/'+p.file).then(function(r){return r.text()}).then(function(md){
+  fetch('blog/'+p.file+'?v='+MD_V).then(function(r){return r.text()}).then(function(md){
     var html=renderMarkdown(md);
     el.innerHTML='<div class="pdetail"><div class="pdetail-back" style="cursor:pointer">← '+T.back[l]+'</div><div class="pdetail-meta"><span>'+fmtDate(p.date)+'</span>'+(p.tag?' <span class="pdetail-tag">'+p.tag+'</span>':'')+'<span>'+wpm(p.excerpt[l])+'</span></div><div class="md">'+html+'</div><div class="pdetail-actions"><button onclick="copyLink(\''+id+'\')">🔗 '+T.copyLink[l]+'</button><button onclick="shareX(\''+id+'\')">𝕏 '+T.shareX[l]+'</button></div></div>';
     el.querySelector('.pdetail-back').onclick=renderList;
@@ -227,7 +227,7 @@ var T={blogTitle:{en:'Blog',de:'Blog'},blogSub:{en:'Updates, tutorials, and deep
   document.getElementById('btn-de').classList.toggle('active',s==='de');
 
   var ps=new URLSearchParams(location.search).get('post');
-  fetch('blog/index.json').then(function(r){return r.json()}).then(function(d){
+  fetch('blog/index.json?v='+MD_V).then(function(r){return r.json()}).then(function(d){
     POSTS=d;
     if(ps) renderPost(ps);
     else renderList();

@@ -1,5 +1,13 @@
 [
   {
+    "id": "sandbox-unique",
+    "file": "sandbox-unique.md",
+    "date": "2026-08-14",
+    "tag": "insight",
+    "title": {"en": "🗝️ Unique? Powerful? What Pipe Actually Does Differently", "de": "🗝️ Einmalig? Mächtig? Was Pipe wirklich anders macht"},
+    "excerpt": {"en": "The isolation layer isn't what makes Pipe different — where the control lives is. Sandbox as a language construct, MCP as a first-class sandbox citizen, and an honest look at the limits.", "de": "Nicht die Isolationsebene macht Pipe anders — sondern wo die Kontrolle lebt. Sandbox als Sprachkonstrukt, MCP als Bürger erster Klasse der Sandbox, und ein ehrlicher Blick auf die Grenzen."}
+  },
+  {
     "id": "mcp-cell",
     "file": "mcp-cell.md",
     "date": "2026-08-14",

@@ -75,6 +75,11 @@ main .pg-sub{color:var(--fg2);margin-bottom:40px;font-size:0.9rem}
 .md code{background:var(--bg3);padding:2px 6px;border-radius:4px;font-family:var(--mono);font-size:0.83em;color:var(--accent2)}
 .md pre{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:16px 20px;overflow-x:auto;margin-bottom:14px}
 .md pre code{background:none;padding:0;font-size:0.82rem;color:var(--fg)}
+pre.line-numbers{position:relative;padding-left:3.8em;counter-reset:linenumber}
+pre.line-numbers > code{position:relative;white-space:inherit}
+.line-numbers .line-numbers-rows{position:absolute;pointer-events:none;top:0;font-size:100%;left:-3.8em;width:3em;letter-spacing:-1px;border-right:1px solid var(--border);-webkit-user-select:none;-moz-user-select:none;user-select:none}
+.line-numbers-rows > span{display:block;counter-increment:linenumber}
+.line-numbers-rows > span:before{content:counter(linenumber);color:#666;display:block;padding-right:0.8em;text-align:right}
 .token.comment,.token.prolog,.token.doctype,.token.cdata{color:#666;font-style:italic}
 .token.punctuation{color:#9898a8}
 .token.boolean,.token.number,.token.constant,.token.symbol{color:#c084fc}
@@ -223,7 +228,7 @@ var lang=LANG||'en';
 t=t.replace(/\[lang:([a-z]{2})\]([\s\S]*?)\[\/lang\]/g,function(m,lg,inner){return lg===lang?inner:''});
 l=t.split('\n');
 while(i<l.length){var ln=l[i];
-if(ln.match(/^```/)){var fl=ln.slice(3).trim();i++;var cl=[];while(i<l.length&&!l[i].match(/^```/)){cl.push(l[i]);i++}i++;o.push('<pre><code'+(fl?' class="language-'+fl+'"':'')+'>'+cl.join('\n')+'</code></pre>');continue}
+if(ln.match(/^```/)){var fl=ln.slice(3).trim();i++;var cl=[];while(i<l.length&&!l[i].match(/^```/)){cl.push(l[i]);i++}i++;o.push('<pre class="line-numbers"><code class="'+(fl?'language-'+fl:'language-none')+'">'+cl.join('\n')+'</code></pre>');continue}
 var m=ln.match(/^(#{1,6})\s+(.+)/);if(m){o.push('<h'+m[1].length+'>'+inline(m[2])+'</h'+m[1].length+'>');i++;continue}
 if(ln.match(/^---/)){o.push('<hr>');i++;continue}
 if(ln.match(/^> /)){var q=[];while(i<l.length&&l[i].match(/^> /)){q.push(l[i].slice(2));i++}o.push('<blockquote>'+inline(q.join('\n'))+'</blockquote>');continue}
@@ -259,6 +264,7 @@ var T={blogTitle:{en:'Blog',de:'Blog'},blogSub:{en:'Updates, tutorials, and deep
 </script>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/line-numbers/prism-line-numbers.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-json.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-bash.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-go.min.js"></script>

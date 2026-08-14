@@ -70,6 +70,11 @@ main{flex:1;padding:48px 0}
 .md code{background:var(--bg3);padding:2px 6px;border-radius:4px;font-family:var(--mono);font-size:0.83em;color:var(--accent2)}
 .md pre{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:16px 20px;overflow-x:auto;margin-bottom:14px}
 .md pre code{background:none;padding:0;font-size:0.82rem;color:var(--fg)}
+pre.line-numbers{position:relative;padding-left:3.8em;counter-reset:linenumber}
+pre.line-numbers > code{position:relative;white-space:inherit}
+.line-numbers .line-numbers-rows{position:absolute;pointer-events:none;top:0;font-size:100%;left:-3.8em;width:3em;letter-spacing:-1px;border-right:1px solid var(--border);-webkit-user-select:none;-moz-user-select:none;user-select:none}
+.line-numbers-rows > span{display:block;counter-increment:linenumber}
+.line-numbers-rows > span:before{content:counter(linenumber);color:#666;display:block;padding-right:0.8em;text-align:right}
 .token.comment,.token.prolog,.token.doctype,.token.cdata{color:#666;font-style:italic}
 .token.punctuation{color:#9898a8}
 .token.boolean,.token.number,.token.constant,.token.symbol{color:#c084fc}
@@ -135,8 +140,8 @@ def render_markdown(t, lang):
                 cl.append(lines[i])
                 i += 1
             i += 1
-            cls = ' class="language-%s"' % fence_lang if fence_lang else ''
-            o.append('<pre><code%s>' % cls + '\n'.join(cl) + '</code></pre>')
+            cls = ' class="language-%s"' % fence_lang if fence_lang else ' class="language-none"'
+            o.append('<pre class="line-numbers"><code%s>' % cls + '\n'.join(cl) + '</code></pre>')
             continue
         m = re.match(r'^(#{1,6})\s+(.+)', ln)
         if m:
@@ -329,6 +334,7 @@ def build_page(p, md_text):
 <div class="toast" id="toast">Link copied ✓</div>
 <footer><div class="ft">© 2026 Pipe (SPR) · MIT License · <a href="../feed.xml">RSS</a></div></footer>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/line-numbers/prism-line-numbers.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-json.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-bash.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-go.min.js"></script>

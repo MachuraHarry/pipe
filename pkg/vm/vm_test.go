@@ -2,7 +2,9 @@ package vm
 
 import (
 	"strings"
+	"sync"
 	"testing"
+	"time"
 
 	"github.com/MachuraHarry/pipe/pkg/compiler"
 	"github.com/MachuraHarry/pipe/pkg/lexer"
@@ -434,6 +436,67 @@ send_chunked t`
 	}
 }
 
+// TestSpawnUserFunctionRunsParallel proves that >> with a user-defined
+// function really executes in a background goroutine in the VM. Both spawned
+// calls must reach a barrier builtin before either can finish; if >> fell back
+// to a synchronous call (the pre-fix behaviour), the second spawn would never
+// start and the test would time out.
+func TestSpawnUserFunctionRunsParallel(t *testing.T) {
+	var (
+		mu       sync.Mutex
+		arrived  int
+		released bool
+	)
+	release := make(chan struct{})
+
+	barrier := object.BuiltinInfo{
+		Name: "test_barrier",
+		Fn: func(args ...object.Object) object.Object {
+			mu.Lock()
+			arrived++
+			if arrived >= 2 && !released {
+				released = true
+				close(release)
+			}
+			mu.Unlock()
+			<-release
+			return object.NILOBJ
+		},
+	}
+
+	origLen := len(object.Builtins)
+	object.Builtins = append(object.Builtins, barrier)
+	defer func() { object.Builtins = object.Builtins[:origLen] }()
+
+	input := "fn work x\n    test_barrier x\n    x * 2\n\na: 1\n    >> work\nb: 2\n    >> work\n\na + b"
+	bc := parseAndCompile(t, input)
+
+	done := make(chan string, 1)
+	go func() {
+		v := New(bc)
+		if err := v.Run(); err != nil {
+			done <- "ERROR: " + err.Error()
+			return
+		}
+		done <- v.LastPoppedStackElem().Inspect()
+	}()
+
+	select {
+	case <-release:
+	case <-time.After(3 * time.Second):
+		t.Fatal("timed out waiting for both spawns to reach the barrier: >> did not run in parallel")
+	}
+
+	select {
+	case res := <-done:
+		if res != "6" {
+			t.Errorf("expected 6, got %s", res)
+		}
+	case <-time.After(3 * time.Second):
+		t.Fatal("timed out waiting for spawned results")
+	}
+}
+
 func TestVMIfConsequenceVarStatementStackBalance(t *testing.T) {
 	input := `fn f cond
     x: 0
@@ -448,5 +511,37 @@ a ++ "," ++ b`
 	result := runVM(t, bc)
 	if result != "43,1" {
 		t.Errorf("expected 43,1, got %q", result)
+	}
+}
+
+// TestConcurrentVMsMapClosure runs two VMs in parallel, each calling map with
+// a user-defined closure. Before the per-closure executor refactor, both VMs
+// shared a process-global callUserFn hook, which this test exposes as a data
+// race under `go test -race`.
+func TestConcurrentVMsMapClosure(t *testing.T) {
+	input := "fn double x\n    x * 2\n\nmap ([1, 2, 3]) double"
+	bc := parseAndCompile(t, input)
+
+	workers := 8
+	errs := make(chan string, workers)
+	var wg sync.WaitGroup
+	for i := 0; i < workers; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			v := New(bc)
+			if err := v.Run(); err != nil {
+				errs <- "vm error: " + err.Error()
+				return
+			}
+			if got := v.LastPoppedStackElem().Inspect(); got != "[2, 4, 6]" {
+				errs <- "expected [2, 4, 6], got " + got
+			}
+		}()
+	}
+	wg.Wait()
+	close(errs)
+	for e := range errs {
+		t.Error(e)
 	}
 }

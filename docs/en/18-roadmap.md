@@ -154,6 +154,7 @@ Pipe is currently at version **v0.9.3.5**, the **sandbox-hardening release** car
 
 ### Concurrency
 - [x] `>>` parallel pipeline with Future auto-resolution (v0.6)
+- [x] `>>` true parallelism for user-defined closures in the bytecode VM (was synchronous fallback)
 - [ ] Lightweight coroutines/green threads
 - [ ] Channel-based communication (similar to Go channels)
 - [ ] `spawn` keyword for launching concurrent tasks

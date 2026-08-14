@@ -297,11 +297,8 @@ func bWithSandbox(args ...Object) Object {
 	}()
 
 	switch fn := args[1].(type) {
-	case *Function:
-		if callUserFn != nil {
-			return callUserFn(fn)
-		}
-		return err("with_sandbox: function execution not available")
+	case *Function, *Closure:
+		return CallUserFunction(fn)
 	case *BuiltinInfo:
 		return fn.Fn()
 	default:

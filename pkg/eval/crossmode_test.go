@@ -281,6 +281,12 @@ func TestCrossParallelPipeline(t *testing.T) {
 	assertBothEqual(t, "fn double x\n    x * 2\n\n10\n    >> double\n    > to_num", "20")
 }
 
+func TestCrossGoUserFunction(t *testing.T) {
+	// `go` with a user function is fire-and-forget: it must return nil in
+	// both the tree-walker and the VM instead of erroring.
+	assertBothEqual(t, "fn double x\n    x * 2\n\ngo double 21", "nil")
+}
+
 func TestCrossAnonymousFunction(t *testing.T) {
 	assertBothEqual(t, "double: fn x\n    x * 2\n\ndouble 7", "14")
 }

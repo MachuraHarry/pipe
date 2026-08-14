@@ -69,6 +69,29 @@ Zeile 3`
 
 **Unterstützte Escape-Sequenzen:** `\n`, `\t`, `\r`, `\\`, `\"`, `\0`
 
+**Beide Schreibweisen können mehrzeilig sein.** Doppelt-gequotete Strings
+lesen bis zum schließenden `"` (oder Dateiende) und dürfen neben `\n`-Escapes
+auch echte Zeilenumbrüche enthalten — der Zeilenumbruch wird dann Teil des
+Werts. Der einzige Unterschied zwischen beiden Formen ist die
+Escape-Verarbeitung: bei doppelten Anführungszeichen werden Escape-Sequenzen
+interpretiert, bei Backticks bleibt jedes Zeichen wörtlich erhalten.
+
+```pipe
+-- doppelt-gequotet, mehrzeilig (Escapes werden verarbeitet)
+a: "Zeile 1
+Zeile 2"
+
+-- Backtick, mehrzeilig (keine Escape-Verarbeitung)
+b: `Zeile 1
+Zeile 2`
+
+-- beides entspricht
+c: "Zeile 1\nZeile 2"
+```
+
+> **Hinweis:** `pipe fmt` normalisiert beide Formen zu einem einzeiligen,
+> doppelt-gequoteten String mit `\n`-Escapes. Das Ergebnis ist identisch.
+
 ### list
 
 Geordnete, dynamische Listen mit wahlfreiem Zugriff:

@@ -35,10 +35,13 @@ func NewEvalContext(sourceFile string) *EvalContext {
 		importedModules: make(map[string]*ModuleInstance),
 		exportedSymbols: make(map[string]bool),
 	}
-	object.SetCallUserFn(func(fn object.Object, args ...object.Object) object.Object {
-		return ctx.applyFunction(fn, args)
-	})
 	return ctx
+}
+
+// CallUserFunction satisfies object.UserFunctionExecutor: builtins such as
+// map/filter/reduce call back into this tree-walker context.
+func (ctx *EvalContext) CallUserFunction(fn object.Object, args ...object.Object) object.Object {
+	return ctx.applyFunction(fn, args)
 }
 
 func (ctx *EvalContext) pushCall(name string) { ctx.callStack = append(ctx.callStack, name) }

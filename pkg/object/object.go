@@ -175,9 +175,44 @@ type CompiledFunction struct {
 	NumFree      int
 }
 
+// UserFunctionExecutor invokes user-defined functions on the engine that
+// created them (tree-walker or VM). Each runtime implements this so that
+// builtins like map/filter/reduce can call back into the correct engine
+// without a process-wide global hook (which would race across parallel VMs).
+type UserFunctionExecutor interface {
+	CallUserFunction(fn Object, args ...Object) Object
+}
+
+// UserFunctionSpawner launches a user-defined function in the background
+// (fire-and-forget). Used by the `go` builtin when handed a VM closure.
+type UserFunctionSpawner interface {
+	SpawnUserFunction(fn Object, args ...Object)
+}
+
 type Closure struct {
-	Fn   *CompiledFunction
-	Free []Object
+	Fn       *CompiledFunction
+	Free     []Object
+	Executor UserFunctionExecutor
+}
+
+// CallUserFunction dispatches a user-defined function to whichever runtime
+// created it: the tree-walker (*Function) or the VM (*Closure).
+func CallUserFunction(fn Object, args ...Object) Object {
+	switch f := fn.(type) {
+	case *Function:
+		if ex, ok := f.EvalCtx.(UserFunctionExecutor); ok {
+			return ex.CallUserFunction(f, args...)
+		}
+		return err("function execution not available")
+	case *Closure:
+		if f.Executor != nil {
+			return f.Executor.CallUserFunction(f, args...)
+		}
+		return err("function execution not available")
+	case *BuiltinInfo:
+		return f.Fn(args...)
+	}
+	return err(fmt.Sprintf("not callable: %s", fn.Type()))
 }
 
 func (cf *CompiledFunction) Type() ObjectType { return COMPILED_FUNCTION }
@@ -397,6 +432,7 @@ var Builtins = []BuiltinInfo{
 	{"reduce", bReduce},
 	{"each", bEach},
 	{"unique", bUnique},
+	{"go", bGo},
 
 	// Math
 	{"abs", bAbs},

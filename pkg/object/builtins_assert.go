@@ -60,14 +60,12 @@ func bAssertError(args ...Object) Object {
 	if len(args) != 1 {
 		return err("assert_error expects 1 argument (function)")
 	}
-	fn, ok := args[0].(*Function)
-	if !ok {
+	switch args[0].(type) {
+	case *Function, *Closure:
+	default:
 		return err("assert_error expects a function (use { ... })")
 	}
-	if callUserFn == nil {
-		return err("assert_error: function execution not available")
-	}
-	result := callUserFn(fn)
+	result := CallUserFunction(args[0])
 	if result == nil {
 		return err("assertion failed: expected an error, but got nil")
 	}

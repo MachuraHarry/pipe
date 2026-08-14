@@ -110,13 +110,7 @@ func (hs *HttpServer) buildRequestMap(r *http.Request) *Map {
 }
 
 func (hs *HttpServer) callHandler(req *Map) Object {
-	if callUserFn != nil {
-		return callUserFn(hs.handler, req)
-	}
-	if bi, ok := hs.handler.(*BuiltinInfo); ok {
-		return bi.Fn(req)
-	}
-	return err("http_server: handler not callable")
+	return CallUserFunction(hs.handler, req)
 }
 
 func (hs *HttpServer) writeResponse(w http.ResponseWriter, resp Object) {

@@ -118,6 +118,28 @@ Pipe is concise
 And pipelines are too`
 ```
 
+**Both literal forms can span multiple lines.** Double-quoted strings read
+until the closing `"` (or end of file) and may contain real newlines in
+addition to `\n` escapes — the newline then becomes part of the value. The
+two forms differ only in escape processing: double-quoted strings interpret
+escape sequences, backtick strings keep every character literally.
+
+```pipe
+-- double-quoted, multi-line (escapes processed)
+a: "line 1
+line 2"
+
+-- backtick, multi-line (no escapes processed)
+b: `line 1
+line 2`
+
+-- both are equivalent to this
+c: "line 1\nline 2"
+```
+
+> **Note:** `pipe fmt` normalizes both forms to a single-line double-quoted
+> string with `\n` escapes. The resulting value is identical.
+
 ### list
 
 An ordered, dynamically-sized collection of values. Lists can hold elements of mixed types.

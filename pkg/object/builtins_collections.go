@@ -216,29 +216,36 @@ func bUnique(args ...Object) Object {
 }
 
 func callOne(fn, arg Object) Object {
-	if bi, ok := fn.(*BuiltinInfo); ok {
-		return bi.Fn(arg)
-	}
-	if callUserFn != nil {
-		return callUserFn(fn, arg)
-	}
-	return err("map/filter/each: function not callable (only builtins in VM mode)")
+	return CallUserFunction(fn, arg)
 }
 
 func callTwo(fn, a, b Object) Object {
-	if bi, ok := fn.(*BuiltinInfo); ok {
-		return bi.Fn(a, b)
-	}
-	if callUserFn != nil {
-		return callUserFn(fn, a, b)
-	}
-	return err("reduce: function not callable")
+	return CallUserFunction(fn, a, b)
 }
 
-var callUserFn func(fn Object, args ...Object) Object
+// bGo launches a function fire-and-forget in the background. It handles the
+// VM's function representations (Closure and BuiltinInfo); the tree-walker
+// installs its own `go` builtin in pkg/eval.
+func bGo(args ...Object) Object {
+	if len(args) < 1 {
+		return err("go expects at least 1 argument (function)")
+	}
+	fn := args[0]
+	fnArgs := args[1:]
 
-func SetCallUserFn(f func(fn Object, args ...Object) Object) {
-	callUserFn = f
+	switch f := fn.(type) {
+	case *Closure:
+		if sp, ok := f.Executor.(UserFunctionSpawner); ok {
+			sp.SpawnUserFunction(f, fnArgs...)
+			return NILOBJ
+		}
+		return err("go: first argument must be a function")
+	case *BuiltinInfo:
+		go f.Fn(fnArgs...)
+	default:
+		return err("go: first argument must be a function")
+	}
+	return NILOBJ
 }
 
 func bRange(args ...Object) Object {

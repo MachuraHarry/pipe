@@ -1067,13 +1067,7 @@ func executeTool(profile *SandboxProfile, toolName string, args map[string]inter
 	argObjects := orderedToolArgs(entry, args)
 
 	run := func() Object {
-		if callUserFn != nil {
-			return callUserFn(entry.Fn, argObjects...)
-		}
-		if bi, ok := entry.Fn.(*BuiltinInfo); ok {
-			return bi.Fn(argObjects...)
-		}
-		return err("tool function not callable")
+		return CallUserFunction(entry.Fn, argObjects...)
 	}
 
 	if profile == nil || profile.Name == "none" {

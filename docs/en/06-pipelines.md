@@ -183,7 +183,12 @@ Each `>>` starts its operation immediately when reached. Each `>` waits for the 
 | Mode | `>>` Behavior |
 |------|--------------|
 | Tree-Walker (`./bin/pipe`) | True parallelism via goroutines for all functions |
-| Bytecode VM (`./bin/pipe -vm`) | True parallelism for builtins (AI, I/O, etc.), synchronous fallback for user-defined closures |
+| Bytecode VM (`./bin/pipe -vm`) | True parallelism for all functions (builtins and user-defined closures) |
+
+Each parallel stage runs on its own VM with a snapshot of the globals, so a
+spawned function sees the global state as it was when the `>>` stage started,
+and writes it makes in the background do not leak back to the caller — matching
+the tree-walker's per-branch environment cloning.
 
 ### The `_` Placeholder
 

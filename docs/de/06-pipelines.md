@@ -191,7 +191,12 @@ Jedes `>>` startet sofort, jedes `>` wartet auf den vorherigen Schritt.
 | Modus | `>>` Verhalten |
 |-------|---------------|
 | Tree-Walker (`./bin/pipe`) | Echte Parallelität via Goroutinen für alle Funktionen |
-| Bytecode-VM (`./bin/pipe -vm`) | Echte Parallelität für Builtins (KI, I/O etc.), synchrone Ausführung für Closures |
+| Bytecode-VM (`./bin/pipe -vm`) | Echte Parallelität für alle Funktionen (Builtins und Closures) |
+
+Jede parallele Stufe läuft auf einer eigenen VM mit einem Schnappschuss der
+Globals: Eine gespawnte Funktion sieht den globalen Zustand so, wie er beim
+Start der `>>`-Stufe war, und Zuweisungen im Hintergrund fließen nicht an den
+Aufrufer zurück — analog zum Klonen der Environment-Kette im Tree-Walker.
 
 ## 6.4 `_` Platzhalter für Argument-Position
 

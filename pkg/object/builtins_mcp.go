@@ -121,15 +121,11 @@ func bMcpServer(args ...Object) Object {
 			toolExecMu.Lock()
 			defer toolExecMu.Unlock()
 
-			if callUserFn != nil {
-				result := callUserFn(entry.Fn, argObjects...)
-				if e, isErr := result.(*Error); isErr {
-					return e.Message, fmt.Errorf("%s", e.Message)
-				}
-				return toolResultText(result), nil
+			result := CallUserFunction(entry.Fn, argObjects...)
+			if e, isErr := result.(*Error); isErr {
+				return e.Message, fmt.Errorf("%s", e.Message)
 			}
-
-			return "", fmt.Errorf("tool execution not available")
+			return toolResultText(result), nil
 		})
 	}
 
@@ -315,13 +311,7 @@ func runResourceFn(fn Object, uri string) (string, error) {
 // callFunctionObject invokes a user function (or a test-level *BuiltinInfo)
 // through the eval context.
 func callFunctionObject(fn Object, args ...Object) Object {
-	if callUserFn != nil {
-		return callUserFn(fn, args...)
-	}
-	if bi, ok := fn.(*BuiltinInfo); ok {
-		return bi.Fn(args...)
-	}
-	return err("function not callable")
+	return CallUserFunction(fn, args...)
 }
 
 func registryResourceResult(handler mcp.ResourceHandler, uri string) Object {

@@ -56,9 +56,27 @@ func New(bc *compiler.Bytecode) *VM {
 		frameIndex: 0,
 	}
 
-	object.SetCallUserFn(vm.callUserFunction)
-
 	return vm
+}
+
+// CallUserFunction satisfies object.UserFunctionExecutor: builtins such as
+// map/filter/reduce call back into this VM. It is safe to call while this VM
+// is the only executor of its operand stack, which holds because every
+// parallel task runs on its own child VM.
+func (vm *VM) CallUserFunction(fn object.Object, args ...object.Object) object.Object {
+	return vm.callUserFunction(fn, args...)
+}
+
+// SpawnUserFunction satisfies object.UserFunctionSpawner: the `go` builtin
+// launches a closure fire-and-forget on a fresh child VM.
+func (vm *VM) SpawnUserFunction(fn object.Object, args ...object.Object) {
+	cl, ok := fn.(*object.Closure)
+	if !ok {
+		return
+	}
+	globals := vm.snapshotGlobals()
+	child := vm.newSpawnVM(cl, args, globals)
+	go child.executeFrame()
 }
 
 type VM struct {
@@ -308,8 +326,9 @@ func (vm *VM) Run() (err error) {
 				free[i] = vm.pop()
 			}
 			closure := &object.Closure{
-				Fn:   fn,
-				Free: free,
+				Fn:       fn,
+				Free:     free,
+				Executor: vm,
 			}
 			vm.push(closure)
 
@@ -510,9 +529,86 @@ func (vm *VM) spawnCall(numArgs int) {
 			close(future.Done)
 		}()
 
+	case *object.Closure:
+		args := make([]object.Object, numArgs)
+		for i := numArgs - 1; i >= 0; i-- {
+			args[i] = vm.pop()
+		}
+		for i := range args {
+			args[i] = object.EnsureResolved(args[i])
+		}
+		future := object.NewFuture()
+		vm.pop()
+		vm.push(future)
+		// Snapshot globals synchronously: the parent keeps executing (and
+		// writing globals) while the child runs, so the copy must happen here.
+		globals := vm.snapshotGlobals()
+		go func() {
+			child := vm.newSpawnVM(fn, args, globals)
+			result := child.executeFrame()
+			future.Val = result
+			close(future.Done)
+		}()
+
 	default:
 		vm.callFunction(numArgs)
 	}
+}
+
+// snapshotGlobals copies the parent's globals while no goroutine is racing it.
+// Closures are rebound to a child VM later in newSpawnVM; this method only
+// hands off a safe copy of the shared slice.
+func (vm *VM) snapshotGlobals() []object.Object {
+	cp := make([]object.Object, len(vm.globals))
+	copy(cp, vm.globals)
+	return cp
+}
+
+// newSpawnVM builds a child VM that runs a single closure in its own goroutine.
+// It shares the parent's constants, but gets its own operand stack and frames
+// (a VM is not safe for concurrent use), plus a snapshot of the globals. Any
+// closures captured from the parent are rebound to the child so that builtins
+// such as map/filter call back into the child VM instead of racing the parent.
+func (vm *VM) newSpawnVM(closure *object.Closure, args []object.Object, globals []object.Object) *VM {
+	child := &VM{
+		constants:  vm.constants,
+		globals:    make([]object.Object, len(globals)),
+		stack:      make([]object.Object, StackSize),
+		sp:         0,
+		frames:     make([]*Frame, object.MaxCallDepth),
+		frameIndex: 0,
+	}
+	for i, g := range globals {
+		if cl, ok := g.(*object.Closure); ok {
+			child.globals[i] = rebindClosure(child, cl)
+		} else {
+			child.globals[i] = g
+		}
+	}
+
+	main := rebindClosure(child, closure)
+	child.push(main)
+	for _, a := range args {
+		if cl, ok := a.(*object.Closure); ok {
+			child.push(rebindClosure(child, cl))
+		} else {
+			child.push(a)
+		}
+	}
+	child.callFunction(len(args))
+	return child
+}
+
+// rebindClosure returns a copy of cl whose Executor points at vm, recursively
+// rebinding any closures captured as free variables.
+func rebindClosure(vm *VM, cl *object.Closure) *object.Closure {
+	cp := &object.Closure{Fn: cl.Fn, Free: cl.Free, Executor: vm}
+	for i, f := range cp.Free {
+		if fc, ok := f.(*object.Closure); ok {
+			cp.Free[i] = rebindClosure(vm, fc)
+		}
+	}
+	return cp
 }
 
 func (vm *VM) binaryOp(op compiler.Opcode, left, right object.Object) object.Object {
@@ -897,8 +993,9 @@ func (vm *VM) executeFrame() object.Object {
 				free[i] = vm.pop()
 			}
 			closure := &object.Closure{
-				Fn:   fn,
-				Free: free,
+				Fn:       fn,
+				Free:     free,
+				Executor: vm,
 			}
 			vm.push(closure)
 

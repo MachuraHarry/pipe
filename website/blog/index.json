@@ -1,5 +1,13 @@
 [
   {
+    "id": "mcp-cell",
+    "file": "mcp-cell.md",
+    "date": "2026-08-14",
+    "tag": "tutorial",
+    "title": {"en": "🧱 The MCP Cell — an AI That Can Only Talk to Pipe's Own MCP Server", "de": "🧱 Die MCP-Zelle — eine KI, die nur mit Pipes eigenem MCP-Server sprechen kann"},
+    "excerpt": {"en": "A sandboxed AI agent whose entire universe is Pipe's own MCP server: five tools, no free network, no free filesystem, no shell. The agent-mode demo, the real escape attempts, and a temp-only redirect bug the demo surfaced.", "de": "Eine KI in der Sandbox, deren ganzes Universum Pipes eigener MCP-Server ist: fünf Tools, kein freies Netz, kein freies Dateisystem, keine Shell. Der Agent-Modus, echte Ausbruchsversuche und ein temp-only-Redirect-Bug, den die Demo aufdeckte."}
+  },
+  {
     "id": "sandbox-audit-continued",
     "file": "sandbox-audit-continued.md",
     "date": "2026-08-13",

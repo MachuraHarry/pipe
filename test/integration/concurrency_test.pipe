@@ -1,0 +1,63 @@
+-- Pipe Integrationstest: Concurrency (Channels, Mutex, Semaphore, spawn/await)
+
+test "chan buffered roundtrip"
+    c: chan 2
+    send c 42
+    send c 43
+    assert_eq (recv c) 42
+    assert_eq (recv c) 43
+
+test "chan across spawn"
+    fn put c
+        send c 99
+    ch: chan 1
+    spawn put ch
+    assert_eq (recv ch) 99
+
+test "try_recv empty is nil"
+    c: chan 0
+    assert_eq (try_recv c) nil
+
+test "chan close drains to nil"
+    c: chan 2
+    send c 1
+    close c
+    assert_eq (recv c) 1
+    assert_eq (recv c) nil
+
+test "mutex try_lock"
+    m: mutex
+    assert_eq (try_lock m) true
+    assert_eq (try_lock m) false
+    unlock m
+    assert_eq (try_lock m) true
+    unlock m
+
+test "mutex protects shared counter"
+    fn inc m counter
+        lock m
+        set counter 0 ((at counter 0) + 1)
+        unlock m
+    m: mutex
+    counter: [0]
+    f1: spawn inc m counter
+    f2: spawn inc m counter
+    f3: spawn inc m counter
+    await f1
+    await f2
+    await f3
+    assert_eq (at counter 0) 3
+
+test "semaphore bounded"
+    s: semaphore 1
+    assert_eq (try_acquire s) true
+    assert_eq (try_acquire s) false
+    release s
+    assert_eq (try_acquire s) true
+    release s
+
+test "spawn await"
+    fn double x
+        x * 2
+    f: spawn double 21
+    assert_eq (await f) 42

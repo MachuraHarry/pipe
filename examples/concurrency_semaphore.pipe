@@ -1,0 +1,44 @@
+-- ============================================================
+-- CONCURRENCY SEMAPHORE DEMO
+-- ============================================================
+
+-- Ein Semaphor begrenzt die Anzahl gleichzeitiger Zugriffe auf eine
+-- Ressource (z. B. ein Worker-Pool oder ein Rate-Limit).
+
+print "Semaphor: parallele Arbeit begrenzen"
+print ""
+
+fn worker s results id
+    acquire s
+    send results (id * 100)
+    release s
+
+-- Höchstens 2 Worker gleichzeitig.
+s: semaphore 2
+results: chan 4
+
+spawn worker s results 1
+spawn worker s results 2
+spawn worker s results 3
+spawn worker s results 4
+
+-- Alle vier Ergebnisse einsammeln.
+ergebnisse: []
+push ergebnisse (recv results)
+push ergebnisse (recv results)
+push ergebnisse (recv results)
+push ergebnisse (recv results)
+
+-- Ergebnisse sortieren (Reihenfolge der Worker ist nicht-deterministisch).
+ergebnisse: sort ergebnisse
+
+print ("Ergebnisse: " ++ (to_str ergebnisse))
+
+-- try_acquire blockiert nie: erschöpfter Semaphor -> false.
+busy: semaphore 1
+acquire busy
+print ("try_acquire auf erschöpftem Semaphor: " ++ (to_str (try_acquire busy)))
+release busy
+
+print ""
+print "Semaphor-Demo fertig!"

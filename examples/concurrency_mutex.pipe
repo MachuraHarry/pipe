@@ -1,0 +1,40 @@
+-- ============================================================
+-- CONCURRENCY MUTEX DEMO
+-- ============================================================
+
+-- Ein Mutex synchronisiert den Zugriff auf geteilte, veränderliche
+-- Daten. Hier inkrementieren mehrere Tasks einen gemeinsamen Zähler
+-- (eine Liste, da sie per Referenz geteilt wird).
+
+print "Mutex: gemeinsamen Zähler sicher inkrementieren"
+print ""
+
+fn increment m counter
+    lock m
+    set counter 0 ((at counter 0) + 1)
+    unlock m
+
+m: mutex
+counter: [0]
+
+-- Vier Tasks inkrementieren denselben Zähler parallel.
+f1: spawn increment m counter
+f2: spawn increment m counter
+f3: spawn increment m counter
+f4: spawn increment m counter
+
+-- Alle Tasks abwarten.
+await f1
+await f2
+await f3
+await f4
+
+print ("Zähler nach 4 parallelen Inkrements: " ++ (to_str (at counter 0)))
+
+-- try_lock blockiert nie: gesperrter Mutex -> false.
+lock m
+print ("try_lock auf gesperrtem Mutex: " ++ (to_str (try_lock m)))
+unlock m
+
+print ""
+print "Mutex-Demo fertig!"

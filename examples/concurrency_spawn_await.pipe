@@ -1,0 +1,21 @@
+print "spawn & await: Futures explizit abwarten"
+print ""
+fn double x
+    x * 2
+
+
+fn square x
+    x * x
+
+
+a: spawn double 21
+b: spawn square 10
+c: spawn double 100
+print ("double 21   = " ++ to_str (await a))
+print ("square 10   = " ++ to_str (await b))
+print ("double 100  = " ++ to_str (await c))
+d: spawn double 5
+print ("double 5    = " ++ to_str (await d 1000))
+print ("await 42    = " ++ to_str (await 42))
+print ""
+print "Alle Futures aufgelöst!"

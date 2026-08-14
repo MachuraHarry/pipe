@@ -1,0 +1,36 @@
+-- ============================================================
+-- CONCURRENCY CHANNELS DEMO
+-- ============================================================
+
+-- Channels erlauben die Kommunikation zwischen nebenläufigen Tasks.
+-- Ein Producer sendet Werte, der Main-Task empfängt sie per recv.
+
+print "Channels: Producer/Consumer"
+print ""
+
+fn produce c
+    send c 10
+    send c 20
+    send c 30
+    close c
+
+-- Gepufferter Channel (Kapazität 3) und ein Producer im Hintergrund.
+ch: chan 3
+spawn produce ch
+
+-- Werte empfangen, bis der Channel geschlossen ist (recv liefert nil).
+v: recv ch
+while v != nil
+    print ("empfangen: " ++ (to_str v))
+    v: recv ch
+
+-- try_recv blockiert nie: leerer Channel -> nil.
+print ("try_recv auf leerem Channel: " ++ (to_str (try_recv ch)))
+
+-- try_send auf vollem Channel -> false.
+full: chan 1
+send full 1
+print ("try_send auf vollem Channel: " ++ (to_str (try_send full 2)))
+
+print ""
+print "Channel-Demo fertig!"

@@ -744,15 +744,14 @@ func (c *Compiler) compileTryExpression(te *ast.TryExpression) error {
 
 	c.emit(OpCheckError)
 
+	skipFixPos := 0
 	if te.AIFix {
-		skipFixPos := c.emit(OpJumpNotTruthy, 9999)
+		skipFixPos = c.emit(OpJumpNotTruthy, 9999)
 		c.emit(OpPop)
 		src := blockSourceFromStatements(te.TryBlock.Statements)
 		c.emit(OpConstant, c.addConstant(&object.String{Value: src}))
 		c.emit(OpTryAIFix)
 		c.emit(OpCheckError)
-		afterFix := len(c.currentInstructions())
-		c.patchJump(skipFixPos, afterFix)
 	}
 
 	skipCatchPos := c.emit(OpJumpNotTruthy, 9999)
@@ -787,6 +786,9 @@ func (c *Compiler) compileTryExpression(te *ast.TryExpression) error {
 
 	afterCatch := len(c.currentInstructions())
 	c.patchJump(skipCatchPos, afterCatch)
+	if skipFixPos != 0 {
+		c.patchJump(skipFixPos, afterCatch)
+	}
 
 	c.patchJump(endPos, len(c.currentInstructions()))
 

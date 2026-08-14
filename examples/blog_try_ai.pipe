@@ -1,0 +1,25 @@
+-- ═══════════════════════════════════════════════════════════
+-- Self-healing code — try_ai repairs runtime errors with AI
+-- Run:  export DEEPSEEK_API_KEY="sk-..."
+--       ./bin/pipe examples/blog_try_ai.pipe
+-- ═══════════════════════════════════════════════════════════
+
+ai_provider "deepseek"
+
+-- A typo: "42" is a string, not a number.
+-- try_ai catches the error, asks the LLM to repair the expression,
+-- and re-runs it. The catch block only fires if the AI fix fails.
+result: try_ai
+    "42" * 3
+catch e
+    0
+
+print result
+
+-- Healthy code makes zero API calls — try_ai is a free safety net.
+fast: try_ai
+    6 * 7
+catch e
+    -1
+
+print fast

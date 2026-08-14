@@ -1,5 +1,37 @@
 [
   {
+    "id": "tutorial-first-mcp-server",
+    "file": "tutorial-first-mcp-server.md",
+    "date": "2026-08-18",
+    "tag": "tutorial",
+    "title": {"en": "🔌 Your First MCP Server — in a Language, Not an SDK", "de": "🔌 Dein erster MCP-Server — in einer Sprache, nicht in einem SDK"},
+    "excerpt": {"en": "Expose a plain function to Claude, Cursor, or any MCP client in four lines — ai_tool registers it, mcp_server + mcp_serve_stdio start it. Zero dependencies.", "de": "Eine normale Funktion in vier Zeilen für Claude, Cursor oder jeden MCP-Client bereitstellen — ai_tool registriert sie, mcp_server + mcp_serve_stdio starten sie. Null Abhängigkeiten."}
+  },
+  {
+    "id": "tutorial-parallel",
+    "file": "tutorial-parallel.md",
+    "date": "2026-08-17",
+    "tag": "tutorial",
+    "title": {"en": "⚡ 3 LLM Calls in 1.5s, Not 4s — Parallel by Default", "de": "⚡ 3 LLM-Calls in 1,5s statt 4s — Parallel als Standard"},
+    "excerpt": {"en": "The >> operator starts pipeline stages in the background; futures auto-resolve when you use them. No asyncio.gather() boilerplate.", "de": "Der >>-Operator startet Pipeline-Stufen im Hintergrund; Futures lösen sich beim Benutzen automatisch auf. Kein asyncio.gather()-Boilerplate."}
+  },
+  {
+    "id": "tutorial-self-healing",
+    "file": "tutorial-self-healing.md",
+    "date": "2026-08-16",
+    "tag": "tutorial",
+    "title": {"en": "🩹 Self-Healing Code — try_ai Fixes Runtime Errors with AI", "de": "🩹 Selbstheilender Code — try_ai repariert Laufzeitfehler mit KI"},
+    "excerpt": {"en": "A type error that repairs itself: try_ai catches the crash, asks the LLM to fix the expression, and re-runs it. Healthy code costs zero API calls.", "de": "Ein Typfehler, der sich selbst repariert: try_ai fängt den Crash, lässt das LLM den Ausdruck fixen und führt ihn erneut aus. Gesunder Code kostet null API-Calls."}
+  },
+  {
+    "id": "tutorial-local-rag",
+    "file": "tutorial-local-rag.md",
+    "date": "2026-08-15",
+    "tag": "tutorial",
+    "title": {"en": "📚 RAG in ~10 Lines — No Vector Database, No pip install", "de": "📚 RAG in ~10 Zeilen — ohne Vektor-DB, ohne pip install"},
+    "excerpt": {"en": "Semantic search and retrieval-augmented generation without a vector DB or framework: embed_batch, nearest, and ask as language primitives in one ~7 MB binary.", "de": "Semantische Suche und RAG ohne Vektor-DB oder Framework: embed_batch, nearest und ask als Sprach-Primitives in einer ~7-MB-Binary."}
+  },
+  {
     "id": "sandbox-unique",
     "file": "sandbox-unique.md",
     "date": "2026-08-14",

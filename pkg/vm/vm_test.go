@@ -291,6 +291,45 @@ n + 2`
 	}
 }
 
+func TestVMTryAIValidCodeReturnsValue(t *testing.T) {
+	// Regression: the AI-fix path compiled a skipFix jump that landed on the
+	// catch-skip test, so a successful try_ai result was treated as the error
+	// flag and the catch block ran. Healthy code must return the value.
+	input := `x: try_ai
+    6 * 7
+catch e
+    -1
+
+x`
+	bc := parseAndCompile(t, input)
+	result := runVM(t, bc)
+	if result != "42" {
+		t.Errorf("expected 42 from healthy try_ai, got %s", result)
+	}
+}
+
+func TestVMTryAIWithFixFallbackRunsCatch(t *testing.T) {
+	// When the AI fix still returns an error, try_ai must run the catch block
+	// instead of silently returning the error value.
+	orig := object.TryAIEvalFn
+	object.TryAIEvalFn = func(source string) object.Object {
+		return &object.Error{Message: "still broken"}
+	}
+	defer func() { object.TryAIEvalFn = orig }()
+
+	input := `x: try_ai
+    "42" * 3
+catch e
+    "fixed: " ++ e
+
+x`
+	bc := parseAndCompile(t, input)
+	result := runVM(t, bc)
+	if result != "fixed: still broken" {
+		t.Errorf("expected catch fallback from broken try_ai, got %s", result)
+	}
+}
+
 func TestPipeline(t *testing.T) {
 	input := "fn double x\n    x * 2\n\n42\n    > double"
 	bc := parseAndCompile(t, input)

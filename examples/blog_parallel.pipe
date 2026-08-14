@@ -1,0 +1,22 @@
+-- ═══════════════════════════════════════════════════════════
+-- 3 LLM calls in parallel — no asyncio.gather() boilerplate
+-- Run:  export DEEPSEEK_API_KEY="sk-..."
+--       ./bin/pipe -vm -q examples/blog_parallel.pipe
+-- ═══════════════════════════════════════════════════════════
+
+ai_provider "deepseek"
+
+-- Three independent questions. The >> operator starts each
+-- ask() in the background; futures auto-resolve on use.
+a: "Löse 7*8+4 und antworte nur mit der Zahl."
+    >> ask
+b: "Löse 12*12 und antworte nur mit der Zahl."
+    >> ask
+c: "Löse 100/4 und antworte nur mit der Zahl."
+    >> ask
+
+t: now
+print ("Frage 1: " ++ a)
+print ("Frage 2: " ++ b)
+print ("Frage 3: " ++ c)
+print ("Fertig nach " ++ (to_str ((now) - t)) ++ "s — parallel, nicht sequenziell.")

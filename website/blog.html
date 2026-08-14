@@ -75,6 +75,14 @@ main .pg-sub{color:var(--fg2);margin-bottom:40px;font-size:0.9rem}
 .md code{background:var(--bg3);padding:2px 6px;border-radius:4px;font-family:var(--mono);font-size:0.83em;color:var(--accent2)}
 .md pre{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:16px 20px;overflow-x:auto;margin-bottom:14px}
 .md pre code{background:none;padding:0;font-size:0.82rem;color:var(--fg)}
+.token.comment,.token.prolog,.token.doctype,.token.cdata{color:#666;font-style:italic}
+.token.punctuation{color:#9898a8}
+.token.boolean,.token.number,.token.constant,.token.symbol{color:#c084fc}
+.token.string,.token.char,.token.builtin{color:#3ce096}
+.token.operator,.token.entity,.token.url{color:#fc8c3c}
+.token.keyword{color:#a78bfa;font-weight:600}
+.token.function,.token.class-name{color:#5ce0fc}
+.token.variable{color:#e0e0e8}
 .md table{border-collapse:collapse;width:100%;margin-bottom:16px;font-size:0.85rem}
 .md th{background:var(--bg2);border:1px solid var(--border);padding:8px 12px;text-align:left;font-weight:600}
 .md td{border:1px solid var(--border);padding:8px 12px}
@@ -188,6 +196,7 @@ function renderPost(id){
     el.innerHTML='<div class="pdetail"><div class="pdetail-back" style="cursor:pointer">← '+T.back[l]+'</div><div class="pdetail-meta"><span>'+fmtDate(p.date)+'</span>'+(p.tag?' <span class="pdetail-tag">'+p.tag+'</span>':'')+'<span>'+wpm(p.excerpt[l])+'</span></div><div class="md">'+html+'</div><div class="pdetail-actions"><button onclick="copyLink(\''+id+'\')">🔗 '+T.copyLink[l]+'</button><button onclick="shareX(\''+id+'\')">𝕏 '+T.shareX[l]+'</button></div></div>';
     el.querySelector('.pdetail-back').onclick=renderList;
     document.title=p.title[l]+' — Pipe Blog';
+    if(window.Prism&&Prism.highlightAll)Prism.highlightAll();
   }).catch(function(e){
     el.innerHTML='<div class="pdetail"><div class="pdetail-back" style="cursor:pointer">← '+T.back[l]+'</div><p style="color:var(--red)">'+T.loadErr[l]+'</p></div>';
     el.querySelector('.pdetail-back').onclick=renderList;
@@ -214,7 +223,7 @@ var lang=LANG||'en';
 t=t.replace(/\[lang:([a-z]{2})\]([\s\S]*?)\[\/lang\]/g,function(m,lg,inner){return lg===lang?inner:''});
 l=t.split('\n');
 while(i<l.length){var ln=l[i];
-if(ln.match(/^```/)){i++;var cl=[];while(i<l.length&&!l[i].match(/^```/)){cl.push(l[i]);i++}i++;o.push('<pre><code>'+cl.join('\n')+'</code></pre>');continue}
+if(ln.match(/^```/)){var fl=ln.slice(3).trim();i++;var cl=[];while(i<l.length&&!l[i].match(/^```/)){cl.push(l[i]);i++}i++;o.push('<pre><code'+(fl?' class="language-'+fl+'"':'')+'>'+cl.join('\n')+'</code></pre>');continue}
 var m=ln.match(/^(#{1,6})\s+(.+)/);if(m){o.push('<h'+m[1].length+'>'+inline(m[2])+'</h'+m[1].length+'>');i++;continue}
 if(ln.match(/^---/)){o.push('<hr>');i++;continue}
 if(ln.match(/^> /)){var q=[];while(i<l.length&&l[i].match(/^> /)){q.push(l[i].slice(2));i++}o.push('<blockquote>'+inline(q.join('\n'))+'</blockquote>');continue}
@@ -247,6 +256,17 @@ var T={blogTitle:{en:'Blog',de:'Blog'},blogSub:{en:'Updates, tutorials, and deep
     document.getElementById('root').innerHTML='<p style="color:var(--red)">Could not load blog index.</p>';
   });
 })();
+</script>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-json.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-bash.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-go.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-markup.min.js"></script>
+<script src="prism-pipe.js"></script>
+<script>
+function prismNow(){if(window.Prism&&Prism.highlightAll)Prism.highlightAll()}
+setTimeout(prismNow,0);
 </script>
 
 </body>

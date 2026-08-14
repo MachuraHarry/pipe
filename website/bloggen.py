@@ -70,6 +70,14 @@ main{flex:1;padding:48px 0}
 .md code{background:var(--bg3);padding:2px 6px;border-radius:4px;font-family:var(--mono);font-size:0.83em;color:var(--accent2)}
 .md pre{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:16px 20px;overflow-x:auto;margin-bottom:14px}
 .md pre code{background:none;padding:0;font-size:0.82rem;color:var(--fg)}
+.token.comment,.token.prolog,.token.doctype,.token.cdata{color:#666;font-style:italic}
+.token.punctuation{color:#9898a8}
+.token.boolean,.token.number,.token.constant,.token.symbol{color:#c084fc}
+.token.string,.token.char,.token.builtin{color:#3ce096}
+.token.operator,.token.entity,.token.url{color:#fc8c3c}
+.token.keyword{color:#a78bfa;font-weight:600}
+.token.function,.token.class-name{color:#5ce0fc}
+.token.variable{color:#e0e0e8}
 .md table{border-collapse:collapse;width:100%;margin-bottom:16px;font-size:0.85rem}
 .md th{background:var(--bg2);border:1px solid var(--border);padding:8px 12px;text-align:left;font-weight:600}
 .md td{border:1px solid var(--border);padding:8px 12px}
@@ -120,13 +128,15 @@ def render_markdown(t, lang):
     while i < n:
         ln = lines[i]
         if ln.startswith('```'):
+            fence_lang = ln[3:].strip()
             i += 1
             cl = []
             while i < n and not lines[i].startswith('```'):
                 cl.append(lines[i])
                 i += 1
             i += 1
-            o.append('<pre><code>' + '\n'.join(cl) + '</code></pre>')
+            cls = ' class="language-%s"' % fence_lang if fence_lang else ''
+            o.append('<pre><code%s>' % cls + '\n'.join(cl) + '</code></pre>')
             continue
         m = re.match(r'^(#{1,6})\s+(.+)', ln)
         if m:
@@ -318,6 +328,12 @@ def build_page(p, md_text):
 </div></main>
 <div class="toast" id="toast">Link copied ✓</div>
 <footer><div class="ft">© 2026 Pipe (SPR) · MIT License · <a href="../feed.xml">RSS</a></div></footer>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-json.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-bash.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-go.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-markup.min.js"></script>
+<script src="../prism-pipe.js"></script>
 {script}
 </body>
 </html>""".format(

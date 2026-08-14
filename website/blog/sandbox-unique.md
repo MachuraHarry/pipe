@@ -175,10 +175,10 @@ DEEPSEEK_API_KEY=sk-... pipe examples/mcp_sandbox_agent.pipe agent
 ```
 
 [lang:en]
-See the deep dive: **[The MCP Cell](?post=mcp-cell)** — and the source at
+See the deep dive: **[The MCP Cell](mcp-cell.html)** — and the source at
 [`examples/mcp_sandbox_agent.pipe`](https://github.com/MachuraHarry/pipe/blob/master/examples/mcp_sandbox_agent.pipe).
 [/lang]
 [lang:de]
-Zum Eintauchen: **[Die MCP-Zelle](?post=mcp-cell)** — und der Quelltext unter
+Zum Eintauchen: **[Die MCP-Zelle](mcp-cell.html)** — und der Quelltext unter
 [`examples/mcp_sandbox_agent.pipe`](https://github.com/MachuraHarry/pipe/blob/master/examples/mcp_sandbox_agent.pipe).
 [/lang]

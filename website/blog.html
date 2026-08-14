@@ -88,6 +88,10 @@ footer .ft a{color:var(--accent);text-decoration:none}
 
 .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--green);color:var(--bg);padding:10px 20px;border-radius:20px;font-size:0.82rem;font-weight:600;z-index:200;opacity:0;transition:opacity .3s;pointer-events:none}
 .toast.show{opacity:1}
+.tagbar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:28px}
+.tagbar .tag-btn{background:var(--bg2);border:1px solid var(--border);color:var(--fg2);padding:6px 14px;border-radius:16px;font-size:0.75rem;cursor:pointer;font-family:var(--mono);transition:all .2s;text-transform:capitalize}
+.tagbar .tag-btn:hover{border-color:var(--accent);color:var(--fg)}
+.tagbar .tag-btn.active{background:var(--accent);color:#fff;border-color:var(--accent)}
 
 @media(max-width:768px){
   .hamburger{display:block}
@@ -129,7 +133,7 @@ footer .ft a{color:var(--accent);text-decoration:none}
 <footer><div class="ft">© 2026 Pipe (SPR) · MIT License · <a href="feed.xml">RSS</a></div></footer>
 
 <script>
-var LANG='en',POSTS=[],MODE='list',ACTIVE='',MD_V='2';
+var LANG='en',POSTS=[],MODE='list',ACTIVE='',TAG='all',MD_V='2';
 
 function setLang(l){
   LANG=l;
@@ -141,6 +145,8 @@ function setLang(l){
   else if(ACTIVE) renderPost(ACTIVE);
 }
 
+function setTag(t){TAG=t;renderList()}
+
 function fmtDate(d){var m=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'],p=d.split('-');return m[parseInt(p[1])-1]+' '+parseInt(p[2])+', '+p[0]}
 
 function wpm(t){return Math.max(1,Math.ceil(t.split(/\s+/).length/238))+' min read'}
@@ -149,9 +155,15 @@ function renderList(){
   MODE='list';ACTIVE='';
   var l=LANG;
   var h='<h1 class="pg-title">'+T.blogTitle[l]+'</h1><p class="pg-sub">'+T.blogSub[l]+'</p>';
-  if(!POSTS.length){h+='<p style="color:var(--fg2)">'+T.noPosts[l]+'</p>'}
-  else h+='<div class="plist">'+POSTS.map(function(p){
-    return '<a class="pcard" href="?post='+p.id+'">'+
+  var tags=[];
+  POSTS.forEach(function(p){if(p.tag&&tags.indexOf(p.tag)<0)tags.push(p.tag)});
+  h+='<div class="tagbar">'+['all'].concat(tags).map(function(t){
+    return '<button class="tag-btn'+(t===TAG?' active':'')+'" onclick="setTag(\''+t+'\')">'+(t==='all'?T.all[l]:t)+'</button>';
+  }).join('')+'</div>';
+  var list=POSTS.filter(function(p){return TAG==='all'||p.tag===TAG});
+  if(!list.length){h+='<p style="color:var(--fg2)">'+T.noPosts[l]+'</p>'}
+  else h+='<div class="plist">'+list.map(function(p){
+    return '<a class="pcard" href="blog/'+p.id+'.html">'+
       '<div class="pcard-meta"><span>'+p.date+'</span>'+(p.tag?' <span class="pcard-tag">'+p.tag+'</span>':'')+'<span>'+wpm(p.excerpt[l])+'</span></div>'+
       '<div class="pcard-title">'+p.title[l]+'</div>'+
       '<div class="pcard-excerpt">'+p.excerpt[l]+'</div>'+
@@ -184,16 +196,16 @@ function renderPost(id){
   history.replaceState(null,'','?post='+id);
 }
 
+function postUrl(id){return location.origin+location.pathname.replace(/blog\.html$/,'')+'blog/'+id+'.html'}
+
 function copyLink(id){
-  var url=location.origin+location.pathname+'?post='+id;
-  navigator.clipboard.writeText(url).then(function(){
+  navigator.clipboard.writeText(postUrl(id)).then(function(){
     var t=document.getElementById('toast');t.classList.add('show');setTimeout(function(){t.classList.remove('show')},2000);
   });
 }
 
 function shareX(id){
-  var url=location.origin+location.pathname+'?post='+id;
-  window.open('https://twitter.com/intent/tweet?url='+encodeURIComponent(url),'_blank');
+  window.open('https://twitter.com/intent/tweet?url='+encodeURIComponent(postUrl(id)),'_blank');
 }
 
 // ---- markdown ----
@@ -217,7 +229,7 @@ var pl=[];while(i<l.length&&l[i].trim()!==''&&!l[i].match(/^(#{1,6}\s|^> |^```|^
 }return o.join('\n')}
 function inline(t){t=t.replace(/\*\*\*(.+?)\*\*\*/g,'<strong><em>$1</em></strong>');t=t.replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>');t=t.replace(/`([^`]+)`/g,'<code>$1</code>');t=t.replace(/~~(.+?)~~/g,'<del>$1</del>');t=t.replace(/\[([^\]]+)\]\(([^)]+)\)/g,'<a href="$2">$1</a>');return t}
 
-var T={blogTitle:{en:'Blog',de:'Blog'},blogSub:{en:'Updates, tutorials, and deep dives.',de:'Updates, Tutorials und Deep Dives.'},back:{en:'All posts',de:'Alle Beiträge'},loading:{en:'Loading…',de:'Lade…'},loadErr:{en:'Failed to load post.',de:'Beitrag konnte nicht geladen werden.'},noPosts:{en:'No posts yet.',de:'Noch keine Beiträge.'},copyLink:{en:'Copy link',de:'Link kopieren'},shareX:{en:'Share',de:'Teilen'}};
+var T={blogTitle:{en:'Blog',de:'Blog'},blogSub:{en:'Updates, tutorials, and deep dives.',de:'Updates, Tutorials und Deep Dives.'},back:{en:'All posts',de:'Alle Beiträge'},loading:{en:'Loading…',de:'Lade…'},loadErr:{en:'Failed to load post.',de:'Beitrag konnte nicht geladen werden.'},noPosts:{en:'No posts yet.',de:'Noch keine Beiträge.'},all:{en:'all',de:'alle'},copyLink:{en:'Copy link',de:'Link kopieren'},shareX:{en:'Share',de:'Teilen'}};
 
 // ---- init ----
 (function(){
@@ -227,10 +239,10 @@ var T={blogTitle:{en:'Blog',de:'Blog'},blogSub:{en:'Updates, tutorials, and deep
   document.getElementById('btn-de').classList.toggle('active',s==='de');
 
   var ps=new URLSearchParams(location.search).get('post');
+  if(ps){location.replace('blog/'+ps+'.html');return}
   fetch('blog/index.json?v='+MD_V).then(function(r){return r.json()}).then(function(d){
     POSTS=d;
-    if(ps) renderPost(ps);
-    else renderList();
+    renderList();
   }).catch(function(){
     document.getElementById('root').innerHTML='<p style="color:var(--red)">Could not load blog index.</p>';
   });

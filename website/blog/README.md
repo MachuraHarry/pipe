@@ -1,13 +1,16 @@
 # How to Write a Blog Post
 
-No build step, no database, no CMS. Just two files.
+No CMS, no database. Write a Markdown file, add an entry to `index.json`, push.
 
 ## Quick Start
 
 1. Write your post as a Markdown file in this directory.
 2. Add an entry to `index.json`.
+3. Push to `master`.
 
-That's it. The blog page fetches both at runtime — no redeploy needed beyond pushing to `master`.
+That's it. The deploy runs `website/bloggen.py` in CI, which generates a static,
+crawler-friendly page for every post (`blog/<id>.html`), plus `sitemap.xml` and
+`feed.xml`.
 
 ## Step 1: Write the Post
 
@@ -54,7 +57,7 @@ Add an object to the array in `website/blog/index.json`:
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `id` | string | URL-safe identifier. Used in `?post=id` permalink. No spaces. |
+| `id` | string | URL-safe identifier. Used as the static page filename `blog/<id>.html`. No spaces. |
 | `file` | string | The `.md` filename in this directory. |
 | `date` | string | ISO date (`YYYY-MM-DD`). Shown in the listing and detail view. |
 | `tag` | string? | Optional. Shown as a badge. Use `tutorial`, `release`, `security`, `insight`, etc. Omit the field entirely if you don't want a tag. |
@@ -65,6 +68,8 @@ Add an object to the array in `website/blog/index.json`:
 
 **Only one language** (`en` or `de`)? Fill the other with the same text. The language switch still works — both show the same content.
 
+**Internal links between posts:** use relative links to the generated pages, e.g. `[Part 2](sandbox-audit-2.html)` — not `?post=…`.
+
 ## Step 3: Push
 
 ```bash
@@ -73,7 +78,14 @@ git commit -m "blog: My new post"
 git push
 ```
 
-The GitHub Pages deploy runs automatically. Your post is live within ~60 seconds.
+The GitHub Pages deploy runs automatically. It generates the static post page (`blog/<id>.html`), `sitemap.xml` and `feed.xml` via `website/bloggen.py`. Your post is live within ~60 seconds.
+
+### Preview locally
+
+```bash
+python3 website/bloggen.py   # writes website/blog/<id>.html, sitemap.xml, feed.xml
+# open website/blog/<id>.html in a browser
+```
 
 ## Markdown Features
 

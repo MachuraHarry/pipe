@@ -5,7 +5,7 @@ that almost invalidated everything.**
 
 > **Follow-up:** This post covers round 1. A second round found three real
 > ratchet escapes (empty whitelist, port ratchet, budget/calls) — all fixed —
-> see **[Sandbox Audit Round 2](?post=sandbox-audit-2)**.
+> see **[Sandbox Audit Round 2](sandbox-audit-2.html)**.
 
 ---
 

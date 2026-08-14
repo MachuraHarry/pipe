@@ -43,53 +43,8 @@ jobs:
     - name: Setup Pages
       uses: actions/configure-pages@v4
 
-    - name: Generate RSS Feed
-      run: |
-        cat > /tmp/genrss.py << 'PYEOF'
-        import json
-        from email.utils import formatdate
-        from datetime import datetime
-
-        with open("website/blog/index.json") as f:
-            posts = json.load(f)
-
-        now = formatdate(usegmt=True)
-        items = ""
-        for p in posts:
-            title = p["title"]["en"]
-            excerpt = p["excerpt"]["en"]
-            post_url = f"https://pipe-lang.com/blog.html?post={p['id']}"
-            try:
-                dt = datetime.fromisoformat(p["date"])
-                pubdate = formatdate(dt.timestamp(), usegmt=True)
-            except:
-                pubdate = now
-            items += f"""  <item>
-            <title>{title}</title>
-            <link>{post_url}</link>
-            <guid isPermaLink="true">{post_url}</guid>
-            <pubDate>{pubdate}</pubDate>
-            <description>{excerpt}</description>
-          </item>
-        """
-
-        rss = f"""<?xml version="1.0" encoding="UTF-8"?>
-        <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
-        <channel>
-          <title>Pipe Blog</title>
-          <link>https://pipe-lang.com/blog.html</link>
-          <description>Updates, tutorials, and deep dives into the Semantic Pipeline Runtime.</description>
-          <language>en</language>
-          <lastBuildDate>{now}</lastBuildDate>
-          <atom:link href="https://pipe-lang.com/feed.xml" rel="self" type="application/rss+xml"/>
-        {items}</channel>
-        </rss>"""
-
-        with open("website/feed.xml", "w") as f:
-            f.write(rss)
-        print(f"RSS feed generated: {len(rss)} bytes ({len(posts)} items)")
-        PYEOF
-        python3 /tmp/genrss.py
+    - name: Generate blog pages, sitemap and RSS feed
+      run: python3 website/bloggen.py
 
     - name: Copy docs for in-site viewing
       run: cp -r docs website/docs

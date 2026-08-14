@@ -5,8 +5,8 @@ feature, two builtins that forgot their own gate, and the structural fixes that
 make both bug classes unreproducible.**
 
 > **Follow-up:** This post covers rounds 3–6. For the earlier rounds, see
-> **[Sandbox Audit Round 1](?post=sandbox-audit)** and
-> **[Round 2](?post=sandbox-audit-2)**.
+> **[Sandbox Audit Round 1](sandbox-audit.html)** and
+> **[Round 2](sandbox-audit-2.html)**.
 
 ---
 

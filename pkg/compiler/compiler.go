@@ -1303,6 +1303,7 @@ var zeroArityBuiltins = map[string]bool{
 	"mcp_tools":         true,
 	"mcp_resources":     true,
 	"mcp_prompts":       true,
+	"mutex":             true,
 }
 
 func isZeroArityBuiltin(name string) bool {

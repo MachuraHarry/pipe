@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"sync"
 
 	"github.com/MachuraHarry/pipe/pkg/ast"
 )
@@ -27,6 +28,9 @@ const (
 	FUTURE                       = "FUTURE"
 	ERROR                        = "ERROR"
 	STRUCT                       = "STRUCT"
+	CHANNEL                      = "CHANNEL"
+	MUTEX                        = "MUTEX"
+	SEMAPHORE                    = "SEMAPHORE"
 )
 
 type Object interface {
@@ -160,6 +164,58 @@ func EnsureResolved(obj Object) Object {
 	}
 	return obj
 }
+
+// Channel is an in-memory communication primitive shared by reference between
+// concurrent tasks (see spawn/>>). send blocks, recv blocks, try_recv/try_send
+// do not.
+type Channel struct {
+	ch     chan Object
+	closed bool
+	mu     sync.Mutex
+}
+
+func NewChannel(capacity int) *Channel {
+	if capacity < 0 {
+		capacity = 0
+	}
+	return &Channel{ch: make(chan Object, capacity)}
+}
+
+func (c *Channel) Type() ObjectType { return CHANNEL }
+func (c *Channel) Inspect() string {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if c.closed {
+		return "chan(closed)"
+	}
+	return fmt.Sprintf("chan(%d/%d)", len(c.ch), cap(c.ch))
+}
+
+// Mutex is a shared in-memory mutual exclusion primitive.
+type Mutex struct {
+	mu sync.Mutex
+}
+
+func NewMutex() *Mutex { return &Mutex{} }
+
+func (m *Mutex) Type() ObjectType { return MUTEX }
+func (m *Mutex) Inspect() string  { return "mutex" }
+
+// Semaphore is a counting semaphore (bounded parallelism primitive).
+type Semaphore struct {
+	ch chan struct{}
+	n  int
+}
+
+func NewSemaphore(n int) *Semaphore {
+	if n < 1 {
+		n = 1
+	}
+	return &Semaphore{ch: make(chan struct{}, n), n: n}
+}
+
+func (s *Semaphore) Type() ObjectType { return SEMAPHORE }
+func (s *Semaphore) Inspect() string  { return fmt.Sprintf("semaphore(%d/%d)", len(s.ch), s.n) }
 
 type BuiltinInfo struct {
 	Name string
@@ -449,6 +505,24 @@ var Builtins = []BuiltinInfo{
 	{"go", bGo},
 	{"spawn", bSpawn},
 	{"await", bAwait},
+
+	// Concurrency — channels, mutex, semaphore
+	{"chan", bChan},
+	{"send", bSend},
+	{"recv", bRecv},
+	{"try_recv", bTryRecv},
+	{"try_send", bTrySend},
+	{"close", bClose},
+	{"chan_len", bChanLen},
+	{"chan_cap", bChanCap},
+	{"mutex", bMutex},
+	{"lock", bLock},
+	{"unlock", bUnlock},
+	{"try_lock", bTryLock},
+	{"semaphore", bSemaphore},
+	{"acquire", bAcquire},
+	{"release", bRelease},
+	{"try_acquire", bTryAcquire},
 
 	// Math
 	{"abs", bAbs},

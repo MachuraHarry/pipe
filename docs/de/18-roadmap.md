@@ -54,7 +54,7 @@ Pipe ist aktuell in Version **v0.9.4.0**, dem **Modulsystem-Release**. Es vervol
 
 | # | Feature | Beschreibung |
 |---|---|---|
-| 10 | **Concurrency** | `>>` Parallel-Pipeline existiert (v0.6); `go`/`spawn`/`await` in TW und VM (v0.9.x); Channels/Mutex noch offen |
+| 10 | **Concurrency** | `>>` Parallel-Pipeline, `go`/`spawn`/`await`, Channels, Mutex und Semaphor (TW + VM, v0.9.x); `select`/Coroutines noch offen |
 | 11 | **Optionale Typannotationen** | `fn add(a: num, b: num) -> a + b` |
 | 12 | **Package-Registry 2.0** | `pipe publish`, `pipe install`; Basis (`-search`, `-get`, `@version`) existiert seit v0.6 |
 | 13 | **Bytecode-Optimierungen** | Peephole-Optimizer, Inline-Caching, Constant Folding |

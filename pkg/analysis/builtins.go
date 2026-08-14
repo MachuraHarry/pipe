@@ -49,6 +49,7 @@ const (
 	CatAISearch = "AI Search"
 	CatSandbox  = "Sandbox"
 	CatTest     = "Test Assertions"
+	CatConcur   = "Concurrency"
 )
 
 func p(name, typ string) Param { return Param{Name: name, Type: typ} }
@@ -487,13 +488,45 @@ var builtinDocs = []BuiltinDoc{
 	{Name: "assert_error", Signature: "assert_error(fn)", Params: []Param{p("fn", "function")}, ReturnType: "nil",
 		Description: "Asserts that calling fn() returns an error. Pass a zero-argument function.", Category: CatTest},
 
-	// ---- Concurrency (eval-only) ----
+	// ---- Concurrency ----
 	{Name: "go", Signature: "go(fn, args...)", Params: []Param{p("fn", "function"), p("args", "any")}, ReturnType: "nil",
-		Description: "Runs fn asynchronously in a goroutine with the given arguments.", Category: CatIO},
+		Description: "Runs fn asynchronously in a goroutine with the given arguments.", Category: CatConcur},
 	{Name: "spawn", Signature: "spawn(fn, args...)", Params: []Param{p("fn", "function"), p("args", "any")}, ReturnType: "future",
-		Description: "Launches fn in the background and returns a Future; await the result with `await`.", Category: CatIO},
+		Description: "Launches fn in the background and returns a Future; await the result with `await`.", Category: CatConcur},
 	{Name: "await", Signature: "await(future, timeout_ms?)", Params: []Param{p("future", "future"), p("timeout_ms", "number")}, ReturnType: "any",
-		Description: "Blocks until the Future resolves and returns its value. An optional timeout (in ms) errors if exceeded.", Category: CatIO},
+		Description: "Blocks until the Future resolves and returns its value. An optional timeout (in ms) errors if exceeded.", Category: CatConcur},
+	{Name: "chan", Signature: "chan(capacity?)", Params: []Param{p("capacity", "number")}, ReturnType: "channel",
+		Description: "Creates a channel for communication between concurrent tasks. Buffered if capacity is given, unbuffered otherwise.", Category: CatConcur},
+	{Name: "send", Signature: "send(channel, value)", Params: []Param{p("channel", "channel"), p("value", "any")}, ReturnType: "nil",
+		Description: "Sends a value on the channel, blocking until it is received (errors if the channel is closed).", Category: CatConcur},
+	{Name: "recv", Signature: "recv(channel)", Params: []Param{p("channel", "channel")}, ReturnType: "any",
+		Description: "Receives a value from the channel, blocking until one is available. Returns nil once the channel is closed.", Category: CatConcur},
+	{Name: "try_recv", Signature: "try_recv(channel)", Params: []Param{p("channel", "channel")}, ReturnType: "any",
+		Description: "Receives a value without blocking; returns nil if no value is available or the channel is closed.", Category: CatConcur},
+	{Name: "try_send", Signature: "try_send(channel, value)", Params: []Param{p("channel", "channel"), p("value", "any")}, ReturnType: "bool",
+		Description: "Sends a value without blocking; returns false if the channel is full or closed.", Category: CatConcur},
+	{Name: "close", Signature: "close(channel)", Params: []Param{p("channel", "channel")}, ReturnType: "nil",
+		Description: "Closes the channel. Subsequent sends error and receives drain remaining values, then return nil.", Category: CatConcur},
+	{Name: "chan_len", Signature: "chan_len(channel)", Params: []Param{p("channel", "channel")}, ReturnType: "number",
+		Description: "Returns the number of values currently buffered in the channel.", Category: CatConcur},
+	{Name: "chan_cap", Signature: "chan_cap(channel)", Params: []Param{p("channel", "channel")}, ReturnType: "number",
+		Description: "Returns the capacity of the channel (0 for unbuffered).", Category: CatConcur},
+	{Name: "mutex", Signature: "mutex()", Params: []Param{}, ReturnType: "mutex",
+		Description: "Creates a mutual exclusion lock for synchronizing concurrent tasks.", Category: CatConcur},
+	{Name: "lock", Signature: "lock(mutex)", Params: []Param{p("mutex", "mutex")}, ReturnType: "nil",
+		Description: "Acquires the mutex, blocking until it is available.", Category: CatConcur},
+	{Name: "unlock", Signature: "unlock(mutex)", Params: []Param{p("mutex", "mutex")}, ReturnType: "nil",
+		Description: "Releases the mutex.", Category: CatConcur},
+	{Name: "try_lock", Signature: "try_lock(mutex)", Params: []Param{p("mutex", "mutex")}, ReturnType: "bool",
+		Description: "Acquires the mutex without blocking; returns false if it is already held.", Category: CatConcur},
+	{Name: "semaphore", Signature: "semaphore(count)", Params: []Param{p("count", "number")}, ReturnType: "semaphore",
+		Description: "Creates a counting semaphore limiting concurrent access to a resource.", Category: CatConcur},
+	{Name: "acquire", Signature: "acquire(semaphore)", Params: []Param{p("semaphore", "semaphore")}, ReturnType: "nil",
+		Description: "Acquires the semaphore, blocking until a permit is available.", Category: CatConcur},
+	{Name: "release", Signature: "release(semaphore)", Params: []Param{p("semaphore", "semaphore")}, ReturnType: "nil",
+		Description: "Releases a permit back to the semaphore.", Category: CatConcur},
+	{Name: "try_acquire", Signature: "try_acquire(semaphore)", Params: []Param{p("semaphore", "semaphore")}, ReturnType: "bool",
+		Description: "Acquires the semaphore without blocking; returns false if no permit is available.", Category: CatConcur},
 }
 
 var builtinIndex = func() map[string]BuiltinDoc {

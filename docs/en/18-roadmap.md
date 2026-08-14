@@ -157,11 +157,13 @@ Pipe is currently at version **v0.9.3.5**, the **sandbox-hardening release** car
 - [x] `>>` true parallelism for user-defined closures in the bytecode VM (was synchronous fallback)
 - [x] `spawn` builtin — launch a function and get back a Future
 - [x] `await` builtin — block on a Future with an optional timeout
+- [x] Channels (`chan`, `send`, `recv`, `try_recv`, `try_send`, `close`)
+- [x] Mutex (`mutex`, `lock`, `unlock`, `try_lock`)
+- [x] Counting semaphore (`semaphore`, `acquire`, `release`, `try_acquire`)
 - [ ] Lightweight coroutines/green threads
-- [ ] Channel-based communication (similar to Go channels)
+- [ ] `select` statement (Go-style multi-channel select)
 - [ ] `spawn` keyword for launching concurrent tasks
 - [ ] `await` for waiting on task completion
-- [ ] Mutex/semaphore primitives
 
 ### Type System
 - [ ] Optional type annotations (`x: int = 42`)

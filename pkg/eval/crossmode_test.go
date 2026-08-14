@@ -308,6 +308,50 @@ func TestCrossAwaitTimeout(t *testing.T) {
 	assertBothErrorContains(t, "fn slow x\n    sleep 500\n    x\n\nf: spawn slow 1\nawait f 20", "timed out")
 }
 
+func TestCrossChanBuffered(t *testing.T) {
+	// A buffered channel sends and receives identically in both engines.
+	assertBothEqual(t, "c: chan 2\nsend c 10\nsend c 20\nrecv c + recv c", "30")
+}
+
+func TestCrossChanLenCap(t *testing.T) {
+	assertBothEqual(t, "c: chan 5\nsend c 1\nchan_len c", "1")
+	assertBothEqual(t, "c: chan 5\nchan_cap c", "5")
+}
+
+func TestCrossChanTryRecvEmpty(t *testing.T) {
+	assertBothEqual(t, "c: chan 0\ntry_recv c", "nil")
+}
+
+func TestCrossChanTrySend(t *testing.T) {
+	assertBothEqual(t, "c: chan 1\nsend c 1\ntry_send c 2", "false")
+}
+
+func TestCrossChanClose(t *testing.T) {
+	assertBothEqual(t, "c: chan 1\nsend c 7\nclose c\nrecv c", "7")
+	assertBothEqual(t, "c: chan 0\nclose c\nrecv c", "nil")
+}
+
+func TestCrossMutexTryLock(t *testing.T) {
+	assertBothEqual(t, "m: mutex\ntry_lock m", "true")
+}
+
+func TestCrossSemaphore(t *testing.T) {
+	assertBothEqual(t, "s: semaphore 2\ntry_acquire s", "true")
+}
+
+func TestCrossChannelTypes(t *testing.T) {
+	assertBothEqual(t, "type_of (chan 1)", "CHANNEL")
+	assertBothEqual(t, "type_of mutex", "MUTEX")
+	assertBothEqual(t, "type_of (semaphore 3)", "SEMAPHORE")
+}
+
+func TestCrossChannelAcrossSpawn(t *testing.T) {
+	// A channel is shared by reference across the spawn boundary: a spawned
+	// producer sends to it and the caller receives the value.
+	input := "fn produce c\n    send c 42\n\nch: chan 0\nspawn produce ch\nrecv ch"
+	assertBothEqual(t, input, "42")
+}
+
 func TestCrossAnonymousFunction(t *testing.T) {
 	assertBothEqual(t, "double: fn x\n    x * 2\n\ndouble 7", "14")
 }

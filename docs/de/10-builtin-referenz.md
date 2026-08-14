@@ -1010,7 +1010,7 @@ type_of wert
 ```
 Gibt den Typ eines Werts als String zurück. Mögliche Werte: `"INTEGER"`, `"FLOAT"`,
 `"STRING"`, `"BOOLEAN"`, `"NIL"`, `"LIST"`, `"MAP"`, `"FUNCTION"`, `"CLOSURE"`,
-`"COMPILED_FUNCTION"`, `"RETURN"`, `"BREAK"`, `"CONTINUE"`, `"DEFER"`, `"RESULT"`, `"STRUCT"`.
+`"COMPILED_FUNCTION"`, `"RETURN"`, `"BREAK"`, `"CONTINUE"`, `"DEFER"`, `"RESULT"`, `"STRUCT"`, `"CHANNEL"`, `"MUTEX"`, `"SEMAPHORE"`.
 ```pipe
 -- "INTEGER"
 print (type_of 42)
@@ -1205,18 +1205,152 @@ print (unwrap_or (Err "x") 0)
 
 ---
 
-## 10.17 Konkurrenz (Tree-Walker only)
+## 10.17 Konkurrenz
 
 ### go
 ```
 go funktionsaufruf
 ```
 Startet eine Funktion in einer neuen **Goroutine** (nebenläufig).
-**Nur im Tree-Walker verfügbar.**
 ```pipe
 go print "Nebenläufig"
 print "Hauptprogramm"
 -- Beide Ausgaben erscheinen (Reihenfolge nicht determiniert)
+```
+
+### spawn
+```
+spawn funktionsaufruf
+```
+Startet eine Funktion im Hintergrund und gibt einen **Future** zurück, der auf
+das Ergebnis wartet. Mit `await` lässt sich explizit darauf warten.
+```pipe
+task: spawn lange_berechnung 42
+-- andere Arbeit ...
+ergebnis: await task
+print ergebnis
+```
+
+### await
+```
+await future [timeout_ms]
+```
+Blockiert, bis ein Future aufgelöst ist, und gibt den Wert zurück. Optionaler
+Timeout in Millisekunden; bei Überschreitung → Fehler.
+```pipe
+task: spawn langsame_operation
+ergebnis: await task          -- unbegrenzt warten
+-- oder mit Timeout:
+ergebnis: await task 5000     -- Fehler nach 5 s
+```
+
+### chan
+```
+chan [kapazität]
+```
+Erzeugt einen Channel zur Kommunikation zwischen nebenläufigen Tasks. Ohne
+Kapazität unbuffered, sonst mit der angegebenen Anzahl Pufferplätze.
+
+### send
+```
+send channel wert
+```
+Sendet einen Wert über den Channel (blockiert). Fehler, wenn der Channel geschlossen ist.
+
+### recv
+```
+recv channel
+```
+Empfängt einen Wert (blockiert). Gibt `nil` zurück, wenn der Channel geschlossen
+und geleert ist.
+
+### try_recv
+```
+try_recv channel
+```
+Empfängt ohne zu blockieren. `nil`, wenn kein Wert verfügbar ist (oder geschlossen).
+
+### try_send
+```
+try_send channel wert
+```
+Sendet ohne zu blockieren. `false`, wenn der Channel voll oder geschlossen ist.
+
+### close
+```
+close channel
+```
+Schließt den Channel. Weitere `send`-Aufrufe geben einen Fehler; Empfänger lesen
+verbleibende Werte und erhalten danach `nil`.
+
+### chan_len
+```
+chan_len channel
+```
+Anzahl aktuell gepufferter Werte.
+
+### chan_cap
+```
+chan_cap channel
+```
+Kapazität des Channels (0 bei unbuffered).
+
+### mutex
+```
+mutex
+```
+Erzeugt einen Mutex zur Synchronisation nebenläufiger Tasks.
+
+### lock
+```
+lock mutex
+```
+Sperrt den Mutex (blockiert, bis verfügbar).
+
+### unlock
+```
+unlock mutex
+```
+Gibt den Mutex frei.
+
+### try_lock
+```
+try_lock mutex
+```
+Sperrt ohne zu blockieren. `false`, wenn bereits gesperrt.
+
+### semaphore
+```
+semaphore anzahl
+```
+Erzeugt einen Zähl-Semaphor zur Begrenzung paralleler Zugriffe.
+
+### acquire
+```
+acquire semaphor
+```
+Belegt den Semaphor (blockiert, bis ein Permit frei ist).
+
+### release
+```
+release semaphor
+```
+Gibt ein Permit zurück.
+
+### try_acquire
+```
+try_acquire semaphor
+```
+Belegt ohne zu blockieren. `false`, wenn kein Permit frei ist.
+
+```pipe
+-- Producer/Consumer über einen Channel
+fn produce c
+    send c 42
+
+ch: chan 0
+spawn produce ch
+print (recv ch)
 ```
 
 ---
@@ -1622,6 +1756,11 @@ mcp_use_sse "http://localhost:9090/"
 
 ### IO & System (9)
 `print`, `print_raw`, `input`, `exec`, `env`, `sleep`, `args`, `read_stdin`, `go`
+
+### Konkurrenz (19)
+`go`, `spawn`, `await`, `chan`, `send`, `recv`, `try_recv`, `try_send`, `close`,
+`chan_len`, `chan_cap`, `mutex`, `lock`, `unlock`, `try_lock`, `semaphore`,
+`acquire`, `release`, `try_acquire`
 
 ### Dateisystem (23)
 `read_file`, `write_file`, `append_file`, `read_lines`, `file_exists`,

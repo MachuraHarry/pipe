@@ -134,6 +134,96 @@ result: await task        -- wait indefinitely
 result: await task 5000   -- error after 5 s
 ```
 
+### `chan`
+**Signature:** `chan(capacity?)`
+**Description:** Creates a channel for communicating between concurrent tasks. Unbuffered if no capacity is given; buffered with that many slots otherwise.
+**Returns:** `channel`
+```pipe
+c: chan 3        -- buffered
+u: chan          -- unbuffered
+```
+
+### `send`
+**Signature:** `send(channel, value)`
+**Description:** Sends a value on the channel, blocking until a receiver takes it. Errors if the channel is closed.
+**Returns:** `nil`
+```pipe
+send c 42
+```
+
+### `recv`
+**Signature:** `recv(channel)`
+**Description:** Receives a value from the channel, blocking until one is available. Returns `nil` once the channel is closed and drained.
+**Returns:** the received value (or `nil` on close)
+```pipe
+v: recv c
+```
+
+### `try_recv`
+**Signature:** `try_recv(channel)`
+**Description:** Receives a value without blocking. Returns `nil` if no value is available (or the channel is closed).
+**Returns:** the received value or `nil`
+
+### `try_send`
+**Signature:** `try_send(channel, value)`
+**Description:** Sends a value without blocking. Returns `false` if the channel is full or closed.
+**Returns:** `bool`
+
+### `close`
+**Signature:** `close(channel)`
+**Description:** Closes the channel. Sends afterwards error; receivers drain any buffered values and then return `nil`.
+**Returns:** `nil`
+
+### `chan_len`
+**Signature:** `chan_len(channel)`
+**Description:** Returns the number of values currently buffered in the channel.
+**Returns:** `number`
+
+### `chan_cap`
+**Signature:** `chan_cap(channel)`
+**Description:** Returns the capacity of the channel (0 for unbuffered).
+**Returns:** `number`
+
+### `mutex`
+**Signature:** `mutex()`
+**Description:** Creates a mutual exclusion lock for synchronizing concurrent tasks.
+**Returns:** `mutex`
+
+### `lock`
+**Signature:** `lock(mutex)`
+**Description:** Acquires the mutex, blocking until it is available.
+**Returns:** `nil`
+
+### `unlock`
+**Signature:** `unlock(mutex)`
+**Description:** Releases the mutex.
+**Returns:** `nil`
+
+### `try_lock`
+**Signature:** `try_lock(mutex)`
+**Description:** Acquires the mutex without blocking. Returns `false` if it is already held.
+**Returns:** `bool`
+
+### `semaphore`
+**Signature:** `semaphore(count)`
+**Description:** Creates a counting semaphore limiting concurrent access to a resource (e.g. a worker pool or a rate limit).
+**Returns:** `semaphore`
+
+### `acquire`
+**Signature:** `acquire(semaphore)`
+**Description:** Acquires the semaphore, blocking until a permit is available.
+**Returns:** `nil`
+
+### `release`
+**Signature:** `release(semaphore)`
+**Description:** Releases a permit back to the semaphore.
+**Returns:** `nil`
+
+### `try_acquire`
+**Signature:** `try_acquire(semaphore)`
+**Description:** Acquires the semaphore without blocking. Returns `false` if no permit is available.
+**Returns:** `bool`
+
 ---
 
 ## 10.2 File System (23 functions)
@@ -2607,6 +2697,27 @@ mcp_use_sse "http://localhost:9090/"
 | 8 | `go` | `go(fn, args...)` | `nil` |
 | 8a | `spawn` | `spawn(fn, args...)` | `future` |
 | 8b | `await` | `await(future, timeout_ms?)` | `any` |
+
+### Concurrency (18)
+
+| # | Function | Signature | Returns |
+|---|----------|-----------|---------|
+| c1 | `chan` | `chan(capacity?)` | `channel` |
+| c2 | `send` | `send(channel, value)` | `nil` |
+| c3 | `recv` | `recv(channel)` | `any` or `nil` |
+| c4 | `try_recv` | `try_recv(channel)` | `any` or `nil` |
+| c5 | `try_send` | `try_send(channel, value)` | `bool` |
+| c6 | `close` | `close(channel)` | `nil` |
+| c7 | `chan_len` | `chan_len(channel)` | `number` |
+| c8 | `chan_cap` | `chan_cap(channel)` | `number` |
+| c9 | `mutex` | `mutex()` | `mutex` |
+| c10 | `lock` | `lock(mutex)` | `nil` |
+| c11 | `unlock` | `unlock(mutex)` | `nil` |
+| c12 | `try_lock` | `try_lock(mutex)` | `bool` |
+| c13 | `semaphore` | `semaphore(count)` | `semaphore` |
+| c14 | `acquire` | `acquire(semaphore)` | `nil` |
+| c15 | `release` | `release(semaphore)` | `nil` |
+| c16 | `try_acquire` | `try_acquire(semaphore)` | `bool` |
 
 ### File System (23)
 

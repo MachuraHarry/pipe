@@ -545,3 +545,20 @@ func TestConcurrentVMsMapClosure(t *testing.T) {
 		t.Error(e)
 	}
 }
+
+// TestSpawnChannelSharedAcrossVMs proves a channel created in the parent VM is
+// shared by reference with child VMs: a spawned function sends to it and the
+// caller receives across the spawn boundary. Run under `go test -race` this
+// exercises the concurrent channel object access.
+func TestSpawnChannelSharedAcrossVMs(t *testing.T) {
+	input := "fn put c\n    send c 42\n\nch: chan 1\nspawn put ch\nrecv ch"
+	bc := parseAndCompile(t, input)
+
+	v := New(bc)
+	if err := v.Run(); err != nil {
+		t.Fatalf("vm error: %s", err)
+	}
+	if got := v.LastPoppedStackElem().Inspect(); got != "42" {
+		t.Errorf("expected 42, got %q", got)
+	}
+}

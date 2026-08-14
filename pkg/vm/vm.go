@@ -67,16 +67,27 @@ func (vm *VM) CallUserFunction(fn object.Object, args ...object.Object) object.O
 	return vm.callUserFunction(fn, args...)
 }
 
-// SpawnUserFunction satisfies object.UserFunctionSpawner: the `go` builtin
-// launches a closure fire-and-forget on a fresh child VM.
-func (vm *VM) SpawnUserFunction(fn object.Object, args ...object.Object) {
+// SpawnUserFunction satisfies object.UserFunctionSpawner: `go` and `spawn`
+// launch a closure on a fresh child VM and get back its Future.
+func (vm *VM) SpawnUserFunction(fn object.Object, args ...object.Object) *object.Future {
 	cl, ok := fn.(*object.Closure)
 	if !ok {
-		return
+		return nil
 	}
+	return vm.spawnClosure(cl, args)
+}
+
+// spawnClosure launches a closure on a child VM in a goroutine and returns a
+// Future that resolves to its result.
+func (vm *VM) spawnClosure(fn *object.Closure, args []object.Object) *object.Future {
+	future := object.NewFuture()
 	globals := vm.snapshotGlobals()
-	child := vm.newSpawnVM(cl, args, globals)
-	go child.executeFrame()
+	go func() {
+		child := vm.newSpawnVM(fn, args, globals)
+		future.Val = child.executeFrame()
+		close(future.Done)
+	}()
+	return future
 }
 
 type VM struct {
@@ -474,8 +485,10 @@ func (vm *VM) callFunction(numArgs int) {
 		for i := numArgs - 1; i >= 0; i-- {
 			args[i] = vm.pop()
 		}
-		for i := range args {
-			args[i] = object.EnsureResolved(args[i])
+		if !object.IsAwaitBuiltin(fn) {
+			for i := range args {
+				args[i] = object.EnsureResolved(args[i])
+			}
 		}
 		result := fn.Fn(args...)
 		vm.pop()
@@ -537,18 +550,9 @@ func (vm *VM) spawnCall(numArgs int) {
 		for i := range args {
 			args[i] = object.EnsureResolved(args[i])
 		}
-		future := object.NewFuture()
+		future := vm.spawnClosure(fn, args)
 		vm.pop()
 		vm.push(future)
-		// Snapshot globals synchronously: the parent keeps executing (and
-		// writing globals) while the child runs, so the copy must happen here.
-		globals := vm.snapshotGlobals()
-		go func() {
-			child := vm.newSpawnVM(fn, args, globals)
-			result := child.executeFrame()
-			future.Val = result
-			close(future.Done)
-		}()
 
 	default:
 		vm.callFunction(numArgs)

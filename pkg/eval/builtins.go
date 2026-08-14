@@ -50,6 +50,7 @@ func init() {
 	builtins["reduce"] = &Builtin{Name: "reduce", Fn: bReduce, Arity: 3}
 	builtins["each"] = &Builtin{Name: "each", Fn: bEach, Arity: 2}
 	builtins["go"] = &Builtin{Name: "go", Fn: bGo, Arity: 1}
+	builtins["spawn"] = &Builtin{Name: "spawn", Fn: bSpawn, Arity: 1}
 
 	object.TryAIEvalFn = tryAIEvalFromSource
 }
@@ -138,15 +139,17 @@ func bGo(args ...object.Object) object.Object {
 
 	switch f := fn.(type) {
 	case *object.Function:
+		// Clone the captured environment so the background goroutine reads a
+		// snapshot instead of racing the caller, which keeps writing to it.
+		branchEnv := f.Env.Clone()
 		go func() {
-			extEnv := object.NewEnclosedEnvironment(f.Env)
+			extEnv := object.NewEnclosedEnvironment(branchEnv)
 			for i, p := range f.Parameters {
 				if i < len(fnArgs) {
 					extEnv.Set(p.Value, fnArgs[i])
 				}
 			}
-			fnCtx := getEvalCtx(f)
-			fnCtx.Eval(f.Body, extEnv)
+			NewEvalContext("<go>").Eval(f.Body, extEnv)
 		}()
 	case *Builtin:
 		go f.Fn(fnArgs...)
@@ -154,6 +157,44 @@ func bGo(args ...object.Object) object.Object {
 		return newErr("go: first argument must be a function")
 	}
 	return object.NILOBJ
+}
+
+func bSpawn(args ...object.Object) object.Object {
+	if len(args) < 1 {
+		return newErr("spawn expects at least 1 argument (function)")
+	}
+	fn := args[0]
+	fnArgs := args[1:]
+
+	switch f := fn.(type) {
+	case *object.Function:
+		future := object.NewFuture()
+		// Clone the captured environment so the background goroutine reads a
+		// snapshot instead of racing the caller, which keeps writing to it.
+		branchEnv := f.Env.Clone()
+		go func() {
+			extEnv := object.NewEnclosedEnvironment(branchEnv)
+			for i, p := range f.Parameters {
+				if i < len(fnArgs) {
+					extEnv.Set(p.Value, fnArgs[i])
+				}
+			}
+			// A fresh EvalContext keeps the background call stack isolated
+			// from the caller's (the tree-walker is not goroutine-safe).
+			future.Val = NewEvalContext("<spawn>").Eval(f.Body, extEnv)
+			close(future.Done)
+		}()
+		return future
+	case *Builtin:
+		future := object.NewFuture()
+		go func() {
+			future.Val = f.Fn(fnArgs...)
+			close(future.Done)
+		}()
+		return future
+	default:
+		return newErr("spawn: first argument must be a function")
+	}
 }
 
 func applyFn(fn object.Object, args []object.Object) object.Object {

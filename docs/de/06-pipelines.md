@@ -167,6 +167,30 @@ ergebnis + 100
 max ergebnis 50
 ```
 
+### Explizites Warten: `spawn` und `await`
+
+Futures lösen sich beim Konsum automatisch auf. Manchmal will man aber ein
+Task-Handle explizit abwarten — oder mit Timeout warten. `spawn` startet eine
+Funktion im Hintergrund und gibt einen Future zurück; `await` blockiert, bis er
+aufgelöst ist:
+
+```pipe
+-- Berechnung starten, Handle behalten
+task: spawn langsame_verdopplung 21
+
+-- inzwischen andere Arbeit erledigen ...
+
+-- explizit auf das Ergebnis warten
+ergebnis: await task
+print ergebnis
+
+-- oder nach 5 Sekunden abbrechen statt ewig zu blockieren
+vielleicht: await task 5000
+```
+
+`await` auf einem Nicht-Future-Wert ist ein No-op; `go` bleibt für
+fire-and-forget-Arbeit ohne Rückgabewert verfügbar.
+
 ### Mischen von `>` und `>>`
 
 Parallele und sequentielle Pipeline-Stufen lassen sich beliebig kombinieren:

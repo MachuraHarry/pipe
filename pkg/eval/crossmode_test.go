@@ -287,6 +287,27 @@ func TestCrossGoUserFunction(t *testing.T) {
 	assertBothEqual(t, "fn double x\n    x * 2\n\ngo double 21", "nil")
 }
 
+func TestCrossSpawnAwait(t *testing.T) {
+	// spawn returns a Future; await blocks until it resolves and returns the
+	// value in both engines.
+	assertBothEqual(t, "fn double x\n    x * 2\n\nf: spawn double 21\nawait f", "42")
+}
+
+func TestCrossAwaitResolvedValue(t *testing.T) {
+	// await on a plain (non-Future) value is a no-op.
+	assertBothEqual(t, "await 7", "7")
+}
+
+func TestCrossSpawnBuiltin(t *testing.T) {
+	// spawn can launch a builtin in the background and await its result.
+	assertBothEqual(t, "f: spawn upper \"hello\"\nawait f", "HELLO")
+}
+
+func TestCrossAwaitTimeout(t *testing.T) {
+	// A Future that never resolves within the timeout must error.
+	assertBothErrorContains(t, "fn slow x\n    sleep 500\n    x\n\nf: spawn slow 1\nawait f 20", "timed out")
+}
+
 func TestCrossAnonymousFunction(t *testing.T) {
 	assertBothEqual(t, "double: fn x\n    x * 2\n\ndouble 7", "14")
 }

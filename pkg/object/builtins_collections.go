@@ -3,6 +3,7 @@ package object
 import (
 	"fmt"
 	"sort"
+	"time"
 )
 
 func bLen(args ...Object) Object {
@@ -246,6 +247,61 @@ func bGo(args ...Object) Object {
 		return err("go: first argument must be a function")
 	}
 	return NILOBJ
+}
+
+// bSpawn is like bGo, but returns the Future for the launched function instead
+// of discarding it. The caller can then `await` the Future.
+func bSpawn(args ...Object) Object {
+	if len(args) < 1 {
+		return err("spawn expects at least 1 argument (function)")
+	}
+	fn := args[0]
+	fnArgs := args[1:]
+
+	switch f := fn.(type) {
+	case *Closure:
+		if sp, ok := f.Executor.(UserFunctionSpawner); ok {
+			if future := sp.SpawnUserFunction(f, fnArgs...); future != nil {
+				return future
+			}
+		}
+		return err("spawn: first argument must be a function")
+	case *BuiltinInfo:
+		future := NewFuture()
+		go func() {
+			future.Val = f.Fn(fnArgs...)
+			close(future.Done)
+		}()
+		return future
+	default:
+		return err("spawn: first argument must be a function")
+	}
+}
+
+// bAwait blocks until a Future resolves and returns its value. An optional
+// second argument is a timeout in milliseconds; if the Future does not resolve
+// in time, an error is returned.
+func bAwait(args ...Object) Object {
+	if len(args) < 1 || len(args) > 2 {
+		return err("await expects 1-2 arguments (future[, timeout_ms])")
+	}
+	f, ok := args[0].(*Future)
+	if !ok {
+		return args[0]
+	}
+	if len(args) == 2 {
+		ms, ok2 := ToInt(args[1])
+		if !ok2 {
+			return err("await: timeout must be a number (milliseconds)")
+		}
+		select {
+		case <-f.Done:
+			return f.Val
+		case <-time.After(time.Duration(ms) * time.Millisecond):
+			return err(fmt.Sprintf("await: timed out after %d ms", ms))
+		}
+	}
+	return f.Resolve()
 }
 
 func bRange(args ...Object) Object {

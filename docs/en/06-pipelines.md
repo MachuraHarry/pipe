@@ -159,6 +159,29 @@ result + 100
 max result 50
 ```
 
+### Explicit Waiting: `spawn` and `await`
+
+Futures resolve automatically when consumed, but sometimes you want a task handle
+to wait on explicitly — or to wait with a timeout. The `spawn` builtin launches a
+function in the background and returns a Future; `await` blocks until it resolves:
+
+```pipe
+-- start a computation, keep the handle
+task: spawn slow_double 21
+
+-- do other work meanwhile...
+
+-- wait explicitly for the result
+result: await task
+print result
+
+-- or give up after 5 seconds instead of blocking forever
+maybe: await task 5000
+```
+
+`await` on a non-Future value is a no-op, and `go` remains available for
+fire-and-forget work where no result is needed.
+
 ### Mixing `>` and `>>`
 
 You can freely mix sequential and parallel pipeline stages:

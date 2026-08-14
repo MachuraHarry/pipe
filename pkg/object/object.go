@@ -183,10 +183,24 @@ type UserFunctionExecutor interface {
 	CallUserFunction(fn Object, args ...Object) Object
 }
 
-// UserFunctionSpawner launches a user-defined function in the background
-// (fire-and-forget). Used by the `go` builtin when handed a VM closure.
+// UserFunctionSpawner launches a user-defined function in the background and
+// returns a Future for its eventual result. Used by `go` (which discards the
+// Future) and `spawn` (which returns it) when handed a VM closure.
 type UserFunctionSpawner interface {
-	SpawnUserFunction(fn Object, args ...Object)
+	SpawnUserFunction(fn Object, args ...Object) *Future
+}
+
+// AwaitBuiltinName identifies the `await` builtin. Its Future argument must
+// reach the builtin unresolved so a timeout can be applied; every other
+// callable auto-resolves Future arguments before dispatch.
+const AwaitBuiltinName = "await"
+
+// IsAwaitBuiltin reports whether fn is the await builtin.
+func IsAwaitBuiltin(fn Object) bool {
+	if bi, ok := fn.(*BuiltinInfo); ok {
+		return bi.Name == AwaitBuiltinName
+	}
+	return false
 }
 
 type Closure struct {
@@ -433,6 +447,8 @@ var Builtins = []BuiltinInfo{
 	{"each", bEach},
 	{"unique", bUnique},
 	{"go", bGo},
+	{"spawn", bSpawn},
+	{"await", bAwait},
 
 	// Math
 	{"abs", bAbs},

@@ -112,6 +112,28 @@ go print "concurrent"
 print "main"
 ```
 
+### `spawn`
+**Signature:** `spawn(fn, args...)`
+**Description:** Launches `fn` in the background and returns a **Future** — a placeholder that resolves to the function's result. Use `await` to block until it completes.
+**Returns:** `future`
+```pipe
+task: spawn long_computation 42
+-- do other work...
+result: await task
+print result
+```
+
+### `await`
+**Signature:** `await(future, timeout_ms?)`
+**Description:** Blocks until a Future resolves and returns its value. Pass a timeout (in milliseconds) as the second argument to give up with an error instead of blocking forever. On a non-Future value it is a no-op.
+**Returns:** the resolved value (or an error on timeout)
+```pipe
+task: spawn slow_op
+result: await task        -- wait indefinitely
+-- or with a timeout:
+result: await task 5000   -- error after 5 s
+```
+
 ---
 
 ## 10.2 File System (23 functions)
@@ -2583,6 +2605,8 @@ mcp_use_sse "http://localhost:9090/"
 | 6 | `args` | `args()` | `list` |
 | 7 | `read_stdin` | `read_stdin()` | `string` |
 | 8 | `go` | `go(fn, args...)` | `nil` |
+| 8a | `spawn` | `spawn(fn, args...)` | `future` |
+| 8b | `await` | `await(future, timeout_ms?)` | `any` |
 
 ### File System (23)
 

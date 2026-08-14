@@ -490,6 +490,10 @@ var builtinDocs = []BuiltinDoc{
 	// ---- Concurrency (eval-only) ----
 	{Name: "go", Signature: "go(fn, args...)", Params: []Param{p("fn", "function"), p("args", "any")}, ReturnType: "nil",
 		Description: "Runs fn asynchronously in a goroutine with the given arguments.", Category: CatIO},
+	{Name: "spawn", Signature: "spawn(fn, args...)", Params: []Param{p("fn", "function"), p("args", "any")}, ReturnType: "future",
+		Description: "Launches fn in the background and returns a Future; await the result with `await`.", Category: CatIO},
+	{Name: "await", Signature: "await(future, timeout_ms?)", Params: []Param{p("future", "future"), p("timeout_ms", "number")}, ReturnType: "any",
+		Description: "Blocks until the Future resolves and returns its value. An optional timeout (in ms) errors if exceeded.", Category: CatIO},
 }
 
 var builtinIndex = func() map[string]BuiltinDoc {

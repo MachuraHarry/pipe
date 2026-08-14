@@ -75,6 +75,38 @@ read_file "errors.log"
 
 ## Contributing a Module
 
+### Scaffold
+
+```bash
+pipe -init my-module    # creates pipe.json + module.pipe + README.md
+```
+
+### Validate
+
+```bash
+pipe -validate my-module          # checks pipe.json validity
+pipe -gen-registry modules/       # preview the registry entry
+```
+
+### Publish via Pull Request
+
+`pipe -publish` automates the whole contribution flow: it validates your module, checks the registry for a version conflict, clones the registry repo, stages your module plus the updated `registry.json`, and opens a pull request with the [gh CLI](https://cli.github.com):
+
+```bash
+pipe -publish my-module
+```
+
+Requirements:
+
+- The [gh CLI](https://cli.github.com) is installed and authenticated (`gh auth login`)
+- `pipe.json` has a `name` and a semantic-version `version` (e.g. `1.2.0`)
+- `module.pipe` exists in the module directory
+- The version must **not already exist** in the registry — bump it in `pipe.json` otherwise
+
+The workflow runs `gh pr create` against `MachuraHarry/pipe-modules`; the branch is named `publish/<name>-<version>`.
+
+### Manual alternative
+
 1. Fork [pipe-modules](https://github.com/MachuraHarry/pipe-modules)
 2. Create a folder: `mkdir my-module`
 3. Write `module.pipe` with exported functions

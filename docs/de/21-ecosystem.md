@@ -63,6 +63,42 @@ read_file "errors.log"
 
 ## Ein Modul beitragen
 
+### Gerüst
+
+```bash
+pipe -init my-module    # erzeugt pipe.json + module.pipe + README.md
+```
+
+### Validieren
+
+```bash
+pipe -validate my-module          # prüft die Gültigkeit von pipe.json
+pipe -gen-registry modules/       # Registry-Eintrag als Vorschau anzeigen
+```
+
+### Veröffentlichen via Pull Request
+
+`pipe -publish` automatisiert den kompletten Beitrags-Workflow: Es validiert
+dein Modul, prüft die Registry auf Versionskonflikte, klont das Registry-Repo,
+staged dein Modul samt aktualisiertem `registry.json` und öffnet mit der
+[gh CLI](https://cli.github.com) einen Pull Request:
+
+```bash
+pipe -publish my-module
+```
+
+Voraussetzungen:
+
+- Die [gh CLI](https://cli.github.com) ist installiert und angemeldet (`gh auth login`)
+- `pipe.json` hat einen `name` und eine semantische `version` (z. B. `1.2.0`)
+- `module.pipe` existiert im Modul-Verzeichnis
+- Die Version darf **nicht bereits** in der Registry existieren — sonst Version in `pipe.json` erhöhen
+
+Der Workflow führt `gh pr create` gegen `MachuraHarry/pipe-modules` aus;
+der Branch heißt `publish/<name>-<version>`.
+
+### Manueller Weg
+
 1. Forke [pipe-modules](https://github.com/MachuraHarry/pipe-modules)
 2. Erstelle einen Ordner: `mkdir my-module`
 3. Schreibe `module.pipe` mit exportierten Funktionen

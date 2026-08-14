@@ -91,7 +91,45 @@ export PIPE_PATH="/home/user/pipe-libs:/usr/local/share/pipe"
 import "meine_lib.pipe"
 ```
 
-Die Pfade werden mit `:` getrennt (wie bei `PATH`/`PYTHONPATH`).
+Die Pfade werden mit dem **plattformnativen** Trennzeichen getrennt:
+`:` auf Unix/Linux/macOS, `;` auf Windows (wie `PATH`).
+
+### Relative Imports
+
+`./` und `../` werden immer relativ zur importierenden Datei aufgelöst
+(niemals über die Registry):
+
+```pipe
+-- relativ zur eigenen Datei
+import "./helpers.pipe"
+import "../shared/common.pipe"
+```
+
+### Directory-Imports (`init.pipe`)
+
+Ein Import kann auch auf ein **Verzeichnis** zeigen. Wird der Pfad als
+Verzeichnis aufgelöst, lädt Pipe die Datei `init.pipe` darin:
+
+```pipe
+-- lädt ./lib/init.pipe
+import "lib/"
+import "lib"
+```
+
+```text
+lib/
+  init.pipe       # wird beim Directory-Import geladen
+  helpers.pipe    # transitiv geladen, wenn init.pipe es importiert
+```
+
+### Zirkuläre Importe (E009)
+
+Zirkuläre Importe (A importiert B, B importiert A) werden **erkannt und
+abgelehnt** — mit Fehler `E009: circular import`. Die Erkennung funktioniert
+in beiden Ausführungsmodi (Tree-Walker und VM) und deckt auch transitive
+Zyklen (A → B → C → A) sowie Alias-Importe ab. *Diamond*-Importe
+(A importiert B und C, beide importieren D) sind dagegen kein Problem:
+D wird dank Import-Caching nur einmal ausgewertet.
 
 ## 9.4 Modul-Registry und Versionen
 
@@ -147,6 +185,31 @@ Falls die lokale Datei nicht existiert, fragt Pipe die Registry nach der Version
 - `versions` mappt Versions-Tags auf Modul-URLs
 - Ohne `@version` wird automatisch `latest` verwendet
 - Legacy-Format mit nur `url`-Feld wird ebenfalls unterstützt
+
+### 9.4.5 Abhängigkeits-Constraints (`^`-Caret)
+
+In einer `pipe.json` können Abhängigkeiten Versions-Constraints deklarieren. Ein
+Caret-Constraint `^X.Y.Z` akzeptiert jede Version **derselben Hauptversion**,
+die `>= X.Y.Z` ist (SemVer-Pinning). Die höchste passende Version wird gewählt:
+
+```json
+{
+  "name": "my-app",
+  "version": "1.0.0",
+  "dependencies": {
+    "log-analyzer": "^1.2.0"
+  }
+}
+```
+
+| Constraint    | Passt                          | Installiert         |
+| ------------- | ------------------------------ | ------------------- |
+| `^1.2.0`      | `1.2.0` … `1.9.9` (nicht `2.x`) | höchste in `1.x`    |
+| `^0.9.0`      | `0.9.0` … `0.9.9`              | höchste in `0.9.x`  |
+| `1.2.0`       | exakt `1.2.0`                  | `1.2.0`             |
+| `*` / `latest`| beliebig                       | `latest`            |
+
+`pipe -install` löst alle Abhängigkeiten auf und speichert sie in der Lockfile.
 
 ## 9.5 Remote-Module (URL-Importe)
 

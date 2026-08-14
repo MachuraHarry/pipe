@@ -25,7 +25,7 @@ import (
 	"github.com/MachuraHarry/pipe/pkg/vm"
 )
 
-var version = "v0.9.3.5"
+var version = "v0.9.4.0"
 
 func main() {
 	// Self-extracting binary detection
@@ -53,6 +53,7 @@ func main() {
 		doCheck        bool
 		doGenRegistry  bool
 		doInstall      bool
+		doPublish      bool
 		searchTerm     string
 		sandbox        bool
 		sandboxProfile string
@@ -108,6 +109,8 @@ func main() {
 			doGenRegistry = true
 		case "-install":
 			doInstall = true
+		case "-publish":
+			doPublish = true
 		case "-h", "--help":
 			printHelp()
 			return
@@ -375,6 +378,15 @@ func main() {
 		return
 	}
 
+	if doPublish {
+		dir := filePath
+		if err := module.Publish(dir); err != nil {
+			fmt.Fprintf(os.Stderr, "pipe publish: %s\n", err)
+			os.Exit(1)
+		}
+		return
+	}
+
 	if doBench {
 		runBenchmark()
 		return
@@ -598,6 +610,7 @@ Flags:
   -init <name>   Create a new module scaffold (pipe.json + module.pipe)
   -validate [dir] Check a module's pipe.json validity
   -install [dir] Install dependencies from pipe.json
+  -publish [dir] Publish a module via pull request (requires gh CLI)
   -gen-registry [dir]  Generate registry.json from pipe.json files
   -h, --help    Show this help
 

@@ -122,11 +122,27 @@ func resolveVersion(constraint string, mod *object.ModuleEntry) string {
 		return mod.Latest
 	}
 	if strings.HasPrefix(c, "^") {
-		prefix := strings.TrimPrefix(c, "^")
+		// Caret constraint: >= base with same major version (< major+1).
+		base := strings.TrimPrefix(c, "^")
+		baseVer := parseSemver(base)
+		if baseVer.major < 0 {
+			return mod.Latest
+		}
+		best := ""
 		for v := range mod.Versions {
-			if strings.HasPrefix(v, prefix) || versionLTE(prefix, v) {
-				return mod.Latest
+			if !versionLTE(base, v) {
+				continue
 			}
+			vv := parseSemver(v)
+			if vv.major != baseVer.major {
+				continue
+			}
+			if best == "" || versionLTE(best, v) {
+				best = v
+			}
+		}
+		if best != "" {
+			return best
 		}
 		return mod.Latest
 	}
@@ -134,10 +150,6 @@ func resolveVersion(constraint string, mod *object.ModuleEntry) string {
 		return c
 	}
 	return mod.Latest
-}
-
-func versionLTE(a, b string) bool {
-	return true
 }
 
 func fetchModuleManifest(moduleURL string) *Manifest {

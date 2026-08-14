@@ -88,6 +88,8 @@ type Compiler struct {
 	loopStack   []LoopContext
 	importCache map[string]*ast.Program
 	importedSet map[string]struct{}
+	importStack []string
+	defineSet   map[string]struct{}
 	sourceFile  string
 }
 
@@ -134,6 +136,7 @@ func NewWithFile(sourceFile string) *Compiler {
 		scopeIndex:  0,
 		importCache: make(map[string]*ast.Program),
 		importedSet: make(map[string]struct{}),
+		defineSet:   make(map[string]struct{}),
 		sourceFile:  sourceFile,
 	}
 }
@@ -1090,13 +1093,6 @@ func (c *Compiler) compileDefer(de *ast.DeferStatement) error {
 func (c *Compiler) compileImport(is *ast.ImportStatement) error {
 	cacheKey := is.Path
 
-	// Flat imports: skip if already imported (deduplication)
-	if is.Alias == "" {
-		if _, ok := c.importedSet[cacheKey]; ok {
-			return nil
-		}
-	}
-
 	// Use cached parse result or parse fresh
 	program, ok := c.importCache[cacheKey]
 	if !ok {
@@ -1110,6 +1106,25 @@ func (c *Compiler) compileImport(is *ast.ImportStatement) error {
 		cacheKey = resolvedPath
 		c.importCache[cacheKey] = program
 	}
+
+	// Circular import detection: if this module is already being compiled
+	// further up the import chain, this is a cycle (a.pipe -> b.pipe -> a.pipe).
+	for _, inProgress := range c.importStack {
+		if inProgress == cacheKey {
+			chain := append(append([]string{}, c.importStack...), cacheKey)
+			return fmt.Errorf("E009: circular import: %s", strings.Join(chain, " -> "))
+		}
+	}
+
+	// Flat imports: skip if already imported (deduplication)
+	if is.Alias == "" {
+		if _, ok := c.importedSet[cacheKey]; ok {
+			return nil
+		}
+	}
+
+	c.importStack = append(c.importStack, cacheKey)
+	defer func() { c.importStack = c.importStack[:len(c.importStack)-1] }()
 
 	if is.Alias == "" {
 		c.importedSet[cacheKey] = struct{}{}
@@ -1149,6 +1164,10 @@ func (c *Compiler) compileImport(is *ast.ImportStatement) error {
 					return fmt.Errorf("import %s: %w", is.Path, err)
 				}
 			}
+		case *ast.ImportStatement:
+			if err := c.compileImport(s); err != nil {
+				return fmt.Errorf("import %s: %w", is.Path, err)
+			}
 		case *ast.ExpressionStatement:
 			// skip standalone expressions in imports
 		}
@@ -1186,10 +1205,18 @@ func (c *Compiler) defineTopLevelSymbols(stmts []ast.Statement) {
 				}
 			}
 		case *ast.ImportStatement:
-			_, program, err := c.resolveImport(s.Path)
-			if err == nil {
-				c.defineTopLevelSymbols(program.Statements)
+			resolved, program, err := c.resolveImport(s.Path)
+			if err != nil {
+				continue
 			}
+			// Guard against infinite recursion on circular imports during the
+			// symbol-definition pass. The E009 error itself is reported by
+			// compileImport, which runs the same guards during code emission.
+			if _, seen := c.defineSet[resolved]; seen {
+				continue
+			}
+			c.defineSet[resolved] = struct{}{}
+			c.defineTopLevelSymbols(program.Statements)
 		}
 	}
 }

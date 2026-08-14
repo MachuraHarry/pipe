@@ -116,10 +116,12 @@ Pipe is currently at version **v0.9.3.5**, the **sandbox-hardening release** car
 ## Phase 2: Structure (v0.6)
 
 ### Improved Module System
-- [ ] Directory-based imports (`import "mylib/"` loads `mylib/init.pipe`)
-- [ ] Relative imports (`import "./utils.pipe"`)
-- [ ] Circular import detection and error reporting
-- [ ] `PIPE_PATH` environment variable documentation and improvements
+- [x] Directory-based imports (`import "mylib/"` loads `mylib/init.pipe`)
+- [x] Relative imports (`import "./utils.pipe"`)
+- [x] Circular import detection and error reporting (E009, tree-walker + VM)
+- [x] `PIPE_PATH` environment variable documentation and improvements (native separator via `filepath.SplitList`)
+- [x] Semantic-version dependency constraints (`^X.Y.Z` caret resolution) for `pipe -install`
+- [x] `pipe -publish` — publish modules to the registry via gh-CLI pull request
 
 ### Formatter Enhancements (`pipe fmt`)
 - [x] `--check` flag (exit non-zero if formatting needed)

@@ -180,11 +180,37 @@ import "http-utils.pipe" as http
 
 When resolving an import path:
 
-1. **Relative to the importing file's directory** — always checked first.
-2. **Current working directory** — then the directory where pipe was invoked.
-3. **Module cache** — `~/.pipe/modules/` for installed modules.
-4. **Each directory in PIPE_PATH** — searched in order, first match wins.
-5. **Module registry** — if no local file found, queries the Pipe module registry.
+1. **URL** — `http(s)://...` paths are fetched from the network.
+2. **Absolute path** — filesystem paths starting with `/` are read directly.
+3. **Relative to the importing file's directory** — `./` and `../` prefixes always resolve against the importing file (never the registry).
+4. **Current working directory** — then the directory where pipe was invoked.
+5. **Module cache** — `~/.pipe/modules/` for installed modules.
+6. **Each directory in PIPE_PATH** — searched in order, first match wins.
+7. **Module registry** — if no local file found, queries the Pipe module registry.
+
+> **Note:** On Windows, `PIPE_PATH` uses `;` as separator; on Unix/Linux/macOS it uses `:`. Pipe honors the platform's native separator.
+
+### 9.4.2 Directory Imports (`init.pipe`)
+
+An import can also point to a **directory**. If the resolved path is a directory, Pipe loads the `init.pipe` file inside it:
+
+```pipe
+-- imports ./lib/init.pipe
+import "lib/"
+
+-- equivalent explicit forms
+import "lib/init.pipe"
+import "lib"
+```
+
+```text
+lib/
+  init.pipe     # loaded when the directory is imported
+  helpers.pipe  # loaded transitively if init.pipe imports it
+  constants.pipe
+```
+
+This mirrors the package convention of many languages and keeps multi-file libraries organized behind a single import name.
 
 ---
 
@@ -266,6 +292,29 @@ Each registry entry can define multiple versions:
 - `versions` maps version tags to module URLs
 - If no `@version` is specified, the `latest` version is used
 - If the registry uses the legacy `url` field (no `versions`), that URL is used as default
+
+### 9.6.5 Dependency Constraints (`^` caret)
+
+In a module's `pipe.json`, dependencies can declare version constraints. A caret constraint `^X.Y.Z` accepts any version **with the same major version** that is `>= X.Y.Z` (semantic-versioning pinning). The highest matching version is selected:
+
+```json
+{
+  "name": "my-app",
+  "version": "1.0.0",
+  "dependencies": {
+    "log-analyzer": "^1.2.0"
+  }
+}
+```
+
+| Constraint    | Matches                          | Installs       |
+| ------------- | -------------------------------- | -------------- |
+| `^1.2.0`      | `1.2.0` … `1.9.9` (not `2.x`)    | highest in `1.x` |
+| `^0.9.0`      | `0.9.0` … `0.9.9` (not `0.10.x`) | highest in `0.9.x` |
+| `1.2.0`       | exactly `1.2.0`                  | `1.2.0`        |
+| `*` / `latest`| any                              | `latest`       |
+
+Run `pipe -install` to resolve and download all dependencies into the lockfile.
 
 ---
 
@@ -382,17 +431,25 @@ import "C:\\Users\\user\\project\\lib\\helpers.pipe"
 
 ### Handle Circular Imports Carefully
 
-Circular imports (A imports B, B imports A) are technically possible due to caching but should be avoided. They can cause confusing initialization order issues:
+Circular imports (A imports B, B imports A) are **detected and rejected** with error `E009`. Pipe tracks the active import chain and aborts before evaluation starts:
 
 ```pipe
 -- File: a.pipe
-import "b.pipe" as b
--- b.y might be nil if b hasn't finished
-export x: b.y + 1
--- safer: defer evaluation
-export fn get_x
-    b.y + 1
+import "b.pipe"
+
+export fn x
+    b_fn
+
+-- File: b.pipe
+import "a.pipe"     -- E009: circular import: a.pipe -> b.pipe -> a.pipe
+
+export fn b_fn
+    42
 ```
+
+The error is reported consistently in both execution modes (tree-walker and VM) and also covers transitive cycles (A → B → C → A) and alias imports (`import "a.pipe" as x`).
+
+> **Note:** *Diamond* imports (A imports B and C, both B and C import D) are **not** circular and work fine thanks to import caching — D is evaluated only once.
 
 ### Keep Modules Focused
 

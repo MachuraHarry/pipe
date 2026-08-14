@@ -23,6 +23,7 @@ type EvalContext struct {
 	callStack       []string
 	importCache     map[string]*ast.Program
 	importedModules map[string]*ModuleInstance
+	importStack     []string
 	exportedSymbols map[string]bool
 	testFailed      bool
 }
@@ -1299,6 +1300,17 @@ func (ctx *EvalContext) evalImportStatement(is *ast.ImportStatement, env *object
 		}
 		ctx.importCache[resolvedPath] = program
 	}
+
+	// Circular import detection: if the module is already being evaluated
+	// further up the import chain, this is a cycle (a.pipe -> b.pipe -> a.pipe).
+	for _, inProgress := range ctx.importStack {
+		if inProgress == resolvedPath {
+			chain := append(append([]string{}, ctx.importStack...), resolvedPath)
+			return ctx.newErrorCode("E009", "circular import: %s", strings.Join(chain, " -> "))
+		}
+	}
+	ctx.importStack = append(ctx.importStack, resolvedPath)
+	defer func() { ctx.importStack = ctx.importStack[:len(ctx.importStack)-1] }()
 
 	prevExports := ctx.exportedSymbols
 	ctx.exportedSymbols = make(map[string]bool)

@@ -131,7 +131,23 @@ func ResolveImportFrom(path string, sourceFile string) (string, string, error) {
 
 	name, version := parseModuleSpec(path)
 
-	// Try local file first (exact path, then in search dirs)
+	// Relative imports (./ or ../): resolve against the importing file's
+	// directory (or the working directory when there is no source file).
+	// This is a dedicated path so relative resolution is unambiguous and
+	// never falls through to registry lookup.
+	if strings.HasPrefix(name, "./") || strings.HasPrefix(name, "../") {
+		base := "."
+		if sourceFile != "" {
+			base = filepath.Dir(sourceFile)
+		}
+		candidate := filepath.Join(base, name)
+		if res, content, err := readImportCandidate(candidate); err == nil {
+			return res, content, nil
+		}
+		return "", "", fmt.Errorf("import not found: %s (relative to %s)", name, base)
+	}
+
+	// Local file or directory (init.pipe) in search dirs
 	searchDirs := []string{}
 	if sourceFile != "" {
 		searchDirs = append(searchDirs, filepath.Dir(sourceFile))
@@ -141,13 +157,13 @@ func ResolveImportFrom(path string, sourceFile string) (string, string, error) {
 
 	pipePath := os.Getenv("PIPE_PATH")
 	if pipePath != "" {
-		searchDirs = append(searchDirs, strings.Split(pipePath, ":")...)
+		searchDirs = append(searchDirs, filepath.SplitList(pipePath)...)
 	}
 
 	for _, dir := range searchDirs {
 		candidate := filepath.Join(dir, path)
-		if data, err := os.ReadFile(candidate); err == nil {
-			return path, string(data), nil
+		if res, content, err := readImportCandidate(candidate); err == nil {
+			return res, content, nil
 		}
 	}
 
@@ -159,6 +175,31 @@ func ResolveImportFrom(path string, sourceFile string) (string, string, error) {
 	}
 
 	return "", "", fmt.Errorf("import not found: %s (searched: %v)", path, searchDirs)
+}
+
+// readImportCandidate reads an import candidate. If the candidate is a
+// directory, the module entry point init.pipe is loaded instead, so
+// `import "mylib/"` and `import "mylib"` (when mylib is a directory) both
+// resolve to mylib/init.pipe. The returned path always points at the file
+// actually loaded (init.pipe for directory imports), which keeps cache keys
+// and deduplication unambiguous.
+func readImportCandidate(candidate string) (string, string, error) {
+	// Normalize trailing slashes so path handling is consistent.
+	clean := filepath.Clean(candidate)
+	if info, err := os.Stat(clean); err == nil && info.IsDir() {
+		initPath := filepath.Join(clean, "init.pipe")
+		data, err := os.ReadFile(initPath)
+		if err != nil {
+			return "", "", fmt.Errorf("directory %s has no init.pipe", clean)
+		}
+		return initPath, string(data), nil
+	}
+
+	data, err := os.ReadFile(clean)
+	if err != nil {
+		return "", "", err
+	}
+	return clean, string(data), nil
 }
 
 func fetchURLModule(url string) (string, string, error) {

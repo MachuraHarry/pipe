@@ -46,6 +46,7 @@ const (
 	OpGetFree
 	OpCheckError
 	OpTryAIFix
+	OpErrorToString
 	OpStruct
 )
 
@@ -91,6 +92,7 @@ var opcodeNames = map[Opcode]string{
 	OpGetFree:       "OpGetFree",
 	OpCheckError:    "OpCheckError",
 	OpTryAIFix:      "OpTryAIFix",
+	OpErrorToString: "OpErrorToString",
 	OpStruct:        "OpStruct",
 }
 

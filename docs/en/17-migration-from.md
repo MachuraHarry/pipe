@@ -137,7 +137,7 @@ print fib 10
 
 **Use Pipe when**:
 - You want indentation-based blocks instead of `end` keywords
-- You need a richer standard library (206 builtins vs Lua's minimal stdlib)
+- You need a richer standard library (226 builtins vs Lua's minimal stdlib)
 - You're doing file I/O, HTTP, JSON, TCP, or regex without external packages
 - You want pipeline syntax for data transformation chains
 

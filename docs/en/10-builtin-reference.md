@@ -1,6 +1,6 @@
 # 10. Built-in Function Reference
 
-Pipe includes 207 built-in functions organized by category. This chapter documents each function with its signature, description, return type, and usage example.
+Pipe includes 226 built-in functions organized by category. This chapter documents each function with its signature, description, return type, and usage example.
 
 ---
 
@@ -3074,4 +3074,4 @@ mcp_use_sse "http://localhost:9090/"
 
 ---
 
-**Total: 196 built-in functions**
+**Total: 226 built-in functions**

@@ -112,10 +112,26 @@ func (m *Map) Inspect() string {
 	return fmt.Sprintf("{%s}", strings.Join(pairs, ", "))
 }
 
-type Error struct{ Message string }
+// Error is a catchable runtime error. Message carries the human-readable
+// text (and historically the E-code prefix); Code/File/Line/Col are
+// structured fields so the CLI can render source snippets.
+type Error struct {
+	Message string
+	Code    string
+	File    string
+	Line    int
+	Col     int
+}
 
 func (e *Error) Type() ObjectType { return ERROR }
 func (e *Error) Inspect() string  { return e.Message }
+
+// Error satisfies the standard error interface so a runtime *Error can be
+// returned directly from engine entry points.
+func (e *Error) Error() string { return e.Message }
+
+// HasPosition reports whether the error carries a resolvable source location.
+func (e *Error) HasPosition() bool { return e.Line > 0 }
 
 type Result struct {
 	Ok  bool
@@ -227,6 +243,7 @@ func (bi *BuiltinInfo) Inspect() string  { return "builtin: " + bi.Name }
 
 type CompiledFunction struct {
 	Instructions interface{}
+	Lines        []int // source line per instruction byte; may be nil
 	NumLocals    int
 	NumFree      int
 }

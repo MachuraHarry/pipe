@@ -77,5 +77,5 @@ func TestEvalE006CannotIndex(t *testing.T) {
 }
 
 func TestEvalTryCatchWithErrorCode(t *testing.T) {
-	expectValue(t, "try\n    1 / 0\ncatch e\n    \"caught: \" ++ e", "caught: E003: division by zero")
+	expectValue(t, "try\n    1 / 0\ncatch e\n    \"caught: \" ++ e", "caught: <test>: E003: division by zero")
 }

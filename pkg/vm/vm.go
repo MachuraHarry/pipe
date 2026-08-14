@@ -24,6 +24,14 @@ type Frame struct {
 	basePointer  int
 	savedSp      int
 	instructions compiler.Instructions
+	lines        []int // source line per instruction byte; may be nil
+}
+
+func (f *Frame) lineAt(ip int) int {
+	if f.lines != nil && ip >= 0 && ip < len(f.lines) {
+		return f.lines[ip]
+	}
+	return 0
 }
 
 func New(bc *compiler.Bytecode) *VM {
@@ -43,6 +51,7 @@ func New(bc *compiler.Bytecode) *VM {
 		ip:           0,
 		basePointer:  0,
 		instructions: bc.Instructions,
+		lines:        bc.Lines,
 	}
 
 	frames[0] = mainFrame
@@ -54,6 +63,7 @@ func New(bc *compiler.Bytecode) *VM {
 		sp:         0,
 		frames:     frames,
 		frameIndex: 0,
+		sourceFile: bc.SourceFile,
 	}
 
 	return vm
@@ -97,10 +107,26 @@ type VM struct {
 	sp         int
 	frames     []*Frame
 	frameIndex int
+	curLine    int
+	sourceFile string
 }
 
 func (vm *VM) currentFrame() *Frame {
 	return vm.frames[vm.frameIndex]
+}
+
+// newError builds a positioned runtime error object for a VM failure.
+func (vm *VM) newError(code, format string, a ...interface{}) *object.Error {
+	prefix := ""
+	if vm.sourceFile != "" {
+		prefix = vm.sourceFile + ": "
+	}
+	return &object.Error{
+		Message: prefix + fmt.Sprintf(code+": "+format, a...),
+		Code:    code,
+		File:    vm.sourceFile,
+		Line:    vm.curLine,
+	}
 }
 
 func (vm *VM) push(obj object.Object) {
@@ -156,6 +182,7 @@ func (vm *VM) Run() (err error) {
 		}
 
 		op := compiler.Opcode(ins[frame.ip])
+		vm.curLine = frame.lineAt(frame.ip)
 		frame.ip++
 
 		switch op {
@@ -195,20 +222,7 @@ func (vm *VM) Run() (err error) {
 			vm.push(result)
 
 		case compiler.OpConcat:
-			right := vm.pop()
-			left := vm.pop()
-			right = object.EnsureResolved(right)
-			left = object.EnsureResolved(left)
-			if left.Type() == object.BYTES || right.Type() == object.BYTES {
-				l := leftBytes(left)
-				r := leftBytes(right)
-				out := make([]byte, 0, len(l)+len(r))
-				out = append(out, l...)
-				out = append(out, r...)
-				vm.push(&object.Bytes{Value: out})
-				continue
-			}
-			vm.push(&object.String{Value: left.Inspect() + right.Inspect()})
+			vm.concatOp()
 
 		case compiler.OpMinus:
 			val := vm.pop()
@@ -218,7 +232,7 @@ func (vm *VM) Run() (err error) {
 			case *object.Float:
 				vm.push(&object.Float{Value: -v.Value})
 			default:
-				return fmt.Errorf("Type error: -%s", val.Type())
+				return vm.newError("E005", "cannot negate a %s with '-'", val.Type())
 			}
 
 		case compiler.OpNot:
@@ -264,7 +278,7 @@ func (vm *VM) Run() (err error) {
 			idx := compiler.ReadUint16(ins, frame.ip)
 			frame.ip += 2
 			if int(idx) >= len(object.Builtins) {
-				return fmt.Errorf("unknown builtin function: %d", idx)
+				return vm.newError("E004", "unknown builtin function: %d", idx)
 			}
 			vm.push(&object.BuiltinInfo{
 				Name: object.Builtins[idx].Name,
@@ -293,6 +307,14 @@ func (vm *VM) Run() (err error) {
 			}
 			fixed := object.TryAIEvalFn(srcStr.Value)
 			vm.push(fixed)
+
+		case compiler.OpErrorToString:
+			val := vm.pop()
+			if err, isErr := val.(*object.Error); isErr {
+				vm.push(&object.String{Value: err.Message})
+			} else {
+				vm.push(object.NILOBJ)
+			}
 
 		case compiler.OpCall:
 			numArgs := int(compiler.ReadUint16(ins, frame.ip))
@@ -330,7 +352,7 @@ func (vm *VM) Run() (err error) {
 			frame.ip += 2
 			fn, ok := vm.constants[idx].(*object.CompiledFunction)
 			if !ok {
-				return fmt.Errorf("not a CompiledFunction at index %d", idx)
+				return vm.newError("E004", "not a CompiledFunction at index %d", idx)
 			}
 			free := make([]object.Object, numFree)
 			for i := numFree - 1; i >= 0; i-- {
@@ -386,7 +408,7 @@ func (vm *VM) Run() (err error) {
 			defObj := vm.pop()
 			def, ok := defObj.(*object.StructDef)
 			if !ok {
-				return fmt.Errorf("expected struct definition, got %T", defObj)
+				return vm.newError("E004", "expected struct definition, got %T", defObj)
 			}
 			inst := &object.StructInstance{
 				Def:    def,
@@ -403,7 +425,7 @@ func (vm *VM) Run() (err error) {
 			field := vm.constants[idx].(*object.String).Value
 			obj := vm.pop()
 			if obj == nil {
-				vm.push(&object.Error{Message: fmt.Sprintf("E006: cannot use .%s on nil", field)})
+				vm.push(vm.newError("E006", "cannot use .%s on nil", field))
 				continue
 			}
 			switch m := obj.(type) {
@@ -426,14 +448,14 @@ func (vm *VM) Run() (err error) {
 					vm.push(m)
 				}
 			default:
-				vm.push(&object.Error{Message: fmt.Sprintf("E006: cannot use .%s on %s", field, obj.Type())})
+				vm.push(vm.newError("E006", "cannot use .%s on %s", field, obj.Type()))
 			}
 
 		case compiler.OpHalt:
 			return nil
 
 		default:
-			return fmt.Errorf("unknown opcode: %d", op)
+			return vm.newError("E004", "unknown opcode: %d", op)
 		}
 	}
 
@@ -459,6 +481,7 @@ func (vm *VM) callFunction(numArgs int) {
 			basePointer:  basePtr,
 			savedSp:      savedSp,
 			instructions: inst,
+			lines:        fn.Fn.Lines,
 		}
 
 		vm.frameIndex++
@@ -470,7 +493,7 @@ func (vm *VM) callFunction(numArgs int) {
 			// operand stack before the frame limit is reached.
 			vm.frameIndex--
 			vm.sp = basePtr
-			vm.stack[basePtr-1] = &object.Error{Message: fmt.Sprintf("E008: call stack depth exceeded (%d)", object.MaxCallDepth)}
+			vm.stack[basePtr-1] = vm.newError("E008", "call stack depth exceeded (%d)", object.MaxCallDepth)
 			return
 		}
 		vm.frames[vm.frameIndex] = frame
@@ -516,7 +539,7 @@ func (vm *VM) callFunction(numArgs int) {
 
 	default:
 		vm.pop()
-		vm.push(&object.Error{Message: fmt.Sprintf("E004: not a function: %s", callee.Type())})
+		vm.push(vm.newError("E004", "not a function: %s", callee.Type()))
 		return
 	}
 }
@@ -619,7 +642,7 @@ func (vm *VM) binaryOp(op compiler.Opcode, left, right object.Object) object.Obj
 	left = object.EnsureResolved(left)
 	right = object.EnsureResolved(right)
 	if left == nil || right == nil {
-		return &object.Error{Message: "E002: type mismatch: cannot apply operator to nil"}
+		return vm.newError("E002", "type mismatch: cannot apply operator to nil")
 	}
 	switch {
 	case left.Type() == object.INTEGER && right.Type() == object.INTEGER:
@@ -631,7 +654,7 @@ func (vm *VM) binaryOp(op compiler.Opcode, left, right object.Object) object.Obj
 	case left.Type() == object.FLOAT && right.Type() == object.INTEGER:
 		return vm.binaryFloatOp(op, left.(*object.Float), &object.Float{Value: float64(right.(*object.Integer).Value)})
 	default:
-		return &object.Error{Message: fmt.Sprintf("E002: type mismatch: cannot apply operator between %s and %s", left.Type(), right.Type())}
+		return vm.newError("E002", "type mismatch: cannot apply operator between %s and %s", left.Type(), right.Type())
 	}
 }
 
@@ -646,12 +669,12 @@ func (vm *VM) binaryIntOp(op compiler.Opcode, left, right *object.Integer) objec
 		return &object.Integer{Value: l * r}
 	case compiler.OpDiv:
 		if r == 0 {
-			return &object.Error{Message: "E003: division by zero"}
+			return vm.newError("E003", "division by zero")
 		}
 		return &object.Integer{Value: l / r}
 	case compiler.OpMod:
 		if r == 0 {
-			return &object.Error{Message: "E003: modulo by zero"}
+			return vm.newError("E003", "modulo by zero")
 		}
 		return &object.Integer{Value: l % r}
 	case compiler.OpPow:
@@ -671,12 +694,12 @@ func (vm *VM) binaryFloatOp(op compiler.Opcode, left, right *object.Float) objec
 		return &object.Float{Value: l * r}
 	case compiler.OpDiv:
 		if r == 0 {
-			return &object.Error{Message: "E003: division by zero"}
+			return vm.newError("E003", "division by zero")
 		}
 		return &object.Float{Value: l / r}
 	case compiler.OpMod:
 		if r == 0 {
-			return &object.Error{Message: "E003: modulo by zero"}
+			return vm.newError("E003", "modulo by zero")
 		}
 		return &object.Float{Value: float64(int64(l) % int64(r))}
 	case compiler.OpPow:
@@ -685,14 +708,42 @@ func (vm *VM) binaryFloatOp(op compiler.Opcode, left, right *object.Float) objec
 	return &object.Error{Message: fmt.Sprintf("unknown float op %d", op)}
 }
 
-func leftBytes(o object.Object) []byte {
-	switch v := o.(type) {
-	case *object.Bytes:
-		return v.Value
-	case *object.String:
-		return []byte(v.Value)
+// concatOp implements OpConcat: `++` concatenates strings (and bytes+string
+// pairs); any other operand types are a type mismatch. This mirrors the
+// tree-walker, which rejects mixed-type concat instead of silently stringifying.
+func (vm *VM) concatOp() {
+	right := vm.pop()
+	left := vm.pop()
+	right = object.EnsureResolved(right)
+	left = object.EnsureResolved(left)
+	if left == nil || right == nil {
+		vm.push(vm.newError("E002", "type mismatch: cannot apply operator to nil"))
+		return
 	}
-	return []byte(o.Inspect())
+	switch {
+	case left.Type() == object.STRING && right.Type() == object.STRING:
+		vm.push(&object.String{Value: left.(*object.String).Value + right.(*object.String).Value})
+	case left.Type() == object.BYTES && right.Type() == object.BYTES:
+		l := left.(*object.Bytes).Value
+		r := right.(*object.Bytes).Value
+		out := make([]byte, 0, len(l)+len(r))
+		out = append(out, l...)
+		out = append(out, r...)
+		vm.push(&object.Bytes{Value: out})
+	case left.Type() == object.BYTES && right.Type() == object.STRING:
+		vm.push(vm.concatBytesString(left.(*object.Bytes).Value, []byte(right.(*object.String).Value)))
+	case left.Type() == object.STRING && right.Type() == object.BYTES:
+		vm.push(vm.concatBytesString([]byte(left.(*object.String).Value), right.(*object.Bytes).Value))
+	default:
+		vm.push(vm.newError("E002", "type mismatch: cannot apply '++' between %s and %s", left.Type(), right.Type()))
+	}
+}
+
+func (vm *VM) concatBytesString(l, r []byte) object.Object {
+	out := make([]byte, 0, len(l)+len(r))
+	out = append(out, l...)
+	out = append(out, r...)
+	return &object.Bytes{Value: out}
 }
 
 func (vm *VM) compareOp(op compiler.Opcode, left, right object.Object) object.Object {
@@ -837,6 +888,7 @@ func (vm *VM) executeFrame() object.Object {
 		}
 
 		op := compiler.Opcode(ins[frame.ip])
+		vm.curLine = frame.lineAt(frame.ip)
 		frame.ip++
 
 		switch op {
@@ -889,20 +941,7 @@ func (vm *VM) executeFrame() object.Object {
 			vm.push(result)
 
 		case compiler.OpConcat:
-			right := vm.pop()
-			left := vm.pop()
-			right = object.EnsureResolved(right)
-			left = object.EnsureResolved(left)
-			if left.Type() == object.BYTES || right.Type() == object.BYTES {
-				l := leftBytes(left)
-				r := leftBytes(right)
-				out := make([]byte, 0, len(l)+len(r))
-				out = append(out, l...)
-				out = append(out, r...)
-				vm.push(&object.Bytes{Value: out})
-				continue
-			}
-			vm.push(&object.String{Value: left.Inspect() + right.Inspect()})
+			vm.concatOp()
 
 		case compiler.OpJump:
 			target := compiler.ReadUint16(ins, frame.ip)
@@ -973,6 +1012,14 @@ func (vm *VM) executeFrame() object.Object {
 			fixed := object.TryAIEvalFn(srcStr.Value)
 			vm.push(fixed)
 
+		case compiler.OpErrorToString:
+			val := vm.pop()
+			if err, isErr := val.(*object.Error); isErr {
+				vm.push(&object.String{Value: err.Message})
+			} else {
+				vm.push(object.NILOBJ)
+			}
+
 		case compiler.OpCall:
 			numArgs := int(compiler.ReadUint16(ins, frame.ip))
 			frame.ip += 2
@@ -1018,7 +1065,7 @@ func (vm *VM) executeFrame() object.Object {
 			field := vm.constants[idx].(*object.String).Value
 			obj := vm.pop()
 			if obj == nil {
-				vm.push(&object.Error{Message: fmt.Sprintf("E006: cannot use .%s on nil", field)})
+				vm.push(vm.newError("E006", "cannot use .%s on nil", field))
 				continue
 			}
 			switch m := obj.(type) {
@@ -1041,7 +1088,7 @@ func (vm *VM) executeFrame() object.Object {
 					vm.push(m)
 				}
 			default:
-				vm.push(&object.Error{Message: fmt.Sprintf("E006: cannot use .%s on %s", field, obj.Type())})
+				vm.push(vm.newError("E006", "cannot use .%s on %s", field, obj.Type()))
 			}
 
 		case compiler.OpReturn:

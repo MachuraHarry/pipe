@@ -11,10 +11,12 @@ import (
 	"time"
 
 	"github.com/MachuraHarry/pipe/pkg/ai"
+	"github.com/MachuraHarry/pipe/pkg/analysis"
 	"github.com/MachuraHarry/pipe/pkg/ast"
 	"github.com/MachuraHarry/pipe/pkg/build"
 	"github.com/MachuraHarry/pipe/pkg/cache"
 	"github.com/MachuraHarry/pipe/pkg/compiler"
+	"github.com/MachuraHarry/pipe/pkg/docgen"
 	"github.com/MachuraHarry/pipe/pkg/eval"
 	"github.com/MachuraHarry/pipe/pkg/formatter"
 	"github.com/MachuraHarry/pipe/pkg/gen"
@@ -22,6 +24,7 @@ import (
 	"github.com/MachuraHarry/pipe/pkg/module"
 	"github.com/MachuraHarry/pipe/pkg/object"
 	"github.com/MachuraHarry/pipe/pkg/parser"
+	"github.com/MachuraHarry/pipe/pkg/util"
 	"github.com/MachuraHarry/pipe/pkg/vm"
 )
 
@@ -54,6 +57,8 @@ func main() {
 		doGenRegistry  bool
 		doInstall      bool
 		doPublish      bool
+		doDoc          bool
+		docBuiltins    bool
 		searchTerm     string
 		sandbox        bool
 		sandboxProfile string
@@ -111,6 +116,10 @@ func main() {
 			doInstall = true
 		case "-publish":
 			doPublish = true
+		case "-doc":
+			doDoc = true
+		case "--builtins":
+			docBuiltins = true
 		case "-h", "--help":
 			printHelp()
 			return
@@ -387,6 +396,24 @@ func main() {
 		return
 	}
 
+	if doDoc {
+		if docBuiltins {
+			fmt.Print(docgen.MarkdownForBuiltins())
+			return
+		}
+		target := filePath
+		if target == "" {
+			target = "."
+		}
+		md, err := docgen.MarkdownForPath(target)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "pipe doc: %s\n", err)
+			os.Exit(1)
+		}
+		fmt.Print(md)
+		return
+	}
+
 	if doBench {
 		runBenchmark()
 		return
@@ -439,7 +466,7 @@ func main() {
 	if len(p.Errors()) > 0 {
 		fmt.Fprintln(os.Stderr, "Parse errors:")
 		for _, err := range p.Errors() {
-			fmt.Fprintf(os.Stderr, "  %s\n", err)
+			fmt.Fprintln(os.Stderr, "  "+util.FormatErrorWithSnippet(string(data), err))
 		}
 		os.Exit(1)
 	}
@@ -476,9 +503,9 @@ func main() {
 	}
 
 	if useVM {
-		runVM(program, quietVM, filePath, scriptArgs)
+		runVM(program, quietVM, filePath, scriptArgs, string(data))
 	} else {
-		runEval(program, scriptArgs, filePath)
+		runEval(program, scriptArgs, filePath, string(data))
 	}
 }
 
@@ -612,6 +639,8 @@ Flags:
   -install [dir] Install dependencies from pipe.json
   -publish [dir] Publish a module via pull request (requires gh CLI)
   -gen-registry [dir]  Generate registry.json from pipe.json files
+  -doc [file|dir]  Generate Markdown documentation from --! docstrings
+  --builtins       With -doc: generate the builtin reference
   -h, --help    Show this help
 
 Examples:
@@ -626,16 +655,53 @@ Examples:
   pipe -build my.pipe -o my_prog -upx  # UPX-compressed (~60% smaller)`)
 }
 
-func runEval(program *ast.Program, scriptArgs []string, filePath string) {
+// printErrorBlock writes a runtime/VM error to stderr, appending a source
+// snippet whenever the error carries a resolvable position.
+func printErrorBlock(prefix string, source string, err error) {
+	msg := err.Error()
+	line, col := 0, 0
+	if e, ok := err.(*object.Error); ok {
+		msg = e.Message
+		line, col = e.Line, e.Col
+	}
+	fmt.Fprintf(os.Stderr, "%s: %s\n", prefix, msg)
+	if line > 0 {
+		if snip := util.Snippet(source, line, col); snip != "" {
+			fmt.Fprintln(os.Stderr, snip)
+		}
+	}
+}
+
+// printWarnings reports LSP-style semantic warnings (unused variables) for a
+// parsed program to stderr. Purely informational; never affects exit codes.
+func printWarnings(source string, program *ast.Program) {
+	if source == "" || program == nil {
+		return
+	}
+	res := analysis.LintProgram(program)
+	for _, d := range res.Diagnostics {
+		if d.Severity != analysis.SeverityWarning {
+			continue
+		}
+		fmt.Fprintf(os.Stderr, "warning: %s\n", d.Message)
+		if snip := util.Snippet(source, d.Range.Start.Line, d.Range.Start.Col); snip != "" {
+			fmt.Fprintln(os.Stderr, snip)
+		}
+	}
+}
+
+func runEval(program *ast.Program, scriptArgs []string, filePath, source string) {
 	object.ScriptArgs = scriptArgs
 	ai.ResetCostMetrics()
+
+	printWarnings(source, program)
 
 	env := object.NewEnvironment()
 
 	ctx := eval.NewEvalContext(filePath)
 	result := ctx.Eval(program, env)
 	if result != nil && result.Type() == object.ERROR {
-		fmt.Fprintf(os.Stderr, "Runtime error: %s\n", result.Inspect())
+		printErrorBlock("Runtime error", source, result.(*object.Error))
 		os.Exit(1)
 	}
 
@@ -657,13 +723,15 @@ func runGenProgram(program *ast.Program) error {
 	return machine.Run()
 }
 
-func runVM(program *ast.Program, quiet bool, filePath string, scriptArgs []string) {
+func runVM(program *ast.Program, quiet bool, filePath string, scriptArgs []string, source string) {
 	object.ScriptArgs = scriptArgs
 	ai.ResetCostMetrics()
 
+	printWarnings(source, program)
+
 	comp := compiler.NewWithFile(filePath)
 	if err := comp.Compile(program); err != nil {
-		fmt.Fprintf(os.Stderr, "Compiler error: %s\n", err)
+		printErrorBlock("Compiler error", source, err)
 		os.Exit(1)
 	}
 
@@ -684,10 +752,10 @@ func runVM(program *ast.Program, quiet bool, filePath string, scriptArgs []strin
 	start := time.Now()
 	machine := vm.New(bc)
 	if err := machine.Run(); err != nil {
-		fmt.Fprintf(os.Stderr, "VM error: %s\n", err)
+		printErrorBlock("VM error", source, err)
 		os.Exit(1)
 	}
-	checkVMTopResult(machine)
+	checkVMTopResult(machine, source)
 	elapsed := time.Since(start)
 
 	if !quiet {
@@ -699,10 +767,10 @@ func runVM(program *ast.Program, quiet bool, filePath string, scriptArgs []strin
 // checkVMTopResult mirrors the tree-walker's top-level error handling
 // (runEval): a script whose final value is an Error object is reported as a
 // runtime error, not silently accepted.
-func checkVMTopResult(machine *vm.VM) {
+func checkVMTopResult(machine *vm.VM, source string) {
 	result := machine.LastPoppedStackElem()
 	if result != nil && result.Type() == object.ERROR {
-		fmt.Fprintf(os.Stderr, "Runtime error: %s\n", result.Inspect())
+		printErrorBlock("Runtime error", source, result.(*object.Error))
 		os.Exit(1)
 	}
 }
@@ -712,6 +780,11 @@ func runVMWithCache(filePath string, quiet bool) {
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "pipe: %s\n", err)
 		os.Exit(1)
+	}
+
+	source := ""
+	if data, rerr := os.ReadFile(filePath); rerr == nil {
+		source = string(data)
 	}
 
 	if fromCache {
@@ -726,10 +799,10 @@ func runVMWithCache(filePath string, quiet bool) {
 	start := time.Now()
 	machine := vm.New(bc)
 	if err := machine.Run(); err != nil {
-		fmt.Fprintf(os.Stderr, "VM error: %s\n", err)
+		printErrorBlock("VM error", source, err)
 		os.Exit(1)
 	}
-	checkVMTopResult(machine)
+	checkVMTopResult(machine, source)
 	elapsed := time.Since(start)
 
 	if !quiet {

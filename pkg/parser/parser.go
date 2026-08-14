@@ -300,6 +300,11 @@ func (p *Parser) parseExpressionOrVarStatement() ast.Statement {
 	if p.curTokenIs(lexer.IDENT) && p.peekTokenIs(lexer.COLON) {
 		return p.parseVarStatement()
 	}
+	// Common mistake: `name = value` instead of `name: value`.
+	if p.curTokenIs(lexer.IDENT) && p.peekTokenIs(lexer.ASSIGN) {
+		p.error(fmt.Sprintf("use ':' instead of '=' for assignment: '%s'", p.curToken.Literal))
+		return p.parseVarStatement()
+	}
 	// Compound assignment: x += expr
 	if p.curTokenIs(lexer.IDENT) && isCompoundAssign(p.peekToken.Type) {
 		return p.parseCompoundAssign()

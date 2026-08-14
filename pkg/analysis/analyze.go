@@ -27,7 +27,8 @@ func (a *Analyzer) noteMax(pos ast.Position) {
 }
 
 // Analyze parses source and returns the symbol/scope analysis. Parse errors
-// are returned as well so callers can produce diagnostics.
+// are returned as well so callers can produce diagnostics. Docstrings (`--!`
+// comments) directly above a definition are attached to the symbol's Doc.
 func Analyze(source string) (*Analysis, []string) {
 	l := lexer.New(source)
 	p := parser.New(l)
@@ -44,6 +45,7 @@ func Analyze(source string) (*Analysis, []string) {
 		a.walkStmt(stmt)
 	}
 
+	AttachDocstrings(source, a.result)
 	return a.result, errs
 }
 

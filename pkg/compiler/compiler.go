@@ -91,6 +91,7 @@ type Compiler struct {
 	importStack []string
 	defineSet   map[string]struct{}
 	sourceFile  string
+	currentLine int
 }
 
 type LoopContext struct {
@@ -100,19 +101,24 @@ type LoopContext struct {
 }
 
 type CompilationScope struct {
-	instructions Instructions
-	deferred     []Instructions
+	instructions  Instructions
+	lines         []int // source line per emitted byte (parallel to instructions)
+	deferred      []Instructions
+	deferredLines [][]int
 }
 
 type CompiledScope struct {
 	Instructions Instructions
+	Lines        []int
 	NumLocals    int
 	FreeSymbols  []Symbol
 }
 
 type Bytecode struct {
 	Instructions Instructions
+	Lines        []int // source line per instruction byte
 	Constants    []object.Object
+	SourceFile   string // originating .pipe file, for positioned error messages
 }
 
 func New() *Compiler {
@@ -154,25 +160,37 @@ func (c *Compiler) Bytecode() *Bytecode {
 	// Emit top-level deferred expressions before returning bytecode
 	for i := len(scope.deferred) - 1; i >= 0; i-- {
 		scope.instructions = append(scope.instructions, scope.deferred[i]...)
+		scope.lines = append(scope.lines, scope.deferredLines[i]...)
 	}
 	scope.deferred = nil
+	scope.deferredLines = nil
 
 	return &Bytecode{
 		Instructions: scope.instructions,
+		Lines:        scope.lines,
 		Constants:    c.constants,
+		SourceFile:   c.sourceFile,
 	}
 }
 
 func (c *Compiler) emit(op Opcode, operands ...int) int {
 	ins := Make(op, operands...)
-	pos := len(c.currentScope().instructions)
-	c.currentScope().instructions = append(c.currentScope().instructions, ins...)
+	scope := c.currentScope()
+	pos := len(scope.instructions)
+	scope.instructions = append(scope.instructions, ins...)
+	for range ins {
+		scope.lines = append(scope.lines, c.currentLine)
+	}
 	return pos
 }
 
 func (c *Compiler) emitUint16(v uint16) {
 	ins := encodeUint16(v)
-	c.currentScope().instructions = append(c.currentScope().instructions, ins...)
+	scope := c.currentScope()
+	scope.instructions = append(scope.instructions, ins...)
+	for range ins {
+		scope.lines = append(scope.lines, c.currentLine)
+	}
 }
 
 func (c *Compiler) addConstant(obj object.Object) int {
@@ -193,6 +211,11 @@ func (c *Compiler) addFloat(v float64) int {
 }
 
 func (c *Compiler) Compile(node ast.Node) error {
+	if pn, ok := node.(interface{ Pos() ast.Position }); ok {
+		if pos := pn.Pos(); pos.Line > 0 {
+			c.currentLine = pos.Line
+		}
+	}
 	switch n := node.(type) {
 	case *ast.Program:
 		// Two-pass: compile definitions first, then expressions
@@ -418,6 +441,7 @@ func (c *Compiler) Compile(node ast.Node) error {
 
 		idx := c.addConstant(&object.CompiledFunction{
 			Instructions: compiledFn.Instructions,
+			Lines:        compiledFn.Lines,
 			NumLocals:    compiledFn.NumLocals,
 			NumFree:      len(compiledFn.FreeSymbols),
 		})
@@ -448,6 +472,7 @@ func (c *Compiler) Compile(node ast.Node) error {
 
 		idx := c.addConstant(&object.CompiledFunction{
 			Instructions: compiledFn.Instructions,
+			Lines:        compiledFn.Lines,
 			NumLocals:    compiledFn.NumLocals,
 			NumFree:      len(compiledFn.FreeSymbols),
 		})
@@ -741,8 +766,23 @@ func (c *Compiler) compileMatch(me *ast.MatchExpression) error {
 func (c *Compiler) compileTryExpression(te *ast.TryExpression) error {
 	catchSym := c.symbolTable.Define(te.CatchParam.Value)
 
-	if err := c.compileStatements(te.TryBlock.Statements, false); err != nil {
-		return err
+	stmts := te.TryBlock.Statements
+
+	// Compile each try statement, keeping its result on the stack so we can
+	// detect errors. The tree-walker aborts a try block at the first error;
+	// mirror that here by jumping to the catch binding after each statement.
+	var catchJumps []int
+	for i, stmt := range stmts {
+		if err := c.compileTryBlockStatement(stmt); err != nil {
+			return err
+		}
+		if i < len(stmts)-1 {
+			c.emit(OpCheckError)
+			okPos := c.emit(OpJumpNotTruthy, 9999)
+			catchJumps = append(catchJumps, c.emit(OpJump, 9999))
+			afterCheck := len(c.currentInstructions())
+			c.patchJump(okPos, afterCheck)
+		}
 	}
 
 	c.emit(OpCheckError)
@@ -751,13 +791,18 @@ func (c *Compiler) compileTryExpression(te *ast.TryExpression) error {
 	if te.AIFix {
 		skipFixPos = c.emit(OpJumpNotTruthy, 9999)
 		c.emit(OpPop)
-		src := blockSourceFromStatements(te.TryBlock.Statements)
+		src := blockSourceFromStatements(stmts)
 		c.emit(OpConstant, c.addConstant(&object.String{Value: src}))
 		c.emit(OpTryAIFix)
 		c.emit(OpCheckError)
 	}
 
 	skipCatchPos := c.emit(OpJumpNotTruthy, 9999)
+
+	// Bind the catch parameter to the error message string, matching the
+	// tree-walker (catch err -> err is a string, not an Error object).
+	catchBind := len(c.currentInstructions())
+	c.emit(OpErrorToString)
 
 	if catchSym.Scope == GlobalScope {
 		c.emit(OpSetGlobal, catchSym.Index)
@@ -792,10 +837,30 @@ func (c *Compiler) compileTryExpression(te *ast.TryExpression) error {
 	if skipFixPos != 0 {
 		c.patchJump(skipFixPos, afterCatch)
 	}
+	for _, pos := range catchJumps {
+		c.patchJump(pos, catchBind)
+	}
 
 	c.patchJump(endPos, len(c.currentInstructions()))
 
 	return nil
+}
+
+// compileTryBlockStatement compiles one statement of a try block, leaving its
+// result on the stack so the following error check can inspect it.
+func (c *Compiler) compileTryBlockStatement(stmt ast.Statement) error {
+	switch s := stmt.(type) {
+	case *ast.ExpressionStatement:
+		return c.Compile(s.Expression)
+	case *ast.VarStatement:
+		return c.compileVarStatement(s, true)
+	default:
+		if err := c.Compile(stmt); err != nil {
+			return err
+		}
+		c.emit(OpPop)
+		return nil
+	}
 }
 
 func blockSourceFromStatements(stmts []ast.Statement) string {
@@ -1077,6 +1142,7 @@ func (c *Compiler) lastIsReturn() bool {
 func (c *Compiler) compileDefer(de *ast.DeferStatement) error {
 	prevLen := len(c.currentScope().instructions)
 	c.currentScope().instructions = c.currentScope().instructions[:prevLen]
+	c.currentScope().lines = c.currentScope().lines[:prevLen]
 
 	if err := c.Compile(de.Expression); err != nil {
 		return err
@@ -1084,9 +1150,13 @@ func (c *Compiler) compileDefer(de *ast.DeferStatement) error {
 
 	deferCode := make(Instructions, len(c.currentScope().instructions)-prevLen)
 	copy(deferCode, c.currentScope().instructions[prevLen:])
+	deferLines := make([]int, len(c.currentScope().lines)-prevLen)
+	copy(deferLines, c.currentScope().lines[prevLen:])
 	c.currentScope().instructions = c.currentScope().instructions[:prevLen]
+	c.currentScope().lines = c.currentScope().lines[:prevLen]
 
 	c.currentScope().deferred = append(c.currentScope().deferred, deferCode)
+	c.currentScope().deferredLines = append(c.currentScope().deferredLines, deferLines)
 	return nil
 }
 
@@ -1234,6 +1304,7 @@ func (c *Compiler) leaveScope() CompiledScope {
 	// Emit all deferred expressions in LIFO order
 	for i := len(scope.deferred) - 1; i >= 0; i-- {
 		scope.instructions = append(scope.instructions, scope.deferred[i]...)
+		scope.lines = append(scope.lines, scope.deferredLines[i]...)
 	}
 
 	nl := c.symbolTable.numDefinitions
@@ -1241,7 +1312,7 @@ func (c *Compiler) leaveScope() CompiledScope {
 	c.scopes = c.scopes[:c.scopeIndex]
 	c.scopeIndex--
 	c.symbolTable = c.symbolTable.Outer
-	return CompiledScope{Instructions: scope.instructions, NumLocals: nl, FreeSymbols: free}
+	return CompiledScope{Instructions: scope.instructions, Lines: scope.lines, NumLocals: nl, FreeSymbols: free}
 }
 
 // Pretty-print instructions for debugging

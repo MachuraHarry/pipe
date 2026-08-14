@@ -26,6 +26,7 @@ type EvalContext struct {
 	importStack     []string
 	exportedSymbols map[string]bool
 	testFailed      bool
+	lastPos         ast.Position // position of the most recently evaluated node
 }
 
 func NewEvalContext(sourceFile string) *EvalContext {
@@ -63,6 +64,11 @@ func (ctx *EvalContext) stackTrace() string {
 }
 
 func (ctx *EvalContext) Eval(node ast.Node, env *object.Environment) object.Object {
+	if pn, ok := node.(interface{ Pos() ast.Position }); ok {
+		if pos := pn.Pos(); pos.Line > 0 {
+			ctx.lastPos = pos
+		}
+	}
 	switch n := node.(type) {
 	case *ast.Program:
 		return ctx.evalProgram(n.Statements, env)
@@ -347,7 +353,63 @@ func (ctx *EvalContext) evalIdentifier(node *ast.Identifier, env *object.Environ
 		}
 		return builtin
 	}
-	return ctx.newErrorCode("E001", "undefined variable: %s", node.Value)
+	return ctx.newErrorCode("E001", "undefined variable: %s%s", node.Value, suggestName(node.Value, env))
+}
+
+// suggestName returns a " — did you mean 'x'?" hint for a typo'd name, using
+// Levenshtein distance against all visible variables and builtins. Returns ""
+// when no candidate is close enough.
+func suggestName(name string, env *object.Environment) string {
+	if name == "" || env == nil {
+		return ""
+	}
+	best, bestDist := "", 4
+	consider := func(cand string) {
+		if cand == "" || cand == name {
+			return
+		}
+		if d := levenshtein(name, cand); d < bestDist {
+			best, bestDist = cand, d
+		}
+	}
+	for k := range env.Store() {
+		consider(k)
+	}
+	for k := range builtins {
+		consider(k)
+	}
+	if best == "" {
+		return ""
+	}
+	return fmt.Sprintf(" — did you mean '%s'?", best)
+}
+
+func levenshtein(a, b string) int {
+	la, lb := len(a), len(b)
+	prev := make([]int, lb+1)
+	cur := make([]int, lb+1)
+	for j := 0; j <= lb; j++ {
+		prev[j] = j
+	}
+	for i := 1; i <= la; i++ {
+		cur[0] = i
+		for j := 1; j <= lb; j++ {
+			cost := 1
+			if a[i-1] == b[j-1] {
+				cost = 0
+			}
+			cur[j] = minInt(prev[j]+1, minInt(cur[j-1]+1, prev[j-1]+cost))
+		}
+		prev, cur = cur, prev
+	}
+	return prev[lb]
+}
+
+func minInt(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
 }
 
 func evalPrefixExpression(operator string, right object.Object) object.Object {
@@ -376,7 +438,7 @@ func (ctx *EvalContext) evalInfixExpression(operator string, left, right object.
 	left = object.EnsureResolved(left)
 	right = object.EnsureResolved(right)
 	if operator == "[]" {
-		return evalIndexExpression(left, right)
+		return evalIndexExpression(ctx, left, right)
 	}
 	if operator == "&&" {
 		if !object.IsTruthy(left) {
@@ -392,17 +454,17 @@ func (ctx *EvalContext) evalInfixExpression(operator string, left, right object.
 	}
 	switch {
 	case left.Type() == object.INTEGER && right.Type() == object.INTEGER:
-		return evalIntegerInfix(operator, left.(*object.Integer), right.(*object.Integer))
+		return evalIntegerInfix(ctx, operator, left.(*object.Integer), right.(*object.Integer))
 	case left.Type() == object.FLOAT && right.Type() == object.FLOAT:
-		return evalFloatInfix(operator, left.(*object.Float), right.(*object.Float))
+		return evalFloatInfix(ctx, operator, left.(*object.Float), right.(*object.Float))
 	case left.Type() == object.INTEGER && right.Type() == object.FLOAT:
-		return evalFloatInfix(operator, &object.Float{Value: float64(left.(*object.Integer).Value)}, right.(*object.Float))
+		return evalFloatInfix(ctx, operator, &object.Float{Value: float64(left.(*object.Integer).Value)}, right.(*object.Float))
 	case left.Type() == object.FLOAT && right.Type() == object.INTEGER:
-		return evalFloatInfix(operator, left.(*object.Float), &object.Float{Value: float64(right.(*object.Integer).Value)})
+		return evalFloatInfix(ctx, operator, left.(*object.Float), &object.Float{Value: float64(right.(*object.Integer).Value)})
 	case left.Type() == object.STRING && right.Type() == object.STRING:
-		return evalStringInfix(operator, left.(*object.String), right.(*object.String))
+		return evalStringInfix(ctx, operator, left.(*object.String), right.(*object.String))
 	case left.Type() == object.BYTES && right.Type() == object.BYTES:
-		return evalBytesInfix(operator, left.(*object.Bytes), right.(*object.Bytes))
+		return evalBytesInfix(ctx, operator, left.(*object.Bytes), right.(*object.Bytes))
 	case operator == "++" && left.Type() == object.BYTES && right.Type() == object.STRING:
 		return concatBytesString(left.(*object.Bytes).Value, []byte(right.(*object.String).Value))
 	case operator == "++" && left.Type() == object.STRING && right.Type() == object.BYTES:
@@ -416,7 +478,7 @@ func (ctx *EvalContext) evalInfixExpression(operator string, left, right object.
 	}
 }
 
-func evalIntegerInfix(operator string, left, right *object.Integer) object.Object {
+func evalIntegerInfix(ctx *EvalContext, operator string, left, right *object.Integer) object.Object {
 	l, r := left.Value, right.Value
 	switch operator {
 	case "+":
@@ -427,12 +489,12 @@ func evalIntegerInfix(operator string, left, right *object.Integer) object.Objec
 		return &object.Integer{Value: l * r}
 	case "/":
 		if r == 0 {
-			return newErrorCode("", "E003", "division by zero")
+			return ctx.newErrorCode("E003", "division by zero")
 		}
 		return &object.Integer{Value: l / r}
 	case "%":
 		if r == 0 {
-			return newErrorCode("", "E003", "modulo by zero")
+			return ctx.newErrorCode("E003", "modulo by zero")
 		}
 		return &object.Integer{Value: l % r}
 	case "**":
@@ -450,11 +512,11 @@ func evalIntegerInfix(operator string, left, right *object.Integer) object.Objec
 	case "!=":
 		return object.NativeBoolToBoolean(l != r)
 	default:
-		return newErrorCode("", "E005", "operator '%s' not supported for %s and %s", operator, left.Type(), right.Type())
+		return ctx.newErrorCode("E005", "operator '%s' not supported for %s and %s", operator, left.Type(), right.Type())
 	}
 }
 
-func evalFloatInfix(operator string, left, right *object.Float) object.Object {
+func evalFloatInfix(ctx *EvalContext, operator string, left, right *object.Float) object.Object {
 	l, r := left.Value, right.Value
 	switch operator {
 	case "+":
@@ -465,7 +527,7 @@ func evalFloatInfix(operator string, left, right *object.Float) object.Object {
 		return &object.Float{Value: l * r}
 	case "/":
 		if r == 0 {
-			return newErrorCode("", "E003", "division by zero")
+			return ctx.newErrorCode("E003", "division by zero")
 		}
 		return &object.Float{Value: l / r}
 	case "**":
@@ -485,11 +547,11 @@ func evalFloatInfix(operator string, left, right *object.Float) object.Object {
 	case "!=":
 		return object.NativeBoolToBoolean(l != r)
 	default:
-		return newErrorCode("", "E005", "operator '%s' not supported for float", operator)
+		return ctx.newErrorCode("E005", "operator '%s' not supported for float", operator)
 	}
 }
 
-func evalStringInfix(operator string, left, right *object.String) object.Object {
+func evalStringInfix(ctx *EvalContext, operator string, left, right *object.String) object.Object {
 	switch operator {
 	case "++":
 		return &object.String{Value: left.Value + right.Value}
@@ -506,7 +568,7 @@ func evalStringInfix(operator string, left, right *object.String) object.Object 
 	case ">=":
 		return object.NativeBoolToBoolean(left.Value >= right.Value)
 	default:
-		return newErrorCode("", "E005", "operator '%s' not supported for strings", operator)
+		return ctx.newErrorCode("E005", "operator '%s' not supported for strings", operator)
 	}
 }
 
@@ -517,7 +579,7 @@ func concatBytesString(l, r []byte) object.Object {
 	return &object.Bytes{Value: out}
 }
 
-func evalBytesInfix(operator string, left, right *object.Bytes) object.Object {
+func evalBytesInfix(ctx *EvalContext, operator string, left, right *object.Bytes) object.Object {
 	switch operator {
 	case "++":
 		out := make([]byte, 0, len(left.Value)+len(right.Value))
@@ -541,7 +603,7 @@ func evalBytesInfix(operator string, left, right *object.Bytes) object.Object {
 			return object.NativeBoolToBoolean(c >= 0)
 		}
 	}
-	return newErrorCode("", "E005", "operator '%s' not supported for bytes", operator)
+	return ctx.newErrorCode("E005", "operator '%s' not supported for bytes", operator)
 }
 
 func (ctx *EvalContext) evalIfExpression(ie *ast.IfExpression, env *object.Environment) object.Object {
@@ -1434,7 +1496,7 @@ func (ctx *EvalContext) evalSliceExpression(se *ast.SliceExpression, env *object
 	return object.NILOBJ
 }
 
-func evalIndexExpression(left, right object.Object) object.Object {
+func evalIndexExpression(ctx *EvalContext, left, right object.Object) object.Object {
 	switch container := left.(type) {
 	case *object.List:
 		idx, ok := object.ToInt(right)
@@ -1466,7 +1528,7 @@ func evalIndexExpression(left, right object.Object) object.Object {
 		}
 		return &object.String{Value: string(s[idx])}
 	}
-	return newErrorCode("", "E006", "cannot index into a %s — only lists, maps, and strings support [ ]", left.Type())
+	return ctx.newErrorCode("E006", "cannot index into a %s — only lists, maps, and strings support [ ]", left.Type())
 }
 
 type ReturnValue struct {
@@ -1497,7 +1559,13 @@ func (ctx *EvalContext) newErrorCode(code, format string, a ...interface{}) *obj
 	if ctx.SourceFile != "" {
 		prefix = ctx.SourceFile + ": "
 	}
-	return &object.Error{Message: prefix + code + ": " + msg}
+	return &object.Error{
+		Message: prefix + code + ": " + msg,
+		Code:    code,
+		File:    ctx.SourceFile,
+		Line:    ctx.lastPos.Line,
+		Col:     ctx.lastPos.Col,
+	}
 }
 
 func newErrorSt(format string, a ...interface{}) *object.Error {

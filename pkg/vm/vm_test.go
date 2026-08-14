@@ -506,7 +506,7 @@ func TestVMIfConsequenceVarStatementStackBalance(t *testing.T) {
 
 a: f true
 b: f false
-a ++ "," ++ b`
+(to_str a) ++ "," ++ (to_str b)`
 	bc := parseAndCompile(t, input)
 	result := runVM(t, bc)
 	if result != "43,1" {

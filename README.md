@@ -8,7 +8,7 @@
 [![GitHub MCP Registry](https://img.shields.io/badge/GitHub_MCP_Registry-Onboarding-6e5494.svg)](https://github.com/github/github-mcp-server/discussions/3057)
 [![MCP Registry](https://img.shields.io/badge/MCP_Registry-Listed-4a90d9.svg)](https://registry.modelcontextprotocol.io/?q=MachuraHarry)
 
-> **The first language with built-in MCP — server and client. 206 builtins, single ~7 MB binary. Zero dependencies.**
+> **The first language with built-in MCP — server and client. 226 builtins, single ~7 MB binary. Zero dependencies.**
 > **Officially listed in the [official MCP Registry](https://registry.modelcontextprotocol.io/?q=MachuraHarry)** (v0.9.3.5, active). GitHub MCP Registry [onboarding requested](https://github.com/github/github-mcp-server/discussions/3057) for one-click install in GitHub Copilot & VS Code.
 
 ## Quick Install
@@ -376,7 +376,7 @@ write_file "/etc/config"    -- ❌ E_SANDBOX blocked
 ```
 Source (.pipe) → Lexer → Parser → AST → [ Tree-Walker | Compiler + VM ]
                                             ↓
-                                  Builtins (206 total: 36 AI + 13 MCP + 157 standard)
+                                  Builtins (226 total: 36 AI + 13 MCP + 177 standard)
                                             ↓
                               MCP Server ↔ MCP Clients (stdio + HTTP)
 ```

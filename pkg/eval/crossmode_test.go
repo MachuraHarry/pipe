@@ -24,7 +24,9 @@ func parseProgram(t *testing.T, input string) *ast.Program {
 }
 
 func evalResult(program *ast.Program) object.Object {
-	ctx := NewEvalContext("<cross>")
+	// Empty source file: keeps error messages comparable with the VM, which
+	// has no file context in these unit tests.
+	ctx := NewEvalContext("")
 	env := object.NewEnvironment()
 	return ctx.Eval(program, env)
 }
@@ -390,6 +392,34 @@ func TestCrossClosure(t *testing.T) {
 
 func TestCrossTryCatch(t *testing.T) {
 	assertBothEqual(t, "try\n    1 / 0\ncatch e\n    \"caught\"", "caught")
+}
+
+func TestCrossTryCatchBindsErrorMessageString(t *testing.T) {
+	// `catch e` binds the error message string, so `++` on it must work in
+	// both execution modes (docs: "err is the error message string").
+	assertBothEqual(t, "try\n    1 / 0\ncatch e\n    \"caught: \" ++ e", "caught: E003: division by zero")
+	assertBothEqual(t, "try\n    1 / 0\ncatch e\n    \"len=\" ++ (to_str (len e))", "len=22")
+}
+
+func TestCrossTryCatchAbortsBlockAtFirstError(t *testing.T) {
+	// The try block must abort at the first error (docs: "The try block aborts
+	// immediately"); the catch param is still a message string.
+	assertBothEqual(t, "try\n    x: 1 / 0\n    x: 2\ncatch e\n    \"caught: \" ++ e", "caught: E003: division by zero")
+}
+
+func TestCrossTryReturnsBlockValue(t *testing.T) {
+	assertBothEqual(t, "try\n    5\ncatch e\n    \"no\"", "5")
+	assertBothEqual(t, "try\n    x: 5\ncatch e\n    \"no\"", "5")
+}
+
+func TestCrossConcatStrictTypeCheck(t *testing.T) {
+	// `++` requires strings (or bytes); mixed types are a type mismatch in
+	// both execution modes.
+	assertBothErrorContains(t, `"a" ++ 42`, "E002")
+	assertBothErrorContains(t, `42 ++ "a"`, "E002")
+	assertBothErrorContains(t, `"a" ++ 1.5`, "E002")
+	assertBothErrorContains(t, `"a" ++ true`, "E002")
+	assertBothErrorContains(t, `[1, 2] ++ "a"`, "E002")
 }
 
 func TestCrossPipelineWithArgs(t *testing.T) {

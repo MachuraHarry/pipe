@@ -14,7 +14,7 @@ import (
 
 const (
 	magic   = "PIPEBC"
-	version = byte(1)
+	version = byte(2)
 )
 
 func hashSource(data []byte) string {
@@ -112,8 +112,17 @@ func loadCache(path string, sourceData []byte) (*compiler.Bytecode, error) {
 			binary.Read(f, binary.BigEndian, &insLen)
 			ins := make([]byte, insLen)
 			f.Read(ins)
+			var numLines uint32
+			binary.Read(f, binary.BigEndian, &numLines)
+			lines := make([]int, numLines)
+			for j := uint32(0); j < numLines; j++ {
+				var ln int32
+				binary.Read(f, binary.BigEndian, &ln)
+				lines[j] = int(ln)
+			}
 			constants[i] = &object.CompiledFunction{
 				Instructions: compiler.Instructions(ins),
+				Lines:        lines,
 				NumLocals:    int(numLocals),
 			}
 		}
@@ -124,8 +133,18 @@ func loadCache(path string, sourceData []byte) (*compiler.Bytecode, error) {
 	instructions := make(compiler.Instructions, insLen)
 	f.Read(instructions)
 
+	var numLines uint32
+	binary.Read(f, binary.BigEndian, &numLines)
+	lines := make([]int, numLines)
+	for j := uint32(0); j < numLines; j++ {
+		var ln int32
+		binary.Read(f, binary.BigEndian, &ln)
+		lines[j] = int(ln)
+	}
+
 	return &compiler.Bytecode{
 		Instructions: instructions,
+		Lines:        lines,
 		Constants:    constants,
 	}, nil
 }
@@ -180,12 +199,21 @@ func writeCacheData(f *os.File, srcHash string, bc *compiler.Bytecode) error {
 			} else {
 				binary.Write(f, binary.BigEndian, uint32(0))
 			}
+			binary.Write(f, binary.BigEndian, uint32(len(v.Lines)))
+			for _, ln := range v.Lines {
+				binary.Write(f, binary.BigEndian, int32(ln))
+			}
 		}
 	}
 
 	insLen := uint32(len(bc.Instructions))
 	binary.Write(f, binary.BigEndian, insLen)
 	f.Write(bc.Instructions)
+
+	binary.Write(f, binary.BigEndian, uint32(len(bc.Lines)))
+	for _, ln := range bc.Lines {
+		binary.Write(f, binary.BigEndian, int32(ln))
+	}
 
 	return nil
 }

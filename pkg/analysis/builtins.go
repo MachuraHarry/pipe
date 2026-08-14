@@ -47,6 +47,7 @@ const (
 	CatAIAgent  = "AI Agents"
 	CatAIEmbed  = "AI Embeddings"
 	CatAISearch = "AI Search"
+	CatMCP      = "MCP"
 	CatSandbox  = "Sandbox"
 	CatTest     = "Test Assertions"
 	CatConcur   = "Concurrency"
@@ -63,6 +64,8 @@ var builtinDocs = []BuiltinDoc{
 		Description: "Prints one or more values to stdout, separated by spaces and followed by a newline.", Category: CatIO},
 	{Name: "input", Signature: "input(prompt?)", Params: []Param{p("prompt", "string")}, ReturnType: "string",
 		Description: "Displays the optional prompt, reads a line from stdin, and returns it as a string.", Category: CatIO},
+	{Name: "print_raw", Signature: "print_raw(value...)", Params: []Param{p("value", "any")}, ReturnType: "nil",
+		Description: "Prints one or more values to stdout with no separator and no trailing newline.", Category: CatIO},
 	{Name: "exec", Signature: "exec(command)", Params: []Param{p("command", "string")}, ReturnType: "string",
 		Description: "Executes a system command via the shell and returns the combined stdout/stderr output.", Category: CatIO},
 	{Name: "env", Signature: "env(name)", Params: []Param{p("name", "string")}, ReturnType: "string",
@@ -189,6 +192,8 @@ var builtinDocs = []BuiltinDoc{
 		Description: "Returns a list of all keys in map. Order is not guaranteed.", Category: CatMap},
 	{Name: "values", Signature: "values(map)", Params: []Param{p("map", "map")}, ReturnType: "list",
 		Description: "Returns a list of all values in map.", Category: CatMap},
+	{Name: "map_delete", Signature: "map_delete(map, key)", Params: []Param{p("map", "map"), p("key", "string")}, ReturnType: "nil",
+		Description: "Removes key from map in place. Returns nil.", Category: CatMap},
 
 	// ---- Math ----
 	{Name: "abs", Signature: "abs(x)", Params: []Param{p("x", "number")}, ReturnType: "number",
@@ -397,6 +402,14 @@ var builtinDocs = []BuiltinDoc{
 		Description: "Enables/disables AI response caching. Pass true/on/ttl-minutes to enable, false/off to disable, 'clear' to flush, 'stats' for hit/miss count.", Category: CatAIConf},
 	{Name: "ai_set_key", Signature: "ai_set_key(provider, key)", Params: []Param{p("provider", "string"), p("key", "string")}, ReturnType: "string",
 		Description: "Sets API key for the given provider ('openai', 'deepseek', 'anthropic'). Useful when env vars aren't available (browser, CI).", Category: CatAIConf},
+	{Name: "ai_cost", Signature: "ai_cost()", Params: []Param{}, ReturnType: "map",
+		Description: "Returns a map with cost_usd, calls, cache_hits, cache_misses for the current run. Pass 'reset' to zero the metrics.", Category: CatAIConf},
+	{Name: "ai_tokens", Signature: "ai_tokens()", Params: []Param{}, ReturnType: "number",
+		Description: "Returns the total token count used by AI calls in the current run.", Category: CatAIConf},
+	{Name: "ai_cache_hits", Signature: "ai_cache_hits()", Params: []Param{}, ReturnType: "number",
+		Description: "Returns the number of AI response cache hits in the current run.", Category: CatAIConf},
+	{Name: "ai_cache_misses", Signature: "ai_cache_misses()", Params: []Param{}, ReturnType: "number",
+		Description: "Returns the number of AI response cache misses in the current run.", Category: CatAIConf},
 
 	// ---- AI Chat ----
 	{Name: "ai_chat", Signature: "ai_chat(system_prompt, user_prompt, max_tokens?)", Params: []Param{p("system_prompt", "string"), p("user_prompt", "string"), p("max_tokens", "int, optional")}, ReturnType: "string",
@@ -473,6 +486,40 @@ var builtinDocs = []BuiltinDoc{
 		Description: "Sets the active sandbox from a profile map or name.", Category: CatSandbox},
 	{Name: "with_sandbox", Signature: "with_sandbox(profile, fn)", Params: []Param{p("profile", "map|string"), p("fn", "function")}, ReturnType: "any",
 		Description: "Runs fn under the given sandbox profile, then restores the previous one.", Category: CatSandbox},
+	{Name: "sandbox_lock", Signature: "sandbox_lock(profile?)", Params: []Param{p("profile", "string")}, ReturnType: "boolean",
+		Description: "Locks the active (or named) sandbox profile so its settings can no longer be changed. Returns true.", Category: CatSandbox},
+	{Name: "audit_log", Signature: "audit_log()", Params: []Param{}, ReturnType: "list",
+		Description: "Returns the sandbox audit log as a list of maps (time, event, detail, profile).", Category: CatSandbox},
+	{Name: "budget_spent", Signature: "budget_spent()", Params: []Param{}, ReturnType: "number",
+		Description: "Returns the budget spent so far on the active sandbox profile.", Category: CatSandbox},
+
+	// ---- MCP (Model Context Protocol) ----
+	{Name: "mcp_server", Signature: "mcp_server(name, version)", Params: []Param{p("name", "string"), p("version", "string")}, ReturnType: "map",
+		Description: "Creates the local MCP server with the given name and version, bridging all registered tools, resources and prompts.", Category: CatMCP},
+	{Name: "mcp_tools", Signature: "mcp_tools()", Params: []Param{}, ReturnType: "list",
+		Description: "Returns a list of maps describing the tools available on the local MCP server (name, description, source).", Category: CatMCP},
+	{Name: "mcp_resource", Signature: "mcp_resource(uri, name, mime, read_fn)", Params: []Param{p("uri", "string"), p("name", "string"), p("mime", "string"), p("read_fn", "function")}, ReturnType: "nil",
+		Description: "Registers a static resource with the MCP server. read_fn returns the resource content.", Category: CatMCP},
+	{Name: "mcp_resource_template", Signature: "mcp_resource_template(uri_template, name, mime, read_fn)", Params: []Param{p("uri_template", "string"), p("name", "string"), p("mime", "string"), p("read_fn", "function")}, ReturnType: "nil",
+		Description: "Registers a parameterized resource template with the MCP server.", Category: CatMCP},
+	{Name: "mcp_resources", Signature: "mcp_resources()", Params: []Param{}, ReturnType: "list",
+		Description: "Returns a list of maps describing the resources on the local MCP server (uri, name, mimeType, source).", Category: CatMCP},
+	{Name: "mcp_read_resource", Signature: "mcp_read_resource(uri)", Params: []Param{p("uri", "string")}, ReturnType: "string",
+		Description: "Reads the content of the resource identified by uri from the local MCP server.", Category: CatMCP},
+	{Name: "mcp_prompt", Signature: "mcp_prompt(name, description, args_map, build_fn)", Params: []Param{p("name", "string"), p("description", "string"), p("args_map", "map"), p("build_fn", "function")}, ReturnType: "nil",
+		Description: "Registers a prompt template with the MCP server. build_fn receives the argument map and returns the prompt text.", Category: CatMCP},
+	{Name: "mcp_prompts", Signature: "mcp_prompts()", Params: []Param{}, ReturnType: "list",
+		Description: "Returns a list of maps describing the prompts on the local MCP server (name, description, source).", Category: CatMCP},
+	{Name: "mcp_prompt_get", Signature: "mcp_prompt_get(name, args?)", Params: []Param{p("name", "string"), p("args", "map")}, ReturnType: "string",
+		Description: "Renders the named prompt with the given arguments and returns the text. Falls back to local registries if no server is running.", Category: CatMCP},
+	{Name: "mcp_serve_stdio", Signature: "mcp_serve_stdio()", Params: []Param{}, ReturnType: "nil",
+		Description: "Serves the MCP server over stdio (started by an MCP host client). Blocks until the host exits.", Category: CatMCP},
+	{Name: "mcp_serve_sse", Signature: "mcp_serve_sse(addr)", Params: []Param{p("addr", "string")}, ReturnType: "nil",
+		Description: "Serves the MCP server over HTTP Server-Sent Events at addr, e.g. ':9090'. Blocks until interrupted.", Category: CatMCP},
+	{Name: "mcp_use_stdio", Signature: "mcp_use_stdio(command, args..., env?)", Params: []Param{p("command", "string"), p("args", "string")}, ReturnType: "nil",
+		Description: "Connects to an external MCP server via a spawned subprocess (stdio client).", Category: CatMCP},
+	{Name: "mcp_use_sse", Signature: "mcp_use_sse(url)", Params: []Param{p("url", "string")}, ReturnType: "nil",
+		Description: "Connects to an external MCP server over HTTP Server-Sent Events at url.", Category: CatMCP},
 
 	// ---- Test Assertions ----
 	{Name: "assert", Signature: "assert(condition)", Params: []Param{p("condition", "boolean")}, ReturnType: "nil",
@@ -527,6 +574,10 @@ var builtinDocs = []BuiltinDoc{
 		Description: "Releases a permit back to the semaphore.", Category: CatConcur},
 	{Name: "try_acquire", Signature: "try_acquire(semaphore)", Params: []Param{p("semaphore", "semaphore")}, ReturnType: "bool",
 		Description: "Acquires the semaphore without blocking; returns false if no permit is available.", Category: CatConcur},
+
+	// ---- Internal (tree-walker only) ----
+	{Name: "_try_ai_eval", Signature: "_try_ai_eval(source)", Params: []Param{p("source", "string")}, ReturnType: "string",
+		Description: "Internal helper used by try_ai: re-evaluates the fixed source snippet in the tree-walker. Not available in the VM.", Category: CatIO},
 }
 
 var builtinIndex = func() map[string]BuiltinDoc {

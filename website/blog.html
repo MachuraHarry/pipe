@@ -198,6 +198,9 @@ function shareX(id){
 
 // ---- markdown ----
 function renderMarkdown(t){t=t.replace(/</g,'&lt;').replace(/>/g,'&gt;');var o=[],l=t.split('\n'),i=0;
+var lang=LANG||'en';
+t=t.replace(/\[lang:([a-z]{2})\]([\s\S]*?)\[\/lang\]/g,function(m,lg,inner){return lg===lang?inner:''});
+l=t.split('\n');
 while(i<l.length){var ln=l[i];
 if(ln.match(/^```/)){i++;var cl=[];while(i<l.length&&!l[i].match(/^```/)){cl.push(l[i]);i++}i++;o.push('<pre><code>'+cl.join('\n')+'</code></pre>');continue}
 var m=ln.match(/^(#{1,6})\s+(.+)/);if(m){o.push('<h'+m[1].length+'>'+inline(m[2])+'</h'+m[1].length+'>');i++;continue}

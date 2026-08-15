@@ -12,7 +12,7 @@ ai_provider "deepseek"
 
 --- === State === ---
 
-__state: {idx: nil, dir: ""}
+__state: {idx: nil, dir: "", recent: []}
 
 fn init _
     dir: env "PIPE_DOCS_DIR"
@@ -21,6 +21,23 @@ fn init _
     idx: doc_index dir {lang: "en", db: ":memory:"}
     set __state "idx" idx
     set __state "dir" dir
+
+fn log_query q
+    if q == nil || q == ""
+        return nil
+    recent: get __state "recent"
+    if recent == nil
+        recent: []
+    push recent q
+    if (len recent) > 20
+        trimmed: []
+        i: 1
+        while i < (len recent)
+            push trimmed (at recent i)
+            i: i + 1
+        recent: trimmed
+    set __state "recent" recent
+    nil
 
 --- === Helpers === ---
 
@@ -47,6 +64,12 @@ fn lang_of path
 fn lang_selected cur val
     if cur == val
         " selected"
+    else
+        ""
+
+fn nav_cls active name
+    if active == name
+        " class=active"
     else
         ""
 
@@ -93,39 +116,110 @@ fn mark_terms text terms
 
 --- === Page chrome === ---
 
-fn page_top title subtitle
+fn page_top title subtitle active
     "<!doctype html><html><head><title>" ++ title ++ "</title><meta charset=utf-8><meta name=viewport content='width=device-width,initial-scale=1'>
-<style>body{font-family:system-ui,sans-serif;max-width:760px;margin:32px auto;padding:20px;background:#0a0a0f;color:#e0e0e8}
-h1{color:#7c5cfc;margin:0}a{color:#6cd4f2;text-decoration:none}code{background:#1a1a24;padding:2px 6px;border-radius:4px}
-.card{background:#1a1a24;border-radius:8px;padding:20px;margin:14px 0}
-.card h2{margin-top:0;color:#ff9e64;font-size:14px;text-transform:uppercase;letter-spacing:1px}
-label{display:block;margin:10px 0 4px;font-weight:600;color:#c0c0d0;font-size:14px}
-input[type=text],select{width:100%;box-sizing:border-box;background:#12121c;color:#e0e0e8;border:1px solid #33334a;border-radius:6px;padding:10px;font-size:14px;font-family:inherit}
-input:focus,select:focus{outline:none;border-color:#7c5cfc}
-.btn{display:inline-block;margin-top:12px;padding:9px 22px;background:#7c5cfc;color:#fff;border:none;border-radius:6px;font-size:14px;cursor:pointer;font-weight:600}
-.btn:hover{background:#6b48e0}
-.btn.second{background:#33334a}.btn.second:hover{background:#44445a}
+<style>
+:root{--bg:#07070c;--bg2:#0d0d16;--bg3:#141420;--card:#11111c;--fg:#e8e8f0;--fg2:#9090a8;--fg3:#606078;--accent:#a855f7;--accent2:#7c3aed;--green:#3ce096;--red:#fc5c7c;--cyan:#5ce0fc;--border:#1e1e2e;--radius:10px}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:system-ui,-apple-system,sans-serif;line-height:1.6;overflow-x:hidden}
+#pbar{position:fixed;top:0;left:0;right:0;height:3px;z-index:999;pointer-events:none;display:none}
+#pbar.on{display:block}
+#pbar.on::after{content:'';position:absolute;top:0;left:0;height:100%;width:40%;background:linear-gradient(90deg,transparent,var(--accent),var(--cyan),transparent);animation:pbar 1s linear infinite;border-radius:2px}
+@keyframes pbar{0%{transform:translateX(-100%)}100%{transform:translateX(350%)}}
+nav{position:sticky;top:0;z-index:100;background:rgba(7,7,12,0.85);backdrop-filter:blur(12px);border-bottom:1px solid var(--border)}
+.nav-inner{max-width:900px;margin:0 auto;padding:0 20px;display:flex;align-items:center;justify-content:space-between;height:56px}
+.logo{font-weight:800;font-size:1.15rem;letter-spacing:-0.5px;text-decoration:none;background:linear-gradient(135deg,var(--accent),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.nav-links{display:flex;gap:4px;align-items:center}
+.nav-links a{color:var(--fg2);text-decoration:none;font-size:0.85rem;padding:6px 12px;border-radius:7px;transition:all .15s}
+.nav-links a:hover{color:var(--fg);background:var(--bg3)}
+.nav-links a.active{color:#fff;background:var(--accent)}
+.hamburger{display:none;background:none;border:1px solid var(--border);color:var(--fg);font-size:1.2rem;cursor:pointer;border-radius:7px;padding:4px 10px}
+header{position:relative;padding:48px 20px 8px;text-align:center;overflow:hidden}
+header::before{content:'';position:absolute;top:-40%;left:-20%;width:140%;height:160%;background:radial-gradient(ellipse at 50% 0%,rgba(168,85,247,0.12) 0%,transparent 60%);pointer-events:none}
+header h1{margin:0;font-size:clamp(1.6rem,4vw,2.4rem);font-weight:800;letter-spacing:-1px;background:linear-gradient(135deg,var(--accent),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;position:relative;z-index:1}
+header p{color:var(--fg2);font-size:0.85rem;margin:6px 0 0;position:relative;z-index:1}
+.container{max-width:900px;margin:0 auto;padding:20px}
+.card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:22px;margin:16px 0;box-shadow:0 0 0 1px rgba(168,85,247,0.04),0 16px 48px rgba(0,0,0,0.4)}
+.card h2{margin:0 0 12px;color:var(--accent2);font-size:0.8rem;text-transform:uppercase;letter-spacing:1px}
+input[type=text],select{width:100%;box-sizing:border-box;background:var(--bg3);color:var(--fg);border:1px solid var(--border);border-radius:8px;padding:11px 14px;font-size:0.95rem;font-family:inherit}
+input:focus,select:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(168,85,247,0.15)}
+.btn{display:inline-block;margin-top:12px;padding:10px 24px;background:var(--accent);color:#fff;border:none;border-radius:8px;font-size:0.9rem;cursor:pointer;font-weight:600;box-shadow:0 4px 20px rgba(124,92,252,0.3);transition:all .15s}
+.btn:hover{background:#8e72fc;transform:translateY(-1px)}
+.btn.second{background:var(--bg3);color:var(--fg);border:1px solid var(--border);box-shadow:none}
+.btn.second:hover{border-color:var(--accent);background:var(--bg3)}
 .filters{display:flex;gap:8px;align-items:center;margin:10px 0}
 .filters input[type=text]{flex:1}.filters select{width:auto}
-.result{background:#12121c;border:1px solid #22223a;border-left:3px solid #7c5cfc;border-radius:0 6px 6px 0;padding:14px 16px;margin:10px 0}
-.result .score{color:#6cd4f2;font-weight:700;font-size:13px}
-.result .src{color:#9b8ce8;font-size:13px}
-.result .snip{color:#b0b0c0;font-size:13px;line-height:1.5;margin-top:6px}
-mark{background:#3a2f14;color:#ffd479;padding:0 2px;border-radius:3px}
-.answer{background:#12121c;border:1px solid #22223a;border-left:3px solid #ff9e64;border-radius:0 6px 6px 0;padding:18px;margin:14px 0;line-height:1.7}
-.muted{color:#666680;font-size:13px}
-.big-q{color:#fff;font-size:17px;font-weight:600}
-.file{background:#12121c;border:1px solid #22223a;border-radius:8px;padding:12px;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13px;line-height:1.6;overflow-x:auto}
+.result{background:var(--bg2);border:1px solid var(--border);border-left:3px solid var(--accent);border-radius:0 8px 8px 0;padding:14px 16px;margin:12px 0}
+.rtitle{font-weight:700;color:var(--fg)}
+.src{color:var(--accent2);font-size:0.82rem;margin-top:2px}
+.src a{color:#a78bfa;text-decoration:none}.src a:hover{text-decoration:underline}
+.score{color:var(--green);font-weight:700;font-size:0.82rem;margin-top:2px}
+.snip{color:var(--fg2);font-size:0.85rem;line-height:1.6;margin-top:8px}
+mark{background:rgba(168,85,247,0.22);color:var(--fg);padding:0 2px;border-radius:3px}
+.copy{margin-left:8px;background:none;border:1px solid var(--border);color:var(--fg3);border-radius:6px;font-size:0.72rem;padding:2px 8px;cursor:pointer;transition:all .12s}
+.copy:hover{color:var(--accent);border-color:var(--accent)}
+.answer{background:var(--bg2);border:1px solid var(--border);border-left:3px solid var(--green);border-radius:0 8px 8px 0;padding:18px;margin:16px 0;line-height:1.7}
+.muted{color:var(--fg2);font-size:0.85rem}
+.faint{color:var(--fg3);font-size:0.8rem}
+.big-q{color:var(--fg);font-size:1.05rem;font-weight:600;margin:6px 0 0}
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px}
+.stat{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:16px;text-align:center}
+.stat-num{font-size:1.4rem;font-weight:700;background:linear-gradient(135deg,var(--accent),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.stat-label{font-size:0.7rem;color:var(--fg3);text-transform:uppercase;letter-spacing:.5px;margin-top:4px}
+.recent{list-style:none;padding:0;margin:0}
+.recent li{padding:7px 0;border-bottom:1px solid var(--border);font-size:0.85rem;color:var(--fg2)}
+.recent li:last-child{border-bottom:none}
+.file{background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:12px;font-family:'JetBrains Mono','Fira Code',ui-monospace,monospace;font-size:0.8rem;line-height:1.7;overflow-x:auto}
 .ln{white-space:pre;border-left:3px solid transparent;padding:0 8px}
-.no{color:#555568;display:inline-block;min-width:3em;text-align:right;margin-right:14px;user-select:none}
-.hl{background:#2a2438;border-left-color:#ff9e64}
+.no{color:var(--fg3);display:inline-block;min-width:3em;text-align:right;margin-right:14px;user-select:none}
+.hl{background:rgba(168,85,247,0.12);border-left-color:var(--accent)}
+#toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--card);border:1px solid var(--accent);color:var(--fg);padding:10px 20px;border-radius:8px;font-size:0.85rem;opacity:0;pointer-events:none;transition:all .25s;z-index:1000}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+footer{border-top:1px solid var(--border);margin-top:30px;padding:20px;text-align:center;color:var(--fg3);font-size:0.75rem}
+@media(max-width:680px){
+.hamburger{display:block}
+.nav-links{display:none;position:absolute;top:56px;left:0;right:0;background:rgba(7,7,12,0.98);border-bottom:1px solid var(--border);flex-direction:column;padding:12px 20px;gap:4px}
+.nav-links.open{display:flex}
+.nav-links a{padding:10px 12px}
+}
 </style></head>
 <body>
-<h1>" ++ subtitle ++ "</h1>
-<p class=muted>" ++ title ++ "</p>"
+<div id=pbar></div>
+<div id=toast></div>
+<nav><div class=nav-inner>
+<a class=logo href='/'>docs-pipe</a>
+<button id=hamburger class=hamburger aria-label=Menu>&#9776;</button>
+<div id=navlinks class=nav-links>
+<a href='/'" ++ (nav_cls active "home") ++ ">Home</a>
+<a href='/search'" ++ (nav_cls active "search") ++ ">Search</a>
+<a href='/ask'" ++ (nav_cls active "ask") ++ ">Ask</a>
+<a href='/stats'" ++ (nav_cls active "stats") ++ ">Stats</a>
+<a href='/reindex'" ++ (nav_cls active "reindex") ++ ">Reindex</a>
+</div>
+</div></nav>
+<header><h1>" ++ subtitle ++ "</h1><p>" ++ title ++ "</p></header>
+<div class=container>"
 
 fn page_bottom _
-    "<div style='margin-top:28px;padding-top:14px;border-top:1px solid #222233;color:#555568;font-size:12px'>docs-pipe dashboard — pipe-web + docs-pipe + sqlite + DeepSeek</div>
+    "<footer>docs-pipe dashboard · pipe-web + docs-pipe + sqlite + DeepSeek</footer>
+<script>
+(function(){
+var $=function(s){return document.querySelector(s)};
+window.__bar=function(on){var b=$('#pbar');if(b){b.classList.toggle('on',!!on)}};
+window.__toast=function(msg){var t=$('#toast');if(!t){return}t.textContent=msg;t.classList.add('show');setTimeout(function(){t.classList.remove('show')},2200)};
+var hb=$('#hamburger');var nl=$('#navlinks');
+if(hb&&nl){hb.addEventListener('click',function(){nl.classList.toggle('open')})}
+document.addEventListener('keydown',function(e){if(e.key==='Escape'&&nl){nl.classList.remove('open')}});
+document.addEventListener('keydown',function(e){if(e.key==='/'&&document.activeElement&&document.activeElement.tagName!=='INPUT'&&document.activeElement.tagName!=='TEXTAREA'){var s=$('#live-input')||$('input[name=q]');if(s){e.preventDefault();s.focus()}}});
+document.addEventListener('click',function(e){var b=e.target.closest('[data-copy]');if(b){var t=b.getAttribute('data-copy');if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(t).then(function(){window.__toast('Copied: '+t)})}else{window.__toast('Copy failed')}}});
+window.__esc=function(s){if(s==null){return ''}return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')};
+window.__highlight=function(text,terms){if(!terms||!terms.length){return text}var low=text.toLowerCase();var out='';var pos=0;while(pos<text.length){var best=-1;var blen=0;for(var i=0;i<terms.length;i++){var t=terms[i].toLowerCase();var idx=low.indexOf(t,pos);if(idx>=0&&(best<0||idx<best)){best=idx;blen=t.length}}if(best<0){out+=text.slice(pos);break}out+=text.slice(pos,best)+'<mark>'+text.slice(best,best+blen)+'</mark>';pos=best+blen}return out};
+window.__renderResult=function(r,terms){var title=window.__esc(r.heading);if(!title){title=window.__esc((r.path||'').split('/').pop())}var src=window.__esc(r.path)+':'+r.line_start;var href='/doc?path='+encodeURIComponent(r.path)+'&line='+r.line_start+'#L'+r.line_start;var snip=window.__esc(r.text);if(snip.length>220){snip=snip.slice(0,220)+'...'}snip=window.__highlight(snip,terms);return '<div class=result><div class=rtitle>'+title+'</div><div class=src><a href='+href+'>'+src+'</a><button class=copy data-copy='+src+'>copy</button></div><div class=score>score '+r.score+'</div><div class=snip>'+snip+'</div></div>'};
+var li=$('#live-input');var lr=$('#live-results');var lm=$('#live-meta');
+if(li&&lr){var timer=null;li.addEventListener('input',function(){var q=li.value.trim();if(timer){clearTimeout(timer)}if(!q){lr.innerHTML='';lm.textContent='';return}timer=setTimeout(function(){var t0=Date.now();window.__bar(true);fetch('/api/search?q='+encodeURIComponent(q)).then(function(resp){return resp.json()}).then(function(d){var ms=Date.now()-t0;var rs=(d.results)||[];var terms=q.toLowerCase().split(/[^a-z0-9äöüß]+/).filter(function(w){return w.length>2});if(!rs.length){lr.innerHTML='<p class=muted>No matches.</p>';lm.textContent='';return}var html='';for(var i=0;i<rs.length;i++){html+=window.__renderResult(rs[i],terms)}lr.innerHTML=html;lm.textContent=rs.length+' results · '+ms+' ms · <a href=/search?q='+encodeURIComponent(q)+'>filters</a>'}).catch(function(){lr.innerHTML='<p class=muted>Search failed.</p>';lm.textContent=''}).then(function(){window.__bar(false)})},250)})}
+})();
+</script>
+</div>
 </body></html>"
 
 fn index_status idx
@@ -135,56 +229,79 @@ fn render_result r terms
     title: esc_html (get r "heading")
     if title == ""
         title: esc_html (path_base (get r "path"))
-    src: (esc_html (get r "path")) ++ ":" ++ (to_str (get r "line_start"))
+    rawsrc: (get r "path") ++ ":" ++ (to_str (get r "line_start"))
+    src: esc_html rawsrc
     href: "/doc?path=" ++ (url_encode (get r "path")) ++ "&line=" ++ (to_str (get r "line_start")) ++ "#L" ++ (to_str (get r "line_start"))
     snip: esc_html (get r "text")
     if (len snip) > 220
         snip: (substring snip 0 220) ++ "..."
     snip: mark_terms snip terms
     out: "<div class=result>"
-    out: out ++ "<div style='font-weight:700;color:#fff'>" ++ title ++ "</div>"
-    out: out ++ "<div class=src><a href='" ++ href ++ "'>" ++ src ++ "</a></div>"
+    out: out ++ "<div class=rtitle>" ++ title ++ "</div>"
+    out: out ++ "<div class=src><a href='" ++ href ++ "'>" ++ src ++ "</a><button class=copy data-copy='" ++ src ++ "'>copy</button></div>"
     out: out ++ "<div class=score>score " ++ (to_str (get r "score")) ++ "</div>"
     out: out ++ "<div class=snip>" ++ snip ++ "</div>"
     out: out ++ "</div>"
     out
+
+fn stat_tile label value
+    "<div class=stat><div class=stat-num>" ++ (to_str value) ++ "</div><div class=stat-label>" ++ label ++ "</div></div>"
 
 --- === Pages === ---
 
 fn landing_page req
     idx: get __state "idx"
     s: index_status idx
-    out: page_top ("indexed " ++ (get __state "dir")) "docs-pipe"
-    out: out ++ "<div class=card><h2>Ask the docs</h2>"
-    out: out ++ "<form action=/ask method=get><input type=text name=q placeholder='Ask a question (answers cite sources)...'><button class=btn type=submit>Ask AI</button></form></div>"
+    recent: get __state "recent"
+    out: page_top ("indexed " ++ (get __state "dir")) "docs-pipe" "home"
     out: out ++ "<div class=card><h2>Search</h2>"
-    out: out ++ "<form action=/search method=get><input type=text name=q placeholder='Search by meaning + keywords...'><button class='btn second' type=submit>Search</button></form></div>"
-    out: out ++ "<p style='margin-top:20px'><span class=muted>"
-    out: out ++ (to_str (get s "files")) ++ " files · " ++ (to_str (get s "chunks")) ++ " chunks · lang " ++ (get s "lang")
-    out: out ++ " · <a href=/reindex>reindex</a> · <a href=/health>health</a></span></p>"
+    out: out ++ "<input type=text id=live-input placeholder='Search the docs — just start typing (hint: press / )'>"
+    out: out ++ "<p class=muted id=live-meta></p><div id=live-results></div></div>"
+    out: out ++ "<div class=card><h2>Ask the docs</h2>"
+    out: out ++ "<form action=/ask method=get onsubmit='__bar(true)'><input type=text name=q placeholder='Ask a question — the answer cites its sources...'><button class=btn type=submit>Ask AI</button></form></div>"
+    out: out ++ "<div class=card><h2>Overview</h2><div class=stats-grid>"
+    out: out ++ (stat_tile "Files" (get s "files"))
+    out: out ++ (stat_tile "Chunks" (get s "chunks"))
+    out: out ++ (stat_tile "Language" (get s "lang"))
+    out: out ++ (stat_tile "Vector dim" (get idx "vec_dim"))
+    out: out ++ "</div></div>"
+    if (len recent) > 0
+        out: out ++ "<div class=card><h2>Recent queries</h2><ul class=recent>"
+        i: (len recent) - 1
+        while i >= 0
+            out: out ++ "<li>" ++ (esc_html (at recent i)) ++ "</li>"
+            i: i - 1
+        out: out ++ "</ul></div>"
     out: out ++ (page_bottom 0)
     html 200 out
 
 fn search_page req
     query: get req "query"
     q: get query "q"
-    if q == nil || q == ""
-        redirect 302 "/"
+    if q == nil
+        q: ""
+    idx: get __state "idx"
+    k: get query "k"
+    if k == nil
+        k: 8
     else
-        idx: get __state "idx"
-        k: get query "k"
-        if k == nil
+        k: to_num k
+        if k < 1
             k: 8
-        else
-            k: to_num k
-            if k < 1
-                k: 8
-        file_filter: get query "file"
-        if file_filter == nil
-            file_filter: ""
-        lang_filter: get query "lang"
-        if lang_filter == nil || lang_filter == ""
-            lang_filter: "all"
+    file_filter: get query "file"
+    if file_filter == nil
+        file_filter: ""
+    lang_filter: get query "lang"
+    if lang_filter == nil || lang_filter == ""
+        lang_filter: "all"
+    out: page_top ("indexed " ++ (get __state "dir")) "Search" "search"
+    if q == ""
+        out: out ++ "<div class=card><h2>Search</h2>"
+        out: out ++ "<form action=/search method=get onsubmit='__bar(true)'><input type=text name=q placeholder='Search by meaning + keywords...'><button class=btn type=submit>Search</button></form></div>"
+        out: out ++ (page_bottom 0)
+        html 200 out
+    else
+        log_query q
         t0: (time_ms)
         try
             all: doc_search idx q 40
@@ -208,9 +325,8 @@ fn search_page req
             while j < k && j < (len filtered)
                 push results (at filtered j)
                 j: j + 1
-            out: page_top ("results for: " ++ (esc_html q)) "Search"
             out: out ++ "<p class=big-q>Search: " ++ (esc_html q) ++ "</p>"
-            out: out ++ "<form action=/search method=get class=filters>"
+            out: out ++ "<form action=/search method=get class=filters onsubmit='__bar(true)'>"
             out: out ++ "<input type=hidden name=q value='" ++ (esc_html q) ++ "'>"
             out: out ++ "<input type=text name=file placeholder='filter by file...' value='" ++ (esc_html file_filter) ++ "'>"
             out: out ++ "<select name=lang><option value=all>all languages</option>"
@@ -228,19 +344,25 @@ fn search_page req
             out: out ++ (page_bottom 0)
             html 200 out
         catch e
-            html 500 (page_top "search failed" "Error" ++ "<p class=muted>" ++ (esc_html e) ++ "</p>" ++ (page_bottom 0))
+            html 500 (page_top "search failed" "Error" "home" ++ "<p class=muted>" ++ (esc_html e) ++ "</p>" ++ (page_bottom 0))
 
 fn ask_page req
     query: get req "query"
     q: get query "q"
-    if q == nil || q == ""
-        redirect 302 "/"
+    if q == nil
+        q: ""
+    idx: get __state "idx"
+    out: page_top ("indexed " ++ (get __state "dir")) "Ask" "ask"
+    if q == ""
+        out: out ++ "<div class=card><h2>Ask the docs</h2>"
+        out: out ++ "<form action=/ask method=get onsubmit='__bar(true)'><input type=text name=q placeholder='Ask a question — the answer cites its sources...'><button class=btn type=submit>Ask AI</button></form></div>"
+        out: out ++ (page_bottom 0)
+        html 200 out
     else
-        idx: get __state "idx"
-        out: page_top ("answer for: " ++ (esc_html q)) "Ask"
-        out: out ++ "<p class=big-q>Question: " ++ (esc_html q) ++ "</p>"
+        log_query q
         try
             res: doc_ask idx q 4
+            out: out ++ "<p class=big-q>Question: " ++ (esc_html q) ++ "</p>"
             out: out ++ "<div class=answer>" ++ (nl2br (esc_html (get res "answer"))) ++ "</div>"
             srcs: get res "sources"
             if (len srcs) > 0
@@ -254,7 +376,35 @@ fn ask_page req
             out: out ++ (page_bottom 0)
             html 200 out
         catch e
-            html 500 (page_top "ask failed" "Error" ++ "<p class=muted>" ++ (esc_html e) ++ "</p>" ++ (page_bottom 0))
+            html 500 (page_top "ask failed" "Error" "home" ++ "<p class=muted>" ++ (esc_html e) ++ "</p>" ++ (page_bottom 0))
+
+fn stats_page req
+    idx: get __state "idx"
+    s: index_status idx
+    cost: ai_cost
+    recent: get __state "recent"
+    out: page_top ("indexed " ++ (get __state "dir")) "Stats" "stats"
+    out: out ++ "<div class=stats-grid>"
+    out: out ++ (stat_tile "Files" (get s "files"))
+    out: out ++ (stat_tile "Chunks" (get s "chunks"))
+    out: out ++ (stat_tile "Language" (get s "lang"))
+    out: out ++ (stat_tile "Vector dim" (get idx "vec_dim"))
+    out: out ++ (stat_tile "AI calls" (get cost "calls"))
+    out: out ++ (stat_tile "AI cost $" (get cost "cost_usd"))
+    out: out ++ "</div>"
+    out: out ++ "<div class=card><h2>Recent queries</h2>"
+    if (len recent) == 0
+        out: out ++ "<p class=muted>No queries yet.</p>"
+    else
+        out: out ++ "<ul class=recent>"
+        i: (len recent) - 1
+        while i >= 0
+            out: out ++ "<li>" ++ (esc_html (at recent i)) ++ "</li>"
+            i: i - 1
+        out: out ++ "</ul>"
+    out: out ++ "</div>"
+    out: out ++ (page_bottom 0)
+    html 200 out
 
 fn reindex_page req
     idx: get __state "idx"
@@ -296,7 +446,7 @@ fn doc_page req
         if ln != nil && ln != ""
             target: to_num ln
         lines: read_lines p
-        out: page_top (esc_html p) "Source"
+        out: page_top (esc_html p) "Source" "home"
         out: out ++ "<p class=muted><a href='/'>← back</a></p>"
         out: out ++ "<div class=file>"
         out: out ++ (render_file_lines lines target)
@@ -332,11 +482,15 @@ fn api_ask req
     if q == nil || q == ""
         ok {question: q, answer: "", sources: []}
     else
+        log_query q
         try
             res: doc_ask idx q 4
             ok {question: q, answer: (get res "answer"), sources: (get res "sources")}
         catch e
             json 500 {error: e}
+
+fn api_recent req
+    ok {recent: (get __state "recent")}
 
 fn notfound req
     json 404 {error: "Not Found", path: (get req "path")}
@@ -397,11 +551,13 @@ else
     route_get api "/"          landing_page
     route_get api "/search"    search_page
     route_get api "/ask"       ask_page
+    route_get api "/stats"     stats_page
     route_get api "/reindex"   reindex_page
     route_get api "/doc"       doc_page
     route_get api "/health"    health
     route_get api "/api/search" api_search
     route_get api "/api/ask"   api_ask
+    route_get api "/api/recent" api_recent
     route_get api "/*"        notfound
     print ("docs-pipe dashboard -- indexed " ++ (get __state "dir"))
     serve api "0.0.0.0:8090" 3600000

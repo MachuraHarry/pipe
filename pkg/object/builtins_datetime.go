@@ -10,6 +10,13 @@ func bNow(args ...Object) Object {
 	return &Integer{Value: ts}
 }
 
+func bTimeMs(args ...Object) Object {
+	if len(args) > 0 {
+		return err("time_ms takes no arguments")
+	}
+	return &Integer{Value: time.Now().UnixMilli()}
+}
+
 func bFormatTime(args ...Object) Object {
 	if len(args) < 1 || len(args) > 2 {
 		return err("format_time expects 1-2 arguments (Timestamp, Format?)")

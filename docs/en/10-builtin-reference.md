@@ -1,6 +1,6 @@
 # 10. Built-in Function Reference
 
-Pipe includes 226 built-in functions organized by category. This chapter documents each function with its signature, description, return type, and usage example.
+Pipe includes 227 built-in functions organized by category. This chapter documents each function with its signature, description, return type, and usage example.
 
 ---
 
@@ -1179,7 +1179,7 @@ regex_replace "\\d" "#" "abc123xyz"
 
 ---
 
-## 10.11 Date & Time (2 functions)
+## 10.11 Date & Time (3 functions)
 
 ### `now`
 **Signature:** `now()`
@@ -1189,6 +1189,17 @@ regex_replace "\\d" "#" "abc123xyz"
 t: now
 print "Current timestamp: " ++ t
 -- e.g. 1700000000.123456
+```
+
+### `time_ms`
+**Signature:** `time_ms()`
+**Description:** Returns the current time as a Unix timestamp in milliseconds (integer). Use for fine-grained timing and benchmarks.
+**Returns:** `number`
+```pipe
+start: time_ms
+sleep 10
+elapsed: time_ms - start
+print "Elapsed: " ++ elapsed ++ " ms"
 ```
 
 ### `format_time`
@@ -2861,11 +2872,12 @@ mcp_use_sse "http://localhost:9090/"
 | 92 | `regex_match` | `regex_match(pattern, str)` | `boolean` |
 | 93 | `regex_replace` | `regex_replace(pattern, replacement, str)` | `string` |
 
-### Date & Time (2)
+### Date & Time (3)
 
 | # | Function | Signature | Returns |
 |---|----------|-----------|---------|
 | 94 | `now` | `now()` | `number` |
+| 94a | `time_ms` | `time_ms()` | `number` |
 | 95 | `format_time` | `format_time(timestamp, layout)` | `string` |
 
 ### Random (2)

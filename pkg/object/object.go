@@ -598,6 +598,7 @@ var Builtins = []BuiltinInfo{
 
 	// Date/Time
 	{"now", bNow},
+	{"time_ms", bTimeMs},
 	{"format_time", bFormatTime},
 	{"parse_date", bParseDate},
 

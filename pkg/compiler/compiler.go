@@ -1431,6 +1431,7 @@ func ParseFloat(s string) float64 {
 
 var zeroArityBuiltins = map[string]bool{
 	"now":               true,
+	"time_ms":           true,
 	"random":            true,
 	"secure_random_int": true,
 	"try_ai_log":        true,

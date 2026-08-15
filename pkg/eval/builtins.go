@@ -17,6 +17,7 @@ var builtins = map[string]*Builtin{}
 
 var zeroArityBuiltins = map[string]bool{
 	"now":               true,
+	"time_ms":           true,
 	"random":            true,
 	"secure_random_int": true,
 	"try_ai_log":        true,

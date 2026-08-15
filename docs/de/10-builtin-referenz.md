@@ -847,6 +847,17 @@ ts: now 0
 print ts
 ```
 
+### time_ms
+```
+time_ms
+```
+Gibt den aktuellen Unix-Timestamp in Millisekunden zurück (für feine Zeitmessung/Benchmarks).
+```pipe
+start: time_ms
+sleep 10
+print (time_ms - start) ++ " ms"
+```
+
 ### format_time
 ```
 format_time timestamp layout
@@ -1795,8 +1806,8 @@ mcp_use_sse "http://localhost:9090/"
 ### Regex (2)
 `regex_match`, `regex_replace`
 
-### Datum & Zeit (2)
-`now`, `format_time`
+### Datum & Zeit (3)
+`now`, `time_ms`, `format_time`
 
 ### Zufall (2)
 `random`, `random_range`
@@ -1906,4 +1917,4 @@ Siehe das Kapitel [SQLite-Modul](26-sqlite-modul.md) für Architektur-Details un
 `mcp_resource_template`, `mcp_prompt`, `mcp_resources`, `mcp_read_resource`,
 `mcp_prompts`, `mcp_prompt_get`, `mcp_use_stdio`, `mcp_use_sse`
 
-**Gesamt: 226 Builtins**
+**Gesamt: 227 Builtins**

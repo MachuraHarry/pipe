@@ -1,7 +1,8 @@
 --! docs-pipe dashboard: pipe-web + docs-pipe + sqlite + DeepSeek.
 --! Indexes a Markdown documentation tree (PIPE_DOCS_DIR, default docs/en)
 --! and serves a web UI for hybrid search + cited AI answers.
---! Run with: PIPE_DOCS_DIR=docs/en DEEPSEEK_API_KEY=... ./bin/pipe examples/docs_pipe_dashboard.pipe
+--! Web mode (default): PIPE_DOCS_DIR=docs/en ./bin/pipe examples/docs_pipe_dashboard.pipe
+--! MCP mode:          PIPE_MODE=mcp DEEPSEEK_API_KEY=... ./bin/pipe examples/docs_pipe_dashboard.pipe
 
 import "sqlite.pipe"
 import "../../pipe-modules/docs-pipe/module.pipe"
@@ -20,7 +21,6 @@ fn init _
     idx: doc_index dir {lang: "en", db: ":memory:"}
     set __state "idx" idx
     set __state "dir" dir
-    print ("docs-pipe dashboard -- indexed " ++ dir)
 
 --- === Helpers === ---
 
@@ -37,6 +37,62 @@ fn nl2br s
     s: replace_all s "\n" "<br>"
     s
 
+fn lang_of path
+    if contains path "/de/"
+        return "de"
+    if contains path "/en/"
+        return "en"
+    "auto"
+
+fn lang_selected cur val
+    if cur == val
+        " selected"
+    else
+        ""
+
+--- === Search highlighting === ---
+
+fn tokenize_terms q
+    low: lower q
+    cleaned: regex_replace "[^a-z0-9äöüß]+" " " low
+    parts: split cleaned " "
+    stops: split "a an the and or but if of in on at to for with about into is are was were be been being do does did doing how what which who this that these those it its as from by can could should would will not no nor your you we they he she has have had i me my them their there here when where why then than so too very just also using use der die das den dem des ein eine einer einem eines und oder aber wenn von im auf an zu zur zum für mit über ist sind war waren bin bist sein wird werden wie was welche wer dieser diese dieses es ich du er sie wir ihr man nicht kein keine auch als aus bei nach nur schon noch dann da hier dort warum wann" " "
+    out: []
+    i: 0
+    while i < (len parts)
+        t: at parts i
+        if (len t) > 1 && (not (contains stops t))
+            push out t
+        i: i + 1
+    out
+
+fn mark_terms text terms
+    low: lower text
+    out: ""
+    pos: 0
+    while pos < (len text)
+        best: -1
+        blen: 0
+        i: 0
+        while i < (len terms)
+            t: at terms i
+            idx: index_of (substring low pos (len low)) t
+            if idx >= 0
+                if best < 0 || idx < best
+                    best: pos + idx
+                    blen: len t
+            i: i + 1
+        if best < 0
+            out: out ++ (substring text pos (len text))
+            pos: len text
+        else
+            out: out ++ (substring text pos best)
+            out: out ++ "<mark>" ++ (substring text best (best + blen)) ++ "</mark>"
+            pos: best + blen
+    out
+
+--- === Page chrome === ---
+
 fn page_top title subtitle
     "<!doctype html><html><head><title>" ++ title ++ "</title><meta charset=utf-8><meta name=viewport content='width=device-width,initial-scale=1'>
 <style>body{font-family:system-ui,sans-serif;max-width:760px;margin:32px auto;padding:20px;background:#0a0a0f;color:#e0e0e8}
@@ -44,18 +100,25 @@ h1{color:#7c5cfc;margin:0}a{color:#6cd4f2;text-decoration:none}code{background:#
 .card{background:#1a1a24;border-radius:8px;padding:20px;margin:14px 0}
 .card h2{margin-top:0;color:#ff9e64;font-size:14px;text-transform:uppercase;letter-spacing:1px}
 label{display:block;margin:10px 0 4px;font-weight:600;color:#c0c0d0;font-size:14px}
-input[type=text]{width:100%;box-sizing:border-box;background:#12121c;color:#e0e0e8;border:1px solid #33334a;border-radius:6px;padding:10px;font-size:14px;font-family:inherit}
-input:focus{outline:none;border-color:#7c5cfc}
+input[type=text],select{width:100%;box-sizing:border-box;background:#12121c;color:#e0e0e8;border:1px solid #33334a;border-radius:6px;padding:10px;font-size:14px;font-family:inherit}
+input:focus,select:focus{outline:none;border-color:#7c5cfc}
 .btn{display:inline-block;margin-top:12px;padding:9px 22px;background:#7c5cfc;color:#fff;border:none;border-radius:6px;font-size:14px;cursor:pointer;font-weight:600}
 .btn:hover{background:#6b48e0}
 .btn.second{background:#33334a}.btn.second:hover{background:#44445a}
+.filters{display:flex;gap:8px;align-items:center;margin:10px 0}
+.filters input[type=text]{flex:1}.filters select{width:auto}
 .result{background:#12121c;border:1px solid #22223a;border-left:3px solid #7c5cfc;border-radius:0 6px 6px 0;padding:14px 16px;margin:10px 0}
 .result .score{color:#6cd4f2;font-weight:700;font-size:13px}
 .result .src{color:#9b8ce8;font-size:13px}
 .result .snip{color:#b0b0c0;font-size:13px;line-height:1.5;margin-top:6px}
+mark{background:#3a2f14;color:#ffd479;padding:0 2px;border-radius:3px}
 .answer{background:#12121c;border:1px solid #22223a;border-left:3px solid #ff9e64;border-radius:0 6px 6px 0;padding:18px;margin:14px 0;line-height:1.7}
 .muted{color:#666680;font-size:13px}
 .big-q{color:#fff;font-size:17px;font-weight:600}
+.file{background:#12121c;border:1px solid #22223a;border-radius:8px;padding:12px;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13px;line-height:1.6;overflow-x:auto}
+.ln{white-space:pre;border-left:3px solid transparent;padding:0 8px}
+.no{color:#555568;display:inline-block;min-width:3em;text-align:right;margin-right:14px;user-select:none}
+.hl{background:#2a2438;border-left-color:#ff9e64}
 </style></head>
 <body>
 <h1>" ++ subtitle ++ "</h1>
@@ -68,17 +131,19 @@ fn page_bottom _
 fn index_status idx
     doc_index_status idx
 
-fn render_result r
+fn render_result r terms
     title: esc_html (get r "heading")
     if title == ""
         title: esc_html (path_base (get r "path"))
     src: (esc_html (get r "path")) ++ ":" ++ (to_str (get r "line_start"))
+    href: "/doc?path=" ++ (url_encode (get r "path")) ++ "&line=" ++ (to_str (get r "line_start")) ++ "#L" ++ (to_str (get r "line_start"))
     snip: esc_html (get r "text")
     if (len snip) > 220
         snip: (substring snip 0 220) ++ "..."
+    snip: mark_terms snip terms
     out: "<div class=result>"
     out: out ++ "<div style='font-weight:700;color:#fff'>" ++ title ++ "</div>"
-    out: out ++ "<div class=src>" ++ src ++ "</div>"
+    out: out ++ "<div class=src><a href='" ++ href ++ "'>" ++ src ++ "</a></div>"
     out: out ++ "<div class=score>score " ++ (to_str (get r "score")) ++ "</div>"
     out: out ++ "<div class=snip>" ++ snip ++ "</div>"
     out: out ++ "</div>"
@@ -107,16 +172,58 @@ fn search_page req
         redirect 302 "/"
     else
         idx: get __state "idx"
-        out: page_top ("results for: " ++ (esc_html q)) "Search"
-        out: out ++ "<p class=big-q>Search: " ++ (esc_html q) ++ "</p>"
+        k: get query "k"
+        if k == nil
+            k: 8
+        else
+            k: to_num k
+            if k < 1
+                k: 8
+        file_filter: get query "file"
+        if file_filter == nil
+            file_filter: ""
+        lang_filter: get query "lang"
+        if lang_filter == nil || lang_filter == ""
+            lang_filter: "all"
+        t0: (time_ms)
         try
-            results: doc_search idx q 8
+            all: doc_search idx q 40
+            t1: (time_ms)
+            terms: tokenize_terms q
+            filtered: []
+            i: 0
+            while i < (len all)
+                r: at all i
+                ok: true
+                if file_filter != "" && (not (contains (get r "path") file_filter))
+                    ok: false
+                if ok && lang_filter != "all" && (lang_of (get r "path")) != lang_filter
+                    ok: false
+                if ok
+                    push filtered r
+                i: i + 1
+            total: len filtered
+            results: []
+            j: 0
+            while j < k && j < (len filtered)
+                push results (at filtered j)
+                j: j + 1
+            out: page_top ("results for: " ++ (esc_html q)) "Search"
+            out: out ++ "<p class=big-q>Search: " ++ (esc_html q) ++ "</p>"
+            out: out ++ "<form action=/search method=get class=filters>"
+            out: out ++ "<input type=hidden name=q value='" ++ (esc_html q) ++ "'>"
+            out: out ++ "<input type=text name=file placeholder='filter by file...' value='" ++ (esc_html file_filter) ++ "'>"
+            out: out ++ "<select name=lang><option value=all>all languages</option>"
+            out: out ++ "<option value=en" ++ (lang_selected lang_filter "en") ++ ">english</option>"
+            out: out ++ "<option value=de" ++ (lang_selected lang_filter "de") ++ ">deutsch</option></select>"
+            out: out ++ "<button class='btn second' type=submit>Filter</button></form>"
+            out: out ++ "<p class=muted>" ++ (to_str total) ++ " matches · " ++ (to_str (t1 - t0)) ++ " ms</p>"
             if (len results) == 0
                 out: out ++ "<p class=muted>No matches.</p>"
             else
                 i: 0
                 while i < (len results)
-                    out: out ++ (render_result (at results i))
+                    out: out ++ (render_result (at results i) terms)
                     i: i + 1
             out: out ++ (page_bottom 0)
             html 200 out
@@ -137,10 +244,11 @@ fn ask_page req
             out: out ++ "<div class=answer>" ++ (nl2br (esc_html (get res "answer"))) ++ "</div>"
             srcs: get res "sources"
             if (len srcs) > 0
+                terms: tokenize_terms q
                 out: out ++ "<div class=card><h2>Sources</h2>"
                 i: 0
                 while i < (len srcs)
-                    out: out ++ (render_result (at srcs i))
+                    out: out ++ (render_result (at srcs i) terms)
                     i: i + 1
                 out: out ++ "</div>"
             out: out ++ (page_bottom 0)
@@ -156,6 +264,47 @@ fn reindex_page req
     catch e
         print ("reindex error: " ++ e)
     redirect 302 "/"
+
+--- === Source viewer === ---
+
+fn render_file_lines lines target
+    out: ""
+    i: 0
+    while i < (len lines)
+        lineno: i + 1
+        cls: "ln"
+        if lineno == target
+            cls: "ln hl"
+        out: out ++ "<div id='L" ++ (to_str lineno) ++ "' class='" ++ cls ++ "'><span class=no>" ++ (to_str lineno) ++ "</span>" ++ (esc_html (at lines i)) ++ "</div>"
+        i: i + 1
+    out
+
+fn doc_page req
+    query: get req "query"
+    p: get query "path"
+    ln: get query "line"
+    if p == nil || p == ""
+        return (json 404 {error: "missing path"})
+    if contains p ".."
+        return (json 404 {error: "invalid path"})
+    if (path_ext p) != ".md"
+        return (json 404 {error: "not a markdown file"})
+    if !(file_exists p)
+        return (json 404 {error: "file not found"})
+    try
+        target: 0
+        if ln != nil && ln != ""
+            target: to_num ln
+        lines: read_lines p
+        out: page_top (esc_html p) "Source"
+        out: out ++ "<p class=muted><a href='/'>← back</a></p>"
+        out: out ++ "<div class=file>"
+        out: out ++ (render_file_lines lines target)
+        out: out ++ "</div>"
+        out: out ++ (page_bottom 0)
+        html 200 out
+    catch e
+        json 500 {error: e}
 
 --- === JSON API === ---
 
@@ -192,20 +341,67 @@ fn api_ask req
 fn notfound req
     json 404 {error: "Not Found", path: (get req "path")}
 
---- === App Setup === ---
+--- === MCP tools === ---
 
-api: app "docs-pipe-dashboard"
+fn mcp_search query
+    idx: get __state "idx"
+    if query == nil || query == ""
+        return []
+    results: doc_search idx query 5
+    out: []
+    i: 0
+    while i < (len results)
+        r: at results i
+        item: {}
+        set item "path" (get r "path")
+        set item "heading" (get r "heading")
+        set item "line" (get r "line_start")
+        set item "score" (get r "score")
+        snippet: get r "text"
+        if (len snippet) > 300
+            snippet: (substring snippet 0 300) ++ "..."
+        set item "snippet" snippet
+        push out item
+        i: i + 1
+    out
 
-route_get api "/"          landing_page
-route_get api "/search"    search_page
-route_get api "/ask"       ask_page
-route_get api "/reindex"   reindex_page
-route_get api "/health"    health
-route_get api "/api/search" api_search
-route_get api "/api/ask"   api_ask
-route_get api "/*"        notfound
+fn mcp_ask question
+    idx: get __state "idx"
+    if question == nil || question == ""
+        return {answer: "", sources: []}
+    doc_ask idx question 4
+
+fn mcp_read path
+    if path == nil || path == ""
+        return "missing path"
+    if contains path ".."
+        return "invalid path"
+    if !(file_exists path)
+        return "file not found: " ++ path
+    read_file path
 
 --- === Start === ---
 
+mode: env "PIPE_MODE"
+
 init 0
-serve api "0.0.0.0:8090" 3600000
+
+if mode == "mcp"
+    ai_tool "search_docs" "Semantic + keyword search across the Pipe documentation. Returns the top matches with path, heading, line number and a snippet." {query: "Search query"} mcp_search
+    ai_tool "ask_docs" "Answer a question using the Pipe documentation as context, returning the answer and the cited source chunks." {question: "Question about Pipe"} mcp_ask
+    ai_tool "read_doc" "Read a documentation file by its relative path (e.g. docs/en/25-mcp.md)." {path: "Documentation file path"} mcp_read
+    mcp_server "Pipe Docs" "1.0.0"
+    mcp_serve_stdio
+else
+    api: app "docs-pipe-dashboard"
+    route_get api "/"          landing_page
+    route_get api "/search"    search_page
+    route_get api "/ask"       ask_page
+    route_get api "/reindex"   reindex_page
+    route_get api "/doc"       doc_page
+    route_get api "/health"    health
+    route_get api "/api/search" api_search
+    route_get api "/api/ask"   api_ask
+    route_get api "/*"        notfound
+    print ("docs-pipe dashboard -- indexed " ++ (get __state "dir"))
+    serve api "0.0.0.0:8090" 3600000

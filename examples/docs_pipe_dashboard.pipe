@@ -4,9 +4,8 @@
 --! Web mode (default): PIPE_DOCS_DIR=docs/en ./bin/pipe examples/docs_pipe_dashboard.pipe
 --! MCP mode:          PIPE_MODE=mcp DEEPSEEK_API_KEY=... ./bin/pipe examples/docs_pipe_dashboard.pipe
 
-import "sqlite.pipe"
-import "../../pipe-modules/docs-pipe/module.pipe"
-import "../../pipe-modules/pipe-web/module.pipe"
+import "docs-pipe"
+import "pipe-web"
 
 ai_provider "deepseek"
 

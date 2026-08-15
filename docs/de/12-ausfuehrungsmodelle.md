@@ -7,7 +7,7 @@ Pipe hat **zwei Ausführungs-Engines**, die denselben Code ausführen können.
 | Eigenschaft | Tree-Walker | Bytecode-VM |
 |------------|-------------|-------------|
 | **Befehl** | `./bin/pipe datei.pipe` | `./bin/pipe -vm datei.pipe` |
-| **Geschwindigkeit** | Basis (~1×) | 0,6×–66× je nach Workload (rekursionslastig bis ~66×, einfache Schleifen vergleichbar oder langsamer) |
+| **Geschwindigkeit** | Basis (~1×) | 0,6×–55× je nach Workload (rekursionslastig bis ~55×, einfache Schleifen vergleichbar oder langsamer) |
 | **Alle Features** | Ja | Nein (Subset) |
 | **Bytecode-Cache** | Nein | Ja (`.pipec`) |
 | **map/filter/reduce (User-Fn)** | Ja | Nein |
@@ -43,7 +43,7 @@ Die **VM** kompiliert den AST zu Bytecode und führt ihn auf einer
 Stack-Maschine aus.
 
 ### Vorteile
-- **Schneller bei rekursions- und aufruflastigem Code** — gemessen bis ~66× (fib(20)); einfache Schleifen und String-Ops vergleichbar oder langsamer (0,6×–2×)
+- **Schneller bei rekursions- und aufruflastigem Code** — gemessen bis ~55× (fib(20)); einfache Schleifen und String-Ops vergleichbar oder langsamer (0,6×–3×)
 - **Bytecode-Cache** (`.pipec`) — vermeidet wiederholtes Parsen/Kompilieren
 - Geringerer Speicherverbrauch
 
@@ -81,13 +81,13 @@ Gemessene Benchmark-Ergebnisse (aus `pipe -bench`, reine Ausführungszeit, Durch
 
 | Benchmark | Tree-Walker | VM | Speedup |
 |-----------|------------|-----|---------|
-| fib(20) rekursiv | 522ms | 7.9ms | 66× |
-| list sum 10000 | 5.7ms | 2.8ms | 2.0× |
-| list push + sum 20000 | 24ms | 25ms | 1.0× |
-| FizzBuzz 1-100 | 0.36ms | 0.41ms | 0.9× |
-| String-Concat 20000 | 112ms | 194ms | 0.6× |
+| fib(20) rekursiv | 366ms | 6.7ms | 55× |
+| list sum 10000 | 4.5ms | 1.5ms | 3.0× |
+| list push + sum 20000 | 15.7ms | 18.2ms | 0.9× |
+| FizzBuzz 1-100 | 0.22ms | 0.34ms | 0.7× |
+| String-Concat 20000 | 85ms | 150ms | 0.6× |
 
-Die VM gewinnt deutlich bei rekursionslastigem Code (bis ~66×), aber einfache Schleifen, Listen-Aufbau und String-Concatenation sind vergleichbar oder sogar langsamer. Eigenen Workload messen mit:
+Die VM gewinnt deutlich bei rekursionslastigem Code (bis ~55×), aber einfache Schleifen, Listen-Aufbau und String-Concatenation sind vergleichbar oder sogar langsamer. Eigenen Workload messen mit:
 
 ```bash
 ./bin/pipe -bench

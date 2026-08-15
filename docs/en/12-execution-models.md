@@ -43,7 +43,7 @@ The VM compiles the entire program before execution begins, enabling optimizatio
 | Aspect | Tree-Walker | Bytecode VM |
 |--------|-------------|-------------|
 | **Command** | `pipe` (default) | `pipe -vm` |
-| **Relative Speed** | 1x (baseline) | 0.6x–66x depending on workload (recursion-heavy code up to ~66x, simple loops comparable or slower) |
+| **Relative Speed** | 1x (baseline) | 0.6x–55x depending on workload (recursion-heavy code up to ~55x, simple loops comparable or slower) |
 | **All Features** | Yes | No (subset) |
 | **Bytecode Cache** | No | Yes (`.pipec`) |
 | **Memory Usage** | Lower | Higher (bytecode + constants) |
@@ -125,7 +125,7 @@ data > slow_ai_call
 
 ### Advantages
 
-1. **Faster on call-heavy code (measured up to ~66x):** The VM executes pre-compiled bytecode instructions directly, without repeatedly walking the AST. The speedup is workload-dependent — up to ~66× on recursion (fib(20)), ~2× on simple loop sums, but ~0.6×–1× on string concatenation and list building. Compilation to bytecode is a one-time cost per invocation, after which execution is fast.
+1. **Faster on call-heavy code (measured up to ~55x):** The VM executes pre-compiled bytecode instructions directly, without repeatedly walking the AST. The speedup is workload-dependent — up to ~55× on recursion (fib(20)), ~3× on simple loop sums, but ~0.6×–1× on string concatenation and list building. Compilation to bytecode is a one-time cost per invocation, after which execution is fast.
 
 2. **Bytecode Cache (`.pipec`):** On first run with `-vm`, Pipe compiles to bytecode and saves it as a `.pipec` file. Subsequent runs skip compilation entirely if the source hasn't changed:
 
@@ -191,14 +191,14 @@ Measured benchmark results comparing Tree-Walker vs Bytecode VM on standard work
 
 | Benchmark | Tree-Walker | Bytecode VM | Speedup |
 |-----------|-------------|-------------|---------|
-| fib(20) recursive | 522ms | 7.9ms | 66x |
-| list sum 10000 | 5.7ms | 2.8ms | 2.0x |
-| list push + sum 20000 | 24ms | 25ms | 1.0x |
-| fizzbuzz 1-100 | 0.36ms | 0.41ms | 0.9x |
-| string concat 20000 | 112ms | 194ms | 0.6x |
+| fib(20) recursive | 366ms | 6.7ms | 55x |
+| list sum 10000 | 4.5ms | 1.5ms | 3.0x |
+| list push + sum 20000 | 15.7ms | 18.2ms | 0.9x |
+| fizzbuzz 1-100 | 0.22ms | 0.34ms | 0.7x |
+| string concat 20000 | 85ms | 150ms | 0.6x |
 | HTTP GET (I/O bound) | 120ms | 115ms | ~1.0x (I/O dominated) |
 
-**Key takeaway:** VM speedup is workload-dependent — up to ~66× on recursion-heavy code (fib(20)), ~2× on simple loop sums, but ~0.6×–1× on string concatenation and list building. I/O-bound code (HTTP, file operations) sees minimal benefit since the I/O dominates execution time. Measure your own workload with `pipe -bench`.
+**Key takeaway:** VM speedup is workload-dependent — up to ~55× on recursion-heavy code (fib(20)), ~3× on simple loop sums, but ~0.6×–1× on string concatenation and list building. I/O-bound code (HTTP, file operations) sees minimal benefit since the I/O dominates execution time. Measure your own workload with `pipe -bench`.
 
 ---
 

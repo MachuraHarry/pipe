@@ -11,7 +11,7 @@ RAG usually means a stack: a vector database, an embedding SDK, a retrieval libr
 ```pipe
 ai_provider "deepseek"
 
-docs: ["Pipe is a pipeline-native language where data flows top to bottom.", "The bytecode VM is measured 0.6x-66x faster than the tree-walker, depending on workload.", "Built-in MCP lets Pipe expose its own tools or consume any stdio MCP server.", "Sandbox profiles restrict exec, write_file, and http_get in one declarative block.", "One ~8 MB binary, zero dependencies, on Linux, macOS, Windows, or the browser."]
+docs: ["Pipe is a pipeline-native language where data flows top to bottom.", "The bytecode VM is measured 0.6x-55x faster than the tree-walker, depending on workload.", "Built-in MCP lets Pipe expose its own tools or consume any stdio MCP server.", "Sandbox profiles restrict exec, write_file, and http_get in one declarative block.", "One ~8 MB binary, zero dependencies, on Linux, macOS, Windows, or the browser."]
 
 vectors: embed_batch docs        -- 1. vectorize once
 question: "What makes the VM fast?"

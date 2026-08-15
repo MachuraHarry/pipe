@@ -184,7 +184,7 @@ a[data-lang].active { display: inline-block; }
       <div class="stat"><span class="stat-num">14 LOC</span><div class="stat-label" data-lang="en" class="active">RAG pipeline (Python: 26)</div><div class="stat-label" data-lang="de">RAG-Pipeline (Python: 26)</div></div>
       <div class="stat"><span class="stat-num">1.2s</span><div class="stat-label" data-lang="en" class="active">3 parallel LLM calls</div><div class="stat-label" data-lang="de">3 parallele LLM-Calls</div></div>
       <div class="stat"><span class="stat-num">8.6 MB</span><div class="stat-label" data-lang="en" class="active">Binary vs 345 MB venv</div><div class="stat-label" data-lang="de">Binary vs 345 MB venv</div></div>
-      <div class="stat"><span class="stat-num">66×</span><div class="stat-label" data-lang="en" class="active">VM speedup on fib(20), 0.6–66× measured</div><div class="stat-label" data-lang="de">VM-Beschleunigung bei fib(20), 0,6–66× gemessen</div></div>
+      <div class="stat"><span class="stat-num">55×</span><div class="stat-label" data-lang="en" class="active">VM speedup on fib(20), 0.6–55× measured</div><div class="stat-label" data-lang="de">VM-Beschleunigung bei fib(20), 0,6–55× gemessen</div></div>
     </div>
   </div>
 </section>
@@ -302,21 +302,21 @@ print a ++ " | " ++ b ++ " | " ++ c</pre>
   <div class="container">
     <div class="bench-card">
       <div class="bench-title"><span class="icon">🏎️</span><h3 data-lang="en" class="active">Execution engine — VM vs tree-walker, measured</h3><h3 data-lang="de">Ausführungs-Engine — VM vs. Tree-Walker, gemessen</h3></div>
-      <p class="bench-sub" data-lang="en" class="active">Run with <code>pipe -vm -q script.pipe</code> to compile to bytecode and execute on a stack-based VM instead of the tree-walker. Speedup depends heavily on the workload — from 0.6× to 66×. Here are the measured medians (<code>pipe -bench</code>, pure execution time):</p>
-      <p class="bench-sub" data-lang="de">Ausführen mit <code>pipe -vm -q script.pipe</code> kompiliert zu Bytecode und führt auf einer Stack-basierten VM statt im Tree-Walker aus. Die Beschleunigung hängt stark vom Workload ab — von 0,6× bis 66×. Hier die gemessenen Mediane (<code>pipe -bench</code>, reine Ausführungszeit):</p>
+      <p class="bench-sub" data-lang="en" class="active">Run with <code>pipe -vm -q script.pipe</code> to compile to bytecode and execute on a stack-based VM instead of the tree-walker. Speedup depends heavily on the workload — from 0.6× to 55×. Here are the measured medians (<code>pipe -bench</code>, pure execution time):</p>
+      <p class="bench-sub" data-lang="de">Ausführen mit <code>pipe -vm -q script.pipe</code> kompiliert zu Bytecode und führt auf einer Stack-basierten VM statt im Tree-Walker aus. Die Beschleunigung hängt stark vom Workload ab — von 0,6× bis 55×. Hier die gemessenen Mediane (<code>pipe -bench</code>, reine Ausführungszeit):</p>
 
       <div class="compare-table">
         <table>
           <tr><th></th><th>Tree-walker</th><th>VM</th><th>Speedup</th></tr>
-          <tr><td>fib(20) recursive</td><td>522 ms</td><td>7.9 ms</td><td style="color:var(--green)">66×</td></tr>
-          <tr><td>list sum 10000</td><td>5.7 ms</td><td>2.8 ms</td><td style="color:var(--green)">2.0×</td></tr>
-          <tr><td>list push + sum 20000</td><td>24 ms</td><td>25 ms</td><td style="color:var(--fg2)">1.0×</td></tr>
-          <tr><td>fizzbuzz 1–100</td><td>0.36 ms</td><td>0.41 ms</td><td style="color:var(--orange)">0.9×</td></tr>
-          <tr><td>string concat 20000</td><td>112 ms</td><td>194 ms</td><td style="color:var(--orange)">0.6×</td></tr>
+          <tr><td>fib(20) recursive</td><td>366 ms</td><td>6.7 ms</td><td style="color:var(--green)">55×</td></tr>
+          <tr><td>list sum 10000</td><td>4.5 ms</td><td>1.5 ms</td><td style="color:var(--green)">3.0×</td></tr>
+          <tr><td>list push + sum 20000</td><td>15.7 ms</td><td>18.2 ms</td><td style="color:var(--fg2)">0.9×</td></tr>
+          <tr><td>fizzbuzz 1–100</td><td>0.22 ms</td><td>0.34 ms</td><td style="color:var(--orange)">0.7×</td></tr>
+          <tr><td>string concat 20000</td><td>85 ms</td><td>150 ms</td><td style="color:var(--orange)">0.6×</td></tr>
         </table>
       </div>
-      <p class="bench-note" data-lang="en" class="active">The VM wins big on function-call and recursion-heavy code (up to 66× on fib), but simple loops, list building and string concatenation are comparable or even slower — the tree-walker optimizes those well. Take a single "~7×" claim with a grain of salt: measure your own workload with <code>pipe -bench</code>.</p>
-      <p class="bench-note" data-lang="de">Die VM gewinnt deutlich bei funktionsaufruf- und rekursionslastigem Code (bis 66× bei fib), aber einfache Schleifen, Listen-Aufbau und String-Concatenation sind vergleichbar oder sogar langsamer — der Tree-Walker optimiert diese gut. Ein pauschales „~7×" mit Vorsicht genießen: eigenen Workload messen mit <code>pipe -bench</code>.</p>
+      <p class="bench-note" data-lang="en" class="active">The VM wins big on function-call and recursion-heavy code (up to 55× on fib), but simple loops, list building and string concatenation are comparable or even slower — the tree-walker optimizes those well. Take a single "~7×" claim with a grain of salt: measure your own workload with <code>pipe -bench</code>.</p>
+      <p class="bench-note" data-lang="de">Die VM gewinnt deutlich bei funktionsaufruf- und rekursionslastigem Code (bis 55× bei fib), aber einfache Schleifen, Listen-Aufbau und String-Concatenation sind vergleichbar oder sogar langsamer — der Tree-Walker optimiert diese gut. Ein pauschales „~7×" mit Vorsicht genießen: eigenen Workload messen mit <code>pipe -bench</code>.</p>
     </div>
   </div>
 </section>
@@ -332,10 +332,10 @@ print a ++ " | " ++ b ++ " | " ++ c</pre>
       <div class="compare-table">
         <table>
           <tr><th></th><th>Pipe (VM)</th><th>Python</th><th>Faster</th></tr>
-          <tr><td>fib(20) recursive</td><td>99 ms</td><td>24 ms</td><td style="color:var(--fg2)">Python 4.2×</td></tr>
-          <tr><td>loop sum 1,000,000</td><td>287 ms</td><td>182 ms</td><td style="color:var(--fg2)">Python 1.6×</td></tr>
-          <tr><td>string concat 20000</td><td>284 ms</td><td>44 ms</td><td style="color:var(--fg2)">Python 6.5×</td></tr>
-          <tr><td>list push 20000</td><td>110 ms</td><td>26 ms</td><td style="color:var(--fg2)">Python 4.3×</td></tr>
+          <tr><td>fib(20) recursive</td><td>72 ms</td><td>18 ms</td><td style="color:var(--fg2)">Python 4.1×</td></tr>
+          <tr><td>loop sum 1,000,000</td><td>215 ms</td><td>140 ms</td><td style="color:var(--fg2)">Python 1.5×</td></tr>
+          <tr><td>string concat 20000</td><td>206 ms</td><td>30 ms</td><td style="color:var(--fg2)">Python 6.8×</td></tr>
+          <tr><td>list push 20000</td><td>94 ms</td><td>21 ms</td><td style="color:var(--fg2)">Python 4.4×</td></tr>
         </table>
       </div>
       <p class="bench-note" data-lang="en" class="active">Note the startup share: Pipe's ~100 ms here includes binary startup + bytecode compile, Python's ~15 ms is pure interpreter startup. Both are negligible next to the ~7s Python import startup for <code>langchain</code> in the real LLM benchmarks above. Rerun: <code>python3 tools/measure_perf.py</code>.</p>

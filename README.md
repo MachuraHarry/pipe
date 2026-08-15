@@ -204,7 +204,7 @@ d.d_webhook_embed (env "DISCORD_WEBHOOK") {
 - **No vendor lock-in** — OpenAI, Anthropic (Claude), DeepSeek, Ollama. Switch with one line. Same code works everywhere
 - **Pipeline-native syntax** — `>` sequential, `>>` parallel. Data flows top to bottom — readable, composable, debuggable
 - **Social platforms built in** — Discord webhooks and Telegram bots as Pipe modules. AI code reviews, notifications, chat — zero API costs for sending
-- **Bytecode VM** — Compile to bytecode, run on a stack VM with automatic caching. Measured 0.6×–66× vs tree-walker depending on workload (recursion-heavy code up to ~66×)
+- **Bytecode VM** — Compile to bytecode, run on a stack VM with automatic caching. Measured 0.6×–55× vs tree-walker depending on workload (recursion-heavy code up to ~55×)
 - **Module ecosystem** — 23 curated modules, registry with version pinning (`@1.0.0`). `pipe -get` installs, import by name
 - **Built-in testing** — `test` blocks with `assert_eq`, `assert_error`. Run with `pipe -test`. Zero setup
 - **GitHub Action** — Run Pipe directly in CI/CD. No installation needed
@@ -310,7 +310,7 @@ index_search idx "language" 3 > each print
 | Mode | Command | Speed |
 |------|---------|-------|
 | Tree-Walker | `./bin/pipe script.pipe` | Baseline |
-| Bytecode VM | `./bin/pipe -vm -q script.pipe` | 0.6×–66× (recursion-heavy up to ~66×) |
+| Bytecode VM | `./bin/pipe -vm -q script.pipe` | 0.6×–55× (recursion-heavy up to ~55×) |
 
 ## 49 AI + MCP Builtins (36 AI + 13 MCP)
 

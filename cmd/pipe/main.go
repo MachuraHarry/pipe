@@ -616,7 +616,7 @@ Usage:
   pipe                         Start REPL
 
 Flags:
-  -vm           Use bytecode VM instead of tree-walker (measured 0.6x-66x speedup)
+  -vm           Use bytecode VM instead of tree-walker (measured 0.6x-55x speedup)
   -q            VM mode: suppress bytecode output
   -ast          Only print AST, don't execute
   -fmt          Format file or directory (indentation, whitespace)

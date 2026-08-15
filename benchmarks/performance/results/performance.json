@@ -2,63 +2,63 @@
   "a_vm_vs_tree": [
     {
       "name": "fib(20)",
-      "tree": "465.344164ms",
-      "vm": "9.524431ms",
-      "speedup": 48.9
+      "tree": "365.734771ms",
+      "vm": "6.650274ms",
+      "speedup": 55.0
     },
     {
       "name": "fizzbuzz 1-100",
-      "tree": "283.711µs",
-      "vm": "326.466µs",
-      "speedup": 0.9
+      "tree": "220.648µs",
+      "vm": "337.267µs",
+      "speedup": 0.7
     },
     {
       "name": "list sum 10000",
-      "tree": "5.003924ms",
-      "vm": "2.072345ms",
-      "speedup": 2.4
+      "tree": "4.529118ms",
+      "vm": "1.507772ms",
+      "speedup": 3.0
     },
     {
       "name": "string concat 20000",
-      "tree": "114.3009ms",
-      "vm": "190.65479ms",
+      "tree": "85.289199ms",
+      "vm": "149.718457ms",
       "speedup": 0.6
     },
     {
       "name": "list push + sum 20000",
-      "tree": "23.270651ms",
-      "vm": "26.857456ms",
+      "tree": "15.710873ms",
+      "vm": "18.154679ms",
       "speedup": 0.9
     }
   ],
   "c_pipe_vs_python": [
     {
       "name": "fib(20)",
-      "pipe_sec": 0.0988,
-      "python_sec": 0.0237,
+      "pipe_sec": 0.0717,
+      "python_sec": 0.0177,
       "faster": "python",
-      "faster_x": 4.2
+      "faster_x": 4.1
     },
     {
       "name": "loop sum 1M",
-      "pipe_sec": 0.2865,
-      "python_sec": 0.1821,
+      "pipe_sec": 0.215,
+      "python_sec": 0.1396,
       "faster": "python",
-      "faster_x": 1.6
+      "faster_x": 1.5
     },
     {
       "name": "str concat 20k",
-      "pipe_sec": 0.2839,
-      "python_sec": 0.0437,
+      "pipe_sec": 0.2057,
+      "python_sec": 0.0304,
       "faster": "python",
-      "faster_x": 6.5
+      "faster_x": 6.8
     },
     {
       "name": "list push 20k",
-      "pipe_sec": 0.1099,
-      "python_sec": 0.0255,
+      "pipe_sec": 0.0944,
+      "python_sec": 0.0213,
       "faster": "python",
-      "faster_x": 4.3
+      "faster_x": 4.4
     }
   ],
   "sizes": {

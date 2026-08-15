@@ -125,7 +125,7 @@ Pipe hat zwei Ausführungs-Engines:
 | Modus | Befehl | Geschwindigkeit | Features |
 |-------|--------|----------------|----------|
 | **Tree-Walker** | `./bin/pipe datei.pipe` | Basis | Alle Features |
-| **Bytecode-VM** | `./bin/pipe -vm datei.pipe` | 0,6×–66× je nach Workload | Meiste Features |
+| **Bytecode-VM** | `./bin/pipe -vm datei.pipe` | 0,6×–55× je nach Workload | Meiste Features |
 
 Weitere Details in [Kapitel 12: Ausführungsmodelle](12-ausfuehrungsmodelle.md).
 

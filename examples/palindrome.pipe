@@ -1,14 +1,17 @@
--- Palindrome-Checker
+--! Palindrome checker with recursive string reversal.
 
+--! Reverses a string recursively.
 fn reverse_str s
     reverse_helper s (len s - 1)
 
+--! Recursive helper: appends the character at index i.
 fn reverse_helper s i
     if i < 0
         ""
     else
         (at s i) ++ (reverse_helper s (i - 1))
 
+--! Checks whether a string is a palindrome (identical to its reversal).
 fn is_palindrome s
     s == (reverse_str s)
 

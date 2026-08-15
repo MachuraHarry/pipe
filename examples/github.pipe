@@ -1,5 +1,6 @@
--- GitHub API Client
+--! GitHub API client: fetches and prints a user's public profile.
 
+--! Fetches and prints basic profile data for a GitHub username.
 fn github_user username
     url: "https://api.github.com/users/" ++ username
     print "Fetching: "

@@ -1,13 +1,6 @@
---- ============================================================
---- mcp_resources.pipe — MCP-Server mit Ressourcen und Prompts.
---- Nutzbar von Claude Desktop oder Cursor.
----
---- Zeigt die drei MCP-Primitive:
----   Tools       -> mcp_tools (via ai_tool registriert)
----   Resources   -> mcp_resource / mcp_resource_template
----   Prompts     -> mcp_prompt
---- ============================================================
+--! MCP server showcasing all three MCP primitives: tools, resources, and prompts.
 
+--! Returns a canned weather report for a city.
 fn get_weather city
     match city
         | "Berlin" -> "Berlin: 22°C, sunny"
@@ -16,9 +9,11 @@ fn get_weather city
 
 ai_tool "get_weather" "Get current weather for a city" {city: "City name"} get_weather
 
+--! Returns documentation text for a URI.
 fn read_docs uri
     "Documentation for " ++ uri ++ "\n\n# Pipe\nZero-dependency scripting language.\nResources and prompts are served over MCP."
 
+--! Reads a temp-file resource from file:/// URIs.
 fn read_tmp uri
     --- resolve any file:///{path} against /tmp
     path: replace uri "file:///" ""

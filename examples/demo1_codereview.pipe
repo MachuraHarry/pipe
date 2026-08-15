@@ -1,6 +1,4 @@
--- ═══════════════════════════════════════════════
--- PIPE KI-DEMO 1: Code Review Assistant
--- ═══════════════════════════════════════════════
+--! AI demo 1: code review assistant that reviews a snippet with DeepSeek.
 ai_provider "deepseek"
 
 print "╔══════════════════════════════════════╗"

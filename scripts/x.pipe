@@ -1,35 +1,5 @@
---- ============================================================
---- x.pipe - X (Twitter) API v2 Modul für Pipe.
----
---- STATUS: IN ENTWICKLUNG - noch NICHT im pipe-modules-Registry.
----   Live-verifiziert: PKCE-Auth, x_token_from_code, users/me.
----   Offen: Kredit-basierte Endpoints (Tweet posten, Search, Lookups)
----   brauchen aufgeladene Credits im X Developer Console.
----
---- Import:  import "x.pipe" as x
----
---- Funktionen (OAuth 2.0):
----   x_auth_url           client_id redirect_uri scope        -> {url, verifier, state}
----   x_token_from_code    client_id redirect_uri code verifier -> parsed token response
----   x_token_refresh      client_id refresh_token              -> parsed token response
----   x_app_token          client_id client_secret              -> app-only Bearer (read)
----
---- Funktionen (API v2, Bearer Token):
----   x_request            bearer method path body? -> Ok json | Err
----   x_tweet              bearer text              -> Ok tweet | Err
----   x_delete_tweet       bearer id                -> Ok | Err
----   x_get_tweet          bearer id                -> Ok tweet | Err
----   x_search             bearer query max_results -> Ok result | Err
----   x_user_by_username   bearer username          -> Ok user | Err
----   x_me                 bearer                   -> Ok user | Err
----   x_like               bearer user_id tweet_id  -> Ok | Err
----   x_unlike             bearer user_id tweet_id  -> Ok | Err
----   x_stream_open        bearer                   -> stream handle (SSE)
----
---- Fehler: Ok/Err-Results (is_ok, is_err, unwrap, unwrap_or).
---- Stream: http_stream_read_line liefert "" für leere SSE-Zeilen,
----   nil am Stream-Ende.
---- ============================================================
+--! X (Twitter) API v2 module for Pipe: OAuth 2.0 auth and API v2 endpoints.
+--! Status: in development. Import: import "x.pipe" as x
 
 API_BASE: env "X_API_BASE"
 if API_BASE == nil

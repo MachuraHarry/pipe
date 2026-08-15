@@ -1,15 +1,6 @@
---- ============================================================
---- AI Summarize API — Combine pipe-web + Pipe AI builtins
---- Run: export DEEPSEEK_API_KEY="sk-..."
----      ./bin/pipe examples/ai_summarize_api.pipe
---- Mode: Tree-Walker (http_server + pipe-web)
---- Requires: pipe-web module
---- Endpoints:
----   GET  /              Landing page with form (HTML)
----   GET  /health        Health check (JSON)
----   GET  /summarize?text=...  Summarize via query (HTML result page)
----   POST /summarize     {text: "..."} → {summary: "..."} (JSON API)
---- ============================================================
+--! AI Summarize API: combines pipe-web and Pipe AI builtins into an HTTP API.
+--! Requires DEEPSEEK_API_KEY and the pipe-web module.
+--! Endpoints: GET /, GET /health, GET /summarize?text=..., POST /summarize.
 
 import "../pipe-modules/pipe-web/module.pipe"
 

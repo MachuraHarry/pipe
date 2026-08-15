@@ -1,4 +1,4 @@
--- AI Cache Demo: ai_cache reduces API cost by caching identical prompts
+--! AI cache demo: ai_cache reduces API cost by caching identical prompts.
 ai_provider "deepseek"
 
 print "═══ AI CACHE DEMO ═══"

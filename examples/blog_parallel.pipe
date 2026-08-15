@@ -1,8 +1,5 @@
--- ═══════════════════════════════════════════════════════════
--- 3 LLM calls in parallel — no asyncio.gather() boilerplate
--- Run:  export DEEPSEEK_API_KEY="sk-..."
---       ./bin/pipe -vm -q examples/blog_parallel.pipe
--- ═══════════════════════════════════════════════════════════
+--! 3 LLM calls in parallel via the >> operator — no async boilerplate.
+--! Run with: export DEEPSEEK_API_KEY=... && ./bin/pipe -vm -q examples/blog_parallel.pipe
 
 ai_provider "deepseek"
 

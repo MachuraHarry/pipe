@@ -1,10 +1,9 @@
--- ============================================================
--- FUTURES DEMO — Automatische Future-Auflösung in Pipe
--- ============================================================
+--! Futures demo: automatic resolution of >>-results without explicit await.
 
 print "Futures: Automatische Auflösung von >>-Ergebnissen"
 print ""
 
+--! Doubles a number after printing that it is working.
 fn work x name
     print ("  [" ++ name ++ "] arbeitet...")
     x * 2

@@ -1,6 +1,6 @@
---- Hash Chain + Proof of Work — Pipeline Verification
---- Chain links flow through sha256. PoW mines target prefix.
+--! Hash chain and proof-of-work: links chained through sha256, PoW mines a prefix.
 
+--! Builds a chain of length hashes starting from seed.
 fn build_chain seed length
     chain: [seed]
     i: 0
@@ -10,6 +10,7 @@ fn build_chain seed length
         i: i + 1
     chain
 
+--! Verifies that every chain link matches its predecessor's hash.
 fn verify_chain chain
     i: 0
     while i < ((len chain) - 1)
@@ -21,6 +22,7 @@ fn verify_chain chain
         i: i + 1
     true
 
+--! Mines a nonce so the hash starts with the target prefix.
 fn mine_pow data target
     nonce: 0
     found: false

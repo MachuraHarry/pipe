@@ -1,14 +1,6 @@
--- ============================================================
--- CONCURRENCY MUTEX DEMO
--- ============================================================
+--! Mutex demo: synchronize concurrent access to shared mutable data.
 
--- Ein Mutex synchronisiert den Zugriff auf geteilte, veränderliche
--- Daten. Hier inkrementieren mehrere Tasks einen gemeinsamen Zähler
--- (eine Liste, da sie per Referenz geteilt wird).
-
-print "Mutex: gemeinsamen Zähler sicher inkrementieren"
-print ""
-
+--! Increments a shared counter under the mutex lock.
 fn increment m counter
     lock m
     set counter 0 ((at counter 0) + 1)

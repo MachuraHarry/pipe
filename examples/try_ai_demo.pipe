@@ -1,6 +1,5 @@
--- try_ai Demo: AI-powered self-healing code
--- try_ai catches runtime errors and asks AI to repair the broken expression.
--- No API call is made if there's no error (zero-cost safety net).
+--! try_ai demo: AI-powered self-healing code that repairs runtime errors.
+--! Zero API cost when no error occurs. Requires DEEPSEEK_API_KEY.
 
 ai_provider "deepseek"
 

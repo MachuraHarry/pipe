@@ -1,13 +1,5 @@
---- ============================================================
---- mcp_github.pipe — MCP Client: GitHub-Server nutzen.
---- Verbindet sich zu @modelcontextprotocol/server-github
---- und nutzt dessen 26 Tools via ai_with_tools.
----
---- Voraussetzungen:
----   node.js installiert (npx verfügbar)
----   export DEEPSEEK_API_KEY="sk-..."
----   export GITHUB_TOKEN="ghp_..."  (GitHub Personal Access Token)
---- ============================================================
+--! MCP client: uses the GitHub server's tools via ai_with_tools.
+--! Requires node.js (npx), DEEPSEEK_API_KEY, and GITHUB_TOKEN.
 
 ai_provider "deepseek"
 ai_set_key "deepseek" (env "DEEPSEEK_API_KEY")

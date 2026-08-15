@@ -1,3 +1,5 @@
+--! Smoke test for the ask builtin with DeepSeek. Requires DEEPSEEK_API_KEY.
+
 ai_provider "deepseek"
 
 print "═══ TEST ═══"

@@ -1,5 +1,4 @@
--- pipe-test Demo: better assertions, error catching, hooks
--- Install: pipe -get pipe-test
+--! pipe-test demo: assertions, error catching, and hooks.
 
 import "pipe-test"
 

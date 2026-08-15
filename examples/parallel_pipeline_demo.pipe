@@ -1,6 +1,4 @@
--- ============================================================
--- PIPE PARALLEL PIPELINE DEMO — Der >> Operator
--- ============================================================
+--! Parallel pipeline demo: the >> operator runs stages concurrently.
 
 print "Der >> Operator: Parallele Pipelines"
 print ""

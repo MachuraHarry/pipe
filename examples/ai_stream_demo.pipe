@@ -1,4 +1,4 @@
--- Streaming-Demo: ai_stream in Echtzeit
+--! Streaming demo: ai_stream renders LLM responses token by token in real time.
 ai_provider "deepseek"
 
 print "╔══════════════════════════════════════╗"

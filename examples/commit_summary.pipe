@@ -1,20 +1,5 @@
--- ============================================================
--- commit_summary.pipe — fasst Git-Commits auf Deutsch zusammen
--- ============================================================
--- Voraussetzungen:
---   export DEEPSEEK_API_KEY="sk-..."
---   Aufruf innerhalb eines Git-Repos
---
--- Ausführung:
---   ./bin/pipe -vm -q examples/commit_summary.pipe
---   optional über Umgebungsvariablen:
---     SUMMARY_COUNT=20           letzte N Commits (Standard: 10)
---     SUMMARY_COUNT=all          alle Commits (Achtung: Kosten!)
---     SUMMARY_OUTPUT=pfad.md     Markdown-Ziel (Standard: Konsole)
---
--- Hinweis: Zeilen werden als hash|datum|autor|betreff geparst.
---   Betreffe mit "|" oder mehrzeilige Betreffe werden übersprungen.
--- ============================================================
+--! Summarizes recent Git commits with AI and writes a Markdown report.
+--! Requires DEEPSEEK_API_KEY; optional SUMMARY_COUNT and SUMMARY_OUTPUT env vars.
 
 ai_provider "deepseek"
 

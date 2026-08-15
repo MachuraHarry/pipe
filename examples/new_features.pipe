@@ -1,4 +1,4 @@
--- Pipe v0.4: Neue Features Demo
+--! New features demo: while loops, break, and list slicing.
 
 print "===== WHILE-SCHLEIFEN ====="
 i: 0

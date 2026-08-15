@@ -1,5 +1,6 @@
--- Wetter-API Client (mock — echte API braucht Key)
+--! Weather API client demo (mock via httpbin; a real API needs a key).
 
+--! Fetches raw weather data for a city from the demo endpoint.
 fn fetch_weather city
     -- Use httpbin for demo; real API would be:
     -- api_key: env "WEATHER_API_KEY"
@@ -14,6 +15,7 @@ fn fetch_weather city
     print (get resp "status")
     resp
 
+--! Prints the weather report derived from the response data.
 fn process_weather data
     print ""
     print "--- Wetterbericht ---"

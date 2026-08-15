@@ -1,8 +1,5 @@
--- ═══════════════════════════════════════════════════════════
--- Self-healing code — try_ai repairs runtime errors with AI
--- Run:  export DEEPSEEK_API_KEY="sk-..."
---       ./bin/pipe examples/blog_try_ai.pipe
--- ═══════════════════════════════════════════════════════════
+--! Self-healing code: try_ai repairs runtime errors with AI.
+--! Run with: export DEEPSEEK_API_KEY=... && ./bin/pipe examples/blog_try_ai.pipe
 
 ai_provider "deepseek"
 

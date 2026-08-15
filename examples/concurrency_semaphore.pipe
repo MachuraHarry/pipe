@@ -1,13 +1,6 @@
--- ============================================================
--- CONCURRENCY SEMAPHORE DEMO
--- ============================================================
+--! Semaphore demo: limit how many tasks access a resource concurrently.
 
--- Ein Semaphor begrenzt die Anzahl gleichzeitiger Zugriffe auf eine
--- Ressource (z. B. ein Worker-Pool oder ein Rate-Limit).
-
-print "Semaphor: parallele Arbeit begrenzen"
-print ""
-
+--! Acquires the semaphore, sends a result, then releases it.
 fn worker s results id
     acquire s
     send results (id * 100)

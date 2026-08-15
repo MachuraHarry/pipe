@@ -1,6 +1,6 @@
---- XOR Cipher — Bitwise Encryption Pipeline
---- Message flows through encrypt, hex view, decrypt, verify.
+--! XOR cipher: bytewise encryption with a repeating key, hex view, and roundtrip.
 
+--! Encrypts or decrypts text by XORing each byte with a repeating key.
 fn xor_bytes text key
     raw: to_bytes text
     key_raw: to_bytes key

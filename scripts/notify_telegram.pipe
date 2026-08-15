@@ -1,12 +1,5 @@
---- ============================================================
---- notify_telegram.pipe - Sends GitHub event notifications via the
---- Telegram Bot API. Called from .github/workflows/notify-telegram.yml.
---- On push: reviews EVERY commit (real diff) with the AI (DeepSeek),
---- writes a detailed German code review and sends it via Telegram.
---- Inputs via env: EVENT_NAME, EVENT_ACTION, REPO, BRANCH,
----   COMMITS_JSON, COMMIT_MSG, COMMIT_URL, ISSUE_TITLE, ISSUE_NUMBER,
----   ISSUE_URL, TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID, DEEPSEEK_API_KEY
---- ============================================================
+--! Sends GitHub event notifications via the Telegram Bot API with AI code review.
+--! Called from CI; inputs arrive via env (EVENT_NAME, REPO, TELEGRAM_BOT_TOKEN, ...).
 
 ai_provider "deepseek"
 
@@ -14,6 +7,7 @@ token: env "TELEGRAM_BOT_TOKEN"
 chat: env "TELEGRAM_CHAT_ID"
 repo: env "REPO"
 
+--! Escapes a string for Telegram HTML.
 fn esc text
     t: replace_all text "&" "&amp;"
     t: replace_all t "<" "&lt;"

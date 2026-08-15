@@ -1,6 +1,4 @@
--- ═══════════════════════════════════════════════════
--- COMMIT-TO-BLOG: Git-Log → fertiger Blogpost
--- ═══════════════════════════════════════════════════
+--! Commit-to-blog: turns the last 30 git commits into a finished blog post with AI.
 ai_provider "deepseek"
 
 print "╔══════════════════════════════════════╗"

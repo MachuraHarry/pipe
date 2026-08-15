@@ -1,21 +1,9 @@
--- ============================================================
--- PIPE TODO v1.0
--- ============================================================
--- Nutzung in der Pipe-REPL:
---   $ ./bin/pipe
---   >>> import "examples/todo.pipe"
---   >>> add "Milch holen"
---   >>> add "Steuer machen"
---   >>> list
---   >>> done 1
---   >>> search "steuer"
---   >>> stats
--- ============================================================
+--! PIPE TODO v1.0 — a JSON-backed todo manager usable from the REPL.
+--! Commands: add, list, done, undone, delete, search, stats, clear, help.
 
 datei: "todos.json"
 
--- ─── Daten ─────────────────────────────────────────────────
-
+--! Loads all todos from the JSON file.
 fn load dummy
     if file_exists datei
         daten: parse_json (read_file datei)
@@ -23,10 +11,12 @@ fn load dummy
     else
         []
 
+--! Persists the todo list to the JSON file.
 fn save todos
     json: to_json {todos: todos}
     write_file datei json
 
+--! Returns the next free id for a new todo.
 fn new_id todos
     if (len todos) == 0
         1
@@ -38,12 +28,14 @@ fn new_id todos
                 max: tid
         max + 1
 
+--! Returns the checkbox icon for a todo's done state.
 fn icon done
     if done
         "✅"
     else
         "⬜"
 
+--! Renders a progress bar for a completion percentage.
 fn progress_bar pct
     if pct >= 90
         "██████████"
@@ -60,6 +52,7 @@ fn progress_bar pct
 
 -- ─── Kommandos ──────────────────────────────────────────���──
 
+--! Adds a new todo with the given title.
 fn add title
     if title == ""
         print "❌ Bitte Titel angeben: add \"Einkaufen\""
@@ -71,6 +64,7 @@ fn add title
         save todos
         print ("✅ #" ++ (to_str nid) ++ " → " ++ title)
 
+--! Lists all todos with their status.
 fn list
     todos: load 0
     if (len todos) == 0
@@ -91,6 +85,7 @@ fn list
         print ("  ⬜ " ++ (to_str offen) ++ " offen  ✅ " ++ (to_str done_n) ++ " erledigt")
         print ""
 
+--! Marks a todo as done.
 fn done cmd_id
     todos: load 0
     found: false
@@ -103,6 +98,7 @@ fn done cmd_id
     if !found
         print ("❌ Kein Todo #" ++ (to_str cmd_id))
 
+--! Reopens a done todo.
 fn undone cmd_id
     todos: load 0
     found: false
@@ -115,6 +111,7 @@ fn undone cmd_id
     if !found
         print ("❌ Kein Todo #" ++ (to_str cmd_id))
 
+--! Deletes a todo by id.
 fn delete cmd_id
     todos: load 0
     neu: []
@@ -130,6 +127,7 @@ fn delete cmd_id
     else
         print ("❌ Kein Todo #" ++ (to_str cmd_id))
 
+--! Searches todos whose title contains a query (case-insensitive).
 fn search query
     if query == ""
         print "🔍 Bitte Suchbegriff: search \"wort\""
@@ -146,6 +144,7 @@ fn search query
         else
             print ("🔍 " ++ (to_str n) ++ " Treffer")
 
+--! Shows completion statistics and a progress bar.
 fn stats
     todos: load 0
     total: len todos
@@ -166,10 +165,12 @@ fn stats
         print ("  📊 " ++ (to_str pct) ++ "% " ++ (progress_bar pct))
     print ""
 
+--! Deletes all todos.
 fn clear
     save []
     print "🗑️  All deleted."
 
+--! Prints the command help.
 fn help
     print ""
     print "═══ PIPE TODO ═══"

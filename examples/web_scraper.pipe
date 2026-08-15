@@ -1,9 +1,6 @@
--- ============================================================
--- PIPE WEB SCRAPER — Webseite analysieren
--- ============================================================
--- ./bin/pipe examples/web_scraper.pipe
--- ============================================================
+--! Web scraper: fetches a page, extracts links, and analyzes them.
 
+--! Fetches a page and returns its body, or an empty string on failure.
 fn fetch_page url
     print ("Lade " ++ url ++ "...")
     resp: http_get url
@@ -14,6 +11,7 @@ fn fetch_page url
     else
         get resp "body"
 
+--! Extracts link hrefs from an HTML body.
 fn extract_links html
     print ""
     print "═══ GEFUNDENE LINKS ═══"

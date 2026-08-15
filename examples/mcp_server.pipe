@@ -1,18 +1,7 @@
---- ============================================================
---- mcp_server.pipe — Eigener MCP-Server mit Wetter-Tool.
---- Von Claude Desktop oder Cursor nutzbar.
----
---- Konfiguration für Claude Desktop:
---- {
----   "mcpServers": {
----     "pipe-weather": {
----       "command": "/tmp/pipe",
----       "args": ["examples/mcp_server.pipe"]
----     }
----   }
---- }
---- ============================================================
+--! A standalone MCP server exposing weather, docs search, and shell tools.
+--! Usable from Claude Desktop or Cursor via stdio.
 
+--! Returns a canned weather report for a city.
 fn get_weather city
     match city
         | "Berlin" -> "Berlin: 22°C, sunny"
@@ -21,9 +10,11 @@ fn get_weather city
         | "Tokyo"  -> "Tokyo: 28°C, humid"
         | _ -> city ++ ": no data available"
 
+--! Returns fake documentation search results for a query.
 fn search_docs query
     "Documentation results for: " ++ query ++ "\n\n--- docs/index.md ---\nFound 42 modules. " ++ query ++ " appears in sections 5, 12, and 23."
 
+--! Runs a shell command and returns its output.
 fn run_command cmd
     output: exec cmd
     "Command: " ++ cmd ++ "\n" ++ (get output "output")

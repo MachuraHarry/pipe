@@ -1,6 +1,4 @@
--- AI Pipeline Demo: GitHub Repo Analyzer
--- Combines: pipe-http + jpipe + pipe-tpl + AI
--- Install: pipe -get pipe-http && pipe -get jpipe && pipe -get pipe-tpl
+--! AI pipeline demo: GitHub repo analyzer combining pipe-http, jpipe, pipe-tpl, and AI.
 
 import "pipe-http"
 import "jpipe"

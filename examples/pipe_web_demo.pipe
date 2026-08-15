@@ -1,11 +1,6 @@
---- ============================================================
---- pipe-web Demo — ASP.NET-style web server in Pipe
---- Run: ./bin/pipe examples/pipe_web_demo.pipe
---- ============================================================
+--! pipe-web demo: ASP.NET-style web server in Pipe.
+--! Uses the pipe-web module; import path is relative for local development.
 
---- Set up import path for local development
---- Uses relative path: ../pipe-modules/pipe-web/module.pipe
---- For production use: pipe -get pipe-web  then  import "pipe-web"
 import "../pipe-modules/pipe-web/module.pipe"
 
 --- === Handler Functions ===

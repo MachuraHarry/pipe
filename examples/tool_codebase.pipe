@@ -1,6 +1,4 @@
--- ═══════════════════════════════════════════════════
--- CODEBASE ANALYZER — Analyse des eigenen Projekts
--- ═══════════════════════════════════════════════════
+--! Codebase analyzer: gathers project statistics and analyzes them with AI.
 ai_provider "deepseek"
 
 print "╔══════════════════════════════════════╗"

@@ -1,4 +1,4 @@
--- Hashing Demo: SHA-256, MD5, SHA-1, SHA-512
+--! Hashing demo: SHA-256, MD5, SHA-1, and SHA-512 with dedup use case.
 
 print "═══ HASHING DEMO ═══"
 print ""

@@ -1,6 +1,6 @@
---- Message Authentication with HMAC Pipeline
---- Messages flow through hmac_sha256. Verify with compare.
+--! Message authentication with HMAC-SHA256: sign and verify.
 
+--! Signs a message with a shared secret key.
 fn sign key message
     hmac_sha256 key message
 
@@ -27,6 +27,7 @@ print ""
 print ""
 print "--- Structured Data Signing ---"
 
+--! Signs structured data (key, user, amount) for integrity checks.
 fn sign_pair key user amount
     hmac_sha256 key (key ++ "|" ++ user ++ "|" ++ amount)
 

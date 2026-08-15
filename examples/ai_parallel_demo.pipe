@@ -1,14 +1,16 @@
--- Parallel AI Demo: ai_batch + ai_parallel
+--! Parallel AI demo: ai_batch and ai_parallel speed up bulk LLM calls.
 ai_provider "deepseek"
 
 print "═══ PARALLEL AI TEST ═══"
 print ""
 
+--! Prints a timestamped start label and returns the start time.
 fn show_clock label
     ts: now
     print (label ++ " Start: " ++ (format_time ts "15:04:05"))
     ts
 
+--! Prints elapsed seconds since a recorded start time.
 fn show_elapsed label start
     d: (now) - start
     print (label ++ " Dauer: " ++ (to_str d) ++ "s")

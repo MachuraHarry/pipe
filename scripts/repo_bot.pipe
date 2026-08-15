@@ -1,11 +1,5 @@
---- ============================================================
---- repo_bot.pipe — Slash-Commands in GitHub Issue-Kommentaren
---- Commands: /help, /search <query>, /read <path>, /grep <pattern>,
----   /issues, /ask <frage>
---- Env inputs: COMMENT_BODY, COMMENT_AUTHOR, ALLOWED_USERS,
----   ISSUE_NUMBER, REPO, GITHUB_TOKEN,
----   DEEPSEEK_API_KEY (optional, nur fuer /ask)
---- ============================================================
+--! Slash-commands in GitHub issue comments: /help, /search, /read, /grep,
+--! /issues, /ask. Env inputs: COMMENT_BODY, ALLOWED_USERS, GITHUB_TOKEN, ...
 
 ai_provider "deepseek"
 dk: env "DEEPSEEK_API_KEY"

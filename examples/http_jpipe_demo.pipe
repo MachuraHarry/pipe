@@ -1,10 +1,9 @@
--- Integration Demo: pipe-http + jpipe
--- Shows the full pipeline: API call -> JSON query -> transform -> display
--- Requires: pipe -get pipe-http && pipe -get jpipe
+--! Integration demo: pipe-http + jpipe for the full API -> query -> display flow.
 
 import "pipe-http"
 import "jpipe"
 
+--! Prints a user row with name and age.
 fn show_user row
     s: "  "
     s: s ++ (get row "name")
@@ -13,6 +12,7 @@ fn show_user row
     s: s ++ ")"
     print s
 
+--! Prints a repository row with name and language.
 fn show_repo row
     s: "  "
     s: s ++ (get row "name")

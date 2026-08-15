@@ -1,5 +1,6 @@
--- Dateisystem-Demo: All operations
+--! Filesystem demo: create, read, append, and inspect files.
 
+--! Checks whether a filename contains "pipe_".
 fn has_pipe f
     contains f "pipe_"
 

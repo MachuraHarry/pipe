@@ -1,7 +1,4 @@
--- ═══════════════════════════════════════════════════════
--- PIPE SELF-EVOLUTION DEMO
--- Pipe schreibt Pipe-Code, führt ihn aus, verbessert ihn
--- ═══════════════════════════════════════════════════════
+--! Self-evolution demo: Pipe writes Pipe code, runs it, and improves it.
 ai_provider "deepseek"
 
 print "╔══════════════════════════════════════════════╗"

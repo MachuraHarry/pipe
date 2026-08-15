@@ -1,6 +1,4 @@
--- ═══════════════════════════════════════════════════
--- AI CHAT CLI — ChatGPT im Terminal
--- ═══════════════════════════════════════════════════
+--! AI chat CLI: ChatGPT-style assistant in the terminal (:quit to exit).
 ai_provider "deepseek"
 
 print "╔══════════════════════════════════════╗"
@@ -13,6 +11,7 @@ print ""
 -- Kurzer System-Prompt
 system: "Du bist ein hilfreicher KI-Assistent im Terminal. Antworte prägnant und direkt. Max 3 Sätze wenn nicht anders gewünscht."
 
+--! Runs the interactive chat loop.
 fn chat_loop dummy
     frage: input ">>> "
     if frage == ":quit"

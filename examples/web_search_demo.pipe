@@ -1,4 +1,4 @@
--- Web Search Demo: DuckDuckGo Instant Answer API (free, no key required)
+--! Web search demo: DuckDuckGo Instant Answer API (free, no key required).
 ai_provider "deepseek"
 
 print "═══ WEB SEARCH DEMO ═══"

@@ -1,4 +1,4 @@
--- Generate JSON Demo: create structured data from natural language instructions
+--! Generate JSON demo: create structured data from natural language instructions.
 ai_provider "deepseek"
 
 print "═══ GENERATE JSON DEMO ═══"

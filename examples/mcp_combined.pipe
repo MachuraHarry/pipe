@@ -1,28 +1,19 @@
---- ============================================================
---- mcp_combined.pipe — MCP Hub: Eigene Tools + externe Server.
---- Kombiniert eigene ai_tool-Funktionen mit MCP-Servern.
----
---- Voraussetzungen:
----   node.js installiert (npx verfügbar)
----   export DEEPSEEK_API_KEY="sk-..."
---- ============================================================
+--! MCP hub: combines own ai_tool functions with external MCP servers.
+--! Requires node.js (npx) and DEEPSEEK_API_KEY.
 
 ai_provider "deepseek"
 ai_set_key "deepseek" (env "DEEPSEEK_API_KEY")
 
---- ============================================================
---- Eigene Tools
---- ============================================================
+--- === Own tools ===
 
+--! Evaluates a math expression via bc.
 fn calculate expr
     result: exec ("echo '" ++ expr ++ "' | bc -l 2>/dev/null || echo 'invalid'")
     trim (get result "output")
 
 ai_tool "calculate" "Evaluate a math expression" {expr: "Math expression like 2+3*4"} calculate
 
---- ============================================================
---- Externe MCP-Server verbinden
---- ============================================================
+--- === External MCP servers ===
 
 print "Connecting to filesystem server..."
 mcp_use_stdio "npx" "-y" "@modelcontextprotocol/server-filesystem" "/tmp"

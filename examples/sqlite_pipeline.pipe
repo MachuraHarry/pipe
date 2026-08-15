@@ -1,31 +1,38 @@
--- SQLite Pipeline Demo: composable queries with >, map, filter, each
--- Install: pipe -get sqlite
+--! SQLite pipeline demo: composable queries with >, map, filter, and each.
 
 import "sqlite"
 
+--! Predicate: row is marked done.
 fn is_done row
     (get row "done") == 1
 
+--! Predicate: row is pending.
 fn is_pending row
     (get row "done") == 0
 
+--! Prints one task row with its id.
 fn show_task row
     id: get row "id"
     task: get row "task"
     print ("  #" ++ (to_str id) ++ " " ++ task)
 
+--! Predicate: row's field equals a value.
 fn row_done_1 row
     row_eq row "done" 1
 
+--! Extracts the task name from a row.
 fn task_name row
     get row "task"
 
+--! Prints a task name and its length.
 fn print_task_len t
     print ("  " ++ t ++ " (" ++ (to_str (len t)) ++ " chars)")
 
+--! Prints a name -> title assignment row.
 fn show_assigned row
     print ("  " ++ (get row "name") ++ " -> " ++ (get row "title"))
 
+--! Prints a scoreboard row.
 fn show_score row
     print ("  " ++ (get row "name") ++ ": " ++ (to_str (get row "points")))
 

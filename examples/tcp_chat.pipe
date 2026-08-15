@@ -1,10 +1,7 @@
--- ============================================================
--- PIPE TCP — Echo-Server + Client
--- ============================================================
--- Server: ./bin/pipe examples/tcp_chat.pipe server
--- Client: ./bin/pipe examples/tcp_chat.pipe client
--- ============================================================
+--! TCP echo server and client over port 9999.
+--! Run server: pipe examples/tcp_chat.pipe server | client: ... client
 
+--! Runs the TCP echo server.
 fn run_server dummy
     print "═══ TCP Echo-Server ═══"
     print "Starte auf :9999..."

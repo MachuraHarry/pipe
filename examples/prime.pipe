@@ -1,8 +1,10 @@
--- Primzahlen finden
+--! Finds prime numbers up to an upper bound via trial division.
 
+--! Checks whether n is a prime number.
 fn is_prime n
     is_prime_helper n 2
 
+--! Trial-division helper: tests divisors starting at d.
 fn is_prime_helper n d
     if d * d > n
         true
@@ -11,6 +13,7 @@ fn is_prime_helper n d
     else
         is_prime_helper n (d + 1)
 
+--! Returns all prime numbers up to up_to (inclusive) as a list.
 fn primes up_to
     filter (range 2 (up_to + 1)) is_prime
 

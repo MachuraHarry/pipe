@@ -1,5 +1,6 @@
--- Number guessing with binary search
+--! Number guessing via binary search.
 
+--! Searches for target in [low, high] using binary search, counting tries.
 fn guess_number target low high tries
     mid: (low + high) / 2
     if mid == target

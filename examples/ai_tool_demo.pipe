@@ -1,10 +1,10 @@
--- Tool-Calling Demo: LLM kann eine Pipe-Funktion aufrufen
+--! Tool-calling demo: the LLM can call a Pipe function registered via ai_tool.
 ai_provider "deepseek"
 
 print "═══ TOOL-CALLING DEMO ═══"
 print ""
 
--- 1. Eine einfache Tool-Funktion definieren
+--! Returns a canned weather report for a city.
 fn get_wetter stadt
     match stadt
         | "Berlin" -> "Berlin: 22 Grad, sonnig"

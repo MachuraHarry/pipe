@@ -1,9 +1,10 @@
-print "spawn & await: Futures explizit abwarten"
-print ""
+--! spawn & await: run functions in the background and wait for their Futures.
+
+--! Doubles a number.
 fn double x
     x * 2
 
-
+--! Squares a number.
 fn square x
     x * x
 

@@ -1,16 +1,5 @@
---- ============================================================
---- telegram_bot.pipe - Telegram-Bot als GitHub-Actions-Cron-Poller
---- Commands: /help, /search <query>, /read <path>, /grep <pattern>,
----   /issues, /ask <frage>
---- Kein laufender Prozess noetig: der Workflow pollt Telegram
---- jede Minute per getUpdates und antwortet per sendMessage.
---- Der Offset wird im Body eines Kontroll-Issues persistiert.
----
---- Env inputs: TELEGRAM_BOT_TOKEN, ALLOWED_USERS, ALLOWED_CHATS,
----   REPO, GITHUB_TOKEN (optional), STATE_ISSUE (optional),
----   DEEPSEEK_API_KEY (optional, nur fuer /ask),
----   UPDATES_FILE (optional, nur zum lokalen Testen)
---- ============================================================
+--! Telegram bot as a GitHub-Actions cron poller for /help, /search, /read,
+--! /grep, /issues, /ask. Polls getUpdates; offset persists in a control issue.
 
 ai_provider "deepseek"
 dk: env "DEEPSEEK_API_KEY"

@@ -1,5 +1,6 @@
--- Einfacher Taschenrechner
+--! Simple calculator: one arithmetic function with symbol operators and print output.
 
+--! Applies an operator to a and b; op is one of +, -, *, /, or %.
 fn calc a op b
     match op
         | "+" -> a + b

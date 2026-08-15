@@ -1,4 +1,4 @@
--- Embedding + Semantische Suche Demo
+--! Embeddings and semantic search: embed documents, search by meaning.
 ai_provider "deepseek"
 
 print "═══ EMBEDDINGS & VEKTORSUCHE ═══"

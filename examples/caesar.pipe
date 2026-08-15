@@ -1,11 +1,13 @@
--- Caesar cipher
+--! Caesar cipher: shifts each letter of a text by a fixed offset.
 
+--! Shifts a single character within the lowercase alphabet.
 fn shift_char ch offset
     code: at "abcdefghijklmnopqrstuvwxyz" 0
     idx: find_char "abcdefghijklmnopqrstuvwxyz" ch 0
     new_idx: (idx + offset) % 26
     at "abcdefghijklmnopqrstuvwxyz" new_idx
 
+--! Finds the index of a character in a string, starting at pos.
 fn find_char alphabet ch pos
     if pos >= (len alphabet)
         pos -- nicht gefunden
@@ -14,9 +16,11 @@ fn find_char alphabet ch pos
     else
         find_char alphabet ch (pos + 1)
 
+--! Encodes a text by shifting every character by offset.
 fn caesar text offset
     caesar_helper text offset 0 ""
 
+--! Recursive helper that shifts character by character.
 fn caesar_helper text offset pos result
     if pos >= (len text)
         result

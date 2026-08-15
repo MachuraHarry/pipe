@@ -1,14 +1,15 @@
--- Pipe Self-Hosted Parser v2
--- Parsed Token-Listen zu AST-Knoten
+--! Pipe self-hosted parser v2: parses token lists into AST nodes.
 
 import "examples/selfhost/lexer.pipe"
 
+--! Returns a token's type, or EOF for nil.
 fn tok_type tok
     if tok == nil
         "EOF"
     else
         get tok "type"
 
+--! Returns a token's literal, or an empty string for nil.
 fn tok_lit tok
     if tok == nil
         ""

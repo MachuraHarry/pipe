@@ -1,8 +1,4 @@
--- ═══════════════════════════════════════════════════════
--- PIPE WEB REPL — Pipe-Code im Browser!
--- Start: ./bin/pipe examples/server_web_repl.pipe
--- Öffne: http://localhost:8080
--- ═══════════════════════════════════════════════════════
+--! Pipe web REPL: run Pipe code in the browser at http://localhost:8080.
 
 print "╔══════════════════════════════════════╗"
 print "║  PIPE WEB REPL                     ║"
@@ -10,6 +6,7 @@ print "║  http://localhost:8080             ║"
 print "╚══════════════════════════════════════╝"
 print ""
 
+--! Renders the HTML page wrapping the given output text.
 fn html_page output_text
     print ("html received=[" ++ output_text ++ "]")
     html: `HTTP/1.1 200 OK\r

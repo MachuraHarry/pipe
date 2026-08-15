@@ -1,15 +1,9 @@
--- ============================================================
--- PIPE AI DEMO — KI-Funktionen in Pipe
--- ============================================================
--- Voraussetzungen:
---   export DEEPSEEK_API_KEY="sk-..."
---
--- Ausführung:
---   ./bin/pipe -vm -q examples/ai_demo.pipe
--- ============================================================
+--! AI demo: exercises the AI builtins (ask, summarize, translate, classify,
+--! extract, ai_chat_json, generate, pipelines). Requires DEEPSEEK_API_KEY.
 
 ai_provider "deepseek"
 
+--! Prints the demo banner and provider info.
 fn demo_setup _
     print "╔══════════════════════════════════════╗"
     print "║     PIPE AI — KI-Demo              ║"
@@ -18,17 +12,19 @@ fn demo_setup _
     print "Provider: DeepSeek (deepseek-v4-pro)"
     print ""
 
--- Helfer: Timestamp + AI-Call-Bestätigung
+--! Prints a label and records the start time.
 fn ai_start label
     t: now
     print (label ++ "...")
     t
 
+--! Prints a label completion with elapsed seconds.
 fn ai_done label start
     dauer: (now) - start
     print (label ++ " ✓ (" ++ (to_str dauer) ++ "s)")
     print ""
 
+--! Asks a question and prints the answer.
 fn demo_ask _
     ts: ai_start "► ask (Frage stellen)"
     print ""
@@ -37,6 +33,7 @@ fn demo_ask _
         > print
     ai_done "► ask" ts
 
+--! Summarizes a text with AI.
 fn demo_summarize _
     ts: ai_start "► summarize (Text zusammenfassen)"
     text: `Pipe ist eine einrückungsbasierte, pipeline-orientierte Skriptsprache,
@@ -51,6 +48,7 @@ schreibt man den Datenfluss linear aus.`
         > print
     ai_done "► summarize" ts
 
+--! Translates a text into another language with AI.
 fn demo_translate _
     ts: ai_start "► translate (Übersetzen)"
     text: "Pipe combines the readability of Python with the pipeline philosophy of Unix shells."
@@ -60,6 +58,7 @@ fn demo_translate _
         > print
     ai_done "► translate" ts
 
+--! Classifies texts into given categories with AI.
 fn demo_classify _
     ts: ai_start "► classify (Klassifizieren)"
 
@@ -75,6 +74,7 @@ fn demo_classify _
     check "Hi, want to grab coffee this afternoon?"
     ai_done "► classify" ts
 
+--! Extracts structured data from a text as JSON.
 fn demo_extract _
     ts: ai_start "► extract (Daten extrahieren)"
     print "Text: John Smith, 15. März 1985, Berlin, TechCorp"
@@ -89,6 +89,7 @@ fn demo_extract _
         print ("Fehler: " ++ e)
     ai_done "► extract" ts
 
+--! Chains translate and summarize in a pipeline.
 fn demo_pipeline_chain _
     ts: ai_start "► Pipeline-Chain (EN → DE → summarize)"
     print ""
@@ -103,6 +104,7 @@ fn demo_pipeline_chain _
 
     ai_done "► Pipeline-Chain" ts
 
+--! Uses the low-level ai_chat_json builtin.
 fn demo_lowlevel _
     ts: ai_start "► ai_chat_json (Low-Level Chat → JSON)"
 
@@ -118,6 +120,7 @@ fn demo_lowlevel _
         print ("Low-level Fehler: " ++ e)
     ai_done "► ai_chat_json" ts
 
+--! Generates free-form text with AI.
 fn demo_generate _
     ts: ai_start "► generate (Freitext-Generierung)"
     print ""
@@ -125,7 +128,7 @@ fn demo_generate _
         > print
     ai_done "► generate" ts
 
--- ─── Alle AI Builtins ───────────────────────────────────────
+--! Prints an overview of all AI builtins.
 fn show_all_builtins _
     print "─── Alle AI-Builtins ───"
     print ""

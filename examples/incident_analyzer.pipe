@@ -1,6 +1,6 @@
--- ═══════════════════════════════════════════════════════════
--- PIPE (SPR) — SECURITY INCIDENT ANALYZER
--- ═══════════════════════════════════════════════════════════
+--! Security incident analyzer: parses access logs and summarizes incidents with AI.
+--! Requires DEEPSEEK_API_KEY; runs against access.log (creates a demo log if absent).
+
 ai_provider "deepseek"
 ai_timeout 90
 

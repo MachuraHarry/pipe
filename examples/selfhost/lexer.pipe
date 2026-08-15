@@ -1,18 +1,22 @@
--- Pipe Self-Hosted Lexer
--- Tokenisiert Pipe-Quelltext in [Token]
+--! Pipe self-hosted lexer: tokenizes Pipe source into [Token] maps.
 
+--! Builds a token map with type, literal, line, and column.
 fn make_token typ lit line col
     {type: typ, literal: lit, line: line, col: col}
 
+--! Checks whether a character is a letter or underscore.
 fn is_letter c
     (c >= "a" && c <= "z") || (c == "_")
 
+--! Checks whether a character is a digit.
 fn is_digit c
     c >= "0" && c <= "9"
 
+--! Checks whether a character is alphanumeric.
 fn is_alpha c
     (is_letter c) || (is_digit c)
 
+--! Checks whether a word is a Pipe keyword.
 fn is_keyword word
     match word
         | "fn" -> true

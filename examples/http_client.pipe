@@ -1,4 +1,4 @@
--- HTTP-Client: REST-API aufrufen
+--! HTTP client: call REST APIs, parse JSON responses, and POST payloads.
 
 print "=== HTTP GET ==="
 resp: http_get "https://httpbin.org/get"

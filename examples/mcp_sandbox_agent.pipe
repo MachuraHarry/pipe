@@ -1,28 +1,6 @@
---- ============================================================
---- mcp_sandbox_agent.pipe — KI in einer Sandbox, die nur über
---- Pipes eigenen MCP-Server agieren kann.
---- ============================================================
---- Das Skript beweist: Die KI hat KEINEN freien Netz-, Datei- oder
---- Shell-Zugriff. Sie kann ausschließlich die unten registrierten
---- MCP-Tools (sb_*) nutzen — und darin frei schalten. Alles läuft
---- im Sandbox-Profil "mcp-cell":
----
----   fs:   "temp-only"  -> Dateien landen nur in ./.pipe_sandbox
----   exec: false        -> kein Shell-Zugriff
----   network: true      -> nur der AI-Provider-Host ist erlaubt
----   ai:   true         -> KI-Provider-Call (einziger Netz-Egress)
----   budget / max_tool_calls / audit_log / timeout
----
---- Zwei Modi (CLI-Argument):
----   agent  (Default)  KI läuft IN Pipe (ai_with_tools), nur sb_*-Tools.
----   serve              Startet den MCP-Server auf stdio; ein externer
----                      Client (Claude Desktop, Cursor, ...) verbindet
----                      sich und bekommt genau dieselben Tools — jede
----                      Tool-Ausführung läuft ebenfalls im Profil.
----
---- Nutzung:
----   DEEPSEEK_API_KEY=sk-... pipe examples/mcp_sandbox_agent.pipe agent
----   DEEPSEEK_API_KEY=sk-... pipe examples/mcp_sandbox_agent.pipe serve
+--! Sandboxed AI agent restricted to Pipe's own MCP server tools (sb_*).
+--! Uses the "mcp-cell" sandbox profile. Modes: agent (default) or serve.
+--! Run: DEEPSEEK_API_KEY=sk-... pipe examples/mcp_sandbox_agent.pipe agent
 ---   pipe examples/mcp_sandbox_agent.pipe serve ollama   (lokale KI)
 --- ============================================================
 

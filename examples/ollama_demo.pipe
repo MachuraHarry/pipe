@@ -1,10 +1,5 @@
--- ═══════════════════════════════════════════════
--- OLLAMA DEMO — Lokale KI ohne API-Keys
--- ═══════════════════════════════════════════════
--- Voraussetzung: ollama serve läuft lokal
---   curl -fsSL https://ollama.com/install.sh | sh
---   ollama pull llama3.2:3b
--- ═══════════════════════════════════════════════
+--! Ollama demo: local AI without API keys.
+--! Requires a running local ollama server (ollama pull llama3.2:3b).
 
 print "╔══════════════════════════════════════╗"
 print "║  OLLAMA — Lokale KI                ║"

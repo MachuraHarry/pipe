@@ -1,6 +1,6 @@
--- HTTP SERVER DEMO
--- ./bin/pipe examples/http_server.pipe
+--! HTTP server demo: routes /, /api/time, and 404 fallback.
 
+--! Serves the landing page.
 fn handle_root _
     html: "<!DOCTYPE html><html><head><title>Pipe Server</title><meta charset=utf-8><style>"
     html: html ++ "body{font-family:sans-serif;max-width:600px;margin:60px auto;background:#0a0a0f;color:#e0e0e8}"
@@ -11,13 +11,16 @@ fn handle_root _
     html: html ++ "</body></html>"
     {status: 200, headers: {ContentType: "text/html; charset=utf-8"}, body: html}
 
+--! Serves the current Unix timestamp.
 fn handle_time _ 
     t: now
     {status: 200, headers: {ContentType: "text/plain"}, body: "Time: " ++ (to_str t)}
 
+--! Returns a 404 response for unknown paths.
 fn handle_notfound path
     {status: 404, headers: {ContentType: "text/plain"}, body: "404: " ++ path}
 
+--! Routes a request to the matching handler.
 fn handle_request req
     path: get req "path"
     if path == "/"

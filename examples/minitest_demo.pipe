@@ -1,3 +1,5 @@
+--! Runs the minitest module's test suite.
+
 import "minitest.pipe"
 
 runtest nil

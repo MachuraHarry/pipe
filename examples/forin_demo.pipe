@@ -1,4 +1,4 @@
--- for-in Demo: All new Phase-1 Features
+--! for-in loop demo: iteration, break, regex, date/time, and random builtins.
 
 print "===== FOR-IN LOOP ====="
 -- Calculate sum

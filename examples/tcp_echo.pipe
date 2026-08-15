@@ -1,5 +1,6 @@
--- TCP Echo-Server und Client
+--! TCP echo server and client demo.
 
+--! Starts an echo server on port 9999 and prints one received message.
 fn run_server
     print "Echo-Server auf :9999..."
     ln: tcp_listen "0.0.0.0" 9999
@@ -11,6 +12,7 @@ fn run_server
     tcp_close conn
     tcp_close ln
 
+--! Connects to the echo server, sends a message, and prints the reply.
 fn run_client message
     print "Verbinde zu :9999..."
     conn: tcp_connect "127.0.0.1" 9999

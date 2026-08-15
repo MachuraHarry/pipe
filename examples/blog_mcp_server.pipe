@@ -1,20 +1,7 @@
--- ═══════════════════════════════════════════════════════════
--- Your first MCP server — expose a Pipe function as an MCP tool
--- Run:  ./bin/pipe examples/blog_mcp_server.pipe
--- (spawns a stdio MCP server; test it with any MCP client)
---
--- Claude Desktop config:
--- {
---   "mcpServers": {
---     "pipe-greet": {
---       "command": "/path/to/pipe",
---       "args": ["examples/blog_mcp_server.pipe"]
---     }
---   }
--- }
--- ═══════════════════════════════════════════════════════════
+--! Your first MCP server: expose a Pipe function as an MCP tool.
+--! Run with ./bin/pipe examples/blog_mcp_server.pipe and connect any MCP client.
 
--- A plain Pipe function
+--! Greets a person by name.
 fn greet name
     "Hello, " ++ name ++ "! Pipe speaks MCP natively."
 

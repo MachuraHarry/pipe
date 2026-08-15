@@ -1,5 +1,6 @@
--- Text-Statistik: Wort-Analyse
+--! Text statistics: counts words, shows uppercasing, and checks for terms.
 
+--! Analyzes a text: word count, uppercasing, and term checks.
 fn analyze text
     words: split text " "
     print "Text: "

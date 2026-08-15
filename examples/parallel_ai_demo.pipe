@@ -1,26 +1,18 @@
--- ============================================================
--- PARALLEL AI DEMO — >> mit KI-Operationen
--- ============================================================
--- Zeigt wie >> mit KI-Abfragen funktioniert.
--- Mehrere Abfragen starten parallel — Ergebnisse werden
--- automatisch eingesammelt sobald sie gebraucht werden.
---
--- Voraussetzung:
---   export DEEPSEEK_API_KEY="sk-..."
---
--- Ausführung:
---   ./bin/pipe -vm -q examples/parallel_ai_demo.pipe
+--! Parallel AI demo: run multiple AI queries concurrently with the >> operator.
+--! Requires DEEPSEEK_API_KEY. Run with: ./bin/pipe -vm -q examples/parallel_ai_demo.pipe
 
 ai_provider "deepseek"
 
 print "Parallel AI Demo: >> mit KI-Operationen"
 print ""
 
+--! Prints a timestamped start label and returns the start time.
 fn clock label
     t: now
     print (label ++ " Start: " ++ (format_time t "15:04:05"))
     t
 
+--! Prints elapsed seconds since a recorded start time.
 fn elapsed label start
     d: (now) - start
     print (label ++ " Dauer: " ++ (to_str d) ++ "s")

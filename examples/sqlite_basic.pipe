@@ -1,8 +1,9 @@
--- SQLite Basic Demo: CRUD operations with the sqlite module
--- Install: pipe -get sqlite
+--! SQLite basic demo: CRUD operations with the sqlite module.
+--! Install with: pipe -get sqlite
 
 import "sqlite"
 
+--! Renders one todo row with id, task, and done flag.
 fn print_todo row
     id: get row "id"
     task: get row "task"
@@ -10,6 +11,7 @@ fn print_todo row
     s: "#" ++ (to_str id) ++ " " ++ task ++ " [done: " ++ (to_str done) ++ "]"
     print s
 
+--! Renders a pending task line.
 fn print_pending row
     print ("  * " ++ (get row "task"))
 

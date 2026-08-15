@@ -1,9 +1,13 @@
+--! A minimal tokenizer module used as a test fixture.
+
+--! Builds a token map with a type and text.
 fn make_token typ text
   t: {}
   set t "type" typ
   set t "text" text
   t
 
+--! Tokenizes a string into a fixed list of tokens.
 fn tokenize s
   st: {}
   set st "src" s
@@ -13,6 +17,7 @@ fn tokenize s
   push (get st "tokens") (make_token "id" "tasks")
   get st "tokens"
 
+--! Runs the tokenizer and prints the result.
 export fn runtest
   tokens: tokenize "CREATE tasks"
   print ("len=" ++ to_str(len tokens))

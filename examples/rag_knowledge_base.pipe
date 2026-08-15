@@ -1,21 +1,5 @@
---- ============================================================
---- RAG Knowledge Base — pipe-web + rag-pipe + sqlite + DeepSeek
---- Run: export DEEPSEEK_API_KEY="sk-..."
----      ./bin/pipe examples/rag_knowledge_base.pipe
---- Mode: Tree-Walker (http_server + pipe-web)
---- Requires: pipe -get sqlite  (installs sqlite.pipe)
---- DB: ~/.pipe/knowledge.db  (persists across restarts)
---- Endpoints:
----   GET  /                        Dashboard (HTML)
----   GET  /documents?title=..&content=..|url=..&tags=..  Add document
----   GET  /documents/:id           Document detail (JSON)
----   GET  /documents/:id/delete    Delete document
----   GET  /search?q=..             Semantic search (HTML)
----   GET  /ask?q=..                RAG answer with sources (HTML)
----   GET  /api/documents           All documents (JSON)
----   GET  /api/search?q=..         Search results (JSON)
----   GET  /health                  Health + stats (JSON)
---- ============================================================
+--! RAG knowledge base: pipe-web + rag + sqlite + DeepSeek with semantic search.
+--! Requires DEEPSEEK_API_KEY and the sqlite module. DB persists in ~/.pipe/knowledge.db.
 
 import "sqlite.pipe"
 import "../pipe-modules/rag-pipe/module.pipe"

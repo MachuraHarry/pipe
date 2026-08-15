@@ -1,5 +1,6 @@
--- Fibonacci in Pipe
+--! Computes Fibonacci numbers recursively. Demonstrates recursion, match, and print.
 
+--! Returns the n-th Fibonacci number (fib 0 = 0, fib 1 = 1).
 fn fib n
     match n
         | 0  -> 0

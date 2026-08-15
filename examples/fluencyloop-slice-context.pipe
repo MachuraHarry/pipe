@@ -1,17 +1,6 @@
--- fluencyloop-slice-context.pipe
--- A Pipe port of FluencyLoop's slice-context.sh / slice-context.ps1.
---
--- Renders the current "slice" of a FluencyLoop repo: the changed hunks plus
--- metadata since the last journaled session, so a model can spot decisions
--- from the diff instead of re-reading whole files. Byte-identical --json
--- output to the bash / PowerShell originals.
---
--- Deterministic plumbing only: no AI, no network. Runs confined in the
--- "slice" sandbox profile — filesystem read-only, only `git` may be executed.
---
--- Usage:
---   pipe examples/fluencyloop-slice-context.pipe [--json]
--- Run from the FluencyLoop repo root.
+--! Renders the current slice of a FluencyLoop repo (changed hunks + metadata).
+--! Deterministic plumbing only, confined in the "slice" sandbox profile.
+--! Usage: pipe examples/fluencyloop-slice-context.pipe [--json]
 
 -- ---- confine ourselves ----
 sandbox_profile "slice" {fs: "read-only", exec: true, exec_whitelist: ["git"], network: false, ai: false}

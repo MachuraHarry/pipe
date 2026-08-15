@@ -1,6 +1,4 @@
--- ═══════════════════════════════════════════════
--- PIPE KI-DEMO 2: Batch Translator
--- ═══════════════════════════════════════════════
+--! AI demo 2: batch translator that translates text into 4 languages in parallel.
 ai_provider "deepseek"
 
 print "╔══════════════════════════════════════╗"

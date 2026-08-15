@@ -1,4 +1,7 @@
--- Hallo Welt in Pipe
+--! Minimal hello-world program. Demonstrates variables, strings, and the print builtin.
 
+--! The greeting text.
 greeting: "Hallo Welt"
+
+--! Prints greeting to stdout.
 print greeting

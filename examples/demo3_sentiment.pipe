@@ -1,6 +1,4 @@
--- ═══════════════════════════════════════════════
--- PIPE KI-DEMO 3: Sentiment & Intent Analyzer
--- ═══════════════════════════════════════════════
+--! AI demo 3: sentiment and intent analyzer for support tickets.
 ai_provider "deepseek"
 
 print "╔══════════════════════════════════════╗"

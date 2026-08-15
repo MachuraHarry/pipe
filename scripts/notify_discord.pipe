@@ -1,11 +1,5 @@
---- ============================================================
---- notify_discord.pipe - Sendet GitHub Event-Benachrichtigungen
---- via Discord Webhook mit KI-Code-Review (DeepSeek).
---- Genutzt von der CI-Pipeline (parallel zu Telegram).
---- Inputs via env: EVENT_NAME, EVENT_ACTION, REPO, BRANCH,
----   COMMITS_JSON, COMMIT_MSG, COMMIT_URL, ISSUE_TITLE,
----   ISSUE_NUMBER, ISSUE_URL, DISCORD_WEBHOOK, DEEPSEEK_API_KEY
---- ============================================================
+--! Sends GitHub event notifications via a Discord webhook with AI code review.
+--! Called from CI; inputs arrive via env (EVENT_NAME, REPO, DISCORD_WEBHOOK, ...).
 
 import "discord.pipe" as d
 ai_provider "deepseek"
@@ -15,6 +9,7 @@ repo: env "REPO"
 ev: env "EVENT_NAME"
 key: env "DEEPSEEK_API_KEY"
 
+--! Picks an emoji for a notification subject.
 fn emoji_for subj
     if (len subj) < 2
         return "🟣"

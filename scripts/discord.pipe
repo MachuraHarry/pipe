@@ -1,17 +1,6 @@
---- ============================================================
---- discord.pipe - Discord Modul für Pipe.
----
---- STATUS: IN ENTWICKLUNG - noch NICHT im pipe-modules-Registry.
----
---- Zwei Auth-Modelle (beide kostenlos):
----   Webhook:    POST JSON an die Webhook-URL, kein Auth-Header nötig.
----   Bot-Token:  Authorization: Bot <token>, für Lesen + Senden.
----
---- Kein Echtzeit (Gateway/WebSocket) - Nachrichten lesen per Polling.
---- Nur Text + Embeds, keine Datei-Anhänge (Multipart).
----
---- Import:  import "discord.pipe" as d
---- ============================================================
+--! Discord module for Pipe: send messages and embeds via webhook or bot token.
+--! Status: in development. No realtime gateway; reads via polling.
+--! Import: import "discord.pipe" as d
 
 API_BASE: env "DISCORD_API_BASE"
 if API_BASE == nil

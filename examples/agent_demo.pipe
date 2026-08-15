@@ -1,4 +1,4 @@
--- Agent Demo: stateful AI agents with conversation memory
+--! Agent demo: stateful AI agents with conversation memory and multi-agent use.
 ai_provider "deepseek"
 
 print "═══ AGENT DEMO ═══"

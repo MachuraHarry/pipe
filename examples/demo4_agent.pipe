@@ -1,6 +1,4 @@
--- ═══════════════════════════════════════════════
--- PIPE KI-DEMO 4: AI Agent with Real Tools
--- ═══════════════════════════════════════════════
+--! AI demo 4: agent with real tools (weather lookup via ai_tool + ai_with_tools).
 ai_provider "deepseek"
 
 print "╔══════════════════════════════════════╗"
@@ -8,7 +6,7 @@ print "║  4. AI AGENT MIT TOOLS             ║"
 print "╚══════════════════════════════════════╝"
 print ""
 
--- Tool 1: Wetter abrufen
+--! Returns a canned weather report for a city.
 fn get_weather stadt
     match stadt
         | "Berlin" -> "22°C, sonnig, Wind 12 km/h"

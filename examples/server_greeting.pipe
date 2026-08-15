@@ -1,7 +1,6 @@
--- ═══════════════════════════════════════════════════════
--- AI GREETING SERVER
--- Jeder Besucher bekommt einen einzigartigen KI-Gruß
--- ═══════════════════════════════════════════════════════
+--! AI greeting server: every visitor gets a unique AI-generated greeting.
+--! Requires DEEPSEEK_API_KEY. Port 8080.
+
 ai_provider "deepseek"
 
 print "╔══════════════════════════════════════╗"
@@ -12,9 +11,11 @@ print ""
 
 counter: 0
 
+--! Wraps body in a minimal HTTP response.
 fn http_response body
     "HTTP/1.1 200 OK\r\nContent-Type: text/html; charset=utf-8\r\nConnection: close\r\n\r\n" ++ body
 
+--! Generates and serves a unique AI greeting per request.
 fn handle_request dummy
     counter: counter + 1
     num: counter

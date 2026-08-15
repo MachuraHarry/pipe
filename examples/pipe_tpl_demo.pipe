@@ -1,5 +1,4 @@
--- pipe-tpl Demo: template engine examples
--- Install: pipe -get pipe-tpl
+--! pipe-tpl demo: template engine with variables, nested paths, and filters.
 
 import "pipe-tpl"
 

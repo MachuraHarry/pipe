@@ -1,6 +1,5 @@
---- Token Generation with crypto/rand
---- Generates API tokens, session IDs, and one-time codes
---- using cryptographically secure randomness.
+--! Token generation with cryptographically secure randomness:
+--! API tokens, session IDs, one-time codes, and bearer tokens.
 
 --- === API Token ===
 

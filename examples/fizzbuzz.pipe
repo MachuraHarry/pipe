@@ -1,5 +1,6 @@
--- FizzBuzz in Pipe
+--! FizzBuzz: replaces multiples of 3, 5, and 15 with Fizz, Buzz, and FizzBuzz.
 
+--! Applies the FizzBuzz rules to n.
 fn fizzbuzz n
     if n % 15 == 0
         "FizzBuzz"

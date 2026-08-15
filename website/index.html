@@ -187,18 +187,20 @@ oninput="syncHighlight();scheduleRenderGraph()" onscroll="syncScroll()">"hello w
       <div class="feature-text">
         <h3 data-lang="en" class="active"><span>Log Analysis</span> → Incident Report</h3>
         <h3 data-lang="de"><span>Log-Analyse</span> → Incident-Report</h3>
-        <p data-lang="en" class="active">Read server logs, classify severity with AI, filter critical entries, summarize findings, translate to German, and save — 5 lines. No intermediate files. No Python script.</p>
-        <p data-lang="de">Server-Logs einlesen, Schweregrad per KI klassifizieren, kritische Einträge filtern, zusammenfassen, ins Deutsche übersetzen und speichern — 5 Zeilen. Keine Zwischendateien. Kein Python-Skript.</p>
+        <p data-lang="en" class="active">Read server logs, filter critical entries, summarize findings with AI, translate to German, and save — 8 lines, measured in <code>benchmarks/python-vs-pipe</code>. No intermediate files. No Python script.</p>
+        <p data-lang="de">Server-Logs einlesen, kritische Einträge filtern, per KI zusammenfassen, ins Deutsche übersetzen und speichern — 8 Zeilen, gemessen in <code>benchmarks/python-vs-pipe</code>. Keine Zwischendateien. Kein Python-Skript.</p>
       </div>
-      <div class="feature-code"><div class="bar"><span class="dot" style="background:var(--red)"></span><span class="dot" style="background:var(--orange)"></span><span class="dot" style="background:var(--green)"></span></div><pre><span class="fn">is_critical</span>: <span class="kw">fn</span> line
-    <span class="fn">contains</span> line <span class="str">"critical"</span>
+      <div class="feature-code"><div class="bar"><span class="dot" style="background:var(--red)"></span><span class="dot" style="background:var(--orange)"></span><span class="dot" style="background:var(--green)"></span></div><pre><span class="fn">ai_provider</span> <span class="str">"deepseek"</span>
 
-<span class="fn">read_file</span> <span class="str">"/var/log/app/errors.log"</span>
-    <span class="pipe">&gt;</span> <span class="fn">split</span> <span class="str">"\n"</span>
-    <span class="pipe">&gt;</span> <span class="fn">filter</span> is_critical
-    <span class="pipe">&gt;</span> <span class="fn">summarize</span>
-    <span class="pipe">&gt;</span> <span class="fn">translate</span> <span class="str">"de"</span>
-    <span class="pipe">&gt;</span> <span class="fn">save</span> <span class="str">"incident_report.txt"</span></pre></div>
+<span class="fn">logs</span>: <span class="fn">read_lines</span> <span class="str">"data/incident.log"</span>
+<span class="fn">errors</span>: <span class="fn">filter</span> logs (<span class="kw">fn</span> line: (<span class="fn">len</span> (<span class="fn">split</span> line <span class="str">"ERROR"</span>)) <span class="op">&gt;</span> <span class="num">1</span>)
+<span class="fn">joined</span>: <span class="fn">join</span> errors <span class="str">"\n"</span>
+
+<span class="fn">summary</span>: <span class="fn">summarize</span> joined
+<span class="fn">german</span>: <span class="fn">translate</span> summary <span class="str">"de"</span>
+
+<span class="fn">write_file</span> <span class="str">"incident_report.md"</span> (<span class="str">"# Incident Report\n## Deutsch\n"</span> <span class="op">++</span> german <span class="op">++</span> <span class="str">"\n"</span>)
+<span class="fn">print</span> german</pre></div>
     </div>
 
     <div class="feature-row reverse reveal">
@@ -210,10 +212,13 @@ oninput="syncHighlight();scheduleRenderGraph()" onscroll="syncScroll()">"hello w
       </div>
       <div class="feature-code"><div class="bar"><span class="dot" style="background:var(--red)"></span><span class="dot" style="background:var(--orange)"></span><span class="dot" style="background:var(--green)"></span></div><pre><span class="fn">ai_provider</span> <span class="str">"deepseek"</span>
 
-<span class="fn">docs</span>: <span class="fn">read_lines</span> <span class="str">"knowledge_base.txt"</span>
-<span class="fn">vectors</span>: <span class="fn">embed_batch</span> docs
+<span class="fn">docs</span>: [<span class="fn">read_file</span> <span class="str">"data/docs/database.txt"</span>]
+<span class="fn">push</span> docs (<span class="fn">read_file</span> <span class="str">"data/docs/caching.txt"</span>)
+<span class="fn">push</span> docs (<span class="fn">read_file</span> <span class="str">"data/docs/api.txt"</span>)
+<span class="fn">push</span> docs (<span class="fn">read_file</span> <span class="str">"data/docs/deployment.txt"</span>)
 
-<span class="fn">question</span>: <span class="str">"How does the bytecode VM work?"</span>
+<span class="fn">vectors</span>: <span class="fn">embed_batch</span> docs
+<span class="fn">question</span>: <span class="str">"How do we rate-limit API requests?"</span>
 <span class="fn">q_vec</span>: <span class="fn">embed</span> question
 <span class="fn">top</span>: <span class="fn">nearest</span> q_vec vectors <span class="num">3</span>
 
@@ -221,8 +226,8 @@ oninput="syncHighlight();scheduleRenderGraph()" onscroll="syncScroll()">"hello w
 <span class="kw">for</span> idx <span class="kw">in</span> top
     <span class="fn">context</span>: context <span class="op">++</span> (<span class="fn">at</span> docs idx) <span class="op">++</span> <span class="str">"\n---\n"</span>
 
-<span class="fn">ask</span> (<span class="str">"Context:\n"</span> <span class="op">++</span> context <span class="op">++</span> <span class="str">"\nQuestion: "</span> <span class="op">++</span> question)
-    <span class="pipe">&gt;</span> <span class="fn">print</span></pre></div>
+<span class="fn">answer</span>: <span class="fn">ask</span> (<span class="str">"Context:\n"</span> <span class="op">++</span> context <span class="op">++</span> <span class="str">"\nQuestion: "</span> <span class="op">++</span> question)
+<span class="fn">print</span> answer</pre></div>
     </div>
 
     <div class="feature-row reveal">
@@ -300,14 +305,14 @@ oninput="syncHighlight();scheduleRenderGraph()" onscroll="syncScroll()">"hello w
     <div class="compare-table reveal">
       <table>
         <tr><th></th><th>Python + LangChain</th><th>Pipe</th></tr>
-        <tr><td><span data-lang="en" class="active">RAG pipeline</span><span data-lang="de">RAG-Pipeline</span></td><td><span data-lang="en" class="active">~80 LOC</span><span data-lang="de">~80 Zeilen</span></td><td><span data-lang="en" class="active">~10 LOC</span><span data-lang="de">~10 Zeilen</span></td></tr>
+        <tr><td><span data-lang="en" class="active">RAG pipeline</span><span data-lang="de">RAG-Pipeline</span></td><td><span data-lang="en" class="active">26 LOC</span><span data-lang="de">26 Zeilen</span></td><td><span data-lang="en" class="active">14 LOC</span><span data-lang="de">14 Zeilen</span></td></tr>
         <tr><td><span data-lang="en" class="active">Sandbox LLM access</span><span data-lang="de">LLM-Zugriff sandboxen</span></td><td><span data-lang="en" class="active">Custom middleware</span><span data-lang="de">Custom Middleware</span></td><td><span data-lang="en" class="active">One sandbox_profile block</span><span data-lang="de">Ein sandbox_profile-Block</span></td></tr>
         <tr><td><span data-lang="en" class="active">Switch AI provider</span><span data-lang="de">KI-Provider wechseln</span></td><td><span data-lang="en" class="active">Rewrite SDK calls</span><span data-lang="de">SDK-Calls umschreiben</span></td><td style="font-family:var(--mono);color:var(--green)">ai_provider "deepseek"</td></tr>
         <tr><td><span data-lang="en" class="active">Deploy to server</span><span data-lang="de">Auf Server deployen</span></td><td><span data-lang="en" class="active">Docker + venv + pip</span><span data-lang="de">Docker + venv + pip</span></td><td><span data-lang="en" class="active">scp pipe binary</span><span data-lang="de">scp pipe binary</span></td></tr>
         <tr><td><span data-lang="en" class="active">Expose an HTTP API</span><span data-lang="de">HTTP-API bereitstellen</span></td><td><span data-lang="en" class="active">FastAPI + uvicorn + deps</span><span data-lang="de">FastAPI + uvicorn + Deps</span></td><td style="font-family:var(--mono);color:var(--green)">route_get + serve</td></tr>
         <tr><td><span data-lang="en" class="active">Parallel LLM calls</span><span data-lang="de">Parallele LLM-Calls</span></td><td><span data-lang="en" class="active">asyncio.gather() boilerplate</span><span data-lang="de">asyncio.gather()-Boilerplate</span></td><td style="font-family:var(--mono);color:var(--green)">>> operator, ai_batch</td></tr>
-        <tr><td><span data-lang="en" class="active">MCP Server + Client</span><span data-lang="de">MCP Server + Client</span></td><td><span data-lang="en" class="active">Not available</span><span data-lang="de">Nicht verfügbar</span></td><td style="font-family:var(--mono);color:var(--green)">13 MCP builtins, zero deps, any stdio server</td></tr>
-        <tr><td><span data-lang="en" class="active">Binary size (with deps)</span><span data-lang="de">Binary-Größe (mit Deps)</span></td><td><span data-lang="en" class="active">~500 MB</span><span data-lang="de">~500 MB</span></td><td><span data-lang="en" class="active">~8 MB</span><span data-lang="de">~8 MB</span></td></tr>
+        <tr><td><span data-lang="en" class="active">MCP Server + Client</span><span data-lang="de">MCP Server + Client</span></td><td><span data-lang="en" class="active">langchain-mcp-adapters + pip deps</span><span data-lang="de">langchain-mcp-adapters + pip-Deps</span></td><td style="font-family:var(--mono);color:var(--green)">13 MCP builtins, zero deps, any stdio server</td></tr>
+        <tr><td><span data-lang="en" class="active">Binary size (with deps)</span><span data-lang="de">Binary-Größe (mit Deps)</span></td><td><span data-lang="en" class="active">345 MB venv</span><span data-lang="de">345 MB venv</span></td><td><span data-lang="en" class="active">8.6 MB</span><span data-lang="de">8.6 MB</span></td></tr>
       </table>
     </div>
   </div>
@@ -344,8 +349,8 @@ oninput="syncHighlight();scheduleRenderGraph()" onscroll="syncScroll()">"hello w
       </div>
       <div class="card">
         <div class="icon">⚡⚡</div>
-        <h4 data-lang="en" class="active">3 LLM calls in 1.5s, not 4s</h4>
-        <h4 data-lang="de">3 LLM-Calls in 1,5s, nicht 4s</h4>
+        <h4 data-lang="en" class="active">3 LLM calls in 1.2s, not 3.3s</h4>
+        <h4 data-lang="de">3 LLM-Calls in 1,2s, nicht 3,3s</h4>
         <p data-lang="en" class="active"><code>>></code> starts any pipeline stage in the background. Futures auto-resolve. <code>ai_batch</code> processes hundreds of texts concurrently with rate limiting.</p>
         <p data-lang="de"><code>>></code> startet jede Pipeline-Stufe im Hintergrund. Futures lösen sich automatisch auf. <code>ai_batch</code> verarbeitet hunderte Texte parallel mit Rate-Limiting.</p>
       </div>

@@ -1,0 +1,8 @@
+API Rate Limiting
+The public API enforces per-key rate limits. Standard keys allow 60 requests
+per minute, premium keys allow 600. Limits are enforced with a token bucket
+stored in Redis using a sliding window. On breach the server returns HTTP 429
+with a Retry-After header. Burst allowance is 10% of the quota. Distributed
+agents share the same key and therefore the same bucket. Webhooks are limited
+to 100 deliveries per minute per endpoint. Rate limits are checked before
+authentication to fail fast against abusive traffic.

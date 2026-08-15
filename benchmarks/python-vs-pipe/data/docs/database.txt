@@ -1,0 +1,8 @@
+Database Indexing
+The orders table stores roughly 40 million rows. Queries filter by customer_id,
+created_at, and status. We maintain a composite B-tree index on (customer_id,
+created_at) because the most common access pattern lists a single customer's
+recent orders. A partial index on status is used for the open-orders dashboard.
+Because writes are heavy, we limit indexes to three per table. Running EXPLAIN
+shows the composite index cuts full scans from 900 ms to under 8 ms. Nightly
+VACUUM keeps bloat below 5%. Partitions are by month on created_at.

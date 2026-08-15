@@ -1,0 +1,29 @@
+--! RAG pipeline: embed docs, nearest search, answer with context.
+--! Run: export DEEPSEEK_API_KEY=... && pipe benchmarks/python-vs-pipe/pipe/rag.pipe
+--! Data: benchmarks/python-vs-pipe/data/docs/*.txt
+
+ai_provider "deepseek"
+
+-- 1. Load the knowledge base from files
+docs: [read_file "data/docs/database.txt"]
+push docs (read_file "data/docs/caching.txt")
+push docs (read_file "data/docs/api.txt")
+push docs (read_file "data/docs/deployment.txt")
+
+-- 2. Vectorize the documents once
+vectors: embed_batch docs
+
+-- 3. Embed the question
+question: "How do we rate-limit API requests?"
+q_vec: embed question
+
+-- 4. Find the most relevant documents by meaning
+top: nearest q_vec vectors 3
+
+-- 5. Build context and ask
+context: ""
+for idx in top
+    context: context ++ (at docs idx) ++ "\n---\n"
+
+answer: ask ("Context:\n" ++ context ++ "\nQuestion: " ++ question)
+print answer

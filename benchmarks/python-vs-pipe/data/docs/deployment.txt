@@ -1,0 +1,9 @@
+Deployment Pipeline
+Releases ship through a three-stage pipeline. Stage one runs unit tests and a
+static analysis gate. Stage two builds the container image and scans it for
+known vulnerabilities. Stage three performs a canary rollout: 5% of traffic for
+15 minutes, then 25%, then full rollout with automatic rollback if error rate
+exceeds 0.5%. Build artifacts are signed and stored in an artifact registry
+with 90-day retention. Deploys happen every two hours during business hours.
+Manual approval is required for schema migrations and environment variable
+changes.

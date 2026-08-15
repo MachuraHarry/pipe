@@ -1,5 +1,13 @@
 [
   {
+    "id": "pipe-vs-python-benchmarks",
+    "file": "pipe-vs-python-benchmarks.md",
+    "date": "2026-08-15",
+    "tag": "insight",
+    "title": {"en": "📊 Pipe vs Python + LangChain — Measured, Not Marketed", "de": "📊 Pipe gegen Python + LangChain — gemessen, nicht vermarktet"},
+    "excerpt": {"en": "Six real task pairs, one provider, one machine: RAG in 14 LOC vs 26, 3 parallel LLM calls in 1.16s vs 9.59s, an 8.6 MB binary vs a 345 MB venv. Full code and results.json published so you can reproduce every number.", "de": "Sechs echte Aufgaben-Paare, ein Provider, eine Maschine: RAG in 14 Zeilen statt 26, 3 parallele LLM-Calls in 1,16s statt 9,59s, eine 8,6-MB-Binary statt eines 345-MB-venv. Kompletter Code und results.json veröffentlicht, damit jede Zahl reproduzierbar ist."}
+  },
+  {
     "id": "tutorial-first-mcp-server",
     "file": "tutorial-first-mcp-server.md",
     "date": "2026-08-18",

@@ -1,0 +1,73 @@
+# Pipe (SPR) — Semantic Pipeline Runtime
+
+> Pipe is the first programming language with built-in MCP: an MCP server and client in one ~8 MB binary. Connect to any stdio MCP server, expose your own tools to Claude Desktop and other hosts, and run AI pipelines with zero dependencies. Pure Go stdlib.
+
+## Important
+
+- [Website](https://pipe-lang.com/)
+- [Documentation](https://pipe-lang.com/docs.html)
+- [Install](https://pipe-lang.com/install.html): single binary for Linux, macOS, Windows, Raspberry Pi; also runs in the browser via WebAssembly
+- [Playground](https://pipe-lang.com/playground.html): run Pipe in the browser
+- [Examples](https://pipe-lang.com/examples.html)
+- [Benchmarks](https://pipe-lang.com/benchmarks.html)
+- [GitHub repository](https://github.com/MachuraHarry/pipe)
+- [Releases](https://github.com/MachuraHarry/pipe/releases)
+- [Issues](https://github.com/MachuraHarry/pipe/issues)
+- [Discussions](https://github.com/MachuraHarry/pipe/discussions)
+- [MCP Registry listing](https://registry.modelcontextprotocol.io/?q=MachuraHarry)
+- [Module Registry](https://github.com/MachuraHarry/pipe-modules)
+- [Official GitHub Action](https://github.com/MachuraHarry/pipe-action)
+- [Blog](https://pipe-lang.com/blog.html)
+- [RSS](https://pipe-lang.com/feed.xml)
+
+## What is Pipe?
+
+Pipe (SPR) is a scripting language and runtime designed for AI infrastructure. Key properties:
+
+- **Built-in MCP**: `mcp_server` exposes Pipe functions as MCP tools to Claude Desktop and any MCP host. `mcp_use_stdio` connects to any community MCP server (GitHub, Filesystem, Postgres, Slack, Brave Search, ...) directly from code.
+- **AI builtins**: 36 AI builtins + 7 MCP builtins across 4 providers (OpenAI, Anthropic, DeepSeek, Ollama). `ai_chat`, `ai_with_tools`, streaming, JSON-mode, tool loops.
+- **Sandboxed by default**: `sandbox_profile` restricts `exec`, `write_file`, and `http_get` with one block. Sandboxing at the language level.
+- **Two runtimes**: a tree-walker for correctness and a bytecode VM (about 7x faster) — `pipe -vm` to select.
+- **Concurrency**: `spawn`/`await`/`go`, channels, mutex, semaphore. Parallel pipelines with `>>`.
+- **Zero dependencies**: pure Go standard library, statically-linked ~8 MB binary.
+- **Module system**: `import "mylib/"` directory imports, `pipe -install` with SemVer constraints, `pipe -publish` to the registry.
+- **Testing built in**: test blocks with `assert_eq` / `assert_error`, run via `pipe -test`. Official GitHub Action for CI.
+
+## Core concepts
+
+- AI pipelines compose `ai_chat` (and friends) with standard language control flow, the same way you'd write any program.
+- `ai_provider`, `ai_model`, `ai_system`, `ai_tool` configure model/provider state; `sandbox_profile` defines the sandbox.
+- MCP server tool functions use `@tool "name" "description"` annotations or `mcp_tool` registration; `mcp_server` starts the server.
+- Everything is executable and reproducible: benchmarks and tests live in the repo.
+
+## Blog
+
+- [Tutorial: First MCP server](https://pipe-lang.com/blog/tutorial-first-mcp-server.html)
+- [Tutorial: Parallel pipelines](https://pipe-lang.com/blog/tutorial-parallel.html)
+- [Tutorial: Self-healing pipelines](https://pipe-lang.com/blog/tutorial-self-healing.html)
+- [Tutorial: Local RAG](https://pipe-lang.com/blog/tutorial-local-rag.html)
+- [Why the sandbox is unique](https://pipe-lang.com/blog/sandbox-unique.html)
+- [The MCP cell](https://pipe-lang.com/blog/mcp-cell.html)
+
+## Usage examples
+
+```pipe
+-- expose a tool to Claude Desktop via MCP
+export fn add a b
+    a + b
+
+mcp_server add
+```
+
+```pipe
+-- connect to any community MCP server
+mcp_use_stdio "github" "npx -y @modelcontextprotocol/server-github"
+tools: mcp_tools "github"
+```
+
+```pipe
+-- an AI pipeline
+ai_provider "openai"
+r: ai_chat "Summarize this: " ++ text
+print r
+```

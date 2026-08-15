@@ -1,0 +1,9 @@
+Caching Strategy
+Our service uses a two-tier caching strategy. Frequently accessed configuration
+values live in a Redis cache with a 5 minute TTL. Larger computed results, like
+aggregated analytics, are cached in a local in-memory cache with a 30 minute TTL
+and a maximum size of 512 MB. Cache entries are invalidated on any write to the
+underlying data source. The cache hit rate target is 95% for config reads and
+80% for analytics. In production the config cache runs on a dedicated Redis
+instance with persistence enabled, while the analytics cache is per-node to
+avoid cross-node serialization overhead.

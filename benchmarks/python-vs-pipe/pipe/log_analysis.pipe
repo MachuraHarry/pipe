@@ -1,0 +1,21 @@
+--! Log analysis → incident report: filter errors, summarize, translate, save.
+--! Run: export DEEPSEEK_API_KEY=... && pipe benchmarks/python-vs-pipe/pipe/log_analysis.pipe
+
+ai_provider "deepseek"
+
+-- 1. Read the log and keep only ERROR lines
+logs: read_lines "data/incident.log"
+errors: filter logs (fn line: (len (split line "ERROR")) > 1)
+
+-- 2. Build a compact input
+joined: join errors "\n"
+
+-- 3. Summarize the incident in English
+summary: summarize joined
+
+-- 4. Translate to German
+german: translate summary "de"
+
+-- 5. Save the report
+write_file "incident_report.md" ("# Incident Report\n\n## English\n" ++ summary ++ "\n\n## Deutsch\n" ++ german ++ "\n")
+print german

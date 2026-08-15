@@ -1,0 +1,67 @@
+{
+  "pairs": [
+    {
+      "name": "rag",
+      "pipe_loc": 14,
+      "python_loc": 26,
+      "pipe_sec": 2.08,
+      "python_sec": 9.58,
+      "pipe_ok": true,
+      "python_ok": true
+    },
+    {
+      "name": "parallel",
+      "pipe_loc": 12,
+      "python_loc": 21,
+      "pipe_sec": 1.16,
+      "python_sec": 9.59,
+      "pipe_ok": true,
+      "python_ok": true,
+      "python_seq_sec": 3.56,
+      "python_par_sec": 1.33,
+      "pipe_par_sec": 1.0
+    },
+    {
+      "name": "agent",
+      "pipe_loc": 11,
+      "python_loc": 19,
+      "pipe_sec": 2.5,
+      "python_sec": 7.08,
+      "pipe_ok": true,
+      "python_ok": true
+    },
+    {
+      "name": "summarize_api",
+      "pipe_loc": 14,
+      "python_loc": 12,
+      "pipe_sec": 1.41,
+      "pipe_ok": true,
+      "python_sec": 5.13,
+      "python_ok": true
+    },
+    {
+      "name": "log_analysis",
+      "pipe_loc": 8,
+      "python_loc": 14,
+      "pipe_sec": 4.84,
+      "python_sec": 13.72,
+      "pipe_ok": true,
+      "python_ok": true
+    },
+    {
+      "name": "batch",
+      "pipe_loc": 9,
+      "python_loc": 22,
+      "pipe_sec": 7.07,
+      "python_sec": 7.16,
+      "pipe_ok": true,
+      "python_ok": true
+    }
+  ],
+  "sizes": {
+    "pipe_binary_bytes": 8622345,
+    "pipe_binary_human": "8.6 MB",
+    "python_venv_bytes": 344535888,
+    "python_venv_human": "345 MB"
+  }
+}

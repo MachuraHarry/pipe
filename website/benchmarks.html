@@ -4,9 +4,9 @@
 <meta charset="UTF-8">
 <link rel="icon" type="image/svg+xml" href="logo.svg">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="description" content="Pipe (SPR) benchmarks: RAG pipeline in ~10 LOC, 3 parallel LLM calls in ~1.5s, ~8 MB binary vs ~500 MB, bytecode VM ~7× faster.">
+<meta name="description" content="Pipe (SPR) benchmarks: RAG pipeline in 14 LOC vs Python's 26, 3 parallel LLM calls in ~1.2s, 8.6 MB binary vs 345 MB Python venv, bytecode VM ~7× faster.">
 <meta property="og:title" content="Benchmarks — Pipe (SPR)">
-<meta property="og:description" content="Numbers, not promises: RAG in ~10 LOC, parallel LLM calls, ~8 MB binary, bytecode VM ~7× faster.">
+<meta property="og:description" content="Numbers, not promises: RAG in 14 LOC vs 26, parallel LLM calls in ~1.2s, 8.6 MB binary vs 345 MB venv, bytecode VM ~7× faster.">
 <meta property="og:type" content="website">
 <meta property="og:image" content="https://pipe-lang.com/og-image.png">
 <meta property="og:url" content="https://pipe-lang.com/benchmarks.html">
@@ -80,6 +80,7 @@ section { padding: 60px 0; }
 .bench-row .val { font-size: 0.85rem; font-weight: 700; font-family: var(--mono); text-align: right; }
 .bench-row .val.red { color: var(--red); }
 .bench-row .val.green { color: var(--green); }
+.bench-row .val.purple { color: var(--accent); }
 .bench-note { font-size: 0.78rem; color: var(--fg3); margin-top: 8px; }
 
 /* Compare table */
@@ -177,9 +178,9 @@ a[data-lang].active { display: inline-block; }
     <p data-lang="de">Jeder Vergleich unten ist ein reales, ausführbares Szenario — dieselbe Aufgabe in Python + LangChain vs. Pipe. Alle Befehle stehen in Doku und Beispielen.</p>
 
     <div class="stats-inline">
-      <div class="stat"><span class="stat-num">~10 LOC</span><div class="stat-label" data-lang="en" class="active">RAG pipeline</div><div class="stat-label" data-lang="de">RAG-Pipeline</div></div>
-      <div class="stat"><span class="stat-num">~1.5s</span><div class="stat-label" data-lang="en" class="active">3 parallel LLM calls</div><div class="stat-label" data-lang="de">3 parallele LLM-Calls</div></div>
-      <div class="stat"><span class="stat-num">~8 MB</span><div class="stat-label" data-lang="en" class="active">Binary vs ~500 MB</div><div class="stat-label" data-lang="de">Binary vs ~500 MB</div></div>
+      <div class="stat"><span class="stat-num">14 LOC</span><div class="stat-label" data-lang="en" class="active">RAG pipeline (Python: 26)</div><div class="stat-label" data-lang="de">RAG-Pipeline (Python: 26)</div></div>
+      <div class="stat"><span class="stat-num">1.2s</span><div class="stat-label" data-lang="en" class="active">3 parallel LLM calls</div><div class="stat-label" data-lang="de">3 parallele LLM-Calls</div></div>
+      <div class="stat"><span class="stat-num">8.6 MB</span><div class="stat-label" data-lang="en" class="active">Binary vs 345 MB venv</div><div class="stat-label" data-lang="de">Binary vs 345 MB venv</div></div>
       <div class="stat"><span class="stat-num">~7×</span><div class="stat-label" data-lang="en" class="active">Bytecode VM</div><div class="stat-label" data-lang="de">Bytecode-VM</div></div>
     </div>
   </div>
@@ -195,29 +196,35 @@ a[data-lang].active { display: inline-block; }
 
       <div class="bench-row">
         <span class="label">Python+LC</span>
-        <div class="track"><div class="fill red" style="width:100%">~80 lines</div></div>
-        <span class="val red">80 LOC</span>
+        <div class="track"><div class="fill red" style="width:100%">26 lines</div></div>
+        <span class="val red">26 LOC</span>
       </div>
       <div class="bench-row">
         <span class="label">Pipe</span>
-        <div class="track"><div class="fill green" style="width:12.5%">~10 lines</div></div>
-        <span class="val green">10 LOC</span>
+        <div class="track"><div class="fill green" style="width:53.8%">14 lines</div></div>
+        <span class="val green">14 LOC</span>
       </div>
-      <p class="bench-note" data-lang="en" class="active">8× less code. The pipeline operator removes the orchestration boilerplate entirely.</p>
-      <p class="bench-note" data-lang="de">8× weniger Code. Der Pipeline-Operator eliminiert das Orchestrierungs-Boilerplate komplett.</p>
+      <p class="bench-note" data-lang="en" class="active">1.9× less code — measured on the real files in <code>benchmarks/python-vs-pipe</code>. Same DeepSeek model on both sides; the Python side additionally needs an embedding provider (Ollama) because DeepSeek has no embeddings API, while Pipe embeds locally with zero setup.</p>
+      <p class="bench-note" data-lang="de">1,9× weniger Code — gemessen an den realen Dateien in <code>benchmarks/python-vs-pipe</code>. Beide Seiten mit demselben DeepSeek-Modell; die Python-Seite braucht zusätzlich einen Embedding-Anbieter (Ollama), weil DeepSeek keine Embedding-API hat, während Pipe lokal ohne Einrichtung embeddet.</p>
 
-      <pre class="inline"><span class="cmt">-- Pipe RAG (~10 lines)</span>
+      <pre class="inline"><span class="cmt">-- Pipe RAG (14 lines)</span>
 ai_provider "deepseek"
 
-docs: read_lines "knowledge_base.txt"
-vectors: embed_batch docs
+docs: [read_file "data/docs/database.txt"]
+push docs (read_file "data/docs/caching.txt")
+push docs (read_file "data/docs/api.txt")
+push docs (read_file "data/docs/deployment.txt")
 
-question: "How does the bytecode VM work?"
-q_vec: embed question
+vectors: embed_batch docs
+q_vec: embed "How do we rate-limit API requests?"
 top: nearest q_vec vectors 3
 
-ask ("Context:\n" ++ (join (map top (at docs)) "\n") ++ "\nQ: " ++ question)
-    > print</pre>
+context: ""
+for idx in top
+    context: context ++ (at docs idx) ++ "\n---\n"
+
+answer: ask ("Context:\n" ++ context ++ "\nQuestion: " ++ "How do we rate-limit API requests?")
+print answer</pre>
     </div>
   </div>
 </section>
@@ -227,26 +234,31 @@ ask ("Context:\n" ++ (join (map top (at docs)) "\n") ++ "\nQ: " ++ question)
   <div class="container">
     <div class="bench-card">
       <div class="bench-title"><span class="icon">⚡</span><h3 data-lang="en" class="active">Parallel LLM calls — wall time</h3><h3 data-lang="de">Parallele LLM-Calls — Laufzeit</h3></div>
-      <p class="bench-sub" data-lang="en" class="active">Three independent LLM calls. Sequentially they cost ~1.3s each. With Pipe's <code>>></code> operator they run concurrently and finish together.</p>
-      <p class="bench-sub" data-lang="de">Drei unabhängige LLM-Calls. Sequentiell kosten sie jeweils ~1,3s. Mit dem <code>>></code>-Operator von Pipe laufen sie gleichzeitig und enden zusammen.</p>
+      <p class="bench-sub" data-lang="en" class="active">Three independent LLM calls (deepseek-v4-flash). Sequential Python takes ~3.3s. Python + <code>asyncio.gather()</code> runs them in ~1.3s. Pipe's <code>>></code> operator: ~1.2s total — with no interpreter/import startup at all.</p>
+      <p class="bench-sub" data-lang="de">Drei unabhängige LLM-Calls (deepseek-v4-flash). Sequentielles Python braucht ~3,3s. Python + <code>asyncio.gather()</code> läuft in ~1,3s. Der <code>>></code>-Operator von Pipe: ~1,2s gesamt — ohne Interpreter-/Import-Startup.</p>
 
       <div class="bench-row">
         <span class="label">Sequential</span>
-        <div class="track"><div class="fill red" style="width:100%">~4s</div></div>
-        <span class="val red">~4.0s</span>
+        <div class="track"><div class="fill red" style="width:100%">~3.3s</div></div>
+        <span class="val red">~3.3s</span>
+      </div>
+      <div class="bench-row">
+        <span class="label">Python+LC asyncio</span>
+        <div class="track"><div class="fill purple" style="width:39.4%">~1.3s</div></div>
+        <span class="val purple">~1.3s</span>
       </div>
       <div class="bench-row">
         <span class="label">Pipe &gt;&gt;</span>
-        <div class="track"><div class="fill green" style="width:37.5%">~1.5s</div></div>
-        <span class="val green">~1.5s</span>
+        <div class="track"><div class="fill green" style="width:36.4%">~1.2s</div></div>
+        <span class="val green">~1.2s</span>
       </div>
-      <p class="bench-note" data-lang="en" class="active">2.7× faster with zero async/await or Promise.all boilerplate. <code>ai_batch</code> scales the same idea to hundreds of texts with built-in rate limiting.</p>
-      <p class="bench-note" data-lang="de">2,7× schneller ohne async/await- oder Promise.all-Boilerplate. <code>ai_batch</code> skaliert dieselbe Idee auf hunderte Texte mit eingebautem Rate-Limiting.</p>
+      <p class="bench-note" data-lang="en" class="active">2.8× faster than sequential. Both parallel versions are LLM-latency-bound, but the Python process needs ~7s of interpreter + import startup (<code>langchain</code>, <code>openai</code>, ...) before the first call — Pipe starts in milliseconds. <code>ai_batch</code> scales the same idea to hundreds of texts with built-in rate limiting.</p>
+      <p class="bench-note" data-lang="de">2,8× schneller als sequentiell. Beide Parallel-Varianten sind LLM-Latenz-gebunden, aber der Python-Prozess braucht ~7s Interpreter- + Import-Startup (<code>langchain</code>, <code>openai</code>, ...) vor dem ersten Call — Pipe startet in Millisekunden. <code>ai_batch</code> skaliert dieselbe Idee auf hunderte Texte mit eingebautem Rate-Limiting.</p>
 
-      <pre class="inline"><span class="cmt">-- 3 calls in parallel — ~1.5s total</span>
-a: "Capital of France?"  >> ask
-b: "Capital of Germany?" >> ask
-c: "Capital of Italy?"   >> ask
+      <pre class="inline"><span class="cmt">-- 3 calls in parallel — ~1.2s total</span>
+a: "Löse 7*8+4 und antworte nur mit der Zahl."  >> ask
+b: "Löse 12*12 und antworte nur mit der Zahl."  >> ask
+c: "Löse 100/4 und antworte nur mit der Zahl."  >> ask
 
 print a ++ " | " ++ b ++ " | " ++ c</pre>
     </div>
@@ -258,26 +270,26 @@ print a ++ " | " ++ b ++ " | " ++ c</pre>
   <div class="container">
     <div class="bench-card">
       <div class="bench-title"><span class="icon">💾</span><h3 data-lang="en" class="active">Deploy size — binary vs. Docker image</h3><h3 data-lang="de">Deploy-Größe — Binary vs. Docker-Image</h3></div>
-      <p class="bench-sub" data-lang="en" class="active">A typical Python + LangChain deployment ships as a ~500 MB Docker image with venv, pip and dependencies. Pipe is a single statically-linked binary.</p>
-      <p class="bench-sub" data-lang="de">Ein typisches Python-+LangChain-Deployment ist ein ~500-MB-Docker-Image mit venv, pip und Abhängigkeiten. Pipe ist eine einzige statisch gelinkte Binary.</p>
+      <p class="bench-sub" data-lang="en" class="active">The real Python venv behind the examples above (<code>langchain</code>, <code>langchain-deepseek</code>, <code>langchain-ollama</code>, <code>faiss-cpu</code>, <code>fastapi</code>) measures <strong>345 MB</strong> on disk — Pipe is one statically-linked <strong>8.6 MB</strong> binary.</p>
+      <p class="bench-sub" data-lang="de">Das reale Python-venv hinter den obigen Beispielen (<code>langchain</code>, <code>langchain-deepseek</code>, <code>langchain-ollama</code>, <code>faiss-cpu</code>, <code>fastapi</code>) misst <strong>345 MB</strong> auf der Platte — Pipe ist eine einzige statisch gelinkte <strong>8,6-MB</strong>-Binary.</p>
 
       <div class="bench-row">
         <span class="label">Python+LC</span>
-        <div class="track"><div class="fill red" style="width:100%">~500 MB</div></div>
-        <span class="val red">~500 MB</span>
+        <div class="track"><div class="fill red" style="width:100%">345 MB</div></div>
+        <span class="val red">345 MB</span>
       </div>
       <div class="bench-row">
         <span class="label">Pipe</span>
-        <div class="track"><div class="fill green" style="width:1.6%">~8 MB</div></div>
-        <span class="val green">~8 MB</span>
+        <div class="track"><div class="fill green" style="width:2.5%">8.6 MB</div></div>
+        <span class="val green">8.6 MB</span>
       </div>
       <div class="bench-row">
         <span class="label">Pipe (UPX)</span>
-        <div class="track"><div class="fill green" style="width:0.58%">~2.9 MB</div></div>
+        <div class="track"><div class="fill green" style="width:0.9%">~2.9 MB</div></div>
         <span class="val green">~2.9 MB</span>
       </div>
-      <p class="bench-note" data-lang="en" class="active">Deploy to a server or Raspberry Pi with <code>scp pipe binary</code>. No venv, no pip, no Docker, no runtime dependencies.</p>
-      <p class="bench-note" data-lang="de">Deploy auf Server oder Raspberry Pi per <code>scp pipe binary</code>. Kein venv, kein pip, kein Docker, keine Laufzeit-Abhängigkeiten.</p>
+      <p class="bench-note" data-lang="en" class="active">40× smaller. Deploy to a server or Raspberry Pi with <code>scp pipe binary</code>. No venv, no pip, no Docker, no runtime dependencies.</p>
+      <p class="bench-note" data-lang="de">40× kleiner. Deploy auf Server oder Raspberry Pi per <code>scp pipe binary</code>. Kein venv, kein pip, kein Docker, keine Laufzeit-Abhängigkeiten.</p>
     </div>
   </div>
 </section>
@@ -318,12 +330,12 @@ print a ++ " | " ++ b ++ " | " ++ c</pre>
     <div class="compare-table">
       <table>
         <tr><th></th><th>Python + LangChain</th><th>Pipe</th></tr>
-        <tr><td><span data-lang="en" class="active">RAG pipeline</span><span data-lang="de">RAG-Pipeline</span></td><td><span data-lang="en" class="active">~80 LOC</span><span data-lang="de">~80 Zeilen</span></td><td><span data-lang="en" class="active">~10 LOC</span><span data-lang="de">~10 Zeilen</span></td></tr>
+        <tr><td><span data-lang="en" class="active">RAG pipeline</span><span data-lang="de">RAG-Pipeline</span></td><td><span data-lang="en" class="active">26 LOC</span><span data-lang="de">26 Zeilen</span></td><td><span data-lang="en" class="active">14 LOC</span><span data-lang="de">14 Zeilen</span></td></tr>
         <tr><td><span data-lang="en" class="active">Sandbox LLM access</span><span data-lang="de">LLM-Zugriff sandboxen</span></td><td><span data-lang="en" class="active">Custom middleware</span><span data-lang="de">Custom Middleware</span></td><td><span data-lang="en" class="active">One sandbox_profile block</span><span data-lang="de">Ein sandbox_profile-Block</span></td></tr>
         <tr><td><span data-lang="en" class="active">Switch AI provider</span><span data-lang="de">KI-Provider wechseln</span></td><td><span data-lang="en" class="active">Rewrite SDK calls</span><span data-lang="de">SDK-Calls umschreiben</span></td><td style="font-family:var(--mono);color:var(--green)">ai_provider "deepseek"</td></tr>
         <tr><td><span data-lang="en" class="active">Deploy to server</span><span data-lang="de">Auf Server deployen</span></td><td><span data-lang="en" class="active">Docker + venv + pip</span><span data-lang="de">Docker + venv + pip</span></td><td><span data-lang="en" class="active">scp pipe binary</span><span data-lang="de">scp pipe binary</span></td></tr>
         <tr><td><span data-lang="en" class="active">Parallel LLM calls</span><span data-lang="de">Parallele LLM-Calls</span></td><td><span data-lang="en" class="active">asyncio.gather() boilerplate</span><span data-lang="de">asyncio.gather()-Boilerplate</span></td><td style="font-family:var(--mono);color:var(--green)">>> operator, ai_batch</td></tr>
-        <tr><td><span data-lang="en" class="active">Binary size (with deps)</span><span data-lang="de">Binary-Größe (mit Deps)</span></td><td><span data-lang="en" class="active">~500 MB</span><span data-lang="de">~500 MB</span></td><td><span data-lang="en" class="active">~8 MB</span><span data-lang="de">~8 MB</span></td></tr>
+        <tr><td><span data-lang="en" class="active">Binary size (with deps)</span><span data-lang="de">Binary-Größe (mit Deps)</span></td><td><span data-lang="en" class="active">345 MB venv</span><span data-lang="de">345 MB venv</span></td><td><span data-lang="en" class="active">8.6 MB</span><span data-lang="de">8.6 MB</span></td></tr>
       </table>
     </div>
   </div>
@@ -336,10 +348,14 @@ print a ++ " | " ++ b ++ " | " ++ c</pre>
       <h3 data-lang="en" class="active">How these numbers were measured</h3>
       <h3 data-lang="de">Wie diese Zahlen gemessen wurden</h3>
       <ul>
-        <li data-lang="en" class="active">RAG and parallel-call timings are representative measurements of the pipeline patterns shown on this page; wall times depend on provider latency.</li>
-        <li data-lang="de">RAG- und Parallel-Call-Zeiten sind repräsentative Messungen der hier gezeigten Pipeline-Muster; die Laufzeit hängt von der Provider-Latenz ab.</li>
-        <li data-lang="en" class="active">Binary sizes: <code>go build -ldflags="-s -w" -trimpath</code>. UPX figure is <code>make build-upx</code>.</li>
-        <li data-lang="de">Binary-Größen: <code>go build -ldflags="-s -w" -trimpath</code>. UPX-Wert via <code>make build-upx</code>.</li>
+        <li data-lang="en" class="active">All LOC and wall-time numbers above are measured on the real files in <code>benchmarks/python-vs-pipe/</code> (Pipe: <code>pipe/*.pipe</code>, Python: <code>python/*.py</code>). Rerun with <code>python3 tools/measure.py --run</code>.</li>
+        <li data-lang="de">Alle LOC- und Laufzeit-Zahlen oben sind an den realen Dateien in <code>benchmarks/python-vs-pipe/</code> gemessen (Pipe: <code>pipe/*.pipe</code>, Python: <code>python/*.py</code>). Neu messen mit <code>python3 tools/measure.py --run</code>.</li>
+        <li data-lang="en" class="active">Both sides use the same model (<code>deepseek-v4-flash</code>). The Python RAG example additionally needs Ollama <code>nomic-embed-text</code> for embeddings — DeepSeek has no embeddings API — while Pipe's <code>embed_batch</code> works locally with zero setup.</li>
+        <li data-lang="de">Beide Seiten nutzen dasselbe Modell (<code>deepseek-v4-flash</code>). Das Python-RAG-Beispiel braucht zusätzlich Ollama <code>nomic-embed-text</code> für Embeddings — DeepSeek hat keine Embedding-API — während <code>embed_batch</code> von Pipe lokal ohne Einrichtung funktioniert.</li>
+        <li data-lang="en" class="active">Wall times depend on provider latency; the Python figures include ~7s interpreter/import startup, Pipe includes none.</li>
+        <li data-lang="de">Laufzeiten hängen von der Provider-Latenz ab; die Python-Werte enthalten ~7s Interpreter-/Import-Startup, Pipe keinen.</li>
+        <li data-lang="en" class="active">Binary sizes: <code>go build -ldflags="-s -w" -trimpath</code>. UPX figure is <code>make build-upx</code>. Python size is the real <code>du -sh</code> of the benchmark venv.</li>
+        <li data-lang="de">Binary-Größen: <code>go build -ldflags="-s -w" -trimpath</code>. UPX-Wert via <code>make build-upx</code>. Python-Größe ist das reale <code>du -sh</code> des Benchmark-venv.</li>
         <li data-lang="en" class="active">Bytecode VM speedup is the documented ~7× for compute-heavy programs; measure on your machine with <code>pipe -bench</code>.</li>
         <li data-lang="de">Bytecode-VM-Beschleunigung ist der dokumentierte ~7×-Wert für rechenlastige Programme; auf dem eigenen Rechner messen mit <code>pipe -bench</code>.</li>
         <li data-lang="en" class="active">Run every example yourself in the <a href="playground.html">browser playground</a> — no install needed.</li>

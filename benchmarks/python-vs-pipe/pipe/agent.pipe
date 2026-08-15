@@ -1,0 +1,20 @@
+--! AI agent with tool calling: the LLM decides when to call get_weather.
+--! Run: export DEEPSEEK_API_KEY=... && pipe benchmarks/python-vs-pipe/pipe/agent.pipe
+
+ai_provider "deepseek"
+
+-- Define a weather tool
+fn get_weather city
+    match city
+        | "Berlin" -> "22°C, sunny"
+        | "London" -> "15°C, rainy"
+        | "Paris" -> "25°C, clear"
+        | _ -> city ++ ": No data"
+
+-- Register the tool
+schema: {city: "Name of the city"}
+ai_tool "get_weather" "Get current weather for a city" schema get_weather
+
+-- The LLM autonomously calls the tool
+result: ai_with_tools "You are a weather expert. Use get_weather to answer." "What's the weather in Berlin, London, and Paris?"
+print result

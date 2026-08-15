@@ -9,6 +9,9 @@ AGENTS.md
 __pycache__/
 *.pyc
 
+# Python virtualenvs
+.venv/
+
 # Go
 *.exe
 *.test

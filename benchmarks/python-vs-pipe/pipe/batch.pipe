@@ -1,0 +1,16 @@
+--! Batch processing: classify 10 article titles with ai_batch.
+--! Run: export DEEPSEEK_API_KEY=... && pipe benchmarks/python-vs-pipe/pipe/batch.pipe
+
+ai_provider "deepseek"
+ai_rate_limit 10
+
+-- Load 10 article titles
+articles: parse_json (read_file "data/articles.json")
+titles: map articles (fn a: get a "title")
+
+t: now
+results: ai_batch "Classify the topic of this article title. Answer with one word." titles
+print ("Fertig in " ++ (to_str ((now) - t)) ++ "s für " ++ (to_str (len results)) ++ " Artikel")
+
+for r in results
+    print r

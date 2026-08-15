@@ -1,0 +1,21 @@
+--! AI Summarize API: HTTP server on :8787, POST /summarize returns summary.
+--! Run: export DEEPSEEK_API_KEY=... && pipe benchmarks/python-vs-pipe/pipe/summarize_api.pipe
+--! Test: curl -X POST http://localhost:8787/summarize -d '{"text":"..."}'
+
+ai_provider "deepseek"
+
+fn summarize_text text
+    summarize text
+
+fn handle req
+    if (get req "path") == "/summarize"
+        body: parse_json (get req "body")
+        result: summarize_text (get body "text")
+        {status: 200, headers: {}, body: (to_json {result: result})}
+    else
+        {status: 404, headers: {}, body: "{\"error\":\"not found\"}"}
+
+server: http_server "127.0.0.1:8787" handle
+print "Server running on :8787"
+sleep 60000
+http_close server

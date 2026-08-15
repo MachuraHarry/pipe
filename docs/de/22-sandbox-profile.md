@@ -69,6 +69,7 @@ Profile werden mit dem `sandbox_profile`-Builtin definiert. Die Konfiguration is
 | `fs` | String | `"none"`, `"read-only"`, `"temp-only"`, `"full"` |
 | `network` | Bool | HTTP/TCP-Operationen erlauben |
 | `exec` | Bool | Shell-Befehle erlauben |
+| `exec_whitelist` | List | Liste erlaubter ausführbarer Programme. Wenn gesetzt, führt `exec` nur Befehle aus, deren Programm (Basename, nach Entfernen von env-Zuweisungen, Shell-Operatoren, `cd` und Quoting) einem Eintrag entspricht. Leer = alles erlaubt |
 | `ai` | Bool | KI-Chat/Embedding-Aufrufe erlauben |
 | `timeout` | Int | Max. Sekunden pro `exec`/`tcp_connect`/`tcp_read`/`sleep`-Operation (0 = unbegrenzt) |
 | `env` | Map | Umgebungsvariablen, die in `exec` injiziert und von `env` zurückgegeben werden. Bei aktiven Profilen wird die echte Prozess-Umgebung nie preisgegeben |
@@ -97,6 +98,9 @@ sandbox_profile "prison" {fs: "none", network: false, exec: false, ai: false}
 sandbox_profile "guarded-agent"
     {fs: "read-only", network: true, network_whitelist: ["api.github.com", "api.openai.com"],
      exec: false, ai: true, budget: 0.1, max_tool_calls: 10, audit_log: true}
+
+-- Shell-Zugriff, aber nur auf eine Handvoll vertrauenswürdiger Programme
+sandbox_profile "dev-tools" {fs: "read-only", network: false, exec: true, exec_whitelist: ["git", "go", "make"]}
 ```
 
 ---
@@ -126,7 +130,8 @@ dieses Profil geprüft.
 > Rechte als das aktive gewährt — einschließlich zurück zu `none` — wird mit
 > einem `E_SANDBOX`-Fehler abgelehnt. Ein Zielprofil gilt als Teilmenge
 > (erlaubt), wenn es über `fs`, `network` (inkl. Whitelist und deren
-> Port-Bindung), `exec`, `ai`, `budget`, `max_tool_calls` und `timeout` nicht
+> Port-Bindung), `exec` (inkl. `exec_whitelist`), `ai`, `budget`,
+> `max_tool_calls` und `timeout` nicht
 > mehr Rechte als das aktive Profil einräumt (`0` bei den letzten drei bedeutet
 > „unbegrenzt").
 >
@@ -232,7 +237,7 @@ Das LLM kann `get_weather` erfolgreich aufrufen, aber `delete_logs` gibt einen S
 
 ---
 
-## 22.9 Budget, Netzwerk-Whitelist & Audit-Log
+## 22.9 Budget, Whitelists & Audit-Log
 
 ### Budget-Durchsetzung (`budget`, `budget_spent`)
 
@@ -282,6 +287,38 @@ set_sandbox "web-agent"
 http_get "https://api.github.com/repos/MachuraHarry/pipe"   -- erlaubt
 -- http_get "https://example.com"                           -- E_SANDBOX: nicht in Whitelist
 ```
+
+### Exec-Whitelist (`exec_whitelist`)
+
+`exec_whitelist` beschränkt, welche ausführbaren Programme `exec` ausführen darf.
+Jeder Eintrag ist der **Name eines Programms** (sein Basename). Der Befehl wird
+vor dem Matching geparst: führende Umgebungszuweisungen (`FOO=bar cmd`),
+Shell-Operatoren (`&&`, `||`, `;`, `|`, `&`), `cd <dir>` (mit Argument) und
+Quoting werden entfernt, ein Pfad wird auf seinen Basename reduziert
+(`/usr/bin/git` → `git`). Ein Eintrag wie `"git"` matcht also:
+
+```pipe
+exec "git diff"
+exec "cd repo && git log"
+exec "GIT_PAGER= git diff"
+exec "/usr/bin/git status"
+```
+
+Alles andere wird abgelehnt:
+
+```pipe
+sandbox_profile "dev-tools" {fs: "read-only", network: false, exec: true, exec_whitelist: ["git", "go", "make"]}
+set_sandbox "dev-tools"
+
+exec "git status"        -- erlaubt
+exec "go build ./..."    -- erlaubt
+exec "rm -rf /"          -- E_SANDBOX: command 'rm -rf /' (rm) not in exec whitelist
+```
+
+Eine **leere** `exec_whitelist` bedeutet *alles erlaubt* (vorbehaltlich
+`exec: true`). `exec_whitelist` nimmt an der **Ratschen-Prüfung** teil: Ein
+Wechsel zu einem Profil, das ein Programm whitelistet, das im aktiven Profil
+nicht erlaubt ist, wird abgelehnt.
 
 ### Tool-Call-Limit (`max_tool_calls`)
 

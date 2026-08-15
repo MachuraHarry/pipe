@@ -47,7 +47,7 @@ read_file "errors.log"
     > print
 ```
 
-## Available Modules (21)
+## Available Modules (22)
 
 | Module | Description | Functions |
 |--------|-------------|-----------|
@@ -71,6 +71,7 @@ read_file "errors.log"
 | `pipe-web` | Web framework (ASP.NET / Express style) | `app`, `route_get`, `post`, `put`, `delete`, `use`, `listen`, `serve`, `json`, `ok`, `text`, `html`, `redirect`, `not_found` |
 | `sqlite` | Pure-Pipe SQL database engine | `db_open`, `db_close`, `db_exec`, `db_query`, `q`, `exec` |
 | `rag-pipe` | RAG pipeline | `index_create`, `index_add`, `index_search`, `index_ask` |
+| `docs-pipe` | Documentation-native RAG (heading-aware chunking, hybrid keyword + semantic search, cited answers, incremental re-indexing) | `doc_index`, `doc_index_status`, `doc_search`, `doc_ask`, `doc_reindex`, `doc_close` |
 | `telegram-bot` | Telegram Bot API client (long polling) | `tg_bot`, `tg_me`, `tg_get_updates`, `tg_send_text`, `tg_send_md`, `tg_send_html`, `tg_send_mdv2`, `tg_reply_text`, `tg_send_photo_url`, `tg_send_photo_file_id`, `tg_send_buttons`, `tg_send_chat_action`, `tg_edit_text`, `tg_edit_md`, `tg_edit_html`, `tg_delete_message`, `tg_forward_message`, `tg_set_reaction`, `tg_answer_callback_query`, `tg_get_chat`, `tg_get_chat_member` |
 
 ## Contributing a Module

@@ -69,6 +69,7 @@ Define profiles with the `sandbox_profile` builtin. The config is a map with the
 | `fs` | string | `"none"`, `"read-only"`, `"temp-only"`, `"full"` |
 | `network` | bool | Allow HTTP/TCP operations |
 | `exec` | bool | Allow shell command execution |
+| `exec_whitelist` | list | List of allowed executables. When set, `exec` only runs commands whose executable (the basename, after stripping env assignments, shell operators, `cd`, and quoting) matches an entry. Empty = allow all |
 | `ai` | bool | Allow AI chat/embedding calls |
 | `timeout` | int | Max seconds per `exec`, `tcp_connect`/`tcp_read` or `sleep` operation (0 = no limit) |
 | `env` | map | Environment variables injected into `exec` and returned by `env`. Under an active profile the real process environment is never exposed |
@@ -97,6 +98,9 @@ sandbox_profile "prison" {fs: "none", network: false, exec: false, ai: false}
 sandbox_profile "guarded-agent"
     {fs: "read-only", network: true, network_whitelist: ["api.github.com", "api.openai.com"],
      exec: false, ai: true, budget: 0.1, max_tool_calls: 10, audit_log: true}
+
+-- Allow shell access, but only to a handful of trusted executables
+sandbox_profile "dev-tools" {fs: "read-only", network: false, exec: true, exec_whitelist: ["git", "go", "make"]}
 ```
 
 ---
@@ -126,7 +130,8 @@ against this profile.
 > active one — including back to `none` — is rejected with an `E_SANDBOX`
 > error. A target profile is considered a subset (permitted) if it grants no
 > more than the active profile across `fs`, `network` (incl. whitelist and its
-> port pinning), `exec`, `ai`, `budget`, `max_tool_calls` and `timeout`
+> port pinning), `exec` (incl. `exec_whitelist`), `ai`, `budget`,
+> `max_tool_calls` and `timeout`
 > (`0` in the latter three means "unlimited").
 >
 > **Locking:** When the sandbox was started with the `--sandbox-profile` CLI
@@ -229,7 +234,7 @@ The LLM can call `get_weather` successfully, but `delete_logs` returns a sandbox
 
 ---
 
-## 22.9 Budget, Network Whitelist & Audit Log
+## 22.9 Budget, Whitelists & Audit Log
 
 ### Budget Enforcement (`budget`, `budget_spent`)
 
@@ -279,6 +284,38 @@ http_get "https://api.github.com/repos/MachuraHarry/pipe"   -- allowed
 http_get "https://api.github.com/repos/MachuraHarry/pipe" > redirect to "https://internal.example.com"  -- blocked
 -- http_get "https://example.com"                           -- E_SANDBOX: not in whitelist
 ```
+
+### Exec Whitelist (`exec_whitelist`)
+
+`exec_whitelist` restricts which executables `exec` may run. Each entry is the
+**name of an executable** (its basename). The command is parsed before matching:
+leading environment assignments (`FOO=bar cmd`), shell operators (`&&`, `||`,
+`;`, `|`, `&`), `cd <dir>` (and its argument) and quoting are stripped, and a
+path is reduced to its basename (`/usr/bin/git` → `git`). So an entry like
+`"git"` matches:
+
+```pipe
+exec "git diff"
+exec "cd repo && git log"
+exec "GIT_PAGER= git diff"
+exec "/usr/bin/git status"
+```
+
+But rejects anything else:
+
+```pipe
+sandbox_profile "dev-tools" {fs: "read-only", network: false, exec: true, exec_whitelist: ["git", "go", "make"]}
+set_sandbox "dev-tools"
+
+exec "git status"        -- allowed
+exec "go build ./..."    -- allowed
+exec "rm -rf /"          -- E_SANDBOX: command 'rm -rf /' (rm) not in exec whitelist
+```
+
+An **empty** `exec_whitelist` means *allow all* (subject to `exec: true`). Note
+that `exec_whitelist` participates in the profile **ratchet** check: switching
+to a profile that whitelists an executable not allowed by the active profile is
+rejected.
 
 ### Tool Call Limits (`max_tool_calls`)
 

@@ -64,6 +64,24 @@ It builds, indexes `docs/en`, serves on `:8090`, and opens your browser. What yo
 - **Stats** — files, chunks, vector dimension, AI call count, and cost, plus a log of your recent queries.
 - **A real menu** — sticky nav, burger menu on mobile, progress bar on every request, copy-to-clipboard buttons.
 
+What it looks like:
+
+![docs-pipe dashboard — live search, ask, and stats](docs-pipe-dashboard.png)
+
+*The landing page: live search, the ask box, and index stats.*
+
+![Cited answer with clickable sources](docs-pipe-ask.png)
+
+*The ask page — a cited answer with its sources below it.*
+
+![Live search, matched terms highlighted](docs-pipe-search.png)
+
+*Search as you type — results appear debounced, with matched terms highlighted.*
+
+![Source viewer](docs-pipe-doc.png)
+
+*Click any result to open the source file, scrolled to the exact line.*
+
 The same file doubles as an **MCP server**. Run it with `PIPE_MODE=mcp` and it exposes three tools — `search_docs`, `ask_docs`, `read_doc` — so Claude Desktop, Cursor, or any MCP client can query your documentation directly, in the editor.
 
 ```bash
@@ -149,6 +167,24 @@ Er baut, indexiert `docs/en`, startet auf `:8090` und öffnet den Browser. Was d
 - **Ask** — eine zitierte Antwort mit den darunter gerenderten, klickbaren Quellen.
 - **Stats** — Dateien, Chunks, Vektor-Dimension, KI-Aufrufe und Kosten, plus ein Log deiner letzten Suchen.
 - **Ein echtes Menü** — Sticky-Navigation, Burger-Menü auf Mobile, Fortschrittsbalken bei jeder Anfrage, Copy-to-Clipboard-Buttons.
+
+So sieht es aus:
+
+![docs-pipe Dashboard — Live-Suche, Ask und Stats](docs-pipe-dashboard.png)
+
+*Die Startseite: Live-Suche, Ask-Box und Index-Statistik.*
+
+![Zitierte Antwort mit klickbaren Quellen](docs-pipe-ask.png)
+
+*Die Ask-Seite — eine zitierte Antwort mit den Quellen darunter.*
+
+![Live-Suche mit markierten Trefferbegriffen](docs-pipe-search.png)
+
+*Suche beim Tippen — Ergebnisse erscheinen debounced, Trefferbegriffe markiert.*
+
+![Quelltext-Viewer](docs-pipe-doc.png)
+
+*Klick auf ein Ergebnis öffnet die Quelldatei, gescrollt zur exakten Zeile.*
 
 Dieselbe Datei ist zugleich ein **MCP-Server**. Mit `PIPE_MODE=mcp` stellt sie drei Tools bereit — `search_docs`, `ask_docs`, `read_doc` — sodass Claude Desktop, Cursor oder jeder MCP-Client deine Dokumentation direkt im Editor befragen kann.
 

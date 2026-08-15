@@ -75,6 +75,7 @@ main .pg-sub{color:var(--fg2);margin-bottom:40px;font-size:0.9rem}
 .md a:hover{text-decoration:underline}
 .md strong{font-weight:700;color:var(--orange)}
 .md code{background:var(--bg3);padding:2px 6px;border-radius:4px;font-family:var(--mono);font-size:0.83em;color:var(--accent2)}
+.md img{max-width:100%;border-radius:var(--radius);margin:10px 0}
 .md pre{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:16px 20px;overflow-x:auto;margin-bottom:14px}
 .md pre code{background:none;padding:0;font-size:0.82rem;color:var(--fg)}
 pre.line-numbers{position:relative;padding-left:3.8em;counter-reset:linenumber}
@@ -245,7 +246,7 @@ if(ln.match(/^\d+\.\s+/)){var ol=[];while(i<l.length&&l[i].match(/^\d+\.\s+/)){o
 if(ln.trim()===''){i++;continue}
 var pl=[];while(i<l.length&&l[i].trim()!==''&&!l[i].match(/^(#{1,6}\s|^> |^```|^[\-\*\+]\s|^\d+\.\s|^---|^\|)/)){pl.push(l[i]);i++}if(pl.length)o.push('<p>'+inline(pl.join(' '))+'</p>')
 }return o.join('\n')}
-function inline(t){t=t.replace(/\*\*\*(.+?)\*\*\*/g,'<strong><em>$1</em></strong>');t=t.replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>');t=t.replace(/`([^`]+)`/g,'<code>$1</code>');t=t.replace(/~~(.+?)~~/g,'<del>$1</del>');t=t.replace(/\[([^\]]+)\]\(([^)]+)\)/g,'<a href="$2">$1</a>');return t}
+function inline(t){t=t.replace(/\*\*\*(.+?)\*\*\*/g,'<strong><em>$1</em></strong>');t=t.replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>');t=t.replace(/`([^`]+)`/g,'<code>$1</code>');t=t.replace(/~~(.+?)~~/g,'<del>$1</del>');t=t.replace(/!\[([^\]]*)\]\(([^)]+)\)/g,'<img src="$2" alt="$1">');t=t.replace(/\[([^\]]+)\]\(([^)]+)\)/g,'<a href="$2">$1</a>');return t}
 
 var T={blogTitle:{en:'Blog',de:'Blog'},blogSub:{en:'Updates, tutorials, and deep dives.',de:'Updates, Tutorials und Deep Dives.'},back:{en:'All posts',de:'Alle Beiträge'},loading:{en:'Loading…',de:'Lade…'},loadErr:{en:'Failed to load post.',de:'Beitrag konnte nicht geladen werden.'},noPosts:{en:'No posts yet.',de:'Noch keine Beiträge.'},all:{en:'all',de:'alle'},copyLink:{en:'Copy link',de:'Link kopieren'},shareX:{en:'Share',de:'Teilen'}};
 

@@ -1,4 +1,4 @@
-.PHONY: build run test clean repl api lsp vsix fmt stats
+.PHONY: build run test clean repl api lsp vsix fmt stats docs-dashboard
 
 stats:
 	go run ./scripts/stats
@@ -37,6 +37,9 @@ test-integration:
 
 repl: build
 	./bin/pipe
+
+docs-dashboard: build
+	./scripts/docs-dashboard.sh
 
 clean:
 	rm -rf bin/

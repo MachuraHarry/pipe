@@ -1,0 +1,211 @@
+--! docs-pipe dashboard: pipe-web + docs-pipe + sqlite + DeepSeek.
+--! Indexes a Markdown documentation tree (PIPE_DOCS_DIR, default docs/en)
+--! and serves a web UI for hybrid search + cited AI answers.
+--! Run with: PIPE_DOCS_DIR=docs/en DEEPSEEK_API_KEY=... ./bin/pipe examples/docs_pipe_dashboard.pipe
+
+import "sqlite.pipe"
+import "../../pipe-modules/docs-pipe/module.pipe"
+import "../../pipe-modules/pipe-web/module.pipe"
+
+ai_provider "deepseek"
+
+--- === State === ---
+
+__state: {idx: nil, dir: ""}
+
+fn init _
+    dir: env "PIPE_DOCS_DIR"
+    if dir == nil || dir == ""
+        dir: "docs/en"
+    idx: doc_index dir {lang: "en", db: ":memory:"}
+    set __state "idx" idx
+    set __state "dir" dir
+    print ("docs-pipe dashboard -- indexed " ++ dir)
+
+--- === Helpers === ---
+
+fn esc_html s
+    if s == nil
+        s: ""
+    s: replace_all s "&" "&amp;"
+    s: replace_all s "<" "&lt;"
+    s: replace_all s ">" "&gt;"
+    s: replace_all s "\"" "&quot;"
+    s
+
+fn nl2br s
+    s: replace_all s "\n" "<br>"
+    s
+
+fn page_top title subtitle
+    "<!doctype html><html><head><title>" ++ title ++ "</title><meta charset=utf-8><meta name=viewport content='width=device-width,initial-scale=1'>
+<style>body{font-family:system-ui,sans-serif;max-width:760px;margin:32px auto;padding:20px;background:#0a0a0f;color:#e0e0e8}
+h1{color:#7c5cfc;margin:0}a{color:#6cd4f2;text-decoration:none}code{background:#1a1a24;padding:2px 6px;border-radius:4px}
+.card{background:#1a1a24;border-radius:8px;padding:20px;margin:14px 0}
+.card h2{margin-top:0;color:#ff9e64;font-size:14px;text-transform:uppercase;letter-spacing:1px}
+label{display:block;margin:10px 0 4px;font-weight:600;color:#c0c0d0;font-size:14px}
+input[type=text]{width:100%;box-sizing:border-box;background:#12121c;color:#e0e0e8;border:1px solid #33334a;border-radius:6px;padding:10px;font-size:14px;font-family:inherit}
+input:focus{outline:none;border-color:#7c5cfc}
+.btn{display:inline-block;margin-top:12px;padding:9px 22px;background:#7c5cfc;color:#fff;border:none;border-radius:6px;font-size:14px;cursor:pointer;font-weight:600}
+.btn:hover{background:#6b48e0}
+.btn.second{background:#33334a}.btn.second:hover{background:#44445a}
+.result{background:#12121c;border:1px solid #22223a;border-left:3px solid #7c5cfc;border-radius:0 6px 6px 0;padding:14px 16px;margin:10px 0}
+.result .score{color:#6cd4f2;font-weight:700;font-size:13px}
+.result .src{color:#9b8ce8;font-size:13px}
+.result .snip{color:#b0b0c0;font-size:13px;line-height:1.5;margin-top:6px}
+.answer{background:#12121c;border:1px solid #22223a;border-left:3px solid #ff9e64;border-radius:0 6px 6px 0;padding:18px;margin:14px 0;line-height:1.7}
+.muted{color:#666680;font-size:13px}
+.big-q{color:#fff;font-size:17px;font-weight:600}
+</style></head>
+<body>
+<h1>" ++ subtitle ++ "</h1>
+<p class=muted>" ++ title ++ "</p>"
+
+fn page_bottom _
+    "<div style='margin-top:28px;padding-top:14px;border-top:1px solid #222233;color:#555568;font-size:12px'>docs-pipe dashboard — pipe-web + docs-pipe + sqlite + DeepSeek</div>
+</body></html>"
+
+fn index_status idx
+    doc_index_status idx
+
+fn render_result r
+    title: esc_html (get r "heading")
+    if title == ""
+        title: esc_html (path_base (get r "path"))
+    src: (esc_html (get r "path")) ++ ":" ++ (to_str (get r "line_start"))
+    snip: esc_html (get r "text")
+    if (len snip) > 220
+        snip: (substring snip 0 220) ++ "..."
+    out: "<div class=result>"
+    out: out ++ "<div style='font-weight:700;color:#fff'>" ++ title ++ "</div>"
+    out: out ++ "<div class=src>" ++ src ++ "</div>"
+    out: out ++ "<div class=score>score " ++ (to_str (get r "score")) ++ "</div>"
+    out: out ++ "<div class=snip>" ++ snip ++ "</div>"
+    out: out ++ "</div>"
+    out
+
+--- === Pages === ---
+
+fn landing_page req
+    idx: get __state "idx"
+    s: index_status idx
+    out: page_top ("indexed " ++ (get __state "dir")) "docs-pipe"
+    out: out ++ "<div class=card><h2>Ask the docs</h2>"
+    out: out ++ "<form action=/ask method=get><input type=text name=q placeholder='Ask a question (answers cite sources)...'><button class=btn type=submit>Ask AI</button></form></div>"
+    out: out ++ "<div class=card><h2>Search</h2>"
+    out: out ++ "<form action=/search method=get><input type=text name=q placeholder='Search by meaning + keywords...'><button class='btn second' type=submit>Search</button></form></div>"
+    out: out ++ "<p style='margin-top:20px'><span class=muted>"
+    out: out ++ (to_str (get s "files")) ++ " files · " ++ (to_str (get s "chunks")) ++ " chunks · lang " ++ (get s "lang")
+    out: out ++ " · <a href=/reindex>reindex</a> · <a href=/health>health</a></span></p>"
+    out: out ++ (page_bottom 0)
+    html 200 out
+
+fn search_page req
+    query: get req "query"
+    q: get query "q"
+    if q == nil || q == ""
+        redirect 302 "/"
+    else
+        idx: get __state "idx"
+        out: page_top ("results for: " ++ (esc_html q)) "Search"
+        out: out ++ "<p class=big-q>Search: " ++ (esc_html q) ++ "</p>"
+        try
+            results: doc_search idx q 8
+            if (len results) == 0
+                out: out ++ "<p class=muted>No matches.</p>"
+            else
+                i: 0
+                while i < (len results)
+                    out: out ++ (render_result (at results i))
+                    i: i + 1
+            out: out ++ (page_bottom 0)
+            html 200 out
+        catch e
+            html 500 (page_top "search failed" "Error" ++ "<p class=muted>" ++ (esc_html e) ++ "</p>" ++ (page_bottom 0))
+
+fn ask_page req
+    query: get req "query"
+    q: get query "q"
+    if q == nil || q == ""
+        redirect 302 "/"
+    else
+        idx: get __state "idx"
+        out: page_top ("answer for: " ++ (esc_html q)) "Ask"
+        out: out ++ "<p class=big-q>Question: " ++ (esc_html q) ++ "</p>"
+        try
+            res: doc_ask idx q 4
+            out: out ++ "<div class=answer>" ++ (nl2br (esc_html (get res "answer"))) ++ "</div>"
+            srcs: get res "sources"
+            if (len srcs) > 0
+                out: out ++ "<div class=card><h2>Sources</h2>"
+                i: 0
+                while i < (len srcs)
+                    out: out ++ (render_result (at srcs i))
+                    i: i + 1
+                out: out ++ "</div>"
+            out: out ++ (page_bottom 0)
+            html 200 out
+        catch e
+            html 500 (page_top "ask failed" "Error" ++ "<p class=muted>" ++ (esc_html e) ++ "</p>" ++ (page_bottom 0))
+
+fn reindex_page req
+    idx: get __state "idx"
+    try
+        doc_reindex idx
+        print "reindexed"
+    catch e
+        print ("reindex error: " ++ e)
+    redirect 302 "/"
+
+--- === JSON API === ---
+
+fn health req
+    idx: get __state "idx"
+    s: index_status idx
+    ok {status: "ok", dir: (get __state "dir"), files: (get s "files"), chunks: (get s "chunks"), lang: (get s "lang")}
+
+fn api_search req
+    query: get req "query"
+    q: get query "q"
+    idx: get __state "idx"
+    if q == nil || q == ""
+        ok {query: q, results: []}
+    else
+        try
+            ok {query: q, results: (doc_search idx q 8)}
+        catch e
+            json 500 {error: e}
+
+fn api_ask req
+    query: get req "query"
+    q: get query "q"
+    idx: get __state "idx"
+    if q == nil || q == ""
+        ok {question: q, answer: "", sources: []}
+    else
+        try
+            res: doc_ask idx q 4
+            ok {question: q, answer: (get res "answer"), sources: (get res "sources")}
+        catch e
+            json 500 {error: e}
+
+fn notfound req
+    json 404 {error: "Not Found", path: (get req "path")}
+
+--- === App Setup === ---
+
+api: app "docs-pipe-dashboard"
+
+route_get api "/"          landing_page
+route_get api "/search"    search_page
+route_get api "/ask"       ask_page
+route_get api "/reindex"   reindex_page
+route_get api "/health"    health
+route_get api "/api/search" api_search
+route_get api "/api/ask"   api_ask
+route_get api "/*"        notfound
+
+--- === Start === ---
+
+init 0
+serve api "0.0.0.0:8090" 3600000

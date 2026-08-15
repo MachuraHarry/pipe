@@ -19,6 +19,9 @@ nav .logo span{color:var(--fg)}
 nav .nav-links{display:flex;align-items:center;gap:18px}
 nav a{color:var(--fg2);text-decoration:none;font-size:0.82rem;transition:color .2s}
 nav a:hover{color:var(--fg)}
+nav a.nav-social{display:inline-flex;align-items:center;padding:4px;border-radius:6px}
+nav a.nav-social:hover{background:var(--bg3)}
+nav a.nav-social svg{display:block}
 .hamburger{display:none;background:none;border:none;color:var(--fg);font-size:1.4rem;cursor:pointer;padding:4px 8px}
 .lang-switch{display:flex;background:var(--bg3);border:1px solid var(--border);border-radius:20px;overflow:hidden}
 .lang-switch button{background:none;border:none;color:var(--fg2);padding:4px 10px;font-size:0.72rem;cursor:pointer;font-weight:600;transition:all .2s}

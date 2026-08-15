@@ -852,10 +852,14 @@ func (ctx *EvalContext) evalPipeline(pe *ast.PipelineExpression, left object.Obj
 
 func (ctx *EvalContext) evalParallelPipeline(pe *ast.PipelineExpression, left object.Object, env *object.Environment) object.Object {
 	future := object.NewFuture()
+	// Clone the captured environment so the background goroutine reads a
+	// snapshot instead of racing the caller, which keeps writing to it.
 	branchEnv := env.Clone()
 
 	go func() {
-		result := ctx.evalPipeline(pe, left, branchEnv)
+		// A fresh EvalContext keeps the background call stack and lastPos
+		// isolated from the caller's (the tree-walker is not goroutine-safe).
+		result := NewEvalContext(ctx.SourceFile).evalPipeline(pe, left, branchEnv)
 		future.Val = result
 		close(future.Done)
 	}()

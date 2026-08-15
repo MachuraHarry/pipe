@@ -124,6 +124,40 @@ if ev == "push"
     else
         subject: get (split (env "COMMIT_MSG") "\n") 0
         send_embed ((emoji_for subject) ++ " " ++ subject) ("Branch: " ++ branch ++ "\nRepo: " ++ repo) [] 3447003
+else if ev == "release"
+    tag: env "RELEASE_TAG"
+    url: env "RELEASE_URL"
+    name: env "RELEASE_NAME"
+    if (len name) < 1
+        name: tag
+    body: clip (env "RELEASE_BODY") 2048
+    pre: env "RELEASE_PRERELEASE"
+    draft: env "RELEASE_DRAFT"
+    wh: webhook
+    rwh: env "DISCORD_RELEASES_WEBHOOK"
+    if (rwh != nil) && ((len rwh) > 0)
+        wh: rwh
+    color: 3066993
+    status: "✅ Stable"
+    if pre == "true"
+        color: 16776960
+        status: "🧪 Pre-Release"
+    if draft == "true"
+        color: 10181046
+        status: "📝 Draft"
+
+    fields: []
+    push fields ( {name: "Tag", value: tag, inline: true} )
+    push fields ( {name: "Status", value: (clip status 50), inline: true} )
+    push fields ( {name: "Release", value: url, inline: true} )
+    if (len body) > 0
+        push fields ( {name: "Highlights", value: body, inline: false} )
+
+    embed: {title: ("🚀 " ++ name), url: url, description: (repo ++ " release"), fields: fields, color: color, footer: {text: tag}}
+    payload: {embeds: [embed]}
+    r: d.d_webhook_send wh payload
+    if is_err r
+        print ("Discord-Fehler: " ++ (to_str r))
 else if ev == "issues"
     action: env "EVENT_ACTION"
     icon: "📌"

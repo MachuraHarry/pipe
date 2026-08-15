@@ -48,9 +48,9 @@ func assertIsError(t *testing.T, obj object.Object) {
 
 func TestCircularImportDetectedEval(t *testing.T) {
 	dir, entry := writeImportFiles(t, map[string]string{
-		"main.pipe":  "import \"a.pipe\"\nprint (a_fn)\n",
-		"a.pipe":     "import \"b.pipe\"\nfn a_fn\n    b_fn\n",
-		"b.pipe":     "import \"a.pipe\"\nfn b_fn\n    42\n",
+		"main.pipe": "import \"a.pipe\"\nprint (a_fn)\n",
+		"a.pipe":    "import \"b.pipe\"\nfn a_fn\n    b_fn\n",
+		"b.pipe":    "import \"a.pipe\"\nfn b_fn\n    42\n",
 	})
 	t.Setenv("PIPE_PATH", dir)
 
@@ -131,7 +131,7 @@ func TestNestedImportCompilesVM(t *testing.T) {
 func TestAliasImportVMMatchesEval(t *testing.T) {
 	dir, entry := writeImportFiles(t, map[string]string{
 		"main.pipe": "import \"a.pipe\" as a\nprint (a.double 21)\nprint a.greeting\nprint a.green\nprint (a.use_internal 5)\n",
-		"a.pipe": "export fn double x\n    x * 2\n\nexport greeting: \"hi\"\n\nexport enum Color: red, green, blue\n\nfn internal_helper x\n    x + 100\n\nexport fn use_internal x\n    internal_helper x\n",
+		"a.pipe":    "export fn double x\n    x * 2\n\nexport greeting: \"hi\"\n\nexport enum Color: red, green, blue\n\nfn internal_helper x\n    x + 100\n\nexport fn use_internal x\n    internal_helper x\n",
 	})
 	t.Setenv("PIPE_PATH", dir)
 

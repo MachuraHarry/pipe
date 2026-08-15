@@ -72,6 +72,109 @@ fn nav_cls active name
     else
         ""
 
+--- === Markdown rendering (for AI answers) === ---
+
+fn inline_code s
+    out: ""
+    pos: 0
+    while pos < (len s)
+        idx: index_of (substring s pos (len s)) "`"
+        if idx < 0
+            out: out ++ (substring s pos (len s))
+            pos: len s
+        else
+            out: out ++ (substring s pos (pos + idx))
+            rest: substring s (pos + idx + 1) (len s)
+            close: index_of rest "`"
+            if close < 0
+                out: out ++ "`" ++ rest
+                pos: len s
+            else
+                out: out ++ "<code>" ++ (substring rest 0 close) ++ "</code>"
+                pos: pos + idx + 1 + close + 1
+    out
+
+fn inline_bold s
+    out: ""
+    pos: 0
+    while pos < (len s)
+        idx: index_of (substring s pos (len s)) "**"
+        if idx < 0
+            out: out ++ (substring s pos (len s))
+            pos: len s
+        else
+            out: out ++ (substring s pos (pos + idx))
+            rest: substring s (pos + idx + 2) (len s)
+            close: index_of rest "**"
+            if close < 0
+                out: out ++ "**" ++ rest
+                pos: len s
+            else
+                out: out ++ "<strong>" ++ (substring rest 0 close) ++ "</strong>"
+                pos: pos + idx + 2 + close + 2
+    out
+
+fn md_inline s
+    s: esc_html s
+    s: inline_code s
+    s: inline_bold s
+    s
+
+fn md_strip_hashes line
+    t: trim line
+    j: 0
+    while j < (len t) && (substring t j (j + 1)) == "#"
+        j: j + 1
+    trim (substring t j (len t))
+
+fn md_html text
+    lines: split text "\n"
+    out: ""
+    in_code: false
+    in_list: false
+    i: 0
+    while i < (len lines)
+        line: at lines i
+        if (len line) >= 3 && (substring line 0 3) == "```"
+            if in_code
+                out: out ++ "</code></pre>"
+                in_code: false
+            else
+                if in_list
+                    out: out ++ "</ul>"
+                    in_list: false
+                out: out ++ "<pre><code>"
+                in_code: true
+        else if in_code
+            out: out ++ (esc_html line) ++ "\n"
+        else
+            t: trim line
+            if t == ""
+                if in_list
+                    out: out ++ "</ul>"
+                    in_list: false
+            else if (substring t 0 1) == "#"
+                if in_list
+                    out: out ++ "</ul>"
+                    in_list: false
+                out: out ++ "<h4>" ++ (md_inline (md_strip_hashes t)) ++ "</h4>"
+            else if (substring t 0 2) == "- " || (substring t 0 2) == "* "
+                if !in_list
+                    out: out ++ "<ul>"
+                    in_list: true
+                out: out ++ "<li>" ++ (md_inline (substring t 2 (len t))) ++ "</li>"
+            else
+                if in_list
+                    out: out ++ "</ul>"
+                    in_list: false
+                out: out ++ "<p>" ++ (md_inline t) ++ "</p>"
+        i: i + 1
+    if in_code
+        out: out ++ "</code></pre>"
+    if in_list
+        out: out ++ "</ul>"
+    out
+
 --- === Search highlighting === ---
 
 fn tokenize_terms q
@@ -158,6 +261,13 @@ mark{background:rgba(168,85,247,0.22);color:var(--fg);padding:0 2px;border-radiu
 .copy{margin-left:8px;background:none;border:1px solid var(--border);color:var(--fg3);border-radius:6px;font-size:0.72rem;padding:2px 8px;cursor:pointer;transition:all .12s}
 .copy:hover{color:var(--accent);border-color:var(--accent)}
 .answer{background:var(--bg2);border:1px solid var(--border);border-left:3px solid var(--green);border-radius:0 8px 8px 0;padding:18px;margin:16px 0;line-height:1.7}
+.answer h4{margin:16px 0 8px;color:#c084fc;font-size:1rem}
+.answer p{margin:8px 0}
+.answer ul{padding-left:22px;margin:8px 0}
+.answer li{margin:4px 0}
+.answer pre{background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:12px;overflow-x:auto;white-space:pre-wrap;font-family:'JetBrains Mono','Fira Code',ui-monospace,monospace;font-size:0.82rem;line-height:1.5;margin:10px 0}
+.answer code{background:var(--bg3);padding:2px 5px;border-radius:4px;font-family:'JetBrains Mono','Fira Code',ui-monospace,monospace;font-size:0.85em}
+.answer pre code{background:none;padding:0}
 .muted{color:var(--fg2);font-size:0.85rem}
 .faint{color:var(--fg3);font-size:0.8rem}
 .big-q{color:var(--fg);font-size:1.05rem;font-weight:600;margin:6px 0 0}
@@ -362,7 +472,7 @@ fn ask_page req
         try
             res: doc_ask idx q 4
             out: out ++ "<p class=big-q>Question: " ++ (esc_html q) ++ "</p>"
-            out: out ++ "<div class=answer>" ++ (nl2br (esc_html (get res "answer"))) ++ "</div>"
+            out: out ++ "<div class=answer>" ++ (md_html (get res "answer")) ++ "</div>"
             srcs: get res "sources"
             if (len srcs) > 0
                 terms: tokenize_terms q

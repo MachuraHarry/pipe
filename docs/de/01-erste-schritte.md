@@ -4,7 +4,7 @@
 
 Pipe ist eine **einrückungsbasierte, pipeline-orientierte Skriptsprache**,
 implementiert in Go. Sie wird als einzelne, statisch gelinkte Binary
-ausgeliefert (~7 MB).
+ausgeliefert (~8 MB).
 
 **Kernphilosophie:** Daten fließen sichtbar von oben nach unten durch
 eine Kette von Transformationen — nicht versteckt in verschachtelten
@@ -42,7 +42,7 @@ Der Installer erkennt Betriebssystem und Architektur, lädt die neueste
 Release-Binary herunter, prüft ihre SHA256-Prüfsumme und installiert `pipe`
 nach `~/.local/bin` (als root nach `/usr/local/bin`). Optionen:
 
-- `PIPE_VERSION=v0.9.3.5` — bestimmte Version installieren
+- `PIPE_VERSION=v0.9.4.0` — bestimmte Version installieren
 - `PIPE_DIR=/ein/verzeichnis` — Installationsverzeichnis wählen
 - `install.sh --uninstall` — Binary entfernen
 
@@ -94,7 +94,7 @@ Starte `./bin/pipe` ohne Dateinamen, um in die REPL zu gelangen:
 
 ```
 $ ./bin/pipe
-Pipe v0.9.3.5 — REPL
+Pipe v0.9.4.0 — REPL
 >>> 1 + 2
 3
 >>> print "Hallo"

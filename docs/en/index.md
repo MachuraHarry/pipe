@@ -25,7 +25,7 @@ Welcome to the complete documentation for the **Pipe** scripting language.
 10. [Builtin Reference](10-builtin-reference.md) — All 206 built-in functions
 11. [Tooling](11-tooling.md) — CLI flags, REPL, formatter, test runner, build
 12. [Execution Models](12-execution-models.md) — Tree-walker vs Bytecode VM
-13. [Bytecode VM](13-bytecode-vm.md) — 42 opcodes, stack machine, symbol table
+13. [Bytecode VM](13-bytecode-vm.md) — 43 opcodes, stack machine, symbol table
 14. [Architecture](14-architecture.md) — Lexer, parser, AST, compiler, VM internals
 15. [VSCode Extension](15-vscode-extension.md) — Installation, syntax highlighting
 16. [Cookbook](16-cookbook.md) — 20+ practical code examples

@@ -98,7 +98,7 @@ Starte `./bin/pipe` ohne Dateinamen:
 
 ```
 $ ./bin/pipe
-Pipe v0.9.3.5 — REPL
+Pipe v0.9.4.0 — REPL
 >>> 1 + 2
 3
 >>> fn verdopple x

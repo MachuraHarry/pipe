@@ -53,7 +53,7 @@ Starts the REPL without printing the welcome banner and version information.
 ```bash
 # Normal REPL:
 $ pipe
-Pipe v0.9.3.5 — REPL
+Pipe v0.9.4.0 — REPL
 >>>
 
 # Quiet REPL:

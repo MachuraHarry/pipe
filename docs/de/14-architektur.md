@@ -264,7 +264,7 @@ Body:
 | Go-Zeilen | ~23.600 (ohne Tests ~19.000) |
 | Go-Packages | 13 |
 | Externe Abhängigkeiten | 0 |
-| Binary-Größe | ~7 MB (dependency-frei) |
+| Binary-Größe | ~8 MB (dependency-frei) |
 | Tests | 290 (in 12 Paketen) |
 | Beispiel-Programme | 52 |
 | Builtins | 168 |

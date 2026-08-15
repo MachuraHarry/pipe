@@ -81,7 +81,7 @@ print (fib 10)
 | Regex | ❌ (extern) | ✅ (eingebaut) |
 | Metatabellen | ✅ | ❌ |
 | Coroutinen | ✅ | ❌ (`go` als Alternative) |
-| Binary-Größe | ~300 KB | ~7 MB |
+| Binary-Größe | ~300 KB | ~8 MB |
 
 ### Side-by-Side
 
@@ -170,7 +170,7 @@ print (fib 10)
 | NPM | ✅ (Mio. Packages) | ❌ |
 | Pattern Matching | ❌ | ✅ (`match`) |
 | Blöcke | `{ }` | Einrückung |
-| Binary-Größe | ~80 MB (Node) | ~7 MB |
+| Binary-Größe | ~80 MB (Node) | ~8 MB |
 
 ### Wann Pipe statt Node.js?
 
@@ -197,4 +197,4 @@ print (fib 10)
 | Performance | ⭐⭐⭐ | ⭐⭐⭐ | ⭐⭐⭐⭐ | ⭐⭐ | ⭐⭐⭐⭐ |
 | Portabilität | ⭐⭐⭐⭐⭐ | ⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐ | ⭐⭐⭐ |
 | Ökosystem | ⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐ | ⭐⭐⭐ | ⭐⭐⭐⭐⭐ |
-| Binärgröße | ~7 MB | ~30 MB | ~300 KB | ~1 MB | ~80 MB |
+| Binärgröße | ~8 MB | ~30 MB | ~300 KB | ~1 MB | ~80 MB |

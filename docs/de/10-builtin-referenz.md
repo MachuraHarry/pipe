@@ -1813,7 +1813,7 @@ mcp_use_sse "http://localhost:9090/"
 ### Datenbank — SQLite (Modul)
 `db_open`, `db_close`, `db_exec`, `db_query`, `q`, `exec`, `row_get`, `row_eq`, `row_ne`
 
-Die `db_*`-Builtins wurden durch ein natives Pipe-Modul ersetzt, das in der [`pipe-modules`](https://github.com/MachuraHarry/pipe-modules)-Registry verfügbar ist. Die externe `modernc.org/sqlite`-Abhängigkeit ist entfernt — Binary wieder dependency-free (~7 MB).
+Die `db_*`-Builtins wurden durch ein natives Pipe-Modul ersetzt, das in der [`pipe-modules`](https://github.com/MachuraHarry/pipe-modules)-Registry verfügbar ist. Die externe `modernc.org/sqlite`-Abhängigkeit ist entfernt — Binary wieder dependency-free (~8 MB).
 
 Installiere mit `pipe -get sqlite`, dann import mit `import "sqlite"`:
 

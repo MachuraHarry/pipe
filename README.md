@@ -2,14 +2,14 @@
 
 [![CI](https://github.com/MachuraHarry/pipe/actions/workflows/ci.yml/badge.svg)](https://github.com/MachuraHarry/pipe/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-purple.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-0.9.3.5-blue.svg)](https://github.com/MachuraHarry/pipe/releases)
+[![Version](https://img.shields.io/badge/version-v0.9.4.0-blue.svg)](https://github.com/MachuraHarry/pipe/releases)
 [![SPR](https://img.shields.io/badge/SPR-Semantic%20Pipeline%20Runtime-7c5cfc.svg)](#)
 [![MCP](https://img.shields.io/badge/MCP-Server%20%2B%20Client-3ce096.svg)](#model-context-protocol)
 [![GitHub MCP Registry](https://img.shields.io/badge/GitHub_MCP_Registry-Onboarding-6e5494.svg)](https://github.com/github/github-mcp-server/discussions/3057)
 [![MCP Registry](https://img.shields.io/badge/MCP_Registry-Listed-4a90d9.svg)](https://registry.modelcontextprotocol.io/?q=MachuraHarry)
 
-> **The first language with built-in MCP — server and client. 226 builtins, single ~7 MB binary. Zero dependencies.**
-> **Officially listed in the [official MCP Registry](https://registry.modelcontextprotocol.io/?q=MachuraHarry)** (v0.9.3.5, active). GitHub MCP Registry [onboarding requested](https://github.com/github/github-mcp-server/discussions/3057) for one-click install in GitHub Copilot & VS Code.
+> **The first language with built-in MCP — server and client. 226 builtins, single ~8 MB binary. Zero dependencies.**
+> **Officially listed in the [official MCP Registry](https://registry.modelcontextprotocol.io/?q=MachuraHarry)** (v0.9.4.0, active). GitHub MCP Registry [onboarding requested](https://github.com/github/github-mcp-server/discussions/3057) for one-click install in GitHub Copilot & VS Code.
 
 ## Quick Install
 
@@ -19,7 +19,7 @@ curl -fsSL https://pipe-lang.com/install.sh | bash   # Linux & macOS
 
 Windows (PowerShell): `irm https://pipe-lang.com/install.ps1 | iex`
 
-The installer downloads the latest release, verifies its SHA256 checksum and installs `pipe` into `~/.local/bin` (or `/usr/local/bin` when run as root). Pin a version with `PIPE_VERSION=v0.9.3.5`. See the [full install docs](docs/en/01-getting-started.md).
+The installer downloads the latest release, verifies its SHA256 checksum and installs `pipe` into `~/.local/bin` (or `/usr/local/bin` when run as root). Pin a version with `PIPE_VERSION=v0.9.4.0`. See the [full install docs](docs/en/01-getting-started.md).
 
 ## Privacy & DSGVO
 
@@ -192,14 +192,14 @@ d.d_webhook_embed (env "DISCORD_WEBHOOK") {
 | **Deploy to server**     | Docker + venv + pip            | `scp pipe binary`              |
 | **Parallel LLM calls**   | `asyncio.gather()` boilerplate | `>>` operator, `ai_batch`      |
 | **MCP Server + Client**  | Library-dependent              | 13 builtins, zero deps, 100+ servers |
-| **Binary size**          | ~500 MB (with deps)            | ~7 MB                          |
+| **Binary size**          | ~500 MB (with deps)            | ~8 MB                          |
 
 ## Features
 
 - **MCP-native** — 6 builtins for MCP Server + Client. Pure Go stdlib. Connect to any stdio MCP server
 - **Ship AI pipelines 10× faster** — 36 AI + 13 MCP builtins: no imports, no SDKs, no API wrappers
 - **Lock down AI agents in one line** — Declarative sandbox profiles: restrict `exec`, `write_file`, `http_get` with a single block
-- **Deploy in seconds** — One statically-linked ~7 MB binary. No venv, no pip, no Docker. Linux, macOS, Windows, Raspberry Pi, or your browser via WebAssembly
+- **Deploy in seconds** — One statically-linked ~8 MB binary. No venv, no pip, no Docker. Linux, macOS, Windows, Raspberry Pi, or your browser via WebAssembly
 - **3 LLM calls in 1.5s, not 4s** — `>>` starts any pipeline stage in the background. Futures auto-resolve. `ai_batch` handles hundreds of texts concurrently with built-in rate limiting
 - **No vendor lock-in** — OpenAI, Anthropic (Claude), DeepSeek, Ollama. Switch with one line. Same code works everywhere
 - **Pipeline-native syntax** — `>` sequential, `>>` parallel. Data flows top to bottom — readable, composable, debuggable
@@ -381,8 +381,8 @@ Source (.pipe) → Lexer → Parser → AST → [ Tree-Walker | Compiler + VM ]
                               MCP Server ↔ MCP Clients (stdio + HTTP)
 ```
 
-- 67 token types, 36 AST node types, 42 opcodes
-- ~25,000 LoC Go, 503 tests, 85 example programs
+- 67 token types, 36 AST node types, 43 opcodes
+- ~37,000 LoC Go, 570 tests, 87 example programs
 - Zero dependencies — pure Go stdlib
 
 ## Documentation
@@ -444,7 +444,7 @@ pipe/
 │   └── vm/                    # Bytecode VM
 │       ├── vm.go
 │       └── vm_test.go
-├── examples/                  # 85 example programs
+├── examples/                  # 87 example programs
 │   ├── mcp_server.pipe        # MCP server with weather/docs/shell tools
 │   ├── mcp_filesystem.pipe    # MCP client using filesystem server
 │   ├── mcp_github.pipe        # MCP client using GitHub server

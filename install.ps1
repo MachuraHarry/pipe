@@ -7,7 +7,7 @@
 #   irm https://pipe-lang.com/install.ps1 | iex
 #
 # Parameters:
-#   -Version <tag>   Release tag to install, e.g. v0.9.3.5 (default: latest)
+#   -Version <tag>   Release tag to install, e.g. v0.9.4.0 (default: latest)
 #   -Prefix <path>   Install directory (default: $env:LOCALAPPDATA\Programs\pipe\bin)
 #   -SkipPath        Do not modify the user PATH (used for CI smoke tests)
 

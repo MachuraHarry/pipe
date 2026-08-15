@@ -84,7 +84,7 @@ When a function returns (`OpReturn` / `OpReturnValue`):
 3. The frame index is decremented
 4. The return value is pushed onto the caller's stack
 
-## All 42 Opcodes
+## All 43 Opcodes
 
 ### Constants & Literals
 
@@ -181,6 +181,7 @@ Comparisons support integers, floats, strings (equality only), and booleans (equ
 | Opcode | Index | Operands | Description |
 |--------|-------|----------|-------------|
 | `OpTryAIFix` | 40 | 0 | Pop a source string, run `try_ai` fix, push the fixed result |
+| `OpErrorToString` | 42 | 0 | Pop an `Error` object, push its message as a string |
 
 ## Instruction Encoding
 

@@ -2,9 +2,9 @@
 
 This document outlines the past, present, and future of the Pipe language. The roadmap is organized into phases, with completed features marked accordingly.
 
-## Current Version: v0.9.3.5
+## Current Version: v0.9.4.0
 
-Pipe is currently at version **v0.9.3.5**, the **sandbox-hardening release** carrying the findings of six red-team audit rounds. It adds a **central egress gate** for every AI-provider egress (making the "forgot the builtin gate" bug class structurally impossible, including cache hits), a central `checkNetworkAccess` helper for all network builtins (closing the CLI `--sandbox` flag path as well), correct sandbox gates for `try_ai`, `embed`/`embed_batch` and `import`, and a recursion-depth guard (E008) instead of stack-overflow crashes in both the tree-walker and the bytecode VM. It also ships deterministic tool argument ordering, the red-team test suite (`examples/redteam*.pipe`) and blog documentation of every audit round. The language feature set is that of **v0.9.3**, which adds a zero-dependency MCP server (exposing `ai_tool` functions as standard-conforming MCP tools over stdio for Claude Desktop, Cursor, etc.), the X (Twitter) API v2 module and the Discord module (webhook + bot token, both in development), and richer CI notifications with Discord + Telegram dual delivery including AI code reviews. It builds on v0.9.2's `max_tokens` limit for `ai_chat`/`ai_chat_json`, official cross-platform installer (`install.sh`/`install.ps1`), and v0.9.0's structs with named fields, package manifests (`pipe.json`, `pipe -init` / `-install`), network builtins (`http_request`, `http_server`), crypto builtins (AES-GCM, HMAC, secure random), call-stack error traces, and many new string/list builtins (`replace`, `unique`, `ceil`, `floor`, `parse_date`).
+Pipe is currently at version **v0.9.4.0**, the **module-system release**. It completes the module system on the road to v1.0: **directory imports** (`import "mylib/"` loads `mylib/init.pipe`), dedicated **relative imports** (`./`, `../` — never through the registry fallback), **cycle detection** (`E009: circular import` in both the tree-walker and the bytecode VM, including alias imports), `PIPE_PATH` via `filepath.SplitList` (platform-native separators), **SemVer resolution** for `^X.Y.Z` constraints in `pipe -install`, and **`pipe -publish`**: publishes modules via a gh-CLI pull request into the registry (validation, version-duplicate check, module dir + registry.json entry, branch `publish/<name>-<version>`). The language feature set remains that of the sandbox-hardening release **v0.9.3.5**: a central egress gate for every AI-provider egress, a recursion-depth guard (E008), the zero-dependency MCP server, the X (Twitter) API v2 module and the Discord module, and CI notifications with Discord + Telegram dual delivery including AI code reviews.
 
 ---
 
@@ -78,7 +78,7 @@ Pipe is currently at version **v0.9.3.5**, the **sandbox-hardening release** car
 ### v0.4 — Bytecode VM
 
 - [x] Compiler: AST → Bytecode transformation
-- [x] 42 opcodes covering all language features
+- [x] 43 opcodes covering all language features
 - [x] Stack-based VM with 2048-slot stack and 1024 frame depth
 - [x] Symbol table with 4 scope types (Global, Local, Free, Builtin)
 - [x] Closure compilation with free variable capture
@@ -261,7 +261,7 @@ Pipe is currently at version **v0.9.3.5**, the **sandbox-hardening release** car
 | Module Versions | ✅ Done | v0.6 | import \"mod@1.0.0\" |
 | export let/enum | ✅ Done | v0.6 | Variable + enum exports |
 | Result Type | ✅ Done | v0.3 | Ok/Err pattern |
-| Bytecode VM | ✅ Done | v0.4 | 42 opcodes |
+| Bytecode VM | ✅ Done | v0.4 | 43 opcodes |
 | `.pipec` Cache | ✅ Done | v0.4 | SHA-256 validated |
 | Formatter | ✅ Done | v0.5 | `pipe fmt` |
 | Formatter Enhance | ✅ Done | v0.6 | --check, dirs |
@@ -288,4 +288,4 @@ Pipe is currently at version **v0.9.3.5**, the **sandbox-hardening release** car
 | Test Framework | 🟡 Partial | v0.7 | test blocks + asserts + CLI; setup/teardown hooks open |
 | Doc Generator | 🔮 Future | v0.7+ | `pipe doc` |
 | Plugins | 🔮 Future | v0.8+ | Go/WASM extensions |
-| SQLite Module | ✅ Done | v0.8 | Pure-Pipe SQL engine, available via `pipe -get sqlite` from pipe-modules. Replaces modernc.org/sqlite. Binary ~7 MB, zero deps. SQL: CREATE/INSERT/UPDATE/DELETE/SELECT with WHERE, GROUP BY, ORDER BY, JOINs, transactions, paged binary persistence. Pipeline API (q, exec, row_get, row_eq, row_ne). Benchmarks vs Python/Lua in the [SQLite Module](26-sqlite-module.md) chapter. |
+| SQLite Module | ✅ Done | v0.8 | Pure-Pipe SQL engine, available via `pipe -get sqlite` from pipe-modules. Replaces modernc.org/sqlite. Binary ~8 MB, zero deps. SQL: CREATE/INSERT/UPDATE/DELETE/SELECT with WHERE, GROUP BY, ORDER BY, JOINs, transactions, paged binary persistence. Pipeline API (q, exec, row_get, row_eq, row_ne). Benchmarks vs Python/Lua in the [SQLite Module](26-sqlite-module.md) chapter. |

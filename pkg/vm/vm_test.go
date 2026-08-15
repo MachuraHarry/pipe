@@ -200,7 +200,10 @@ func TestVMRecursionOverflowNoCrash(t *testing.T) {
 		bc := parseAndCompile(t, input)
 		v := New(bc)
 		if err := v.Run(); err != nil {
-			t.Errorf("%q: expected error value, got Run error %s", input, err)
+			if e, ok := err.(*object.Error); ok && strings.Contains(e.Message, "E008") {
+				continue
+			}
+			t.Errorf("%q: expected E008 error, got Run error %s", input, err)
 			continue
 		}
 		top := v.LastPoppedStackElem()

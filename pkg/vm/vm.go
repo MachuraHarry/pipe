@@ -109,6 +109,11 @@ type VM struct {
 	frameIndex int
 	curLine    int
 	sourceFile string
+	// pendingError is the first error produced since the last try/catch
+	// boundary. The tree-walker aborts at an uncaught error; the VM cannot
+	// unwind frames, so it records the error here, lets try/catch (OpCheckError)
+	// clear it, and reports it when the program ends (OpHalt / end of Run).
+	pendingError *object.Error
 }
 
 func (vm *VM) currentFrame() *Frame {
@@ -135,6 +140,19 @@ func (vm *VM) push(obj object.Object) {
 	}
 	vm.stack[vm.sp] = obj
 	vm.sp++
+	if errObj, ok := obj.(*object.Error); ok {
+		vm.pendingError = errObj
+	}
+}
+
+// reportPending returns the first uncaught error of this VM, if any. It is
+// called only at top-level exit points of Run (never from executeFrame, which
+// serves nested closures whose errors are handled by an enclosing try/catch).
+func (vm *VM) reportPending() error {
+	if vm.pendingError != nil {
+		return vm.pendingError
+	}
+	return nil
 }
 
 func (vm *VM) pop() object.Object {
@@ -178,6 +196,9 @@ func (vm *VM) Run() (err error) {
 		ins := frame.instructions
 
 		if frame.ip >= len(ins) {
+			if err := vm.reportPending(); err != nil {
+				return err
+			}
 			break
 		}
 
@@ -293,6 +314,14 @@ func (vm *VM) Run() (err error) {
 		case compiler.OpCheckError:
 			val := vm.peek()
 			if _, isErr := val.(*object.Error); isErr {
+				vm.pendingError = nil
+				vm.push(object.TRUE)
+			} else if vm.pendingError != nil {
+				// The error's value was discarded before the check (e.g. an
+				// expression statement inside try); surface it so the catch
+				// binding can convert it with OpErrorToString.
+				vm.stack[vm.sp-1] = vm.pendingError
+				vm.pendingError = nil
 				vm.push(object.TRUE)
 			} else {
 				vm.push(object.FALSE)
@@ -309,6 +338,7 @@ func (vm *VM) Run() (err error) {
 			vm.push(fixed)
 
 		case compiler.OpErrorToString:
+			vm.pendingError = nil
 			val := vm.pop()
 			if err, isErr := val.(*object.Error); isErr {
 				vm.push(&object.String{Value: err.Message})
@@ -331,6 +361,9 @@ func (vm *VM) Run() (err error) {
 			vm.sp = frame.savedSp
 			vm.frameIndex--
 			if vm.frameIndex < 0 {
+				if err := vm.reportPending(); err != nil {
+					return err
+				}
 				return nil
 			}
 			vm.push(object.NILOBJ)
@@ -341,6 +374,9 @@ func (vm *VM) Run() (err error) {
 			vm.sp = frame.savedSp
 			vm.frameIndex--
 			if vm.frameIndex < 0 {
+				if err := vm.reportPending(); err != nil {
+					return err
+				}
 				return nil
 			}
 			vm.push(returnVal)
@@ -452,6 +488,9 @@ func (vm *VM) Run() (err error) {
 			}
 
 		case compiler.OpHalt:
+			if err := vm.reportPending(); err != nil {
+				return err
+			}
 			return nil
 
 		default:
@@ -494,6 +533,7 @@ func (vm *VM) callFunction(numArgs int) {
 			vm.frameIndex--
 			vm.sp = basePtr
 			vm.stack[basePtr-1] = vm.newError("E008", "call stack depth exceeded (%d)", object.MaxCallDepth)
+			vm.pendingError = vm.stack[basePtr-1].(*object.Error)
 			return
 		}
 		vm.frames[vm.frameIndex] = frame
@@ -997,6 +1037,14 @@ func (vm *VM) executeFrame() object.Object {
 		case compiler.OpCheckError:
 			val := vm.peek()
 			if _, isErr := val.(*object.Error); isErr {
+				vm.pendingError = nil
+				vm.push(object.TRUE)
+			} else if vm.pendingError != nil {
+				// The error's value was discarded before the check (e.g. an
+				// expression statement inside try); surface it so the catch
+				// binding can convert it with OpErrorToString.
+				vm.stack[vm.sp-1] = vm.pendingError
+				vm.pendingError = nil
 				vm.push(object.TRUE)
 			} else {
 				vm.push(object.FALSE)
@@ -1013,6 +1061,7 @@ func (vm *VM) executeFrame() object.Object {
 			vm.push(fixed)
 
 		case compiler.OpErrorToString:
+			vm.pendingError = nil
 			val := vm.pop()
 			if err, isErr := val.(*object.Error); isErr {
 				vm.push(&object.String{Value: err.Message})

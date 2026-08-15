@@ -2,6 +2,7 @@ package compiler
 
 import (
 	"fmt"
+	"sort"
 	"strconv"
 	"strings"
 
@@ -1186,8 +1187,11 @@ func (c *Compiler) compileImport(is *ast.ImportStatement) error {
 		}
 	}
 
-	// Flat imports: skip if already imported (deduplication)
-	if is.Alias == "" {
+	aliased := is.Alias != ""
+
+	// Flat imports: skip if already imported (deduplication). Aliased imports
+	// each bind their own namespace, so they are compiled again.
+	if !aliased {
 		if _, ok := c.importedSet[cacheKey]; ok {
 			return nil
 		}
@@ -1196,8 +1200,20 @@ func (c *Compiler) compileImport(is *ast.ImportStatement) error {
 	c.importStack = append(c.importStack, cacheKey)
 	defer func() { c.importStack = c.importStack[:len(c.importStack)-1] }()
 
-	if is.Alias == "" {
+	if !aliased {
 		c.importedSet[cacheKey] = struct{}{}
+	}
+
+	var names []string
+	hasExports := false
+	exports := make(map[string]bool)
+	record := func(name string) {
+		for _, n := range names {
+			if n == name {
+				return
+			}
+		}
+		names = append(names, name)
 	}
 
 	for _, stmt := range program.Statements {
@@ -1206,34 +1222,49 @@ func (c *Compiler) compileImport(is *ast.ImportStatement) error {
 			if err := c.Compile(s); err != nil {
 				return fmt.Errorf("import %s: %w", is.Path, err)
 			}
+			record(s.Name.Value)
 		case *ast.VarStatement:
 			if err := c.Compile(s); err != nil {
 				return fmt.Errorf("import %s: %w", is.Path, err)
 			}
+			record(s.Name.Value)
 		case *ast.EnumStatement:
 			if err := c.Compile(s); err != nil {
 				return fmt.Errorf("import %s: %w", is.Path, err)
+			}
+			for _, name := range s.Values {
+				record(name)
 			}
 		case *ast.StructStatement:
 			if err := c.Compile(s); err != nil {
 				return fmt.Errorf("import %s: %w", is.Path, err)
 			}
+			record(s.Name)
 		case *ast.ExportStatement:
 			if s.Fn != nil {
 				if err := c.Compile(s.Fn); err != nil {
 					return fmt.Errorf("import %s: %w", is.Path, err)
 				}
+				record(s.FnName)
+				exports[s.FnName] = true
 			}
 			if s.Var != nil {
 				if err := c.Compile(s.Var); err != nil {
 					return fmt.Errorf("import %s: %w", is.Path, err)
 				}
+				record(s.VarName)
+				exports[s.VarName] = true
 			}
 			if s.Enum != nil {
 				if err := c.Compile(s.Enum); err != nil {
 					return fmt.Errorf("import %s: %w", is.Path, err)
 				}
+				for _, val := range s.Enum.Values {
+					record(val)
+					exports[val] = true
+				}
 			}
+			hasExports = true
 		case *ast.ImportStatement:
 			if err := c.compileImport(s); err != nil {
 				return fmt.Errorf("import %s: %w", is.Path, err)
@@ -1242,7 +1273,48 @@ func (c *Compiler) compileImport(is *ast.ImportStatement) error {
 			// skip standalone expressions in imports
 		}
 	}
+
+	// Aliased imports bind a namespace map of the module's exports, matching
+	// the tree-walker's `import "m" as ns` -> `ns.name` access.
+	if aliased {
+		c.emitAliasNamespace(is.Alias, names, hasExports, exports)
+	}
 	return nil
+}
+
+// emitAliasNamespace binds `alias` to a map of the just-compiled module's
+// exported top-level names, mirroring the tree-walker's namespace object.
+func (c *Compiler) emitAliasNamespace(alias string, names []string, hasExports bool, exports map[string]bool) {
+	keys := make([]string, 0, len(names))
+	for _, n := range names {
+		if hasExports && !exports[n] {
+			continue
+		}
+		keys = append(keys, n)
+	}
+	sort.Strings(keys)
+
+	for _, k := range keys {
+		if sym, ok := c.symbolTable.Resolve(k); ok {
+			c.loadSymbol(sym)
+		}
+	}
+	if len(keys) == 0 {
+		c.emit(OpNil)
+	} else {
+		c.emit(OpMap, len(keys))
+		for _, k := range keys {
+			ki := c.addString(k)
+			c.emitUint16(uint16(ki))
+		}
+	}
+
+	sym := c.symbolTable.Define(alias)
+	if sym.Scope == GlobalScope {
+		c.emit(OpSetGlobal, sym.Index)
+	} else {
+		c.emit(OpSetLocal, sym.Index)
+	}
 }
 
 func (c *Compiler) resolveImport(path string) (string, *ast.Program, error) {

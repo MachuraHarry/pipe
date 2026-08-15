@@ -39,6 +39,12 @@ func vmResult(t *testing.T, program *ast.Program) object.Object {
 	}
 	v := vm.New(c.Bytecode())
 	if err := v.Run(); err != nil {
+		// An uncaught error halts the VM and is returned from Run — the VM
+		// equivalent of the tree-walker's error result. Surface it as the
+		// error object so both engines are compared as values.
+		if e, ok := err.(*object.Error); ok {
+			return e
+		}
 		t.Fatalf("vm error: %s", err)
 	}
 	return v.LastPoppedStackElem()

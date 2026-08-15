@@ -5,6 +5,7 @@ package ai
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
 	"syscall/js"
 	"time"
 )
@@ -22,7 +23,14 @@ func httpPostJSONWasm(url, apiKey string, reqBody interface{}, timeout time.Dura
 
 	headers := js.Global().Get("Object").New()
 	headers.Set("Content-Type", "application/json")
-	if apiKey != "" {
+	if isAnthropicURL(url) {
+		// Anthropic rejects Authorization/Bearer in browser contexts and
+		// requires the dedicated headers; without the dangerous-direct flag a
+		// browser fetch is refused outright (CORS preflight).
+		headers.Set("x-api-key", apiKey)
+		headers.Set("anthropic-version", "2023-06-01")
+		headers.Set("anthropic-dangerous-direct-browser-access", "true")
+	} else if apiKey != "" {
 		headers.Set("Authorization", "Bearer "+apiKey)
 	}
 
@@ -63,4 +71,10 @@ func httpGetStringWasm(url string) ([]byte, error) {
 		return nil, fmt.Errorf("http: %s", errMsg)
 	}
 	return []byte(resp.Get("body").String()), nil
+}
+
+// isAnthropicURL reports whether a request targets the Anthropic API, whose
+// header contract differs from the OpenAI-compatible providers.
+func isAnthropicURL(url string) bool {
+	return strings.Contains(url, "api.anthropic.com")
 }

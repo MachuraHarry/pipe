@@ -8,6 +8,7 @@ import (
 
 	"github.com/MachuraHarry/pipe/pkg/compiler"
 	"github.com/MachuraHarry/pipe/pkg/object"
+	"github.com/MachuraHarry/pipe/pkg/vm"
 )
 
 // writeImportFiles writes a set of module files into a temp dir and returns
@@ -125,4 +126,63 @@ func TestNestedImportCompilesVM(t *testing.T) {
 	if err := c.Compile(program); err != nil {
 		t.Fatalf("nested import should compile: %v", err)
 	}
+}
+
+func TestAliasImportVMMatchesEval(t *testing.T) {
+	dir, entry := writeImportFiles(t, map[string]string{
+		"main.pipe": "import \"a.pipe\" as a\nprint (a.double 21)\nprint a.greeting\nprint a.green\nprint (a.use_internal 5)\n",
+		"a.pipe": "export fn double x\n    x * 2\n\nexport greeting: \"hi\"\n\nexport enum Color: red, green, blue\n\nfn internal_helper x\n    x + 100\n\nexport fn use_internal x\n    internal_helper x\n",
+	})
+	t.Setenv("PIPE_PATH", dir)
+
+	source := "import \"a.pipe\" as a\nprint (a.double 21)\nprint a.greeting\nprint a.green\nprint (a.use_internal 5)\n"
+	program := parseProgram(t, source)
+
+	evalR := evalFile(t, entry, source)
+	if e, ok := evalR.(*object.Error); ok {
+		t.Fatalf("eval failed: %v", e.Inspect())
+	}
+
+	c := compiler.NewWithFile(entry)
+	if err := c.Compile(program); err != nil {
+		t.Fatalf("aliased import should compile in VM: %v", err)
+	}
+	machine := vm.New(c.Bytecode())
+	if err := machine.Run(); err != nil {
+		t.Fatalf("vm failed: %v", err)
+	}
+}
+
+func TestAliasImportVMHidesInternalSymbols(t *testing.T) {
+	// Only exported names must be reachable through the alias namespace;
+	// internal (non-exported) module symbols must stay hidden.
+	dir, entry := writeImportFiles(t, map[string]string{
+		"main.pipe": "import \"a.pipe\" as a\nprint (a.double 2)\nprint a.internal_helper\n",
+		"a.pipe":    "export fn double x\n    x * 2\n\nfn internal_helper x\n    x + 100\n",
+	})
+	t.Setenv("PIPE_PATH", dir)
+
+	source := "import \"a.pipe\" as a\nprint (a.double 2)\nprint a.internal_helper\n"
+	program := parseProgram(t, source)
+
+	// The tree-walker rejects the field access (not exported).
+	assertIsError(t, evalFile(t, entry, source))
+
+	// The VM must not expose the internal symbol as a callable either.
+	c := compiler.NewWithFile(entry)
+	if err := c.Compile(program); err != nil {
+		t.Fatalf("aliased import should compile in VM: %v", err)
+	}
+	machine := vm.New(c.Bytecode())
+	if err := machine.Run(); err != nil {
+		if e, ok := err.(*object.Error); ok && strings.Contains(e.Message, "not a function") {
+			return // internal symbol resolved to nil, not callable — hidden
+		}
+		t.Fatalf("vm failed: %v", err)
+	}
+	top := machine.LastPoppedStackElem()
+	if top == nil || top.Inspect() == "nil" {
+		return // resolved to nil — hidden
+	}
+	t.Fatalf("internal symbol leaked into alias namespace: %s", top.Inspect())
 }

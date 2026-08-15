@@ -34,6 +34,7 @@ jobs:
       env:
         GOOS: ${{ matrix.target.os }}
         GOARCH: ${{ matrix.target.arch }}
+        CGO_ENABLED: '0'
       run: |
         go build -ldflags="-s -w -X main.version=${{ github.ref_name }}" -trimpath -o pipe${{ matrix.target.ext }} ./cmd/pipe
         tar -czf pipe-${{ matrix.target.os }}-${{ matrix.target.arch }}.tar.gz pipe${{ matrix.target.ext }}

@@ -1,0 +1,7 @@
+-- CPU microbenchmark: string concatenation 20_000 × "ab"
+s: ""
+i: 0
+while i < 20000
+    s: s ++ "ab"
+    i: i + 1
+len s

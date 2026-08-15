@@ -40,7 +40,7 @@ pipe -vm my_script.pipe
 pipe -vm
 ```
 
-Runs the program or REPL using the Bytecode VM instead of the Tree-Walker interpreter. Programs run approximately 7x faster, but some features are unavailable (see Chapter 12).
+Runs the program or REPL using the Bytecode VM instead of the Tree-Walker interpreter. The VM is faster on function-call and recursion-heavy code — measured up to 66× on fib(20) — but simple loops and string concatenation are comparable or slower (0.6×–2×). Some features are unavailable (see Chapter 12).
 
 ### `-q` — Quiet Mode
 

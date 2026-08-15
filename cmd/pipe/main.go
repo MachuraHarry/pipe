@@ -616,7 +616,7 @@ Usage:
   pipe                         Start REPL
 
 Flags:
-  -vm           Use bytecode VM instead of tree-walker (~7x faster)
+  -vm           Use bytecode VM instead of tree-walker (measured 0.6x-66x speedup)
   -q            VM mode: suppress bytecode output
   -ast          Only print AST, don't execute
   -fmt          Format file or directory (indentation, whitespace)
@@ -903,6 +903,8 @@ func runBenchmark() {
 		{"fib(20)", "fn fib n\n    match n\n        | 0 -> 0\n        | 1 -> 1\n        | _ -> fib(n - 1) + fib(n - 2)\n\nfib 20"},
 		{"fizzbuzz 1-100", "fn fizz n\n    if n % 15 == 0\n        \"FizzBuzz\"\n    else if n % 3 == 0\n        \"Fizz\"\n    else if n % 5 == 0\n        \"Buzz\"\n    else\n        n\n\nx: 0\nwhile x < 100\n    x: x + 1\n    fizz x"},
 		{"list sum 10000", "s: 0\ni: 0\nwhile i < 10000\n    s: s + i\n    i: i + 1\ns"},
+		{"string concat 20000", "s: \"\"\ni: 0\nwhile i < 20000\n    s: s ++ \"ab\"\n    i: i + 1\nlen s"},
+		{"list push + sum 20000", "lst: []\ni: 0\nwhile i < 20000\n    lst: push lst i\n    i: i + 1\ntotal: 0\nfor x in lst\n    total: total + x\ntotal"},
 	}
 
 	for _, bm := range benchmarks {

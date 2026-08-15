@@ -4,9 +4,9 @@
 <meta charset="UTF-8">
 <link rel="icon" type="image/svg+xml" href="logo.svg">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="description" content="Pipe (SPR) benchmarks: RAG pipeline in 14 LOC vs Python's 26, 3 parallel LLM calls in ~1.2s, 8.6 MB binary vs 345 MB Python venv, bytecode VM ~7× faster.">
+<meta name="description" content="Pipe (SPR) benchmarks: RAG pipeline in 14 LOC vs Python's 26, 3 parallel LLM calls in ~1.2s, 8.6 MB binary vs 345 MB Python venv, measured VM vs tree-walker and CPU speed.">
 <meta property="og:title" content="Benchmarks — Pipe (SPR)">
-<meta property="og:description" content="Numbers, not promises: RAG in 14 LOC vs 26, parallel LLM calls in ~1.2s, 8.6 MB binary vs 345 MB venv, bytecode VM ~7× faster.">
+<meta property="og:description" content="Numbers, not promises: RAG in 14 LOC vs 26, parallel LLM calls in ~1.2s, 8.6 MB binary vs 345 MB venv, measured VM speedup and honest CPU benchmarks.">
 <meta property="og:type" content="website">
 <meta property="og:image" content="https://pipe-lang.com/og-image.png">
 <meta property="og:url" content="https://pipe-lang.com/benchmarks.html">
@@ -184,7 +184,7 @@ a[data-lang].active { display: inline-block; }
       <div class="stat"><span class="stat-num">14 LOC</span><div class="stat-label" data-lang="en" class="active">RAG pipeline (Python: 26)</div><div class="stat-label" data-lang="de">RAG-Pipeline (Python: 26)</div></div>
       <div class="stat"><span class="stat-num">1.2s</span><div class="stat-label" data-lang="en" class="active">3 parallel LLM calls</div><div class="stat-label" data-lang="de">3 parallele LLM-Calls</div></div>
       <div class="stat"><span class="stat-num">8.6 MB</span><div class="stat-label" data-lang="en" class="active">Binary vs 345 MB venv</div><div class="stat-label" data-lang="de">Binary vs 345 MB venv</div></div>
-      <div class="stat"><span class="stat-num">~7×</span><div class="stat-label" data-lang="en" class="active">Bytecode VM</div><div class="stat-label" data-lang="de">Bytecode-VM</div></div>
+      <div class="stat"><span class="stat-num">66×</span><div class="stat-label" data-lang="en" class="active">VM speedup on fib(20), 0.6–66× measured</div><div class="stat-label" data-lang="de">VM-Beschleunigung bei fib(20), 0,6–66× gemessen</div></div>
     </div>
   </div>
 </section>
@@ -297,26 +297,49 @@ print a ++ " | " ++ b ++ " | " ++ c</pre>
   </div>
 </section>
 
-<!-- 4. Bytecode VM -->
+<!-- 4. Execution engine — VM vs tree-walker (measured) -->
 <section>
   <div class="container">
     <div class="bench-card">
-      <div class="bench-title"><span class="icon">🏎️</span><h3 data-lang="en" class="active">Execution engine — bytecode VM</h3><h3 data-lang="de">Ausführungs-Engine — Bytecode-VM</h3></div>
-      <p class="bench-sub" data-lang="en" class="active">Compile to bytecode and run on a stack-based VM instead of the tree-walker. Compute-heavy pipelines get faster — often ~7× — with automatic caching.</p>
-      <p class="bench-sub" data-lang="de">In Bytecode kompilieren und auf einer Stack-basierten VM statt im Tree-Walker ausführen. Rechenlastige Pipelines werden schneller — oft ~7× — mit automatischem Caching.</p>
+      <div class="bench-title"><span class="icon">🏎️</span><h3 data-lang="en" class="active">Execution engine — VM vs tree-walker, measured</h3><h3 data-lang="de">Ausführungs-Engine — VM vs. Tree-Walker, gemessen</h3></div>
+      <p class="bench-sub" data-lang="en" class="active">Run with <code>pipe -vm -q script.pipe</code> to compile to bytecode and execute on a stack-based VM instead of the tree-walker. Speedup depends heavily on the workload — from 0.6× to 66×. Here are the measured medians (<code>pipe -bench</code>, pure execution time):</p>
+      <p class="bench-sub" data-lang="de">Ausführen mit <code>pipe -vm -q script.pipe</code> kompiliert zu Bytecode und führt auf einer Stack-basierten VM statt im Tree-Walker aus. Die Beschleunigung hängt stark vom Workload ab — von 0,6× bis 66×. Hier die gemessenen Mediane (<code>pipe -bench</code>, reine Ausführungszeit):</p>
 
-      <div class="bench-row">
-        <span class="label">Tree-walker</span>
-        <div class="track"><div class="fill red" style="width:100%">baseline</div></div>
-        <span class="val red">1.0×</span>
+      <div class="compare-table">
+        <table>
+          <tr><th></th><th>Tree-walker</th><th>VM</th><th>Speedup</th></tr>
+          <tr><td>fib(20) recursive</td><td>522 ms</td><td>7.9 ms</td><td style="color:var(--green)">66×</td></tr>
+          <tr><td>list sum 10000</td><td>5.7 ms</td><td>2.8 ms</td><td style="color:var(--green)">2.0×</td></tr>
+          <tr><td>list push + sum 20000</td><td>24 ms</td><td>25 ms</td><td style="color:var(--fg2)">1.0×</td></tr>
+          <tr><td>fizzbuzz 1–100</td><td>0.36 ms</td><td>0.41 ms</td><td style="color:var(--orange)">0.9×</td></tr>
+          <tr><td>string concat 20000</td><td>112 ms</td><td>194 ms</td><td style="color:var(--orange)">0.6×</td></tr>
+        </table>
       </div>
-      <div class="bench-row">
-        <span class="label">Bytecode VM</span>
-        <div class="track"><div class="fill green" style="width:14.3%">~7×</div></div>
-        <span class="val green">~7×</span>
+      <p class="bench-note" data-lang="en" class="active">The VM wins big on function-call and recursion-heavy code (up to 66× on fib), but simple loops, list building and string concatenation are comparable or even slower — the tree-walker optimizes those well. Take a single "~7×" claim with a grain of salt: measure your own workload with <code>pipe -bench</code>.</p>
+      <p class="bench-note" data-lang="de">Die VM gewinnt deutlich bei funktionsaufruf- und rekursionslastigem Code (bis 66× bei fib), aber einfache Schleifen, Listen-Aufbau und String-Concatenation sind vergleichbar oder sogar langsamer — der Tree-Walker optimiert diese gut. Ein pauschales „~7×" mit Vorsicht genießen: eigenen Workload messen mit <code>pipe -bench</code>.</p>
+    </div>
+  </div>
+</section>
+
+<!-- 5. CPU microbenchmarks — Pipe vs Python, honest -->
+<section style="background: var(--bg2);">
+  <div class="container">
+    <div class="bench-card">
+      <div class="bench-title"><span class="icon">⚙️</span><h3 data-lang="en" class="active">CPU microbenchmarks — Pipe vs Python, honest</h3><h3 data-lang="de">CPU-Mikrobenchmarks — Pipe vs. Python, ehrlich</h3></div>
+      <p class="bench-sub" data-lang="en" class="active">Identical programs, no LLM calls, wall time including interpreter startup (median of 5 runs). CPython wins these — Pipe is not a JIT compiler and is not designed to outrun Python on raw CPU. Where Pipe actually wins is LLM workflows: no 7-second <code>langchain</code> import startup, built-in parallel <code>&gt;&gt;</code> and <code>ai_batch</code>.</p>
+      <p class="bench-sub" data-lang="de">Identische Programme, keine LLM-Calls, Wandzeit inkl. Interpreter-Startup (Median aus 5 Läufen). CPython gewinnt diese Benchmarks — Pipe ist kein JIT-Compiler und nicht dafür gebaut, Python bei roher CPU-Leistung zu schlagen. Wo Pipe wirklich gewinnt, sind LLM-Workflows: kein 7-Sekunden-<code>langchain</code>-Import-Startup, eingebautes Parallel-<code>&gt;&gt;</code> und <code>ai_batch</code>.</p>
+
+      <div class="compare-table">
+        <table>
+          <tr><th></th><th>Pipe (VM)</th><th>Python</th><th>Faster</th></tr>
+          <tr><td>fib(20) recursive</td><td>99 ms</td><td>24 ms</td><td style="color:var(--fg2)">Python 4.2×</td></tr>
+          <tr><td>loop sum 1,000,000</td><td>287 ms</td><td>182 ms</td><td style="color:var(--fg2)">Python 1.6×</td></tr>
+          <tr><td>string concat 20000</td><td>284 ms</td><td>44 ms</td><td style="color:var(--fg2)">Python 6.5×</td></tr>
+          <tr><td>list push 20000</td><td>110 ms</td><td>26 ms</td><td style="color:var(--fg2)">Python 4.3×</td></tr>
+        </table>
       </div>
-      <p class="bench-note" data-lang="en" class="active">Run with <code>pipe -vm -q script.pipe</code>. Measure it yourself with <code>pipe -bench</code>.</p>
-      <p class="bench-note" data-lang="de">Ausführen mit <code>pipe -vm -q script.pipe</code>. Selbst messen mit <code>pipe -bench</code>.</p>
+      <p class="bench-note" data-lang="en" class="active">Note the startup share: Pipe's ~100 ms here includes binary startup + bytecode compile, Python's ~15 ms is pure interpreter startup. Both are negligible next to the ~7s Python import startup for <code>langchain</code> in the real LLM benchmarks above. Rerun: <code>python3 tools/measure_perf.py</code>.</p>
+      <p class="bench-note" data-lang="de">Startup-Anteil beachten: Pipe's ~100 ms hier beinhalten Binary-Start + Bytecode-Kompilierung, Python's ~15 ms sind reiner Interpreter-Start. Beides ist vernachlässigbar neben dem ~7s-Import-Startup von <code>langchain</code> bei den echten LLM-Benchmarks oben. Neu messen: <code>python3 tools/measure_perf.py</code>.</p>
     </div>
   </div>
 </section>
@@ -359,8 +382,8 @@ print a ++ " | " ++ b ++ " | " ++ c</pre>
         <li data-lang="de">Laufzeiten hängen von der Provider-Latenz ab; die Python-Werte enthalten ~7s Interpreter-/Import-Startup, Pipe keinen.</li>
         <li data-lang="en" class="active">Binary sizes: <code>go build -ldflags="-s -w" -trimpath</code>. UPX figure is <code>make build-upx</code>. Python size is the real <code>du -sh</code> of the benchmark venv.</li>
         <li data-lang="de">Binary-Größen: <code>go build -ldflags="-s -w" -trimpath</code>. UPX-Wert via <code>make build-upx</code>. Python-Größe ist das reale <code>du -sh</code> des Benchmark-venv.</li>
-        <li data-lang="en" class="active">Bytecode VM speedup is the documented ~7× for compute-heavy programs; measure on your machine with <code>pipe -bench</code>.</li>
-        <li data-lang="de">Bytecode-VM-Beschleunigung ist der dokumentierte ~7×-Wert für rechenlastige Programme; auf dem eigenen Rechner messen mit <code>pipe -bench</code>.</li>
+        <li data-lang="en" class="active">Execution-engine numbers come from <code>pipe -bench</code> (pure execution time, average of 5 runs, no startup). CPU microbenchmarks are identical programs in <code>benchmarks/performance/</code>, median of 5 runs, wall time incl. interpreter startup. Rerun with <code>python3 tools/measure_perf.py</code>.</li>
+        <li data-lang="de">Ausführungs-Engine-Zahlen stammen aus <code>pipe -bench</code> (reine Ausführungszeit, Durchschnitt aus 5 Läufen, ohne Startup). CPU-Mikrobenchmarks sind identische Programme in <code>benchmarks/performance/</code>, Median aus 5 Läufen, Wandzeit inkl. Interpreter-Startup. Neu messen mit <code>python3 tools/measure_perf.py</code>.</li>
         <li data-lang="en" class="active">Run every example yourself in the <a href="playground.html">browser playground</a> — no install needed.</li>
         <li data-lang="de">Jedes Beispiel selbst ausprobieren im <a href="playground.html">Browser-Playground</a> — ohne Installation.</li>
       </ul>

@@ -1,0 +1,8 @@
+-- CPU microbenchmark: recursive fibonacci(20)
+fn fib n
+    match n
+        | 0 -> 0
+        | 1 -> 1
+        | _ -> fib(n - 1) + fib(n - 2)
+
+fib 20

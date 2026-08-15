@@ -1,0 +1,10 @@
+-- CPU microbenchmark: list push 20_000 + sum
+lst: []
+i: 0
+while i < 20000
+    lst: push lst i
+    i: i + 1
+total: 0
+for x in lst
+    total: total + x
+total

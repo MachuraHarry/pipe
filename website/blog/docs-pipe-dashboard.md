@@ -43,10 +43,10 @@ The full API is six functions: `doc_index`, `doc_index_status`, `doc_search`, `d
 **What it does that a naive "embed everything" script doesn't:**
 
 - **Heading-aware chunking.** Documents are split on `#`/`##`/`###` boundaries, fenced code blocks stay intact, and every chunk remembers its file, line range, and heading path (`Bytecode VM > Components > Compiler`). Indexing `docs/en` yields **28 files → 317 chunks**.
-- **Hybrid search.** A TF-IDF keyword score and a cosine-similarity score are fused — and the weights adapt automatically: local 128-dim embeddings lean on keywords, OpenAI's 1536-dim embeddings lean on semantics.
-- **Cited answers.** `doc_ask` returns the answer *and* the sources (`path:line — heading`), so you can always trace a claim back to the doc.
+- **Hybrid search.** A TF-IDF keyword score and a cosine-similarity score are fused — and the weights adapt automatically: local 128-dim embeddings lean on keywords, OpenAI's 1536-dim embeddings lean on semantics. Identifiers stay single tokens (`try_ai`, not `try` + `ai`), and a query term matching a chunk's *heading* is boosted — so "try_ai" surfaces the `try_ai — AI Self-Healing` section, not just any passing mention.
+- **Detailed, cited answers.** `doc_ask` returns a thorough, step-by-step answer with code examples when the context shows them — *and* the sources (`path:line — heading`), so you can always trace a claim back to the doc.
 - **Incremental re-indexing.** Each file is hashed with SHA-256; `doc_reindex` re-chunks and re-embeds only what changed.
-- **Works offline.** DeepSeek has no embedding API, so `embed` falls back to a built-in local embedding — indexing and search run with **no API key**. Only `doc_ask` needs one, and a full answer costs about **$0.0002**.
+- **Works offline.** DeepSeek has no embedding API, so `embed` falls back to a built-in local embedding — indexing and search run with **no API key**. Only `doc_ask` needs one, and a full answer costs a **fraction of a cent** (well under $0.001).
 
 ## The dashboard: docs-pipe with a face
 
@@ -60,7 +60,7 @@ It builds, indexes `docs/en`, serves on `:8090`, and opens your browser. What yo
 
 - **Live search** — type and results appear, debounced, with matched terms highlighted and every hit linking to a **source viewer** that scrolls to the exact line.
 - **Filters** — by file and language (`en`/`de`), with a result count and millisecond latency.
-- **Ask** — a cited answer with the sources rendered below it, each one clickable.
+- **Ask** — a cited answer — rendered as Markdown (headings, code blocks) — with the sources below it, each one clickable.
 - **Stats** — files, chunks, vector dimension, AI call count, and cost, plus a log of your recent queries.
 - **A real menu** — sticky nav, burger menu on mobile, progress bar on every request, copy-to-clipboard buttons.
 
@@ -96,7 +96,7 @@ PIPE_MODE=mcp DEEPSEEK_API_KEY=... ./bin/pipe examples/docs_pipe_dashboard.pipe
 
 ## Try it
 
-- Module: [`pipe-modules/docs-pipe`](https://github.com/MachuraHarry/pipe-modules/tree/master/docs-pipe) — 418 lines of pure Pipe.
+- Module: [`pipe-modules/docs-pipe`](https://github.com/MachuraHarry/pipe-modules/tree/master/docs-pipe) — 424 lines of pure Pipe.
 - Example: [`examples/docs_pipe_dashboard.pipe`](https://github.com/MachuraHarry/pipe/blob/master/examples/docs_pipe_dashboard.pipe).
 
 ```bash
@@ -147,10 +147,10 @@ Die komplette API besteht aus sechs Funktionen: `doc_index`, `doc_index_status`,
 **Was es besser macht als ein naives „alles einbetten"-Skript:**
 
 - **Heading-bewusstes Chunking.** Dokumente werden an `#`/`##`/`###`-Grenzen geteilt, umschlossene Code-Blöcke bleiben intakt, und jeder Chunk merkt sich Datei, Zeilenbereich und Überschriftenpfad (`Bytecode VM > Komponenten > Compiler`). `docs/en` ergibt **28 Dateien → 317 Chunks**.
-- **Hybride Suche.** Ein TF-IDF-Keyword-Score und ein Kosinus-Ähnlichkeits-Score werden fusioniert — und die Gewichtung passt sich automatisch an: lokale 128-dim-Embeddings setzen auf Keywords, OpenAIs 1536-dim-Embeddings auf Semantik.
-- **Zitierte Antworten.** `doc_ask` liefert die Antwort *und* die Quellen (`path:line — heading`), damit jede Behauptung nachvollziehbar ist.
+- **Hybride Suche.** Ein TF-IDF-Keyword-Score und ein Kosinus-Ähnlichkeits-Score werden fusioniert — und die Gewichtung passt sich automatisch an: lokale 128-dim-Embeddings setzen auf Keywords, OpenAIs 1536-dim-Embeddings auf Semantik. Bezeichner bleiben einzelne Tokens (`try_ai`, nicht `try` + `ai`), und ein Suchbegriff, der die *Überschrift* eines Chunks trifft, wird geboostet — so findet „try_ai" den Abschnitt `try_ai — AI Self-Healing`, nicht nur jede beiläufige Erwähnung.
+- **Detaillierte, zitierte Antworten.** `doc_ask` liefert eine gründliche Schritt-für-Schritt-Antwort mit Code-Beispielen, wenn der Kontext sie zeigt — *und* die Quellen (`path:line — heading`), damit jede Behauptung nachvollziehbar ist.
 - **Inkrementelles Indexieren.** Jede Datei wird per SHA-256 gehasht; `doc_reindex` zerlegt und bettet nur Geändertes neu ein.
-- **Läuft offline.** DeepSeek hat keine Embedding-API, daher fällt `embed` auf ein eingebautes lokales Embedding zurück — Indexieren und Suchen laufen **ohne API-Key**. Nur `doc_ask` braucht einen, und eine volle Antwort kostet rund **$0,0002**.
+- **Läuft offline.** DeepSeek hat keine Embedding-API, daher fällt `embed` auf ein eingebautes lokales Embedding zurück — Indexieren und Suchen laufen **ohne API-Key**. Nur `doc_ask` braucht einen, und eine volle Antwort kostet einen **Bruchteil eines Cents** (deutlich unter $0,001).
 
 ## Das Dashboard: docs-pipe mit Gesicht
 
@@ -164,7 +164,7 @@ Er baut, indexiert `docs/en`, startet auf `:8090` und öffnet den Browser. Was d
 
 - **Live-Suche** — tippen und Ergebnisse erscheinen (debounced), Trefferbegriffe markiert, jeder Treffer verlinkt auf einen **Quelltext-Viewer**, der zur exakten Zeile scrollt.
 - **Filter** — nach Datei und Sprache (`en`/`de`), mit Trefferzahl und Latenz in Millisekunden.
-- **Ask** — eine zitierte Antwort mit den darunter gerenderten, klickbaren Quellen.
+- **Ask** — eine zitierte Antwort — als Markdown gerendert (Überschriften, Code-Blöcke) — mit den Quellen darunter, jede klickbar.
 - **Stats** — Dateien, Chunks, Vektor-Dimension, KI-Aufrufe und Kosten, plus ein Log deiner letzten Suchen.
 - **Ein echtes Menü** — Sticky-Navigation, Burger-Menü auf Mobile, Fortschrittsbalken bei jeder Anfrage, Copy-to-Clipboard-Buttons.
 
@@ -200,7 +200,7 @@ PIPE_MODE=mcp DEEPSEEK_API_KEY=... ./bin/pipe examples/docs_pipe_dashboard.pipe
 
 ## Ausprobieren
 
-- Modul: [`pipe-modules/docs-pipe`](https://github.com/MachuraHarry/pipe-modules/tree/master/docs-pipe) — 418 Zeilen reines Pipe.
+- Modul: [`pipe-modules/docs-pipe`](https://github.com/MachuraHarry/pipe-modules/tree/master/docs-pipe) — 424 Zeilen reines Pipe.
 - Beispiel: [`examples/docs_pipe_dashboard.pipe`](https://github.com/MachuraHarry/pipe/blob/master/examples/docs_pipe_dashboard.pipe).
 
 ```bash

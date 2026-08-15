@@ -1,5 +1,13 @@
 [
   {
+    "id": "docs-pipe-dashboard",
+    "file": "docs-pipe-dashboard.md",
+    "date": "2026-08-26",
+    "tag": "release",
+    "title": {"en": "🧠 docs-pipe — Turn Your Docs Into a Searchable, Question-Answering AI", "de": "🧠 docs-pipe — Verwandle deine Doku in eine durchsuchbare, Frage-beantwortende KI"},
+    "excerpt": {"en": "A documentation-native RAG module plus a web dashboard: heading-aware chunking, hybrid keyword + semantic search, cited answers, incremental re-indexing, and a one-command UI — all in pure Pipe, no vector database.", "de": "Ein dokumentations-natives RAG-Modul plus Web-Dashboard: heading-bewusstes Chunking, hybride Keyword- + semantische Suche, zitierte Antworten, inkrementelles Indexieren und ein Ein-Befehl-UI — alles in reinem Pipe, ohne Vektor-Datenbank."}
+  },
+  {
     "id": "pipe-vs-python-benchmarks",
     "file": "pipe-vs-python-benchmarks.md",
     "date": "2026-08-15",

@@ -15,7 +15,6 @@ Your `docs/` folder is the most underused asset in the repo. It has the answers 
 Install it like any Pipe module:
 
 ```bash
-pipe -get sqlite
 pipe -get docs-pipe
 ```
 
@@ -23,7 +22,6 @@ Then index a Markdown tree, search it by *meaning + keywords*, and ask questions
 
 ```pipe
 ai_provider "deepseek"
-import "sqlite.pipe"
 import "docs-pipe"
 
 idx: doc_index "docs/en" {lang: "en", db: "pipe_docs.db"}
@@ -85,7 +83,6 @@ PIPE_MODE=mcp DEEPSEEK_API_KEY=... ./bin/pipe examples/docs_pipe_dashboard.pipe
 
 ```bash
 git clone https://github.com/MachuraHarry/pipe
-git clone https://github.com/MachuraHarry/pipe-modules   # sibling directory
 cd pipe && make docs-dashboard                            # opens http://localhost:8090
 ```
 [/lang]
@@ -104,7 +101,6 @@ Dein `docs/`-Ordner ist der am meisten unterschätzte Schatz im Repo. Er hat die
 Installieren wie jedes Pipe-Modul:
 
 ```bash
-pipe -get sqlite
 pipe -get docs-pipe
 ```
 
@@ -112,7 +108,6 @@ Dann einen Markdown-Baum indexieren, nach *Bedeutung + Keywords* durchsuchen und
 
 ```pipe
 ai_provider "deepseek"
-import "sqlite.pipe"
 import "docs-pipe"
 
 idx: doc_index "docs/en" {lang: "en", db: "pipe_docs.db"}
@@ -174,7 +169,6 @@ PIPE_MODE=mcp DEEPSEEK_API_KEY=... ./bin/pipe examples/docs_pipe_dashboard.pipe
 
 ```bash
 git clone https://github.com/MachuraHarry/pipe
-git clone https://github.com/MachuraHarry/pipe-modules   # Geschwister-Ordner
 cd pipe && make docs-dashboard                            # öffnet http://localhost:8090
 ```
 [/lang]

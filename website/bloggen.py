@@ -231,6 +231,8 @@ NAV = """<nav><div class="container">
       <a class="nl-a" href="../playground.html">Playground</a>
       <a class="nl-a" href="../blog.html">Blog</a>
       <a class="nl-a" href="https://github.com/MachuraHarry/pipe">GitHub</a>
+      <a class="nl-a" href="https://discord.gg/kdjce8hnYw">Discord</a>
+      <a class="nl-a" href="https://x.com/pipe_spr">X (Twitter)</a>
     </div>
   </div></nav>"""
 
@@ -332,7 +334,7 @@ def build_page(p, md_text):
   <div class="pdetail-actions"><button onclick="copyLink()">🔗 <span data-lang="en">Copy link</span><span data-lang="de">Link kopieren</span></button></div>
 </div></main>
 <div class="toast" id="toast">Link copied ✓</div>
-<footer><div class="ft">© 2026 Pipe (SPR) · MIT License · <a href="../feed.xml">RSS</a></div></footer>
+<footer><div class="ft">© 2026 Pipe (SPR) · MIT License · <a href="../feed.xml">RSS</a> · <a href="https://discord.gg/kdjce8hnYw">Discord</a> · <a href="https://x.com/pipe_spr">X (Twitter)</a></div></footer>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/line-numbers/prism-line-numbers.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-json.min.js"></script>

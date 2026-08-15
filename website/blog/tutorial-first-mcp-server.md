@@ -37,7 +37,7 @@ What happens here:
 - **`mcp_server` + `mcp_serve_stdio`** start the server and serve the tool over stdio.
 - The same binary that *serves* MCP can also *consume* it: `mcp_use_stdio` connects to any MCP server off npm/uvx, so your LLM gets GitHub, filesystem, or database tools in the same pipeline.
 
-There's no SDK, no `package.json`, no build step. A single ~7 MB binary is both server and client — the tool you expose to Claude is the same language you write your pipeline in. That's the whole idea behind the [MCP Cell](mcp-cell.html): when MCP is a language primitive, the sandbox can wrap the server, the client, and the tools.
+There's no SDK, no `package.json`, no build step. A single ~8 MB binary is both server and client — the tool you expose to Claude is the same language you write your pipeline in. That's the whole idea behind the [MCP Cell](mcp-cell.html): when MCP is a language primitive, the sandbox can wrap the server, the client, and the tools.
 
 Run it yourself: `pipe examples/blog_mcp_server.pipe` (it starts a stdio server — hit it with `initialize`, `tools/list`, then `tools/call` with `{"name":"greet","arguments":{"name":"Harry"}}`).
 [/lang]
@@ -78,7 +78,7 @@ Was hier passiert:
 - **`mcp_server` + `mcp_serve_stdio`** starten den Server und servieren das Tool über stdio.
 - Dieselbe Binary, die MCP *serviert*, kann es auch *konsumieren*: `mcp_use_stdio` verbindet sich mit jedem MCP-Server von npm/uvx — dein LLM bekommt GitHub-, Dateisystem- oder Datenbank-Tools in derselben Pipeline.
 
-Kein SDK, kein `package.json`, kein Build-Schritt. Eine einzelne ~7-MB-Binary ist Server *und* Client — das Tool, das du Claude gibst, ist dieselbe Sprache, in der du deine Pipeline schreibst. Genau das ist die Idee hinter der [MCP-Zelle](mcp-cell.html): Wenn MCP ein Sprach-Primitiv ist, kann die Sandbox Server, Client und Tools gemeinsam umschließen.
+Kein SDK, kein `package.json`, kein Build-Schritt. Eine einzelne ~8-MB-Binary ist Server *und* Client — das Tool, das du Claude gibst, ist dieselbe Sprache, in der du deine Pipeline schreibst. Genau das ist die Idee hinter der [MCP-Zelle](mcp-cell.html): Wenn MCP ein Sprach-Primitiv ist, kann die Sandbox Server, Client und Tools gemeinsam umschließen.
 
 Selbst ausprobieren: `pipe examples/blog_mcp_server.pipe` (startet einen stdio-Server — teste mit `initialize`, `tools/list`, dann `tools/call` mit `{"name":"greet","arguments":{"name":"Harry"}}`).
 [/lang]

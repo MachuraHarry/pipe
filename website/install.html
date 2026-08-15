@@ -4,9 +4,9 @@
 <meta charset="UTF-8">
 <link rel="icon" type="image/svg+xml" href="logo.svg">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="description" content="Install Pipe (SPR): a single ~7 MB binary for Linux, macOS, and Windows. Or run it instantly in your browser via WebAssembly.">
+<meta name="description" content="Install Pipe (SPR): a single ~8 MB binary for Linux, macOS, and Windows. Or run it instantly in your browser via WebAssembly.">
 <meta property="og:title" content="Install — Pipe (SPR)">
-<meta property="og:description" content="One ~7 MB binary. Linux, macOS, Windows — or run Pipe in your browser via WebAssembly.">
+<meta property="og:description" content="One ~8 MB binary. Linux, macOS, Windows — or run Pipe in your browser via WebAssembly.">
 <meta property="og:type" content="website">
 <meta property="og:image" content="https://pipe-lang.com/og-image.png">
 <meta property="og:url" content="https://pipe-lang.com/install.html">
@@ -123,6 +123,8 @@ a[data-lang].active { display: inline-block; }
       <a href="playground.html" onclick="closeMenu()">Playground</a>
       <a href="blog.html" onclick="closeMenu()">Blog</a>
       <a href="https://github.com/MachuraHarry/pipe" onclick="closeMenu()">GitHub</a>
+      <a href="https://discord.gg/kdjce8hnYw" onclick="closeMenu()">Discord</a>
+      <a href="https://x.com/pipe_spr" onclick="closeMenu()">X (Twitter)</a>
       <div class="lang-switch">
         <button id="btn-en" class="active" onclick="setLang('en')">EN</button>
         <button id="btn-de" onclick="setLang('de')">DE</button>
@@ -158,8 +160,8 @@ a[data-lang].active { display: inline-block; }
 curl -fsSL https://pipe-lang.com/install.sh | bash
 <span data-lang="en" class="active"># Windows (PowerShell)</span><span data-lang="de"># Windows (PowerShell)</span>
 irm https://pipe-lang.com/install.ps1 | iex</pre>
-      <p data-lang="en" class="active" style="margin-bottom:0">The installer downloads the latest release, verifies its <strong>SHA256 checksum</strong> and installs <code>pipe</code> into <code>~/.local/bin</code> (or <code>/usr/local/bin</code> as root). Pin a version with <code>PIPE_VERSION=v0.9.3.5</code>.</p>
-      <p data-lang="de" style="margin-bottom:0">Der Installer lädt die neueste Version herunter, prüft ihre <strong>SHA256-Prüfsumme</strong> und installiert <code>pipe</code> nach <code>~/.local/bin</code> (als root nach <code>/usr/local/bin</code>). Version pinnen mit <code>PIPE_VERSION=v0.9.3.5</code>.</p>
+      <p data-lang="en" class="active" style="margin-bottom:0">The installer downloads the latest release, verifies its <strong>SHA256 checksum</strong> and installs <code>pipe</code> into <code>~/.local/bin</code> (or <code>/usr/local/bin</code> as root). Pin a version with <code>PIPE_VERSION=v0.9.4.0</code>.</p>
+      <p data-lang="de" style="margin-bottom:0">Der Installer lädt die neueste Version herunter, prüft ihre <strong>SHA256-Prüfsumme</strong> und installiert <code>pipe</code> nach <code>~/.local/bin</code> (als root nach <code>/usr/local/bin</code>). Version pinnen mit <code>PIPE_VERSION=v0.9.4.0</code>.</p>
 
       <div class="dl-grid">
         <div class="dl-card">
@@ -305,6 +307,8 @@ vim.lsp.start({
       </div>
       <div class="footer-col">
         <h5>Community</h5>
+        <a href="https://discord.gg/kdjce8hnYw">Discord</a>
+        <a href="https://x.com/pipe_spr">X (Twitter)</a>
         <a href="https://github.com/MachuraHarry/pipe/discussions">Discussions</a>
         <a href="https://github.com/MachuraHarry/pipe/blob/master/SECURITY.md">Security</a>
         <a href="https://github.com/MachuraHarry/pipe/blob/master/CONTRIBUTING.md">Contribute</a>

@@ -11,7 +11,7 @@ RAG usually means a stack: a vector database, an embedding SDK, a retrieval libr
 ```pipe
 ai_provider "deepseek"
 
-docs: ["Pipe is a pipeline-native language where data flows top to bottom.", "The bytecode VM runs compiled programs about 7x faster than the tree-walker.", "Built-in MCP lets Pipe expose its own tools or consume any stdio MCP server.", "Sandbox profiles restrict exec, write_file, and http_get in one declarative block.", "One ~7 MB binary, zero dependencies, on Linux, macOS, Windows, or the browser."]
+docs: ["Pipe is a pipeline-native language where data flows top to bottom.", "The bytecode VM runs compiled programs about 7x faster than the tree-walker.", "Built-in MCP lets Pipe expose its own tools or consume any stdio MCP server.", "Sandbox profiles restrict exec, write_file, and http_get in one declarative block.", "One ~8 MB binary, zero dependencies, on Linux, macOS, Windows, or the browser."]
 
 vectors: embed_batch docs        -- 1. vectorize once
 question: "What makes the VM fast?"
@@ -47,7 +47,7 @@ RAG bedeutet sonst einen ganzen Stack: eine Vektor-DB, ein Embedding-SDK, eine R
 ```pipe
 ai_provider "deepseek"
 
-docs: ["Pipe ist eine pipeline-native Sprache, in der Daten von oben nach unten fließen.", "Die Bytecode-VM führt Programme etwa 7x schneller aus als der Tree-Walker.", "Eingebautes MCP: Pipe stellt eigene Tools bereit oder nutzt jeden stdio-MCP-Server.", "Sandbox-Profile sperren exec, write_file und http_get in einem deklarativen Block.", "Eine ~7-MB-Binary, null Abhängigkeiten, auf Linux, macOS, Windows oder im Browser."]
+docs: ["Pipe ist eine pipeline-native Sprache, in der Daten von oben nach unten fließen.", "Die Bytecode-VM führt Programme etwa 7x schneller aus als der Tree-Walker.", "Eingebautes MCP: Pipe stellt eigene Tools bereit oder nutzt jeden stdio-MCP-Server.", "Sandbox-Profile sperren exec, write_file und http_get in einem deklarativen Block.", "Eine ~8-MB-Binary, null Abhängigkeiten, auf Linux, macOS, Windows oder im Browser."]
 
 vectors: embed_batch docs        -- 1. einmal vektorisieren
 question: "Was macht die VM schnell?"

@@ -29,7 +29,7 @@
     "date": "2026-08-15",
     "tag": "tutorial",
     "title": {"en": "📚 RAG in ~10 Lines — No Vector Database, No pip install", "de": "📚 RAG in ~10 Zeilen — ohne Vektor-DB, ohne pip install"},
-    "excerpt": {"en": "Semantic search and retrieval-augmented generation without a vector DB or framework: embed_batch, nearest, and ask as language primitives in one ~7 MB binary.", "de": "Semantische Suche und RAG ohne Vektor-DB oder Framework: embed_batch, nearest und ask als Sprach-Primitives in einer ~7-MB-Binary."}
+    "excerpt": {"en": "Semantic search and retrieval-augmented generation without a vector DB or framework: embed_batch, nearest, and ask as language primitives in one ~8 MB binary.", "de": "Semantische Suche und RAG ohne Vektor-DB oder Framework: embed_batch, nearest und ask als Sprach-Primitives in einer ~8-MB-Binary."}
   },
   {
     "id": "sandbox-unique",

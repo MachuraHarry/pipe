@@ -145,7 +145,7 @@ Pipe is currently at version **v0.9.4.0**, the **module-system release**. It com
 
 ### Enhanced Pattern Matching
 - [ ] Binding patterns (`| x: Some(x) -> ...`)
-- [ ] Guard clauses (`| x if x > 0 -> ...`)
+- [x] Guard clauses (`| x if x > 0 -> ...`)
 - [ ] List destructuring patterns (`| [a, b, ...rest] -> ...`)
 - [ ] Map destructuring patterns (`| {name: n, age: a} -> ...`)
 
@@ -278,7 +278,7 @@ Pipe is currently at version **v0.9.4.0**, the **module-system release**. It com
 | `try_ai` Self-Healing | ✅ Done | v0.6 | AI auto-fix errors |
 | Improved Module Sys | ✅ Done | v0.9.4.0 | Dirs, relative, circular, `PIPE_PATH`, SemVer, install, publish, lockfile |
 | Better Errors | 🟡 Partial | v0.6/v0.7 | Error codes, snippets, unused-var warnings done; suggestions open |
-| Pattern Matching+ | 🟡 Partial | v0.7 | Multi-pattern done; guards, destructuring open |
+| Pattern Matching+ | 🟡 Partial | v0.7 | Multi-pattern + guards done; destructuring open |
 | Concurrency | 🔮 Future | v0.7+ | spawn/await/channels/mutex/semaphore done; coroutines, select open |
 | Type Annotations | 🔮 Future | v0.7+ | Optional typing |
 | Bytecode Opts | 🟡 Partial | v0.7+ | Constant folding done; inline, peephole open |

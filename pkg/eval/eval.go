@@ -628,23 +628,47 @@ func (ctx *EvalContext) evalMatchExpression(me *ast.MatchExpression, env *object
 
 	for _, c := range me.Cases {
 		pattern := ctx.Eval(c.Pattern, env)
+		matched := false
 		if isError(pattern) {
-			if ident, ok := c.Pattern.(*ast.Identifier); ok && ident.Value == "_" {
-				return ctx.Eval(c.Body, env)
+			if isWildcardPattern(c.Pattern) {
+				matched = true
 			}
+		} else if valuesEqual(value, pattern) || isWildcardPattern(c.Pattern) {
+			matched = true
+		}
+		if !matched {
 			continue
 		}
-
-		if valuesEqual(value, pattern) {
-			return ctx.Eval(c.Body, env)
+		if !ctx.evalMatchGuard(c, env) {
+			continue
 		}
-
-		if ident, ok := c.Pattern.(*ast.Identifier); ok && ident.Value == "_" {
-			return ctx.Eval(c.Body, env)
-		}
+		return ctx.Eval(c.Body, env)
 	}
 
 	return object.NILOBJ
+}
+
+// isWildcardPattern reports whether an expression is the `_` wildcard, which
+// matches any value without evaluating it as a variable.
+func isWildcardPattern(expr ast.Expression) bool {
+	if ident, ok := expr.(*ast.Identifier); ok {
+		return ident.Value == "_"
+	}
+	return false
+}
+
+// evalMatchGuard reports whether a matched case's guard passes. A guard that
+// raises an error or is falsy makes the case not match, so matching falls
+// through to the next case — mirroring the bytecode VM.
+func (ctx *EvalContext) evalMatchGuard(c ast.MatchCase, env *object.Environment) bool {
+	if c.Guard == nil {
+		return true
+	}
+	guard := ctx.Eval(c.Guard, env)
+	if isError(guard) {
+		return false
+	}
+	return object.IsTruthy(guard)
 }
 
 func (ctx *EvalContext) evalFnStatement(fn *ast.FnStatement, env *object.Environment) object.Object {

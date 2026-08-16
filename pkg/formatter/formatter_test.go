@@ -45,6 +45,14 @@ func TestFormatList(t *testing.T) {
 	}
 }
 
+func TestFormatMatchGuard(t *testing.T) {
+	input := "match x\n    | _ if x > 0 -> \"positive\"\n    | _ -> \"other\""
+	got := FormatSource(input)
+	if !strings.Contains(got, "if x > 0") {
+		t.Errorf("expected guard rendered as 'if x > 0', got %q", got)
+	}
+}
+
 func TestFormatMap(t *testing.T) {
 	input := "{a: 1, b: 2}"
 	got := FormatSource(input)

@@ -94,6 +94,40 @@ print (calc 10 "+" 5)
 print (calc 10 "*" 5)
 ```
 
+### Guards
+
+Ein Zweig kann mit `if bedingung` nach dem Muster einen **Guard** tragen.
+Der Guard wird nur ausgewertet, wenn das Muster passt, und der Zweig feuert nur,
+wenn der Guard wahr ist. Ein Guard, der falsch ist — oder einen Fehler auslöst —
+lässt `match` zum nächsten Zweig durchfallen. Alle Muster eines Zweigs teilen
+sich denselben Guard.
+
+```pipe
+fn vorzeichen x
+    match x
+        | _ if x > 0 -> "positiv"
+        | _ if x < 0 -> "negativ"
+        | _ -> "null"
+
+-- positiv
+print (vorzeichen 5)
+-- negativ
+print (vorzeichen (-3))
+-- null
+print (vorzeichen 0)
+```
+
+Guards funktionieren auch mit Literal-Mustern:
+
+```pipe
+fn beschreibe n
+    match n
+        | 1 | 2 if n > 1 -> "klein, aber größer als eins"
+        | 1 | 2 -> "eins oder zwei"
+        | _ if n > 10 -> "groß"
+        | _ -> "mittel"
+```
+
 ## 4.3 while — While-Schleife
 
 ```pipe

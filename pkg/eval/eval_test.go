@@ -312,6 +312,33 @@ func TestEvalMatchMultiPattern(t *testing.T) {
 	expectValue(t, input2, "big")
 }
 
+func TestEvalMatchGuard(t *testing.T) {
+	input := "fn sign x\n    match x\n        | _ if x > 0 -> \"positive\"\n        | _ if x < 0 -> \"negative\"\n        | _ -> \"zero\"\n\nsign 5"
+	expectValue(t, input, "positive")
+	expectValue(t, "fn sign x\n    match x\n        | _ if x > 0 -> \"positive\"\n        | _ if x < 0 -> \"negative\"\n        | _ -> \"zero\"\n\nsign (-3)", "negative")
+	expectValue(t, "fn sign x\n    match x\n        | _ if x > 0 -> \"positive\"\n        | _ if x < 0 -> \"negative\"\n        | _ -> \"zero\"\n\nsign 0", "zero")
+}
+
+func TestEvalMatchGuardSpecificPattern(t *testing.T) {
+	expectValue(t, "match 2\n    | 1 if true -> \"one\"\n    | 2 if true -> \"two\"\n    | _ -> \"other\"", "two")
+	expectValue(t, "match 2\n    | 1 if false -> \"one\"\n    | 2 -> \"two\"\n    | _ -> \"other\"", "two")
+}
+
+func TestEvalMatchGuardMultiPattern(t *testing.T) {
+	expectValue(t, "match 2\n    | 1 | 2 if true -> \"small\"\n    | _ -> \"big\"", "small")
+	expectValue(t, "match 9\n    | 1 | 2 if true -> \"small\"\n    | _ -> \"big\"", "big")
+}
+
+func TestEvalMatchGuardErrorFallsThrough(t *testing.T) {
+	input := "match 1\n    | 1 if raise \"boom\" -> \"never\"\n    | _ -> \"fallback\""
+	expectValue(t, input, "fallback")
+}
+
+func TestEvalMatchGuardErrorThenMatchingCase(t *testing.T) {
+	input := "match 1\n    | 1 if raise \"boom\" -> \"never\"\n    | 1 -> \"one\"\n    | _ -> \"fallback\""
+	expectValue(t, input, "one")
+}
+
 func TestEvalReturn(t *testing.T) {
 	input := "fn early x\n    if x < 0\n        return 0\n    x * 2\n\nearly 5"
 	expectValue(t, input, "10")

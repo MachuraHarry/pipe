@@ -176,6 +176,44 @@ func TestMatchExpression(t *testing.T) {
 	}
 }
 
+func TestMatchGuard(t *testing.T) {
+	input := "fn sign x\n    match x\n        | _ if x > 0 -> \"positive\"\n        | _ if x < 0 -> \"negative\"\n        | _ -> \"zero\"\n\nsign (-3)"
+	bc := parseAndCompile(t, input)
+	result := runVM(t, bc)
+	if result != "negative" {
+		t.Errorf("expected negative, got %s", result)
+	}
+}
+
+func TestMatchGuardErrorFallsThrough(t *testing.T) {
+	input := "match 1\n    | 1 if raise \"boom\" -> \"never\"\n    | _ -> \"fallback\""
+	bc := parseAndCompile(t, input)
+	result := runVM(t, bc)
+	if result != "fallback" {
+		t.Errorf("expected fallback, got %s", result)
+	}
+}
+
+func TestMatchGuardErrorThenMatchingCase(t *testing.T) {
+	// The error guard must skip to the next case with the match value intact,
+	// so a later literal case still matches.
+	input := "match 1\n    | 1 if raise \"boom\" -> \"never\"\n    | 1 -> \"one\"\n    | _ -> \"fallback\""
+	bc := parseAndCompile(t, input)
+	result := runVM(t, bc)
+	if result != "one" {
+		t.Errorf("expected one, got %s", result)
+	}
+}
+
+func TestMatchGuardMultiPattern(t *testing.T) {
+	input := "match 2\n    | 1 | 2 if true -> \"small\"\n    | _ -> \"big\""
+	bc := parseAndCompile(t, input)
+	result := runVM(t, bc)
+	if result != "small" {
+		t.Errorf("expected small, got %s", result)
+	}
+}
+
 func TestFunction(t *testing.T) {
 	input := "fn double x\n    x * 2\n\ndouble 21"
 	bc := parseAndCompile(t, input)

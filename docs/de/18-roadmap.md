@@ -25,7 +25,7 @@ Pipe ist aktuell in Version **v0.9.4.0**, dem **Modulsystem-Release**. Es vervol
 | 6 | **Verbessertes `pipe fmt`** | Konsistentere Formatierung, Konfigurations-Optionen | 🟡 Teilweise (`--check`, Verzeichnisse, Whitespace-Fallback erledigt; Optionen offen) |
 | 7 | **REPL-History-Upgrade** | Pfeiltasten-Navigation, inkrementelle Suche | 🟡 Persistenz erledigt; Tab-Completion/Farben/`:load` offen |
 | 8 | **Verbesserte Fehlermeldungen** | `Datei:Zeile:Spalte` in allen Laufzeitfehlern, farbige Ausgabe | 🟡 Fehlercodes + Source-Snippets + Unused-Var-Warnings erledigt; Vorschläge offen |
-| 9 | **Erweiterte Pattern-Matching** | Bereichs-Muster (`1..10`), Guard-Klauseln | 🟡 Multi-Pattern erledigt; Guards/Binding/Destructuring offen |
+| 9 | **Erweiterte Pattern-Matching** | Bereichs-Muster (`1..10`), Guard-Klauseln | 🟡 Multi-Pattern + Guards erledigt; Binding/Destructuring offen |
 
 ---
 

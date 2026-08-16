@@ -269,6 +269,57 @@ func TestMatchMultiPattern(t *testing.T) {
 	}
 }
 
+func TestMatchGuard(t *testing.T) {
+	input := "match x\n    | _ if x > 0 -> \"positive\"\n    | _ -> \"other\"\n"
+	program := parseProgram(t, input)
+
+	expr, ok := program.Statements[0].(*ast.ExpressionStatement).Expression.(*ast.MatchExpression)
+	if !ok {
+		t.Fatalf("expected MatchExpression, got %T", program.Statements[0].(*ast.ExpressionStatement).Expression)
+	}
+	if len(expr.Cases) != 2 {
+		t.Fatalf("expected 2 cases, got %d", len(expr.Cases))
+	}
+	if expr.Cases[0].Guard == nil {
+		t.Fatal("expected guard on first case, got nil")
+	}
+	if expr.Cases[0].Guard.String() != "(x > 0)" {
+		t.Errorf("guard = %s, want (x > 0)", expr.Cases[0].Guard.String())
+	}
+	if expr.Cases[1].Guard != nil {
+		t.Error("expected no guard on wildcard case")
+	}
+}
+
+func TestMatchGuardMultiPattern(t *testing.T) {
+	input := "match x\n    | 1 | 2 if x > 1 -> \"small\"\n    | _ -> \"other\"\n"
+	program := parseProgram(t, input)
+
+	expr, ok := program.Statements[0].(*ast.ExpressionStatement).Expression.(*ast.MatchExpression)
+	if !ok {
+		t.Fatalf("expected MatchExpression, got %T", program.Statements[0].(*ast.ExpressionStatement).Expression)
+	}
+	if len(expr.Cases) != 3 {
+		t.Fatalf("expected 3 cases after multi-pattern expansion, got %d", len(expr.Cases))
+	}
+	// Both expanded patterns share the same guard and body
+	for i := 0; i < 2; i++ {
+		c := expr.Cases[i]
+		if c.Guard == nil {
+			t.Fatalf("case %d: expected guard, got nil", i)
+		}
+		if c.Guard.String() != "(x > 1)" {
+			t.Errorf("case %d guard = %s, want (x > 1)", i, c.Guard.String())
+		}
+		if c.Body.String() != `"small"` {
+			t.Errorf("case %d body = %s, want \"small\"", i, c.Body.String())
+		}
+	}
+	if expr.Cases[2].Guard != nil {
+		t.Error("expected no guard on wildcard case")
+	}
+}
+
 func TestPipelineExpression(t *testing.T) {
 	input := "x\n    > f\n    > g\n"
 	program := parseProgram(t, input)

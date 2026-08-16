@@ -713,6 +713,14 @@ func (p *Parser) parseMatchExpression() ast.Expression {
 			patterns = append(patterns, p.parseExpression(PrecedenceLowest))
 		}
 
+		// Guard: | pattern if condition -> body (shared by all patterns)
+		var guard ast.Expression
+		if p.peekTokenIs(lexer.IF) {
+			p.nextToken() // consume 'if' keyword
+			p.nextToken() // move to the guard expression
+			guard = p.parseExpression(PrecedenceLowest)
+		}
+
 		if !p.expectPeek(lexer.FAT_ARROW) { // ->
 			return nil
 		}
@@ -720,7 +728,7 @@ func (p *Parser) parseMatchExpression() ast.Expression {
 		body := p.parseExpression(PrecedenceLowest)
 
 		for _, pattern := range patterns {
-			expr.Cases = append(expr.Cases, ast.MatchCase{Pattern: pattern, Body: body})
+			expr.Cases = append(expr.Cases, ast.MatchCase{Pattern: pattern, Body: body, Guard: guard})
 		}
 
 		for p.peekTokenIs(lexer.NEWLINE) {

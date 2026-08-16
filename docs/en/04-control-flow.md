@@ -125,6 +125,40 @@ fn is_vowel ch
     | _ -> false
 ```
 
+### Guards
+
+A branch can carry a guard written as `if condition` after its pattern. The
+guard is only evaluated when the pattern matches, and the branch fires only if
+the guard is truthy. A guard that is falsy — or that raises an error — makes
+`match` fall through to the next branch. All patterns of a branch share the
+same guard.
+
+```pipe
+fn sign x
+  match x
+    | _ if x > 0 -> "positive"
+    | _ if x < 0 -> "negative"
+    | _ -> "zero"
+
+-- positive
+print (sign 5)
+-- negative
+print (sign (-3))
+-- zero
+print (sign 0)
+```
+
+Guards also work together with literal patterns:
+
+```pipe
+fn describe n
+  match n
+    | 1 | 2 if n > 1 -> "small but greater than one"
+    | 1 | 2 -> "one or two"
+    | _ if n > 10 -> "large"
+    | _ -> "medium"
+```
+
 ## while Loop
 
 The `while` loop repeatedly executes its body as long as the condition remains truthy.

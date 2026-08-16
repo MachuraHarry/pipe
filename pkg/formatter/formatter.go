@@ -330,6 +330,10 @@ func formatExpr(out *strings.Builder, expr ast.Expression, depth int, prec int) 
 			out.WriteString(indent)
 			out.WriteString("| ")
 			formatExpr(out, c.Pattern, depth, 0)
+			if c.Guard != nil {
+				out.WriteString(" if ")
+				formatExpr(out, c.Guard, depth, 0)
+			}
 			out.WriteString(" -> ")
 			formatExpr(out, c.Body, depth, 0)
 			out.WriteByte('\n')

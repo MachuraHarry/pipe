@@ -1,0 +1,45 @@
+test "match guard wildcard"
+    sign: fn x
+        match x
+            | _ if x > 0 -> "positive"
+            | _ if x < 0 -> "negative"
+            | _ -> "zero"
+
+    assert_eq (sign 5) "positive"
+    assert_eq (sign (-3)) "negative"
+    assert_eq (sign 0) "zero"
+
+test "match guard specific pattern"
+    categorize: fn x
+        match x
+            | 0 if false -> "zero-guarded"
+            | 0 -> "zero"
+            | _ if x > 10 -> "large"
+            | _ -> "small"
+
+    assert_eq (categorize 0) "zero"
+    assert_eq (categorize 20) "large"
+    assert_eq (categorize 5) "small"
+
+test "match guard multi pattern shares guard"
+    m: match 2
+        | 1 | 2 if true -> "small"
+        | _ -> "big"
+    assert_eq m "small"
+
+    n: match 9
+        | 1 | 2 if true -> "small"
+        | _ -> "big"
+    assert_eq n "big"
+
+test "match guard error falls through"
+    m: match 1
+        | 1 if raise "boom" -> "never"
+        | _ -> "fallback"
+    assert_eq m "fallback"
+
+    n: match 1
+        | 1 if raise "boom" -> "never"
+        | 1 -> "one"
+        | _ -> "fallback"
+    assert_eq n "one"

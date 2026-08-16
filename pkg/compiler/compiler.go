@@ -832,7 +832,11 @@ func (c *Compiler) compileMatch(me *ast.MatchExpression) error {
 	jumpsToEnd := []int{}
 
 	for _, cs := range me.Cases {
-		if ident, ok := cs.Pattern.(*ast.Identifier); ok && ident.Value == "_" {
+		wildcard := isWildcardPattern(cs.Pattern)
+
+		// An unguarded wildcard is the terminal catch-all: it always matches,
+		// so any later case is unreachable.
+		if wildcard && cs.Guard == nil {
 			c.emit(OpPop) // pop match value
 			if err := c.Compile(cs.Body); err != nil {
 				return err
@@ -841,22 +845,41 @@ func (c *Compiler) compileMatch(me *ast.MatchExpression) error {
 			break
 		}
 
-		c.emit(OpDup)
-		if err := c.Compile(cs.Pattern); err != nil {
-			return err
+		// The match value must stay on the stack until a case actually fires,
+		// so a failed pattern or guard can fall through to the next case.
+		var skipNext []int
+		if !wildcard {
+			c.emit(OpDup)
+			if err := c.Compile(cs.Pattern); err != nil {
+				return err
+			}
+			c.emit(OpEqual)
+			skipNext = append(skipNext, c.emit(OpJumpNotTruthy, 9999))
 		}
-		c.emit(OpEqual)
-		jumpNotMatchPos := c.emit(OpJumpNotTruthy, 9999)
 
-		c.emit(OpPop) // pop dup of match value
+		if cs.Guard != nil {
+			if err := c.Compile(cs.Guard); err != nil {
+				return err
+			}
+			c.emit(OpCheckError)
+			guardOK := c.emit(OpJumpNotTruthy, 9999)
+			c.emit(OpPop) // pop the error value, keep the match value on the stack
+			skipNext = append(skipNext, c.emit(OpJump, 9999))
+			c.patchJump(guardOK, len(c.currentInstructions()))
+			skipNext = append(skipNext, c.emit(OpJumpNotTruthy, 9999))
+		}
+
+		c.emit(OpPop) // pop the matched value
 
 		if err := c.Compile(cs.Body); err != nil {
 			return err
 		}
 		jumpsToEnd = append(jumpsToEnd, c.emit(OpJump, 9999))
 
-		afterBody := len(c.currentInstructions())
-		c.patchJump(jumpNotMatchPos, afterBody)
+		afterCase := len(c.currentInstructions())
+		for _, jmp := range skipNext {
+			c.patchJump(jmp, afterCase)
+		}
 	}
 
 	// Default: pop match value, push nil
@@ -869,6 +892,13 @@ func (c *Compiler) compileMatch(me *ast.MatchExpression) error {
 	}
 
 	return nil
+}
+
+func isWildcardPattern(expr ast.Expression) bool {
+	if ident, ok := expr.(*ast.Identifier); ok {
+		return ident.Value == "_"
+	}
+	return false
 }
 
 func (c *Compiler) compileTryExpression(te *ast.TryExpression) error {

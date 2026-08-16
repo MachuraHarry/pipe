@@ -201,6 +201,27 @@ func TestCompileMatchExpression(t *testing.T) {
 	}
 }
 
+func TestCompileMatchGuard(t *testing.T) {
+	input := "x: 5\nmatch x\n    | 0 if x > 0 -> \"positive\"\n    | _ -> \"other\""
+	bc := parseAndCompile(t, input)
+	if !hasOp(t, bc, OpCheckError) {
+		t.Error("expected OpCheckError for guarded case")
+	}
+	if !hasOp(t, bc, OpDup) {
+		t.Error("expected OpDup for non-wildcard pattern")
+	}
+}
+
+func TestCompileMatchGuardNoBreakOnGuardedWildcard(t *testing.T) {
+	// A guarded wildcard must not be treated as a terminal fast path, so all
+	// guarded cases are compiled (one OpCheckError per guard).
+	input := "x: 5\nmatch x\n    | _ if x > 0 -> \"positive\"\n    | _ if x < 0 -> \"negative\"\n    | _ -> \"zero\""
+	bc := parseAndCompile(t, input)
+	if n := countOps(t, bc, OpCheckError); n != 2 {
+		t.Errorf("expected 2 OpCheckError (one per guard), got %d", n)
+	}
+}
+
 func TestCompileFunction(t *testing.T) {
 	input := "fn add a b\n    a + b\n\nadd 3 4"
 	bc := parseAndCompile(t, input)

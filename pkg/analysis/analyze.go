@@ -303,6 +303,9 @@ func (a *Analyzer) walkExpr(expr ast.Expression) {
 				continue
 			}
 			a.walkExpr(c.Pattern)
+			if c.Guard != nil {
+				a.walkExpr(c.Guard)
+			}
 			a.walkExpr(c.Body)
 		}
 	case *ast.WhileExpression:

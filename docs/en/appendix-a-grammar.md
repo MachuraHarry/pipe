@@ -416,11 +416,11 @@ If/else chains are expressions: they evaluate to the value of the last expressio
 
 ```ebnf
 match_expression = "match" , expression , NEWLINE , INDENT , { match_case } , DEDENT ;
-match_case       = "|" , pattern , { "|" , pattern } , "->" , expression ;
+match_case       = "|" , pattern , { "|" , pattern } , [ "if" , expression ] , "->" , expression ;
 pattern          = identifier | integer | string | boolean | nil | "_" ;
 ```
 
-Each case pattern is compared for equality with the match value. Multiple patterns may be combined with `|` to share a single body (e.g., `| 1 | 2 | 3 -> "small"`). The `_` wildcard matches any value. Cases are evaluated in order; the body of the first matching case is executed and its value becomes the result.
+Each case pattern is compared for equality with the match value. Multiple patterns may be combined with `|` to share a single body (e.g., `| 1 | 2 | 3 -> "small"`). The `_` wildcard matches any value. A case may carry an optional `if` guard that is evaluated only after its pattern matches; the case fires only if the guard is truthy, otherwise matching falls through to the next case. Cases are evaluated in order; the body of the first matching case is executed and its value becomes the result.
 
 #### While Expression
 

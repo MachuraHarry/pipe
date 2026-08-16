@@ -136,7 +136,7 @@ match_expression = "match" expression newline INDENT
                    match_case { match_case }
                    DEDENT ;
 
-match_case    = "|" expression { "|" expression } "->" expression newline ;
+match_case    = "|" expression { "|" expression } [ "if" expression ] "->" expression newline ;
 
 while_expression = "while" expression newline INDENT statement { statement } DEDENT ;
 

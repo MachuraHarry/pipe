@@ -236,6 +236,23 @@ func TestCrossMatchExpression(t *testing.T) {
 	assertBothEqual(t, "match 1\n    | 0 -> \"null\"\n    | 1 -> \"one\"\n    | _ -> \"other\"", "one")
 }
 
+func TestCrossMatchGuard(t *testing.T) {
+	sign := "fn sign x\n    match x\n        | _ if x > 0 -> \"positive\"\n        | _ if x < 0 -> \"negative\"\n        | _ -> \"zero\"\n\n"
+	assertBothEqual(t, sign+"sign 5", "positive")
+	assertBothEqual(t, sign+"sign (-3)", "negative")
+	assertBothEqual(t, sign+"sign 0", "zero")
+}
+
+func TestCrossMatchGuardErrorFallsThrough(t *testing.T) {
+	assertBothEqual(t, "match 1\n    | 1 if raise \"boom\" -> \"never\"\n    | _ -> \"fallback\"", "fallback")
+	assertBothEqual(t, "match 1\n    | 1 if raise \"boom\" -> \"never\"\n    | 1 -> \"one\"\n    | _ -> \"fallback\"", "one")
+}
+
+func TestCrossMatchGuardMultiPattern(t *testing.T) {
+	assertBothEqual(t, "match 2\n    | 1 | 2 if true -> \"small\"\n    | _ -> \"big\"", "small")
+	assertBothEqual(t, "match 9\n    | 1 | 2 if true -> \"small\"\n    | _ -> \"big\"", "big")
+}
+
 func TestCrossFunctions(t *testing.T) {
 	assertBothEqual(t, "fn double x\n    x * 2\n\ndouble 21", "42")
 	assertBothEqual(t, "fn add a b\n    a + b\n\nadd 3 4", "7")

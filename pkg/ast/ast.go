@@ -105,7 +105,11 @@ func (me *MatchExpression) TokenLiteral() string { return "match" }
 func (me *MatchExpression) String() string {
 	s := fmt.Sprintf("match %s", me.Value.String())
 	for _, c := range me.Cases {
-		s += fmt.Sprintf("\n  | %s -> %s", c.Pattern.String(), c.Body.String())
+		s += fmt.Sprintf("\n  | %s", c.Pattern.String())
+		if c.Guard != nil {
+			s += fmt.Sprintf(" if %s", c.Guard.String())
+		}
+		s += fmt.Sprintf(" -> %s", c.Body.String())
 	}
 	return s
 }
@@ -113,6 +117,7 @@ func (me *MatchExpression) String() string {
 type MatchCase struct {
 	Pattern Expression
 	Body    Expression
+	Guard   Expression // guard condition; nil when there is none
 }
 
 // ---- Expressions ----

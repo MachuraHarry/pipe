@@ -3086,4 +3086,4 @@ mcp_use_sse "http://localhost:9090/"
 
 ---
 
-**Total: 226 built-in functions**
+**Total: 227 built-in functions**

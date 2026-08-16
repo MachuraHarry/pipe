@@ -17,15 +17,15 @@ Pipe ist aktuell in Version **v0.9.4.0**, dem **Modulsystem-Release**. Es vervol
 
 ---
 
-## Phase 2: Struktur (v0.6) — Geplant
+## Phase 2: Struktur (v0.6) — Erledigt
 
-| # | Feature | Beschreibung |
-|---|---|---|
-| 5 | **Modul-System 2.0** | Verbessertes `import`, zirkuläre Abhängigkeiten, Modul-Pfade |
-| 6 | **Verbessertes `pipe fmt`** | Konsistentere Formatierung, Konfigurations-Optionen |
-| 7 | **REPL-History-Upgrade** | Pfeiltasten-Navigation, inkrementelle Suche |
-| 8 | **Verbesserte Fehlermeldungen** | `Datei:Zeile:Spalte` in allen Laufzeitfehlern, farbige Ausgabe |
-| 9 | **Erweiterte Pattern-Matching** | Bereichs-Muster (`1..10`), Guard-Klauseln |
+| # | Feature | Beschreibung | Status |
+|---|---|---|---|
+| 5 | **Modul-System 2.0** | Verbessertes `import`, zirkuläre Abhängigkeiten, Modul-Pfade, `pipe -install`/`-publish`, `pipe.lock` | ✅ Erledigt |
+| 6 | **Verbessertes `pipe fmt`** | Konsistentere Formatierung, Konfigurations-Optionen | 🟡 Teilweise (`--check`, Verzeichnisse, Whitespace-Fallback erledigt; Optionen offen) |
+| 7 | **REPL-History-Upgrade** | Pfeiltasten-Navigation, inkrementelle Suche | 🟡 Persistenz erledigt; Tab-Completion/Farben/`:load` offen |
+| 8 | **Verbesserte Fehlermeldungen** | `Datei:Zeile:Spalte` in allen Laufzeitfehlern, farbige Ausgabe | 🟡 Fehlercodes + Source-Snippets + Unused-Var-Warnings erledigt; Vorschläge offen |
+| 9 | **Erweiterte Pattern-Matching** | Bereichs-Muster (`1..10`), Guard-Klauseln | 🟡 Multi-Pattern erledigt; Guards/Binding/Destructuring offen |
 
 ---
 
@@ -56,19 +56,19 @@ Pipe ist aktuell in Version **v0.9.4.0**, dem **Modulsystem-Release**. Es vervol
 |---|---|---|
 | 10 | **Concurrency** | `>>` Parallel-Pipeline, `go`/`spawn`/`await`, Channels, Mutex und Semaphor (TW + VM, v0.9.x); `select`/Coroutines noch offen |
 | 11 | **Optionale Typannotationen** | `fn add(a: num, b: num) -> a + b` |
-| 12 | **Package-Registry 2.0** | `pipe publish`, `pipe install`; Basis (`-search`, `-get`, `@version`) existiert seit v0.6 |
+| 12 | **Package-Registry 2.0** | `pipe -install`, `pipe -publish`, `pipe.json`-Manifest, `pipe.lock`-Reproduzierbarkeit | ✅ Erledigt |
 | 13 | **Bytecode-Optimierungen** | Peephole-Optimizer, Inline-Caching, Constant Folding |
 | 14 | **Web-Playground** | "Try Pipe in your Browser" via WASM | ✅ Erledigt |
 | 15 | **VSCode-Plugin 2.0** | Auto-Vervollständigung, Go-to-Definition, Debugger-Integration |
 | 16 | **LSP-Server** | Language Server Protocol für Editor-Unterstützung | ✅ Erledigt |
-| 17 | **Standard-Test-Framework** | `assert`, `test`, `assert_eq`, `assert_error`, `assert_lt`, `assert_gt` — `suite` fehlt noch |
-| 18 | **Dokumentations-Generator** | `pipe doc` — Dokumentation aus Quelltext-Kommentaren |
+| 17 | **Standard-Test-Framework** | `assert`, `test`, `assert_eq`, `assert_error`, `assert_lt`, `assert_gt` — Setup/Teardown-Hooks fehlen noch |
+| 18 | **Dokumentations-Generator** | `pipe -doc` — Markdown aus `--!`-Docstrings, `--builtins` | ✅ Erledigt (Cross-References offen) |
 
 ---
 
 ## Abgeschlossen (v0.1 – v0.5)
 
-- ✅ Lexer + Parser + AST (15 + 20 + 29 Tests)
+- ✅ Lexer + Parser + AST (17 + 25 + 32 Tests)
 - ✅ Tree-Walk Interpreter (42 Tests)
 - ✅ Bytecode Compiler + Stack-VM (43 Opcodes, 29 + 18 + 28 Tests)
 - ✅ 168 Builtins (IO, FS, HTTP, JSON, TCP, Regex, DateTime, ...)

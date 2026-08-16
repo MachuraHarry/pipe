@@ -8,7 +8,7 @@
 [![GitHub MCP Registry](https://img.shields.io/badge/GitHub_MCP_Registry-Onboarding-6e5494.svg)](https://github.com/github/github-mcp-server/discussions/3057)
 [![MCP Registry](https://img.shields.io/badge/MCP_Registry-Listed-4a90d9.svg)](https://registry.modelcontextprotocol.io/?q=MachuraHarry)
 
-> **The first language with built-in MCP — server and client. 226 builtins, single ~8 MB binary. Zero dependencies.**
+> **The first language with built-in MCP — server and client. 227 builtins, single ~8 MB binary. Zero dependencies.**
 > **Officially listed in the [official MCP Registry](https://registry.modelcontextprotocol.io/?q=MachuraHarry)** (v0.9.4.0, active). GitHub MCP Registry [onboarding requested](https://github.com/github/github-mcp-server/discussions/3057) for one-click install in GitHub Copilot & VS Code.
 
 ## Quick Install
@@ -270,7 +270,7 @@ Or run the extension in development with F5 from the `vscode/` folder. See [VSCo
 
 ## Module Ecosystem
 
-Pipe has a [curated module library](https://github.com/MachuraHarry/pipe-modules) — **21 reusable modules** (2 more in development) with version pinning:
+Pipe has a [curated module library](https://github.com/MachuraHarry/pipe-modules) — **22 reusable modules** with version pinning:
 
 | Infrastructure | Data & CLI | AI & Agents | DevTools | Social |
 |---|---|---|---|---|
@@ -376,13 +376,13 @@ write_file "/etc/config"    -- ❌ E_SANDBOX blocked
 ```
 Source (.pipe) → Lexer → Parser → AST → [ Tree-Walker | Compiler + VM ]
                                             ↓
-                                  Builtins (226 total: 36 AI + 13 MCP + 177 standard)
+                                  Builtins (227 total: 36 AI + 13 MCP + 178 standard)
                                             ↓
                               MCP Server ↔ MCP Clients (stdio + HTTP)
 ```
 
 - 67 token types, 36 AST node types, 43 opcodes
-- ~37,000 LoC Go, 570 tests, 87 example programs
+- ~37,000 LoC Go, 584 tests, 87 example programs
 - Zero dependencies — pure Go stdlib
 
 ## Documentation

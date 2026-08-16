@@ -127,7 +127,8 @@ Pipe is currently at version **v0.9.4.0**, the **module-system release**. It com
 - [x] `--check` flag (exit non-zero if formatting needed)
 - [x] `--write` flag (overwrite files in-place)
 - [x] Directory processing (`pipe fmt ./src/` for all `.pipe` files)
-- [ ] Whitespace-only mode for unparseable files
+- [x] Whitespace-only mode for unparseable files (fallback normalization)
+- [ ] Configuration options (indent size, quote style)
 
 ### REPL Improvements
 - [x] Persistent history across sessions (save to `~/.pipe_history`)
@@ -137,10 +138,10 @@ Pipe is currently at version **v0.9.4.0**, the **module-system release**. It com
 - [ ] `:load` command to load source files into REPL session
 
 ### Better Error Messages
-- [ ] Source code snippets in error output (show the offending line)
+- [x] Source code snippets in error output (show the offending line)
 - [x] Error code system (e.g., `E001: undefined variable`)
 - [ ] Suggestions for common mistakes (e.g., `=` instead of `:` for assignment)
-- [ ] Warning for unused variables
+- [x] Warning for unused variables
 
 ### Enhanced Pattern Matching
 - [ ] Binding patterns (`| x: Some(x) -> ...`)
@@ -175,9 +176,10 @@ Pipe is currently at version **v0.9.4.0**, the **module-system release**. It com
 ### Package Registry
 - [x] Central module registry (`pipe -search`, `pipe -get`) (v0.6)
 - [x] Semantic versioning (`@1.0.0`) (v0.6)
-- [ ] `pipe install <package>` for dependency management
-- [ ] `pipe publish` for package authors
-- [ ] Package manifest format (`package.pipe` or `pipe.json`)
+- [x] `pipe -install <package>` for dependency management (transitive deps, `^X.Y.Z` constraints, `pipe.lock`)
+- [x] `pipe -publish` for package authors (gh-CLI pull request into the registry)
+- [x] Package manifest format (`pipe.json`) — created via `pipe -init`
+- [x] Lockfile consumption for reproducible installs (`pipe.lock` honored when present, SHA-256 checksums verified)
 
 ### Bytecode Optimizations
 - [ ] Constant folding at compile time
@@ -216,10 +218,10 @@ Pipe is currently at version **v0.9.4.0**, the **module-system release**. It com
 - [ ] Setup/teardown hooks
 
 ### Documentation Generator
-- [ ] Extract docstrings from source code
-- [ ] Generate API documentation in Markdown
+- [x] Extract docstrings from source code (`--!` docstrings)
+- [x] Generate API documentation in Markdown (`pipe -doc`)
 - [ ] Cross-reference links between documented symbols
-- [ ] `pipe doc` command
+- [x] `pipe doc` command (`pipe -doc` and `pipe -doc --builtins`)
 
 ### Additional Features
 - [ ] Set data structure (unique, unordered collection)
@@ -274,10 +276,10 @@ Pipe is currently at version **v0.9.4.0**, the **module-system release**. It com
 | Defer | ✅ Done | v0.5.1 | LIFO cleanup |
 | `_` Placeholder | ✅ Done | v0.5.1 | Pipeline args |
 | `try_ai` Self-Healing | ✅ Done | v0.6 | AI auto-fix errors |
-| Improved Module Sys | 🔜 Planned | v0.8 | Dirs, relative, circular |
-| Better Errors | 🟡 Partial | v0.6/v0.7 | Error codes done; snippets open |
+| Improved Module Sys | ✅ Done | v0.9.4.0 | Dirs, relative, circular, `PIPE_PATH`, SemVer, install, publish, lockfile |
+| Better Errors | 🟡 Partial | v0.6/v0.7 | Error codes, snippets, unused-var warnings done; suggestions open |
 | Pattern Matching+ | 🟡 Partial | v0.7 | Multi-pattern done; guards, destructuring open |
-| Concurrency | 🔮 Future | v0.7+ | Coroutines, channels |
+| Concurrency | 🔮 Future | v0.7+ | spawn/await/channels/mutex/semaphore done; coroutines, select open |
 | Type Annotations | 🔮 Future | v0.7+ | Optional typing |
 | Bytecode Opts | 🔮 Future | v0.7+ | Fold, inline, peephole |
 | Sets | 🔮 Future | v0.7+ | Unique collections |
@@ -286,6 +288,6 @@ Pipe is currently at version **v0.9.4.0**, the **module-system release**. It com
 | VSCode 2.0 | 🔮 Future | v0.7+ | Debugger, snippets |
 | LSP | ✅ Done | v0.7 | Go-to-def, references, hover, completion, diagnostics, rename |
 | Test Framework | 🟡 Partial | v0.7 | test blocks + asserts + CLI; setup/teardown hooks open |
-| Doc Generator | 🔮 Future | v0.7+ | `pipe doc` |
+| Doc Generator | ✅ Done | v0.9.4.0 | `pipe -doc` + `--builtins`; cross-references open |
 | Plugins | 🔮 Future | v0.8+ | Go/WASM extensions |
-| SQLite Module | ✅ Done | v0.8 | Pure-Pipe SQL engine, available via `pipe -get sqlite` from pipe-modules. Replaces modernc.org/sqlite. Binary ~8 MB, zero deps. SQL: CREATE/INSERT/UPDATE/DELETE/SELECT with WHERE, GROUP BY, ORDER BY, JOINs, transactions, paged binary persistence. Pipeline API (q, exec, row_get, row_eq, row_ne). Benchmarks vs Python/Lua in the [SQLite Module](26-sqlite-module.md) chapter. |
+| SQLite Module | ✅ Done | v0.8 | Pure-Pipe SQL engine, available via `pipe -get sqlite` from pipe-modules. Replaces modernc.org/sqlite. Binary ~8 MB, zero deps. SQL: CREATE/INSERT/UPDATE/DELETE/SELECT with WHERE, GROUP BY, ORDER BY, JOINs, transactions, paged binary persistence. Pipeline API (q, exec, row_get, row_eq, row_ne). Benchmarks vs Python/Lua in the [SQLite Module](26-sqlite-module.md) chapter. VM mode now runs the full module (ORDER BY/JOIN fixed). |

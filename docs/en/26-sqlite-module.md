@@ -1,6 +1,6 @@
 # SQLite Module — Pure-Pipe Relational Database
 
-**Status:** Available as an external package in the [`pipe-modules`](https://github.com/MachuraHarry/pipe-modules) repository. Install with `pipe -get sqlite`. API-compatible with the earlier `modernc.org/sqlite` builtins. The binary stays dependency-free (~8 MB). **TV mode** runs all operations correctly: CREATE TABLE, INSERT, SELECT, WHERE, GROUP BY, ORDER BY, UPDATE, DELETE. **VM mode** has a compiler bug with large module imports (see below).
+**Status:** Available as an external package in the [`pipe-modules`](https://github.com/MachuraHarry/pipe-modules) repository. Install with `pipe -get sqlite`. API-compatible with the earlier `modernc.org/sqlite` builtins. The binary stays dependency-free (~8 MB). **TV mode** runs all operations correctly: CREATE TABLE, INSERT, SELECT, WHERE, GROUP BY, ORDER BY, UPDATE, DELETE. **VM mode** now runs the full module correctly (see Phase 7).
 
 **Pipeline API:** The module exports pipeline helpers (`q`, `exec`, `row_get`, `row_eq`, `row_ne`) that compose with Pipe's `>` operator and the `map` / `filter` / `each` builtins. Demo: `examples/sqlite_pipeline.pipe`.
 
@@ -42,7 +42,7 @@ The module lives in the [`pipe-modules`](https://github.com/MachuraHarry/pipe-mo
 
 ## Known Limitation
 
-**VM mode (`pipe -vm`):** The compiler has a bug in `compileImport` for large modules with more than ~140 functions. Module globals and nested function calls inside closures do not work correctly — `exec_insert`/`exec_select` fail with `. only on map: CLOSURE` / `INTEGER`. Simple operations (`db_open`, `get_db`, `exec_create_table`) work in isolation. See the roadmap chapter for status.
+**Module bug (fixed, published as 0.8.1):** `parse_join` overwrote the join AST node's `type` key with the join type (empty for a bare `JOIN`), so `ast_type` returned `""` instead of `"join"` and the JOIN processing branch in `exec_select` never ran — JOIN queries silently dropped the joined table's columns. Fixed by storing the join type under a `join_type` key (`parse_join`, `exec_select`). The same release fixes ORDER BY: DESC on string columns (bytewise inversion instead of the type-mismatching `999999999999 - val`) and ORDER BY on columns outside the SELECT list (sorting before projection). **sqlite 0.8.1** is published in the `pipe-modules` registry.
 
 ## Examples
 
@@ -134,4 +134,4 @@ Python and Lua both use the native C sqlite3 library — they pass SQL strings t
 | 4 | Cleanup (remove stubs) | ✅ Done |
 | 5 | Pipeline API | ✅ Done |
 | 6 | Benchmark (Pipe vs Python vs Lua) | ✅ Done |
-| 7 | VM mode fix | ⏳ Compiler bug (deep in compileImport) |
+| 7 | VM mode fix | ✅ Done |

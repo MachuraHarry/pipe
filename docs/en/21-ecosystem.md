@@ -27,7 +27,7 @@ Use `@version` to pin a module to a specific release:
 
 ```pipe
 -- exact version
-import "log-analyzer@1.0[0]"
+import "log-analyzer@1.0.0"
 -- latest version
 import "log-analyzer"
 ```
@@ -39,7 +39,7 @@ When no version is specified, Pipe resolves the `latest` version from the regist
 After installing, import the module in your script:
 
 ```pipe
-import "log-analyzer@1.0[0]"
+import "log-analyzer@1.0.0"
 
 read_file "errors.log"
     > split "\n"

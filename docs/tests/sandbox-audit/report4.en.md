@@ -90,8 +90,7 @@ httptest test rather than a live call.)
    request-scoped. Concurrent tool execution is serialized via `toolExecMu`
    (mitigates parallel MCP requests), but a fully request-scoped profile
    remains open work.
-2. **File-I/O builtin inventory** — a full audit of every file-read/write
-   builtin against the temp-only redirect is still pending.
+2. **File-I/O builtin inventory** — done in `pkg/object/sandbox_fs_inventory_test.go`: every file-read/write builtin audited against the temp-only redirect (writes land in the sandbox copy, outside files untouched; reads cannot leak outside content; isolated/fs:none profiles block all file builtins).
 3. **Module install vs. runtime import** — `pkg/module/install.go`
    (`pipe install`) fetches URLs as an explicit operator action; it was
    considered out of scope for the *script* sandbox.

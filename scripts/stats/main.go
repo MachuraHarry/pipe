@@ -9,6 +9,7 @@ package main
 // numbers (examples, tests, docs chapters) directly from the filesystem.
 
 import (
+	"encoding/json"
 	"fmt"
 	"io/fs"
 	"os"
@@ -37,44 +38,50 @@ var aiNames = map[string]bool{
 	"cosine_sim": true, "dot_product": true, "nearest": true, "try_ai_log": true,
 }
 
+type Stats struct {
+	Builtins    int            `json:"builtins"`
+	BuiltinCats map[string]int `json:"builtin_categories"`
+	Examples    int            `json:"examples"`
+	GoTests     int            `json:"go_tests"`
+	TestPackages int           `json:"test_packages"`
+	ASTNodeTypes int           `json:"ast_node_types"`
+	DocsEn      int            `json:"docs_en_chapters"`
+	DocsDe      int            `json:"docs_de_chapters"`
+}
+
 func main() {
 	root, err := os.Getwd()
 	if err != nil {
 		fatal(err)
 	}
 
+	stats := &Stats{BuiltinCats: map[string]int{}}
+
 	total := len(object.Builtins)
-	cat := map[string]int{"ai_": 0, "ai_all": 0, "mcp_": 0, "sandbox": 0, "file": 0, "stdlib": 0}
+	stats.Builtins = total
 	for _, b := range object.Builtins {
 		switch {
 		case strings.HasPrefix(b.Name, "ai_") || aiNames[b.Name]:
 			if strings.HasPrefix(b.Name, "ai_") {
-				cat["ai_"]++
+				stats.BuiltinCats["ai_"]++
 			}
-			cat["ai_all"]++
+			stats.BuiltinCats["ai_all"]++
 		case strings.HasPrefix(b.Name, "mcp_"):
-			cat["mcp_"]++
+			stats.BuiltinCats["mcp_"]++
 		case sandboxNames[b.Name]:
-			cat["sandbox"]++
+			stats.BuiltinCats["sandbox"]++
 		case fileNames[b.Name]:
-			cat["file"]++
+			stats.BuiltinCats["file"]++
 		default:
-			cat["stdlib"]++
+			stats.BuiltinCats["stdlib"]++
 		}
 	}
-
-	fmt.Println("== Builtins ==")
-	fmt.Printf("total: %d\n", total)
-	for _, key := range []string{"ai_", "ai_all", "mcp_", "sandbox", "file", "stdlib"} {
-		fmt.Printf("  %-8s %d\n", key+":", cat[key])
-	}
-	fmt.Println()
 
 	examples, err := filepath.Glob(filepath.Join(root, "examples", "*.pipe"))
 	if err != nil {
 		fatal(err)
 	}
-	fmt.Printf("examples: %d\n", len(examples))
+	stats.Examples = len(examples)
 
 	testFns := 0
 	testPkgs := map[string]bool{}
@@ -98,8 +105,8 @@ func main() {
 		}
 		return nil
 	})
-	fmt.Printf("go tests: %d\n", testFns)
-	fmt.Printf("test packages: %d\n", len(testPkgs))
+	stats.GoTests = testFns
+	stats.TestPackages = len(testPkgs)
 
 	astNodes := 0
 	data, err := os.ReadFile(filepath.Join(root, "pkg", "ast", "ast.go"))
@@ -115,7 +122,7 @@ func main() {
 			}
 		}
 	}
-	fmt.Printf("AST node types: %d\n", astNodes)
+	stats.ASTNodeTypes = astNodes
 
 	for _, lang := range []string{"en", "de"} {
 		dir := filepath.Join(root, "docs", lang)
@@ -126,8 +133,47 @@ func main() {
 				count++
 			}
 		}
-		fmt.Printf("docs/%s chapters: %d\n", lang, count)
+		if lang == "en" {
+			stats.DocsEn = count
+		} else {
+			stats.DocsDe = count
+		}
 	}
+
+	writeJSON(root, stats)
+	report(stats)
+}
+
+// statsJSONPath is the committed canonical statistics snapshot that CI checks
+// against. When it drifts from the live numbers, the documentation claims
+// (README, website, docs) are stale and CI fails.
+const statsJSONPath = "stats.json"
+
+func writeJSON(root string, stats *Stats) {
+	raw, err := json.MarshalIndent(stats, "", "  ")
+	if err != nil {
+		fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(root, statsJSONPath), append(raw, '\n'), 0644); err != nil {
+		fatal(err)
+	}
+}
+
+func report(s *Stats) {
+	fmt.Println("== Builtins ==")
+	fmt.Printf("total: %d\n", s.Builtins)
+	for _, key := range []string{"ai_", "ai_all", "mcp_", "sandbox", "file", "stdlib"} {
+		fmt.Printf("  %-8s %d\n", key+":", s.BuiltinCats[key])
+	}
+	fmt.Println()
+	fmt.Printf("examples: %d\n", s.Examples)
+	fmt.Printf("go tests: %d\n", s.GoTests)
+	fmt.Printf("test packages: %d\n", s.TestPackages)
+	fmt.Printf("AST node types: %d\n", s.ASTNodeTypes)
+	fmt.Printf("docs/en chapters: %d\n", s.DocsEn)
+	fmt.Printf("docs/de chapters: %d\n", s.DocsDe)
+	fmt.Println()
+	fmt.Printf("wrote %s\n", statsJSONPath)
 }
 
 func fatal(err error) {

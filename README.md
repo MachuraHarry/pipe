@@ -8,7 +8,7 @@
 [![GitHub MCP Registry](https://img.shields.io/badge/GitHub_MCP_Registry-Onboarding-6e5494.svg)](https://github.com/github/github-mcp-server/discussions/3057)
 [![MCP Registry](https://img.shields.io/badge/MCP_Registry-Listed-4a90d9.svg)](https://registry.modelcontextprotocol.io/?q=MachuraHarry)
 
-> **The first language with built-in MCP — server and client. 227 builtins, single ~8 MB binary. Zero dependencies.**
+> **The first language with built-in MCP — server and client. 229 builtins, single ~8 MB binary. Zero dependencies.**
 > **Officially listed in the [official MCP Registry](https://registry.modelcontextprotocol.io/?q=MachuraHarry)** (v0.9.4.0, active). GitHub MCP Registry [onboarding requested](https://github.com/github/github-mcp-server/discussions/3057) for one-click install in GitHub Copilot & VS Code.
 
 ## Quick Install
@@ -205,7 +205,7 @@ d.d_webhook_embed (env "DISCORD_WEBHOOK") {
 - **Pipeline-native syntax** — `>` sequential, `>>` parallel. Data flows top to bottom — readable, composable, debuggable
 - **Social platforms built in** — Discord webhooks and Telegram bots as Pipe modules. AI code reviews, notifications, chat — zero API costs for sending
 - **Bytecode VM** — Compile to bytecode, run on a stack VM with automatic caching. Measured 0.6×–55× vs tree-walker depending on workload (recursion-heavy code up to ~55×)
-- **Module ecosystem** — 23 curated modules, registry with version pinning (`@1.0.0`). `pipe -get` installs, import by name
+- **Module ecosystem** — 22 curated modules, registry with version pinning (`@1.0.0`). `pipe -get` installs, import by name
 - **Built-in testing** — `test` blocks with `assert_eq`, `assert_error`. Run with `pipe -test`. Zero setup
 - **GitHub Action** — Run Pipe directly in CI/CD. No installation needed
 - **VSCode Extension** — Syntax highlighting, IntelliSense, LSP-powered diagnostics and completions
@@ -376,13 +376,13 @@ write_file "/etc/config"    -- ❌ E_SANDBOX blocked
 ```
 Source (.pipe) → Lexer → Parser → AST → [ Tree-Walker | Compiler + VM ]
                                             ↓
-                                  Builtins (227 total: 36 AI + 13 MCP + 178 standard)
+                                  Builtins (229 total: 36 AI + 13 MCP + 180 standard)
                                             ↓
                               MCP Server ↔ MCP Clients (stdio + HTTP)
 ```
 
 - 67 token types, 36 AST node types, 43 opcodes
-- ~37,000 LoC Go, 584 tests, 87 example programs
+- ~37,000 LoC Go, 640 tests, 86 example programs
 - Zero dependencies — pure Go stdlib
 
 ## Documentation
@@ -444,7 +444,7 @@ pipe/
 │   └── vm/                    # Bytecode VM
 │       ├── vm.go
 │       └── vm_test.go
-├── examples/                  # 87 example programs
+├── examples/                  # 86 example programs
 │   ├── mcp_server.pipe        # MCP server with weather/docs/shell tools
 │   ├── mcp_filesystem.pipe    # MCP client using filesystem server
 │   ├── mcp_github.pipe        # MCP client using GitHub server

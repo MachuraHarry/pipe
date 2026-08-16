@@ -1,7 +1,12 @@
-.PHONY: build run test test-parity test-integration clean repl api lsp vsix fmt stats docs-dashboard
+.PHONY: build run test test-parity test-integration clean repl api lsp vsix fmt stats stats-check docs-dashboard
 
+# Regenerate stats.json (commit the result so CI can check for drift).
 stats:
 	go run ./scripts/stats
+
+# Verify the committed stats.json still matches the live numbers.
+stats-check:
+	go run ./scripts/stats && git diff --exit-code -- stats.json
 
 build:
 	go build -ldflags="-s -w" -trimpath -o bin/pipe ./cmd/pipe

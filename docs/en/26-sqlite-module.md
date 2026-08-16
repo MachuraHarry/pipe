@@ -1,6 +1,6 @@
 # SQLite Module — Pure-Pipe Relational Database
 
-**Status:** Available as an external package in the [`pipe-modules`](https://github.com/MachuraHarry/pipe-modules) repository. Install with `pipe -get sqlite`. API-compatible with the earlier `modernc.org/sqlite` builtins. The binary stays dependency-free (~8 MB). **TV mode** runs all operations correctly: CREATE TABLE, INSERT, SELECT, WHERE, GROUP BY, ORDER BY, UPDATE, DELETE. **VM mode** now runs the full module correctly (see Phase 7).
+**Status:** Available as an external package in the [`pipe-modules`](https://github.com/MachuraHarry/pipe-modules) repository. Install with `pipe -get sqlite`. API-compatible with the earlier `modernc.org/sqlite` builtins. The binary stays dependency-free (~8 MB). **TV mode** runs all operations correctly: CREATE TABLE, INSERT, SELECT, WHERE, GROUP BY, ORDER BY, UPDATE, DELETE. **VM mode** also runs the full module correctly (ORDER BY/JOIN fixed; verified by the parity suite).
 
 **Pipeline API:** The module exports pipeline helpers (`q`, `exec`, `row_get`, `row_eq`, `row_ne`) that compose with Pipe's `>` operator and the `map` / `filter` / `each` builtins. Demo: `examples/sqlite_pipeline.pipe`.
 

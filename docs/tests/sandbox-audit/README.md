@@ -47,7 +47,13 @@ Alle Versuche werden im Audit-Log dokumentiert.
 - **Globales `ActiveProfile`** — prozessweiter Wert, nicht request-scoped
   (Tool-Ausführung via `toolExecMu` serialisiert → mitigiert, offen für echte
   Parallelität).
-- **Inventur der Datei-I/O-Builtins** gegen den Temp-only-Redirect — ausstehend.
+- **Inventur der Datei-I/O-Builtins** gegen den Temp-only-Redirect — **abgeschlossen**:
+  `pkg/object/sandbox_fs_inventory_test.go` deckt alle Schreib-Builtins
+  (`write_file`, `append_file`, `file_open` w/a/rw/rw+, `file_delete`,
+  `remove_dir`, `make_dir`, `file_copy`, `file_move`) und Lese-Builtins
+  (`read_file`, `read_lines`, `file_size`, `file_type`, `file_exists`,
+  `list_dir`, `file_open` r) ab. Jede Builtin leitet Pfade außerhalb des
+  Sandbox-Temp-Verzeichnisses um, ohne die Außendatei zu berühren.
 - **Layer-2-Netzwerk**: Provider-HTTP und MCP-Client laufen nicht durch
   `sandboxHTTPClient` (kein Redirect-Re-Check); der Provider-Host ist jedoch
   operator-konfiguriert, keine script-kontrollierte URL.

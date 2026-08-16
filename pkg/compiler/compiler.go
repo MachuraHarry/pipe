@@ -44,7 +44,14 @@ func NewEnclosedSymbolTable(outer *SymbolTable) *SymbolTable {
 
 func (s *SymbolTable) Define(name string) Symbol {
 	if existing, ok := s.store[name]; ok {
-		return existing
+		if s.Outer != nil || existing.Scope != BuiltinScope {
+			return existing
+		}
+		// A global definition shadows a builtin of the same name: the VM
+		// must mirror the tree-walker, where a program or module definition
+		// (`env.Set`) takes precedence over the builtin. Rebind the slot as a
+		// fresh global with a real global index (builtins live in a separate
+		// index space and never bump numDefinitions).
 	}
 	sym := Symbol{Name: name, Index: s.numDefinitions}
 	if s.Outer == nil {
@@ -72,6 +79,15 @@ func (s *SymbolTable) Resolve(name string) (Symbol, bool) {
 		s.FreeSymbols = append(s.FreeSymbols, outerSym)
 		return free, true
 	}
+	return sym, ok
+}
+
+// ResolveInCurrent returns the symbol bound in the current scope only, without
+// walking the outer chain. Used for assignments (VarStatement): a value being
+// bound must shadow any outer global or captured local, matching the
+// tree-walker, which writes into the current environment.
+func (s *SymbolTable) ResolveInCurrent(name string) (Symbol, bool) {
+	sym, ok := s.store[name]
 	return sym, ok
 }
 
@@ -675,7 +691,7 @@ func (c *Compiler) compileStatements(stmts []ast.Statement, popLast bool) error 
 }
 
 func (c *Compiler) compileVarStatement(vs *ast.VarStatement, keepValue bool) error {
-	symbol, exists := c.symbolTable.Resolve(vs.Name.Value)
+	symbol, exists := c.symbolTable.ResolveInCurrent(vs.Name.Value)
 	if !exists {
 		symbol = c.symbolTable.Define(vs.Name.Value)
 	}

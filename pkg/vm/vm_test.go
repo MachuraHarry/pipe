@@ -408,6 +408,55 @@ func TestVMZeroArityBuiltinWithArgs(t *testing.T) {
 	}
 }
 
+// TestVMNestedCallFromBuiltinResumesCaller guards against executeFrame
+// unwinding the whole frame stack when a user function called from inside a
+// builtin callback (e.g. sorted_by) returns via OpReturnValue. The caller
+// (keyfn) and the closure must resume after inner's return, so keys are the
+// strings "10!", "100!", "9!" instead of the raw integers 10, 100, 9.
+func TestVMNestedCallFromBuiltinResumesCaller(t *testing.T) {
+	input := `
+fn inner v
+    return v
+fn keyfn v
+    k: inner v
+    k: (to_str k) ++ "!"
+    k
+l: [10, 9, 100]
+sorted_by l (fn v: keyfn v)
+`
+	bc := parseAndCompile(t, input)
+	if got := runVM(t, bc); got != "[10, 100, 9]" {
+		t.Errorf("expected [10, 100, 9], got %s", got)
+	}
+}
+
+// TestVMNestedReturnInWhileResumesCaller covers the sqlite ORDER BY case: a
+// key function calling a helper that returns from inside a while loop, called
+// through a closure from sorted_by. The intermediate frames must resume so the
+// full (inverted) key is built; otherwise keys would be the raw integers and
+// the rows would sort ascending as [[0, 80], [0, 90], [0, 95], [0, 100]].
+func TestVMNestedReturnInWhileResumesCaller(t *testing.T) {
+	input := `
+fn eval_col row
+    i: 0
+    while i < (len row)
+        if i == 1
+            return (get row i)
+        i: i + 1
+    nil
+fn order_key row
+    key: ""
+    key: key ++ (to_str (999999999999 - (eval_col row)))
+    key
+rows: [[0, 100], [0, 80], [0, 95], [0, 90]]
+sorted_by rows (fn o: order_key o)
+`
+	bc := parseAndCompile(t, input)
+	if got := runVM(t, bc); got != "[[0, 100], [0, 95], [0, 90], [0, 80]]" {
+		t.Errorf("expected [[0, 100], [0, 95], [0, 90], [0, 80]], got %s", got)
+	}
+}
+
 func TestVMWhileWithVarStatementIfBranchChunking(t *testing.T) {
 	input := `fn esc text
     replace_all text "&" "&amp;"

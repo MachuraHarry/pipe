@@ -508,7 +508,9 @@ func (vm *VM) callFunction(numArgs int) {
 	case *object.Closure:
 		inst, ok := fn.Fn.Instructions.(compiler.Instructions)
 		if !ok {
-			panic("invalid compiled function instructions")
+			vm.pop()
+			vm.push(vm.newError("E004", "invalid compiled function instructions"))
+			return
 		}
 
 		basePtr := vm.sp - numArgs
@@ -919,6 +921,11 @@ func (vm *VM) callUserFunction(fn object.Object, args ...object.Object) object.O
 }
 
 func (vm *VM) executeFrame() object.Object {
+	// Run the frame this invocation was entered with to completion. Nested
+	// user-function calls (OpCall) push additional frames and execute inline
+	// in the same loop; a return from a nested frame must resume its caller
+	// instead of exiting the loop entirely.
+	targetFrameIdx := vm.frameIndex
 	for {
 		frame := vm.currentFrame()
 		ins := frame.instructions
@@ -1144,14 +1151,20 @@ func (vm *VM) executeFrame() object.Object {
 			frame := vm.currentFrame()
 			vm.sp = frame.savedSp
 			vm.frameIndex--
-			return object.NILOBJ
+			if vm.frameIndex < targetFrameIdx {
+				return object.NILOBJ
+			}
+			vm.push(object.NILOBJ)
 
 		case compiler.OpReturnValue:
 			frame := vm.currentFrame()
 			returnVal := vm.pop()
 			vm.sp = frame.savedSp
 			vm.frameIndex--
-			return returnVal
+			if vm.frameIndex < targetFrameIdx {
+				return returnVal
+			}
+			vm.push(returnVal)
 
 		default:
 			return &object.Error{Message: fmt.Sprintf("unknown opcode in user fn: %d", op)}

@@ -290,6 +290,10 @@ func (c *Compiler) Compile(node ast.Node) error {
 		}
 
 	case *ast.PrefixExpression:
+		if folded, ok := c.foldExpression(n); ok {
+			c.emitConstant(folded)
+			return nil
+		}
 		if err := c.Compile(n.Right); err != nil {
 			return err
 		}
@@ -302,6 +306,10 @@ func (c *Compiler) Compile(node ast.Node) error {
 		}
 
 	case *ast.InfixExpression:
+		if folded, ok := c.foldExpression(n); ok {
+			c.emitConstant(folded)
+			return nil
+		}
 		if n.Operator == "&&" {
 			if err := c.Compile(n.Left); err != nil {
 				return err

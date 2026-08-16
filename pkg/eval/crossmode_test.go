@@ -187,6 +187,38 @@ func TestCrossPrefix(t *testing.T) {
 	assertBothEqual(t, "-5", "-5")
 }
 
+func TestCrossConstantFolding(t *testing.T) {
+	tests := []struct{ input, expected string }{
+		{"2 + 3 * 4", "14"},
+		{"(2 + 3) * 4", "20"},
+		{"10 - 2 - 3", "5"},
+		{"(1 + 2) * (3 + 4)", "21"},
+		{"5 * (2 + 2) == 20", "true"},
+		{"1 + 2.5", "3.5"},
+		{"7.5 - 7", "0.5"},
+		{"2.5 * 2", "5"},
+		{`"a" ++ "b" ++ "c"`, "abc"},
+		{"1 < 2 && 3 < 4", "true"},
+		{`"abc" < "abd"`, "true"},
+		{"10 >= 5 * 2", "true"},
+		{"!0", "false"},
+		{`!""`, "false"},
+		{"!nil", "true"},
+		{"-(-5)", "5"},
+		{"-(2 + 3)", "-5"},
+		{"true || false && false", "true"},
+	}
+	for _, tt := range tests {
+		assertBothEqual(t, tt.input, tt.expected)
+	}
+
+	// Operators that can raise runtime errors must stay at runtime and must
+	// not surface as compile-time errors.
+	assertBothErrorContains(t, "1 / 0", "division by zero")
+	assertBothErrorContains(t, "1 / (3 - 3)", "division by zero")
+	assertBothErrorContains(t, "10 % (4 - 4)", "modulo by zero")
+}
+
 func TestCrossVariables(t *testing.T) {
 	assertBothEqual(t, "x: 42\nx", "42")
 	assertBothEqual(t, "x: 42\nx: x + 8\nx", "50")

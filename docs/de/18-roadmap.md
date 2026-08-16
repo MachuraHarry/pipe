@@ -57,7 +57,7 @@ Pipe ist aktuell in Version **v0.9.4.0**, dem **Modulsystem-Release**. Es vervol
 | 10 | **Concurrency** | `>>` Parallel-Pipeline, `go`/`spawn`/`await`, Channels, Mutex und Semaphor (TW + VM, v0.9.x); `select`/Coroutines noch offen |
 | 11 | **Optionale Typannotationen** | `fn add(a: num, b: num) -> a + b` |
 | 12 | **Package-Registry 2.0** | `pipe -install`, `pipe -publish`, `pipe.json`-Manifest, `pipe.lock`-Reproduzierbarkeit | ✅ Erledigt |
-| 13 | **Bytecode-Optimierungen** | Peephole-Optimizer, Inline-Caching, Constant Folding |
+| 13 | **Bytecode-Optimierungen** | Constant Folding (Compiler-Zeit) erledigt; Inline-Caching, Peephole offen |
 | 14 | **Web-Playground** | "Try Pipe in your Browser" via WASM | ✅ Erledigt |
 | 15 | **VSCode-Plugin 2.0** | Auto-Vervollständigung, Go-to-Definition, Debugger-Integration |
 | 16 | **LSP-Server** | Language Server Protocol für Editor-Unterstützung | ✅ Erledigt |

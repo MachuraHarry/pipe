@@ -880,6 +880,7 @@ func runBenchmark() {
 		{"list sum 10000", "s: 0\ni: 0\nwhile i < 10000\n    s: s + i\n    i: i + 1\ns"},
 		{"string concat 20000", "s: \"\"\ni: 0\nwhile i < 20000\n    s: s ++ \"ab\"\n    i: i + 1\nlen s"},
 		{"list push + sum 20000", "lst: []\ni: 0\nwhile i < 20000\n    lst: push lst i\n    i: i + 1\ntotal: 0\nfor x in lst\n    total: total + x\ntotal"},
+		{"const-fold loop 1e6", "x: 0\ni: 0\nwhile i < 1000000\n    x: x + 2 * 3 * 4\n    i: i + 1\nx"},
 	}
 
 	for _, bm := range benchmarks {

@@ -150,14 +150,17 @@ AST:
     Left:  IntegerLiteral(1)
     Right: IntegerLiteral(2)
 
-Bytecode:
-  0000: OpConstant 0    -- Push 1 (Konstante #0)
-  0003: OpConstant 1    -- Push 2 (Konstante #1)
-  0006: OpAdd           -- Addiere
-  0007: OpHalt          -- Ende
+Da beide Operanden Literale sind, wird der Ausdruck beim Kompilieren
+konstant gefaltet (Constant Folding): 1 + 2 → Integer(3)
 
-Constant Pool: [1, 2]
+Bytecode:
+  0000: OpConstant 0    -- Push 3 (Konstante #0)
+  0003: OpHalt           -- Ende
+
+Constant Pool: [3]
 ```
+
+Ohne Folding würde der Compiler `OpConstant 0` / `OpConstant 1` / `OpAdd` emittieren; die gefaltete Form erzeugt dasselbe Ergebnis mit weniger Instruktionen. Konstant gefaltet werden Arithmetik (`+`, `-`, `*`), Vergleiche, String-Verkettung (`++`), Präfix `-`/`!` sowie `&&`/`||` zwischen Literalen — mit exakt denselben Semantiken wie zur Laufzeit (int64-Überlauf, int/float-Promotion, `IsTruthy`). Operatoren, die Laufzeitfehler werfen können (`/`, `%`, `**`) sowie Indexierung (`[]`) werden nie gefaltet, sodass z. B. eine Division durch Null weiterhin als Laufzeitfehler erscheint.
 
 ### Beispiel: Funktion `fn double x`
 

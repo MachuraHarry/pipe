@@ -182,7 +182,7 @@ Pipe is currently at version **v0.9.4.0**, the **module-system release**. It com
 - [x] Lockfile consumption for reproducible installs (`pipe.lock` honored when present, SHA-256 checksums verified)
 
 ### Bytecode Optimizations
-- [ ] Constant folding at compile time
+- [x] Constant folding at compile time
 - [ ] Dead code elimination
 - [ ] Inlining of small functions
 - [ ] Peephole optimization pass
@@ -281,7 +281,7 @@ Pipe is currently at version **v0.9.4.0**, the **module-system release**. It com
 | Pattern Matching+ | 🟡 Partial | v0.7 | Multi-pattern done; guards, destructuring open |
 | Concurrency | 🔮 Future | v0.7+ | spawn/await/channels/mutex/semaphore done; coroutines, select open |
 | Type Annotations | 🔮 Future | v0.7+ | Optional typing |
-| Bytecode Opts | 🔮 Future | v0.7+ | Fold, inline, peephole |
+| Bytecode Opts | 🟡 Partial | v0.7+ | Constant folding done; inline, peephole open |
 | Sets | 🔮 Future | v0.7+ | Unique collections |
 | Inline Lambdas | ✅ Done | v0.8 | `fn x: expr` in TW + VM |
 | Web Playground | ✅ Done | v0.7 | WASM-based + code sharing |

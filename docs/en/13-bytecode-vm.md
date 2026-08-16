@@ -36,6 +36,8 @@ The symbol table is chained: when entering a new scope (e.g., inside a function)
 
 Literal values (integers, floats, strings, compiled functions) are stored in a constant pool rather than being embedded directly in the instruction stream. Each constant is referenced by its 16-bit index. This keeps instructions compact and enables the `.pipec` cache format to serialize constants efficiently.
 
+**Constant folding**: expressions made entirely of literals are evaluated at compile time instead of being emitted as bytecode. Arithmetic (`+`, `-`, `*`), comparisons, string concatenation (`++`), prefix `-`/`!`, and short-circuit `&&`/`||` between literals are folded with exactly the same semantics as the runtime (int64 wrapping, int/float promotion, `IsTruthy`). Operators that can raise runtime errors (`/`, `%`, `**`) and indexing (`[]`) are never folded, so a division-by-zero still surfaces as a runtime error. Constant sub-expressions inside larger expressions (e.g. `x + 2 * 3`) fold independently as compilation descends.
+
 Supported constant types:
 - Integer (type byte `1`)
 - Float (type byte `2`)
@@ -215,19 +217,19 @@ InfixExpression {
 }
 ```
 
-**Compilation Steps**:
-1. Compile `IntegerLiteral(1)` → add `1` to constant pool at index 0 → emit `OpConstant 0`
-2. Compile `IntegerLiteral(2)` → add `2` to constant pool at index 1 → emit `OpConstant 1`
-3. Emit `OpAdd`
+Both operands are literals, so the whole expression is **constant-folded** at compile time:
+
+1. Fold `1 + 2` → `Integer(3)` (mirrors runtime semantics)
+2. Add `3` to the constant pool at index 0 → emit `OpConstant 0`
 
 **Bytecode**:
 ```
-0000 OpConstant     0     ; push constant[0] = 1
-0003 OpConstant     1     ; push constant[1] = 2
-0006 OpAdd                 ; pop 1, pop 2, push 3
+0000 OpConstant     0     ; push constant[0] = 3
 ```
 
-**Constant Pool**: `[0: 1, 1: 2]`
+**Constant Pool**: `[0: 3]`
+
+Without folding the compiler would emit `OpConstant 0` / `OpConstant 1` / `OpAdd`; the folded form produces the same result with fewer instructions.
 
 ### Example 2: Function definition
 

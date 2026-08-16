@@ -122,15 +122,15 @@ func TestCompileNil(t *testing.T) {
 }
 
 func TestCompileArithmetic(t *testing.T) {
-	bc := parseAndCompile(t, "1 + 2")
+	bc := parseAndCompile(t, "a: 10\na + 2")
 	if !hasOp(t, bc, OpAdd) {
 		t.Error("expected OpAdd")
 	}
-	bc2 := parseAndCompile(t, "5 - 3")
+	bc2 := parseAndCompile(t, "a: 10\na - 3")
 	if !hasOp(t, bc2, OpSub) {
 		t.Error("expected OpSub")
 	}
-	bc3 := parseAndCompile(t, "4 * 5")
+	bc3 := parseAndCompile(t, "a: 10\na * 5")
 	if !hasOp(t, bc3, OpMul) {
 		t.Error("expected OpMul")
 	}
@@ -141,26 +141,27 @@ func TestCompileArithmetic(t *testing.T) {
 }
 
 func TestCompileComparison(t *testing.T) {
-	bc := parseAndCompile(t, "1 == 2")
+	bc := parseAndCompile(t, "a: 1\na == 2")
 	if !hasOp(t, bc, OpEqual) {
 		t.Error("expected OpEqual")
 	}
-	bc2 := parseAndCompile(t, "1 != 2")
+	bc2 := parseAndCompile(t, "a: 1\na != 2")
 	if !hasOp(t, bc2, OpNotEqual) {
 		t.Error("expected OpNotEqual")
 	}
-	bc3 := parseAndCompile(t, "1 < 2")
+	bc3 := parseAndCompile(t, "a: 1\na < 2")
 	if !hasOp(t, bc3, OpLess) {
 		t.Error("expected OpLess")
 	}
-	bc4 := parseAndCompile(t, "2 > 1")
+	bc4 := parseAndCompile(t, "a: 1\na > 2")
 	if !hasOp(t, bc4, OpGreater) {
 		t.Error("expected OpGreater")
 	}
 }
 
 func TestCompileConcat(t *testing.T) {
-	bc := parseAndCompile(t, `"a" ++ "b"`)
+	bc := parseAndCompile(t, `a: "a"
+a ++ "b"`)
 	if !hasOp(t, bc, OpConcat) {
 		t.Error("expected OpConcat")
 	}
@@ -294,9 +295,85 @@ func TestCompileOpcodeNames(t *testing.T) {
 }
 
 func TestCompilePrefixMinus(t *testing.T) {
-	bc := parseAndCompile(t, "-5")
+	bc := parseAndCompile(t, "a: 5\n-a")
 	if !hasOp(t, bc, OpMinus) {
 		t.Error("expected OpMinus for prefix -")
+	}
+}
+
+func TestConstantFolding(t *testing.T) {
+	tests := []struct {
+		input  string
+		wantOp Opcode
+	}{
+		{"1 + 2", OpAdd},
+		{"5 - 3", OpSub},
+		{"4 * 5", OpMul},
+		{"1 == 2", OpEqual},
+		{"1 != 2", OpNotEqual},
+		{"1 < 2", OpLess},
+		{"2 > 1", OpGreater},
+		{`"a" ++ "b"`, OpConcat},
+		{"-5", OpMinus},
+	}
+	for _, tt := range tests {
+		bc := parseAndCompile(t, tt.input)
+		if hasOp(t, bc, tt.wantOp) {
+			t.Errorf("%s: expected %s to be folded away", tt.input, tt.wantOp)
+		}
+		if !hasOp(t, bc, OpConstant) && !hasOp(t, bc, OpTrue) && !hasOp(t, bc, OpFalse) {
+			t.Errorf("%s: expected a constant after folding", tt.input)
+		}
+	}
+}
+
+func TestConstantFoldingResults(t *testing.T) {
+	tests := []struct {
+		input  string
+		op     Opcode
+		absent bool
+	}{
+		{"2 + 3 * 4", OpAdd, true},
+		{"2 + 3 * 4", OpMul, true},
+		{"(2 + 3) * 4", OpAdd, true},
+		{"10 - 2 - 3", OpSub, true},
+		{"1 + 2.5", OpAdd, true},
+		{`"foo" ++ "bar"`, OpConcat, true},
+		{"1 < 2", OpLess, true},
+		{"1 == 1", OpEqual, true},
+		{"!false", OpNot, true},
+		{"!0", OpNot, true},
+		{"true && false", OpJumpNotTruthy, true},
+		{"true || false", OpJumpNotTruthy, true},
+		{"1 && 2", OpJumpNotTruthy, true},
+	}
+	for _, tt := range tests {
+		bc := parseAndCompile(t, tt.input)
+		if hasOp(t, bc, tt.op) {
+			t.Errorf("%s: expected %s to be folded away", tt.input, tt.op)
+		}
+	}
+}
+
+func TestConstantFoldingSkipped(t *testing.T) {
+	tests := []struct {
+		input string
+		op    Opcode
+	}{
+		{"1 / 0", OpDiv},
+		{"10 % 3", OpMod},
+		{"2 ** 10", OpPow},
+		{"a: 2\na + 3", OpAdd},
+		{"false && print \"x\"", OpJumpNotTruthy},
+		{"true || print \"x\"", OpJumpNotTruthy},
+		{`"a" + 1`, OpAdd},
+		{"[1, 2][0]", OpGetBuiltin},
+	}
+	for _, tt := range tests {
+		bc := parseAndCompile(t, tt.input)
+		if !hasOp(t, bc, tt.op) {
+			t.Errorf("%s: expected %s to remain (not folded)", tt.input, tt.op)
+		}
 	}
 }
 

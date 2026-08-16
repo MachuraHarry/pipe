@@ -108,6 +108,38 @@ func TestStringConcat(t *testing.T) {
 	}
 }
 
+func TestConstantFolding(t *testing.T) {
+	tests := []struct {
+		input    string
+		expected string
+	}{
+		{"2 + 3 * 4", "14"},
+		{"(2 + 3) * 4", "20"},
+		{"10 - 2 - 3", "5"},
+		{"1 + 2.5", "3.5"},
+		{"7.5 - 7", "0.5"},
+		{`"a" ++ "b" ++ "c"`, "abc"},
+		{"1 < 2", "true"},
+		{"2 >= 2", "true"},
+		{`"abc" == "abc"`, "true"},
+		{"!0", "false"},
+		{`!""`, "false"},
+		{"-(-5)", "5"},
+		{"-(2 + 3)", "-5"},
+		{"1 && 2", "2"},
+		{"nil && 42", "nil"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.input, func(t *testing.T) {
+			bc := parseAndCompile(t, tt.input)
+			result := runVM(t, bc)
+			if result != tt.expected {
+				t.Errorf("%s: expected %s, got %s", tt.input, tt.expected, result)
+			}
+		})
+	}
+}
+
 func TestVariable(t *testing.T) {
 	input := "x: 42\nx"
 	bc := parseAndCompile(t, input)

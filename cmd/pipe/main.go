@@ -857,6 +857,9 @@ func runTestVM(program *ast.Program) error {
 	if err := machine.Run(); err != nil {
 		return err
 	}
+	if machine.TestFailed {
+		return fmt.Errorf("some tests failed")
+	}
 	result := machine.LastPoppedStackElem()
 	if result != nil && result.Type() == object.ERROR {
 		return fmt.Errorf("%s", result.Inspect())

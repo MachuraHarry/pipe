@@ -165,3 +165,49 @@ func TestModuleExamplesParity(t *testing.T) {
 		})
 	}
 }
+
+// TestIntegrationSuiteParity guards the whole integration test suite: the
+// compiled test blocks (`test` statements) must be executed by the VM exactly
+// like the tree-walker, so `pipe -test` and `pipe -vm -test` must produce
+// byte-identical output and the same exit code.
+func TestIntegrationSuiteParity(t *testing.T) {
+	root := repoRoot(t)
+	bin := buildPipe(t, root)
+	dir := filepath.Join(root, "test", "integration")
+
+	run := func(vm bool) (string, int, string) {
+		t.Helper()
+		args := []string{"-test"}
+		if vm {
+			args = append(args, "-vm")
+		}
+
+		ctx, cancel := context.WithTimeout(context.Background(), 120*time.Second)
+		defer cancel()
+		cmd := exec.CommandContext(ctx, bin, args...)
+		cmd.Dir = dir
+		var stdout, stderr bytes.Buffer
+		cmd.Stdout = &stdout
+		cmd.Stderr = &stderr
+		err := cmd.Run()
+		code := 0
+		if err != nil {
+			if ee, ok := err.(*exec.ExitError); ok {
+				code = ee.ExitCode()
+			} else {
+				t.Fatalf("run integration suite: %v", err)
+			}
+		}
+		return stdout.String(), code, stderr.String()
+	}
+
+	tvOut, tvCode, tvErr := run(false)
+	vmOut, vmCode, vmErr := run(true)
+
+	if tvCode != vmCode || tvOut != vmOut {
+		t.Errorf("integration suite parity mismatch (TV exit=%d, VM exit=%d):\n"+
+			"--- TV stdout ---\n%s\n--- VM stdout ---\n%s\n"+
+			"--- TV stderr ---\n%s\n--- VM stderr ---\n%s",
+			tvCode, vmCode, tvOut, vmOut, tvErr, vmErr)
+	}
+}

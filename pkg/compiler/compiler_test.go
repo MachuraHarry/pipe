@@ -42,6 +42,8 @@ func hasOp(t *testing.T, bc *Bytecode, op Opcode) bool {
 			i += 2
 		case OpJump, OpJumpNotTruthy, OpJumpBackward:
 			i += 2
+		case OpTestAbortIfError, OpTestResult:
+			i += 2
 		case OpMap:
 			numPairs := int(ReadUint16(ins, i))
 			i += 2
@@ -68,6 +70,8 @@ func countOps(t *testing.T, bc *Bytecode, op Opcode) int {
 		case OpCall, OpList:
 			i += 2
 		case OpJump, OpJumpNotTruthy, OpJumpBackward:
+			i += 2
+		case OpTestAbortIfError, OpTestResult:
 			i += 2
 		case OpMap:
 			numPairs := int(ReadUint16(ins, i))
@@ -401,5 +405,20 @@ func TestInstructionsString(t *testing.T) {
 	s := ins.String()
 	if s == "" {
 		t.Error("Instructions.String() should not be empty")
+	}
+}
+
+func TestTestStatementCompilation(t *testing.T) {
+	bc := parseAndCompile(t, "test \"check\"\n    assert_eq 1 1")
+	if !hasOp(t, bc, OpTestResult) {
+		t.Error("expected OpTestResult for a test block")
+	}
+	if n := countOps(t, bc, OpTestAbortIfError); n != 0 {
+		t.Errorf("a single-statement body needs no probe, got %d", n)
+	}
+
+	bc = parseAndCompile(t, "test \"multi\"\n    assert_eq 1 1\n    assert_eq 2 2\n    assert_eq 3 3")
+	if n := countOps(t, bc, OpTestAbortIfError); n != 2 {
+		t.Errorf("expected 2 OpTestAbortIfError probes for a three-statement body, got %d", n)
 	}
 }

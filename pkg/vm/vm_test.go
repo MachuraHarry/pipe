@@ -614,3 +614,55 @@ func TestSpawnChannelSharedAcrossVMs(t *testing.T) {
 		t.Errorf("expected 42, got %q", got)
 	}
 }
+
+func TestTestStatementPass(t *testing.T) {
+	bc := parseAndCompile(t, "test \"ok\"\n    assert_eq (2 + 2) 4")
+	v := New(bc)
+	if err := v.Run(); err != nil {
+		t.Fatalf("vm error: %s", err)
+	}
+	if v.TestFailed {
+		t.Error("TestFailed should be false for a passing test")
+	}
+}
+
+func TestTestStatementFail(t *testing.T) {
+	bc := parseAndCompile(t, "test \"bad\"\n    assert_eq (2 + 2) 5")
+	v := New(bc)
+	if err := v.Run(); err != nil {
+		t.Fatalf("vm error: %s", err)
+	}
+	if !v.TestFailed {
+		t.Error("TestFailed should be set for a failing test")
+	}
+}
+
+func TestTestStatementAbortsOnMiddleError(t *testing.T) {
+	// The first assertion fails; the rest of the body is skipped by the probe,
+	// matching the tree-walker's block short-circuit. The following test must
+	// still run and pass.
+	bc := parseAndCompile(t, "test \"a\"\n    assert_eq 1 2\n    print \"never\"\ntest \"b\"\n    assert_eq 2 2")
+	v := New(bc)
+	if err := v.Run(); err != nil {
+		t.Fatalf("vm error: %s", err)
+	}
+	if !v.TestFailed {
+		t.Error("TestFailed should be set when a test body errors")
+	}
+}
+
+func TestTestStatementDoesNotLeakFailure(t *testing.T) {
+	// The second test passes; a single failing test must not fail it.
+	bc := parseAndCompile(t, "test \"a\"\n    assert_eq 1 2\ntest \"b\"\n    assert_eq 3 3")
+	v := New(bc)
+	if err := v.Run(); err != nil {
+		t.Fatalf("vm error: %s", err)
+	}
+	if !v.TestFailed {
+		t.Error("TestFailed should be set")
+	}
+	last := v.LastPoppedStackElem()
+	if last.Type() == object.ERROR {
+		t.Error("the passing test should leave a non-error top value")
+	}
+}

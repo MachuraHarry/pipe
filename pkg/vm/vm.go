@@ -114,6 +114,10 @@ type VM struct {
 	// unwind frames, so it records the error here, lets try/catch (OpCheckError)
 	// clear it, and reports it when the program ends (OpHalt / end of Run).
 	pendingError *object.Error
+	// TestFailed is set when a compiled `test` block produced an error. The
+	// test runner checks it to fail the file, mirroring the tree-walker's
+	// testFailed flag.
+	TestFailed bool
 }
 
 func (vm *VM) currentFrame() *Frame {
@@ -175,6 +179,41 @@ func (vm *VM) readUint16() uint16 {
 	val := compiler.ReadUint16(frame.instructions, frame.ip)
 	frame.ip += 2
 	return val
+}
+
+// runTestAbortIfError implements OpTestAbortIfError: when the body of a
+// compiled `test` block has produced an error, the test aborts early (matching
+// the tree-walker's block short-circuit) and jumps to the test verdict with the
+// error as the result.
+func (vm *VM) runTestAbortIfError(ins compiler.Instructions, frame *Frame) {
+	target := compiler.ReadUint16(ins, frame.ip)
+	frame.ip += 2
+	if vm.pendingError != nil {
+		vm.push(vm.pendingError)
+		frame.ip = int(target)
+	}
+}
+
+// runTestResult implements OpTestResult: it reports a compiled `test` block as
+// PASS or FAIL and records failures on the VM so the test runner can fail the
+// file. The test name is read from the constants table.
+func (vm *VM) runTestResult(ins compiler.Instructions, frame *Frame) {
+	idx := compiler.ReadUint16(ins, frame.ip)
+	frame.ip += 2
+	val := vm.pop()
+	name := ""
+	if nameObj, ok := vm.constants[idx].(*object.String); ok {
+		name = nameObj.Value
+	}
+	vm.pendingError = nil
+	if _, isErr := val.(*object.Error); isErr {
+		fmt.Printf("  FAIL %s (%s)\n", name, val.Inspect())
+		vm.TestFailed = true
+		vm.push(object.NILOBJ)
+	} else {
+		fmt.Printf("  PASS %s\n", name)
+		vm.push(val)
+	}
 }
 
 func (vm *VM) LastPoppedStackElem() object.Object {
@@ -326,6 +365,12 @@ func (vm *VM) Run() (err error) {
 			} else {
 				vm.push(object.FALSE)
 			}
+
+		case compiler.OpTestAbortIfError:
+			vm.runTestAbortIfError(ins, frame)
+
+		case compiler.OpTestResult:
+			vm.runTestResult(ins, frame)
 
 		case compiler.OpTryAIFix:
 			src := vm.pop()
@@ -1056,6 +1101,12 @@ func (vm *VM) executeFrame() object.Object {
 			} else {
 				vm.push(object.FALSE)
 			}
+
+		case compiler.OpTestAbortIfError:
+			vm.runTestAbortIfError(ins, frame)
+
+		case compiler.OpTestResult:
+			vm.runTestResult(ins, frame)
 
 		case compiler.OpTryAIFix:
 			src := vm.pop()

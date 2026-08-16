@@ -15,7 +15,7 @@ import (
 
 const (
 	magic   = "PIPEBC"
-	version = byte(2)
+	version = byte(3)
 )
 
 // LoadOrCompile returns the bytecode for a source file, reusing a cached

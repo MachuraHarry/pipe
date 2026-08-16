@@ -640,6 +640,9 @@ func (c *Compiler) Compile(node ast.Node) error {
 		if err := c.compileDefer(n); err != nil {
 			return err
 		}
+
+	case *ast.TestStatement:
+		return c.compileTestStatement(n)
 	}
 
 	return nil
@@ -686,6 +689,54 @@ func (c *Compiler) compileStatements(stmts []ast.Statement, popLast bool) error 
 		if err := c.Compile(stmt); err != nil {
 			return err
 		}
+	}
+	return nil
+}
+
+// compileTestStatement compiles a `test` block so the bytecode VM matches the
+// tree-walker: each statement is followed by an OpTestAbortIfError probe that
+// jumps to the verdict as soon as the body produced an error (the tree-walker
+// aborts a block at the first error). The verdict (OpTestResult) reports the
+// test as PASS/FAIL and records failures so the runner fails the file.
+func (c *Compiler) compileTestStatement(ts *ast.TestStatement) error {
+	name := ""
+	if ts.Name != nil {
+		name = ts.Name.Value
+	}
+
+	body := ts.Body.Statements
+	var probes []int
+	for i, stmt := range body {
+		if i == len(body)-1 {
+			switch s := stmt.(type) {
+			case *ast.ExpressionStatement:
+				if err := c.Compile(s.Expression); err != nil {
+					return err
+				}
+			case *ast.VarStatement:
+				if err := c.compileVarStatement(s, true); err != nil {
+					return err
+				}
+			default:
+				if err := c.Compile(stmt); err != nil {
+					return err
+				}
+			}
+			break
+		}
+		if err := c.Compile(stmt); err != nil {
+			return err
+		}
+		probes = append(probes, c.emit(OpTestAbortIfError, 0))
+	}
+
+	if len(body) == 0 {
+		c.emit(OpNil)
+	}
+
+	verdict := c.emit(OpTestResult, c.addConstant(&object.String{Value: name}))
+	for _, pos := range probes {
+		c.patchJump(pos, verdict)
 	}
 	return nil
 }

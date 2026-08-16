@@ -1,4 +1,4 @@
-.PHONY: build run test clean repl api lsp vsix fmt stats docs-dashboard
+.PHONY: build run test test-parity test-integration clean repl api lsp vsix fmt stats docs-dashboard
 
 stats:
 	go run ./scripts/stats
@@ -24,6 +24,9 @@ run: build
 test:
 	go test ./pkg/...
 	$(MAKE) test-integration
+
+test-parity:
+	go test -count=1 -v ./pkg/parity/
 
 test-integration:
 	go build -o bin/pipe ./cmd/pipe

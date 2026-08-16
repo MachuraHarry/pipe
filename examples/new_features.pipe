@@ -1,4 +1,8 @@
 --! New features demo: while loops, break, and list slicing.
+--! NOTE: TV-only. This example writes a module file at runtime and imports it.
+--! The tree-walker resolves imports lazily at runtime, but the bytecode VM
+--! resolves imports at compile time, so this pattern cannot run under -vm.
+--! See pkg/parity/parity_test.go for the parity example allowlist.
 
 print "===== WHILE-SCHLEIFEN ====="
 i: 0

@@ -167,9 +167,13 @@ werden."*
    nicht request-scoped. Tool-Ausführung ist über `toolExecMu` serialisiert, was
    parallele MCP-Server-Anfragen absichert; ein vollständig request-scoped
    Profil bleibt offene Arbeit.
-2. **`env`-Maskierung ist Heuristik nach Namen** — ein Secret, dessen Name die
-   Marker-Substrings (`KEY`, `TOKEN`, `SECRET`, `PASSWORD`, `PASSWD`,
-   `CREDENTIAL`, `APIKEY`, `APISECRET`) vermeidet, wird nicht maskiert.
+2. **`env`-Maskierung ist Heuristik nach Namen** — **behoben**. Unter einem
+   aktiven Profil liefert `env` nur Werte aus der expliziten `Env`-Allowlist des
+   Profils; unter dem Legacy-`--sandbox`-Flag (ohne Profil) wird die echte
+   Prozess-Env deterministisch maskiert (`nil`) statt nach Name. Nur
+   Secret-markierte Namen liefern weiterhin einen expliziten Fehler. Verifiziert
+   in `pkg/object/sandbox_test.go` (`TestEnvFlagPathMasksRealEnvironment`,
+   `TestEnvNoSandboxReadsRealEnvironment`).
 
 ---
 

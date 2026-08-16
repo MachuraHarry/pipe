@@ -162,9 +162,13 @@ Verdict (model-reported): *"The ratchet cannot be defeated."*
    request-scoped. Tool execution is serialized via `toolExecMu`, which
    mitigates concurrent MCP-server requests, but a fully request-scoped profile
    remains open work.
-2. **`env` masking is by-name heuristics** — a secret whose name avoids the
-   marker substrings (`KEY`, `TOKEN`, `SECRET`, `PASSWORD`, `PASSWD`,
-   `CREDENTIAL`, `APIKEY`, `APISECRET`) is not masked.
+2. **`env` masking by-name heuristics** — **resolved**. Under an active profile
+   `env` only returns values from the profile's explicit `Env` allowlist, and
+   under the legacy `--sandbox` flag (no profile) the real process environment
+   is masked deterministically (`nil`) rather than by name. Only secret-marked
+   names still raise an explicit error. Verified in
+   `pkg/object/sandbox_test.go` (`TestEnvFlagPathMasksRealEnvironment`,
+   `TestEnvNoSandboxReadsRealEnvironment`).
 
 ---
 

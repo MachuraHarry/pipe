@@ -144,7 +144,7 @@ func chatWithToolsRaw(messages []map[string]interface{}, tools []ToolDef) (toolR
 		body[k] = v
 	}
 
-	result, err := httpPostJSON(ActiveConfig.APIHost+"/v1/chat/completions", apiKey, body, ActiveConfig.Timeout)
+	result, err := httpPostJSON(EgressChat, ActiveConfig.APIHost+"/v1/chat/completions", apiKey, body, ActiveConfig.Timeout)
 	if err != nil {
 		return toolResponse{}, fmt.Errorf("chat: %w", err)
 	}

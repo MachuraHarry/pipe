@@ -15,7 +15,7 @@ func init() {
 	httpGetStringFn = httpGetStringWasm
 }
 
-func httpPostJSONWasm(url, apiKey string, reqBody interface{}, timeout time.Duration) (map[string]interface{}, error) {
+func httpPostJSONWasm(kind EgressKind, url, apiKey string, reqBody interface{}, timeout time.Duration) (map[string]interface{}, error) {
 	bodyJSON, err := json.Marshal(reqBody)
 	if err != nil {
 		return nil, fmt.Errorf("marshal: %w", err)
@@ -61,7 +61,7 @@ func httpPostJSONWasm(url, apiKey string, reqBody interface{}, timeout time.Dura
 	return result, nil
 }
 
-func httpGetStringWasm(url string) ([]byte, error) {
+func httpGetStringWasm(kind EgressKind, url string) ([]byte, error) {
 	resp := js.Global().Call("pipeFetchSync", url, nil)
 	if resp.Type() != js.TypeObject {
 		return nil, fmt.Errorf("pipeFetchSync returned non-object")

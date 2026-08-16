@@ -54,9 +54,15 @@ Alle Versuche werden im Audit-Log dokumentiert.
   (`read_file`, `read_lines`, `file_size`, `file_type`, `file_exists`,
   `list_dir`, `file_open` r) ab. Jede Builtin leitet Pfade außerhalb des
   Sandbox-Temp-Verzeichnisses um, ohne die Außendatei zu berühren.
-- **Layer-2-Netzwerk**: Provider-HTTP und MCP-Client laufen nicht durch
-  `sandboxHTTPClient` (kein Redirect-Re-Check); der Provider-Host ist jedoch
-  operator-konfiguriert, keine script-kontrollierte URL.
+- **Layer-2-Netzwerk** — **abgeschlossen**: Alle AI-Provider-HTTP-Clients
+  (`gatedHTTPClient` in `pkg/ai`) und der MCP-SSE-Client (`NetworkGate` +
+  `CheckRedirect` in `pkg/mcp`) prüfen das Egress-Gate pro Redirect-Hop.
+  Regressionstest `TestEgressGateRechecksRedirectHops` in `pkg/ai`.
+- **env-Masking** — **abgeschlossen**: Unter einem aktiven Profil liest `env`
+  nur die Profil-Allowlist; unter dem Legacy-`--sandbox`-Flag (ohne Profil) wird
+  die echte Prozess-Env deterministisch maskiert (nicht mehr Namens-Heuristik).
+  Tests `TestEnvFlagPathMasksRealEnvironment` / `TestEnvNoSandboxReadsRealEnvironment`
+  in `pkg/object/sandbox_test.go`.
 - Details in [report4.en.md](report4.en.md) / [report4.de.md](report4.de.md).
 
 ## Test-Scripts

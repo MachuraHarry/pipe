@@ -60,7 +60,7 @@ func openAIChat(cfg Config, req ChatRequest) (ChatResponse, error) {
 		return ChatResponse{}, err
 	}
 
-	result, err := httpPostJSON(cfg.APIHost+"/v1/chat/completions", apiKey, oaiBody, cfg.Timeout)
+	result, err := httpPostJSON(EgressChat, cfg.APIHost+"/v1/chat/completions", apiKey, oaiBody, cfg.Timeout)
 	if err != nil {
 		return ChatResponse{}, err
 	}
@@ -128,7 +128,7 @@ func deepSeekChat(cfg Config, req ChatRequest) (ChatResponse, error) {
 		return ChatResponse{}, err
 	}
 
-	result, err := httpPostJSON(cfg.APIHost+"/v1/chat/completions", apiKey, dsBody, cfg.Timeout)
+	result, err := httpPostJSON(EgressChat, cfg.APIHost+"/v1/chat/completions", apiKey, dsBody, cfg.Timeout)
 	if err != nil {
 		return ChatResponse{}, err
 	}
@@ -185,7 +185,7 @@ func anthropicChat(cfg Config, req ChatRequest) (ChatResponse, error) {
 		body[k] = v
 	}
 
-	result, err := httpPostJSON(cfg.APIHost+"/v1/messages", apiKey, body, cfg.Timeout)
+	result, err := httpPostJSON(EgressChat, cfg.APIHost+"/v1/messages", apiKey, body, cfg.Timeout)
 	if err != nil {
 		return ChatResponse{}, err
 	}
@@ -262,7 +262,7 @@ func openAIStream(cfg Config, req ChatRequest, onToken StreamCallback) error {
 		body[k] = v
 	}
 
-	return httpPostStream(cfg.APIHost+"/v1/chat/completions", apiKey, body, cfg.Timeout, onToken)
+	return httpPostStream(EgressStream, cfg.APIHost+"/v1/chat/completions", apiKey, body, cfg.Timeout, onToken)
 }
 
 func deepSeekStream(cfg Config, req ChatRequest, onToken StreamCallback) error {
@@ -292,7 +292,7 @@ func deepSeekStream(cfg Config, req ChatRequest, onToken StreamCallback) error {
 		body[k] = v
 	}
 
-	return httpPostStream(cfg.APIHost+"/v1/chat/completions", apiKey, body, cfg.Timeout, onToken)
+	return httpPostStream(EgressStream, cfg.APIHost+"/v1/chat/completions", apiKey, body, cfg.Timeout, onToken)
 }
 
 func anthropicStream(cfg Config, req ChatRequest, onToken StreamCallback) error {
@@ -334,10 +334,10 @@ func anthropicStream(cfg Config, req ChatRequest, onToken StreamCallback) error 
 		body[k] = v
 	}
 
-	return httpPostStreamAnthropic(cfg.APIHost+"/v1/messages", apiKey, body, cfg.Timeout, onToken)
+	return httpPostStreamAnthropic(EgressStream, cfg.APIHost+"/v1/messages", apiKey, body, cfg.Timeout, onToken)
 }
 
-func httpPostStreamAnthropic(url, apiKey string, reqBody interface{}, timeout time.Duration, callback StreamCallback) error {
+func httpPostStreamAnthropic(kind EgressKind, url, apiKey string, reqBody interface{}, timeout time.Duration, callback StreamCallback) error {
 	body, err := json.Marshal(reqBody)
 	if err != nil {
 		return fmt.Errorf("marshal request: %w", err)
@@ -352,7 +352,7 @@ func httpPostStreamAnthropic(url, apiKey string, reqBody interface{}, timeout ti
 	httpReq.Header.Set("x-api-key", apiKey)
 	httpReq.Header.Set("anthropic-version", "2023-06-01")
 
-	client := &http.Client{Timeout: timeout}
+	client := gatedHTTPClient(kind, timeout)
 	resp, err := client.Do(httpReq)
 	if err != nil {
 		return fmt.Errorf("http request: %w", err)
@@ -421,7 +421,7 @@ func ollamaChat(cfg Config, req ChatRequest) (ChatResponse, error) {
 		body[k] = v
 	}
 
-	result, err := httpPostJSON(cfg.APIHost+"/v1/chat/completions", "ollama", body, cfg.Timeout)
+	result, err := httpPostJSON(EgressChat, cfg.APIHost+"/v1/chat/completions", "ollama", body, cfg.Timeout)
 	if err != nil {
 		return ChatResponse{}, fmt.Errorf("ollama: %w", err)
 	}
@@ -448,7 +448,7 @@ func ollamaStream(cfg Config, req ChatRequest, onToken StreamCallback) error {
 		body[k] = v
 	}
 
-	return httpPostStream(cfg.APIHost+"/v1/chat/completions", "ollama", body, cfg.Timeout, onToken)
+	return httpPostStream(EgressStream, cfg.APIHost+"/v1/chat/completions", "ollama", body, cfg.Timeout, onToken)
 }
 
 func ollamaEmbed(cfg Config, text string) ([]float64, error) {
@@ -457,7 +457,7 @@ func ollamaEmbed(cfg Config, text string) ([]float64, error) {
 		"input": text,
 	}
 
-	result, err := httpPostJSON(cfg.APIHost+"/v1/embeddings", "ollama", body, cfg.Timeout)
+	result, err := httpPostJSON(EgressEmbed, cfg.APIHost+"/v1/embeddings", "ollama", body, cfg.Timeout)
 	if err != nil {
 		return nil, fmt.Errorf("ollama embed: %w", err)
 	}

@@ -41,7 +41,7 @@ func WebSearch(query string) ([]SearchResult, error) {
 		return nil, err
 	}
 
-	body, err := httpGetString(apiURL)
+	body, err := httpGetString(EgressSearch, apiURL)
 	if err != nil {
 		return nil, fmt.Errorf("web_search: %w", err)
 	}
@@ -137,23 +137,23 @@ func extractTitle(text string) string {
 	return text
 }
 
-var httpGetStringFn func(string) ([]byte, error)
+var httpGetStringFn func(EgressKind, string) ([]byte, error)
 
-func httpGetString(url string) ([]byte, error) {
+func httpGetString(kind EgressKind, url string) ([]byte, error) {
 	if httpGetStringFn != nil {
-		return httpGetStringFn(url)
+		return httpGetStringFn(kind, url)
 	}
-	return httpGetStringNative(url)
+	return httpGetStringNative(kind, url)
 }
 
-func httpGetStringNative(url string) ([]byte, error) {
+func httpGetStringNative(kind EgressKind, url string) ([]byte, error) {
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		return nil, err
 	}
 	req.Header.Set("User-Agent", "Pipe/0.7 (https://pipe-lang.com)")
 
-	client := &http.Client{Timeout: 10 * time.Second}
+	client := gatedHTTPClient(kind, 10*time.Second)
 	resp, err := client.Do(req)
 	if err != nil {
 		return nil, err
@@ -181,7 +181,7 @@ func WikiSearch(query string) ([]SearchResult, error) {
 	encoded := url.QueryEscape(strings.TrimSpace(query))
 	apiURL := fmt.Sprintf("https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=%s&format=json&origin=*&srlimit=10", encoded)
 
-	body, err := httpGetString(apiURL)
+	body, err := httpGetString(EgressSearch, apiURL)
 	if err != nil {
 		return nil, fmt.Errorf("wiki_search: %w", err)
 	}

@@ -198,6 +198,38 @@ func TestEnvProfileOnly(t *testing.T) {
 	}
 }
 
+func TestEnvFlagPathMasksRealEnvironment(t *testing.T) {
+	// The legacy --sandbox flag (no profile) must never expose the real
+	// process environment, deterministically — even for names that do not
+	// match the secret markers.
+	t.Setenv("PIPE_LEAK_SENTINEL", "secret-value")
+	t.Setenv("PIPE_PLAIN", "visible-nope")
+
+	restore := withSandboxFlags(true, false)
+	defer restore()
+
+	if res := bEnv(&String{Value: "PIPE_LEAK_SENTINEL"}); res.Type() != NIL {
+		t.Fatalf("env of a non-marker secret must be masked under --sandbox, got: %s", res.Inspect())
+	}
+	if res := bEnv(&String{Value: "PIPE_PLAIN"}); res.Type() != NIL {
+		t.Fatalf("env of a non-marker var must be masked under --sandbox, got: %s", res.Inspect())
+	}
+	if res := bEnv(&String{Value: "DEEPSEEK_API_KEY"}); res.Type() != ERROR {
+		t.Fatalf("env of a secret-marked var must error under --sandbox, got: %s", res.Inspect())
+	}
+}
+
+func TestEnvNoSandboxReadsRealEnvironment(t *testing.T) {
+	t.Setenv("PIPE_VISIBLE", "real-value")
+	restore := withSandboxFlags(false, false)
+	defer restore()
+
+	res := bEnv(&String{Value: "PIPE_VISIBLE"})
+	if s, ok := res.(*String); !ok || s.Value != "real-value" {
+		t.Fatalf("env PIPE_VISIBLE = %s, want real-value when not sandboxed", res.Inspect())
+	}
+}
+
 // ---- network whitelist ----
 
 func TestNetworkWhitelistHostMatching(t *testing.T) {

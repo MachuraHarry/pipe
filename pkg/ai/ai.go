@@ -234,16 +234,16 @@ func Stream(req ChatRequest, onToken StreamCallback) error {
 	}
 }
 
-func httpPostJSON(url, apiKey string, reqBody interface{}, timeout time.Duration) (map[string]interface{}, error) {
+func httpPostJSON(kind EgressKind, url, apiKey string, reqBody interface{}, timeout time.Duration) (map[string]interface{}, error) {
 	if httpPostJSONFn != nil {
-		return httpPostJSONFn(url, apiKey, reqBody, timeout)
+		return httpPostJSONFn(kind, url, apiKey, reqBody, timeout)
 	}
-	return httpPostJSONNative(url, apiKey, reqBody, timeout)
+	return httpPostJSONNative(kind, url, apiKey, reqBody, timeout)
 }
 
-var httpPostJSONFn func(string, string, interface{}, time.Duration) (map[string]interface{}, error)
+var httpPostJSONFn func(EgressKind, string, string, interface{}, time.Duration) (map[string]interface{}, error)
 
-func httpPostJSONNative(url, apiKey string, reqBody interface{}, timeout time.Duration) (map[string]interface{}, error) {
+func httpPostJSONNative(kind EgressKind, url, apiKey string, reqBody interface{}, timeout time.Duration) (map[string]interface{}, error) {
 	body, err := json.Marshal(reqBody)
 	if err != nil {
 		return nil, fmt.Errorf("marshal request: %w", err)
@@ -258,7 +258,7 @@ func httpPostJSONNative(url, apiKey string, reqBody interface{}, timeout time.Du
 		httpReq.Header.Set("Authorization", "Bearer "+apiKey)
 	}
 
-	client := &http.Client{Timeout: timeout}
+	client := gatedHTTPClient(kind, timeout)
 	resp, err := client.Do(httpReq)
 	if err != nil {
 		return nil, fmt.Errorf("http request: %w", err)
@@ -281,7 +281,7 @@ func httpPostJSONNative(url, apiKey string, reqBody interface{}, timeout time.Du
 	return result, nil
 }
 
-func httpPostStream(url, apiKey string, reqBody interface{}, timeout time.Duration, callback StreamCallback) error {
+func httpPostStream(kind EgressKind, url, apiKey string, reqBody interface{}, timeout time.Duration, callback StreamCallback) error {
 	body, err := json.Marshal(reqBody)
 	if err != nil {
 		return fmt.Errorf("marshal request: %w", err)
@@ -297,7 +297,7 @@ func httpPostStream(url, apiKey string, reqBody interface{}, timeout time.Durati
 		httpReq.Header.Set("Authorization", "Bearer "+apiKey)
 	}
 
-	client := &http.Client{Timeout: timeout}
+	client := gatedHTTPClient(kind, timeout)
 	resp, err := client.Do(httpReq)
 	if err != nil {
 		return fmt.Errorf("http request: %w", err)
@@ -511,6 +511,22 @@ func gateEgress(kind EgressKind, url string) error {
 		return nil
 	}
 	return fn(EgressInfo{Kind: kind, URL: url})
+}
+
+// gatedHTTPClient returns an http.Client whose redirect hops are re-checked
+// against the central egress gate. A provider endpoint could answer with a
+// redirect to a target the profile would block; re-checking per hop keeps that
+// from being silently followed.
+func gatedHTTPClient(kind EgressKind, timeout time.Duration) *http.Client {
+	return &http.Client{
+		Timeout: timeout,
+		CheckRedirect: func(req *http.Request, via []*http.Request) error {
+			if len(via) >= 10 {
+				return fmt.Errorf("too many redirects")
+			}
+			return gateEgress(kind, req.URL.String())
+		},
+	}
 }
 
 func recordCost(resp ChatResponse) {

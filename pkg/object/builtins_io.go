@@ -182,6 +182,13 @@ func blockedEnvName(name string) bool {
 	return false
 }
 
+// bEnv implements `env(name)`. Under any active sandbox (a registered profile
+// or the legacy --sandbox flag) the real process environment is never exposed:
+// a profile only returns values from its explicit `Env` allowlist, and the flag
+// path (which has no allowlist) masks everything. This is deterministic rather
+// than name-heuristic: a secret whose name happens to avoid the marker
+// substrings can no longer leak, because the value never comes from the host
+// process environment.
 func bEnv(args ...Object) Object {
 	if len(args) != 1 {
 		return err("env expects 1 argument (Name)")
@@ -199,6 +206,12 @@ func bEnv(args ...Object) Object {
 			return NILOBJ
 		}
 		return &String{Value: val}
+	}
+	if Sandbox.Enabled {
+		if blockedEnvName(name.Value) {
+			return err("env: access to environment variable '" + name.Value + "' is blocked by sandbox policy")
+		}
+		return NILOBJ
 	}
 	val, exists := os.LookupEnv(name.Value)
 	if !exists {

@@ -99,7 +99,7 @@ func Embed(text string) ([]float64, error) {
 		"input": text,
 	}
 
-	result, err := httpPostJSON(ActiveConfig.APIHost+"/v1/embeddings", apiKey, body, ActiveConfig.Timeout)
+	result, err := httpPostJSON(EgressEmbed, ActiveConfig.APIHost+"/v1/embeddings", apiKey, body, ActiveConfig.Timeout)
 	if err != nil {
 		return nil, fmt.Errorf("embed: %w", err)
 	}

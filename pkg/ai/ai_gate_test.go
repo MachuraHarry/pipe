@@ -2,7 +2,11 @@ package ai
 
 import (
 	"errors"
+	"net/http"
+	"net/http/httptest"
+	"strings"
 	"testing"
+	"time"
 )
 
 // TestEgressGateBlocksAtEntry proves every egress entry point consults the
@@ -46,5 +50,34 @@ func TestEgressGateNoopByDefault(t *testing.T) {
 
 	if err := gateEgress(EgressChat, "https://example.invalid"); err != nil {
 		t.Fatalf("expected nil gate to allow egress, got %v", err)
+	}
+}
+
+// TestEgressGateRechecksRedirectHops proves provider HTTP clients re-run the
+// central gate for every redirect hop, so a 30x to a target the profile blocks
+// is refused instead of silently followed.
+func TestEgressGateRechecksRedirectHops(t *testing.T) {
+	target := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		t.Fatalf("redirect target must never be reached")
+	}))
+	defer target.Close()
+
+	redirector := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		http.Redirect(w, r, target.URL, http.StatusFound)
+	}))
+	defer redirector.Close()
+
+	prevGate := egressGate
+	SetEgressGate(func(info EgressInfo) error {
+		if info.URL == target.URL {
+			return errors.New("E_SANDBOX: redirect target blocked")
+		}
+		return nil
+	})
+	t.Cleanup(func() { SetEgressGate(prevGate) })
+
+	_, err := httpPostJSON(EgressChat, redirector.URL, "k", map[string]interface{}{"x": 1}, time.Second)
+	if err == nil || !strings.Contains(err.Error(), "redirect target blocked") {
+		t.Fatalf("expected redirect hop to be re-checked and blocked, got %v", err)
 	}
 }

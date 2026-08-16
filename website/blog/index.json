@@ -1,5 +1,13 @@
 [
   {
+    "id": "micropipe-esp32",
+    "file": "micropipe-esp32.md",
+    "date": "2026-08-16",
+    "tag": "release",
+    "title": {"en": "🌍 MicroPipe — Pipe on a Microcontroller (Preview)", "de": "🌍 MicroPipe — Pipe auf dem Mikrocontroller (Preview)"},
+    "excerpt": {"en": "A faithful, dependency-free re-implementation of the Pipe core — verified against the pipe v0.9.4 binary — running on MicroPython and a real ESP32: pipelines, closures, maps, and an MCP client over WiFi, all interpreted on-device. What works today, and what's still missing.", "de": "Eine treue, abhängigkeitsfreie Neuimplementierung des Pipe-Kerns — gegen die pipe-v0.9.4-Binary verifiziert — läuft auf MicroPython und einem echten ESP32: Pipelines, Closures, Maps und ein MCP-Client über WLAN, alles on-device interpretiert. Was heute funktioniert — und was noch fehlt."}
+  },
+  {
     "id": "docs-pipe-dashboard",
     "file": "docs-pipe-dashboard.md",
     "date": "2026-08-26",

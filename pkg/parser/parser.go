@@ -62,7 +62,6 @@ type Parser struct {
 
 	prefixParseFns map[lexer.TokenType]prefixParseFn
 	infixParseFns  map[lexer.TokenType]infixParseFn
-	blockDepth     int // tracks nesting of expression blocks
 }
 
 func New(l *lexer.Lexer) *Parser {
@@ -496,17 +495,7 @@ func (p *Parser) parseBlock() *ast.BlockStatement {
 		p.nextToken()
 	}
 
-	// Consume nested DEDENTs from inner blocks (if/while inside this block)
-	for p.blockDepth > 0 && p.curTokenIs(lexer.DEDENT) {
-		p.blockDepth--
-		p.nextToken()
-	}
-
 	return block
-}
-
-func (p *Parser) closeBlock() {
-	// Currently a no-op — DEDENT handling for nested blocks is WIP
 }
 
 // ---- Expression parsing ----
@@ -689,13 +678,11 @@ func (p *Parser) parseIfExpression() ast.Expression {
 	p.nextToken()
 
 	expr.Consequence = p.parseBlock()
-	p.closeBlock() // consume nested block's DEDENT
 
 	if p.peekTokenIs(lexer.ELSE) {
 		p.nextToken()
 		p.nextToken()
 		expr.Alternative = p.parseBlock()
-		p.closeBlock() // consume nested block's DEDENT
 	}
 
 	return expr
@@ -964,7 +951,6 @@ func (p *Parser) parseWhileExpression() ast.Expression {
 	}
 	p.nextToken()
 	expr.Body = p.parseBlock()
-	p.closeBlock()
 	return expr
 }
 
@@ -997,7 +983,6 @@ func (p *Parser) parseForExpression() ast.Expression {
 		}
 		p.nextToken()
 		expr.Body = p.parseBlock()
-		p.closeBlock()
 		return expr
 	}
 
@@ -1058,7 +1043,6 @@ func (p *Parser) parseCStyleBody(expr *ast.ForExpression) ast.Expression {
 	}
 	p.nextToken()
 	expr.Body = p.parseBlock()
-	p.closeBlock()
 	return expr
 }
 
@@ -1265,7 +1249,6 @@ func (p *Parser) parseFnLiteral() ast.Expression {
 
 	// Body (indented block form)
 	lit.Body = p.parseBlock()
-	p.closeBlock()
 	return lit
 }
 
@@ -1324,7 +1307,6 @@ func (p *Parser) parseTryBase(aiFix bool) ast.Expression {
 	}
 	p.nextToken()
 	expr.TryBlock = p.parseBlock()
-	p.closeBlock()
 
 	// catch is optional for try_ai, required for try
 	if !p.peekTokenIs(lexer.CATCH) {
@@ -1344,7 +1326,6 @@ func (p *Parser) parseTryBase(aiFix bool) ast.Expression {
 	}
 	p.nextToken()
 	expr.CatchBlock = p.parseBlock()
-	p.closeBlock()
 
 	return expr
 }

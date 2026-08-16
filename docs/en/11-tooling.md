@@ -397,6 +397,8 @@ pipe -install
 
 Reads the `dependencies` field from `pipe.json`, resolves each dependency through the registry, downloads all modules (recursively, including transitive dependencies), and writes a `pipe.lock` lockfile.
 
+If a `pipe.lock` already exists, `pipe -install` **honors the pinned versions and URLs** from it instead of re-resolving against the registry, and **verifies each downloaded module's SHA-256 checksum** against the lockfile. A checksum mismatch aborts the install with an error — this guarantees reproducible dependency trees.
+
 ```bash
 $ pipe -install
 Installing dependencies for my-app…

@@ -34,10 +34,10 @@ func Install(dir string) error {
 	}
 
 	lock := &Lockfile{Modules: make(map[string]LockEntry)}
-	resolved := make(map[string]bool)
+	existing, _ := ReadLockfile(dir)
 
 	fmt.Printf("Installing dependencies for %s…\n", m.Name)
-	if err := resolveDeps(m.Dependencies, lock, resolved, nil); err != nil {
+	if err := resolveDeps(m.Dependencies, lock, nil, existing); err != nil {
 		return err
 	}
 
@@ -50,13 +50,17 @@ func Install(dir string) error {
 			return fmt.Errorf("fetch %s: %w", name, err)
 		}
 
+		checksum := fmt.Sprintf("%x", sha256.Sum256([]byte(content)))
+		if entry.Checksum != "" && entry.Checksum != checksum {
+			return fmt.Errorf("checksum mismatch for %s v%s: lockfile has %s, fetched %s", name, entry.Version, entry.Checksum, checksum)
+		}
+		entry.Checksum = checksum
+
 		modPath := filepath.Join(modDir, "module.pipe")
 		if err := os.WriteFile(modPath, []byte(content), 0644); err != nil {
 			return fmt.Errorf("write %s: %w", modPath, err)
 		}
 
-		checksum := fmt.Sprintf("%x", sha256.Sum256([]byte(content)))
-		entry.Checksum = checksum
 		lock.Modules[name] = entry
 
 		fmt.Printf("  ✓ %s v%s\n", name, entry.Version)
@@ -66,7 +70,7 @@ func Install(dir string) error {
 	return WriteLockfile(dir, lock)
 }
 
-func resolveDeps(deps map[string]string, lock *Lockfile, resolved map[string]bool, path []string) error {
+func resolveDeps(deps map[string]string, lock *Lockfile, path []string, existing *Lockfile) error {
 	for depName, depVersion := range deps {
 		if _, ok := lock.Modules[depName]; ok {
 			continue
@@ -75,6 +79,20 @@ func resolveDeps(deps map[string]string, lock *Lockfile, resolved map[string]boo
 		for _, p := range path {
 			if p == depName {
 				return fmt.Errorf("circular dependency: %s", strings.Join(append(path, depName), " → "))
+			}
+		}
+
+		// Prefer a pinned entry from an existing lockfile for reproducibility.
+		if existing != nil {
+			if pinned, ok := existing.Modules[depName]; ok && pinned.URL != "" {
+				lock.Modules[depName] = pinned
+				if len(pinned.Dependencies) > 0 {
+					newPath := append(path, depName)
+					if err := resolveDeps(pinned.Dependencies, lock, newPath, existing); err != nil {
+						return err
+					}
+				}
+				continue
 			}
 		}
 
@@ -106,7 +124,7 @@ func resolveDeps(deps map[string]string, lock *Lockfile, resolved map[string]boo
 			entry.Dependencies = depManifest.Dependencies
 			lock.Modules[depName] = entry
 			newPath := append(path, depName)
-			if err := resolveDeps(depManifest.Dependencies, lock, resolved, newPath); err != nil {
+			if err := resolveDeps(depManifest.Dependencies, lock, newPath, existing); err != nil {
 				return err
 			}
 		}

@@ -51,7 +51,7 @@ pipe -install
 pipe -gen-registry .
 ```
 
-**`pipe -install`** liest `dependencies` aus `pipe.json`, löst alle Abhängigkeiten rekursiv auf und schreibt eine `pipe.lock`-Datei mit gepinnten Versionen und SHA-256-Prüfsummen.
+**`pipe -install`** liest `dependencies` aus `pipe.json`, löst alle Abhängigkeiten rekursiv auf und schreibt eine `pipe.lock`-Datei mit gepinnten Versionen und SHA-256-Prüfsummen. Existiert bereits eine `pipe.lock`, werden die gepinnten Versionen/URLs **übernommen** statt neu aufgelöst und jede heruntergeladene Moduldatei wird gegen die **SHA-256-Prüfsumme** der Lockfile verifiziert — bei Abweichung bricht der Install mit einem Fehler ab (reproduzierbare Dependency-Bäume).
 
 **`pipe -init`** erstellt:
 ```

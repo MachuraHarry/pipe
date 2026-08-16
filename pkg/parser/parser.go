@@ -1190,8 +1190,18 @@ func (p *Parser) parseTestStatement() ast.Statement {
 
 	p.nextToken() // skip 'test'
 
+	// File-level hooks use the bare keywords `test setup` / `test teardown`
+	// (no string description). These are not reserved globally, so existing
+	// code that uses setup/teardown as identifiers keeps parsing.
+	if p.curTokenIs(lexer.IDENT) && (p.curToken.Literal == "setup" || p.curToken.Literal == "teardown") {
+		stmt.Hook = p.curToken.Literal
+		p.nextToken()
+		stmt.Body = p.parseBlock()
+		return stmt
+	}
+
 	if !p.curTokenIs(lexer.STRING) {
-		p.error("test expects a string description")
+		p.error("test expects a string description or a setup/teardown hook")
 		return nil
 	}
 	stmt.Name = &ast.StringLiteral{Value: p.curToken.Literal}

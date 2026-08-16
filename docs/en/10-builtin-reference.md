@@ -2300,7 +2300,7 @@ print (ai_cache_misses) -- 1
 
 ---
 
-## 10.31 Test Assertions (7 functions)
+## 10.31 Test Assertions (9 functions)
 
 **Note:** `test` blocks and assert builtins are available in all execution modes, but are designed for use with `pipe -test`.
 
@@ -2377,6 +2377,31 @@ failing: (fn
 assert_error failing
 ```
 
+### `assert_near`
+
+**Signature:** `assert_near(expected, actual[, epsilon])`
+
+**Description:** Asserts that `expected` and `actual` differ by at most `epsilon` (default `1e-6`). Use for floating-point comparisons.
+
+**Returns:** `nil` on success, `ERROR` on failure
+```pipe
+assert_near 3.1415926 3.14159 0.00001
+```
+
+### `assert_contains`
+
+**Signature:** `assert_contains(container, item)`
+
+**Description:** Asserts that a string contains the substring, a list contains the element, or a map contains the string key.
+
+**Returns:** `nil` on success, `ERROR` on failure
+```pipe
+assert_contains "hello world" "world"
+assert_contains ([1, 2, 3]) 2
+m: {name: "pipe"}
+assert_contains m "name"
+```
+
 ### `test` — test block
 
 **Description:** Groups assertions into a named test. Inside `pipe -test`, each test block prints `PASS name` or `FAIL name (reason)`. A failing assertion stops only its own test block.
@@ -2386,6 +2411,8 @@ test "addition"
     assert_eq (2 + 2) 4
     assert_lt 3 5
 ```
+
+`test setup` and `test teardown` define file-level hooks: the setup block runs before all tests, the teardown block after all tests (even when a test fails). Hooks are silent and share the environment with the tests.
 
 ---
 
@@ -3055,7 +3082,7 @@ mcp_use_sse "http://localhost:9090/"
 | 161 | `audit_log` | `audit_log()` | `list` |
 | 162 | `budget_spent` | `budget_spent()` | `number` |
 
-### Test Assertions (6)
+### Test Assertions (8)
 
 | # | Function | Signature | Returns |
 |---|----------|-----------|---------|
@@ -3065,25 +3092,27 @@ mcp_use_sse "http://localhost:9090/"
 | 166 | `assert_lt` | `assert_lt(a, b)` | `nil` |
 | 167 | `assert_gt` | `assert_gt(a, b)` | `nil` |
 | 168 | `assert_error` | `assert_error(fn)` | `nil` |
+| 169 | `assert_near` | `assert_near(expected, actual[, epsilon])` | `nil` |
+| 170 | `assert_contains` | `assert_contains(container, item)` | `nil` |
 
 ### MCP (13)
 
 | # | Function | Signature | Returns |
 |---|----------|-----------|---------|
-| 169 | `mcp_server` | `mcp_server(name, version)` | `nil` |
-| 170 | `mcp_serve_stdio` | `mcp_serve_stdio` | `nil` |
-| 171 | `mcp_serve_sse` | `mcp_serve_sse(addr)` | `nil` |
-| 172 | `mcp_tools` | `mcp_tools` | `list` |
-| 173 | `mcp_resource` | `mcp_resource(uri, name, mime, read_fn)` | `nil` |
-| 174 | `mcp_resource_template` | `mcp_resource_template(template, name, mime, read_fn)` | `nil` |
-| 175 | `mcp_prompt` | `mcp_prompt(name, description, args_map, build_fn)` | `nil` |
-| 176 | `mcp_resources` | `mcp_resources` | `list` |
-| 177 | `mcp_read_resource` | `mcp_read_resource(uri)` | `string` |
-| 178 | `mcp_prompts` | `mcp_prompts` | `list` |
-| 179 | `mcp_prompt_get` | `mcp_prompt_get(name, args?)` | `string` |
-| 180 | `mcp_use_stdio` | `mcp_use_stdio(command, args...)` | `string` |
-| 181 | `mcp_use_sse` | `mcp_use_sse(url)` | `string` |
+| 171 | `mcp_server` | `mcp_server(name, version)` | `nil` |
+| 172 | `mcp_serve_stdio` | `mcp_serve_stdio` | `nil` |
+| 173 | `mcp_serve_sse` | `mcp_serve_sse(addr)` | `nil` |
+| 174 | `mcp_tools` | `mcp_tools` | `list` |
+| 175 | `mcp_resource` | `mcp_resource(uri, name, mime, read_fn)` | `nil` |
+| 176 | `mcp_resource_template` | `mcp_resource_template(template, name, mime, read_fn)` | `nil` |
+| 177 | `mcp_prompt` | `mcp_prompt(name, description, args_map, build_fn)` | `nil` |
+| 178 | `mcp_resources` | `mcp_resources` | `list` |
+| 179 | `mcp_read_resource` | `mcp_read_resource(uri)` | `string` |
+| 180 | `mcp_prompts` | `mcp_prompts` | `list` |
+| 181 | `mcp_prompt_get` | `mcp_prompt_get(name, args?)` | `string` |
+| 182 | `mcp_use_stdio` | `mcp_use_stdio(command, args...)` | `string` |
+| 183 | `mcp_use_sse` | `mcp_use_sse(url)` | `string` |
 
 ---
 
-**Total: 227 built-in functions**
+**Total: 229 built-in functions**

@@ -209,7 +209,11 @@ func formatStatement(out *strings.Builder, stmt ast.Statement, depth int) {
 	case *ast.TestStatement:
 		out.WriteString(indent)
 		out.WriteString("test ")
-		out.WriteString(parser.QuoteString(s.Name.Value))
+		if s.Hook != "" {
+			out.WriteString(s.Hook)
+		} else {
+			out.WriteString(parser.QuoteString(s.Name.Value))
+		}
 		out.WriteByte('\n')
 		formatBlock(out, s.Body, depth+1)
 	}

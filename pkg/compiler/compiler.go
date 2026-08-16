@@ -109,6 +109,12 @@ type Compiler struct {
 	defineSet   map[string]struct{}
 	sourceFile  string
 	currentLine int
+
+	// setupAbortProbes collects OpTestAbortIfError probe positions emitted by
+	// `test setup` / `test teardown` hooks. They are patched to the end of the
+	// compiled program: an error in a hook makes the VM exit with that error
+	// (a failing setup skips the tests, matching the tree-walker's abort).
+	setupAbortProbes []int
 }
 
 type LoopContext struct {
@@ -649,6 +655,11 @@ func (c *Compiler) Compile(node ast.Node) error {
 }
 
 func (c *Compiler) compileProgram(stmts []ast.Statement) error {
+	// Probes recorded while compiling statements of this program (including
+	// code inlined from imports during pass 1). Patched below once the whole
+	// program is laid out.
+	probeBase := len(c.setupAbortProbes)
+
 	// Pass 1: compile only declarations (closures, enums, exports, imports)
 	// VarStatements are NOT compiled here — their values may have side effects
 	// that depend on execution order (e.g., ai_provider before ai_batch).
@@ -672,6 +683,13 @@ func (c *Compiler) compileProgram(stmts []ast.Statement) error {
 		if err := c.Compile(stmt); err != nil {
 			return err
 		}
+	}
+
+	// An error inside a setup/teardown hook jumps past the last instruction;
+	// the VM then exits with the pending error (failing the file).
+	end := len(c.currentInstructions())
+	for _, pos := range c.setupAbortProbes[probeBase:] {
+		c.patchJump(pos, end)
 	}
 	return nil
 }
@@ -699,6 +717,20 @@ func (c *Compiler) compileStatements(stmts []ast.Statement, popLast bool) error 
 // aborts a block at the first error). The verdict (OpTestResult) reports the
 // test as PASS/FAIL and records failures so the runner fails the file.
 func (c *Compiler) compileTestStatement(ts *ast.TestStatement) error {
+	// Setup/teardown hooks are silent blocks. A probe after every statement
+	// mirrors the tree-walker's block short-circuit; an error jumps past the
+	// end of the program, where the VM exits with the pending error (compileProgram
+	// patches these probes).
+	if ts.Hook != "" {
+		for _, stmt := range ts.Body.Statements {
+			if err := c.Compile(stmt); err != nil {
+				return err
+			}
+			c.setupAbortProbes = append(c.setupAbortProbes, c.emit(OpTestAbortIfError, 0))
+		}
+		return nil
+	}
+
 	name := ""
 	if ts.Name != nil {
 		name = ts.Name.Value

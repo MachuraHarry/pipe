@@ -473,6 +473,29 @@ func TestCrossStructWithDefaults(t *testing.T) {
 	assertBothEqual(t, input, "8")
 }
 
+func TestCrossTestHooks(t *testing.T) {
+	// setup binds a variable the tests can read (shared environment), and the
+	// hooks themselves are silent — the file result is the trailing value.
+	assertBothEqual(t, "test setup\n    shared: 40\ntest \"uses setup\"\n    assert_eq shared 40\nshared", "40")
+	assertBothEqual(t, "test setup\n    x: 1\ntest teardown\n    y: 2\n1 + 1", "2")
+}
+
+func TestCrossTestSetupHookError(t *testing.T) {
+	// A failing setup aborts the file: the tests after it never run and the
+	// program evaluates to the setup error in both engines.
+	assertBothErrorContains(t, "test setup\n    raise \"boom\"\ntest \"never\"\n    assert_eq 1 2", "boom")
+}
+
+func TestCrossTestTeardownHookError(t *testing.T) {
+	assertBothErrorContains(t, "test \"ok\"\n    assert_eq 1 1\ntest teardown\n    raise \"cleanup\"", "cleanup")
+}
+
+func TestCrossTestHookShortCircuit(t *testing.T) {
+	// The first hook statement errors; the rest of the hook body is skipped
+	// in both engines (block short-circuit).
+	assertBothErrorContains(t, "test setup\n    raise \"first\"\n    print \"never\"", "first")
+}
+
 func TestCrossStructInline(t *testing.T) {
 	input := "struct Point: x, y\n\np: Point 3 4\np.x"
 	assertBothEqual(t, input, "3")

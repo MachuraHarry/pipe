@@ -693,6 +693,8 @@ var Builtins = []BuiltinInfo{
 	{"assert_lt", bAssertLt},
 	{"assert_gt", bAssertGt},
 	{"assert_error", bAssertError},
+	{"assert_near", bAssertNear},
+	{"assert_contains", bAssertContains},
 
 	// Error handling
 	{"raise", bRaise},

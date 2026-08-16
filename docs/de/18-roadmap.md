@@ -61,7 +61,7 @@ Pipe ist aktuell in Version **v0.9.4.0**, dem **Modulsystem-Release**. Es vervol
 | 14 | **Web-Playground** | "Try Pipe in your Browser" via WASM | ✅ Erledigt |
 | 15 | **VSCode-Plugin 2.0** | Auto-Vervollständigung, Go-to-Definition, Debugger-Integration |
 | 16 | **LSP-Server** | Language Server Protocol für Editor-Unterstützung | ✅ Erledigt |
-| 17 | **Standard-Test-Framework** | `assert`, `test`, `assert_eq`, `assert_error`, `assert_lt`, `assert_gt` — Setup/Teardown-Hooks fehlen noch |
+| 17 | **Standard-Test-Framework** | `assert`, `test`, `assert_eq`, `assert_error`, `assert_lt`, `assert_gt`, `assert_near`, `assert_contains` — Setup/Teardown-Hooks in TV + VM | ✅ Erledigt |
 | 18 | **Dokumentations-Generator** | `pipe -doc` — Markdown aus `--!`-Docstrings, `--builtins` | ✅ Erledigt (Cross-References offen) |
 
 ---

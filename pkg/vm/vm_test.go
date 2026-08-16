@@ -666,3 +666,40 @@ func TestTestStatementDoesNotLeakFailure(t *testing.T) {
 		t.Error("the passing test should leave a non-error top value")
 	}
 }
+
+func TestTestSetupHookRunsBeforeTests(t *testing.T) {
+	// Variables bound in a setup hook must be visible to the tests, matching
+	// the tree-walker (shared environment).
+	bc := parseAndCompile(t, "test setup\n    shared: 40\ntest \"uses setup\"\n    assert_eq shared 40")
+	v := New(bc)
+	if err := v.Run(); err != nil {
+		t.Fatalf("vm error: %s", err)
+	}
+	if v.TestFailed {
+		t.Error("TestFailed should be false when setup and tests pass")
+	}
+}
+
+func TestTestSetupHookFailureAborts(t *testing.T) {
+	// A failing setup aborts the whole file: Run returns the setup error and
+	// the following test never gets a chance to clear it.
+	bc := parseAndCompile(t, "test setup\n    raise \"boom\"\ntest \"x\"\n    assert_eq 1 1")
+	v := New(bc)
+	err := v.Run()
+	if err == nil {
+		t.Fatal("expected Run to return the setup error")
+	}
+	if strings.Contains(err.Error(), "some tests failed") {
+		t.Errorf("expected the setup error, got %s", err)
+	}
+}
+
+func TestTestTeardownHookFailsFile(t *testing.T) {
+	// A failing teardown fails the file even when all tests pass.
+	bc := parseAndCompile(t, "test \"ok\"\n    assert_eq 1 1\ntest teardown\n    raise \"cleanup failed\"")
+	v := New(bc)
+	err := v.Run()
+	if err == nil {
+		t.Fatal("expected Run to return the teardown error")
+	}
+}

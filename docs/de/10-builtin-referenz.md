@@ -1906,8 +1906,8 @@ Siehe das Kapitel [SQLite-Modul](26-sqlite-modul.md) für Architektur-Details un
 ### KI — Kosten-Tracking (5)
 `ai_cost`, `ai_tokens`, `ai_cache_hits`, `ai_cache_misses`, `try_ai_log`
 
-### Test-Assertions (6)
-`assert`, `assert_eq`, `assert_not_eq`, `assert_lt`, `assert_gt`, `assert_error`
+### Test-Assertions (8)
+`assert`, `assert_eq`, `assert_not_eq`, `assert_lt`, `assert_gt`, `assert_error`, `assert_near`, `assert_contains`
 
 ### Sandbox (5)
 `sandbox_profile`, `set_sandbox`, `with_sandbox`, `audit_log`, `budget_spent`
@@ -1917,4 +1917,4 @@ Siehe das Kapitel [SQLite-Modul](26-sqlite-modul.md) für Architektur-Details un
 `mcp_resource_template`, `mcp_prompt`, `mcp_resources`, `mcp_read_resource`,
 `mcp_prompts`, `mcp_prompt_get`, `mcp_use_stdio`, `mcp_use_sse`
 
-**Gesamt: 227 Builtins**
+**Gesamt: 229 Builtins**

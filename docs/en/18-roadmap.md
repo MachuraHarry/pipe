@@ -215,7 +215,7 @@ Pipe is currently at version **v0.9.4.0**, the **module-system release**. It com
 - [x] Assertion helpers: `assert`, `assert_eq`, `assert_not_eq`, `assert_lt`, `assert_gt`, `assert_error`
 - [x] Test runner CLI (`pipe test`)
 - [x] Test file discovery (`*_test.pipe`)
-- [ ] Setup/teardown hooks
+- [x] Setup/teardown hooks
 
 ### Documentation Generator
 - [x] Extract docstrings from source code (`--!` docstrings)
@@ -287,7 +287,7 @@ Pipe is currently at version **v0.9.4.0**, the **module-system release**. It com
 | Web Playground | ✅ Done | v0.7 | WASM-based + code sharing |
 | VSCode 2.0 | 🔮 Future | v0.7+ | Debugger, snippets |
 | LSP | ✅ Done | v0.7 | Go-to-def, references, hover, completion, diagnostics, rename |
-| Test Framework | 🟡 Partial | v0.7 | test blocks + asserts + CLI; setup/teardown hooks open |
+| Test Framework | ✅ Done | v0.9.4.0+ | test blocks + asserts + CLI, assert_near/assert_contains, setup/teardown hooks, runs in TV and VM |
 | Doc Generator | ✅ Done | v0.9.4.0 | `pipe -doc` + `--builtins`; cross-references open |
 | Plugins | 🔮 Future | v0.8+ | Go/WASM extensions |
 | SQLite Module | ✅ Done | v0.8 | Pure-Pipe SQL engine, available via `pipe -get sqlite` from pipe-modules. Replaces modernc.org/sqlite. Binary ~8 MB, zero deps. SQL: CREATE/INSERT/UPDATE/DELETE/SELECT with WHERE, GROUP BY, ORDER BY, JOINs, transactions, paged binary persistence. Pipeline API (q, exec, row_get, row_eq, row_ne). Benchmarks vs Python/Lua in the [SQLite Module](26-sqlite-module.md) chapter. VM mode now runs the full module (ORDER BY/JOIN fixed). |

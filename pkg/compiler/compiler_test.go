@@ -408,6 +408,16 @@ func TestInstructionsString(t *testing.T) {
 	}
 }
 
+func TestTestStatementHookCompilation(t *testing.T) {
+	bc := parseAndCompile(t, "test setup\n    x: 1\n    y: 2")
+	if n := countOps(t, bc, OpTestAbortIfError); n != 2 {
+		t.Errorf("expected 2 OpTestAbortIfError probes for a two-statement setup hook, got %d", n)
+	}
+	if hasOp(t, bc, OpTestResult) {
+		t.Error("setup/teardown hooks must not emit OpTestResult")
+	}
+}
+
 func TestTestStatementCompilation(t *testing.T) {
 	bc := parseAndCompile(t, "test \"check\"\n    assert_eq 1 1")
 	if !hasOp(t, bc, OpTestResult) {

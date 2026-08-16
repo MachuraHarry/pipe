@@ -1219,6 +1219,13 @@ func (ctx *EvalContext) evalStructConstructor(def *object.StructDef, argExprs []
 }
 
 func (ctx *EvalContext) evalTestStatement(ts *ast.TestStatement, env *object.Environment) object.Object {
+	// Setup/teardown hooks are silent: they run like a normal block and
+	// propagate errors (a failing setup aborts the file, a failing teardown
+	// fails it after the tests). evalBlockStatement short-circuits at the
+	// first error, which the VM mirrors with OpTestAbortIfError probes.
+	if ts.Hook != "" {
+		return ctx.Eval(ts.Body, env)
+	}
 	name := ""
 	if ts.Name != nil {
 		name = ts.Name.Value

@@ -11,3 +11,12 @@ test "string"
 test "list"
     my_list: [1,2,3]
     assert_eq (len my_list) 3
+
+test "floating point"
+    assert_near 3.1415926 3.14159 0.00001
+
+test "containment"
+    assert_contains ([1, 2, 3]) 2
+    assert_contains "hello world" "world"
+    m: {name: "pipe"}
+    assert_contains m "name"

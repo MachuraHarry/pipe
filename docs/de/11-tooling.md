@@ -208,6 +208,8 @@ Der Test-Runner:
 | `assert_lt(a, b)` | Schlägt fehl, wenn nicht `a < b` |
 | `assert_gt(a, b)` | Schlägt fehl, wenn nicht `a > b` |
 | `assert_error(fn)` | Schlägt fehl, wenn `fn()` keinen Fehler wirft |
+| `assert_near(a, b[, eps])` | Schlägt fehl, wenn `a` und `b` um mehr als `eps` (Standard `1e-6`) abweichen — für Gleitkomma-Vergleiche |
+| `assert_contains(container, item)` | Schlägt fehl, wenn ein String den Teilstring nicht enthält, eine Liste das Element nicht enthält oder eine Map den String-Key nicht enthält |
 
 ```pipe
 test "addition"
@@ -221,6 +223,27 @@ test "vergleich"
     assert_lt 3 5
     assert_gt 10 3
 ```
+
+### Setup- und Teardown-Hooks
+
+Pro Datei können ein `test setup`- und ein `test teardown`-Block definiert werden. Der Setup-Block läuft **vor** allen Tests, der Teardown-Block **nach** allen Tests — auch wenn ein Test fehlschlägt. Hooks sind still (kein PASS/FAIL) und teilen die Umgebung mit den Tests (Variablen aus dem Setup sind in Tests lesbar).
+
+Ein Fehler im Setup bricht die Datei ab (die Tests werden übersprungen), ein Fehler im Teardown schlägt die Datei fehl.
+
+```pipe
+test setup
+    db: verbinde_test_db()
+    zaehler: 0
+
+test "arbeitet mit der Test-DB"
+    assert_eq (db_status db) "bereit"
+
+test teardown
+    raeume_auf db
+    print "teardown ausgeführt"
+```
+
+Hooks funktionieren im Tree-Walker und in der Bytecode-VM identisch.
 
 ## 11.5 Benchmark (`-bench`)
 

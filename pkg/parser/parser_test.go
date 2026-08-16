@@ -446,3 +446,56 @@ func paramsToSlice(params []*ast.Identifier) []string {
 	}
 	return s
 }
+
+func TestTestStatement(t *testing.T) {
+	program := parseProgram(t, "test \"basic\"\n    assert_eq 1 1")
+	if len(program.Statements) != 1 {
+		t.Fatalf("expected 1 statement, got %d", len(program.Statements))
+	}
+	ts, ok := program.Statements[0].(*ast.TestStatement)
+	if !ok {
+		t.Fatalf("expected TestStatement, got %T", program.Statements[0])
+	}
+	if ts.Hook != "" {
+		t.Errorf("regular test should not be a hook, got %q", ts.Hook)
+	}
+	if ts.Name == nil || ts.Name.Value != "basic" {
+		t.Errorf("expected name 'basic', got %+v", ts.Name)
+	}
+}
+
+func TestTestStatementHooks(t *testing.T) {
+	program := parseProgram(t, "test setup\n    x: 1\ntest teardown\n    x: 2")
+	if len(program.Statements) != 2 {
+		t.Fatalf("expected 2 statements, got %d", len(program.Statements))
+	}
+
+	setup, ok := program.Statements[0].(*ast.TestStatement)
+	if !ok {
+		t.Fatalf("expected TestStatement, got %T", program.Statements[0])
+	}
+	if setup.Hook != "setup" {
+		t.Errorf("expected hook 'setup', got %q", setup.Hook)
+	}
+	if setup.Name != nil {
+		t.Errorf("hook should not have a name, got %+v", setup.Name)
+	}
+
+	teardown, ok := program.Statements[1].(*ast.TestStatement)
+	if !ok {
+		t.Fatalf("expected TestStatement, got %T", program.Statements[1])
+	}
+	if teardown.Hook != "teardown" {
+		t.Errorf("expected hook 'teardown', got %q", teardown.Hook)
+	}
+}
+
+func TestTestStatementHookRequiresBlock(t *testing.T) {
+	// A hook name must be followed by a block; a bare `test setup` without a
+	// block body must fail to parse.
+	p := New(lexer.New("test setup"))
+	p.ParseProgram()
+	if len(p.Errors()) == 0 {
+		t.Error("expected a parse error for a hook without a block")
+	}
+}

@@ -371,7 +371,11 @@ func (es *EnumStatement) TokenLiteral() string { return "enum" }
 func (es *EnumStatement) Pos() Position        { return Position{Line: es.Line, Col: es.Col} }
 
 type TestStatement struct {
+	// Name is the string description of a regular test (test "name").
 	Name *StringLiteral
+	// Hook is "setup" or "teardown" for the file-level hooks (`test setup`,
+	// `test teardown`); empty for regular tests.
+	Hook string
 	Body *BlockStatement
 }
 

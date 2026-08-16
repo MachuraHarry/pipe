@@ -161,6 +161,40 @@ test "division by zero returns nil"
 
 When test functions throw or fail, the runner reports them. A test that completes without errors is considered passing.
 
+**Built-in assertions:**
+
+| Function | Description |
+|----------|-------------|
+| `assert(cond)` | Fails if the value is not truthy |
+| `assert_eq(expected, actual)` | Fails if the values differ |
+| `assert_not_eq(unexpected, actual)` | Fails if the values are equal |
+| `assert_lt(a, b)` | Fails unless `a < b` |
+| `assert_gt(a, b)` | Fails unless `a > b` |
+| `assert_error(fn)` | Fails if calling `fn()` does not raise an error |
+| `assert_near(expected, actual[, epsilon])` | Fails if the values differ by more than `epsilon` (default `1e-6`) — use for floating-point comparisons |
+| `assert_contains(container, item)` | Fails if a string does not contain the substring, a list does not contain the element, or a map does not contain the string key |
+
+**Setup and teardown hooks:**
+
+A test file may define a `test setup` and a `test teardown` block. The setup block runs **before** all tests, the teardown block **after** all tests — even when a test fails. Hooks are silent (no PASS/FAIL output) and share the environment with the tests, so variables bound in setup are readable in tests.
+
+An error in setup aborts the file (the tests are skipped); an error in teardown fails the file.
+
+```pipe
+test setup
+    db: connect_test_db()
+    counter: 0
+
+test "works with the test db"
+    assert_eq (db_status db) "ready"
+
+test teardown
+    cleanup db
+    print "teardown ran"
+```
+
+Hooks behave identically in the tree-walker and the bytecode VM.
+
 **Sample output:**
 
 ```

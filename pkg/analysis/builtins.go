@@ -536,6 +536,10 @@ var builtinDocs = []BuiltinDoc{
 		Description: "Asserts that a is numerically greater than b.", Category: CatTest},
 	{Name: "assert_error", Signature: "assert_error(fn)", Params: []Param{p("fn", "function")}, ReturnType: "nil",
 		Description: "Asserts that calling fn() returns an error. Pass a zero-argument function.", Category: CatTest},
+	{Name: "assert_near", Signature: "assert_near(expected, actual[, epsilon])", Params: []Param{p("expected", "number"), p("actual", "number"), p("epsilon", "number")}, ReturnType: "nil",
+		Description: "Asserts that expected and actual differ by at most epsilon (default 1e-6). Use for floating-point comparisons.", Category: CatTest},
+	{Name: "assert_contains", Signature: "assert_contains(container, item)", Params: []Param{p("container", "string|list|map"), p("item", "any")}, ReturnType: "nil",
+		Description: "Asserts that a string contains a substring, a list contains an element, or a map contains a string key.", Category: CatTest},
 
 	// ---- Concurrency ----
 	{Name: "go", Signature: "go(fn, args...)", Params: []Param{p("fn", "function"), p("args", "any")}, ReturnType: "nil",

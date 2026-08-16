@@ -3,13 +3,14 @@ package cache
 import (
 	"crypto/sha256"
 	"encoding/binary"
+	"encoding/hex"
 	"fmt"
 	"os"
+	"sort"
 
+	"github.com/MachuraHarry/pipe/pkg/ast"
 	"github.com/MachuraHarry/pipe/pkg/compiler"
-	"github.com/MachuraHarry/pipe/pkg/lexer"
 	"github.com/MachuraHarry/pipe/pkg/object"
-	"github.com/MachuraHarry/pipe/pkg/parser"
 )
 
 const (
@@ -17,45 +18,115 @@ const (
 	version = byte(2)
 )
 
-func hashSource(data []byte) string {
-	h := sha256.Sum256(data)
-	return fmt.Sprintf("%x", h[:16])
-}
-
+// LoadOrCompile returns the bytecode for a source file, reusing a cached
+// copy when the file and every module it imports (transitively) are
+// unchanged. The second return value reports whether the result came from
+// the cache. When compiling, the cache is refreshed so repeated runs of the
+// same file skip compilation entirely.
 func LoadOrCompile(filePath string) (*compiler.Bytecode, bool, error) {
 	data, err := os.ReadFile(filePath)
 	if err != nil {
 		return nil, false, err
 	}
 
-	srcHash := hashSource(data)
-	cachePath := filePath + "c"
-
-	if info, err := os.Stat(cachePath); err == nil && info.Size() > 0 {
-		if bc, err := loadCache(cachePath, data); err == nil && bc != nil {
+	deps, derr := depsHash(filePath, data)
+	if derr == nil {
+		cachePath := filePath + "c"
+		if bc, lerr := loadCache(cachePath, deps); lerr == nil && bc != nil {
 			return bc, true, nil
 		}
+	} else {
+		// The dependency graph could not be computed (e.g. an unresolvable
+		// import). Fall back to compiling directly; the compiler then reports
+		// the real error to the caller.
+		deps = ""
 	}
 
-	l := lexer.New(string(data))
-	p := parser.New(l)
-	program := p.ParseProgram()
-	if len(p.Errors()) > 0 {
-		return nil, false, fmt.Errorf("%s: parse errors: %v", filePath, p.Errors())
+	bc, cerr := compileSource(filePath, data)
+	if cerr != nil {
+		return nil, false, cerr
 	}
-
-	c := compiler.NewWithFile(filePath)
-	if err := c.Compile(program); err != nil {
-		return nil, false, err
+	if deps != "" {
+		_ = writeCache(filePath+"c", deps, bc)
 	}
-
-	bc := c.Bytecode()
-	_ = srcHash
-
 	return bc, false, nil
 }
 
-func loadCache(path string, sourceData []byte) (*compiler.Bytecode, error) {
+func compileSource(filePath string, data []byte) (*compiler.Bytecode, error) {
+	program, err := object.ParseContent(string(data))
+	if err != nil {
+		return nil, fmt.Errorf("%s: %v", filePath, err)
+	}
+	c := compiler.NewWithFile(filePath)
+	if err := c.Compile(program); err != nil {
+		return nil, err
+	}
+	return c.Bytecode(), nil
+}
+
+// depsHash returns a stable hash over the file and every module it imports
+// (transitively). Because the compiler embeds imported modules into the
+// bytecode at compile time, the cache must be invalidated when any dependency
+// changes, not just the top-level file. Imports are resolved the same way the
+// compiler resolves them, using each importing file as the resolution context.
+func depsHash(filePath string, data []byte) (string, error) {
+	visited := map[string]bool{}
+	contents := map[string][]byte{}
+	var walk func(path string) error
+	walk = func(path string) error {
+		if visited[path] {
+			return nil
+		}
+		visited[path] = true
+		content, err := os.ReadFile(path)
+		if err != nil {
+			return err
+		}
+		contents[path] = content
+
+		prog, perr := object.ParseContent(string(content))
+		if perr != nil {
+			// An unparseable dependency still contributes to the hash, but its
+			// own imports cannot be enumerated.
+			return nil
+		}
+		for _, stmt := range prog.Statements {
+			is, ok := stmt.(*ast.ImportStatement)
+			if !ok {
+				continue
+			}
+			resPath, _, rerr := object.ResolveImportFrom(is.Path, path)
+			if rerr != nil {
+				return rerr
+			}
+			if err := walk(resPath); err != nil {
+				return err
+			}
+		}
+		return nil
+	}
+
+	if err := walk(filePath); err != nil {
+		return "", err
+	}
+
+	paths := make([]string, 0, len(contents))
+	for p := range contents {
+		paths = append(paths, p)
+	}
+	sort.Strings(paths)
+
+	h := sha256.New()
+	for _, p := range paths {
+		h.Write([]byte(p))
+		h.Write([]byte{0})
+		h.Write(contents[p])
+		h.Write([]byte{0})
+	}
+	return fmt.Sprintf("%x", h.Sum(nil)[:16]), nil
+}
+
+func loadCache(path, deps string) (*compiler.Bytecode, error) {
 	f, err := os.Open(path)
 	if err != nil {
 		return nil, err
@@ -80,8 +151,8 @@ func loadCache(path string, sourceData []byte) (*compiler.Bytecode, error) {
 	if _, err := f.Read(hashBuf); err != nil {
 		return nil, err
 	}
-	if fmt.Sprintf("%x", hashBuf) != hashSource(sourceData) {
-		return nil, fmt.Errorf("source changed")
+	if fmt.Sprintf("%x", hashBuf) != deps {
+		return nil, fmt.Errorf("dependencies changed")
 	}
 
 	var numConstants uint32
@@ -149,31 +220,24 @@ func loadCache(path string, sourceData []byte) (*compiler.Bytecode, error) {
 	}, nil
 }
 
-func saveCache(path string, srcHash string, bc *compiler.Bytecode) error {
+func writeCache(path, deps string, bc *compiler.Bytecode) error {
 	f, err := os.Create(path)
 	if err != nil {
 		return err
 	}
 	defer f.Close()
-	return writeCacheData(f, srcHash, bc)
+	return writeCacheData(f, deps, bc)
 }
 
-func WriteCache(path string, bc *compiler.Bytecode) error {
-	f, err := os.Create(path)
-	if err != nil {
-		return err
-	}
-	defer f.Close()
-	return writeCacheData(f, "00000000000000000000000000000000", bc)
-}
-
-func writeCacheData(f *os.File, srcHash string, bc *compiler.Bytecode) error {
+func writeCacheData(f *os.File, deps string, bc *compiler.Bytecode) error {
 	f.Write([]byte(magic))
 	f.Write([]byte{version})
 
-	var hashDecoded [16]byte
-	fmt.Sscanf(srcHash, "%x", &hashDecoded)
-	f.Write(hashDecoded[:])
+	hashDecoded, err := hex.DecodeString(deps)
+	if err != nil || len(hashDecoded) != 16 {
+		return fmt.Errorf("invalid dependency hash %q", deps)
+	}
+	f.Write(hashDecoded)
 
 	numConstants := uint32(len(bc.Constants))
 	binary.Write(f, binary.BigEndian, numConstants)

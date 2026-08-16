@@ -729,23 +729,30 @@ func runVM(program *ast.Program, quiet bool, filePath string, scriptArgs []strin
 
 	printWarnings(source, program)
 
-	comp := compiler.NewWithFile(filePath)
-	if err := comp.Compile(program); err != nil {
-		printErrorBlock("Compiler error", source, err)
-		os.Exit(1)
-	}
-
-	bc := comp.Bytecode()
-
-	// Write cache if file path known
+	var bc *compiler.Bytecode
+	fromCache := false
 	if filePath != "" {
-		if err := cache.WriteCache(filePath+"c", bc); err == nil {
-			_ = err
+		var err error
+		bc, fromCache, err = cache.LoadOrCompile(filePath)
+		if err != nil {
+			printErrorBlock("Compiler error", source, err)
+			os.Exit(1)
 		}
+	} else {
+		comp := compiler.NewWithFile("")
+		if err := comp.Compile(program); err != nil {
+			printErrorBlock("Compiler error", source, err)
+			os.Exit(1)
+		}
+		bc = comp.Bytecode()
 	}
 
 	if !quiet {
-		fmt.Fprintln(os.Stderr, "--- Bytecode ---")
+		if fromCache {
+			fmt.Fprintln(os.Stderr, "--- Bytecode (cached) ---")
+		} else {
+			fmt.Fprintln(os.Stderr, "--- Bytecode ---")
+		}
 		fmt.Fprint(os.Stderr, bc.Instructions.String())
 	}
 
@@ -772,41 +779,6 @@ func checkVMTopResult(machine *vm.VM, source string) {
 	if result != nil && result.Type() == object.ERROR {
 		printErrorBlock("Runtime error", source, result.(*object.Error))
 		os.Exit(1)
-	}
-}
-
-func runVMWithCache(filePath string, quiet bool) {
-	bc, fromCache, err := cache.LoadOrCompile(filePath)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "pipe: %s\n", err)
-		os.Exit(1)
-	}
-
-	source := ""
-	if data, rerr := os.ReadFile(filePath); rerr == nil {
-		source = string(data)
-	}
-
-	if fromCache {
-		fmt.Fprintln(os.Stderr, "  [cached]")
-	}
-
-	if !quiet {
-		fmt.Fprintln(os.Stderr, "--- Bytecode ---")
-		fmt.Fprint(os.Stderr, bc.Instructions.String())
-	}
-
-	start := time.Now()
-	machine := vm.New(bc)
-	if err := machine.Run(); err != nil {
-		printErrorBlock("VM error", source, err)
-		os.Exit(1)
-	}
-	checkVMTopResult(machine, source)
-	elapsed := time.Since(start)
-
-	if !quiet {
-		fmt.Fprintf(os.Stderr, "--- VM: %v ---\n", elapsed)
 	}
 }
 

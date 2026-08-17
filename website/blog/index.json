@@ -1,5 +1,13 @@
 [
   {
+    "id": "mqtt-client",
+    "file": "mqtt-client.md",
+    "date": "2026-08-17",
+    "tag": "release",
+    "title": {"en": "📡 MQTT 5.0 in Pure Pipe — a Full Client in ~880 Lines", "de": "📡 MQTT 5.0 in reinem Pipe — ein vollständiger Client in ~880 Zeilen"},
+    "excerpt": {"en": "A complete MQTT 5.0 client as one pure-Pipe module — QoS 0/1/2, TLS, will, retain, keep-alive, and the full property system. No paho, no C library: just three small TCP builtins and ~880 lines of Pipe.", "de": "Ein vollständiger MQTT-5.0-Client als ein reines-Pipe-Modul — QoS 0/1/2, TLS, Will, Retain, Keep-alive und das volle Property-System. Kein paho, keine C-Bibliothek: nur drei kleine TCP-Builtins und ~880 Zeilen Pipe."}
+  },
+  {
     "id": "micropipe-esp32",
     "file": "micropipe-esp32.md",
     "date": "2026-08-16",

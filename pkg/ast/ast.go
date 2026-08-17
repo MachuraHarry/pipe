@@ -56,20 +56,20 @@ func (es *ExpressionStatement) TokenLiteral() string { return es.Expression.Toke
 func (es *ExpressionStatement) String() string       { return es.Expression.String() }
 
 type FnStatement struct {
-	Name          *Identifier
-	Parameters    []*Identifier
-	ParamTypes    []*TypeAnnotation
-	ReturnType    *TypeAnnotation
-	Body          *BlockStatement
+	Name       *Identifier
+	Parameters []*Identifier
+	ParamTypes []*TypeAnnotation
+	ReturnType *TypeAnnotation
+	Body       *BlockStatement
 }
 
 func (fs *FnStatement) statementNode()       {}
 func (fs *FnStatement) TokenLiteral() string { return "fn" }
 
 type VarStatement struct {
-	Name          *Identifier
+	Name           *Identifier
 	TypeAnnotation *TypeAnnotation
-	Value         Expression
+	Value          Expression
 }
 
 func (vs *VarStatement) statementNode()       {}
@@ -138,10 +138,10 @@ type MatchCase struct {
 // BindingPattern wraps a pattern and binds the matched value to a variable.
 // Used in match cases: `| pattern as name -> body` or `| name: pattern -> body`
 type BindingPattern struct {
-	Name   string
+	Name    string
 	Pattern Expression
-	Line   int
-	Col    int
+	Line    int
+	Col     int
 }
 
 func (bp *BindingPattern) expressionNode()      {}
@@ -445,12 +445,12 @@ func (ts *TestStatement) statementNode()       {}
 func (ts *TestStatement) TokenLiteral() string { return "test" }
 
 type FnLiteral struct {
-	Parameters    []*Identifier
-	ParamTypes    []*TypeAnnotation
-	ReturnType    *TypeAnnotation
-	Body          *BlockStatement
-	Line          int
-	Col           int
+	Parameters []*Identifier
+	ParamTypes []*TypeAnnotation
+	ReturnType *TypeAnnotation
+	Body       *BlockStatement
+	Line       int
+	Col        int
 }
 
 func (fl *FnLiteral) expressionNode()      {}
@@ -501,17 +501,17 @@ func (ss *StructStatement) TokenLiteral() string { return "struct" }
 func (ss *StructStatement) Pos() Position        { return Position{Line: ss.Line, Col: ss.Col} }
 
 type SelectCase struct {
-	Channel  Expression // nil for default case
-	Value    Expression // nil for receive-only (<- ch)
-	Variable *Identifier // variable to bind received value (nil for send)
-	Body     *BlockStatement
+	Channel   Expression  // nil for default case
+	Value     Expression  // nil for receive-only (<- ch)
+	Variable  *Identifier // variable to bind received value (nil for send)
+	Body      *BlockStatement
 	IsDefault bool
 }
 
 type SelectExpression struct {
-	Cases    []*SelectCase
-	Line     int
-	Col      int
+	Cases []*SelectCase
+	Line  int
+	Col   int
 }
 
 func (se *SelectExpression) expressionNode()      {}

@@ -348,7 +348,7 @@ func formatExpr(out *strings.Builder, expr ast.Expression, depth int, prec int) 
 		out.WriteByte('\n')
 		formatBlock(out, e.Consequence, depth+1)
 		if e.Alternative != nil {
-			indent := indentStr( depth)
+			indent := indentStr(depth)
 			out.WriteString(indent)
 			out.WriteString("else\n")
 			formatBlock(out, e.Alternative, depth+1)
@@ -396,7 +396,7 @@ func formatExpr(out *strings.Builder, expr ast.Expression, depth int, prec int) 
 		formatExpr(out, e.Value, depth, 0)
 		out.WriteByte('\n')
 		for _, c := range e.Cases {
-			indent := indentStr(depth+1)
+			indent := indentStr(depth + 1)
 			out.WriteString(indent)
 			out.WriteString("| ")
 			if c.Bind != "" {
@@ -441,7 +441,7 @@ func formatExpr(out *strings.Builder, expr ast.Expression, depth int, prec int) 
 	case *ast.SelectExpression:
 		out.WriteString("select\n")
 		for _, c := range e.Cases {
-			indent := indentStr(depth+1)
+			indent := indentStr(depth + 1)
 			out.WriteString(indent)
 			out.WriteString("| ")
 			if c.IsDefault {
@@ -543,7 +543,7 @@ func formatExpr(out *strings.Builder, expr ast.Expression, depth int, prec int) 
 		}
 		formatBlock(out, e.TryBlock, depth+1)
 		if e.CatchBlock != nil {
-			indent := indentStr( depth)
+			indent := indentStr(depth)
 			out.WriteString(indent)
 			out.WriteString("catch")
 			if e.CatchParam != nil {
@@ -579,7 +579,7 @@ func formatPipelineTop(out *strings.Builder, expr ast.Expression, depth int) {
 		formatExpr(out, expr, depth, 0)
 		return
 	}
-	indent := indentStr( depth)
+	indent := indentStr(depth)
 
 	leftmost, stages := pipelineStages(pe)
 	out.WriteString(indent)

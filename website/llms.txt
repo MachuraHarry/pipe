@@ -15,6 +15,7 @@
 - [Issues](https://github.com/MachuraHarry/pipe/issues)
 - [Discussions](https://github.com/MachuraHarry/pipe/discussions)
 - [MCP Registry listing](https://registry.modelcontextprotocol.io/?q=MachuraHarry)
+- [GitHub MCP Registry](https://github.com/mcp/MachuraHarry/pipe)
 - [Module Registry](https://github.com/MachuraHarry/pipe-modules)
 - [Official GitHub Action](https://github.com/MachuraHarry/pipe-action)
 - [Blog](https://pipe-lang.com/blog.html)

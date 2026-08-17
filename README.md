@@ -8,7 +8,7 @@
 [![GitHub MCP Registry](https://img.shields.io/badge/GitHub_MCP_Registry-Onboarding-6e5494.svg)](https://github.com/github/github-mcp-server/discussions/3057)
 [![MCP Registry](https://img.shields.io/badge/MCP_Registry-Listed-4a90d9.svg)](https://registry.modelcontextprotocol.io/?q=MachuraHarry)
 
-> **The first language with built-in MCP — server and client. 229 builtins, single ~8 MB binary. Zero dependencies.**
+> **The first language with built-in MCP — server and client. 232 builtins, single ~8 MB binary. Zero dependencies.**
 > **Officially listed in the [official MCP Registry](https://registry.modelcontextprotocol.io/?q=MachuraHarry)** (v0.9.4.0, active). GitHub MCP Registry [onboarding requested](https://github.com/github/github-mcp-server/discussions/3057) for one-click install in GitHub Copilot & VS Code.
 
 ## Quick Install
@@ -205,7 +205,7 @@ d.d_webhook_embed (env "DISCORD_WEBHOOK") {
 - **Pipeline-native syntax** — `>` sequential, `>>` parallel. Data flows top to bottom — readable, composable, debuggable
 - **Social platforms built in** — Discord webhooks and Telegram bots as Pipe modules. AI code reviews, notifications, chat — zero API costs for sending
 - **Bytecode VM** — Compile to bytecode, run on a stack VM with automatic caching. Measured 0.6×–55× vs tree-walker depending on workload (recursion-heavy code up to ~55×)
-- **Module ecosystem** — 22 curated modules, registry with version pinning (`@1.0.0`). `pipe -get` installs, import by name
+- **Module ecosystem** — 23 curated modules, registry with version pinning (`@1.0.0`). `pipe -get` installs, import by name
 - **Built-in testing** — `test` blocks with `assert_eq`, `assert_error`. Run with `pipe -test`. Zero setup
 - **GitHub Action** — Run Pipe directly in CI/CD. No installation needed
 - **VSCode Extension** — Syntax highlighting, IntelliSense, LSP-powered diagnostics and completions
@@ -270,7 +270,7 @@ Or run the extension in development with F5 from the `vscode/` folder. See [VSCo
 
 ## Module Ecosystem
 
-Pipe has a [curated module library](https://github.com/MachuraHarry/pipe-modules) — **22 reusable modules** with version pinning:
+Pipe has a [curated module library](https://github.com/MachuraHarry/pipe-modules) — **23 reusable modules** with version pinning:
 
 | Infrastructure | Data & CLI | AI & Agents | DevTools | Social |
 |---|---|---|---|---|
@@ -376,7 +376,7 @@ write_file "/etc/config"    -- ❌ E_SANDBOX blocked
 ```
 Source (.pipe) → Lexer → Parser → AST → [ Tree-Walker | Compiler + VM ]
                                             ↓
-                                  Builtins (229 total: 36 AI + 13 MCP + 180 standard)
+                                  Builtins (232 total: 36 AI + 13 MCP + 183 standard)
                                             ↓
                               MCP Server ↔ MCP Clients (stdio + HTTP)
 ```

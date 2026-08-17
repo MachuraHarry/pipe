@@ -56,13 +56,13 @@ jobs:
     - name: Regenerate stats.json
       run: go run ./scripts/stats
 
-    - name: Fail on drift from committed stats.json
+    - name: Fail on drift from committed stats/docs
       run: |
-        if ! git diff --exit-code -- stats.json; then
-          echo "::error::stats.json drifted from the committed snapshot. Run 'make stats' and commit the updated stats.json, then update README/website/docs numbers."
+        if ! git diff --exit-code -- stats.json README.md website/index.html website/docs.html; then
+          echo "::error::stats/docs drifted from the committed snapshot. Run 'make stats' and commit the updated stats.json, README and website files."
           exit 1
         fi
-        echo "stats.json in sync"
+        echo "stats and docs in sync"
 
   byte-identity:
     name: Byte-identity (${{ matrix.os }})

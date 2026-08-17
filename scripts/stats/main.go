@@ -14,6 +14,8 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"regexp"
+	"strconv"
 	"strings"
 
 	"github.com/MachuraHarry/pipe/pkg/object"
@@ -47,6 +49,8 @@ type Stats struct {
 	ASTNodeTypes int           `json:"ast_node_types"`
 	DocsEn      int            `json:"docs_en_chapters"`
 	DocsDe      int            `json:"docs_de_chapters"`
+	Standard    int            `json:"standard"`
+	Modules     int            `json:"modules"`
 }
 
 func main() {
@@ -56,6 +60,7 @@ func main() {
 	}
 
 	stats := &Stats{BuiltinCats: map[string]int{}}
+	oldBuiltins, oldStandard, oldModules := readOldStats(root)
 
 	total := len(object.Builtins)
 	stats.Builtins = total
@@ -76,6 +81,7 @@ func main() {
 			stats.BuiltinCats["stdlib"]++
 		}
 	}
+	stats.Standard = stats.BuiltinCats["stdlib"] + stats.BuiltinCats["sandbox"] + stats.BuiltinCats["file"]
 
 	examples, err := filepath.Glob(filepath.Join(root, "examples", "*.pipe"))
 	if err != nil {
@@ -140,8 +146,11 @@ func main() {
 		}
 	}
 
+	stats.Modules = countModules(oldModules)
+
 	writeJSON(root, stats)
 	report(stats)
+	syncDocs(root, oldBuiltins, oldStandard, stats)
 }
 
 // statsJSONPath is the committed canonical statistics snapshot that CI checks
@@ -179,4 +188,91 @@ func report(s *Stats) {
 func fatal(err error) {
 	fmt.Fprintln(os.Stderr, "stats:", err)
 	os.Exit(1)
+}
+
+// readOldStats loads the previously committed snapshot so syncDocs knows which
+// numbers to replace. Standard is derived from the old categories (stdlib +
+// sandbox + file); modules may be 0 if the snapshot predates that field.
+func readOldStats(root string) (builtins, standard, modules int) {
+	data, err := os.ReadFile(filepath.Join(root, statsJSONPath))
+	if err != nil {
+		return 0, 0, 0
+	}
+	var s Stats
+	if json.Unmarshal(data, &s) != nil {
+		return 0, 0, 0
+	}
+	std := s.BuiltinCats["stdlib"] + s.BuiltinCats["sandbox"] + s.BuiltinCats["file"]
+	return s.Builtins, std, s.Modules
+}
+
+// countModules returns the number of modules in the registry. The registry is
+// the single source of truth for the module count, but it lives in a separate
+// repo, so a fetch failure degrades gracefully to the previously known value.
+func countModules(fallback int) int {
+	reg, err := object.FetchRegistry()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "stats: cannot fetch module registry (%v); keeping %d\n", err, fallback)
+		return fallback
+	}
+	return len(reg.Modules)
+}
+
+// docFiles are the human-facing files whose embedded numbers are synced from
+// the computed stats, so documentation claims can never drift from the code.
+var docFiles = []string{
+	"README.md",
+	"website/index.html",
+	"website/docs.html",
+	"docs/en/21-ecosystem.md",
+	"docs/de/21-ecosystem.md",
+}
+
+func syncDocs(root string, oldBuiltins, oldStandard int, stats *Stats) {
+	newB := strconv.Itoa(stats.Builtins)
+	newS := strconv.Itoa(stats.Standard)
+	newM := strconv.Itoa(stats.Modules)
+	oldB := strconv.Itoa(oldBuiltins)
+	oldS := strconv.Itoa(oldStandard)
+
+	for _, name := range docFiles {
+		path := filepath.Join(root, name)
+		data, err := os.ReadFile(path)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "stats: skip %s: %v\n", name, err)
+			continue
+		}
+		s := string(data)
+
+		// Total builtin count appears as a bare number across prose, meta
+		// tags, JSON-LD, stat counters and "229 Total"/"229 Gesamt". Replace
+		// with a word boundary; the count is ~200+ and never collides with the
+		// other small/fixed numbers in these files.
+		s = regexp.MustCompile(`\b`+oldB+`\b`).ReplaceAllString(s, newB)
+
+		// "standard" library count (stdlib + sandbox + file), matched with
+		// context so unrelated numbers (e.g. `nW=180`) stay untouched.
+		s = strings.ReplaceAll(s, oldS+" Standard", newS+" Standard")
+		s = strings.ReplaceAll(s, oldS+" standard", newS+" standard")
+
+		// Module count appears in several prose phrasings; match any number.
+		s = regexp.MustCompile(`\b\d+ curated modules\b`).ReplaceAllString(s, newM+" curated modules")
+		s = regexp.MustCompile(`\b\d+ reusable modules\b`).ReplaceAllString(s, newM+" reusable modules")
+		s = regexp.MustCompile(`\b\d+ modules\b`).ReplaceAllString(s, newM+" modules")
+		s = regexp.MustCompile(`\b\d+ Module\b`).ReplaceAllString(s, newM+" Module")
+
+		// The "Modules"/"Module" stat counter (stat-num) is matched by its label.
+		s = regexp.MustCompile(`(stat-num">)(\d+)(</span><div class="stat-label"[^>]*>(?:Modules|Module))`).
+			ReplaceAllString(s, `${1}`+newM+`${3}`)
+
+		if s == string(data) {
+			fmt.Printf("sync %s: no change\n", name)
+		} else {
+			if err := os.WriteFile(path, []byte(s), 0644); err != nil {
+				fmt.Fprintf(os.Stderr, "stats: cannot write %s: %v\n", name, err)
+			} else {
+				fmt.Printf("synced %s\n", name)
+			}
+		}
+	}
 }

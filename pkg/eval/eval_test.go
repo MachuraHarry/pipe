@@ -191,6 +191,53 @@ func TestEvalMatchExpression(t *testing.T) {
 	expectValue(t, input2, "one")
 }
 
+func TestMatchBindingPattern(t *testing.T) {
+	// Binding pattern binds the matched value
+	input := `match 42
+    | x: 42 -> x * 2
+    | _ -> 0`
+	expectValue(t, input, "84")
+}
+
+func TestMatchListDestructure(t *testing.T) {
+	// List destructuring extracts elements
+	input := `match [10, 20, 30]
+    | [a, b, c] -> a + b + c
+    | _ -> 0`
+	expectValue(t, input, "60")
+}
+
+func TestMatchListDestructureWildcard(t *testing.T) {
+	// Wildcard elements are skipped
+	input := `match [10, 20, 30]
+    | [a, _, c] -> a + c
+    | _ -> 0`
+	expectValue(t, input, "40")
+}
+
+func TestMatchListDestructureRest(t *testing.T) {
+	// Rest captures remaining elements with postfix `..`
+	input := `match [1, 2, 3, 4, 5]
+    | [first, rest..] -> first + len(rest)
+    | _ -> 0`
+	expectValue(t, input, "5")
+}
+
+func TestMatchMapDestructure(t *testing.T) {
+	// Map destructuring extracts values by key
+	input := `match {name: "Alice", age: 30, city: "NYC"}
+    | {name: n, age: a} -> n
+    | _ -> "unknown"`
+	expectValue(t, input, "Alice")
+}
+
+func TestMatchMapDestructureArithmetic(t *testing.T) {
+	input := `match {x: 5, y: 10}
+    | {x: a, y: b} -> a + b
+    | _ -> 0`
+	expectValue(t, input, "15")
+}
+
 func TestEvalFunctions(t *testing.T) {
 	input := "fn double x\n    x * 2\n\ndouble 21"
 	expectValue(t, input, "42")

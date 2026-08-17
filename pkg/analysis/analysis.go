@@ -39,13 +39,14 @@ func (k SymbolKind) String() string {
 
 // Symbol is a named definition (function, variable, parameter, enum, ...).
 type Symbol struct {
-	Name    string
-	Kind    SymbolKind
-	Pos     ast.Position // start of the name token (1-based line/col)
-	End     ast.Position // end of the name token (inclusive)
-	Doc     string
-	Builtin *BuiltinDoc
-	Usages  []*Reference // resolved references pointing at this symbol
+	Name     string
+	Kind     SymbolKind
+	Pos      ast.Position // start of the name token (1-based line/col)
+	End      ast.Position // end of the name token (inclusive)
+	Doc      string
+	TypeHint string // optional type annotation (e.g. "int", "string")
+	Builtin  *BuiltinDoc
+	Usages   []*Reference // resolved references pointing at this symbol
 }
 
 // Range returns the [start,end] position range of the symbol name.

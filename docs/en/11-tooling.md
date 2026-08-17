@@ -486,6 +486,8 @@ Start the REPL with no arguments:
 pipe
 ```
 
+The REPL features **tab auto-completion** for builtins, keywords, and commands, plus **colored output** for prompts, results, and errors.
+
 ### REPL Commands
 
 | Command | Description |
@@ -494,7 +496,11 @@ pipe
 | `:quit` or `:q` | Exit the REPL |
 | `:vm` | Toggle Bytecode VM mode |
 | `:clear` | Clear the current environment (reset variables) |
-| `:verbose` | Toggle verbose output |
+| `:load <file>` | Load and execute a `.pipe` file |
+| `:history` | Show command history |
+| `:!N` | Repeat command N from history (e.g. `:!3`) |
+
+Press **Tab** to auto-complete builtin names, keywords, and REPL commands.
 
 ### Basic Usage
 

@@ -500,6 +500,67 @@ func (vm *VM) Run() (err error) {
 			}
 			vm.push(inst)
 
+		case compiler.OpSelect:
+			numCases := int(compiler.ReadUint16(ins, frame.ip))
+			frame.ip += 2
+
+			// Collect channels from stack
+			channels := make([]object.Object, numCases)
+			for i := numCases - 1; i >= 0; i-- {
+				channels[i] = vm.pop()
+			}
+
+			// Try to find a ready channel (non-blocking check)
+			// In a real implementation this would use Go's select with goroutines
+			// For now, try each channel's try_recv
+			var result object.Object = object.NILOBJ
+			found := false
+			for _, ch := range channels {
+				if chanObj, ok := ch.(*object.Channel); ok {
+					val := chanObj.TryRecv()
+					if val != nil && val.Type() != object.NIL {
+						result = val
+						found = true
+						break
+					}
+				}
+			}
+
+			if !found {
+				// No channel ready - push nil, VM will skip body
+				vm.push(object.NILOBJ)
+			} else {
+				vm.push(result)
+			}
+
+			// Skip case bodies (they're compiled but we handle them here)
+			// Each case body is compiled with OpCall, we need to skip them
+			// and execute the matched one
+			for i := 0; i < numCases; i++ {
+				// Skip the body instructions
+				for {
+					op := compiler.Opcode(ins[frame.ip])
+					frame.ip++
+					if op == compiler.OpPop {
+						break
+					}
+					// Skip operand bytes
+					switch op {
+					case compiler.OpConstant, compiler.OpGetGlobal, compiler.OpSetGlobal,
+						compiler.OpGetLocal, compiler.OpSetLocal, compiler.OpGetBuiltin,
+						compiler.OpGetFree, compiler.OpClosure, compiler.OpCall,
+						compiler.OpJump, compiler.OpJumpNotTruthy, compiler.OpStruct,
+						compiler.OpList, compiler.OpMap, compiler.OpDot:
+						frame.ip += 2
+					}
+				}
+			}
+
+			if !found {
+				// Push nil for default case behavior
+				vm.push(object.NILOBJ)
+			}
+
 		case compiler.OpDot:
 			idx := compiler.ReadUint16(ins, frame.ip)
 			frame.ip += 2

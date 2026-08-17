@@ -188,12 +188,16 @@ func (c *Compiler) Bytecode() *Bytecode {
 	scope.deferred = nil
 	scope.deferredLines = nil
 
-	return &Bytecode{
+	bc := &Bytecode{
 		Instructions: scope.instructions,
 		Lines:        scope.lines,
 		Constants:    c.constants,
 		SourceFile:   c.sourceFile,
 	}
+
+	// Jump optimization disabled: fragile with try/catch/join patterns.
+	// Re-enable once all compilation patterns are audited.
+	return bc
 }
 
 func (c *Compiler) emit(op Opcode, operands ...int) int {
@@ -456,6 +460,11 @@ func (c *Compiler) Compile(node ast.Node) error {
 			return err
 		}
 
+	case *ast.SelectExpression:
+		if err := c.compileSelect(n); err != nil {
+			return err
+		}
+
 	case *ast.FnStatement:
 		fnSymbol := c.symbolTable.Define(n.Name.Value)
 
@@ -715,8 +724,21 @@ func (c *Compiler) compileStatements(stmts []ast.Statement, popLast bool) error 
 		if err := c.Compile(stmt); err != nil {
 			return err
 		}
+		// Dead code elimination: skip statements after return/break/continue
+		if c.lastInstructionIsTerminator() {
+			break
+		}
 	}
 	return nil
+}
+
+func (c *Compiler) lastInstructionIsTerminator() bool {
+	scope := c.currentScope()
+	if len(scope.instructions) == 0 {
+		return false
+	}
+	last := Opcode(scope.instructions[len(scope.instructions)-1])
+	return last == OpReturn || last == OpReturnValue || last == OpHalt
 }
 
 // compileTestStatement compiles a `test` block so the bytecode VM matches the
@@ -899,6 +921,40 @@ func isWildcardPattern(expr ast.Expression) bool {
 		return ident.Value == "_"
 	}
 	return false
+}
+
+func (c *Compiler) compileSelect(se *ast.SelectExpression) error {
+	if len(se.Cases) == 0 {
+		c.emit(OpNil)
+		return nil
+	}
+
+	// For now, compile select as a simple sequential check:
+	// Try each case in order, emit OpSelect with the compiled channels
+	// The VM will handle the actual Go select under the hood
+	for _, sc := range se.Cases {
+		if sc.IsDefault {
+			continue
+		}
+		if sc.Channel != nil {
+			if err := c.Compile(sc.Channel); err != nil {
+				return err
+			}
+		}
+	}
+
+	// Emit OpSelect with number of cases
+	c.emit(OpSelect, len(se.Cases))
+
+	// Compile each case body
+	for _, sc := range se.Cases {
+		if err := c.Compile(sc.Body); err != nil {
+			return err
+		}
+		c.emit(OpPop) // pop result
+	}
+
+	return nil
 }
 
 func (c *Compiler) compileTryExpression(te *ast.TryExpression) error {

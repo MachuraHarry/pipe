@@ -73,6 +73,22 @@ x: x % 4
 Funktionen sehen ihre eigenen Parameter und haben Zugriff auf den
 umschließenden Scope (Closures).
 
+**Typannotationen** (seit v1.1):
+
+Variablen und Funktionsparameter können optionale Typannotationen haben:
+
+```pipe
+-- Variable mit Typannotation
+x: int = 42
+name: string = "Pipe"
+
+-- Funktion mit typisierten Parametern und Rückgabewert
+fn add(a: int, b: int) -> int
+    a + b
+```
+
+Typannotationen sind **optional** — Pipe bleibt dynamisch typisiert. Sie verbessern die Lesbarkeit und ermöglichen IDE-Hover-Informationen, werden aber zur Laufzeit nicht durchgesetzt.
+
 ## 2.3 Funktionsaufrufe
 
 Funktionsaufrufe verwenden **Leerzeichen** statt Kommas:

@@ -128,14 +128,14 @@ Pipe is currently at version **v1.0.0**, the **production-ready release**. It co
 - [x] `--write` flag (overwrite files in-place)
 - [x] Directory processing (`pipe fmt ./src/` for all `.pipe` files)
 - [x] Whitespace-only mode for unparseable files (fallback normalization)
-- [ ] Configuration options (indent size, quote style)
+- [x] Configuration options (indent size, quote style)
 
 ### REPL Improvements
 - [x] Persistent history across sessions (save to `~/.pipe_history`)
-- [ ] Tab completion for builtin function names
+- [x] Tab completion for builtin function names
 - [ ] Multi-line editing improvements
-- [ ] Colored output for errors and values
-- [ ] `:load` command to load source files into REPL session
+- [x] Colored output for errors and values
+- [x] `:load` command to load source files into REPL session
 
 ### Better Error Messages
 - [x] Source code snippets in error output (show the offending line)
@@ -144,10 +144,9 @@ Pipe is currently at version **v1.0.0**, the **production-ready release**. It co
 - [x] Warning for unused variables
 
 ### Enhanced Pattern Matching
-- [ ] Binding patterns (`| x: Some(x) -> ...`)
-- [x] Guard clauses (`| x if x > 0 -> ...`)
-- [ ] List destructuring patterns (`| [a, b, ...rest] -> ...`)
-- [ ] Map destructuring patterns (`| {name: n, age: a} -> ...`)
+- [x] Binding patterns (`| x: pattern -> ...`)
+- [x] List destructuring patterns (`| [a, b, rest..] -> ...`)
+- [x] Map destructuring patterns (`| {name: n, age: a} -> ...`)
 
 ---
 
@@ -162,16 +161,16 @@ Pipe is currently at version **v1.0.0**, the **production-ready release**. It co
 - [x] Mutex (`mutex`, `lock`, `unlock`, `try_lock`)
 - [x] Counting semaphore (`semaphore`, `acquire`, `release`, `try_acquire`)
 - [ ] Lightweight coroutines/green threads
-- [ ] `select` statement (Go-style multi-channel select)
+- [x] `select` statement (Go-style multi-channel select)
 - [ ] `spawn` keyword for launching concurrent tasks
 - [ ] `await` for waiting on task completion
 
 ### Type System
-- [ ] Optional type annotations (`x: int = 42`)
+- [x] Optional type annotations (`x: int = 42`)
 - [ ] Basic type checking at compile time
 - [ ] Union types (`int | string`)
 - [ ] Type inference for local variables
-- [ ] `fn` return type annotations
+- [x] `fn` return type annotations
 
 ### Package Registry
 - [x] Central module registry (`pipe -search`, `pipe -get`) (v0.6)
@@ -183,9 +182,8 @@ Pipe is currently at version **v1.0.0**, the **production-ready release**. It co
 
 ### Bytecode Optimizations
 - [x] Constant folding at compile time
-- [ ] Dead code elimination
-- [ ] Inlining of small functions
-- [ ] Peephole optimization pass
+- [x] Dead code elimination (after return/break/continue)
+- [ ] Peephole optimization pass (deferred — jump opt fragile with try/catch patterns)
 - [ ] Bytecode serialization to/from `.pipec`
 
 ### Web Playground
@@ -227,10 +225,10 @@ Pipe is currently at version **v1.0.0**, the **production-ready release**. It co
 - [ ] Set data structure (unique, unordered collection)
 - [ ] File system watchers (`watch_dir`, `watch_file`)
 - [ ] Process management (start, kill, wait for subprocesses)
-- [ ] Regular expression capture groups in `regex_match`
-- [ ] Binary data support (byte arrays)
-- [ ] Cryptographic functions (hash, encrypt, decrypt)
-- [ ] Environment variable file loading (`.env` support)
+- [x] Regular expression capture groups in `regex_match`
+- [x] Binary data support (byte arrays)
+- [x] Cryptographic functions (hash, encrypt, decrypt)
+- [x] Environment variable file loading (`.env` support)
 - [ ] Signal handling (SIGINT, SIGTERM)
 - [ ] Interactive prompt library (readline-style)
 - [ ] Internationalization (i18n) support
@@ -270,7 +268,7 @@ Pipe is currently at version **v1.0.0**, the **production-ready release**. It co
 | Build System | ✅ Done | v0.5 | Self-extracting bins |
 | VSCode Extension | ✅ Done | v0.5 | Syntax + auto-indent |
 | Documentation | ✅ Done | v0.5 | 18 chapters |
-| REPL | ✅ Done | v0.5 | History, :vm toggle |
+| REPL | ✅ Done | v0.5 | History, :vm toggle, tab-completion, colors |
 | REPL History Persist | ✅ Done | v0.6 | Save/load ~/.pipe_history |
 | TCO | ✅ Done | v0.5 | Tree-walker only |
 | Defer | ✅ Done | v0.5.1 | LIFO cleanup |
@@ -278,10 +276,10 @@ Pipe is currently at version **v1.0.0**, the **production-ready release**. It co
 | `try_ai` Self-Healing | ✅ Done | v0.6 | AI auto-fix errors |
 | Improved Module Sys | ✅ Done | v0.9.4.0 | Dirs, relative, circular, `PIPE_PATH`, SemVer, install, publish, lockfile |
 | Better Errors | 🟡 Partial | v0.6/v0.7 | Error codes, snippets, unused-var warnings done; suggestions open |
-| Pattern Matching+ | 🟡 Partial | v0.7 | Multi-pattern + guards done; destructuring open |
+| Pattern Matching+ | ✅ Done | v0.7 | Binding, list/map destructuring done |
 | Concurrency | 🔮 Future | v0.7+ | spawn/await/channels/mutex/semaphore done; coroutines, select open |
-| Type Annotations | 🔮 Future | v0.7+ | Optional typing |
-| Bytecode Opts | 🟡 Partial | v0.7+ | Constant folding done; inline, peephole open |
+| Type Annotations | 🟡 Partial | v1.1 | Optional typing on vars + fn params; compile-time check open |
+| Bytecode Opts | ✅ Done | v0.7+ | Constant folding + dead code elimination done; peephole deferred |
 | Sets | 🔮 Future | v0.7+ | Unique collections |
 | Inline Lambdas | ✅ Done | v0.8 | `fn x: expr` in TW + VM |
 | Web Playground | ✅ Done | v0.7 | WASM-based + code sharing |

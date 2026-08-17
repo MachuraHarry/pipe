@@ -22,10 +22,10 @@ Pipe ist aktuell in Version **v1.0.0**, dem **Production-Ready-Release**. Es kon
 | # | Feature | Beschreibung | Status |
 |---|---|---|---|
 | 5 | **Modul-System 2.0** | Verbessertes `import`, zirkuläre Abhängigkeiten, Modul-Pfade, `pipe -install`/`-publish`, `pipe.lock` | ✅ Erledigt |
-| 6 | **Verbessertes `pipe fmt`** | Konsistentere Formatierung, Konfigurations-Optionen | 🟡 Teilweise (`--check`, Verzeichnisse, Whitespace-Fallback erledigt; Optionen offen) |
-| 7 | **REPL-History-Upgrade** | Pfeiltasten-Navigation, inkrementelle Suche | 🟡 Persistenz erledigt; Tab-Completion/Farben/`:load` offen |
+| 6 | **Verbessertes `pipe fmt`** | Konsistentere Formatierung, Konfigurations-Optionen | ✅ Erledigt (`--check`, Verzeichnisse, Whitespace-Fallback, `--indent-size`, `--quote-style`) |
+| 7 | **REPL-History-Upgrade** | Pfeiltasten-Navigation, inkrementelle Suche | ✅ Erledigt (Persistenz, `:load`, Tab-Completion, Farben) |
 | 8 | **Verbesserte Fehlermeldungen** | `Datei:Zeile:Spalte` in allen Laufzeitfehlern, farbige Ausgabe | 🟡 Fehlercodes + Source-Snippets + Unused-Var-Warnings erledigt; Vorschläge offen |
-| 9 | **Erweiterte Pattern-Matching** | Bereichs-Muster (`1..10`), Guard-Klauseln | 🟡 Multi-Pattern + Guards erledigt; Binding/Destructuring offen |
+| 9 | **Erweiterte Pattern-Matching** | Binding-Patterns (`| x: pattern -> ...`), List-Destrukturierung (`| [a, b, rest..] -> ...`), Map-Destrukturierung (`| {name: n, age: a} -> ...`) | ✅ Erledigt |
 
 ---
 
@@ -54,10 +54,10 @@ Pipe ist aktuell in Version **v1.0.0**, dem **Production-Ready-Release**. Es kon
 
 | # | Feature | Beschreibung |
 |---|---|---|
-| 10 | **Concurrency** | `>>` Parallel-Pipeline, `go`/`spawn`/`await`, Channels, Mutex und Semaphor (TW + VM, v0.9.x); `select`/Coroutines noch offen |
-| 11 | **Optionale Typannotationen** | `fn add(a: num, b: num) -> a + b` |
+| 10 | **Concurrency** | `>>` Parallel-Pipeline, `go`/`spawn`/`await`, Channels, Mutex und Semaphor (TW + VM, v0.9.x); `select` erledigt; Coroutines offen |
+| 11 | **Optionale Typannotationen** | `fn add(a: num, b: num) -> a + b` | 🟡 Variablen + Fn-Params erledigt; Compile-time Check offen |
 | 12 | **Package-Registry 2.0** | `pipe -install`, `pipe -publish`, `pipe.json`-Manifest, `pipe.lock`-Reproduzierbarkeit | ✅ Erledigt |
-| 13 | **Bytecode-Optimierungen** | Constant Folding (Compiler-Zeit) erledigt; Inline-Caching, Peephole offen |
+| 13 | **Bytecode-Optimierungen** | Constant Folding + Dead Code Elimination erledigt; Peephole verschoben (fragil mit try/catch) |
 | 14 | **Web-Playground** | "Try Pipe in your Browser" via WASM | ✅ Erledigt |
 | 15 | **VSCode-Plugin 2.0** | Auto-Vervollständigung, Go-to-Definition, Debugger-Integration |
 | 16 | **LSP-Server** | Language Server Protocol für Editor-Unterstützung | ✅ Erledigt |

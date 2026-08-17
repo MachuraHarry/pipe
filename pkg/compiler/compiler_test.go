@@ -530,3 +530,19 @@ func TestTestStatementCompilation(t *testing.T) {
 		t.Errorf("expected 2 OpTestAbortIfError probes for a three-statement body, got %d", n)
 	}
 }
+
+func TestDeadCodeElimination(t *testing.T) {
+	// Code after return should be eliminated
+	input := "fn f\n    return 1\n    print \"dead\"\n    42"
+	bc := parseAndCompile(t, input)
+	if countOps(t, bc, OpCall) > 1 {
+		t.Error("dead code after return should be eliminated")
+	}
+
+	// Code after return value should be eliminated
+	input2 := "fn f\n    return 1 + 2\n    x: 42\n    x + 1"
+	bc2 := parseAndCompile(t, input2)
+	if countOps(t, bc2, OpSetGlobal) > 0 {
+		t.Error("dead code after return value should be eliminated")
+	}
+}

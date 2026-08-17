@@ -50,3 +50,4 @@ website/blog/*.html
 website/feed.xml
 website/sitemap.xml
 docs/tests/sandbox-audit/out/
+pipe

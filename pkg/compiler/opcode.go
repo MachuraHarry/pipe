@@ -50,6 +50,7 @@ const (
 	OpStruct
 	OpTestAbortIfError
 	OpTestResult
+	OpSelect
 )
 
 var opcodeNames = map[Opcode]string{
@@ -98,6 +99,7 @@ var opcodeNames = map[Opcode]string{
 	OpStruct:           "OpStruct",
 	OpTestAbortIfError: "OpTestAbortIfError",
 	OpTestResult:       "OpTestResult",
+	OpSelect:           "OpSelect",
 }
 
 func (o Opcode) String() string {

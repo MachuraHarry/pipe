@@ -85,6 +85,7 @@ func New(l *lexer.Lexer) *Parser {
 		lexer.LBRACE:   p.parseMapLiteral,
 		lexer.IF:       p.parseIfExpression,
 		lexer.MATCH_KW: p.parseMatchExpression,
+		lexer.SELECT:   p.parseSelectExpression,
 		lexer.WHILE:    p.parseWhileExpression,
 		lexer.FOR:      p.parseForExpression,
 		lexer.FN:       p.parseFnLiteral,
@@ -231,7 +232,7 @@ func (p *Parser) noPrefixParseFnError(t lexer.TokenType) {
 	case lexer.INT, lexer.FLOAT, lexer.STRING, lexer.IDENT,
 		lexer.TRUE, lexer.FALSE, lexer.NIL, lexer.LPAREN,
 		lexer.LBRACKET, lexer.LBRACE, lexer.IF, lexer.FN,
-		lexer.MATCH_KW, lexer.WHILE, lexer.FOR, lexer.MINUS, lexer.BANG:
+		lexer.MATCH_KW, lexer.SELECT, lexer.WHILE, lexer.FOR, lexer.MINUS, lexer.BANG:
 		hint = fmt.Sprintf("unexpected '%s' here — check your expression order", lexer.TokenName(t))
 	default:
 		hint = fmt.Sprintf("unexpected token '%s'", p.curToken.Literal)
@@ -397,8 +398,19 @@ func (p *Parser) parseVarStatement() *ast.VarStatement {
 	stmt := &ast.VarStatement{}
 	stmt.Name = &ast.Identifier{Value: p.curToken.Literal, Line: p.curToken.Line, Col: p.curToken.Col}
 
-	p.nextToken()
-	p.nextToken()
+	p.nextToken() // skip name
+	p.nextToken() // skip ':'
+
+	// Type annotation: name: type = value
+	if p.curTokenIs(lexer.IDENT) && p.peekTokenIs(lexer.ASSIGN) {
+		stmt.TypeAnnotation = &ast.TypeAnnotation{
+			Name: p.curToken.Literal,
+			Line: p.curToken.Line,
+			Col:  p.curToken.Col,
+		}
+		p.nextToken() // skip type name
+		p.nextToken() // skip '='
+	}
 
 	stmt.Value = p.parseExpression(PrecedenceLowest)
 
@@ -425,27 +437,56 @@ func (p *Parser) parseFnStatement() ast.Statement {
 	}
 
 	// Inline lambda: fn param...: expression
-	if p.curTokenIs(lexer.COLON) {
-		p.nextToken() // skip colon
-		expr := p.parseExpression(PrecedenceLowest)
-		if expr == nil {
-			return nil
-		}
-		return &ast.ExpressionStatement{
-			Expression: &ast.FnLiteral{
-				Parameters: idents,
-				Body: &ast.BlockStatement{
-					Statements: []ast.Statement{
-						&ast.ExpressionStatement{Expression: expr},
+	if p.curTokenIs(lexer.COLON) && len(idents) > 0 {
+		// Check if this is typed params: fn name(param: type, ...) -> type
+		// vs inline lambda: fn x: expr or fn a b: expr
+		// If we have exactly 1 ident and peek is LPAREN, it's typed params
+		if len(idents) == 1 && p.peekTokenIs(lexer.LPAREN) {
+			// fall through to named function with typed params
+		} else {
+			p.nextToken() // skip colon
+			expr := p.parseExpression(PrecedenceLowest)
+			if expr == nil {
+				return nil
+			}
+			return &ast.ExpressionStatement{
+				Expression: &ast.FnLiteral{
+					Parameters: idents,
+					Body: &ast.BlockStatement{
+						Statements: []ast.Statement{
+							&ast.ExpressionStatement{Expression: expr},
+						},
 					},
+					Line: firstLine,
+					Col:  firstCol,
 				},
-				Line: firstLine,
-				Col:  firstCol,
-			},
+			}
 		}
 	}
 
-	// Named function: first ident is name, rest are params
+	// Named function with typed params: fn name(param: type, ...) -> type
+	if len(idents) > 0 && p.curTokenIs(lexer.LPAREN) {
+		name := idents[0]
+		params, paramTypes := p.parseTypedParams()
+		var retType *ast.TypeAnnotation
+		if p.curTokenIs(lexer.FAT_ARROW) {
+			p.nextToken() // skip ->
+			if p.curTokenIs(lexer.IDENT) {
+				retType = &ast.TypeAnnotation{Name: p.curToken.Literal, Line: p.curToken.Line, Col: p.curToken.Col}
+				p.nextToken()
+			}
+		}
+		stmt := &ast.FnStatement{
+			Name:       name,
+			Parameters: params,
+			ParamTypes: paramTypes,
+			ReturnType: retType,
+		}
+		stmt.Body = p.parseBlock()
+		return stmt
+	}
+
+	// Named function: first ident is name, rest are params (existing syntax)
 	if len(idents) == 0 {
 		p.error("expected function name after 'fn'")
 		return nil
@@ -456,6 +497,42 @@ func (p *Parser) parseFnStatement() ast.Statement {
 	}
 	stmt.Body = p.parseBlock()
 	return stmt
+}
+
+func (p *Parser) parseTypedParams() ([]*ast.Identifier, []*ast.TypeAnnotation) {
+	p.nextToken() // skip '('
+	var params []*ast.Identifier
+	var types []*ast.TypeAnnotation
+
+	for !p.curTokenIs(lexer.RPAREN) && !p.curTokenIs(lexer.EOF) {
+		if !p.curTokenIs(lexer.IDENT) {
+			p.error("expected parameter name")
+			break
+		}
+		param := &ast.Identifier{Value: p.curToken.Literal, Line: p.curToken.Line, Col: p.curToken.Col}
+		params = append(params, param)
+		p.nextToken()
+
+		// Optional type annotation: param: type
+		var typ *ast.TypeAnnotation
+		if p.curTokenIs(lexer.COLON) {
+			p.nextToken() // skip ':'
+			if p.curTokenIs(lexer.IDENT) {
+				typ = &ast.TypeAnnotation{Name: p.curToken.Literal, Line: p.curToken.Line, Col: p.curToken.Col}
+				p.nextToken()
+			}
+		}
+		types = append(types, typ)
+
+		if p.curTokenIs(lexer.COMMA) {
+			p.nextToken() // skip ','
+		}
+	}
+
+	if p.curTokenIs(lexer.RPAREN) {
+		p.nextToken() // skip ')'
+	}
+	return params, types
 }
 
 func (p *Parser) parseParameters() []*ast.Identifier {
@@ -705,6 +782,66 @@ func (p *Parser) parseMatchExpression() ast.Expression {
 	for p.curTokenIs(lexer.PIPE) {
 		p.nextToken() // skip |
 
+		// Check for binding pattern: | name: pattern -> body
+		var bindName string
+		if p.curTokenIs(lexer.IDENT) && p.peekTokenIs(lexer.COLON) {
+			bindName = p.curToken.Literal
+			p.nextToken() // skip binding name
+			p.nextToken() // skip ':'
+		}
+
+		// Check for list destructuring: | [a, b, ...rest] -> body
+		if p.curTokenIs(lexer.LBRACKET) {
+			pattern := p.parseListDestructurePattern()
+			var guard ast.Expression
+			if p.peekTokenIs(lexer.IF) {
+				p.nextToken()
+				p.nextToken()
+				guard = p.parseExpression(PrecedenceLowest)
+			}
+			if !p.expectPeek(lexer.FAT_ARROW) {
+				return nil
+			}
+			p.nextToken()
+			body := p.parseExpression(PrecedenceLowest)
+			expr.Cases = append(expr.Cases, ast.MatchCase{Pattern: pattern, Body: body, Guard: guard, Bind: bindName})
+			for p.peekTokenIs(lexer.NEWLINE) {
+				p.nextToken()
+			}
+			if p.peekTokenIs(lexer.DEDENT) {
+				p.nextToken()
+				break
+			}
+			p.nextToken()
+			continue
+		}
+
+		// Check for map destructuring: | {name: n, age: a} -> body
+		if p.curTokenIs(lexer.LBRACE) {
+			pattern := p.parseMapDestructurePattern()
+			var guard ast.Expression
+			if p.peekTokenIs(lexer.IF) {
+				p.nextToken()
+				p.nextToken()
+				guard = p.parseExpression(PrecedenceLowest)
+			}
+			if !p.expectPeek(lexer.FAT_ARROW) {
+				return nil
+			}
+			p.nextToken()
+			body := p.parseExpression(PrecedenceLowest)
+			expr.Cases = append(expr.Cases, ast.MatchCase{Pattern: pattern, Body: body, Guard: guard, Bind: bindName})
+			for p.peekTokenIs(lexer.NEWLINE) {
+				p.nextToken()
+			}
+			if p.peekTokenIs(lexer.DEDENT) {
+				p.nextToken()
+				break
+			}
+			p.nextToken()
+			continue
+		}
+
 		// Multi-pattern: | 1 | 2 | 3 -> body (each pattern shares the body)
 		patterns := []ast.Expression{p.parseExpression(PrecedenceLowest)}
 		for p.peekTokenIs(lexer.PIPE) {
@@ -728,8 +865,156 @@ func (p *Parser) parseMatchExpression() ast.Expression {
 		body := p.parseExpression(PrecedenceLowest)
 
 		for _, pattern := range patterns {
-			expr.Cases = append(expr.Cases, ast.MatchCase{Pattern: pattern, Body: body, Guard: guard})
+			expr.Cases = append(expr.Cases, ast.MatchCase{Pattern: pattern, Body: body, Guard: guard, Bind: bindName})
 		}
+
+		for p.peekTokenIs(lexer.NEWLINE) {
+			p.nextToken()
+		}
+		if p.peekTokenIs(lexer.DEDENT) {
+			p.nextToken()
+			break
+		}
+		p.nextToken()
+	}
+
+	return expr
+}
+
+func (p *Parser) parseListDestructurePattern() *ast.ListDestructurePattern {
+	ld := &ast.ListDestructurePattern{Line: p.curToken.Line, Col: p.curToken.Col}
+	p.nextToken() // skip '['
+
+	for !p.curTokenIs(lexer.RBRACKET) && !p.curTokenIs(lexer.EOF) {
+		if !p.curTokenIs(lexer.IDENT) {
+			p.error("expected identifier in list destructuring pattern")
+			break
+		}
+		name := p.curToken.Literal
+		p.nextToken() // skip identifier
+
+		// Check for rest: name.. (postfix dotdot)
+		if p.curTokenIs(lexer.DOTDOT) {
+			ld.Rest = name
+			p.nextToken() // skip ..
+			if p.curTokenIs(lexer.COMMA) {
+				p.nextToken() // skip trailing comma
+			}
+			break
+		}
+
+		ld.Elements = append(ld.Elements, &ast.Identifier{Value: name, Line: p.curToken.Line, Col: p.curToken.Col})
+
+		if p.curTokenIs(lexer.COMMA) {
+			p.nextToken() // skip ','
+		}
+	}
+
+	if p.curTokenIs(lexer.RBRACKET) {
+		// Don't consume ']' — caller will advance
+	}
+	return ld
+}
+
+func (p *Parser) parseMapDestructurePattern() *ast.MapDestructurePattern {
+	md := &ast.MapDestructurePattern{Line: p.curToken.Line, Col: p.curToken.Col}
+	p.nextToken() // skip '{'
+
+	for !p.curTokenIs(lexer.RBRACE) && !p.curTokenIs(lexer.EOF) {
+		if !p.curTokenIs(lexer.IDENT) {
+			p.error("expected key name in map destructuring pattern")
+			break
+		}
+		key := &ast.Identifier{Value: p.curToken.Literal, Line: p.curToken.Line, Col: p.curToken.Col}
+		p.nextToken() // skip key
+
+		if !p.curTokenIs(lexer.COLON) {
+			p.error("expected ':' after key in map destructuring pattern")
+			break
+		}
+		p.nextToken() // skip ':'
+
+		if !p.curTokenIs(lexer.IDENT) {
+			p.error("expected variable name after ':' in map destructuring pattern")
+			break
+		}
+		val := &ast.Identifier{Value: p.curToken.Literal, Line: p.curToken.Line, Col: p.curToken.Col}
+		md.Keys = append(md.Keys, key)
+		md.Values = append(md.Values, val)
+		p.nextToken() // skip value name
+
+		if p.curTokenIs(lexer.COMMA) {
+			p.nextToken() // skip ','
+		}
+	}
+
+	if p.curTokenIs(lexer.RBRACE) {
+		// Don't consume '}' — caller will advance
+	}
+	return md
+}
+
+func (p *Parser) parseSelectExpression() ast.Expression {
+	expr := &ast.SelectExpression{Line: p.curToken.Line, Col: p.curToken.Col}
+	p.nextToken() // skip 'select'
+
+	// After 'select', curToken is at NEWLINE
+	if p.curTokenIs(lexer.NEWLINE) {
+		p.nextToken() // skip NEWLINE
+	}
+
+	if !p.curTokenIs(lexer.INDENT) {
+		p.error("expected indented block after 'select'")
+		return nil
+	}
+	p.nextToken() // skip INDENT
+
+	for p.curTokenIs(lexer.PIPE) {
+		p.nextToken() // skip |
+
+		sc := &ast.SelectCase{}
+
+		if p.curTokenIs(lexer.IDENT) && p.curToken.Literal == "default" {
+			sc.IsDefault = true
+		} else {
+			// Parse channel case: [var <-] channel -> body
+			// Check for variable binding: var <- channel
+			if p.peekTokenIs(lexer.PIPE) || p.peekTokenIs(lexer.NEWLINE) || p.peekTokenIs(lexer.DEDENT) {
+				// This is tricky - we need to distinguish between:
+				// | channel -> body  (receive only)
+				// | var <- channel -> body  (receive with binding)
+				// | channel <- value -> body  (send)
+				// Let's parse the first expression, then check for <-
+			}
+			leftExpr := p.parseExpression(PrecedenceLowest)
+			if leftExpr == nil {
+				return nil
+			}
+
+			// Check for <- (receive or send)
+			if p.peekTokenIs(lexer.ASSIGN) {
+				// Could be: channel <- value (send) or var <- channel (receive with binding)
+				// Actually <-  isn't a token in Pipe. We use arrow syntax.
+				// Let's use: recv var from channel, or channel <- value
+				// For now: treat as channel expression
+				sc.Channel = leftExpr
+			} else {
+				sc.Channel = leftExpr
+			}
+		}
+
+		if !p.expectPeek(lexer.FAT_ARROW) { // ->
+			return nil
+		}
+		p.nextToken() // skip ->
+
+		sc.Body = &ast.BlockStatement{
+			Statements: []ast.Statement{
+				&ast.ExpressionStatement{Expression: p.parseExpression(PrecedenceLowest)},
+			},
+		}
+
+		expr.Cases = append(expr.Cases, sc)
 
 		for p.peekTokenIs(lexer.NEWLINE) {
 			p.nextToken()
@@ -879,7 +1164,7 @@ func (p *Parser) isPipelineContext() bool {
 		default:
 			return false
 		}
-	case lexer.IF, lexer.WHILE, lexer.FOR, lexer.FN, lexer.MATCH_KW, lexer.TRY, lexer.TRYAI:
+	case lexer.IF, lexer.WHILE, lexer.FOR, lexer.FN, lexer.MATCH_KW, lexer.SELECT, lexer.TRY, lexer.TRYAI:
 		return true
 	default:
 		return false

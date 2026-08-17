@@ -67,6 +67,27 @@ x: x % 4
 
 These expand to `x: x + 5`, `x: x - 3`, etc. The variable must already be defined.
 
+## Type Annotations
+
+Variables and function parameters can have optional type annotations:
+
+```pipe
+-- Variable with type annotation
+x: int = 42
+name: string = "Pipe"
+active: bool = true
+
+-- Function with typed parameters and return type
+fn add(a: int, b: int) -> int
+    a + b
+
+-- Untyped (existing syntax still works)
+fn multiply a b
+    a * b
+```
+
+Type annotations are **optional** — Pipe remains dynamically typed. Annotations improve readability and enable IDE hover information, but are not enforced at runtime.
+
 ## Function Calls
 
 Pipe uses **space-based application** — arguments follow the function name, separated by spaces:

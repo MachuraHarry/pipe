@@ -312,3 +312,42 @@ func execShell() (string, string) {
 	}
 	return "sh", "-c"
 }
+
+func bDotenv(args ...Object) Object {
+	if len(args) < 1 || len(args) > 2 {
+		return err("dotenv expects 1-2 arguments (file [, prefix])")
+	}
+	file, ok := args[0].(*String)
+	if !ok {
+		return err("dotenv: file must be a string")
+	}
+	prefix := ""
+	if len(args) == 2 {
+		if p, ok := args[1].(*String); ok {
+			prefix = p.Value
+		}
+	}
+	data, e := os.ReadFile(file.Value)
+	if e != nil {
+		return err("dotenv: " + e.Error())
+	}
+	count := 0
+	for _, line := range strings.Split(string(data), "\n") {
+		line = strings.TrimSpace(line)
+		if line == "" || strings.HasPrefix(line, "#") {
+			continue
+		}
+		eq := strings.Index(line, "=")
+		if eq < 1 {
+			continue
+		}
+		key := strings.TrimSpace(line[:eq])
+		val := strings.TrimSpace(line[eq+1:])
+		if prefix != "" {
+			key = prefix + key
+		}
+		os.Setenv(key, val)
+		count++
+	}
+	return &Integer{Value: int64(count)}
+}

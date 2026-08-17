@@ -159,6 +159,44 @@ fn describe n
     | _ -> "medium"
 ```
 
+### Binding patterns
+
+A binding pattern binds the matched value to a named variable:
+
+```pipe
+match 42
+    | x: 42 -> x * 2   -- x is bound to 42, result is 84
+    | _ -> 0
+```
+
+### List destructuring
+
+Destructure a list into named variables by position:
+
+```pipe
+match [10, 20, 30]
+    | [a, b, c] -> a + b + c   -- 60
+    | _ -> 0
+```
+
+Use `_` to skip elements and `name..` to capture the rest:
+
+```pipe
+match [1, 2, 3, 4, 5]
+    | [first, _, third, rest..] -> first + third + len(rest)  -- 1 + 3 + 2 = 6
+    | _ -> 0
+```
+
+### Map destructuring
+
+Destructure a map by binding values to variable names:
+
+```pipe
+match {name: "Alice", age: 30}
+    | {name: n, age: a} -> n ++ " is " ++ to_str(a)
+    | _ -> "unknown"
+```
+
 ## while Loop
 
 The `while` loop repeatedly executes its body as long as the condition remains truthy.

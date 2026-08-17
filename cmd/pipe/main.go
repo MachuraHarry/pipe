@@ -1,11 +1,11 @@
 package main
 
 import (
-	"bufio"
 	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -26,6 +26,7 @@ import (
 	"github.com/MachuraHarry/pipe/pkg/parser"
 	"github.com/MachuraHarry/pipe/pkg/util"
 	"github.com/MachuraHarry/pipe/pkg/vm"
+	"github.com/peterh/liner"
 )
 
 var version = "v1.0.0"
@@ -68,6 +69,8 @@ func main() {
 		buildOut       string
 		useUPX         bool
 		embedFiles     []string
+		indentSize     int
+		quoteStyle     string
 		filePath       string
 		scriptArgs     []string
 	)
@@ -135,6 +138,10 @@ func main() {
 			timeoutSec = -1 // marker to read next arg
 		case "--embed-file":
 			embedFiles = append(embedFiles, "-") // marker to read next arg
+		case "--indent-size":
+			indentSize = -1 // marker to read next arg
+		case "--quote-style":
+			quoteStyle = "-" // marker to read next arg
 		default:
 			if aiProvider == "-" {
 				aiProvider = arg
@@ -160,6 +167,20 @@ func main() {
 			if len(embedFiles) > 0 && embedFiles[len(embedFiles)-1] == "-" {
 				embedFiles[len(embedFiles)-1] = arg
 				continue
+			}
+			if indentSize == -1 {
+				if n, err := strconv.Atoi(arg); err == nil && n >= 1 && n <= 8 {
+					indentSize = n
+					continue
+				}
+				indentSize = 0 // reset
+			}
+			if quoteStyle == "-" {
+				if arg == "single" || arg == "double" {
+					quoteStyle = arg
+					continue
+				}
+				quoteStyle = "" // reset
 			}
 			if doBuild && !strings.HasPrefix(arg, "-") {
 				if filePath == "" {
@@ -434,6 +455,14 @@ func main() {
 			fmt.Fprintln(os.Stderr, "pipe fmt: requires a .pipe file or directory")
 			os.Exit(1)
 		}
+		cfg := formatter.Config{IndentSize: 4, QuoteStyle: "double"}
+		if indentSize >= 1 {
+			cfg.IndentSize = indentSize
+		}
+		if quoteStyle != "" {
+			cfg.QuoteStyle = quoteStyle
+		}
+		formatter.SetDefaultConfig(cfg)
 		changed, err := formatPath(filePath, fmtCheck)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "pipe fmt: %s\n", err)
@@ -621,6 +650,8 @@ Flags:
   -ast          Only print AST, don't execute
   -fmt          Format file or directory (indentation, whitespace)
   --check       Check formatting without writing (requires -fmt)
+  --indent-size N    Set indent size for -fmt (default: 4)
+  --quote-style single|double  Set quote style for -fmt (default: double)
   -test         Run all test files in current directory
   -bench        Run benchmarks (tree-walker vs VM)
   -gen          Generate a random valid program
@@ -927,35 +958,117 @@ func runBenchmark() {
 
 // ---- REPL ----
 
+const (
+	colorReset  = "\033[0m"
+	colorBold   = "\033[1m"
+	colorDim    = "\033[2m"
+	colorRed    = "\033[31m"
+	colorGreen  = "\033[32m"
+	colorYellow = "\033[33m"
+	colorCyan   = "\033[36m"
+)
+
+var replCompletions []string
+
+func buildReplCompletions() {
+	seen := make(map[string]bool)
+	for _, b := range object.Builtins {
+		if !seen[b.Name] {
+			replCompletions = append(replCompletions, b.Name)
+			seen[b.Name] = true
+		}
+	}
+	keywords := []string{"fn", "let", "if", "else", "while", "for", "in", "return", "import",
+		"export", "match", "try", "catch", "defer", "break", "continue", "enum", "test",
+		"not", "and", "or", "true", "false", "nil", "spawn", "await", "go"}
+	for _, kw := range keywords {
+		if !seen[kw] {
+			replCompletions = append(replCompletions, kw)
+			seen[kw] = true
+		}
+	}
+	commands := []string{":quit", ":q", ":help", ":h", ":clear", ":c", ":vm", ":history", ":load"}
+	for _, c := range commands {
+		if !seen[c] {
+			replCompletions = append(replCompletions, c)
+			seen[c] = true
+		}
+	}
+	sort.Strings(replCompletions)
+}
+
+func replComplete(input string) []string {
+	if len(replCompletions) == 0 {
+		buildReplCompletions()
+	}
+	lower := strings.ToLower(input)
+	var matches []string
+	for _, c := range replCompletions {
+		if strings.HasPrefix(c, lower) || strings.HasPrefix(strings.ToLower(c), lower) {
+			matches = append(matches, c)
+		}
+	}
+	return matches
+}
+
+func colorizeError(msg string) string {
+	return colorRed + colorBold + msg + colorReset
+}
+
+func colorizeResult(val string) string {
+	return colorGreen + val + colorReset
+}
+
+func colorizePrompt(multiline bool) string {
+	if multiline {
+		return colorDim + "...   " + colorReset
+	}
+	return colorCyan + colorBold + ">>> " + colorReset
+}
+
+func colorizeEcho(line string) string {
+	return colorDim + line + colorReset
+}
+
 func startREPL(useVM bool) {
 	fmt.Printf("Pipe %s — REPL\n", version)
 	fmt.Println("Enter Pipe code. :quit or Ctrl+D to exit.")
-	fmt.Println("Blank line to complete multi-line blocks.")
-	fmt.Println(":history — last commands | :!N — repeat command N")
+	fmt.Println("Tab for auto-completion. Blank line to complete blocks.")
 	fmt.Println()
 
-	scanner := bufio.NewScanner(os.Stdin)
-	env := object.NewEnvironment()
-	history := loadHistory()
+	line := liner.NewLiner()
+	defer line.Close()
+	line.SetCtrlCAborts(true)
 
+	history := loadHistory()
+	for _, h := range history {
+		line.AppendHistory(h)
+	}
+
+	env := object.NewEnvironment()
 	var lines []string
 	needBlank := false
 
-	for {
-		if len(lines) > 0 {
-			fmt.Print("...   ")
-		} else {
-			fmt.Print(">>> ")
-		}
+	line.SetCompleter(func(input string) []string {
+		return replComplete(input)
+	})
 
-		if !scanner.Scan() {
+	for {
+		prompt := colorizePrompt(len(lines) > 0)
+		input, err := line.Prompt(prompt)
+		if err != nil {
+			if err == liner.ErrPromptAborted {
+				fmt.Println()
+				saveHistory(history)
+				return
+			}
 			fmt.Println()
 			saveHistory(history)
 			return
 		}
 
-		line := scanner.Text()
-		trimmed := strings.TrimSpace(line)
+		line.AppendHistory(input)
+		trimmed := strings.TrimSpace(input)
 
 		if len(lines) == 0 {
 			switch trimmed {
@@ -963,12 +1076,14 @@ func startREPL(useVM bool) {
 				saveHistory(history)
 				return
 			case ":help", ":h":
-				fmt.Println("  :quit, :q   — Exit")
-				fmt.Println("  :help, :h   — Help")
-				fmt.Println("  :clear, :c  — Reset input")
+				fmt.Println("  :quit, :q    — Exit")
+				fmt.Println("  :help, :h    — Help")
+				fmt.Println("  :clear, :c   — Reset input")
+				fmt.Println("  :load <file> — Load and execute a .pipe file")
 				fmt.Println("  :vm          — Toggle VM mode")
 				fmt.Println("  :history     — Show last commands")
 				fmt.Println("  :!N          — Repeat command N (e.g. :!3)")
+				fmt.Println("  Tab          — Auto-complete")
 				fmt.Println("  Ctrl+D       — Exit")
 				continue
 			case ":clear", ":c":
@@ -978,29 +1093,50 @@ func startREPL(useVM bool) {
 			case ":vm":
 				useVM = !useVM
 				if useVM {
-					fmt.Println("  VM mode: on")
+					fmt.Println(colorizeResult("  VM mode: on"))
 				} else {
-					fmt.Println("  VM mode: off")
+					fmt.Println(colorizeResult("  VM mode: off"))
 				}
 				continue
 			case ":history":
 				if len(history) == 0 {
-					fmt.Println("  (no history)")
+					fmt.Println(colorDim + "  (no history)" + colorReset)
 				} else {
 					for i, cmd := range history {
-						fmt.Printf("  %d: %s\n", i+1, cmd)
+						fmt.Printf("  %s%d%s: %s\n", colorYellow, i+1, colorReset, cmd)
 					}
 				}
+				continue
+			}
+			if strings.HasPrefix(trimmed, ":load ") || trimmed == ":load" {
+				if trimmed == ":load" {
+					fmt.Println(colorizeError("  Usage: :load <file.pipe>"))
+					continue
+				}
+				filePath := strings.TrimSpace(strings.TrimPrefix(trimmed, ":load"))
+				data, err := os.ReadFile(filePath)
+				if err != nil {
+					fmt.Fprintln(os.Stderr, colorizeError(fmt.Sprintf("  Error reading %s: %s", filePath, err)))
+					continue
+				}
+				lines = strings.Split(string(data), "\n")
+				needBlank = false
+				history = append(history, ":load "+filePath)
+				if len(history) > 100 {
+					history = history[1:]
+				}
+				executeREPL(lines, env, useVM)
+				lines = nil
 				continue
 			}
 			if strings.HasPrefix(trimmed, ":!") {
 				numStr := strings.TrimPrefix(trimmed, ":!")
 				num, err := strconv.Atoi(numStr)
 				if err != nil || num < 1 || num > len(history) {
-					fmt.Fprintf(os.Stderr, "  Invalid number. 1-%d\n", len(history))
+					fmt.Fprintln(os.Stderr, colorizeError(fmt.Sprintf("  Invalid number. 1-%d", len(history))))
 				} else {
 					replayCmd := history[num-1]
-					fmt.Printf("  → %s\n", replayCmd)
+					fmt.Println(colorizeEcho("  → " + replayCmd))
 					lines = append(lines, replayCmd)
 					needBlank = false
 					if !isMultiLineStart(replayCmd) && tryParse(replayCmd) {
@@ -1028,22 +1164,19 @@ func startREPL(useVM bool) {
 			continue
 		}
 
-		lines = append(lines, line)
+		lines = append(lines, input)
 
 		if !needBlank && len(lines) == 1 {
 			if isMultiLineStart(trimmed) {
 				needBlank = true
 				continue
 			}
-			// Try to execute as single-line — parse only once
 			executeREPL(lines, env, useVM)
 			history = append(history, trimmed)
 			if len(history) > 100 {
 				history = history[1:]
 			}
 			lines = nil
-			// If execution failed due to parse error, don't multi-line
-			// If it was valid, we're done
 		}
 	}
 }
@@ -1131,9 +1264,9 @@ func executeREPL(lines []string, env *object.Environment, useVM bool) {
 	program := p.ParseProgram()
 
 	if len(p.Errors()) > 0 {
-		fmt.Fprintln(os.Stderr, "Parse errors:")
+		fmt.Fprintln(os.Stderr, colorizeError("Parse errors:"))
 		for _, err := range p.Errors() {
-			fmt.Fprintf(os.Stderr, "  %s\n", err)
+			fmt.Fprintf(os.Stderr, "  %s%s%s\n", colorRed, err, colorReset)
 		}
 		return
 	}
@@ -1150,10 +1283,10 @@ func replRunEval(program *ast.Program, env *object.Environment) {
 	result := ctx.Eval(program, env)
 	if result != nil {
 		if result.Type() == object.ERROR {
-			fmt.Fprintf(os.Stderr, "Error: %s\n", result.Inspect())
+			fmt.Fprintln(os.Stderr, colorizeError("Error: "+result.Inspect()))
 		} else if result.Type() != object.NIL {
 			if result.Type() != object.FUNCTION && result.Type() != object.COMPILED_FUNCTION {
-				fmt.Println(result.Inspect())
+				fmt.Println(colorizeResult(result.Inspect()))
 			}
 		}
 	}
@@ -1162,19 +1295,19 @@ func replRunEval(program *ast.Program, env *object.Environment) {
 func replRunVM(program *ast.Program) {
 	comp := compiler.New()
 	if err := comp.Compile(program); err != nil {
-		fmt.Fprintf(os.Stderr, "Compiler error: %s\n", err)
+		fmt.Fprintln(os.Stderr, colorizeError("Compiler error: "+err.Error()))
 		return
 	}
 	bc := comp.Bytecode()
 	machine := vm.New(bc)
 	if err := machine.Run(); err != nil {
-		fmt.Fprintf(os.Stderr, "VM error: %s\n", err)
+		fmt.Fprintln(os.Stderr, colorizeError("VM error: "+err.Error()))
 		return
 	}
 	result := machine.LastPoppedStackElem()
 	if result != nil && result.Type() != object.NIL {
 		if result.Type() != object.FUNCTION && result.Type() != object.COMPILED_FUNCTION {
-			fmt.Println(result.Inspect())
+			fmt.Println(colorizeResult(result.Inspect()))
 		}
 	}
 }

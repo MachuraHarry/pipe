@@ -627,25 +627,85 @@ func (ctx *EvalContext) evalMatchExpression(me *ast.MatchExpression, env *object
 	}
 
 	for _, c := range me.Cases {
-		pattern := ctx.Eval(c.Pattern, env)
-		matched := false
-		if isError(pattern) {
-			if isWildcardPattern(c.Pattern) {
-				matched = true
-			}
-		} else if valuesEqual(value, pattern) || isWildcardPattern(c.Pattern) {
-			matched = true
-		}
+		matched, bindings := ctx.evalMatchPattern(c.Pattern, value, env)
 		if !matched {
 			continue
 		}
 		if !ctx.evalMatchGuard(c, env) {
 			continue
 		}
-		return ctx.Eval(c.Body, env)
+
+		// Create child scope for bindings
+		childEnv := object.NewEnclosedEnvironment(env)
+		for name, val := range bindings {
+			childEnv.Set(name, val)
+		}
+		if c.Bind != "" {
+			childEnv.Set(c.Bind, value)
+		}
+		return ctx.Eval(c.Body, childEnv)
 	}
 
 	return object.NILOBJ
+}
+
+func (ctx *EvalContext) evalMatchPattern(pattern ast.Expression, value object.Object, env *object.Environment) (bool, map[string]object.Object) {
+	bindings := make(map[string]object.Object)
+
+	// Wildcard pattern matches everything
+	if isWildcardPattern(pattern) {
+		return true, bindings
+	}
+
+	// List destructuring pattern
+	if ldp, ok := pattern.(*ast.ListDestructurePattern); ok {
+		list, ok := value.(*object.List)
+		if !ok {
+			return false, nil
+		}
+		if len(ldp.Elements) > len(list.Elements) {
+			return false, nil
+		}
+		for i, elem := range ldp.Elements {
+			if ident, ok := elem.(*ast.Identifier); ok {
+				if ident.Value == "_" {
+					continue // wildcard element
+				}
+				bindings[ident.Value] = list.Elements[i]
+			}
+		}
+		if ldp.Rest != "" {
+			rest := list.Elements[len(ldp.Elements):]
+			bindings[ldp.Rest] = &object.List{Elements: rest}
+		}
+		return true, bindings
+	}
+
+	// Map destructuring pattern
+	if mdp, ok := pattern.(*ast.MapDestructurePattern); ok {
+		m, ok := value.(*object.Map)
+		if !ok {
+			return false, nil
+		}
+		for i, key := range mdp.Keys {
+			val, ok := m.Pairs[key.Value]
+			if !ok {
+				return false, nil
+			}
+			bindings[mdp.Values[i].Value] = val
+		}
+		return true, bindings
+	}
+
+	// Default: value comparison pattern
+	patternVal := ctx.Eval(pattern, env)
+	if isError(patternVal) {
+		return false, nil
+	}
+	if valuesEqual(value, patternVal) {
+		return true, bindings
+	}
+	return false, nil
 }
 
 // isWildcardPattern reports whether an expression is the `_` wildcard, which

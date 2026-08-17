@@ -1,6 +1,8 @@
 package object
 
-import "regexp"
+import (
+	"regexp"
+)
 
 func bRegexMatch(args ...Object) Object {
 	if len(args) != 2 {
@@ -9,7 +11,7 @@ func bRegexMatch(args ...Object) Object {
 	pat, ok := args[0].(*String)
 	txt, ok2 := args[1].(*String)
 	if !ok || !ok2 {
-		return err("regex_match: Pattern und Text must be strings")
+		return err("regex_match: Pattern and Text must be strings")
 	}
 	matched, e := regexp.MatchString(pat.Value, txt.Value)
 	if e != nil {
@@ -19,6 +21,30 @@ func bRegexMatch(args ...Object) Object {
 		return TRUE
 	}
 	return FALSE
+}
+
+func bRegexCaptures(args ...Object) Object {
+	if len(args) != 2 {
+		return err("regex_captures expects 2 arguments (Pattern, Text)")
+	}
+	pat, ok := args[0].(*String)
+	txt, ok2 := args[1].(*String)
+	if !ok || !ok2 {
+		return err("regex_captures: Pattern and Text must be strings")
+	}
+	re, e := regexp.Compile(pat.Value)
+	if e != nil {
+		return err("regex_captures: " + e.Error())
+	}
+	match := re.FindStringSubmatch(txt.Value)
+	if match == nil {
+		return &List{Elements: []Object{}}
+	}
+	result := make([]Object, len(match))
+	for i, m := range match {
+		result[i] = &String{Value: m}
+	}
+	return &List{Elements: result}
 }
 
 func bRegexReplace(args ...Object) Object {

@@ -98,6 +98,8 @@ var builtinDocs = []BuiltinDoc{
 		Description: "Returns the size of the file in bytes.", Category: CatFile},
 	{Name: "file_type", Signature: "file_type(path)", Params: []Param{p("path", "string")}, ReturnType: "string",
 		Description: "Returns \"file\", \"dir\", or nil if the path does not exist.", Category: CatFile},
+	{Name: "dotenv", Signature: "dotenv(file [, prefix])", Params: []Param{p("file", "string"), p("prefix", "string")}, ReturnType: "number",
+		Description: "Loads KEY=VALUE pairs from a .env file into environment variables. Returns the number of variables loaded. Optional prefix is prepended to each key.", Category: CatFile},
 	{Name: "list_dir", Signature: "list_dir(path)", Params: []Param{p("path", "string")}, ReturnType: "list",
 		Description: "Returns a list of filenames in the directory at path.", Category: CatFile},
 	{Name: "make_dir", Signature: "make_dir(path)", Params: []Param{p("path", "string")}, ReturnType: "nil",
@@ -264,6 +266,8 @@ var builtinDocs = []BuiltinDoc{
 	// ---- Regex ----
 	{Name: "regex_match", Signature: "regex_match(pattern, str)", Params: []Param{p("pattern", "string"), p("str", "string")}, ReturnType: "boolean",
 		Description: "Returns true if str matches the regex pattern, false otherwise.", Category: CatRegex},
+	{Name: "regex_captures", Signature: "regex_captures(pattern, str)", Params: []Param{p("pattern", "string"), p("str", "string")}, ReturnType: "list",
+		Description: "Returns a list of capture groups from the first regex match, or empty list if no match.", Category: CatRegex},
 	{Name: "regex_replace", Signature: "regex_replace(pattern, replacement, str)", Params: []Param{p("pattern", "string"), p("replacement", "string"), p("str", "string")}, ReturnType: "string",
 		Description: "Replaces all occurrences of pattern in str with replacement.", Category: CatRegex},
 

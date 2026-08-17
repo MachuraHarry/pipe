@@ -1,0 +1,20 @@
+--! Select statement demo: multiplexing multiple channels.
+
+-- Create two channels
+ch1: chan 1
+ch2: chan 1
+
+-- Send values to both channels
+fn send_ch1
+    send ch1 "hello from ch1"
+fn send_ch2
+    send ch2 "hello from ch2"
+
+spawn send_ch1
+spawn send_ch2
+
+-- Select picks whichever channel has data ready
+select
+    | ch1 -> print ("received: " ++ (to_str (recv ch1)))
+    | ch2 -> print ("received: " ++ (to_str (recv ch2)))
+    | default -> print "no data ready"

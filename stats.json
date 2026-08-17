@@ -1,12 +1,12 @@
 {
-  "builtins": 232,
+  "builtins": 234,
   "builtin_categories": {
     "ai_": 18,
     "ai_all": 36,
     "file": 9,
     "mcp_": 13,
     "sandbox": 4,
-    "stdlib": 170
+    "stdlib": 172
   },
   "examples": 87,
   "go_tests": 643,
@@ -14,6 +14,6 @@
   "ast_node_types": 36,
   "docs_en_chapters": 28,
   "docs_de_chapters": 28,
-  "standard": 183,
+  "standard": 185,
   "modules": 23
 }

@@ -207,6 +207,18 @@ func (c *Channel) Inspect() string {
 	return fmt.Sprintf("chan(%d/%d)", len(c.ch), cap(c.ch))
 }
 
+func (c *Channel) TryRecv() Object {
+	select {
+	case v, open := <-c.ch:
+		if !open {
+			return NILOBJ
+		}
+		return v
+	default:
+		return NILOBJ
+	}
+}
+
 // Mutex is a shared in-memory mutual exclusion primitive.
 type Mutex struct {
 	mu sync.Mutex
@@ -457,6 +469,7 @@ var Builtins = []BuiltinInfo{
 	{"file_copy", bFileCopy},
 	{"file_size", bFileSize},
 	{"file_type", bFileType},
+	{"dotenv", bDotenv},
 	{"list_dir", bListDir},
 	{"make_dir", bMakeDir},
 	{"remove_dir", bRemoveDir},
@@ -597,6 +610,7 @@ var Builtins = []BuiltinInfo{
 
 	// Regex
 	{"regex_match", bRegexMatch},
+	{"regex_captures", bRegexCaptures},
 	{"regex_replace", bRegexReplace},
 
 	// Date/Time

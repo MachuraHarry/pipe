@@ -10,6 +10,28 @@ import (
 	"github.com/MachuraHarry/pipe/pkg/parser"
 )
 
+type Config struct {
+	IndentSize int
+	QuoteStyle string
+}
+
+var defaultConfig = Config{
+	IndentSize: 4,
+	QuoteStyle: "double",
+}
+
+func SetDefaultConfig(cfg Config) {
+	defaultConfig = cfg
+}
+
+func ResetDefaultConfig() {
+	defaultConfig = Config{IndentSize: 4, QuoteStyle: "double"}
+}
+
+func indentStr(depth int) string {
+	return strings.Repeat(" ", defaultConfig.IndentSize*depth)
+}
+
 func Format(path string) error {
 	data, err := os.ReadFile(path)
 	if err != nil {
@@ -52,7 +74,7 @@ func fallbackFormat(src string) string {
 		}
 		idx := countLeadingSpaces(trimmed)
 		content := strings.TrimLeft(trimmed, " \t")
-		norm := (idx / 4) * 4
+		norm := (idx / defaultConfig.IndentSize) * defaultConfig.IndentSize
 		for i := 0; i < norm; i++ {
 			out.WriteByte(' ')
 		}
@@ -100,7 +122,7 @@ func isDefinition(stmt ast.Statement) bool {
 }
 
 func formatStatement(out *strings.Builder, stmt ast.Statement, depth int) {
-	indent := strings.Repeat("    ", depth)
+	indent := indentStr(depth)
 
 	switch s := stmt.(type) {
 	case *ast.ExpressionStatement:
@@ -115,7 +137,11 @@ func formatStatement(out *strings.Builder, stmt ast.Statement, depth int) {
 	case *ast.VarStatement:
 		out.WriteString(indent)
 		out.WriteString(s.Name.Value)
-		out.WriteString(": ")
+		if s.TypeAnnotation != nil {
+			out.WriteString(": " + s.TypeAnnotation.Name + " = ")
+		} else {
+			out.WriteString(": ")
+		}
 		if _, isPipeline := s.Value.(*ast.PipelineExpression); isPipeline {
 			formatPipelineTop(out, s.Value, 0)
 		} else {
@@ -127,9 +153,28 @@ func formatStatement(out *strings.Builder, stmt ast.Statement, depth int) {
 		out.WriteString(indent)
 		out.WriteString("fn ")
 		out.WriteString(s.Name.Value)
-		for _, p := range s.Parameters {
-			out.WriteByte(' ')
-			out.WriteString(p.Value)
+		if len(s.ParamTypes) > 0 && s.ParamTypes[0] != nil {
+			// Typed params: fn name(a: int, b: int) -> int
+			out.WriteByte('(')
+			for i, p := range s.Parameters {
+				if i > 0 {
+					out.WriteString(", ")
+				}
+				out.WriteString(p.Value)
+				if i < len(s.ParamTypes) && s.ParamTypes[i] != nil {
+					out.WriteString(": " + s.ParamTypes[i].Name)
+				}
+			}
+			out.WriteByte(')')
+			if s.ReturnType != nil {
+				out.WriteString(" -> " + s.ReturnType.Name)
+			}
+		} else {
+			// Untyped params: fn name a b
+			for _, p := range s.Parameters {
+				out.WriteByte(' ')
+				out.WriteString(p.Value)
+			}
 		}
 		out.WriteByte('\n')
 		formatBlock(out, s.Body, depth+1)
@@ -142,6 +187,27 @@ func formatStatement(out *strings.Builder, stmt ast.Statement, depth int) {
 			out.WriteString(indent)
 			out.WriteString("export fn ")
 			out.WriteString(s.FnName)
+			if len(s.Fn.ParamTypes) > 0 && s.Fn.ParamTypes[0] != nil {
+				out.WriteByte('(')
+				for i, p := range s.Fn.Parameters {
+					if i > 0 {
+						out.WriteString(", ")
+					}
+					out.WriteString(p.Value)
+					if i < len(s.Fn.ParamTypes) && s.Fn.ParamTypes[i] != nil {
+						out.WriteString(": " + s.Fn.ParamTypes[i].Name)
+					}
+				}
+				out.WriteByte(')')
+				if s.Fn.ReturnType != nil {
+					out.WriteString(" -> " + s.Fn.ReturnType.Name)
+				}
+			} else {
+				for _, p := range s.Fn.Parameters {
+					out.WriteByte(' ')
+					out.WriteString(p.Value)
+				}
+			}
 			out.WriteByte('\n')
 			formatBlock(out, s.Fn.Body, depth+1)
 		}
@@ -149,7 +215,11 @@ func formatStatement(out *strings.Builder, stmt ast.Statement, depth int) {
 			out.WriteString(indent)
 			out.WriteString("export ")
 			out.WriteString(s.VarName)
-			out.WriteString(": ")
+			if s.Var.TypeAnnotation != nil {
+				out.WriteString(": " + s.Var.TypeAnnotation.Name + " = ")
+			} else {
+				out.WriteString(": ")
+			}
 			formatExpr(out, s.Var.Value, depth, 0)
 			out.WriteByte('\n')
 		}
@@ -278,7 +348,7 @@ func formatExpr(out *strings.Builder, expr ast.Expression, depth int, prec int) 
 		out.WriteByte('\n')
 		formatBlock(out, e.Consequence, depth+1)
 		if e.Alternative != nil {
-			indent := strings.Repeat("    ", depth)
+			indent := indentStr( depth)
 			out.WriteString(indent)
 			out.WriteString("else\n")
 			formatBlock(out, e.Alternative, depth+1)
@@ -326,9 +396,12 @@ func formatExpr(out *strings.Builder, expr ast.Expression, depth int, prec int) 
 		formatExpr(out, e.Value, depth, 0)
 		out.WriteByte('\n')
 		for _, c := range e.Cases {
-			indent := strings.Repeat("    ", depth+1)
+			indent := indentStr(depth+1)
 			out.WriteString(indent)
 			out.WriteString("| ")
+			if c.Bind != "" {
+				out.WriteString(c.Bind + ": ")
+			}
 			formatExpr(out, c.Pattern, depth, 0)
 			if c.Guard != nil {
 				out.WriteString(" if ")
@@ -339,13 +412,76 @@ func formatExpr(out *strings.Builder, expr ast.Expression, depth int, prec int) 
 			out.WriteByte('\n')
 		}
 
+	case *ast.ListDestructurePattern:
+		out.WriteByte('[')
+		for i, elem := range e.Elements {
+			if i > 0 {
+				out.WriteString(", ")
+			}
+			formatExpr(out, elem, depth, 0)
+		}
+		if e.Rest != "" {
+			if len(e.Elements) > 0 {
+				out.WriteString(", ")
+			}
+			out.WriteString(e.Rest + "..")
+		}
+		out.WriteByte(']')
+
+	case *ast.MapDestructurePattern:
+		out.WriteByte('{')
+		for i, key := range e.Keys {
+			if i > 0 {
+				out.WriteString(", ")
+			}
+			out.WriteString(key.Value + ": " + e.Values[i].Value)
+		}
+		out.WriteByte('}')
+
+	case *ast.SelectExpression:
+		out.WriteString("select\n")
+		for _, c := range e.Cases {
+			indent := indentStr(depth+1)
+			out.WriteString(indent)
+			out.WriteString("| ")
+			if c.IsDefault {
+				out.WriteString("default")
+			} else if c.Channel != nil {
+				formatExpr(out, c.Channel, depth, 0)
+			}
+			out.WriteString(" -> ")
+			if len(c.Body.Statements) > 0 {
+				if exprStmt, ok := c.Body.Statements[0].(*ast.ExpressionStatement); ok {
+					formatExpr(out, exprStmt.Expression, depth, 0)
+				}
+			}
+			out.WriteByte('\n')
+		}
+
 	case *ast.FnLiteral:
 		out.WriteString("fn ")
-		for i, p := range e.Parameters {
-			if i > 0 {
-				out.WriteByte(' ')
+		if len(e.ParamTypes) > 0 && e.ParamTypes[0] != nil {
+			out.WriteByte('(')
+			for i, p := range e.Parameters {
+				if i > 0 {
+					out.WriteString(", ")
+				}
+				out.WriteString(p.Value)
+				if i < len(e.ParamTypes) && e.ParamTypes[i] != nil {
+					out.WriteString(": " + e.ParamTypes[i].Name)
+				}
 			}
-			out.WriteString(p.Value)
+			out.WriteByte(')')
+			if e.ReturnType != nil {
+				out.WriteString(" -> " + e.ReturnType.Name)
+			}
+		} else {
+			for i, p := range e.Parameters {
+				if i > 0 {
+					out.WriteByte(' ')
+				}
+				out.WriteString(p.Value)
+			}
 		}
 		// Inline form: fn x: expression (single-expression body)
 		if len(e.Body.Statements) == 1 {
@@ -407,7 +543,7 @@ func formatExpr(out *strings.Builder, expr ast.Expression, depth int, prec int) 
 		}
 		formatBlock(out, e.TryBlock, depth+1)
 		if e.CatchBlock != nil {
-			indent := strings.Repeat("    ", depth)
+			indent := indentStr( depth)
 			out.WriteString(indent)
 			out.WriteString("catch")
 			if e.CatchParam != nil {
@@ -443,7 +579,7 @@ func formatPipelineTop(out *strings.Builder, expr ast.Expression, depth int) {
 		formatExpr(out, expr, depth, 0)
 		return
 	}
-	indent := strings.Repeat("    ", depth)
+	indent := indentStr( depth)
 
 	leftmost, stages := pipelineStages(pe)
 	out.WriteString(indent)
@@ -451,7 +587,7 @@ func formatPipelineTop(out *strings.Builder, expr ast.Expression, depth int) {
 	out.WriteByte('\n')
 
 	for _, stage := range stages {
-		out.WriteString(indent + "    ")
+		out.WriteString(indent + indentStr(1))
 		if stage.Parallel {
 			out.WriteString(">> ")
 		} else {
@@ -523,7 +659,7 @@ func countLeadingSpaces(s string) int {
 		if ch == ' ' {
 			count++
 		} else if ch == '\t' {
-			count += 4
+			count += defaultConfig.IndentSize
 		} else {
 			break
 		}

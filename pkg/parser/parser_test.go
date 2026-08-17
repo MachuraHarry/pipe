@@ -117,6 +117,51 @@ func TestVariableDef(t *testing.T) {
 	testIntegerLiteral(t, stmt.Value, 42)
 }
 
+func TestVariableDefWithType(t *testing.T) {
+	input := "x: int = 42"
+	program := parseProgram(t, input)
+
+	stmt, ok := program.Statements[0].(*ast.VarStatement)
+	if !ok {
+		t.Fatalf("expected VarStatement, got %T", program.Statements[0])
+	}
+	if stmt.Name.Value != "x" {
+		t.Errorf("expected name 'x', got %q", stmt.Name.Value)
+	}
+	if stmt.TypeAnnotation == nil || stmt.TypeAnnotation.Name != "int" {
+		t.Errorf("expected type 'int', got %v", stmt.TypeAnnotation)
+	}
+	testIntegerLiteral(t, stmt.Value, 42)
+}
+
+func TestFnDefWithTypes(t *testing.T) {
+	input := "fn add(a: int, b: int) -> int\n    a + b"
+	program := parseProgram(t, input)
+
+	stmt, ok := program.Statements[0].(*ast.FnStatement)
+	if !ok {
+		t.Fatalf("expected FnStatement, got %T", program.Statements[0])
+	}
+	if stmt.Name.Value != "add" {
+		t.Errorf("expected name 'add', got %q", stmt.Name.Value)
+	}
+	if len(stmt.Parameters) != 2 {
+		t.Fatalf("expected 2 params, got %d", len(stmt.Parameters))
+	}
+	if stmt.Parameters[0].Value != "a" || stmt.Parameters[1].Value != "b" {
+		t.Errorf("expected params [a, b], got [%s, %s]", stmt.Parameters[0].Value, stmt.Parameters[1].Value)
+	}
+	if stmt.ParamTypes[0] == nil || stmt.ParamTypes[0].Name != "int" {
+		t.Errorf("expected first param type 'int', got %v", stmt.ParamTypes[0])
+	}
+	if stmt.ParamTypes[1] == nil || stmt.ParamTypes[1].Name != "int" {
+		t.Errorf("expected second param type 'int', got %v", stmt.ParamTypes[1])
+	}
+	if stmt.ReturnType == nil || stmt.ReturnType.Name != "int" {
+		t.Errorf("expected return type 'int', got %v", stmt.ReturnType)
+	}
+}
+
 func TestInlineLambda(t *testing.T) {
 	input := "fn x: x + 1"
 	program := parseProgram(t, input)
@@ -548,5 +593,25 @@ func TestTestStatementHookRequiresBlock(t *testing.T) {
 	p.ParseProgram()
 	if len(p.Errors()) == 0 {
 		t.Error("expected a parse error for a hook without a block")
+	}
+}
+
+func TestSelectExpression(t *testing.T) {
+	input := "select\n    | ch1 -> print \"got from ch1\"\n    | ch2 -> print \"got from ch2\"\n    | default -> print \"no data\""
+	program := parseProgram(t, input)
+
+	stmt, ok := program.Statements[0].(*ast.ExpressionStatement)
+	if !ok {
+		t.Fatalf("expected ExpressionStatement, got %T", program.Statements[0])
+	}
+	se, ok := stmt.Expression.(*ast.SelectExpression)
+	if !ok {
+		t.Fatalf("expected SelectExpression, got %T", stmt.Expression)
+	}
+	if len(se.Cases) != 3 {
+		t.Fatalf("expected 3 cases, got %d", len(se.Cases))
+	}
+	if se.Cases[2].IsDefault != true {
+		t.Error("expected third case to be default")
 	}
 }

@@ -84,6 +84,7 @@ const (
 	TRYAI    // try_ai
 	TEST     // test
 	STRUCT   // struct
+	SELECT   // select
 )
 
 var keywords = map[string]TokenType{
@@ -108,6 +109,7 @@ var keywords = map[string]TokenType{
 	"nil":      NIL,
 	"test":     TEST,
 	"struct":   STRUCT,
+	"select":   SELECT,
 	"not":      BANG,
 }
 
@@ -179,6 +181,7 @@ var tokenNames = map[TokenType]string{
 	NIL:       "nil",
 	TEST:      "test",
 	STRUCT:    "struct",
+	SELECT:    "select",
 }
 
 type Token struct {

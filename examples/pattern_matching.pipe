@@ -1,0 +1,26 @@
+--! Pattern matching with binding, list and map destructuring.
+
+-- Binding pattern: binds matched value to variable
+match 42
+    | x: 42 -> print ("bound value: " ++ to_str(x))
+    | _ -> print "no match"
+
+-- List destructuring: extract elements by position
+match [10, 20, 30]
+    | [a, b, c] -> print ("sum: " ++ to_str(a + b + c))
+    | _ -> print "no match"
+
+-- List with wildcard: skip middle element
+match [10, 20, 30]
+    | [a, _, c] -> print ("first + last: " ++ to_str(a + c))
+    | _ -> print "no match"
+
+-- List with rest capture: [first, rest..]
+match [1, 2, 3, 4, 5]
+    | [first, rest..] -> print ("first: " ++ to_str(first) ++ ", rest count: " ++ to_str(len(rest)))
+    | _ -> print "no match"
+
+-- Map destructuring: extract values by key
+match {name: "Alice", age: 30, city: "NYC"}
+    | {name: n, age: a} -> print (n ++ " is " ++ to_str(a))
+    | _ -> print "unknown"

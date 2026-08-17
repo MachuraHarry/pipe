@@ -105,6 +105,9 @@ func symbolHoverMarkdown(sym *Symbol) string {
 	default:
 		header += "  \n`" + strings.ToLower(sym.Kind.String()) + "`"
 	}
+	if sym.TypeHint != "" {
+		header += "  → `" + sym.TypeHint + "`"
+	}
 	b.WriteString(header)
 	if sym.Doc != "" {
 		b.WriteString("\n\n" + sym.Doc)

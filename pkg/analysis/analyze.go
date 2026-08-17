@@ -112,6 +112,26 @@ func (a *Analyzer) declare(name string, kind SymbolKind, pos ast.Position, doc s
 	return sym
 }
 
+func (a *Analyzer) declareWithType(name string, kind SymbolKind, pos ast.Position, doc, typeHint string) *Symbol {
+	sym := &Symbol{
+		Name:     name,
+		Kind:     kind,
+		Pos:      pos,
+		End:      endFromPos(pos, len(name)),
+		Doc:      doc,
+		TypeHint: typeHint,
+		Usages:   []*Reference{},
+	}
+	if existing, ok := a.cur.Symbols[name]; ok {
+		existing.TypeHint = typeHint
+		return existing
+	}
+	a.cur.Symbols[name] = sym
+	a.result.Symbols = append(a.result.Symbols, sym)
+	a.noteMax(pos)
+	return sym
+}
+
 // declareOrReuse treats `x: v` as declaration-or-assignment (Pipe semantics):
 // a later statement with the same name in the same scope reuses the symbol.
 func (a *Analyzer) declareOrReuse(name string, kind SymbolKind, pos ast.Position, doc string) *Symbol {
@@ -151,7 +171,11 @@ func (a *Analyzer) walkStmt(stmt ast.Statement) {
 		a.walkFnStatement(s)
 	case *ast.VarStatement:
 		a.walkExpr(s.Value)
-		a.declareOrReuse(s.Name.Value, KindVariable, s.Name.Pos(), "")
+		typeHint := ""
+		if s.TypeAnnotation != nil {
+			typeHint = s.TypeAnnotation.Name
+		}
+		a.declareWithType(s.Name.Value, KindVariable, s.Name.Pos(), "", typeHint)
 	case *ast.ExpressionStatement:
 		a.walkExpr(s.Expression)
 	case *ast.ReturnStatement:
@@ -184,7 +208,11 @@ func (a *Analyzer) walkBlock(block *ast.BlockStatement) {
 
 func (a *Analyzer) walkFnStatement(fn *ast.FnStatement) {
 	if fn.Name != nil {
-		a.declare(fn.Name.Value, KindFunction, fn.Name.Pos(), "")
+		typeHint := ""
+		if fn.ReturnType != nil {
+			typeHint = fn.ReturnType.Name
+		}
+		a.declareWithType(fn.Name.Value, KindFunction, fn.Name.Pos(), "", typeHint)
 	}
 	a.pushFunction(fn.Parameters, fn.Name.Pos())
 	a.walkBlock(fn.Body)

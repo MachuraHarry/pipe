@@ -56,21 +56,35 @@ func (es *ExpressionStatement) TokenLiteral() string { return es.Expression.Toke
 func (es *ExpressionStatement) String() string       { return es.Expression.String() }
 
 type FnStatement struct {
-	Name       *Identifier
-	Parameters []*Identifier
-	Body       *BlockStatement
+	Name          *Identifier
+	Parameters    []*Identifier
+	ParamTypes    []*TypeAnnotation
+	ReturnType    *TypeAnnotation
+	Body          *BlockStatement
 }
 
 func (fs *FnStatement) statementNode()       {}
 func (fs *FnStatement) TokenLiteral() string { return "fn" }
 
 type VarStatement struct {
-	Name  *Identifier
-	Value Expression
+	Name          *Identifier
+	TypeAnnotation *TypeAnnotation
+	Value         Expression
 }
 
 func (vs *VarStatement) statementNode()       {}
 func (vs *VarStatement) TokenLiteral() string { return vs.Name.TokenLiteral() }
+
+type TypeAnnotation struct {
+	Name string // "int", "string", "list", "map", "fn", etc.
+	Line int
+	Col  int
+}
+
+func (ta *TypeAnnotation) expressionNode()      {}
+func (ta *TypeAnnotation) TokenLiteral() string { return ta.Name }
+func (ta *TypeAnnotation) String() string       { return ta.Name }
+func (ta *TypeAnnotation) Pos() Position        { return Position{Line: ta.Line, Col: ta.Col} }
 
 type BlockStatement struct {
 	Statements []Statement
@@ -118,7 +132,50 @@ type MatchCase struct {
 	Pattern Expression
 	Body    Expression
 	Guard   Expression // guard condition; nil when there is none
+	Bind    string     // variable binding name for the matched value (e.g. "x" in `| x: Some(x) -> ...`)
 }
+
+// BindingPattern wraps a pattern and binds the matched value to a variable.
+// Used in match cases: `| pattern as name -> body` or `| name: pattern -> body`
+type BindingPattern struct {
+	Name   string
+	Pattern Expression
+	Line   int
+	Col    int
+}
+
+func (bp *BindingPattern) expressionNode()      {}
+func (bp *BindingPattern) TokenLiteral() string { return bp.Name }
+func (bp *BindingPattern) String() string       { return bp.Name + ": " + bp.Pattern.String() }
+func (bp *BindingPattern) Pos() Position        { return Position{Line: bp.Line, Col: bp.Col} }
+
+// ListDestructurePattern destructures a list into named variables.
+// e.g. `[a, b, ...rest]` or `[first, _, third]`
+type ListDestructurePattern struct {
+	Elements []Expression // each element is an Identifier or a nested pattern
+	Rest     string       // rest variable name (e.g. "rest" in `[a, ...rest]`), empty if none
+	Line     int
+	Col      int
+}
+
+func (ld *ListDestructurePattern) expressionNode()      {}
+func (ld *ListDestructurePattern) TokenLiteral() string { return "list_destructure" }
+func (ld *ListDestructurePattern) String() string       { return "[list destructure]" }
+func (ld *ListDestructurePattern) Pos() Position        { return Position{Line: ld.Line, Col: ld.Col} }
+
+// MapDestructurePattern destructures a map into named variables.
+// e.g. `{name: n, age: a}` binds `n` to key "name" and `a` to key "age"
+type MapDestructurePattern struct {
+	Keys   []*Identifier // map keys to extract
+	Values []*Identifier // variable names to bind to (same length as Keys)
+	Line   int
+	Col    int
+}
+
+func (md *MapDestructurePattern) expressionNode()      {}
+func (md *MapDestructurePattern) TokenLiteral() string { return "map_destructure" }
+func (md *MapDestructurePattern) String() string       { return "{map destructure}" }
+func (md *MapDestructurePattern) Pos() Position        { return Position{Line: md.Line, Col: md.Col} }
 
 // ---- Expressions ----
 
@@ -388,10 +445,12 @@ func (ts *TestStatement) statementNode()       {}
 func (ts *TestStatement) TokenLiteral() string { return "test" }
 
 type FnLiteral struct {
-	Parameters []*Identifier
-	Body       *BlockStatement
-	Line       int
-	Col        int
+	Parameters    []*Identifier
+	ParamTypes    []*TypeAnnotation
+	ReturnType    *TypeAnnotation
+	Body          *BlockStatement
+	Line          int
+	Col           int
 }
 
 func (fl *FnLiteral) expressionNode()      {}
@@ -440,3 +499,22 @@ type StructStatement struct {
 func (ss *StructStatement) statementNode()       {}
 func (ss *StructStatement) TokenLiteral() string { return "struct" }
 func (ss *StructStatement) Pos() Position        { return Position{Line: ss.Line, Col: ss.Col} }
+
+type SelectCase struct {
+	Channel  Expression // nil for default case
+	Value    Expression // nil for receive-only (<- ch)
+	Variable *Identifier // variable to bind received value (nil for send)
+	Body     *BlockStatement
+	IsDefault bool
+}
+
+type SelectExpression struct {
+	Cases    []*SelectCase
+	Line     int
+	Col      int
+}
+
+func (se *SelectExpression) expressionNode()      {}
+func (se *SelectExpression) TokenLiteral() string { return "select" }
+func (se *SelectExpression) String() string       { return "select { ... }" }
+func (se *SelectExpression) Pos() Position        { return Position{Line: se.Line, Col: se.Col} }

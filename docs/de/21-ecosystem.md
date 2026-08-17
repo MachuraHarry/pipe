@@ -47,7 +47,7 @@ read_file "errors.log"
     > print
 ```
 
-## Verfügbare Module (22)
+## Verfügbare Module (23)
 
 | Modul | Beschreibung | Funktionen |
 |--------|-------------|-----------|
@@ -73,6 +73,7 @@ read_file "errors.log"
 | `rag-pipe` | RAG-Pipeline | `index_create`, `index_add`, `index_search`, `index_ask` |
 | `docs-pipe` | Dokumentations-natives RAG (heading-bewusstes Chunking, hybride Keyword- + semantische Suche, zitierte Antworten, inkrementelles Indexieren) | `doc_index`, `doc_index_status`, `doc_search`, `doc_ask`, `doc_reindex`, `doc_close` |
 | `telegram-bot` | Telegram-Bot-API-Client (Long Polling) | `tg_bot`, `tg_me`, `tg_get_updates`, `tg_send_text`, `tg_send_md`, `tg_send_html`, `tg_send_mdv2`, `tg_reply_text`, `tg_send_photo_url`, `tg_send_photo_file_id`, `tg_send_buttons`, `tg_send_chat_action`, `tg_edit_text`, `tg_edit_md`, `tg_edit_html`, `tg_delete_message`, `tg_forward_message`, `tg_set_reaction`, `tg_answer_callback_query`, `tg_get_chat`, `tg_get_chat_member` |
+| `mqtt` | MQTT-5.0-Client (TCP/TLS, QoS 0/1/2, Will, Retain, Keep-alive, Wildcards) | `mqtt_connect`, `mqtt_disconnect`, `mqtt_publish`, `mqtt_subscribe`, `mqtt_unsubscribe`, `mqtt_ping`, `mqtt_set_callback`, `mqtt_connected` |
 
 ## Ein Modul beitragen
 

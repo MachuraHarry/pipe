@@ -1,0 +1,20 @@
+{
+  "name": "mqtt",
+  "version": "0.1.0",
+  "description": "MQTT 5.0 client (TCP/TLS, QoS 0/1/2, will, retain, keep-alive, wildcards)",
+  "author": "MachuraHarry",
+  "license": "MIT",
+  "exports": [
+    "mqtt_connect",
+    "mqtt_disconnect",
+    "mqtt_publish",
+    "mqtt_subscribe",
+    "mqtt_unsubscribe",
+    "mqtt_ping",
+    "mqtt_set_callback",
+    "mqtt_connected",
+    "QOS0",
+    "QOS1",
+    "QOS2"
+  ]
+}

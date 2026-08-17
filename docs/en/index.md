@@ -39,6 +39,7 @@ Welcome to the complete documentation for the **Pipe** scripting language.
 24. [Discord Module](24-discord-module.md) — Webhook + Bot-Token client as a pure-Pipe module *(in development, not yet in the registry)*
 25. [MCP — Model Context Protocol](25-mcp.md) — Zero-dependency MCP Server + Client (tools, resources, prompts) over stdio & Streamable HTTP *(in development, not yet in the registry)*
 26. [SQLite Module](26-sqlite-module.md) — Pure-Pipe relational database + benchmark vs Python/Lua
+27. [MQTT Module](27-mqtt-module.md) — Pure-Pipe MQTT 5.0 client (TCP/TLS, QoS 0/1/2, will, retain, keep-alive)
 
 ## Appendix
 

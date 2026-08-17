@@ -1,0 +1,883 @@
+-- ============================================================
+-- MQTT 5.0 client module for Pipe
+-- TCP + TLS, QoS 0/1/2, will, retain, keep-alive, wildcards.
+--
+-- Usage:
+--   import "mqtt" as mqtt
+--   h: unwrap (mqtt.mqtt_connect "broker" 1883 {client_id: "x"})
+--   mqtt.mqtt_set_callback h (fn msg ...)
+-- ============================================================
+
+-- Decode helper: a parsed value plus the next byte offset.
+struct Decoded
+    value
+    next
+
+-- Quality-of-service levels.
+export enum QOS: QOS0, QOS1, QOS2
+
+-- ============================================================
+-- MQTT 5.0 property identifiers
+-- ============================================================
+P_PAYLOAD_FORMAT_INDICATOR: 1
+P_MESSAGE_EXPIRY_INTERVAL: 2
+P_CONTENT_TYPE: 3
+P_RESPONSE_TOPIC: 8
+P_CORRELATION_DATA: 9
+P_SUBSCRIPTION_IDENTIFIER: 11
+P_SESSION_EXPIRY_INTERVAL: 17
+P_ASSIGNED_CLIENT_IDENTIFIER: 18
+P_SERVER_KEEP_ALIVE: 19
+P_AUTHENTICATION_METHOD: 21
+P_AUTHENTICATION_DATA: 22
+P_REQUEST_PROBLEM_INFORMATION: 23
+P_WILL_DELAY_INTERVAL: 24
+P_REQUEST_RESPONSE_INFORMATION: 25
+P_REASON_STRING: 31
+P_RECEIVE_MAXIMUM: 33
+P_TOPIC_ALIAS_MAXIMUM: 34
+P_TOPIC_ALIAS: 35
+P_MAXIMUM_QOS: 36
+P_RETAIN_AVAILABLE: 37
+P_USER_PROPERTY: 38
+P_MAXIMUM_PACKET_SIZE: 39
+P_WILDCARD_SUBSCRIPTION_AVAILABLE: 40
+P_SUBSCRIPTION_IDENTIFIER_AVAILABLE: 41
+P_SHARED_SUBSCRIPTION_AVAILABLE: 42
+
+-- ============================================================
+-- Module-level connection registry (shared across goroutines).
+-- GLOBAL_MU guards CONNS and every per-connection state map.
+-- ============================================================
+CONNS: {}
+GLOBAL_MU: mutex
+COUNTER: [1]
+WRITE_MU: mutex
+
+-- ============================================================
+-- Encoding primitives
+-- ============================================================
+
+-- Remaining Length / Variable Byte Integer (base-128).
+fn enc_rl n
+    out: to_bytes ""
+    while n > 0
+        b: bit_and n 127
+        n: bit_rshift n 7
+        if n > 0
+            b: bit_or b 128
+        out: bytes_append out (int_to_bytes b 1)
+    if (len out) == 0
+        out: int_to_bytes 0 1
+    out
+
+fn dec_rl buf off
+    mult: 1
+    value: 0
+    i: off
+    while true
+        b: at buf i
+        value: value + ((bit_and b 127) * mult)
+        if (bit_and b 128) == 0
+            break
+        mult: mult * 128
+        i: i + 1
+    Decoded value (i + 1)
+
+fn enc_u16 n
+    int_to_bytes n 2
+
+fn dec_u16 buf off
+    Decoded (bytes_to_int buf off 2) (off + 2)
+
+fn enc_utf8 s
+    bytes_append (int_to_bytes (len (to_bytes s)) 2) (to_bytes s)
+
+fn dec_utf8 buf off
+    ln: bytes_to_int buf off 2
+    Decoded (from_bytes (slice buf (off + 2) (off + 2 + ln))) (off + 2 + ln)
+
+fn enc_bin b
+    raw: b
+    if (type_of b) == "STRING"
+        raw: to_bytes b
+    bytes_append (int_to_bytes (len raw) 2) raw
+
+fn dec_bin buf off
+    ln: bytes_to_int buf off 2
+    Decoded (slice buf (off + 2) (off + 2 + ln)) (off + 2 + ln)
+
+-- ============================================================
+-- MQTT 5.0 properties
+-- ============================================================
+
+fn prop_name id
+    if id == P_PAYLOAD_FORMAT_INDICATOR
+        "payload_format_indicator"
+    else if id == P_MESSAGE_EXPIRY_INTERVAL
+        "message_expiry_interval"
+    else if id == P_CONTENT_TYPE
+        "content_type"
+    else if id == P_RESPONSE_TOPIC
+        "response_topic"
+    else if id == P_CORRELATION_DATA
+        "correlation_data"
+    else if id == P_SUBSCRIPTION_IDENTIFIER
+        "subscription_identifier"
+    else if id == P_SESSION_EXPIRY_INTERVAL
+        "session_expiry_interval"
+    else if id == P_ASSIGNED_CLIENT_IDENTIFIER
+        "assigned_client_identifier"
+    else if id == P_SERVER_KEEP_ALIVE
+        "server_keep_alive"
+    else if id == P_AUTHENTICATION_METHOD
+        "authentication_method"
+    else if id == P_AUTHENTICATION_DATA
+        "authentication_data"
+    else if id == P_REQUEST_PROBLEM_INFORMATION
+        "request_problem_information"
+    else if id == P_WILL_DELAY_INTERVAL
+        "will_delay_interval"
+    else if id == P_REQUEST_RESPONSE_INFORMATION
+        "request_response_information"
+    else if id == P_REASON_STRING
+        "reason_string"
+    else if id == P_RECEIVE_MAXIMUM
+        "receive_maximum"
+    else if id == P_TOPIC_ALIAS_MAXIMUM
+        "topic_alias_maximum"
+    else if id == P_TOPIC_ALIAS
+        "topic_alias"
+    else if id == P_MAXIMUM_QOS
+        "maximum_qos"
+    else if id == P_RETAIN_AVAILABLE
+        "retain_available"
+    else if id == P_USER_PROPERTY
+        "user_property"
+    else if id == P_MAXIMUM_PACKET_SIZE
+        "maximum_packet_size"
+    else if id == P_WILDCARD_SUBSCRIPTION_AVAILABLE
+        "wildcard_subscription_available"
+    else if id == P_SUBSCRIPTION_IDENTIFIER_AVAILABLE
+        "subscription_identifier_available"
+    else if id == P_SHARED_SUBSCRIPTION_AVAILABLE
+        "shared_subscription_available"
+    else
+        nil
+
+-- Encode a single property (name -> value) to its id+value bytes.
+fn enc_prop name value
+    if name == "payload_format_indicator"
+        bytes_append (int_to_bytes P_PAYLOAD_FORMAT_INDICATOR 1) (int_to_bytes value 1)
+    else if name == "message_expiry_interval"
+        bytes_append (int_to_bytes P_MESSAGE_EXPIRY_INTERVAL 1) (int_to_bytes value 4)
+    else if name == "content_type"
+        bytes_append (int_to_bytes P_CONTENT_TYPE 1) (enc_utf8 value)
+    else if name == "response_topic"
+        bytes_append (int_to_bytes P_RESPONSE_TOPIC 1) (enc_utf8 value)
+    else if name == "correlation_data"
+        bytes_append (int_to_bytes P_CORRELATION_DATA 1) (enc_bin value)
+    else if name == "session_expiry_interval"
+        bytes_append (int_to_bytes P_SESSION_EXPIRY_INTERVAL 1) (int_to_bytes value 4)
+    else if name == "authentication_method"
+        bytes_append (int_to_bytes P_AUTHENTICATION_METHOD 1) (enc_utf8 value)
+    else if name == "authentication_data"
+        bytes_append (int_to_bytes P_AUTHENTICATION_DATA 1) (enc_bin value)
+    else if name == "request_problem_information"
+        bytes_append (int_to_bytes P_REQUEST_PROBLEM_INFORMATION 1) (int_to_bytes value 1)
+    else if name == "will_delay_interval"
+        bytes_append (int_to_bytes P_WILL_DELAY_INTERVAL 1) (int_to_bytes value 4)
+    else if name == "request_response_information"
+        bytes_append (int_to_bytes P_REQUEST_RESPONSE_INFORMATION 1) (int_to_bytes value 1)
+    else if name == "receive_maximum"
+        bytes_append (int_to_bytes P_RECEIVE_MAXIMUM 1) (int_to_bytes value 2)
+    else if name == "topic_alias_maximum"
+        bytes_append (int_to_bytes P_TOPIC_ALIAS_MAXIMUM 1) (int_to_bytes value 2)
+    else if name == "topic_alias"
+        bytes_append (int_to_bytes P_TOPIC_ALIAS 1) (int_to_bytes value 2)
+    else if name == "maximum_packet_size"
+        bytes_append (int_to_bytes P_MAXIMUM_PACKET_SIZE 1) (int_to_bytes value 4)
+    else if name == "user_property"
+        k: at value 0
+        v: at value 1
+        bytes_append (int_to_bytes P_USER_PROPERTY 1) (enc_utf8 k) (enc_utf8 v)
+    else
+        to_bytes ""
+
+-- Encode a whole properties block (name->value map or nil).
+fn enc_props props
+    body: to_bytes ""
+    if props != nil
+        ks: keys props
+        i: 0
+        while i < (len ks)
+            k: at ks i
+            v: get props k
+            body: bytes_append body (enc_prop k v)
+            i: i + 1
+    if (len body) > 0
+        bytes_append (enc_rl (len body)) body
+    else
+        int_to_bytes 0 1
+
+-- Decode a single property value by id.
+fn dec_prop id buf off
+    if id == P_PAYLOAD_FORMAT_INDICATOR
+        Decoded (at buf off) (off + 1)
+    else if id == P_MESSAGE_EXPIRY_INTERVAL
+        Decoded (bytes_to_int buf off 4) (off + 4)
+    else if id == P_CONTENT_TYPE
+        d: dec_utf8 buf off
+        Decoded d.value d.next
+    else if id == P_RESPONSE_TOPIC
+        d: dec_utf8 buf off
+        Decoded d.value d.next
+    else if id == P_CORRELATION_DATA
+        d: dec_bin buf off
+        Decoded d.value d.next
+    else if id == P_SUBSCRIPTION_IDENTIFIER
+        d: dec_rl buf off
+        Decoded d.value d.next
+    else if id == P_SESSION_EXPIRY_INTERVAL
+        Decoded (bytes_to_int buf off 4) (off + 4)
+    else if id == P_ASSIGNED_CLIENT_IDENTIFIER
+        d: dec_utf8 buf off
+        Decoded d.value d.next
+    else if id == P_SERVER_KEEP_ALIVE
+        Decoded (bytes_to_int buf off 2) (off + 2)
+    else if id == P_AUTHENTICATION_METHOD
+        d: dec_utf8 buf off
+        Decoded d.value d.next
+    else if id == P_AUTHENTICATION_DATA
+        d: dec_bin buf off
+        Decoded d.value d.next
+    else if id == P_REQUEST_PROBLEM_INFORMATION
+        Decoded (at buf off) (off + 1)
+    else if id == P_WILL_DELAY_INTERVAL
+        Decoded (bytes_to_int buf off 4) (off + 4)
+    else if id == P_REQUEST_RESPONSE_INFORMATION
+        Decoded (at buf off) (off + 1)
+    else if id == P_REASON_STRING
+        d: dec_utf8 buf off
+        Decoded d.value d.next
+    else if id == P_RECEIVE_MAXIMUM
+        Decoded (bytes_to_int buf off 2) (off + 2)
+    else if id == P_TOPIC_ALIAS_MAXIMUM
+        Decoded (bytes_to_int buf off 2) (off + 2)
+    else if id == P_TOPIC_ALIAS
+        Decoded (bytes_to_int buf off 2) (off + 2)
+    else if id == P_MAXIMUM_QOS
+        Decoded (at buf off) (off + 1)
+    else if id == P_RETAIN_AVAILABLE
+        Decoded (at buf off) (off + 1)
+    else if id == P_USER_PROPERTY
+        k: dec_utf8 buf off
+        v: dec_utf8 buf k.next
+        Decoded ([k.value, v.value]) v.next
+    else if id == P_MAXIMUM_PACKET_SIZE
+        Decoded (bytes_to_int buf off 4) (off + 4)
+    else if id == P_WILDCARD_SUBSCRIPTION_AVAILABLE
+        Decoded (at buf off) (off + 1)
+    else if id == P_SUBSCRIPTION_IDENTIFIER_AVAILABLE
+        Decoded (at buf off) (off + 1)
+    else if id == P_SHARED_SUBSCRIPTION_AVAILABLE
+        Decoded (at buf off) (off + 1)
+    else
+        Decoded nil off
+
+-- Decode a whole properties block into a name->value map.
+fn dec_props buf off
+    d: dec_rl buf off
+    plen: d.value
+    off: d.next
+    end: off + plen
+    props: {}
+    while off < end
+        id: at buf off
+        off: off + 1
+        pd: dec_prop id buf off
+        nm: prop_name id
+        if nm != nil
+            set props nm pd.value
+        off: pd.next
+    Decoded props end
+
+-- ============================================================
+-- Packet builders
+-- ============================================================
+
+fn build_connect client_id username password keepalive clean_start will props
+    flags: 0
+    if clean_start
+        flags: bit_or flags 2
+    if will != nil
+        flags: bit_or flags 4
+        wqos: get will "qos"
+        if wqos == nil
+            wqos: 0
+        flags: bit_or flags (bit_lshift wqos 3)
+        if (get will "retain") == true
+            flags: bit_or flags 32
+    if username != nil
+        flags: bit_or flags 128
+    if password != nil
+        flags: bit_or flags 64
+
+    vh: bytes_append (enc_utf8 "MQTT") (int_to_bytes 5 1) (int_to_bytes flags 1) (int_to_bytes keepalive 2)
+    vh: bytes_append vh (enc_props props)
+
+    payload: enc_utf8 client_id
+    if will != nil
+        wprops: get will "properties"
+        if wprops == nil
+            wprops: {}
+        wtopic: get will "topic"
+        wpayload: get will "payload"
+        if wpayload == nil
+            wpayload: ""
+        payload: bytes_append payload (enc_props wprops) (enc_utf8 wtopic) (enc_bin wpayload)
+    if username != nil
+        payload: bytes_append payload (enc_utf8 username)
+    if password != nil
+        payload: bytes_append payload (enc_bin password)
+
+    body: bytes_append vh payload
+    bytes_append (int_to_bytes 16 1) (enc_rl (len body)) body
+
+fn build_publish topic payload qos retain pid props
+    b1: bit_or 48 (bit_lshift qos 1)
+    if retain
+        b1: bit_or b1 1
+    vh: enc_utf8 topic
+    if qos > 0
+        vh: bytes_append vh (enc_u16 pid)
+    vh: bytes_append vh (enc_props props)
+    body: bytes_append vh payload
+    bytes_append (int_to_bytes b1 1) (enc_rl (len body)) body
+
+fn build_subscribe pid topics qos
+    body: enc_u16 pid
+    body: bytes_append body (enc_props nil)
+    if (type_of topics) == "STRING"
+        body: bytes_append body (enc_utf8 topics) (int_to_bytes qos 1)
+    else
+        i: 0
+        while i < (len topics)
+            t: at topics i
+            body: bytes_append body (enc_utf8 t) (int_to_bytes qos 1)
+            i: i + 1
+    bytes_append (int_to_bytes 130 1) (enc_rl (len body)) body
+
+fn build_unsubscribe pid topics
+    body: enc_u16 pid
+    body: bytes_append body (enc_props nil)
+    if (type_of topics) == "STRING"
+        body: bytes_append body (enc_utf8 topics)
+    else
+        i: 0
+        while i < (len topics)
+            t: at topics i
+            body: bytes_append body (enc_utf8 t)
+            i: i + 1
+    bytes_append (int_to_bytes 162 1) (enc_rl (len body)) body
+
+fn build_disconnect reason
+    body: bytes_append (int_to_bytes reason 1) (enc_props nil)
+    bytes_append (int_to_bytes 224 1) (enc_rl (len body)) body
+
+fn build_pingreq
+    bytes_append (int_to_bytes 192 1) (int_to_bytes 0 1)
+
+fn build_puback pid
+    body: bytes_append (enc_u16 pid) (int_to_bytes 0 1) (enc_props nil)
+    bytes_append (int_to_bytes 64 1) (enc_rl (len body)) body
+
+fn build_pubrec pid
+    body: bytes_append (enc_u16 pid) (int_to_bytes 0 1) (enc_props nil)
+    bytes_append (int_to_bytes 80 1) (enc_rl (len body)) body
+
+fn build_pubrel pid
+    body: bytes_append (enc_u16 pid) (int_to_bytes 0 1) (enc_props nil)
+    bytes_append (int_to_bytes 98 1) (enc_rl (len body)) body
+
+fn build_pubcomp pid
+    body: bytes_append (enc_u16 pid) (int_to_bytes 0 1) (enc_props nil)
+    bytes_append (int_to_bytes 112 1) (enc_rl (len body)) body
+
+-- ============================================================
+-- Packet parsing
+-- ============================================================
+
+fn read_packet conn
+    h: tcp_read_bytes conn 1
+    if (type_of h) == "ERROR"
+        return h
+    b0: at h 0
+    ptype: bit_rshift b0 4
+    flags: bit_and b0 15
+    mult: 1
+    rl: 0
+    while true
+        rb: tcp_read_bytes conn 1
+        if (type_of rb) == "ERROR"
+            return rb
+        x: at rb 0
+        rl: rl + ((bit_and x 127) * mult)
+        if (bit_and x 128) == 0
+            break
+        mult: mult * 128
+    body: to_bytes ""
+    if rl > 0
+        body: tcp_read_bytes conn rl
+        if (type_of body) == "ERROR"
+            return body
+    {type: ptype, flags: flags, body: body}
+
+fn parse_connack body
+    sp: bit_and (at body 0) 1
+    reason: at body 1
+    d: dec_props body 2
+    {session_present: sp, reason: reason, properties: d.value}
+
+fn parse_suback body
+    pid: bytes_to_int body 0 2
+    d: dec_props body 2
+    reasons: []
+    i: d.next
+    while i < (len body)
+        push reasons (at body i)
+        i: i + 1
+    {pid: pid, reasons: reasons}
+
+fn parse_publish body flags
+    qos: bit_and (bit_rshift flags 1) 3
+    retain: bit_and flags 1
+    d: dec_utf8 body 0
+    topic: d.value
+    off: d.next
+    pid: 0
+    if qos > 0
+        pd: dec_u16 body off
+        pid: pd.value
+        off: pd.next
+    pd2: dec_props body off
+    off: pd2.next
+    payload: slice body off (len body)
+    {topic: topic, qos: qos, retain: retain, pid: pid, payload: payload, properties: pd2.value}
+
+-- ============================================================
+-- Connection state helpers. All shared state is guarded by GLOBAL_MU.
+-- ============================================================
+
+fn get_conn id
+    lock GLOBAL_MU
+    st: get CONNS (to_str id)
+    conn: nil
+    if st != nil
+        conn: get st "conn"
+    unlock GLOBAL_MU
+    conn
+
+fn get_callback id
+    lock GLOBAL_MU
+    st: get CONNS (to_str id)
+    cb: nil
+    if st != nil
+        cb: get st "callback"
+    unlock GLOBAL_MU
+    cb
+
+fn alloc_pid id
+    lock GLOBAL_MU
+    st: get CONNS (to_str id)
+    pid: 0
+    if st != nil
+        pid: get st "next_pid"
+        np: pid + 1
+        if np > 65535
+            np: 1
+        set st "next_pid" np
+    unlock GLOBAL_MU
+    pid
+
+fn register_pending id pid ch
+    lock GLOBAL_MU
+    st: get CONNS (to_str id)
+    if st != nil
+        set (get st "pending") (to_str pid) ch
+    unlock GLOBAL_MU
+
+fn unregister_pending id pid
+    lock GLOBAL_MU
+    st: get CONNS (to_str id)
+    if st != nil
+        map_delete (get st "pending") (to_str pid)
+    unlock GLOBAL_MU
+
+fn write_conn id data
+    conn: get_conn id
+    if conn == nil
+        return (Err "mqtt: connection closed")
+    lock WRITE_MU
+    r: tcp_write conn (from_bytes data)
+    unlock WRITE_MU
+    if (type_of r) == "ERROR"
+        r
+    else
+        Ok nil
+
+fn wait_pending ch timeout_ms
+    deadline: time_ms + timeout_ms
+    while true
+        r: try_recv ch
+        if r != nil
+            return r
+        if time_ms > deadline
+            return nil
+        sleep 5
+    nil
+
+-- ============================================================
+-- Receive loop (runs in a goroutine; sole reader of the socket)
+-- ============================================================
+
+fn deliver id info
+    cb: get_callback id
+    if cb != nil
+        cb info
+    nil
+
+fn route_pending id body
+    pid: bytes_to_int body 0 2
+    ch: nil
+    lock GLOBAL_MU
+    st: get CONNS (to_str id)
+    if st != nil
+        pending: get st "pending"
+        ch: get pending (to_str pid)
+        if ch != nil
+            map_delete pending (to_str pid)
+    unlock GLOBAL_MU
+    if ch != nil
+        send ch body
+    nil
+
+fn handle_publish id flags body
+    info: parse_publish body flags
+    qos: get info "qos"
+    pid: get info "pid"
+    if qos == 1
+        write_conn id (build_puback pid)
+        deliver id info
+    else if qos == 2
+        write_conn id (build_pubrec pid)
+        lock GLOBAL_MU
+        st: get CONNS (to_str id)
+        if st != nil
+            set (get st "qos2_in") (to_str pid) info
+        unlock GLOBAL_MU
+    else
+        deliver id info
+    nil
+
+fn handle_pubrel id body
+    pid: bytes_to_int body 0 2
+    write_conn id (build_pubcomp pid)
+    info: nil
+    lock GLOBAL_MU
+    st: get CONNS (to_str id)
+    if st != nil
+        q2: get st "qos2_in"
+        info: get q2 (to_str pid)
+        if info != nil
+            map_delete q2 (to_str pid)
+    unlock GLOBAL_MU
+    if info != nil
+        deliver id info
+    nil
+
+fn receive_loop id
+    conn: get_conn id
+    if conn == nil
+        return nil
+    while true
+        pkt: read_packet conn
+        if (type_of pkt) == "ERROR"
+            lock GLOBAL_MU
+            st: get CONNS (to_str id)
+            if st != nil
+                set st "closed" true
+            unlock GLOBAL_MU
+            return nil
+        ptype: get pkt "type"
+        if ptype == 3
+            handle_publish id (get pkt "flags") (get pkt "body")
+        else if ptype == 4
+            route_pending id (get pkt "body")
+        else if ptype == 5
+            route_pending id (get pkt "body")
+        else if ptype == 6
+            handle_pubrel id (get pkt "body")
+        else if ptype == 7
+            route_pending id (get pkt "body")
+        else if ptype == 9
+            route_pending id (get pkt "body")
+        else if ptype == 11
+            route_pending id (get pkt "body")
+        else
+            nil
+    nil
+
+fn ping_loop id
+    ka: 0
+    conn: get_conn id
+    if conn == nil
+        return nil
+    lock GLOBAL_MU
+    st: get CONNS (to_str id)
+    if st != nil
+        ka: get st "keepalive"
+    unlock GLOBAL_MU
+    if ka <= 0
+        return nil
+    while true
+        sleep (ka * 1000)
+        closed: true
+        lock GLOBAL_MU
+        st: get CONNS (to_str id)
+        if st == nil
+            unlock GLOBAL_MU
+            return nil
+        closed: get st "closed"
+        unlock GLOBAL_MU
+        if closed == true
+            return nil
+        write_conn id (build_pingreq)
+    nil
+
+-- ============================================================
+-- Public API
+-- ============================================================
+
+-- Connects to an MQTT 5.0 broker. Returns Ok(handle) or Err(message).
+-- opts: {client_id, username, password, keepalive, clean_start, use_tls,
+--        tls_insecure, timeout, will: {topic, payload, qos, retain}, properties}
+export fn mqtt_connect host port opts
+    client_id: "pipe-" ++ (to_str time_ms) ++ (to_str (random_range 1000 9999))
+    username: nil
+    password: nil
+    keepalive: 60
+    clean_start: true
+    use_tls: true
+    tls_insecure: false
+    timeout: 5000
+    will: nil
+    props: {}
+    if opts != nil
+        if (get opts "client_id") != nil
+            client_id: get opts "client_id"
+        if (get opts "username") != nil
+            username: get opts "username"
+        if (get opts "password") != nil
+            password: get opts "password"
+        if (get opts "keepalive") != nil
+            keepalive: get opts "keepalive"
+        if (get opts "clean_start") != nil
+            clean_start: get opts "clean_start"
+        if (get opts "use_tls") != nil
+            use_tls: get opts "use_tls"
+        if (get opts "tls_insecure") != nil
+            tls_insecure: get opts "tls_insecure"
+        if (get opts "timeout") != nil
+            timeout: get opts "timeout"
+        if (get opts "will") != nil
+            will: get opts "will"
+        if (get opts "properties") != nil
+            props: get opts "properties"
+
+    conn: nil
+    if use_tls
+        conn: tcp_connect_tls host port host tls_insecure
+    else
+        conn: tcp_connect host port
+    if (type_of conn) == "ERROR"
+        return (Err ("mqtt_connect: " ++ (to_str conn)))
+
+    pkt: build_connect client_id username password keepalive clean_start will props
+    wr: tcp_write conn (from_bytes pkt)
+    if (type_of wr) == "ERROR"
+        tcp_close conn
+        return (Err ("mqtt_connect: " ++ (to_str wr)))
+
+    tcp_set_read_timeout conn timeout
+    r: read_packet conn
+    tcp_set_read_timeout conn 0
+    if (type_of r) == "ERROR"
+        tcp_close conn
+        return (Err ("mqtt_connect: " ++ (to_str r)))
+    if (get r "type") != 2
+        tcp_close conn
+        return (Err "mqtt_connect: expected CONNACK")
+    ca: parse_connack (get r "body")
+    reason: get ca "reason"
+    if reason != 0
+        tcp_close conn
+        return (Err ("mqtt_connect: refused (reason " ++ (to_str reason) ++ ")"))
+
+    lock GLOBAL_MU
+    id: at COUNTER 0
+    set COUNTER 0 (id + 1)
+    state: {}
+    set state "conn" conn
+    set state "next_pid" 1
+    set state "callback" nil
+    set state "pending" {}
+    set state "qos2_in" {}
+    set state "closed" false
+    set state "keepalive" keepalive
+    set state "id" id
+    set CONNS (to_str id) state
+    unlock GLOBAL_MU
+
+    go receive_loop id
+    if keepalive > 0
+        go ping_loop id
+
+    Ok id
+
+-- Disconnects. Returns Ok(nil) | Err.
+-- graceful (default true) sends DISCONNECT first; false closes abruptly,
+-- which triggers the will message if one was configured at connect time.
+export fn mqtt_disconnect id graceful
+    conn: get_conn id
+    if conn == nil
+        return (Err "mqtt_disconnect: no such connection")
+    if graceful != false
+        write_conn id (build_disconnect 0)
+    tcp_close conn
+    lock GLOBAL_MU
+    st: get CONNS (to_str id)
+    if st != nil
+        set st "closed" true
+    map_delete CONNS (to_str id)
+    unlock GLOBAL_MU
+    Ok nil
+
+-- Publishes a message. Returns Ok(nil) | Err.
+-- opts: {qos, retain, properties}
+export fn mqtt_publish id topic payload opts
+    qos: 0
+    retain: false
+    props: {}
+    if opts != nil
+        if (get opts "qos") != nil
+            qos: get opts "qos"
+        if (get opts "retain") != nil
+            retain: get opts "retain"
+        if (get opts "properties") != nil
+            props: get opts "properties"
+    pb: payload
+    if (type_of payload) == "STRING"
+        pb: to_bytes payload
+
+    if qos == 0
+        r: write_conn id (build_publish topic pb 0 retain 0 props)
+        if is_err r
+            return (Err ("mqtt_publish: " ++ (to_str r)))
+        Ok nil
+    else if qos == 1
+        pid: alloc_pid id
+        ch: chan 1
+        register_pending id pid ch
+        r: write_conn id (build_publish topic pb 1 retain pid props)
+        if is_err r
+            unregister_pending id pid
+            return (Err ("mqtt_publish: " ++ (to_str r)))
+        res: wait_pending ch 5000
+        if res == nil
+            return (Err "mqtt_publish: PUBACK timeout")
+        Ok nil
+    else
+        pid: alloc_pid id
+        ch: chan 2
+        register_pending id pid ch
+        r: write_conn id (build_publish topic pb 2 retain pid props)
+        if is_err r
+            unregister_pending id pid
+            return (Err ("mqtt_publish: " ++ (to_str r)))
+        r1: wait_pending ch 5000
+        if r1 == nil
+            return (Err "mqtt_publish: PUBREC timeout")
+        register_pending id pid ch
+        r2: write_conn id (build_pubrel pid)
+        if is_err r2
+            return (Err ("mqtt_publish: " ++ (to_str r2)))
+        r3: wait_pending ch 5000
+        if r3 == nil
+            return (Err "mqtt_publish: PUBCOMP timeout")
+        Ok nil
+
+-- Subscribes to a topic (string) or list of topics. Returns Ok([granted_qos,...]) | Err.
+export fn mqtt_subscribe id topic qos
+    if qos == nil
+        qos: 0
+    pid: alloc_pid id
+    if pid == 0
+        return (Err "mqtt_subscribe: no such connection")
+    ch: chan 1
+    register_pending id pid ch
+    r: write_conn id (build_subscribe pid topic qos)
+    if is_err r
+        unregister_pending id pid
+        return (Err ("mqtt_subscribe: " ++ (to_str r)))
+    res: wait_pending ch 5000
+    if res == nil
+        return (Err "mqtt_subscribe: SUBACK timeout")
+    sa: parse_suback res
+    Ok (get sa "reasons")
+
+-- Unsubscribes from a topic (string) or list. Returns Ok(nil) | Err.
+export fn mqtt_unsubscribe id topic
+    pid: alloc_pid id
+    if pid == 0
+        return (Err "mqtt_unsubscribe: no such connection")
+    ch: chan 1
+    register_pending id pid ch
+    r: write_conn id (build_unsubscribe pid topic)
+    if is_err r
+        unregister_pending id pid
+        return (Err ("mqtt_unsubscribe: " ++ (to_str r)))
+    res: wait_pending ch 5000
+    if res == nil
+        return (Err "mqtt_unsubscribe: UNSUBACK timeout")
+    Ok nil
+
+-- Sends a PINGREQ. Returns Ok(nil) | Err.
+export fn mqtt_ping id
+    r: write_conn id (build_pingreq)
+    if is_err r
+        return (Err ("mqtt_ping: " ++ (to_str r)))
+    Ok nil
+
+-- Registers the message callback fn(msg) with msg = {topic, payload, qos, retain, pid, properties}.
+export fn mqtt_set_callback id cb
+    lock GLOBAL_MU
+    st: get CONNS (to_str id)
+    if st == nil
+        unlock GLOBAL_MU
+        return (Err "mqtt_set_callback: no such connection")
+    set st "callback" cb
+    unlock GLOBAL_MU
+    Ok nil
+
+-- Returns true if the connection is still open.
+export fn mqtt_connected id
+    closed: true
+    lock GLOBAL_MU
+    st: get CONNS (to_str id)
+    if st == nil
+        unlock GLOBAL_MU
+        return false
+    closed: get st "closed"
+    unlock GLOBAL_MU
+    closed == false

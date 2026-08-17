@@ -1,0 +1,33 @@
+import "./module.pipe" as mqtt
+
+-- Minimal MQTT 5.0 client demo.
+-- Connect to a public broker (no TLS), subscribe, publish, receive, disconnect.
+
+host: "broker.emqx.io"
+port: 1883
+cid: "pipe-demo-" ++ (to_str (random_range 10000 99999))
+
+r: mqtt.mqtt_connect host port {use_tls: false, client_id: cid, keepalive: 60}
+
+if is_err r
+    print "connect failed: " ++ (to_str r)
+else
+    h: unwrap r
+    print "connected (handle " ++ (to_str h) ++ ")"
+
+    -- Callback: receives a map {topic, payload, qos, retain, pid, properties}
+    fn on_msg msg
+        print ">> " ++ (get msg "topic") ++ " = " ++ (from_bytes (get msg "payload"))
+
+    mqtt.mqtt_set_callback h on_msg
+
+    sr: mqtt.mqtt_subscribe h "pipe/example/demo" 1
+    print "subscribed: " ++ (to_str sr)
+
+    pr: mqtt.mqtt_publish h "pipe/example/demo" "hello from pipe!" {qos: 1}
+    print "published: " ++ (to_str pr)
+
+    sleep 1000
+
+    mqtt.mqtt_disconnect h
+    print "disconnected"

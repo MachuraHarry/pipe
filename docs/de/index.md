@@ -39,6 +39,7 @@ Willkommen zur vollständigen Dokumentation der Skriptsprache **Pipe**.
 24. [Discord-Modul](24-discord-modul.md) — Webhook- + Bot-Token-Client als reines-Pipe-Modul *(in Entwicklung, noch nicht im Registry)*
 25. [MCP — Model Context Protocol](25-mcp.md) — Dependency-freier MCP-Server + -Client (Tools, Ressourcen, Prompts) über stdio & Streamable HTTP *(in Entwicklung, noch nicht im Registry)*
 26. [SQLite-Modul](26-sqlite-modul.md) — Reine-Pipe relationale Datenbank + Benchmark vs Python/Lua
+27. [MQTT-Modul](27-mqtt-modul.md) — Reiner-Pipe-MQTT-5.0-Client (TCP/TLS, QoS 0/1/2, Will, Retain, Keep-alive)
 
 ## Anhang
 

@@ -219,7 +219,7 @@ def esc_json_ld(s):
 # ---- page generation ----
 
 NAV = """<nav><div class="container">
-    <a href="../index.html" class="logo"><img src="../logo.svg" alt="Pipe">Pipe<span>.lang</span></a>
+    <a href="../index.html" class="logo"><img src="../logo.svg" alt="Pipe">Pipe</a>
     <div class="lang-switch">
       <button id="btn-en" class="active" onclick="setLang('en')">EN</button>
       <button id="btn-de" onclick="setLang('de')">DE</button>

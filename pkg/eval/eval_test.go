@@ -612,3 +612,26 @@ func TestTryAIRing2InheritsLimits(t *testing.T) {
 		t.Error("audit log not inherited")
 	}
 }
+
+func TestProcessStartWait(t *testing.T) {
+	input := `h: proc_start "echo -n hello"
+result: proc_wait h
+result.output`
+	expectValue(t, input, "hello")
+}
+
+func TestProcessRunning(t *testing.T) {
+	input := `h: proc_start "sleep 10"
+r: proc_running h
+proc_kill h
+to_str(r)`
+	expectValue(t, input, "true")
+}
+
+func TestProcessKill(t *testing.T) {
+	input := `h: proc_start "sleep 10"
+proc_kill h
+result: proc_wait h
+to_str(result.status != 0)`
+	expectValue(t, input, "true")
+}

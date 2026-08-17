@@ -224,7 +224,7 @@ Pipe is currently at version **v1.0.0**, the **production-ready release**. It co
 ### Additional Features
 - [ ] Set data structure (unique, unordered collection)
 - [ ] File system watchers (`watch_dir`, `watch_file`)
-- [ ] Process management (start, kill, wait for subprocesses)
+- [x] Process management (proc_start, proc_wait, proc_kill, proc_running)
 - [x] Regular expression capture groups in `regex_match`
 - [x] Binary data support (byte arrays)
 - [x] Cryptographic functions (hash, encrypt, decrypt)
@@ -280,6 +280,7 @@ Pipe is currently at version **v1.0.0**, the **production-ready release**. It co
 | Concurrency | 🔮 Future | v0.7+ | spawn/await/channels/mutex/semaphore done; coroutines, select open |
 | Type Annotations | 🟡 Partial | v1.1 | Optional typing on vars + fn params; compile-time check open |
 | Bytecode Opts | ✅ Done | v0.7+ | Constant folding + dead code elimination done; peephole deferred |
+| Process Mgmt | ✅ Done | v1.1 | proc_start, proc_wait, proc_kill, proc_running |
 | Sets | 🔮 Future | v0.7+ | Unique collections |
 | Inline Lambdas | ✅ Done | v0.8 | `fn x: expr` in TW + VM |
 | Web Playground | ✅ Done | v0.7 | WASM-based + code sharing |

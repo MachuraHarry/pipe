@@ -1,0 +1,20 @@
+--! Process management demo: spawn, wait, running, kill.
+
+-- Start a long-running process
+handle: proc_start "sleep 2 && echo done"
+
+-- Check if it's still running
+print ("still running? " ++ to_str (proc_running handle))
+
+-- Wait for it to finish
+result: proc_wait handle
+
+-- Print results
+print ("output: " ++ result.output)
+print ("status: " ++ to_str (result.status))
+
+-- Start another process and kill it
+h2: proc_start "sleep 10"
+print ("process started, killing...")
+proc_kill h2
+print ("process killed")

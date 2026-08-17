@@ -55,6 +55,7 @@ Pipe ist aktuell in Version **v1.0.0**, dem **Production-Ready-Release**. Es kon
 | # | Feature | Beschreibung |
 |---|---|---|
 | 10 | **Concurrency** | `>>` Parallel-Pipeline, `go`/`spawn`/`await`, Channels, Mutex und Semaphor (TW + VM, v0.9.x); `select` erledigt; Coroutines offen |
+| 11 | **Process Management** | proc_start, proc_wait, proc_kill, proc_running | ✅ Erledigt |
 | 11 | **Optionale Typannotationen** | `fn add(a: num, b: num) -> a + b` | 🟡 Variablen + Fn-Params erledigt; Compile-time Check offen |
 | 12 | **Package-Registry 2.0** | `pipe -install`, `pipe -publish`, `pipe.json`-Manifest, `pipe.lock`-Reproduzierbarkeit | ✅ Erledigt |
 | 13 | **Bytecode-Optimierungen** | Constant Folding + Dead Code Elimination erledigt; Peephole verschoben (fragil mit try/catch) |

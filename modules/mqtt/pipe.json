@@ -1,6 +1,6 @@
 {
   "name": "mqtt",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "MQTT 5.0 client (TCP/TLS, QoS 0/1/2, will, retain, keep-alive, wildcards)",
   "author": "MachuraHarry",
   "license": "MIT",

@@ -49,7 +49,7 @@ The two bugs we caught while building it are the ones that always bite concurren
 
 ## Will, retain, and the full 5.0 property set
 
-Because it's MQTT **5.0** (not 3.1.1), the module also speaks the modern dialect: all 26 property identifiers are encoded *and* decoded — `session_expiry_interval`, `user_property`, `content_type`, `correlation_data`, and the rest. Will messages work (drop the connection with `graceful: false` and the broker publishes your will). Retained messages come back on fresh subscriptions.
+Because it's MQTT **5.0** (not 3.1.1), the module also speaks the modern dialect: all 27 property identifiers are encoded *and* decoded — `session_expiry_interval`, `user_property`, `content_type`, `correlation_data`, and the rest. Will messages work (drop the connection with `graceful: false` and the broker publishes your will). Retained messages come back on fresh subscriptions.
 
 ```pipe
 -- TLS + will message + self-signed cert
@@ -126,7 +126,7 @@ Die zwei Bugs, die wir beim Bauen einfingen, sind die, die nebenläufigen Code i
 
 ## Will, Retain und das volle 5.0-Property-Set
 
-Weil es MQTT **5.0** ist (nicht 3.1.1), spricht das Modul auch den modernen Dialekt: alle 26 Property-Identifier werden kodiert *und* dekodiert — `session_expiry_interval`, `user_property`, `content_type`, `correlation_data` und der Rest. Will-Nachrichten funktionieren (Verbindung mit `graceful: false` fallen lassen, und der Broker publiziert dein Will). Retained-Nachrichten kommen bei frischen Subscriptions zurück.
+Weil es MQTT **5.0** ist (nicht 3.1.1), spricht das Modul auch den modernen Dialekt: alle 27 Property-Identifier werden kodiert *und* dekodiert — `session_expiry_interval`, `user_property`, `content_type`, `correlation_data` und der Rest. Will-Nachrichten funktionieren (Verbindung mit `graceful: false` fallen lassen, und der Broker publiziert dein Will). Retained-Nachrichten kommen bei frischen Subscriptions zurück.
 
 ```pipe
 -- TLS + Will-Nachricht + selbst-signiertes Zertifikat

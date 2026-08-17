@@ -4,7 +4,7 @@ A complete **MQTT 5.0** client for [Pipe](https://github.com/MachuraHarry/pipe),
 
 ## Features
 
-- MQTT 5.0 (protocol level 5), with the full property system
+- MQTT 5.0 (protocol level 5), with all 27 property identifiers
 - QoS 0, 1 and 2 (full PUBREC/PUBREL/PUBCOMP handshake, both directions)
 - Transport: TCP and TLS (incl. self-signed certificates via `tls_insecure`)
 - Will message, retain flag, clean start, keep-alive (PINGREQ)

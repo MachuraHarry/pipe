@@ -4,7 +4,7 @@
 
 ## Funktionen
 
-- **MQTT 5.0** (Protokoll-Level 5) mit dem vollen Property-System (Encode **und** Decode aller 26 Property-Identifier)
+- **MQTT 5.0** (Protokoll-Level 5) mit dem vollen Property-System (Encode **und** Decode aller 27 Property-Identifier)
 - **QoS 0, 1 und 2** — der komplette `PUBREC`/`PUBREL`/`PUBCOMP`-Handshake, in beide Richtungen
 - **TCP und TLS** — inklusive `tls_insecure` für selbst-signierte Zertifikate
 - **Will-Nachricht**, **Retain**-Flag, **Clean Start**, **Keep-alive** (`PINGREQ`)

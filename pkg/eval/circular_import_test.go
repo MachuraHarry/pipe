@@ -186,3 +186,27 @@ func TestAliasImportVMHidesInternalSymbols(t *testing.T) {
 	}
 	t.Fatalf("internal symbol leaked into alias namespace: %s", top.Inspect())
 }
+
+func TestModulePipeImport(t *testing.T) {
+	// Regression: pipe -install writes module.pipe, but the import resolver
+	// only checked for init.pipe. Verify module.pipe entry point works.
+	dir := t.TempDir()
+	modDir := filepath.Join(dir, "mypkg")
+	if err := os.MkdirAll(modDir, 0755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(modDir, "module.pipe"), []byte("export fn double(x)\n    x * 2\n"), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	t.Setenv("PIPE_PATH", dir)
+
+	result := evalFile(t, filepath.Join(dir, "main.pipe"),
+		"import \"mypkg\" as mypkg\n(mypkg.double 21)\n")
+	if err, ok := result.(*object.Error); ok {
+		t.Fatalf("module.pipe import failed: %v", err)
+	}
+	if result.Inspect() != "42" {
+		t.Errorf("expected 42, got %q", result.Inspect())
+	}
+}

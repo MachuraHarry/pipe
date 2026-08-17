@@ -187,12 +187,16 @@ func readImportCandidate(candidate string) (string, string, error) {
 	// Normalize trailing slashes so path handling is consistent.
 	clean := filepath.Clean(candidate)
 	if info, err := os.Stat(clean); err == nil && info.IsDir() {
-		initPath := filepath.Join(clean, "init.pipe")
-		data, err := os.ReadFile(initPath)
-		if err != nil {
-			return "", "", fmt.Errorf("directory %s has no init.pipe", clean)
+		// Try init.pipe first (convention for user-defined modules),
+		// then module.pipe (convention used by pipe -install / registry).
+		for _, entry := range []string{"init.pipe", "module.pipe"} {
+			entryPath := filepath.Join(clean, entry)
+			data, err := os.ReadFile(entryPath)
+			if err == nil {
+				return entryPath, string(data), nil
+			}
 		}
-		return initPath, string(data), nil
+		return "", "", fmt.Errorf("directory %s has no init.pipe or module.pipe", clean)
 	}
 
 	data, err := os.ReadFile(clean)

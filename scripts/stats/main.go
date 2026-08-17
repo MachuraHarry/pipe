@@ -226,6 +226,8 @@ var docFiles = []string{
 	"website/docs.html",
 	"docs/en/21-ecosystem.md",
 	"docs/de/21-ecosystem.md",
+	"docs/en/index.md",
+	"docs/de/index.md",
 }
 
 func syncDocs(root string, oldBuiltins, oldStandard int, stats *Stats) {
@@ -260,10 +262,16 @@ func syncDocs(root string, oldBuiltins, oldStandard int, stats *Stats) {
 		s = regexp.MustCompile(`\b\d+ reusable modules\b`).ReplaceAllString(s, newM+" reusable modules")
 		s = regexp.MustCompile(`\b\d+ modules\b`).ReplaceAllString(s, newM+" modules")
 		s = regexp.MustCompile(`\b\d+ Module\b`).ReplaceAllString(s, newM+" Module")
+		s = regexp.MustCompile(`\b\d+ kuratierte Module\b`).ReplaceAllString(s, newM+" kuratierte Module")
 
 		// The "Modules"/"Module" stat counter (stat-num) is matched by its label.
 		s = regexp.MustCompile(`(stat-num">)(\d+)(</span><div class="stat-label"[^>]*>(?:Modules|Module))`).
 			ReplaceAllString(s, `${1}`+newM+`${3}`)
+
+		// Test count in stat-num elements — matched by "Tests" label.
+		newT := strconv.Itoa(stats.GoTests)
+		s = regexp.MustCompile(`(stat-num">)(\d+)(</span><div class="stat-label"[^>]*>Tests)`).
+			ReplaceAllString(s, `${1}`+newT+`${3}`)
 
 		if s == string(data) {
 			fmt.Printf("sync %s: no change\n", name)

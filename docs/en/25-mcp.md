@@ -1,7 +1,7 @@
 # 25. MCP (Model Context Protocol)
 
-> **STATUS: IN DEVELOPMENT — NOT yet published to the pipe-modules registry.**
-> E2E-verifiziert: MCP Server + Client mit JSON-RPC 2.0 über stdio UND Streamable HTTP (SSE).
+> **STATUS: Production-ready — built into Pipe v1.0.0.**
+> E2E-verified: MCP Server + Client with JSON-RPC 2.0 over stdio AND Streamable HTTP (SSE).
 
 Pipe implements the **[Model Context Protocol (MCP)](https://modelcontextprotocol.io)** — both as a Server (to expose tools to external clients like Claude Desktop) and as a Client (to consume external MCP servers in `ai_with_tools`). The implementation is **zero-dependency**, using only Go's standard library.
 

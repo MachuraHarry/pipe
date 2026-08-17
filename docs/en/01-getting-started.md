@@ -39,7 +39,7 @@ Windows (PowerShell): `irm https://pipe-lang.com/install.ps1 | iex`
 
 The installer detects your OS and architecture, downloads the latest release binary, verifies its SHA256 checksum and installs `pipe` into `~/.local/bin` (or `/usr/local/bin` when run as root). It adds a PATH hint if needed. Overrides:
 
-- `PIPE_VERSION=v0.9.4.0` — install a specific release tag
+- `PIPE_VERSION=v1.0.0` — install a specific release tag
 - `PIPE_DIR=/some/dir` — choose the install directory
 - `install.sh --uninstall` — remove the binary
 

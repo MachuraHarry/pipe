@@ -2,40 +2,40 @@
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
   "name": "io.github.MachuraHarry/pipe",
   "title": "Pipe (SPR) MCP Server",
-  "description": "AI-native runtime with built-in MCP server. 226 builtins, AI pipelines, RAG, single 8 MB binary.",
+  "description": "AI-native runtime with built-in MCP server. 232 builtins, AI pipelines, RAG, single ~8 MB binary.",
   "repository": {
     "url": "https://github.com/MachuraHarry/pipe",
     "source": "github"
   },
-  "version": "0.9.3.5",
+  "version": "1.0.0",
   "packages": [
     {
       "registryType": "mcpb",
-      "identifier": "https://github.com/MachuraHarry/pipe/releases/download/v0.9.3.5/pipe-server-linux-amd64.mcpb",
+      "identifier": "https://github.com/MachuraHarry/pipe/releases/download/v1.0.0/pipe-server-linux-amd64.mcpb",
       "fileSha256": "REPLACE_AT_PUBLISH",
       "transport": { "type": "stdio" }
     },
     {
       "registryType": "mcpb",
-      "identifier": "https://github.com/MachuraHarry/pipe/releases/download/v0.9.3.5/pipe-server-linux-arm64.mcpb",
+      "identifier": "https://github.com/MachuraHarry/pipe/releases/download/v1.0.0/pipe-server-linux-arm64.mcpb",
       "fileSha256": "REPLACE_AT_PUBLISH",
       "transport": { "type": "stdio" }
     },
     {
       "registryType": "mcpb",
-      "identifier": "https://github.com/MachuraHarry/pipe/releases/download/v0.9.3.5/pipe-server-darwin-amd64.mcpb",
+      "identifier": "https://github.com/MachuraHarry/pipe/releases/download/v1.0.0/pipe-server-darwin-amd64.mcpb",
       "fileSha256": "REPLACE_AT_PUBLISH",
       "transport": { "type": "stdio" }
     },
     {
       "registryType": "mcpb",
-      "identifier": "https://github.com/MachuraHarry/pipe/releases/download/v0.9.3.5/pipe-server-darwin-arm64.mcpb",
+      "identifier": "https://github.com/MachuraHarry/pipe/releases/download/v1.0.0/pipe-server-darwin-arm64.mcpb",
       "fileSha256": "REPLACE_AT_PUBLISH",
       "transport": { "type": "stdio" }
     },
     {
       "registryType": "mcpb",
-      "identifier": "https://github.com/MachuraHarry/pipe/releases/download/v0.9.3.5/pipe-server-windows-amd64.mcpb",
+      "identifier": "https://github.com/MachuraHarry/pipe/releases/download/v1.0.0/pipe-server-windows-amd64.mcpb",
       "fileSha256": "REPLACE_AT_PUBLISH",
       "transport": { "type": "stdio" }
     }

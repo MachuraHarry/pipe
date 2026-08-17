@@ -2,8 +2,8 @@
   "manifest_version": "0.3",
   "name": "pipe-mcp",
   "display_name": "Pipe (SPR) MCP Server",
-  "version": "0.9.3.5",
-  "description": "AI-native runtime with built-in MCP server. 226 builtins, AI pipelines, RAG, single ~8 MB binary.",
+  "version": "1.0.0",
+  "description": "AI-native runtime with built-in MCP server. 232 builtins, AI pipelines, RAG, single ~8 MB binary.",
   "author": {
     "name": "MachuraHarry",
     "url": "https://github.com/MachuraHarry"

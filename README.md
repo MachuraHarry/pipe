@@ -1,15 +1,29 @@
-# <img src="website/logo.svg" width="32" height="32" align="left" style="margin-right:8px"> Pipe — MCP-native runtime for AI infrastructure
+# <img src="website/logo.svg" width="32" height="32" align="left" style="margin-right:8px"> Pipe — The MCP-native runtime, production-ready
 
 [![CI](https://github.com/MachuraHarry/pipe/actions/workflows/ci.yml/badge.svg)](https://github.com/MachuraHarry/pipe/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-purple.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-v0.9.4.0-blue.svg)](https://github.com/MachuraHarry/pipe/releases)
+[![Version](https://img.shields.io/badge/version-v1.0.0-blue.svg)](https://github.com/MachuraHarry/pipe/releases)
 [![SPR](https://img.shields.io/badge/SPR-Semantic%20Pipeline%20Runtime-7c5cfc.svg)](#)
 [![MCP](https://img.shields.io/badge/MCP-Server%20%2B%20Client-3ce096.svg)](#model-context-protocol)
 [![GitHub MCP Registry](https://img.shields.io/badge/GitHub_MCP_Registry-Onboarding-6e5494.svg)](https://github.com/github/github-mcp-server/discussions/3057)
 [![MCP Registry](https://img.shields.io/badge/MCP_Registry-Listed-4a90d9.svg)](https://registry.modelcontextprotocol.io/?q=MachuraHarry)
 
 > **The first language with built-in MCP — server and client. 232 builtins, single ~8 MB binary. Zero dependencies.**
-> **Officially listed in the [official MCP Registry](https://registry.modelcontextprotocol.io/?q=MachuraHarry)** (v0.9.4.0, active). GitHub MCP Registry [onboarding requested](https://github.com/github/github-mcp-server/discussions/3057) for one-click install in GitHub Copilot & VS Code.
+> **Officially listed in the [official MCP Registry](https://registry.modelcontextprotocol.io/?q=MachuraHarry)** (v1.0.0, active). GitHub MCP Registry [onboarding requested](https://github.com/github/github-mcp-server/discussions/3057) for one-click install in GitHub Copilot & VS Code.
+
+## What's New in v1.0
+
+Pipe v1.0.0 is the **production-ready release**, consolidating the entire v0.9.x series:
+
+- **Guard clauses** — `| pattern if cond -> body` in match expressions
+- **Concurrency primitives** — channels (`send`/`recv`/`try_recv`), mutex (`lock`/`unlock`), counting semaphore (`acquire`/`release`)
+- **Bytecode-VM improvements** — constant folding, alias import namespaces, bytecode cache
+- **MQTT 5.0 module** — pure Pipe MQTT client with input validation, CONNACK properties, DISCONNECT handling
+- **docs-pipe** — RAG module for documentation-native search with heading-aware chunking
+- **Test framework** — setup/teardown hooks, `assert_near`/`assert_contains`, VM test blocks
+- **Hardened sandbox** — audit rounds 1-6, deterministic env masking, central egress gate
+- **232 builtins** — 36 AI + 13 MCP + 183 standard, up from 226 in v0.9.3
+- **23 modules** — MQTT, SQLite, pipe-http, pipe-web, pipe-orm, pipe-cli, and more
 
 ## Quick Install
 
@@ -19,7 +33,7 @@ curl -fsSL https://pipe-lang.com/install.sh | bash   # Linux & macOS
 
 Windows (PowerShell): `irm https://pipe-lang.com/install.ps1 | iex`
 
-The installer downloads the latest release, verifies its SHA256 checksum and installs `pipe` into `~/.local/bin` (or `/usr/local/bin` when run as root). Pin a version with `PIPE_VERSION=v0.9.4.0`. See the [full install docs](docs/en/01-getting-started.md).
+The installer downloads the latest release, verifies its SHA256 checksum and installs `pipe` into `~/.local/bin` (or `/usr/local/bin` when run as root). Pin a version with `PIPE_VERSION=v1.0.0`. See the [full install docs](docs/en/01-getting-started.md).
 
 ## Privacy & DSGVO
 
@@ -163,6 +177,18 @@ ai_with_tools "You are a weather assistant." "What's the weather in Berlin and L
     > print
 ```
 
+### Concurrency — 3 LLM Calls in 1.5s, Not 4s
+
+```pipe
+ai_provider "deepseek"
+
+a: "Explain monads" >> ask
+b: "What is CP/M?" >> ask
+c: "Explain RFC 791" >> ask
+
+print a ++ b ++ c   -- Future auto-resolution
+```
+
 ### Discord CI/CD Notifications
 
 ```pipe
@@ -173,7 +199,7 @@ ai_provider "deepseek"
 review: ai_chat "Review this code change" diff 800
 
 d.d_webhook_embed (env "DISCORD_WEBHOOK") {
-    title: "🔧 CI: Push to master",
+    title: "CI: Push to master",
     color: 3447003,
     fields: [
         {name: "Changed Files", value: stat},
@@ -196,15 +222,16 @@ d.d_webhook_embed (env "DISCORD_WEBHOOK") {
 
 ## Features
 
-- **MCP-native** — 6 builtins for MCP Server + Client. Pure Go stdlib. Connect to any stdio MCP server
-- **Ship AI pipelines 10× faster** — 36 AI + 13 MCP builtins: no imports, no SDKs, no API wrappers
+- **MCP-native** — 13 builtins for MCP Server + Client. Pure Go stdlib. Connect to any stdio MCP server
+- **Ship AI pipelines 10x faster** — 36 AI + 13 MCP builtins: no imports, no SDKs, no API wrappers
 - **Lock down AI agents in one line** — Declarative sandbox profiles: restrict `exec`, `write_file`, `http_get` with a single block
 - **Deploy in seconds** — One statically-linked ~8 MB binary. No venv, no pip, no Docker. Linux, macOS, Windows, Raspberry Pi, or your browser via WebAssembly
 - **3 LLM calls in 1.5s, not 4s** — `>>` starts any pipeline stage in the background. Futures auto-resolve. `ai_batch` handles hundreds of texts concurrently with built-in rate limiting
 - **No vendor lock-in** — OpenAI, Anthropic (Claude), DeepSeek, Ollama. Switch with one line. Same code works everywhere
+- **Concurrency primitives** — channels (`send`/`recv`), mutex (`lock`/`unlock`), counting semaphore (`acquire`/`release`)
 - **Pipeline-native syntax** — `>` sequential, `>>` parallel. Data flows top to bottom — readable, composable, debuggable
 - **Social platforms built in** — Discord webhooks and Telegram bots as Pipe modules. AI code reviews, notifications, chat — zero API costs for sending
-- **Bytecode VM** — Compile to bytecode, run on a stack VM with automatic caching. Measured 0.6×–55× vs tree-walker depending on workload (recursion-heavy code up to ~55×)
+- **Bytecode VM** — Compile to bytecode, run on a stack VM with automatic caching. Measured 0.6x-55x vs tree-walker depending on workload (recursion-heavy code up to ~55x)
 - **Module ecosystem** — 23 curated modules, registry with version pinning (`@1.0.0`). `pipe -get` installs, import by name
 - **Built-in testing** — `test` blocks with `assert_eq`, `assert_error`. Run with `pipe -test`. Zero setup
 - **GitHub Action** — Run Pipe directly in CI/CD. No installation needed
@@ -226,7 +253,7 @@ No install needed — Pipe runs fully in your browser via WebAssembly:
 <p align="center">
   <a href="https://pipe-lang.com/playground.html">
     <img src="website/logo.svg" width="64" height="64" alt="Pipe"><br>
-    <b>Open the Pipe Playground →</b>
+    <b>Open the Pipe Playground</b>
   </a>
 </p>
 
@@ -263,7 +290,7 @@ Syntax highlighting and full IntelliSense for `.pipe` files, powered by a Langua
 - Format document, auto-completion of brackets, auto-indent and code folding
 
 ```sh
-make vsix     # builds the server and packages vscode/pipe-syntax-0.9.5.vsix
+make vsix     # builds the server and packages vscode/pipe-syntax-1.0.0.vsix
 ```
 
 Or run the extension in development with F5 from the `vscode/` folder. See [VSCode Extension Documentation](docs/en/15-vscode-extension.md).
@@ -274,16 +301,17 @@ Pipe has a [curated module library](https://github.com/MachuraHarry/pipe-modules
 
 | Infrastructure | Data & CLI | AI & Agents | DevTools | Social |
 |---|---|---|---|---|
-| `pipe-http` | `sqlite` | `rag-pipe` 🆕 | `pipe-test` | `discord` 🆕 |
-| `pipe-cli` | `jpipe` | `log-analyzer` | `pipe-validate` 🆕 | `x` 🆕 (in dev) |
-| `pipe-orm` 🆕 | `pipe-tpl` | `sentiment` | | `telegram-bot` |
-| `pipe-web` 🆕 | `pipe-date` | `code-review` | | `discord` (in dev) |
-| | | `translate-batch` | | `x` (in dev) |
+| `pipe-http` | `sqlite` | `rag-pipe` | `pipe-test` | `telegram-bot` |
+| `pipe-cli` | `jpipe` | `log-analyzer` | `pipe-validate` | `mqtt` |
+| `pipe-orm` | `pipe-tpl` | `sentiment` | | |
+| `pipe-web` | `pipe-date` | `code-review` | | |
+| | | `translate-batch` | | |
 | | | `changelog-gen` | | |
 | | | `email-classifier` | | |
 | | | `incident-report` | | |
 | | | `parallel-runner` | | |
 | | | `date-formatter` | | |
+| | | `docs-pipe` | | |
 
 ```bash
 pipe -search                 # Browse modules
@@ -295,8 +323,8 @@ pipe -get sqlite@0.8.0       # Install specific version
 ```pipe
 import "sqlite"                            -- database engine
 import "pipe-http"                         -- HTTP client
+import "mqtt"                              -- MQTT 5.0 client
 import "discord.pipe" as d                 -- Discord webhooks + bot
-import "x.pipe" as x                       -- X (Twitter) API v2
 
 idx: index_create h "knowledge"
 index_add idx "Pipe is an AI-native language."
@@ -310,7 +338,7 @@ index_search idx "language" 3 > each print
 | Mode | Command | Speed |
 |------|---------|-------|
 | Tree-Walker | `./bin/pipe script.pipe` | Baseline |
-| Bytecode VM | `./bin/pipe -vm -q script.pipe` | 0.6×–55× (recursion-heavy up to ~55×) |
+| Bytecode VM | `./bin/pipe -vm -q script.pipe` | 0.6x-55x (recursion-heavy up to ~55x) |
 
 ## 49 AI + MCP Builtins (36 AI + 13 MCP)
 
@@ -342,7 +370,7 @@ index_search idx "language" 3 > each print
 ai_provider "deepseek"
 
 result: try_ai
-    "42" * 3           -- E002 Type Error → AI wraps with to_num → 126
+    "42" * 3           -- E002 Type Error -> AI wraps with to_num -> 126
 catch e
     0                   -- only reached if AI fix fails
 
@@ -361,28 +389,45 @@ c: "Frage C"
 print a ++ b ++ c   -- Future auto-resolution
 ```
 
+### Guard Clauses in Match
+```pipe
+fn classify severity
+    match severity
+        | s if s > 9 -> "critical"
+        | s if s > 5 -> "warning"
+        | _ -> "info"
+```
+
+### Concurrency: Channels
+```pipe
+ch: chan 3
+go { send ch "hello" }
+go { send ch "world" }
+print (recv ch) ++ " " ++ (recv ch)
+```
+
 ### Sandbox Profiles
 ```pipe
 sandbox_profile "safe" {fs: "read-only", network: false, exec: false, ai: true}
 sandbox_profile "agent" {fs: "temp-only", network: true, exec: false, ai: true}
 
 set_sandbox "safe"
-read_file "/etc/config"     -- ✅ reading allowed
-write_file "/etc/config"    -- ❌ E_SANDBOX blocked
+read_file "/etc/config"     -- reading allowed
+write_file "/etc/config"    -- E_SANDBOX blocked
 ```
 
 ## Architecture
 
 ```
-Source (.pipe) → Lexer → Parser → AST → [ Tree-Walker | Compiler + VM ]
-                                            ↓
-                                  Builtins (232 total: 36 AI + 13 MCP + 183 standard)
-                                            ↓
-                              MCP Server ↔ MCP Clients (stdio + HTTP)
+Source (.pipe) -> Lexer -> Parser -> AST -> [ Tree-Walker | Compiler + VM ]
+                                              |
+                                    Builtins (232 total: 36 AI + 13 MCP + 183 standard)
+                                              |
+                                MCP Server <-> MCP Clients (stdio + HTTP)
 ```
 
 - 67 token types, 36 AST node types, 43 opcodes
-- ~37,000 LoC Go, 640 tests, 86 example programs
+- ~37,000 LoC Go, 643 tests, 87 example programs
 - Zero dependencies — pure Go stdlib
 
 ## Documentation
@@ -399,68 +444,26 @@ pipe/
 │   └── pipe-lsp/              # Language Server Protocol server (IntelliSense)
 ├── pkg/
 │   ├── ai/                    # AI provider integrations
-│   │   ├── ai.go
-│   │   ├── ai_test.go
-│   │   ├── embeddings.go
-│   │   ├── providers.go
-│   │   └── tools.go
-│   ├── analysis/              # IntelliSense library (builtins, diagnostics, completion…)
+│   ├── analysis/              # IntelliSense library (builtins, diagnostics, completion...)
 │   ├── ast/                   # AST node definitions
-│   │   └── ast.go
 │   ├── build/                 # Self-extracting binary builder
-│   │   └── build.go
 │   ├── cache/                 # Bytecode cache
-│   │   ├── cache.go
-│   │   └── cache_test.go
 │   ├── compiler/              # Compiler to bytecode
-│   │   ├── compiler.go
-│   │   ├── compiler_test.go
-│   │   └── opcode.go
 │   ├── eval/                  # Tree-walk interpreter
-│   │   ├── builtins.go
-│   │   ├── eval.go
-│   │   └── eval_test.go
 │   ├── formatter/             # Code formatter
-│   │   ├── formatter.go
-│   │   └── formatter_test.go
+│   ├── gen/                   # Code generation helpers
 │   ├── lexer/                 # Lexer and tokens
-│   │   ├── lexer.go
-│   │   ├── lexer_test.go
-│   │   └── token.go
 │   ├── mcp/                   # MCP server + client (zero-dependency)
-│   │   ├── types.go
-│   │   ├── server.go
-│   │   ├── client.go
-│   │   ├── stdio.go
-│   │   └── schema.go
 │   ├── object/                # Runtime objects
-│   │   ├── ai_builtins_test.go
-│   │   ├── environment.go
-│   │   └── object.go
 │   ├── parser/                # Parser
-│   │   ├── parser.go
-│   │   └── parser_test.go
 │   ├── stdlib/                # Standard library helpers
 │   └── vm/                    # Bytecode VM
-│       ├── vm.go
-│       └── vm_test.go
-├── examples/                  # 86 example programs
-│   ├── mcp_server.pipe        # MCP server with weather/docs/shell tools
-│   ├── mcp_filesystem.pipe    # MCP client using filesystem server
-│   ├── mcp_github.pipe        # MCP client using GitHub server
-│   ├── mcp_combined.pipe      # MCP hub: own tools + external servers
-│   ├── ai_tool_demo.pipe
-│   ├── selfhost/              # Self-hosting lexer/parser
-│   └── ...
+├── examples/                  # 87 example programs
 ├── test/integration/          # Integration tests
 ├── vscode/                    # VSCode extension (syntax highlighting + LSP client)
-│   ├── src/                   # LSP client bootstrap (TypeScript)
-│   ├── syntaxes/pipe.tmLanguage.json
-│   └── package.json
 ├── docs/                      # Documentation (DE + EN)
-│   ├── en/                    # English docs (27 chapters)
-│   └── de/                    # German docs (27 chapters)
 ├── website/                   # Project website
+├── modules/                   # Language modules (mqtt, discord, x, etc.)
 ├── Makefile
 ├── go.mod
 └── LICENSE

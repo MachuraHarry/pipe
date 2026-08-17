@@ -1,8 +1,8 @@
 # 18. Roadmap
 
-## Aktuelle Version: v0.9.4.0
+## Aktuelle Version: v1.0.0
 
-Pipe ist aktuell in Version **v0.9.4.0**, dem **Modulsystem-Release**. Es vervollständigt das Modul-System auf dem Weg zu v1.0: **Directory-Imports** (`import "mylib/"` lädt `mylib/init.pipe`), dedizierte **relative Imports** (`./`, `../` — nie über den Registry-Fallback), **Zyklus-Erkennung** (`E009: circular import` in Tree-Walker und Bytecode-VM, inkl. Alias-Importe), `PIPE_PATH` über `filepath.SplitList` (plattformnatives Trennzeichen), **SemVer-Auflösung** für `^X.Y.Z`-Constraints bei `pipe -install` sowie **`pipe -publish`**: veröffentlicht Module per gh-CLI-Pull-Request in der Registry (Validierung, Versions-Duplikat-Check, Modul-Dir + registry.json-Eintrag, Branch `publish/<name>-<version>`). Der Sprachumfang entspricht weiterhin dem Sandbox-Härtungs-Release v0.9.3.5: zentraler Egress-Gate für alle AI-Provider-Ausgänge, Rekursions-Tiefen-Guard (E008), zero-dependency MCP-Server, X-API-v2- und Discord-Modul sowie die CI-Benachrichtigungen mit Discord + Telegram Dual-Versand inklusive KI-Code-Reviews.
+Pipe ist aktuell in Version **v1.0.0**, dem **Production-Ready-Release**. Es konsolidiert alle Features der v0.9.x-Serie: den vollständigen **MCP-Server und -Client** (stdio + SSE), **Sandbox-Profile** (deklarative Runtime-Sicherheit), **AI-Provider-Abstraktion** (OpenAI, Anthropic, DeepSeek, Ollama), die **Bytecode-VM** (bis zu 55x schneller als der Tree-Walker), **Guard Clauses** in Match-Ausdrücken, **Concurrency-Primitiven** (Channels, Mutex, Counting Semaphore), **Constant Folding** und das **MQTT-5.0-Modul**. Das Modulsystem umfasst Directory-Imports, relative Imports, Zyklus-Erkennung, SemVer-Auflösung und `pipe -publish`. 232 Builtins, 23 Module, 643 Tests.
 
 ---
 

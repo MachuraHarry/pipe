@@ -1,5 +1,13 @@
 [
   {
+    "id": "pipe-v1",
+    "file": "pipe-v1.md",
+    "date": "2026-08-17",
+    "tag": "release",
+    "title": {"en": "Pipe v1.0.0 — From Prototype to Production", "de": "Pipe v1.0.0 — Vom Prototypen zur Produktion"},
+    "excerpt": {"en": "Pipe reaches v1.0.0 — 232 builtins, 23 modules, guard clauses, concurrency primitives, MQTT 5.0, and a hardened sandbox. The first production-ready release.", "de": "Pipe erreicht v1.0.0 — 232 Builtins, 23 Module, Guard Clauses, Concurrency-Primitiven, MQTT 5.0 und eine gehärtete Sandbox. Das erste production-ready Release."}
+  },
+  {
     "id": "mqtt-client",
     "file": "mqtt-client.md",
     "date": "2026-08-17",

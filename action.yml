@@ -13,7 +13,7 @@ inputs:
     required: false
     default: '-vm -q'
   version:
-    description: 'Pipe version to use (latest or a release tag like v0.8.0)'
+    description: 'Pipe version to use (latest or a release tag like v1.0.0)'
     required: false
     default: 'latest'
   provider:

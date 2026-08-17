@@ -20,7 +20,7 @@ Then restart VSCode or reload the window (`Ctrl+Shift+P` → "Developer: Reload 
    make vsix
    ```
 
-2. Press `Ctrl+Shift+P` and run "Extensions: Install from VSIX...", then select `vscode/pipe-syntax-0.9.5.vsix`.
+2. Press `Ctrl+Shift+P` and run "Extensions: Install from VSIX...", then select `vscode/pipe-syntax-1.0.0.vsix`.
 
 ### Option 3: Symlink (for development)
 
@@ -242,7 +242,7 @@ vscode/
 ├── README.md                       # Marketplace listing
 ├── LICENSE                         # MIT license
 ├── test-syntax.pipe                # Syntax test file (source)
-└── pipe-syntax-0.9.5.vsix          # Packaged extension (built with `make vsix`)
+└── pipe-syntax-1.0.0.vsix          # Packaged extension (built with `make vsix`)
 ```
 
 ## Building the Extension

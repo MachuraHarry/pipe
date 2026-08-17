@@ -15,11 +15,11 @@ cp -r vscode/ ~/.vscode/extensions/pipe-lang.pipe-syntax-0.1.0/
 ### Installation als VSIX
 
 ```bash
-make vsix   # paketiert vscode/pipe-syntax-0.9.5.vsix
+make vsix   # paketiert vscode/pipe-syntax-1.0.0.vsix
 ```
 
 Danach in VSCode `Ctrl+Shift+P` → "Extensions: Install from VSIX..." und die
-Datei `vscode/pipe-syntax-0.9.5.vsix` auswählen.
+Datei `vscode/pipe-syntax-1.0.0.vsix` auswählen.
 
 ### Entwicklung
 

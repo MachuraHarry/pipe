@@ -20,13 +20,13 @@ Pipe combines **Python-like readability** (indentation-based, no braces) with **
 
 ## About Pipe
 
-- **Version**: v0.9.4.0
+- **Version**: v1.0.0
 - **Implementation**: Go 1.25+
 - **License**: MIT
 - **Binary size**: ~8 MB (dependency-free, statically linked)
-- **Tests**: 640 (across 19 packages)
-- **Builtins**: 229
-- **Modules**: 22 (curated, installable via `pipe -get`)
+- **Tests**: 643 (across 19 packages)
+- **Builtins**: 232
+- **Modules**: 23 (curated, installable via `pipe -get`)
 - **Opcodes**: 43
 - **AST node types**: 36
 - **Example programs**: 86

@@ -2,9 +2,9 @@
 
 This document outlines the past, present, and future of the Pipe language. The roadmap is organized into phases, with completed features marked accordingly.
 
-## Current Version: v0.9.4.0
+## Current Version: v1.0.0
 
-Pipe is currently at version **v0.9.4.0**, the **module-system release**. It completes the module system on the road to v1.0: **directory imports** (`import "mylib/"` loads `mylib/init.pipe`), dedicated **relative imports** (`./`, `../` — never through the registry fallback), **cycle detection** (`E009: circular import` in both the tree-walker and the bytecode VM, including alias imports), `PIPE_PATH` via `filepath.SplitList` (platform-native separators), **SemVer resolution** for `^X.Y.Z` constraints in `pipe -install`, and **`pipe -publish`**: publishes modules via a gh-CLI pull request into the registry (validation, version-duplicate check, module dir + registry.json entry, branch `publish/<name>-<version>`). The language feature set remains that of the sandbox-hardening release **v0.9.3.5**: a central egress gate for every AI-provider egress, a recursion-depth guard (E008), the zero-dependency MCP server, the X (Twitter) API v2 module and the Discord module, and CI notifications with Discord + Telegram dual delivery including AI code reviews.
+Pipe is currently at version **v1.0.0**, the **production-ready release**. It consolidates all features from the v0.9.x series: the full **MCP server and client** (stdio + SSE), **sandbox profiles** (declarative runtime security), **AI provider abstraction** (OpenAI, Anthropic, DeepSeek, Ollama), the **bytecode VM** (up to 55x faster than the tree-walker), **guard clauses** in match expressions, **concurrency primitives** (channels, mutex, counting semaphore), **constant folding**, and the **MQTT 5.0 module**. The module system includes directory imports, relative imports, cycle detection, SemVer resolution, and `pipe -publish`. 232 builtins, 23 modules, 643 tests.
 
 ---
 

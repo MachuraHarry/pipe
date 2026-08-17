@@ -1,6 +1,6 @@
 # Pipe (SPR) — Semantic Pipeline Runtime
 
-> Pipe is the first programming language with built-in MCP: an MCP server and client in one ~8 MB binary. Connect to any stdio MCP server, expose your own tools to Claude Desktop and other hosts, and run AI pipelines with zero dependencies. Pure Go stdlib.
+> Pipe is the first programming language with built-in MCP: an MCP server and client in one ~8 MB binary. Connect to any stdio MCP server, expose your own tools to Claude Desktop and other hosts, and run AI pipelines with zero dependencies. Pure Go stdlib. v1.0.0 — production-ready.
 
 ## Important
 
@@ -25,7 +25,7 @@
 Pipe (SPR) is a scripting language and runtime designed for AI infrastructure. Key properties:
 
 - **Built-in MCP**: `mcp_server` exposes Pipe functions as MCP tools to Claude Desktop and any MCP host. `mcp_use_stdio` connects to any community MCP server (GitHub, Filesystem, Postgres, Slack, Brave Search, ...) directly from code.
-- **AI builtins**: 36 AI builtins + 7 MCP builtins across 4 providers (OpenAI, Anthropic, DeepSeek, Ollama). `ai_chat`, `ai_with_tools`, streaming, JSON-mode, tool loops.
+- **AI builtins**: 36 AI builtins + 13 MCP builtins across 4 providers (OpenAI, Anthropic, DeepSeek, Ollama). `ai_chat`, `ai_with_tools`, streaming, JSON-mode, tool loops.
 - **Sandboxed by default**: `sandbox_profile` restricts `exec`, `write_file`, and `http_get` with one block. Sandboxing at the language level.
 - **Two runtimes**: a tree-walker for correctness and a bytecode VM (about 7x faster) — `pipe -vm` to select.
 - **Concurrency**: `spawn`/`await`/`go`, channels, mutex, semaphore. Parallel pipelines with `>>`.

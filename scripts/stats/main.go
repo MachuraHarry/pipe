@@ -41,16 +41,16 @@ var aiNames = map[string]bool{
 }
 
 type Stats struct {
-	Builtins    int            `json:"builtins"`
-	BuiltinCats map[string]int `json:"builtin_categories"`
-	Examples    int            `json:"examples"`
-	GoTests     int            `json:"go_tests"`
-	TestPackages int           `json:"test_packages"`
-	ASTNodeTypes int           `json:"ast_node_types"`
-	DocsEn      int            `json:"docs_en_chapters"`
-	DocsDe      int            `json:"docs_de_chapters"`
-	Standard    int            `json:"standard"`
-	Modules     int            `json:"modules"`
+	Builtins     int            `json:"builtins"`
+	BuiltinCats  map[string]int `json:"builtin_categories"`
+	Examples     int            `json:"examples"`
+	GoTests      int            `json:"go_tests"`
+	TestPackages int            `json:"test_packages"`
+	ASTNodeTypes int            `json:"ast_node_types"`
+	DocsEn       int            `json:"docs_en_chapters"`
+	DocsDe       int            `json:"docs_de_chapters"`
+	Standard     int            `json:"standard"`
+	Modules      int            `json:"modules"`
 }
 
 func main() {

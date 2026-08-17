@@ -57,7 +57,7 @@ Die Extension erkennt und färbt:
   - Maps: `get`, `set`, `keys`, `values`
   - Mathematik: `abs`, `min`, `max`, `pow`, `sqrt`, `round`
   - HTTP: `http_get`, `http_post`, `http_get_json`, `parse_json`, `to_json`
-  - TCP: `tcp_listen`, `tcp_connect`, `tcp_accept`, `tcp_read`, `tcp_write`, `tcp_close`
+  - TCP: `tcp_listen`, `tcp_connect`, `tcp_connect_tls`, `tcp_accept`, `tcp_read`, `tcp_read_bytes`, `tcp_write`, `tcp_close`
   - Sonstige: `exec`, `env`, `sleep`, `now`, `format_time`, `random`, `random_range`, `base64_encode`, `base64_decode`, `regex_match`, `regex_replace`, `type_of`, `is_num`, `is_str`, `is_list`, `is_map`, `is_nil`, `to_str`, `to_num`
 - **Variablenzuweisung:** `name:` Muster
 - **Zahlen:** Integer und Float Literale

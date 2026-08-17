@@ -480,8 +480,11 @@ var Builtins = []BuiltinInfo{
 	// TCP
 	{"tcp_listen", bTcpListen},
 	{"tcp_connect", bTcpConnect},
+	{"tcp_connect_tls", bTcpConnectTLS},
 	{"tcp_accept", bTcpAccept},
 	{"tcp_read", bTcpRead},
+	{"tcp_read_bytes", bTcpReadBytes},
+	{"tcp_set_read_timeout", bTcpSetReadTimeout},
 	{"tcp_write", bTcpWrite},
 	{"tcp_close", bTcpClose},
 

@@ -71,7 +71,7 @@ Define profiles with the `sandbox_profile` builtin. The config is a map with the
 | `exec` | bool | Allow shell command execution |
 | `exec_whitelist` | list | List of allowed executables. When set, `exec` only runs commands whose executable (the basename, after stripping env assignments, shell operators, `cd`, and quoting) matches an entry. Empty = allow all |
 | `ai` | bool | Allow AI chat/embedding calls |
-| `timeout` | int | Max seconds per `exec`, `tcp_connect`/`tcp_read` or `sleep` operation (0 = no limit) |
+| `timeout` | int | Max seconds per `exec`, `tcp_connect`/`tcp_connect_tls`/`tcp_read`/`tcp_read_bytes` or `sleep` operation (0 = no limit) |
 | `env` | map | Environment variables injected into `exec` and returned by `env`. Under an active profile the real process environment is never exposed |
 | `work_dir` | string | Working directory for sandbox |
 | `budget` | num | Max AI spend in USD (0 = unlimited). A conservative cost estimate is checked before each call is issued, so a single call cannot blow through the budget |
@@ -194,7 +194,7 @@ The following builtins check the active sandbox profile:
 
 **Execution:** `exec`
 
-**Network:** `http_get`, `http_post`, `http_request`, `http_stream_open`, `http_server`, `tcp_listen`, `tcp_connect`
+**Network:** `http_get`, `http_post`, `http_request`, `http_stream_open`, `http_server`, `tcp_listen`, `tcp_connect`, `tcp_connect_tls`
 
 **Environment:** `env` (returns only the profile's injected environment under an active profile; secret variable names such as `*KEY*`/`*TOKEN*`/`*SECRET*` are always blocked)
 

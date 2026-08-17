@@ -763,6 +763,22 @@ Verbindet zu einem TCP-Server.
 conn: tcp_connect "127.0.0[1]" 9999
 ```
 
+### tcp_connect_tls
+```
+tcp_connect_tls host port [servername] [insecure]
+```
+Verbindet zu einem TLS-verschlüsselten TCP-Server. `servername` (optional) wird für SNI und Zertifikat-Verifikation verwendet, Standardwert ist `host`. `insecure` (bool, optional) überspringt die Zertifikat-Verifikation (für selbst-signierte Zertifikate).
+```pipe
+-- MQTT-Broker mit TLS auf Port 8883
+conn: tcp_connect_tls "mqtt.example.com" 8883
+
+-- Mit explizitem Servername für SNI
+conn: tcp_connect_tls "192.168.1.100" 8883 "mqtt.example.com"
+
+-- Zertifikat-Verifikation überspringen
+conn: tcp_connect_tls "192.168.1.100" 8883 "mqtt.example.com" true
+```
+
 ### tcp_accept
 ```
 tcp_accept listener
@@ -780,6 +796,28 @@ Liest Daten von einer TCP-Verbindung (4096 Byte Puffer).
 ```pipe
 nachricht: tcp_read conn
 print nachricht
+```
+
+### tcp_read_bytes
+```
+tcp_read_bytes connection anzahl
+```
+Liest genau `anzahl` Bytes von einer TCP-Verbindung und gibt diese als Bytes zurück. Blockiert bis alle Bytes verfügbar sind.
+```pipe
+-- Exakt 1024 Bytes lesen (nützlich für MQTT Binary Payloads)
+raw: tcp_read_bytes conn 1024
+-- Einzelne Bytes zugreifen: at raw 0 gibt INTEGER (0-255) zurück
+first_byte: at raw 0
+```
+
+### tcp_set_read_timeout
+```
+tcp_set_read_timeout connection millisekunden
+```
+Setzt ein Lese-Timeout von `millisekunden` auf eine TCP-Verbindung. Nachfolgende Reads liefern einen Fehler, wenn innerhalb der Frist keine Daten ankommen. `0` entfernt das Timeout.
+```pipe
+tcp_set_read_timeout conn 5000
+tcp_set_read_timeout conn 0
 ```
 
 ### tcp_write
@@ -1800,8 +1838,8 @@ mcp_use_sse "http://localhost:9090/"
 ### Netzwerk & HTTP (6)
 `http_get`, `http_post`, `http_get_json`, `http_request`, `parse_json`, `to_json`
 
-### TCP (6)
-`tcp_listen`, `tcp_connect`, `tcp_accept`, `tcp_read`, `tcp_write`, `tcp_close`
+### TCP (9)
+`tcp_listen`, `tcp_connect`, `tcp_connect_tls`, `tcp_accept`, `tcp_read`, `tcp_read_bytes`, `tcp_set_read_timeout`, `tcp_write`, `tcp_close`
 
 ### Regex (2)
 `regex_match`, `regex_replace`

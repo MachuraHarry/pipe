@@ -79,7 +79,7 @@ The TextMate grammar (`pipe.tmLanguage.json`) provides scoped highlighting for a
 | Map | `support.function.builtin.map.pipe` | `get`, `set`, `keys`, `values` |
 | Math | `support.function.builtin.math.pipe` | `abs`, `min`, `max`, `pow`, `sqrt`, `round` |
 | HTTP | `support.function.builtin.http.pipe` | `http_get`, `http_post`, `http_get_json`, `parse_json`, `to_json` |
-| TCP | `support.function.builtin.tcp.pipe` | `tcp_listen`, `tcp_connect`, `tcp_accept`, `tcp_read`, `tcp_write`, `tcp_close` |
+| TCP | `support.function.builtin.tcp.pipe` | `tcp_listen`, `tcp_connect`, `tcp_connect_tls`, `tcp_accept`, `tcp_read`, `tcp_read_bytes`, `tcp_write`, `tcp_close` |
 | System | `support.function.builtin.system.pipe` | `exec`, `env`, `sleep`, `now`, `format_time`, `random`, `random_range`, `base64_encode`, `base64_decode`, `type_of`, `is_num`, `is_str`, `is_list`, `is_map`, `is_nil`, `to_str`, `to_num`, `regex_match`, `regex_replace` |
 
 ### Variables

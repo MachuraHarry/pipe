@@ -65,7 +65,7 @@ Pipe is currently at version **v0.9.4.0**, the **module-system release**. It com
 
 - [x] HTTP client: http_get, http_post, http_get_json
 - [x] JSON: parse_json, to_json
-- [x] TCP: tcp_listen, tcp_connect, tcp_accept, tcp_read, tcp_write, tcp_close
+- [x] TCP: tcp_listen, tcp_connect, tcp_connect_tls, tcp_accept, tcp_read, tcp_read_bytes, tcp_write, tcp_close
 - [x] Regex: regex_match, regex_replace
 - [x] Date/Time: now, format_time
 - [x] Random: random, random_range

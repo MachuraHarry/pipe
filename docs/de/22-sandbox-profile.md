@@ -71,7 +71,7 @@ Profile werden mit dem `sandbox_profile`-Builtin definiert. Die Konfiguration is
 | `exec` | Bool | Shell-Befehle erlauben |
 | `exec_whitelist` | List | Liste erlaubter ausführbarer Programme. Wenn gesetzt, führt `exec` nur Befehle aus, deren Programm (Basename, nach Entfernen von env-Zuweisungen, Shell-Operatoren, `cd` und Quoting) einem Eintrag entspricht. Leer = alles erlaubt |
 | `ai` | Bool | KI-Chat/Embedding-Aufrufe erlauben |
-| `timeout` | Int | Max. Sekunden pro `exec`/`tcp_connect`/`tcp_read`/`sleep`-Operation (0 = unbegrenzt) |
+| `timeout` | Int | Max. Sekunden pro `exec`/`tcp_connect`/`tcp_connect_tls`/`tcp_read`/`tcp_read_bytes`/`sleep`-Operation (0 = unbegrenzt) |
 | `env` | Map | Umgebungsvariablen, die in `exec` injiziert und von `env` zurückgegeben werden. Bei aktiven Profilen wird die echte Prozess-Umgebung nie preisgegeben |
 | `work_dir` | String | Arbeitsverzeichnis für den Sandbox |
 | `budget` | Num | Max. KI-Ausgaben in USD (0 = unbegrenzt). Vor jedem Aufruf wird eine konservative Kostenschätzung geprüft, damit ein einzelner Aufruf das Budget nicht sprengen kann |
@@ -197,7 +197,7 @@ Die folgenden Builtins prüfen das aktive Sandbox-Profil:
 
 **Ausführung:** `exec`
 
-**Netzwerk:** `http_get`, `http_post`, `http_request`, `http_stream_open`, `http_server`, `tcp_listen`, `tcp_connect`
+**Netzwerk:** `http_get`, `http_post`, `http_request`, `http_stream_open`, `http_server`, `tcp_listen`, `tcp_connect`, `tcp_connect_tls`
 
 **Umgebung:** `env` (liefert unter aktiven Profilen nur die injizierte Profil-Umgebung; geheime Variablennamen wie `*KEY*`/`*TOKEN*`/`*SECRET*` sind immer blockiert)
 

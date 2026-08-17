@@ -1,6 +1,7 @@
 package object
 
 import (
+	"crypto/tls"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
@@ -393,6 +394,64 @@ func bTcpConnect(args ...Object) Object {
 	return &TcpConn{Handle: h}
 }
 
+func bTcpConnectTLS(args ...Object) Object {
+	if blockErr := checkNetworkAccess("tcp_connect_tls (network)"); blockErr != nil {
+		return blockErr
+	}
+	if len(args) < 2 || len(args) > 4 {
+		return err("tcp_connect_tls expects 2-4 arguments (host, port, servername?, insecure?)")
+	}
+	host, ok := args[0].(*String)
+	if !ok {
+		return err("tcp_connect_tls: host must be a string")
+	}
+	port, ok := ToInt(args[1])
+	if !ok {
+		return err("tcp_connect_tls: port must be a number")
+	}
+
+	servername := host.Value
+	if len(args) >= 3 {
+		if sn, ok := args[2].(*String); ok && sn.Value != "" {
+			servername = sn.Value
+		}
+	}
+	insecure := false
+	if len(args) >= 4 {
+		if b, ok := args[3].(*Boolean); ok {
+			insecure = b.Value
+		}
+	}
+
+	addr := net.JoinHostPort(host.Value, strconv.FormatInt(port, 10))
+	profile := ActiveProfile.Load()
+	if profile.Name != "none" {
+		if canErr := profile.CanNetworkTo(addr); canErr != nil {
+			return err(canErr.Error())
+		}
+	}
+
+	dialer := &net.Dialer{Timeout: 10 * time.Second}
+	if profile.Name != "none" && profile.Timeout > 0 {
+		dialer.Timeout = time.Duration(profile.Timeout) * time.Second
+	}
+
+	conn, e := tls.DialWithDialer(dialer, "tcp", addr, &tls.Config{
+		ServerName:         servername,
+		InsecureSkipVerify: insecure,
+	})
+	if e != nil {
+		return err("tcp_connect_tls: " + e.Error())
+	}
+
+	connMu.Lock()
+	h := connNextID
+	connNextID++
+	connStore[h] = conn
+	connMu.Unlock()
+	return &TcpConn{Handle: h}
+}
+
 func bTcpAccept(args ...Object) Object {
 	if len(args) != 1 {
 		return err("tcp_accept expects 1 argument (Listener)")
@@ -443,6 +502,62 @@ func bTcpRead(args ...Object) Object {
 		return err("tcp_read: " + e.Error())
 	}
 	return &String{Value: string(buf[:n])}
+}
+
+func bTcpReadBytes(args ...Object) Object {
+	if len(args) != 2 {
+		return err("tcp_read_bytes expects 2 arguments (connection, byte_count)")
+	}
+	conn, ok := args[0].(*TcpConn)
+	if !ok {
+		return err("tcp_read_bytes: first argument must be a TCP connection")
+	}
+	n, ok := ToInt(args[1])
+	if !ok || n <= 0 {
+		return err("tcp_read_bytes: byte_count must be a positive number")
+	}
+	connMu.Lock()
+	c, exists := connStore[conn.Handle]
+	connMu.Unlock()
+	if !exists {
+		return err("tcp_read_bytes: connection does not exist")
+	}
+	profile := ActiveProfile.Load()
+	if profile.Name != "none" && profile.Timeout > 0 {
+		c.SetReadDeadline(time.Now().Add(time.Duration(profile.Timeout) * time.Second))
+	}
+	buf := make([]byte, n)
+	_, e := io.ReadFull(c, buf)
+	if e != nil {
+		return err("tcp_read_bytes: " + e.Error())
+	}
+	return &Bytes{Value: buf}
+}
+
+func bTcpSetReadTimeout(args ...Object) Object {
+	if len(args) != 2 {
+		return err("tcp_set_read_timeout expects 2 arguments (connection, milliseconds)")
+	}
+	conn, ok := args[0].(*TcpConn)
+	if !ok {
+		return err("tcp_set_read_timeout: first argument must be a TCP connection")
+	}
+	ms, ok := ToInt(args[1])
+	if !ok || ms < 0 {
+		return err("tcp_set_read_timeout: milliseconds must be a non-negative number")
+	}
+	connMu.Lock()
+	c, exists := connStore[conn.Handle]
+	connMu.Unlock()
+	if !exists {
+		return err("tcp_set_read_timeout: connection does not exist")
+	}
+	if ms == 0 {
+		c.SetReadDeadline(time.Time{})
+	} else {
+		c.SetReadDeadline(time.Now().Add(time.Duration(ms) * time.Millisecond))
+	}
+	return NILOBJ
 }
 
 func bTcpWrite(args ...Object) Object {

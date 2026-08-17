@@ -1075,7 +1075,7 @@ print json_str
 
 ---
 
-## 10.9 TCP (6 functions)
+## 10.9 TCP (9 functions)
 
 ### `tcp_listen`
 **Signature:** `tcp_listen(address)`
@@ -1095,6 +1095,21 @@ conn: tcp_connect "localhost:8080"
 tcp_write conn "Hello, server!"
 ```
 
+### `tcp_connect_tls`
+**Signature:** `tcp_connect_tls(host, port, servername?, insecure?)`
+**Description:** Connects to a TLS-secured TCP server. `servername` defaults to `host` for SNI and certificate verification. `insecure` (bool) skips certificate verification (for self-signed certificates). Returns a connection handle.
+**Returns:** `connection handle`
+```pipe
+-- MQTT broker with TLS on port 8883
+conn: tcp_connect_tls "mqtt.example.com" 8883
+
+-- With explicit servername for SNI
+conn: tcp_connect_tls "192.168.1.100" 8883 "mqtt.example.com"
+
+-- Skip certificate verification (self-signed certificates)
+conn: tcp_connect_tls "192.168.1.100" 8883 "mqtt.example.com" true
+```
+
 ### `tcp_accept`
 **Signature:** `tcp_accept(listener)`
 **Description:** Accepts an incoming connection on a listener. Blocks until a client connects. Returns a connection handle.
@@ -1112,6 +1127,26 @@ print "Received: " ++ msg
 ```pipe
 data: tcp_read conn 4096
 print data
+```
+
+### `tcp_read_bytes`
+**Signature:** `tcp_read_bytes(conn, n)`
+**Description:** Reads exactly `n` bytes from a TCP connection and returns them as bytes. Blocks until all bytes are available.
+**Returns:** `bytes`
+```pipe
+-- Read exactly 1024 bytes (useful for MQTT binary payloads)
+raw: tcp_read_bytes conn 1024
+-- Access individual bytes: at raw 0 returns INTEGER (0-255)
+first_byte: at raw 0
+```
+
+### `tcp_set_read_timeout`
+**Signature:** `tcp_set_read_timeout(conn, ms)`
+**Description:** Sets a read deadline of `ms` milliseconds on a TCP connection. Subsequent reads error if no data arrives within the deadline. Pass `0` to clear the timeout.
+**Returns:** `nil`
+```pipe
+tcp_set_read_timeout conn 5000
+tcp_set_read_timeout conn 0
 ```
 
 ### `tcp_write`
@@ -2881,29 +2916,32 @@ mcp_use_sse "http://localhost:9090/"
 | 84 | `parse_json` | `parse_json(json_string)` | `any` or `nil` on parse error |
 | 85 | `to_json` | `to_json(value)` | `string` |
 
-### TCP (6)
+### TCP (9)
 
 | # | Function | Signature | Returns |
 |---|----------|-----------|---------|
 | 86 | `tcp_listen` | `tcp_listen(address)` | `listener handle` |
 | 87 | `tcp_connect` | `tcp_connect(address)` | `connection handle` |
-| 88 | `tcp_accept` | `tcp_accept(listener)` | `connection handle` |
-| 89 | `tcp_read` | `tcp_read(conn, max_bytes)` | `string` |
-| 90 | `tcp_write` | `tcp_write(conn, data)` | `nil` |
-| 91 | `tcp_close` | `tcp_close(handle)` | `nil` |
+| 88 | `tcp_connect_tls` | `tcp_connect_tls(host, port, servername?, insecure?)` | `connection handle` |
+| 89 | `tcp_accept` | `tcp_accept(listener)` | `connection handle` |
+| 90 | `tcp_read` | `tcp_read(conn, max_bytes)` | `string` |
+| 91 | `tcp_read_bytes` | `tcp_read_bytes(conn, n)` | `bytes` |
+| 92 | `tcp_set_read_timeout` | `tcp_set_read_timeout(conn, ms)` | `nil` |
+| 93 | `tcp_write` | `tcp_write(conn, data)` | `nil` |
+| 94 | `tcp_close` | `tcp_close(handle)` | `nil` |
 
 ### Regex (2)
 
 | # | Function | Signature | Returns |
 |---|----------|-----------|---------|
-| 92 | `regex_match` | `regex_match(pattern, str)` | `boolean` |
-| 93 | `regex_replace` | `regex_replace(pattern, replacement, str)` | `string` |
+| 94 | `regex_match` | `regex_match(pattern, str)` | `boolean` |
+| 95 | `regex_replace` | `regex_replace(pattern, replacement, str)` | `string` |
 
 ### Date & Time (3)
 
 | # | Function | Signature | Returns |
 |---|----------|-----------|---------|
-| 94 | `now` | `now()` | `number` |
+| 96 | `now` | `now()` | `number` |
 | 94a | `time_ms` | `time_ms()` | `number` |
 | 95 | `format_time` | `format_time(timestamp, layout)` | `string` |
 

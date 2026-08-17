@@ -1,5 +1,5 @@
-[lang:en]# 📡 MQTT 5.0 in Pure Pipe — a Full Client in ~880 Lines[/lang]
-[lang:de]# 📡 MQTT 5.0 in reinem Pipe — ein vollständiger Client in ~880 Zeilen[/lang]
+[lang:en]# 📡 MQTT 5.0 in Pure Pipe — a Full Client in ~987 Lines[/lang]
+[lang:de]# 📡 MQTT 5.0 in reinem Pipe — ein vollständiger Client in ~987 Zeilen[/lang]
 
 [lang:en]
 **MQTT — the de-facto standard for IoT messaging — is now a single Pipe module: QoS 0/1/2, TLS, will, retain, keep-alive, and the full MQTT 5.0 property system. No C library, no `paho`, nothing but the standard library and three small TCP builtins.**
@@ -62,12 +62,23 @@ h: unwrap (mqtt.mqtt_connect "192.168.1.10" 8883 {tls_insecure: true, will: will
 - **No WebSocket transport** — TCP/TLS only, so no browser clients.
 - **No automatic reconnect** — if the broker drops you, `mqtt_connected` flips to `false` and reconnecting is on you.
 - **No QoS-2 message store** — in-flight state lives in memory, not across restarts.
+- **Disconnect reason isn't exposed** — the server's `DISCONNECT` reason code is recorded, but there's no public getter yet.
 
 For the typical "publish telemetry, subscribe to commands" IoT workload, none of that matters. If you need reconnect or persistence, the hooks are there — the module is plain Pipe you can read and extend.
 
+## v0.2.0: hardening
+
+The initial release focused on protocol completeness. v0.2.0 tightens the edges:
+
+- **Input validation** — `client_id` (1–23 bytes, empty only with `clean_start: true`), `keepalive` (0–65535), and topic rules (non-empty, ≤ 65535 bytes, no `#`/`+` in publish topics) are rejected early with a clear `Err`.
+- **Server-side `DISCONNECT`** — a broker-initiated `DISCONNECT` now marks the connection closed (recording the reason code) instead of being silently ignored.
+- **CONNACK properties** — `server_keep_alive` and `assigned_client_identifier` are honored.
+- **No pending-ACK leak** — timeouts on `PUBACK`/`PUBREC`/`PUBCOMP` now unregister the packet ID.
+- **`tls_insecure` warning** — enabling it prints a MITM-risk warning.
+
 ## Try it
 
-- Module: [`pipe-modules/mqtt`](https://github.com/MachuraHarry/pipe-modules/tree/master/mqtt) — ~880 lines of pure Pipe.
+- Module: [`pipe-modules/mqtt`](https://github.com/MachuraHarry/pipe-modules/tree/master/mqtt) — ~987 lines of pure Pipe.
 - Docs: [MQTT Module](https://github.com/MachuraHarry/pipe/blob/master/docs/en/27-mqtt-module.md)
 
 ```bash
@@ -139,12 +150,23 @@ h: unwrap (mqtt.mqtt_connect "192.168.1.10" 8883 {tls_insecure: true, will: will
 - **Kein WebSocket-Transport** — nur TCP/TLS, also keine Browser-Clients.
 - **Kein automatischer Reconnect** — wirft der Broker dich ab, springt `mqtt_connected` auf `false`, und die Wiederverbindung liegt bei dir.
 - **Kein QoS-2-Nachrichtenspeicher** — In-Flight-Zustand lebt im Speicher, nicht über Neustarts hinweg.
+- **Disconnect-Grund nicht verfügbar** — der `DISCONNECT`-Reason-Code des Servers wird gespeichert, aber es gibt noch keinen öffentlichen Getter.
 
 Für den typischen IoT-Workload „Telemetrie publizieren, Befehle abonnieren" spielt davon nichts eine Rolle. Brauchst du Reconnect oder Persistenz, sind die Hooks da — das Modul ist lesbares, erweiterbares Pipe.
 
+## v0.2.0: Härtung
+
+Die erste Veröffentlichung konzentrierte sich auf Protokoll-Vollständigkeit. v0.2.0 schärft die Kanten:
+
+- **Eingabe-Validierung** — `client_id` (1–23 Bytes, leer nur mit `clean_start: true`), `keepalive` (0–65535) und Topic-Regeln (nicht leer, ≤ 65535 Bytes, keine `#`/`+` in Publish-Topics) werden früh mit einem klaren `Err` abgelehnt.
+- **Server-seitiges `DISCONNECT`** — ein vom Broker initiiertes `DISCONNECT` markiert die Verbindung jetzt als geschlossen (Reason-Code wird gespeichert), statt stillschweigend ignoriert zu werden.
+- **CONNACK-Properties** — `server_keep_alive` und `assigned_client_identifier` werden berücksichtigt.
+- **Kein Pending-ACK-Leak** — Timeouts bei `PUBACK`/`PUBREC`/`PUBCOMP` entfernen die Paket-ID jetzt sauber.
+- **`tls_insecure`-Warnung** — die Aktivierung gibt eine MITM-Risiko-Warnung aus.
+
 ## Ausprobieren
 
-- Modul: [`pipe-modules/mqtt`](https://github.com/MachuraHarry/pipe-modules/tree/master/mqtt) — ~880 Zeilen reines Pipe.
+- Modul: [`pipe-modules/mqtt`](https://github.com/MachuraHarry/pipe-modules/tree/master/mqtt) — ~987 Zeilen reines Pipe.
 - Doku: [MQTT-Modul](https://github.com/MachuraHarry/pipe/blob/master/docs/de/27-mqtt-modul.md)
 
 ```bash

@@ -612,6 +612,18 @@ fn handle_pubrel id body
         deliver id info
     nil
 
+fn handle_disconnect id body
+    reason: 0
+    if (len body) > 0
+        reason: at body 0
+    lock GLOBAL_MU
+    st: get CONNS (to_str id)
+    if st != nil
+        set st "closed" true
+        set st "disconnect_reason" reason
+    unlock GLOBAL_MU
+    nil
+
 fn receive_loop id
     conn: get_conn id
     if conn == nil
@@ -640,6 +652,9 @@ fn receive_loop id
             route_pending id (get pkt "body")
         else if ptype == 11
             route_pending id (get pkt "body")
+        else if ptype == 14
+            handle_disconnect id (get pkt "body")
+            return nil
         else
             nil
     nil
@@ -670,6 +685,44 @@ fn ping_loop id
             return nil
         write_conn id (build_pingreq)
     nil
+
+-- ============================================================
+-- Input validation helpers
+-- ============================================================
+
+-- Validates a topic name: must be a non-empty string of at most 65535 bytes.
+fn validate_topic topic
+    if (type_of topic) != "STRING"
+        return false
+    b: to_bytes topic
+    if (len b) == 0
+        return false
+    if (len b) > 65535
+        return false
+    true
+
+-- Validates a publish topic: same as validate_topic, plus no wildcards (# or +).
+fn validate_publish_topic topic
+    if (validate_topic topic) == false
+        return false
+    if contains topic "#"
+        return false
+    if contains topic "+"
+        return false
+    true
+
+-- Validates a topic (string) or a list of topics for subscribe/unsubscribe.
+fn validate_topics topics
+    if (type_of topics) == "STRING"
+        return (validate_topic topics)
+    if (type_of topics) != "LIST"
+        return false
+    i: 0
+    while i < (len topics)
+        if (validate_topic (at topics i)) == false
+            return false
+        i: i + 1
+    true
 
 -- ============================================================
 -- Public API
@@ -711,6 +764,21 @@ export fn mqtt_connect host port opts
         if (get opts "properties") != nil
             props: get opts "properties"
 
+    if (type_of client_id) != "STRING"
+        return (Err "mqtt_connect: client_id must be a string")
+    cid_len: len (to_bytes client_id)
+    if cid_len == 0
+        if clean_start == false
+            return (Err "mqtt_connect: empty client_id requires clean_start=true")
+    else if cid_len > 23
+        return (Err "mqtt_connect: client_id must be at most 23 bytes (got " ++ (to_str cid_len) ++ ")")
+    if (is_num keepalive) == false
+        return (Err "mqtt_connect: keepalive must be a number")
+    if keepalive < 0 || keepalive > 65535
+        return (Err "mqtt_connect: keepalive must be between 0 and 65535")
+    if tls_insecure == true
+        print "[mqtt] WARNING: tls_insecure=true disables TLS certificate verification (MITM risk)"
+
     conn: nil
     if use_tls
         conn: tcp_connect_tls host port host tls_insecure
@@ -739,6 +807,14 @@ export fn mqtt_connect host port opts
     if reason != 0
         tcp_close conn
         return (Err ("mqtt_connect: refused (reason " ++ (to_str reason) ++ ")"))
+    ca_props: get ca "properties"
+    if ca_props != nil
+        ska: get ca_props "server_keep_alive"
+        if ska != nil
+            keepalive: ska
+        acid: get ca_props "assigned_client_identifier"
+        if acid != nil
+            client_id: acid
 
     lock GLOBAL_MU
     id: at COUNTER 0
@@ -751,6 +827,7 @@ export fn mqtt_connect host port opts
     set state "qos2_in" {}
     set state "closed" false
     set state "keepalive" keepalive
+    set state "client_id" client_id
     set state "id" id
     set CONNS (to_str id) state
     unlock GLOBAL_MU
@@ -796,6 +873,9 @@ export fn mqtt_publish id topic payload opts
     if (type_of payload) == "STRING"
         pb: to_bytes payload
 
+    if (validate_publish_topic topic) == false
+        return (Err "mqtt_publish: invalid topic (must be non-empty, <= 65535 bytes, no wildcards)")
+
     if qos == 0
         r: write_conn id (build_publish topic pb 0 retain 0 props)
         if is_err r
@@ -811,7 +891,8 @@ export fn mqtt_publish id topic payload opts
             return (Err ("mqtt_publish: " ++ (to_str r)))
         res: wait_pending ch 5000
         if res == nil
-            return (Err "mqtt_publish: PUBACK timeout")
+            unregister_pending id pid
+            return (Err ("mqtt_publish: PUBACK timeout (pid " ++ (to_str pid) ++ ")"))
         Ok nil
     else
         pid: alloc_pid id
@@ -823,20 +904,25 @@ export fn mqtt_publish id topic payload opts
             return (Err ("mqtt_publish: " ++ (to_str r)))
         r1: wait_pending ch 5000
         if r1 == nil
-            return (Err "mqtt_publish: PUBREC timeout")
+            unregister_pending id pid
+            return (Err ("mqtt_publish: PUBREC timeout (pid " ++ (to_str pid) ++ ")"))
         register_pending id pid ch
         r2: write_conn id (build_pubrel pid)
         if is_err r2
+            unregister_pending id pid
             return (Err ("mqtt_publish: " ++ (to_str r2)))
         r3: wait_pending ch 5000
         if r3 == nil
-            return (Err "mqtt_publish: PUBCOMP timeout")
+            unregister_pending id pid
+            return (Err ("mqtt_publish: PUBCOMP timeout (pid " ++ (to_str pid) ++ ")"))
         Ok nil
 
 -- Subscribes to a topic (string) or list of topics. Returns Ok([granted_qos,...]) | Err.
 export fn mqtt_subscribe id topic qos
     if qos == nil
         qos: 0
+    if (validate_topics topic) == false
+        return (Err "mqtt_subscribe: invalid topic")
     pid: alloc_pid id
     if pid == 0
         return (Err "mqtt_subscribe: no such connection")
@@ -854,6 +940,8 @@ export fn mqtt_subscribe id topic qos
 
 -- Unsubscribes from a topic (string) or list. Returns Ok(nil) | Err.
 export fn mqtt_unsubscribe id topic
+    if (validate_topics topic) == false
+        return (Err "mqtt_unsubscribe: invalid topic")
     pid: alloc_pid id
     if pid == 0
         return (Err "mqtt_unsubscribe: no such connection")

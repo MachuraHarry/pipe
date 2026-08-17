@@ -6,14 +6,16 @@
 
 - **MQTT 5.0** (Protokoll-Level 5) mit dem vollen Property-System (Encode **und** Decode aller 27 Property-Identifier)
 - **QoS 0, 1 und 2** — der komplette `PUBREC`/`PUBREL`/`PUBCOMP`-Handshake, in beide Richtungen
-- **TCP und TLS** — inklusive `tls_insecure` für selbst-signierte Zertifikate
+- **TCP und TLS** — inklusive `tls_insecure` für selbst-signierte Zertifikate (gibt eine MITM-Warnung aus)
 - **Will-Nachricht**, **Retain**-Flag, **Clean Start**, **Keep-alive** (`PINGREQ`)
 - Topic-Wildcards `+` und `#` (an den Broker durchgereicht)
 - Username/Passwort-Authentifizierung
+- Eingabe-Validierung (Client-ID-Länge, Keep-alive-Bereich, Topic-Regeln)
+- Server-seitiges `DISCONNECT`-Handling und CONNACK-Properties (`server_keep_alive`, `assigned_client_identifier`)
 
 ## Architektur
 
-Das Modul liegt unter `mqtt/module.pipe` im Registry und wird per `pipe -get mqtt` oder `import "mqtt"` geladen. Es sind ~880 Zeilen reines Pipe.
+Das Modul liegt unter `mqtt/module.pipe` im Registry und wird per `pipe -get mqtt` oder `import "mqtt"` geladen. Es sind ~987 Zeilen reines Pipe.
 
 Drei TCP-Builtins machen es möglich (alle in der Standard-Binary):
 
@@ -25,7 +27,7 @@ Alles andere baut auf den vorhandenen Byte-Primitiven auf: `to_bytes`, `int_to_b
 
 ### Nebenläufigkeitsmodell
 
-Eine Hintergrund-Goroutine (`go receive_loop`) ist der **einzige Leser** des Sockets. Sie rahmt Pakete, leitet `PUBLISH` an den User-Callback weiter und routet `PUBACK`/`SUBACK`/`PUBREC`/`PUBCOMP` über gepufferte Channels an den wartenden Aufrufer zurück. Eine zweite Goroutine (`go ping_loop`) sendet `PINGREQ` im Keep-alive-Intervall.
+Eine Hintergrund-Goroutine (`go receive_loop`) ist der **einzige Leser** des Sockets. Sie rahmt Pakete, leitet `PUBLISH` an den User-Callback weiter, routet `PUBACK`/`SUBACK`/`PUBREC`/`PUBCOMP` über gepufferte Channels an den wartenden Aufrufer zurück und behandelt ein server-seitiges `DISCONNECT`, indem sie die Verbindung als geschlossen markiert (Reason-Code wird gespeichert). Eine zweite Goroutine (`go ping_loop`) sendet `PINGREQ` im Keep-alive-Intervall.
 
 Der gesamte geteilte Zustand (das Verbindungs-Registry und die Per-Verbindungs-State-Maps) wird von einem einzigen globalen Mutex geschützt. Callbacks werden außerhalb des Locks aufgerufen, damit ein langsamer Handler den Receive-Loop nicht blockieren kann.
 
@@ -71,5 +73,6 @@ h: unwrap (mqtt.mqtt_connect "192.168.1.10" 8883 {tls_insecure: true, will: will
 - **Kein WebSocket-Transport** — nur TCP/TLS (keine Browser-Clients).
 - **Kein automatischer Reconnect** — bricht der Broker die Verbindung ab, feuert der Callback einfach nicht mehr; `mqtt_connected` liefert `false`. Die Wiederverbindung bleibt dem Aufrufer überlassen.
 - **Kein QoS-2-Nachrichtenspeicher** — In-Flight-QoS-2-Zustand wird im Speicher gehalten, nicht über Prozess-Neustarts hinweg persistiert.
+- **Disconnect-Grund nicht verfügbar** — der `DISCONNECT`-Reason-Code des Servers wird im Verbindungszustand gespeichert, aber es gibt noch keinen öffentlichen Getter dafür.
 
-Weitere Beispiele: `mqtt/example.pipe`.
+Weitere Beispiele: `mqtt/example.pipe` im Modul und `examples/mqtt_demo.pipe` im Haupt-Repository.

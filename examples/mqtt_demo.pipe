@@ -1,0 +1,42 @@
+-- MQTT 5.0 client demo.
+-- Requires the module: pipe -get mqtt
+-- Connects to a public broker, subscribes with a wildcard, publishes at QoS 1,
+-- receives the echo, then disconnects.
+
+import "mqtt" as mqtt
+
+host: "broker.emqx.io"
+port: 1883
+cid: "pipe-demo-" ++ (to_str (random_range 10000 99999))
+
+-- 1. Connect (plain TCP; no TLS for the public demo broker).
+r: mqtt.mqtt_connect host port {use_tls: false, client_id: cid, keepalive: 60}
+
+if is_err r
+    print "connect failed: " ++ (to_str r)
+else
+    h: unwrap r
+    print "connected (handle " ++ (to_str h) ++ ")"
+
+    -- 2. Register the message callback.
+    --    msg = {topic, payload (bytes), qos, retain, pid, properties}
+    fn on_msg msg
+        print ">> " ++ (get msg "topic") ++ " = " ++ (from_bytes (get msg "payload"))
+
+    mqtt.mqtt_set_callback h on_msg
+
+    -- 3. Subscribe with a wildcard filter.
+    sr: mqtt.mqtt_subscribe h "pipe/demo/#" 1
+    print "subscribed: " ++ (to_str sr)
+
+    -- 4. Publish at QoS 1 (waits for PUBACK).
+    pr: mqtt.mqtt_publish h "pipe/demo/hello" "hello from pipe!" {qos: 1}
+    print "published: " ++ (to_str pr)
+
+    -- 5. Give the broker a moment to route the message back.
+    sleep 2000
+
+    -- 6. Check connection state and disconnect.
+    print "connected: " ++ (to_str (mqtt.mqtt_connected h))
+    mqtt.mqtt_disconnect h
+    print "disconnected"

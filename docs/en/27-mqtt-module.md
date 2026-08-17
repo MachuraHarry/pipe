@@ -6,14 +6,16 @@
 
 - **MQTT 5.0** (protocol level 5) with the full property system (encode *and* decode of all 27 property identifiers)
 - **QoS 0, 1 and 2** — the full `PUBREC`/`PUBREL`/`PUBCOMP` handshake, in both directions
-- **TCP and TLS** — including `tls_insecure` for self-signed certificates
+- **TCP and TLS** — including `tls_insecure` for self-signed certificates (prints a MITM warning)
 - **Will message**, **retain** flag, **clean start**, **keep-alive** (`PINGREQ`)
 - Topic wildcards `+` and `#` (passed through to the broker)
 - Username/password authentication
+- Input validation (client ID length, keep-alive range, topic rules)
+- Server-side `DISCONNECT` handling and CONNACK properties (`server_keep_alive`, `assigned_client_identifier`)
 
 ## Architecture
 
-The module lives under `mqtt/module.pipe` in the registry and is loaded via `pipe -get mqtt` or `import "mqtt"`. It is ~880 lines of pure Pipe.
+The module lives under `mqtt/module.pipe` in the registry and is loaded via `pipe -get mqtt` or `import "mqtt"`. It is ~987 lines of pure Pipe.
 
 Three TCP builtins make it possible (all in the standard binary):
 
@@ -25,7 +27,7 @@ Everything else is built on the existing byte primitives: `to_bytes`, `int_to_by
 
 ### Concurrency model
 
-A background goroutine (`go receive_loop`) is the **sole reader** of the socket. It frames packets, dispatches `PUBLISH` to the user callback, and routes `PUBACK`/`SUBACK`/`PUBREC`/`PUBCOMP` back to the waiting caller through buffered channels. A second goroutine (`go ping_loop`) sends `PINGREQ` at the keep-alive interval.
+A background goroutine (`go receive_loop`) is the **sole reader** of the socket. It frames packets, dispatches `PUBLISH` to the user callback, routes `PUBACK`/`SUBACK`/`PUBREC`/`PUBCOMP` back to the waiting caller through buffered channels, and handles a server-side `DISCONNECT` by marking the connection closed (recording the reason code). A second goroutine (`go ping_loop`) sends `PINGREQ` at the keep-alive interval.
 
 All shared state (the connection registry and per-connection state maps) is guarded by a single global mutex. Callbacks are invoked outside the lock, so a slow handler cannot stall the receive loop.
 
@@ -71,5 +73,6 @@ h: unwrap (mqtt.mqtt_connect "192.168.1.10" 8883 {tls_insecure: true, will: will
 - **No WebSocket transport** — TCP/TLS only (no browser clients).
 - **No automatic reconnect** — if the broker drops the connection, the callback simply stops firing; `mqtt_connected` returns `false`. Reconnection is left to the caller.
 - **No QoS-2 message store** — in-flight QoS-2 state is held in memory, not persisted across process restarts.
+- **Disconnect reason is not exposed** — the server's `DISCONNECT` reason code is recorded in connection state, but there is no public getter for it yet.
 
-More examples: `mqtt/example.pipe`.
+More examples: `mqtt/example.pipe` in the module and `examples/mqtt_demo.pipe` in the main repository.

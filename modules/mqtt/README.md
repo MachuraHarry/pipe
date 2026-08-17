@@ -11,6 +11,10 @@ A complete **MQTT 5.0** client for [Pipe](https://github.com/MachuraHarry/pipe),
 - Topic wildcards `+` and `#` (handled broker-side, pass filters to subscribe)
 - Username/password authentication
 - Session expiry and the common MQTT 5.0 properties
+- Input validation (client ID length, keep-alive range, topic rules)
+- Server-side `DISCONNECT` handling (reason code is recorded)
+- CONNACK properties (`server_keep_alive`, `assigned_client_identifier`)
+- Runtime warning when `tls_insecure` is enabled
 
 ## Installation
 
@@ -50,13 +54,13 @@ Connects to a broker and returns a connection handle.
 
 | Key | Type | Default | Description |
 |-----|------|---------|-------------|
-| `client_id` | string | auto | Client identifier |
+| `client_id` | string | auto | Client identifier (1–23 bytes; empty only allowed with `clean_start: true`) |
 | `username` | string | nil | Username (plain) |
 | `password` | string | nil | Password (plain) |
-| `keepalive` | number | 60 | Keep-alive interval in seconds (0 = disabled) |
+| `keepalive` | number | 60 | Keep-alive interval in seconds (0–65535, 0 = disabled) |
 | `clean_start` | bool | true | Start a clean session |
 | `use_tls` | bool | true | Use TLS (defaults to port 8883 style) |
-| `tls_insecure` | bool | false | Skip certificate verification |
+| `tls_insecure` | bool | false | Skip certificate verification (prints a MITM warning) |
 | `timeout` | number | 5000 | Connect timeout in ms |
 | `will` | map | nil | `{topic, payload, qos, retain}` |
 | `properties` | map | {} | CONNECT properties |
@@ -103,6 +107,17 @@ Returns `true` while the connection is open.
 ### QoS constants
 
 `QOS0`, `QOS1`, `QOS2` (exported enum members).
+
+## Validation
+
+The module validates inputs and returns `Err(...)` early:
+
+- **Connect** — `client_id` must be a string of 1–23 bytes (empty only with `clean_start: true`); `keepalive` must be a number in `0..65535`.
+- **Publish** — topic must be non-empty, ≤ 65535 bytes, and contain no wildcards (`#`/`+`).
+- **Subscribe/Unsubscribe** — topic (or every topic in a list) must be non-empty and ≤ 65535 bytes.
+
+When the server closes the connection (server-side `DISCONNECT`), the client marks
+the handle closed and records the reason code; `mqtt_connected` then returns `false`.
 
 ## Requirements
 

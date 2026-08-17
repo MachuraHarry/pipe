@@ -67,7 +67,7 @@ For the typical "publish telemetry, subscribe to commands" IoT workload, none of
 
 ## Try it
 
-- Module: [`pipe-modules/mqtt`](https://github.com/MachuraHarry/pipe-modules/tree/master/modules/mqtt) — ~880 lines of pure Pipe.
+- Module: [`pipe-modules/mqtt`](https://github.com/MachuraHarry/pipe-modules/tree/master/mqtt) — ~880 lines of pure Pipe.
 - Docs: [MQTT Module](https://github.com/MachuraHarry/pipe/blob/master/docs/en/27-mqtt-module.md)
 
 ```bash
@@ -144,7 +144,7 @@ Für den typischen IoT-Workload „Telemetrie publizieren, Befehle abonnieren" s
 
 ## Ausprobieren
 
-- Modul: [`pipe-modules/mqtt`](https://github.com/MachuraHarry/pipe-modules/tree/master/modules/mqtt) — ~880 Zeilen reines Pipe.
+- Modul: [`pipe-modules/mqtt`](https://github.com/MachuraHarry/pipe-modules/tree/master/mqtt) — ~880 Zeilen reines Pipe.
 - Doku: [MQTT-Modul](https://github.com/MachuraHarry/pipe/blob/master/docs/de/27-mqtt-modul.md)
 
 ```bash

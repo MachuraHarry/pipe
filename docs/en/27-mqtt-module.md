@@ -13,7 +13,7 @@
 
 ## Architecture
 
-The module lives under `modules/mqtt/module.pipe` in the registry and is loaded via `pipe -get mqtt` or `import "mqtt"`. It is ~880 lines of pure Pipe.
+The module lives under `mqtt/module.pipe` in the registry and is loaded via `pipe -get mqtt` or `import "mqtt"`. It is ~880 lines of pure Pipe.
 
 Three TCP builtins make it possible (all in the standard binary):
 
@@ -72,4 +72,4 @@ h: unwrap (mqtt.mqtt_connect "192.168.1.10" 8883 {tls_insecure: true, will: will
 - **No automatic reconnect** — if the broker drops the connection, the callback simply stops firing; `mqtt_connected` returns `false`. Reconnection is left to the caller.
 - **No QoS-2 message store** — in-flight QoS-2 state is held in memory, not persisted across process restarts.
 
-More examples: `modules/mqtt/example.pipe`.
+More examples: `mqtt/example.pipe`.

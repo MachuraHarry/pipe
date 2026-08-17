@@ -24,7 +24,7 @@ var versionRegexp = regexp.MustCompile(`^v?\d+\.\d+\.\d+(-[0-9A-Za-z.-]+)?$`)
 // Workflow:
 //  1. Validate the module's pipe.json.
 //  2. Check for a duplicate version in the current registry.
-//  3. Clone the registry repo, copy the module into modules/<name>.
+//  3. Clone the registry repo, copy the module into <name>.
 //  4. Add an entry to registry.json.
 //  5. Commit on branch publish/<name>-<version> and open a PR with gh.
 func Publish(dir string) error {
@@ -62,7 +62,7 @@ func Publish(dir string) error {
 		return err
 	}
 
-	modsDir := filepath.Join(tmp, "repo", "modules")
+	modsDir := filepath.Join(tmp, "repo")
 	if err := os.MkdirAll(modsDir, 0755); err != nil {
 		return err
 	}
@@ -160,7 +160,7 @@ func updateRegistry(regPath string, m *Manifest) error {
 		}
 	}
 
-	moduleURL := DefaultModulesRaw + "/modules/" + m.Name + "/module.pipe"
+	moduleURL := DefaultModulesRaw + "/" + m.Name + "/module.pipe"
 	entry := object.ModuleEntry{
 		Description: m.Description,
 		Functions:   m.Exports,

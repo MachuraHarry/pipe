@@ -1,0 +1,42 @@
+--! CI smoke test for the pipe-docs RAG path.
+--! Validates docs-pipe (doc_index + embed_batch + doc_search + doc_ask) against
+--! a tiny fixture using the DeepSeek provider, so provider/key regressions are
+--! caught early. Skips cleanly when DEEPSEEK_API_KEY is not set (e.g. forks).
+--! Run: pipe -get docs-pipe && pipe -get sqlite && DEEPSEEK_API_KEY=... pipe scripts/pipe-docs-smoke.pipe
+
+import "docs-pipe"
+
+fn main _
+    key: env "DEEPSEEK_API_KEY"
+    if key == nil || key == ""
+        print "SKIP: DEEPSEEK_API_KEY not set"
+        return nil
+    ai_provider "deepseek"
+    ai_set_key "deepseek" key
+
+    fixture: ".pipe-docs-smoke.md"
+    write_file fixture "# Pipe smoke test\n\nPipe is a pipeline-native language with built-in MCP.\n\n## Connecting servers\n\nUse mcp_use_stdio to connect to an external MCP server over stdio.\n"
+
+    idx: doc_index fixture {lang: "en", db: ":memory:"}
+
+    st: doc_index_status idx
+    print ("status: files=" ++ (to_str (get st "files")) ++ " chunks=" ++ (to_str (get st "chunks")))
+
+    res: doc_search idx "mcp_use_stdio" 2
+    if (len res) == 0
+        print "ERROR: doc_search returned no results"
+        return nil
+    print ("search hit: " ++ (get (at res 0) "path") ++ " :: " ++ (get (at res 0) "heading"))
+
+    ans: doc_ask idx "What is mcp_use_stdio for?" 2
+    answer: get ans "answer"
+    if answer == nil || answer == ""
+        print "ERROR: doc_ask returned no answer"
+        return nil
+    print ("ask answer: " ++ (substring answer 0 120))
+
+    doc_close idx
+    print "OK"
+    nil
+
+main 0

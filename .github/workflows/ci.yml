@@ -64,6 +64,42 @@ jobs:
         fi
         echo "stats and docs in sync"
 
+  docs-smoke:
+    name: pipe-docs RAG smoke
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v5
+
+    - name: Set up Go
+      uses: actions/setup-go@v6
+      with:
+        go-version: '1.25'
+
+    - name: Build pipe
+      run: go build -o /tmp/pipe ./cmd/pipe
+
+    - name: Install docs-pipe + sqlite modules
+      run: |
+        /tmp/pipe -get docs-pipe
+        /tmp/pipe -get sqlite
+
+    - name: Run RAG smoke test
+      env:
+        DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
+      run: |
+        OUT=$(/tmp/pipe scripts/pipe-docs-smoke.pipe 2>&1)
+        echo "$OUT"
+        if echo "$OUT" | grep -q "ERROR"; then
+          echo "::error::pipe-docs RAG smoke test failed"
+          exit 1
+        fi
+        if echo "$OUT" | grep -q "OK"; then
+          echo "pipe-docs RAG smoke test passed"
+        else
+          echo "pipe-docs RAG smoke test skipped (no DEEPSEEK_API_KEY)"
+        fi
+
   byte-identity:
     name: Byte-identity (${{ matrix.os }})
     runs-on: ${{ matrix.os }}

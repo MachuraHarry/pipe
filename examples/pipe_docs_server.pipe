@@ -1,0 +1,474 @@
+--! pipe-docs — MCP server exposing RAG over the Pipe documentation and source code.
+--! Fetch the Pipe repo from GitHub, index docs (EN + DE + blog) with docs-pipe,
+--! and index Go/Pipe source into a declaration-level symbol table. AI agents can
+--! then search_docs / ask_docs / search_code / read_source without digging
+--! through the repository themselves.
+--!
+--! Config (env):
+--!   DEEPSEEK_API_KEY | OPENAI_API_KEY  — enables semantic search + ask_docs
+--!   PIPE_DOCS_CACHE                     — cache dir (default ~/.pipe/cache/pipe-docs)
+--!
+--! Run: DEEPSEEK_API_KEY=... pipe examples/pipe_docs_server.pipe
+--! The first run clones the repo and builds/embeds the docs index (a few minutes);
+--! subsequent runs load the persistent SQLite index.
+
+import "docs-pipe"
+
+REPO_URL: "https://github.com/MachuraHarry/pipe"
+
+--- === Global state === ---
+
+ST: {src: "", idx_en: nil, idx_de: nil, idx_blog: nil, code_symbols: [], code_files: [], has_ai: false, err: ""}
+
+--- === Cache & fetch === ---
+
+fn cache_dir
+    d: env "PIPE_DOCS_CACHE"
+    if d == nil || d == ""
+        d: (env "HOME") ++ "/.pipe/cache/pipe-docs"
+    make_dir d
+    d
+
+fn ensure_src
+    cd: cache_dir 0
+    src: path_join cd "src"
+    if file_exists (path_join src "go.mod")
+        return src
+    cmd: "git clone --depth 1 " ++ REPO_URL ++ " " ++ src
+    r: exec cmd
+    if (get r "status") != 0
+        return ("ERROR: git clone failed: " ++ (get r "error"))
+    if not (file_exists (path_join src "go.mod"))
+        return "ERROR: git clone produced no repository"
+    src
+
+fn refresh_repo
+    src: get ST "src"
+    cmd: "git -C " ++ src ++ " pull --depth 1"
+    r: exec cmd
+    if (get r "status") != 0
+        return ("ERROR: git pull failed: " ++ (get r "error"))
+    "ok"
+
+--- === Provider === ---
+
+fn configure_provider
+    key: env "DEEPSEEK_API_KEY"
+    if key != nil && key != ""
+        ai_provider "deepseek"
+        ai_set_key "deepseek" key
+        set ST "has_ai" true
+        return nil
+    okey: env "OPENAI_API_KEY"
+    if okey != nil && okey != ""
+        ai_provider "openai"
+        ai_set_key "openai" okey
+        set ST "has_ai" true
+        return nil
+    set ST "has_ai" false
+    nil
+
+--- === Docs index === ---
+
+fn build_docs
+    src: get ST "src"
+    cd: cache_dir 0
+    en_dir: path_join src "docs/en"
+    de_dir: path_join src "docs/de"
+    blog_dir: path_join src "website/blog"
+    if file_exists en_dir
+        idx: doc_index en_dir {lang: "en", db: (path_join cd "docs-en.db")}
+        set ST "idx_en" idx
+    if file_exists de_dir
+        idx: doc_index de_dir {lang: "de", db: (path_join cd "docs-de.db")}
+        set ST "idx_de" idx
+    if file_exists blog_dir
+        idx: doc_index blog_dir {lang: "en", db: (path_join cd "docs-blog.db")}
+        set ST "idx_blog" idx
+    nil
+
+--- === Code index (Go + Pipe declaration scanner) === ---
+
+fn is_code_ext p
+    e: path_ext p
+    (e == ".go") || (e == ".pipe")
+
+fn collect_code_files path
+    out: []
+    t: file_type path
+    if t == "file"
+        if is_code_ext path
+            push out path
+        return out
+    entries: list_dir path
+    i: 0
+    while i < (len entries)
+        e: at entries i
+        el: len e
+        if (substring e (el - 1) el) == "/"
+            sub: path_join path (substring e 0 (el - 1))
+            j: 0
+            subfiles: collect_code_files sub
+            while j < (len subfiles)
+                push out (at subfiles j)
+                j: j + 1
+        else
+            if is_code_ext e
+                push out (path_join path e)
+        i: i + 1
+    out
+
+fn go_ident s
+    -- first run of identifier characters [A-Za-z0-9_]
+    out: ""
+    i: 0
+    n: len s
+    while i < n
+        c: substring s i (i + 1)
+        ok: (c >= "a" && c <= "z") || (c >= "A" && c <= "Z") || (c >= "0" && c <= "9") || c == "_"
+        if not ok
+            break
+        out: out ++ c
+        i: i + 1
+    out
+
+fn go_func_name line
+    rest: substring line 5 (len line)
+    if (substring rest 0 1) == "("
+        parts: split rest ") "
+        if (len parts) >= 2
+            go_ident (at parts 1)
+        else
+            ""
+    else
+        go_ident rest
+
+fn go_decl line
+    if (substring line 0 5) == "func "
+        {kind: "func", symbol: (go_func_name line)}
+    else if (substring line 0 5) == "type "
+        {kind: "type", symbol: (go_ident (substring line 5 (len line)))}
+    else if (substring line 0 6) == "const "
+        {kind: "const", symbol: (go_ident (substring line 6 (len line)))}
+    else if (substring line 0 4) == "var "
+        {kind: "var", symbol: (go_ident (substring line 4 (len line)))}
+    else
+        nil
+
+fn scan_go_file path
+    lines: read_lines path
+    out: []
+    i: 0
+    n: (len lines)
+    while i < n
+        line: at lines i
+        if (len line) > 0 && (substring line 0 1) != " " && (substring line 0 1) != "\t"
+            decl: go_decl line
+            if decl != nil
+                push out {file: path, kind: (get decl "kind"), symbol: (get decl "symbol"), line_start: (i + 1), content: (trim line)}
+        i: i + 1
+    out
+
+fn pipe_decl line
+    if (substring line 0 3) == "fn "
+        {kind: "fn", symbol: (go_ident (substring line 3 (len line)))}
+    else if (substring line 0 8) == "export fn "
+        {kind: "fn", symbol: (go_ident (substring line 8 (len line)))}
+    else if (substring line 0 7) == "struct "
+        {kind: "struct", symbol: (go_ident (substring line 7 (len line)))}
+    else if (substring line 0 14) == "export struct "
+        {kind: "struct", symbol: (go_ident (substring line 14 (len line)))}
+    else if (substring line 0 5) == "enum "
+        {kind: "enum", symbol: (go_ident (substring line 5 (len line)))}
+    else if (substring line 0 12) == "export enum "
+        {kind: "enum", symbol: (go_ident (substring line 12 (len line)))}
+    else if (substring line 0 5) == "test "
+        {kind: "test", symbol: (go_ident (substring line 5 (len line)))}
+    else
+        nil
+
+fn scan_pipe_file path
+    lines: read_lines path
+    out: []
+    i: 0
+    n: (len lines)
+    while i < n
+        line: at lines i
+        if (len line) > 0 && (substring line 0 1) != " " && (substring line 0 1) != "\t"
+            decl: pipe_decl line
+            if decl != nil
+                push out {file: path, kind: (get decl "kind"), symbol: (get decl "symbol"), line_start: (i + 1), content: (trim line)}
+        i: i + 1
+    out
+
+fn rel_path p
+    src: get ST "src"
+    replace p (src ++ "/") ""
+
+fn build_code_index
+    src: get ST "src"
+    dirs: [(path_join src "pkg"), (path_join src "cmd"), (path_join src "modules"), (path_join src "examples")]
+    symbols: []
+    files: []
+    i: 0
+    while i < (len dirs)
+        d: at dirs i
+        if file_exists d
+            fs: collect_code_files d
+            j: 0
+            while j < (len fs)
+                f: at fs j
+                push files (rel_path f)
+                if (path_ext f) == ".go"
+                    decls: scan_go_file f
+                else
+                    decls: scan_pipe_file f
+                k: 0
+                while k < (len decls)
+                    e: at decls k
+                    set e "file" (rel_path (get e "file"))
+                    push symbols e
+                    k: k + 1
+                j: j + 1
+        i: i + 1
+    set ST "code_symbols" symbols
+    set ST "code_files" files
+    nil
+
+--- === Tool implementations === ---
+
+fn list_extend target src
+    i: 0
+    while i < (len src)
+        push target (at src i)
+        i: i + 1
+    target
+
+fn normalize_results results
+    out: []
+    i: 0
+    while i < (len results)
+        r: at results i
+        item: {}
+        set item "path" (get r "path")
+        set item "heading" (get r "heading")
+        set item "line" (get r "line_start")
+        set item "score" (get r "score")
+        snippet: get r "text"
+        if (len snippet) > 400
+            snippet: (substring snippet 0 400) ++ "..."
+        set item "snippet" snippet
+        push out item
+        i: i + 1
+    out
+
+fn mcp_search_docs query
+    if (get ST "has_ai") == false
+        return "Semantic search is unavailable: set DEEPSEEK_API_KEY (or OPENAI_API_KEY) and restart."
+    if query == nil || query == ""
+        return []
+    en: get ST "idx_en"
+    de: get ST "idx_de"
+    blog: get ST "idx_blog"
+    merged: []
+    if en != nil
+        list_extend merged (doc_search en query 6)
+    if de != nil
+        list_extend merged (doc_search de query 3)
+    if blog != nil
+        list_extend merged (doc_search blog query 3)
+    normalize_results merged
+
+fn mcp_ask_docs question
+    if (get ST "has_ai") == false
+        return {answer: "Semantic search is unavailable: set DEEPSEEK_API_KEY (or OPENAI_API_KEY) and restart.", sources: []}
+    if question == nil || question == ""
+        return {answer: "", sources: []}
+    en: get ST "idx_en"
+    if en != nil
+        r: doc_ask en question 4
+        return r
+    de: get ST "idx_de"
+    if de != nil
+        doc_ask de question 4
+    else
+        {answer: "No documentation index is available.", sources: []}
+
+fn safe_read_path path
+    if path == nil || path == ""
+        return "missing path"
+    if contains path ".."
+        return "invalid path"
+    src: get ST "src"
+    full: path_join src path
+    if not (file_exists full)
+        return "file not found: " ++ path
+    read_file full
+
+fn mcp_read_doc path
+    safe_read_path path
+
+fn collect_md_files path prefix
+    out: []
+    entries: list_dir path
+    i: 0
+    while i < (len entries)
+        e: at entries i
+        if (path_ext e) == ".md"
+            push out (prefix ++ e)
+        i: i + 1
+    out
+
+fn mcp_list_docs
+    src: get ST "src"
+    en_dir: path_join src "docs/en"
+    de_dir: path_join src "docs/de"
+    blog_dir: path_join src "website/blog"
+    out: {en: [], de: [], blog: []}
+    if file_exists en_dir
+        set out "en" (collect_md_files en_dir "docs/en/")
+    if file_exists de_dir
+        set out "de" (collect_md_files de_dir "docs/de/")
+    if file_exists blog_dir
+        set out "blog" (collect_md_files blog_dir "website/blog/")
+    out
+
+fn mcp_search_code query
+    if query == nil || query == ""
+        return []
+    q: lower query
+    syms: get ST "code_symbols"
+    scored: []
+    i: 0
+    while i < (len syms)
+        s: at syms i
+        symbol: lower (get s "symbol")
+        content: lower (get s "content")
+        file: lower (get s "file")
+        score: 0
+        if symbol == q
+            score: 100
+        else
+            if contains symbol q
+                score: 60
+            if contains content q
+                score: score + 10
+            if contains file q
+                score: score + 5
+        if score > 0
+            push scored {s: s, score: score}
+        i: i + 1
+    ordered: sorted_by scored (fn x: (0 - (get x "score")))
+    limit: 20
+    if limit > (len ordered)
+        limit: (len ordered)
+    out: []
+    j: 0
+    while j < limit
+        e: at ordered j
+        s: get e "s"
+        item: {}
+        set item "file" (get s "file")
+        set item "kind" (get s "kind")
+        set item "symbol" (get s "symbol")
+        set item "line" (get s "line_start")
+        set item "content" (get s "content")
+        push out item
+        j: j + 1
+    out
+
+fn read_with_numbers path
+    lines: read_lines path
+    out: ""
+    i: 0
+    n: (len lines)
+    while i < n
+        out: out ++ (to_str (i + 1)) ++ "\t" ++ (at lines i) ++ "\n"
+        i: i + 1
+    out
+
+fn mcp_read_source path
+    if path == nil || path == ""
+        return "missing path"
+    if contains path ".."
+        return "invalid path"
+    src: get ST "src"
+    full: path_join src path
+    if not (file_exists full)
+        return "file not found: " ++ path
+    text: read_with_numbers full
+    -- truncate large files to keep context bounded
+    lines: split text "\n"
+    if (len lines) > 500
+        head: join (slice lines 0 500) "\n"
+        return head ++ "\n... (truncated, " ++ (to_str (len lines)) ++ " lines total; use search_code to locate the relevant symbol, or read a specific file directly)"
+    text
+
+fn mcp_list_sources
+    get ST "code_files"
+
+fn mcp_index_status
+    syms: get ST "code_symbols"
+    files: get ST "code_files"
+    en: get ST "idx_en"
+    de: get ST "idx_de"
+    blog: get ST "idx_blog"
+    status: {}
+    set status "ready" (get ST "ready")
+    set status "has_ai" (get ST "has_ai")
+    set status "source_files" (len files)
+    set status "code_symbols" (len syms)
+    if en != nil
+        set status "docs_en" (doc_index_status en)
+    if de != nil
+        set status "docs_de" (doc_index_status de)
+    if blog != nil
+        set status "blog" (doc_index_status blog)
+    status
+
+fn mcp_refresh
+    r: refresh_repo 0
+    if (substring r 0 5) == "ERROR"
+        return r
+    build_code_index 0
+    if (get ST "has_ai") == true
+        en: get ST "idx_en"
+        if en != nil
+            doc_reindex en
+        de: get ST "idx_de"
+        if de != nil
+            doc_reindex de
+        blog: get ST "idx_blog"
+        if blog != nil
+            doc_reindex blog
+    "refreshed"
+
+--- === Startup === ---
+
+fn init_all
+    src: ensure_src 0
+    if (substring src 0 5) == "ERROR"
+        set ST "err" src
+        return nil
+    set ST "src" src
+    configure_provider 0
+    if (get ST "has_ai") == true
+        build_docs 0
+    build_code_index 0
+    set ST "ready" true
+    nil
+
+init_all 0
+
+ai_tool "search_docs" "Semantic + keyword search across the Pipe documentation (EN + DE) and blog. Returns top matches with path, heading, line number and a snippet." {query: "Search query"} mcp_search_docs
+ai_tool "ask_docs" "Answer a question about Pipe using the documentation as context, returning the answer and cited source chunks. Requires DEEPSEEK_API_KEY." {question: "Question about Pipe"} mcp_ask_docs
+ai_tool "read_doc" "Read a documentation file by relative path (e.g. docs/en/25-mcp.md, docs/de/25-mcp.md)." {path: "Documentation file path"} mcp_read_doc
+ai_tool "list_docs" "List the available documentation files (en, de, blog)." {} mcp_list_docs
+ai_tool "search_code" "Find Go/Pipe functions, types, structs, enums and tests in the Pipe source by name or keyword. Returns file, kind, symbol, line and the declaration." {query: "Symbol or keyword to find"} mcp_search_code
+ai_tool "read_source" "Read a source file (Go or Pipe) with line numbers by relative path (e.g. pkg/mcp/client.go)." {path: "Source file path"} mcp_read_source
+ai_tool "list_sources" "List all source files (Go + Pipe) in the Pipe repository." {} mcp_list_sources
+ai_tool "index_status" "Report index statistics: source files, code symbols, and docs chunks." {} mcp_index_status
+ai_tool "refresh_index" "Re-fetch the repository from GitHub and rebuild the docs and code indexes." {} mcp_refresh
+
+mcp_server "Pipe Docs" "1.0.0"
+mcp_serve_stdio

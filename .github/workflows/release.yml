@@ -55,6 +55,21 @@ jobs:
         npx -y @anthropic-ai/mcpb pack bundle pipe-server-${{ matrix.target.os }}-${{ matrix.target.arch }}.mcpb
         openssl dgst -sha256 -r pipe-server-${{ matrix.target.os }}-${{ matrix.target.arch }}.mcpb | awk '{print $1}' > pipe-server-${{ matrix.target.os }}-${{ matrix.target.arch }}.mcpb.sha256
 
+    - name: Build Docs MCPB bundle
+      run: |
+        VERSION="${GITHUB_REF_NAME#v}"
+        mkdir -p bundle-docs/server
+        cp pipe${{ matrix.target.ext }} bundle-docs/server/pipe${{ matrix.target.ext }}
+        cp examples/pipe_docs_server.pipe bundle-docs/server/pipe_docs_server.pipe
+        cp mcpb/manifest-docs.json bundle-docs/manifest.json
+        sed -i "s/\"version\": \"[^\"]*\"/\"version\": \"$VERSION\"/" bundle-docs/manifest.json
+        if [ "${{ matrix.target.os }}" = "windows" ]; then
+          sed -i 's|server/pipe"|server/pipe.exe"|g' bundle-docs/manifest.json
+        fi
+        chmod +x bundle-docs/server/pipe${{ matrix.target.ext }}
+        npx -y @anthropic-ai/mcpb pack bundle-docs pipe-docs-server-${{ matrix.target.os }}-${{ matrix.target.arch }}.mcpb
+        openssl dgst -sha256 -r pipe-docs-server-${{ matrix.target.os }}-${{ matrix.target.arch }}.mcpb | awk '{print $1}' > pipe-docs-server-${{ matrix.target.os }}-${{ matrix.target.arch }}.mcpb.sha256
+
     - name: Upload artifact
       uses: actions/upload-artifact@v4
       with:
@@ -62,6 +77,7 @@ jobs:
         path: |
           pipe-${{ matrix.target.os }}-${{ matrix.target.arch }}.tar.gz*
           pipe-server-${{ matrix.target.os }}-${{ matrix.target.arch }}.mcpb*
+          pipe-docs-server-${{ matrix.target.os }}-${{ matrix.target.arch }}.mcpb*
 
     - name: Create Release
       if: startsWith(github.ref, 'refs/tags/v')
@@ -70,4 +86,5 @@ jobs:
         files: |
           pipe-${{ matrix.target.os }}-${{ matrix.target.arch }}.tar.gz*
           pipe-server-${{ matrix.target.os }}-${{ matrix.target.arch }}.mcpb*
+          pipe-docs-server-${{ matrix.target.os }}-${{ matrix.target.arch }}.mcpb*
         generate_release_notes: true

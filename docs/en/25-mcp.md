@@ -287,3 +287,44 @@ r: mcp_use_stdio "./my-server"
 if (type_of r) == "ERROR"
     print "MCP connection failed: " ++ (to_str r)
 ```
+
+---
+
+## 25.7 The `pipe-docs` Server
+
+The repository ships a ready-made RAG MCP server, `examples/pipe_docs_server.pipe`, published to the MCP registry as `io.github.MachuraHarry/pipe-docs`. It clones the Pipe repository on first run, indexes the documentation (EN + DE + blog) with `docs-pipe`, and builds a declaration-level symbol index over the Go and Pipe source. AI agents can then ask about Pipe without reading the repository themselves.
+
+**Tools:**
+
+| Tool | Needs key | Description |
+|------|-----------|-------------|
+| `search_docs(query)` | yes | Hybrid keyword + semantic search over docs and blog, with citations |
+| `ask_docs(question)` | yes | Cited RAG answer grounded in the documentation |
+| `read_doc(path)` | no | Read a documentation file (e.g. `docs/en/25-mcp.md`) |
+| `list_docs()` | no | List documentation files (en, de, blog) |
+| `search_code(query)` | no | Find Go/Pipe functions, types, structs, enums by name or keyword |
+| `read_source(path)` | no | Read a source file with line numbers (e.g. `pkg/mcp/client.go`) |
+| `list_sources()` | no | List all source files |
+| `index_status()` | no | Index statistics (files, symbols, docs chunks) |
+| `refresh_index()` | no | Re-fetch the repo and rebuild the indexes |
+
+**Configuration (env):**
+
+- `DEEPSEEK_API_KEY` / `OPENAI_API_KEY` — enables `search_docs` and `ask_docs` (embeddings + chat). Without a key, the file/source tools still work.
+- `PIPE_DOCS_CACHE` — cache directory (default `~/.pipe/cache/pipe-docs`).
+
+The first run clones the repo and embeds the docs index (a few minutes); subsequent runs load the persistent SQLite index. Register it in your MCP client with the desired API key:
+
+```json
+{
+  "mcpServers": {
+    "pipe-docs": {
+      "command": "pipe",
+      "args": ["examples/pipe_docs_server.pipe"],
+      "env": { "DEEPSEEK_API_KEY": "sk-..." }
+    }
+  }
+}
+```
+
+The server is distributed as an `.mcpb` bundle built by `release.yml` and published via `publish-mcp-docs.yml`.

@@ -288,3 +288,44 @@ r: mcp_use_stdio "./my-server"
 if (type_of r) == "ERROR"
     print "MCP-Verbindung fehlgeschlagen: " ++ (to_str r)
 ```
+
+---
+
+## 25.7 Der `pipe-docs`-Server
+
+Das Repository enthält einen fertigen RAG-MCP-Server, `examples/pipe_docs_server.pipe`, veröffentlicht im MCP-Registry als `io.github.MachuraHarry/pipe-docs`. Er klont beim ersten Start das Pipe-Repository, indexiert die Dokumentation (EN + DE + Blog) mit `docs-pipe` und baut einen Symbol-Index auf Deklarations-Ebene über den Go- und Pipe-Quellcode auf. KI-Agenten können damit Fragen zu Pipe beantworten, ohne das Repository selbst durchforsten zu müssen.
+
+**Tools:**
+
+| Tool | Key nötig | Beschreibung |
+|------|-----------|--------------|
+| `search_docs(query)` | ja | Hybride Keyword- + semantische Suche über Doku und Blog, mit Zitaten |
+| `ask_docs(question)` | ja | Zitierte RAG-Antwort auf Basis der Dokumentation |
+| `read_doc(path)` | nein | Eine Dokumentationsdatei lesen (z. B. `docs/de/25-mcp.md`) |
+| `list_docs()` | nein | Dokumentationsdateien auflisten (en, de, blog) |
+| `search_code(query)` | nein | Go/Pipe-Funktionen, -Typen, -Structs, -Enums nach Name/Keyword finden |
+| `read_source(path)` | nein | Quelldatei mit Zeilennummern lesen (z. B. `pkg/mcp/client.go`) |
+| `list_sources()` | nein | Alle Quelldateien auflisten |
+| `index_status()` | nein | Index-Statistiken (Dateien, Symbole, Doc-Chunks) |
+| `refresh_index()` | nein | Repo neu ziehen und Indexe neu aufbauen |
+
+**Konfiguration (env):**
+
+- `DEEPSEEK_API_KEY` / `OPENAI_API_KEY` — aktiviert `search_docs` und `ask_docs` (Embeddings + Chat). Ohne Key funktionieren die Datei-/Quellcode-Tools weiterhin.
+- `PIPE_DOCS_CACHE` — Cache-Verzeichnis (Standard `~/.pipe/cache/pipe-docs`).
+
+Der erste Start klont das Repo und baut den Docs-Index mit Embeddings auf (einige Minuten); Folge-Starts laden den persistenten SQLite-Index. Im MCP-Client mit gewünschtem API-Key registrieren:
+
+```json
+{
+  "mcpServers": {
+    "pipe-docs": {
+      "command": "pipe",
+      "args": ["examples/pipe_docs_server.pipe"],
+      "env": { "DEEPSEEK_API_KEY": "sk-..." }
+    }
+  }
+}
+```
+
+Der Server wird als `.mcpb`-Bundle von `release.yml` gebaut und über `publish-mcp-docs.yml` veröffentlicht.

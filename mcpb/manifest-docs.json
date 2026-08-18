@@ -1,0 +1,26 @@
+{
+  "manifest_version": "0.3",
+  "name": "pipe-docs",
+  "display_name": "Pipe Docs (SPR) MCP Server",
+  "version": "1.0.0",
+  "description": "Documentation + source-code RAG for the Pipe language: semantic docs search, cited answers, and code symbol lookup over the entire repository.",
+  "author": {
+    "name": "MachuraHarry",
+    "url": "https://github.com/MachuraHarry"
+  },
+  "homepage": "https://pipe-lang.com",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/MachuraHarry/pipe"
+  },
+  "license": "MIT",
+  "keywords": ["mcp", "mcp-server", "ai", "rag", "docs", "pipe", "runtime"],
+  "server": {
+    "type": "binary",
+    "entry_point": "server/pipe",
+    "mcp_config": {
+      "command": "${__dirname}/server/pipe",
+      "args": ["${__dirname}/server/pipe_docs_server.pipe"]
+    }
+  }
+}

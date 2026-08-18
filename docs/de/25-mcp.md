@@ -177,8 +177,8 @@ Pipe kann sich mit externen MCP-Servern verbinden und deren Tools in `ai_with_to
 
 | Builtin | Beschreibung |
 |---------|--------------|
-| `mcp_use_stdio(command, args...)` | Startet einen Subprocess und verbindet sich über stdio. Entdeckt Tools und registriert sie im Tool-Registry mit einem `mcp0_`-, `mcp1_`-, …-Präfix. |
-| `mcp_use_sse(url)` | Verbindet sich per POST + SSE mit einem Streamable-HTTP-MCP-Server (session-verwaltet). |
+| `mcp_use_stdio(command, args..., env?, alias?)` | Startet einen Subprocess und verbindet sich über stdio. Entdeckt Tools und registriert sie im Tool-Registry mit einem `mcp0_`-, `mcp1_`-, …-Präfix, oder mit eigenem Präfix bei Angabe von `alias`. |
+| `mcp_use_sse(url, alias?)` | Verbindet sich per POST + SSE mit einem Streamable-HTTP-MCP-Server (session-verwaltet), optional mit eigenem `alias`-Präfix. |
 
 > **Sandbox:** MCP-Client-Verbindungen unterliegen dem aktiven
 > Sandbox-Profil. `mcp_use_stdio` startet einen Subprocess und benötigt daher
@@ -221,6 +221,17 @@ Remote-Tools erhalten ein Präfix, um Namenskollisionen zwischen mehreren Server
 | 1. `mcp_use_sse` | `mcp2_` | `mcp2_query_db` |
 
 Lokale `ai_tool`-Tools behalten ihre ursprünglichen Namen (kein Präfix).
+
+Statt des automatischen Präfixes in Registrierungsreihenfolge kannst du einer Verbindung einen expliziten Alias geben, damit ihre Tools einen stabilen, aussagekräftigen Namen erhalten:
+
+```pipe
+mcp_use_stdio "npx" "-y" "@modelcontextprotocol/server-github" {GITHUB_TOKEN: (env "GITHUB_TOKEN")} "github"
+mcp_use_sse "http://localhost:9090/mcp" "postgres"
+
+--- github_list_issues, postgres_query, ...
+```
+
+Der Alias muss ein gültiger Identifier-Fragment sein und darf nicht mit dem Präfix eines anderen Clients kollidieren.
 
 ---
 

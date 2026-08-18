@@ -1783,20 +1783,24 @@ print (mcp_prompt_get "summarize" {text: "Ein langer Artikel ..."})
 
 ### mcp_use_stdio
 ```
-mcp_use_stdio(command, args...)
+mcp_use_stdio(command, args..., env?, alias?)
 ```
-Startet einen Subprozess und verbindet sich per stdio als MCP-Client. Entdeckt dessen Tools und registriert sie mit Präfix `mcp0_`, `mcp1_`, ... im Tool-Registry. Ressourcen und Prompts werden ebenfalls entdeckt, falls beworben. Unterliegt der `exec`-Richtlinie des aktiven Sandbox-Profils (blockiert, außer `exec: true`).
+Startet einen Subprozess und verbindet sich per stdio als MCP-Client. Entdeckt dessen Tools und registriert sie mit Präfix `mcp0_`, `mcp1_`, ... im Tool-Registry. Ressourcen und Prompts werden ebenfalls entdeckt, falls beworben. Unterliegt der `exec`-Richtlinie des aktiven Sandbox-Profils (blockiert, außer `exec: true`). Der optionale `alias` benennt den Tool-Präfix (z. B. `alias "github"` erzeugt `github_list_issues`); er folgt auf die env-Map, daher bei fehlenden Umgebungsvariablen `{}` angeben. Ein Alias muss ein gültiger Identifier sein und darf nicht mit einem bestehenden Client kollidieren.
 ```pipe
 mcp_use_stdio "npx" "-y" "@modelcontextprotocol/server-everything"
+
+mcp_use_stdio "npx" "-y" "@modelcontextprotocol/server-github" {GITHUB_TOKEN: (env "GITHUB_TOKEN")} "github"
 ```
 
 ### mcp_use_sse
 ```
-mcp_use_sse(url)
+mcp_use_sse(url, alias?)
 ```
-Verbindet sich per POST + SSE mit einem Streamable-HTTP-MCP-Server (Session-verwaltet). Registriert dessen Tools mit Präfix `mcp2_`, `mcp3_`, ... Unterliegt der `network`-Richtlinie des aktiven Sandbox-Profils: Die URL und jede weitere Anfrage (inkl. Redirects) werden gegen die `network_whitelist` des Profils geprüft.
+Verbindet sich per POST + SSE mit einem Streamable-HTTP-MCP-Server (Session-verwaltet). Registriert dessen Tools mit Präfix `mcp2_`, `mcp3_`, ... oder mit einem eigenen Präfix, wenn der optionale `alias` angegeben ist (z. B. `alias "github"` erzeugt `github_list_issues`). Unterliegt der `network`-Richtlinie des aktiven Sandbox-Profils: Die URL und jede weitere Anfrage (inkl. Redirects) werden gegen die `network_whitelist` des Profils geprüft.
 ```pipe
 mcp_use_sse "http://localhost:9090/"
+
+mcp_use_sse "http://localhost:9090/" "github"
 ```
 
 ---

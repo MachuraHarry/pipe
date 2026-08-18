@@ -632,6 +632,45 @@ func objToJSON(obj Object) interface{} {
 	}
 }
 
+// validAlias reports whether s is a valid tool-name alias: a non-empty
+// identifier fragment that can be safely prefixed to remote tool names.
+func validAlias(s string) bool {
+	if s == "" {
+		return false
+	}
+	for i, r := range s {
+		isAlpha := (r >= 'a' && r <= 'z') || (r >= 'A' && r <= 'Z')
+		isDigit := r >= '0' && r <= '9'
+		if i == 0 {
+			if !isAlpha && r != '_' {
+				return false
+			}
+		} else if !isAlpha && !isDigit && r != '_' {
+			return false
+		}
+	}
+	return true
+}
+
+// resolvePrefix maps an optional alias to the tool prefix for a new MCP
+// client. An empty alias falls back to the registration-order prefix mcpN_.
+// A non-empty alias is validated and must not collide with an existing client.
+func resolvePrefix(alias string) (string, error) {
+	if alias == "" {
+		return fmt.Sprintf("mcp%d_", len(mcpClients)), nil
+	}
+	if !validAlias(alias) {
+		return "", fmt.Errorf("invalid alias %q: must be a valid identifier (letters, digits, underscore; not starting with a digit)", alias)
+	}
+	prefix := alias + "_"
+	for _, e := range mcpClients {
+		if e.prefix == prefix {
+			return "", fmt.Errorf("alias %q is already in use by another MCP client", alias)
+		}
+	}
+	return prefix, nil
+}
+
 func registerMCPClient(client *mcp.Client, prefix string) error {
 	_, initErr := client.Initialize()
 	if initErr != nil {
@@ -795,9 +834,11 @@ func bMcpUseStdio(args ...Object) Object {
 
 	cmdArgs := make([]string, 0)
 	envVars := make(map[string]string)
+	alias := ""
 	argEnd := len(args)
 
-	// Last argument can be a Map for environment variables
+	// Last argument can be a Map for environment variables, optionally
+	// followed by an alias string: mcp_use_stdio(command, args..., env?, alias?)
 	if len(args) >= 2 {
 		if envMap, ok := args[len(args)-1].(*Map); ok {
 			argEnd = len(args) - 1
@@ -806,6 +847,12 @@ func bMcpUseStdio(args ...Object) Object {
 					envVars[k] = s.Value
 				} else {
 					envVars[k] = v.Inspect()
+				}
+			}
+			if argEnd >= 2 {
+				if aliasStr, ok := args[argEnd-1].(*String); ok {
+					alias = aliasStr.Value
+					argEnd--
 				}
 			}
 		}
@@ -819,12 +866,16 @@ func bMcpUseStdio(args ...Object) Object {
 		}
 	}
 
+	prefix, prefixErr := resolvePrefix(alias)
+	if prefixErr != nil {
+		return err("mcp_use_stdio: " + prefixErr.Error())
+	}
+
 	client, clientErr := mcp.NewStdioClient(command.Value, cmdArgs, envVars)
 	if clientErr != nil {
 		return err("mcp_use_stdio: " + clientErr.Error())
 	}
 
-	prefix := fmt.Sprintf("mcp%d_", len(mcpClients))
 	if regErr := registerMCPClient(client, prefix); regErr != nil {
 		return err("mcp_use_stdio: " + regErr.Error())
 	}
@@ -841,6 +892,15 @@ func bMcpUseSSE(args ...Object) Object {
 		return err("mcp_use_sse: argument must be a string (url)")
 	}
 
+	alias := ""
+	if len(args) >= 2 {
+		aliasStr, ok := args[1].(*String)
+		if !ok {
+			return err("mcp_use_sse: alias must be a string")
+		}
+		alias = aliasStr.Value
+	}
+
 	// An SSE client makes HTTP requests, so it is gated by the active
 	// profile's network policy and whitelist — at connect time and for every
 	// subsequent request (including redirects) via the client's NetworkGate.
@@ -848,6 +908,11 @@ func bMcpUseSSE(args ...Object) Object {
 		if netErr := p.CanNetworkTo(url.Value); netErr != nil {
 			return err(netErr.Error())
 		}
+	}
+
+	prefix, prefixErr := resolvePrefix(alias)
+	if prefixErr != nil {
+		return err("mcp_use_sse: " + prefixErr.Error())
 	}
 
 	client, clientErr := mcp.NewHTTPClient(url.Value)
@@ -860,7 +925,6 @@ func bMcpUseSSE(args ...Object) Object {
 		}
 	}
 
-	prefix := fmt.Sprintf("mcp%d_", len(mcpClients))
 	if regErr := registerMCPClient(client, prefix); regErr != nil {
 		return err("mcp_use_sse: " + regErr.Error())
 	}

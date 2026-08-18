@@ -2731,24 +2731,28 @@ print (mcp_prompt_get "summarize" {text: "A long article ..."})
 
 ### `mcp_use_stdio`
 
-**Signature:** `mcp_use_stdio(command, args...)`
+**Signature:** `mcp_use_stdio(command, args..., env?, alias?)`
 
-**Description:** Spawns a subprocess and connects to it as an MCP server via stdio. Discovers its tools and registers them in the tool registry with a `mcp0_`, `mcp1_`, ... prefix. Also discovers resources and prompts if advertised. Gated by the active sandbox profile's `exec` policy (blocked unless `exec: true`).
+**Description:** Spawns a subprocess and connects to it as an MCP server via stdio. Discovers its tools and registers them in the tool registry with a `mcp0_`, `mcp1_`, ... prefix. Also discovers resources and prompts if advertised. Gated by the active sandbox profile's `exec` policy (blocked unless `exec: true`). The optional `alias` names the tool prefix (e.g. `alias "github"` produces `github_list_issues`); it follows the env map, so pass `{}` when no env vars are needed. An alias must be a valid identifier and must not collide with an existing client.
 
 **Returns:** `string` (confirmation message)
 ```pipe
 mcp_use_stdio "npx" "-y" "@modelcontextprotocol/server-everything"
+
+mcp_use_stdio "npx" "-y" "@modelcontextprotocol/server-github" {GITHUB_TOKEN: (env "GITHUB_TOKEN")} "github"
 ```
 
 ### `mcp_use_sse`
 
-**Signature:** `mcp_use_sse(url)`
+**Signature:** `mcp_use_sse(url, alias?)`
 
-**Description:** Connects to a Streamable HTTP MCP server via POST + SSE (session-managed). Registers its tools with a `mcp2_`, `mcp3_`, ... prefix. Gated by the active sandbox profile's `network` policy: the URL and every subsequent request (including redirects) are checked against the profile's `network_whitelist`.
+**Description:** Connects to a Streamable HTTP MCP server via POST + SSE (session-managed). Registers its tools with a `mcp2_`, `mcp3_`, ... prefix, or a custom prefix when the optional `alias` is given (e.g. `alias "github"` produces `github_list_issues`). Gated by the active sandbox profile's `network` policy: the URL and every subsequent request (including redirects) are checked against the profile's `network_whitelist`.
 
 **Returns:** `string` (confirmation message)
 ```pipe
 mcp_use_sse "http://localhost:9090/"
+
+mcp_use_sse "http://localhost:9090/" "github"
 ```
 
 ---

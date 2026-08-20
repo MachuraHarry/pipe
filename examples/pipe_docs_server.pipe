@@ -172,8 +172,8 @@ fn scan_go_file path
 fn pipe_decl line
     if (substring line 0 3) == "fn "
         {kind: "fn", symbol: (go_ident (substring line 3 (len line)))}
-    else if (substring line 0 8) == "export fn "
-        {kind: "fn", symbol: (go_ident (substring line 8 (len line)))}
+    else if (substring line 0 10) == "export fn "
+        {kind: "fn", symbol: (go_ident (substring line 10 (len line)))}
     else if (substring line 0 7) == "struct "
         {kind: "struct", symbol: (go_ident (substring line 7 (len line)))}
     else if (substring line 0 14) == "export struct "

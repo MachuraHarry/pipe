@@ -1,0 +1,105 @@
+--! Tests for pipe-docs security: path traversal prevention.
+--! Validates safe_read_path and mcp_read_source reject traversal attempts.
+--! Run: pipe scripts/pipe-docs-security-test.pipe
+
+--- === Inlined helpers from pipe_docs_server.pipe === ---
+
+ST: {src: ""}
+
+fn safe_read_path path
+    if path == nil || path == ""
+        return "missing path"
+    if contains path ".."
+        return "invalid path"
+    src: get ST "src"
+    full: path_join src path
+    if not (file_exists full)
+        return "file not found: " ++ path
+    read_file full
+
+fn read_with_numbers path
+    lines: read_lines path
+    out: ""
+    i: 0
+    n: (len lines)
+    while i < n
+        out: out ++ (to_str (i + 1)) ++ "\t" ++ (at lines i) ++ "\n"
+        i: i + 1
+    out
+
+fn mcp_read_source path
+    if path == nil || path == ""
+        return "missing path"
+    if contains path ".."
+        return "invalid path"
+    src: get ST "src"
+    full: path_join src path
+    if not (file_exists full)
+        return "file not found: " ++ path
+    text: read_with_numbers full
+    lines: split text "\n"
+    if (len lines) > 500
+        head: join (slice lines 0 500) "\n"
+        return head ++ "\n... (truncated)"
+    text
+
+--- === Setup: create temp fixture === ---
+
+tmp: "/tmp/pipe-docs-security-test"
+make_dir tmp
+make_dir (tmp ++ "/safe/dir")
+write_file (tmp ++ "/hello.txt") "hello world"
+write_file (tmp ++ "/safe/dir/nested.txt") "nested content"
+
+set ST "src" tmp
+
+--- === safe_read_path tests === ---
+
+test "safe_read_path reads valid file"
+    assert_eq (safe_read_path "hello.txt") "hello world"
+
+test "safe_read_path reads nested file"
+    assert_eq (safe_read_path "safe/dir/nested.txt") "nested content"
+
+test "safe_read_path rejects nil"
+    assert_eq (safe_read_path nil) "missing path"
+
+test "safe_read_path rejects empty string"
+    assert_eq (safe_read_path "") "missing path"
+
+test "safe_read_path rejects path traversal with .."
+    assert_eq (safe_read_path "../etc/passwd") "invalid path"
+
+test "safe_read_path rejects embedded .."
+    assert_eq (safe_read_path "safe/../../etc/passwd") "invalid path"
+
+test "safe_read_path rejects trailing .."
+    assert_eq (safe_read_path "safe/dir/..") "invalid path"
+
+test "safe_read_path rejects .. at start"
+    assert_eq (safe_read_path "..") "invalid path"
+
+test "safe_read_path returns error for missing file"
+    assert_contains (safe_read_path "nonexistent.txt") "file not found"
+
+--- === mcp_read_source tests === ---
+
+test "mcp_read_source reads valid file with line numbers"
+    assert_contains (mcp_read_source "hello.txt") "1\thello world"
+
+test "mcp_read_source rejects nil"
+    assert_eq (mcp_read_source nil) "missing path"
+
+test "mcp_read_source rejects empty string"
+    assert_eq (mcp_read_source "") "missing path"
+
+test "mcp_read_source rejects path traversal"
+    assert_eq (mcp_read_source "../etc/passwd") "invalid path"
+
+test "mcp_read_source rejects embedded traversal"
+    assert_eq (mcp_read_source "safe/../../etc/shadow") "invalid path"
+
+test "mcp_read_source returns error for missing file"
+    assert_contains (mcp_read_source "does_not_exist.go") "file not found"
+
+print "=== pipe-docs security tests complete ==="

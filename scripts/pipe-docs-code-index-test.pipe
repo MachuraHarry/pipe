@@ -1,0 +1,238 @@
+--! Tests for pipe-docs code-indexing: Go/Pipe declaration parser.
+--! Inlines the parsing functions from pipe_docs_server.pipe and validates
+--! them against fixture files. No network or AI key required.
+--! Run: pipe scripts/pipe-docs-code-index-test.pipe
+
+--- === Inlined parser helpers from pipe_docs_server.pipe === ---
+
+fn go_ident s
+    out: ""
+    i: 0
+    n: len s
+    while i < n
+        c: substring s i (i + 1)
+        ok: (c >= "a" && c <= "z") || (c >= "A" && c <= "Z") || (c >= "0" && c <= "9") || c == "_"
+        if not ok
+            break
+        out: out ++ c
+        i: i + 1
+    out
+
+fn go_func_name line
+    rest: substring line 5 (len line)
+    if (substring rest 0 1) == "("
+        parts: split rest ") "
+        if (len parts) >= 2
+            go_ident (at parts 1)
+        else
+            ""
+    else
+        go_ident rest
+
+fn go_decl line
+    if (substring line 0 5) == "func "
+        {kind: "func", symbol: (go_func_name line)}
+    else if (substring line 0 5) == "type "
+        {kind: "type", symbol: (go_ident (substring line 5 (len line)))}
+    else if (substring line 0 6) == "const "
+        {kind: "const", symbol: (go_ident (substring line 6 (len line)))}
+    else if (substring line 0 4) == "var "
+        {kind: "var", symbol: (go_ident (substring line 4 (len line)))}
+    else
+        nil
+
+fn pipe_decl line
+    if (substring line 0 3) == "fn "
+        {kind: "fn", symbol: (go_ident (substring line 3 (len line)))}
+    else if (substring line 0 10) == "export fn "
+        {kind: "fn", symbol: (go_ident (substring line 10 (len line)))}
+    else if (substring line 0 7) == "struct "
+        {kind: "struct", symbol: (go_ident (substring line 7 (len line)))}
+    else if (substring line 0 14) == "export struct "
+        {kind: "struct", symbol: (go_ident (substring line 14 (len line)))}
+    else if (substring line 0 5) == "enum "
+        {kind: "enum", symbol: (go_ident (substring line 5 (len line)))}
+    else if (substring line 0 12) == "export enum "
+        {kind: "enum", symbol: (go_ident (substring line 12 (len line)))}
+    else if (substring line 0 5) == "test "
+        {kind: "test", symbol: (go_ident (substring line 5 (len line)))}
+    else
+        nil
+
+fn scan_go_file path
+    lines: read_lines path
+    out: []
+    i: 0
+    n: (len lines)
+    while i < n
+        line: at lines i
+        if (len line) > 0 && (substring line 0 1) != " " && (substring line 0 1) != "\t"
+            decl: go_decl line
+            if decl != nil
+                push out {file: path, kind: (get decl "kind"), symbol: (get decl "symbol"), line_start: (i + 1), content: (trim line)}
+        i: i + 1
+    out
+
+fn scan_pipe_file path
+    lines: read_lines path
+    out: []
+    i: 0
+    n: (len lines)
+    while i < n
+        line: at lines i
+        if (len line) > 0 && (substring line 0 1) != " " && (substring line 0 1) != "\t"
+            decl: pipe_decl line
+            if decl != nil
+                push out {file: path, kind: (get decl "kind"), symbol: (get decl "symbol"), line_start: (i + 1), content: (trim line)}
+        i: i + 1
+    out
+
+--- === go_ident tests === ---
+
+test "go_ident extracts identifier"
+    assert_eq (go_ident "foo") "foo"
+    assert_eq (go_ident "FooBar123") "FooBar123"
+    assert_eq (go_ident "abc_def") "abc_def"
+    assert_eq (go_ident "x(string) Foo") "x"
+    assert_eq (go_ident "") ""
+
+--- === go_func_name tests === ---
+
+test "go_func_name parses package-level func"
+    assert_eq (go_func_name "func Add(a, b int) int") "Add"
+
+test "go_func_name parses receiver method"
+    assert_eq (go_func_name "func (s *Server) ServeHTTP(addr string) error") "ServeHTTP"
+    assert_eq (go_func_name "func (c *Compiler) emit(op Opcode, operands ...int) int") "emit"
+
+--- === go_decl tests === ---
+
+test "go_decl detects func"
+    r: go_decl "func Foo() {}"
+    assert_eq (get r "kind") "func"
+    assert_eq (get r "symbol") "Foo"
+
+test "go_decl detects receiver method"
+    r: go_decl "func (s *Server) Start() error"
+    assert_eq (get r "kind") "func"
+    assert_eq (get r "symbol") "Start"
+
+test "go_decl detects type"
+    r: go_decl "type Foo struct{}"
+    assert_eq (get r "kind") "type"
+    assert_eq (get r "symbol") "Foo"
+
+test "go_decl detects const"
+    r: go_decl "const MaxRetries = 3"
+    assert_eq (get r "kind") "const"
+    assert_eq (get r "symbol") "MaxRetries"
+
+test "go_decl detects var"
+    r: go_decl "var defaultTimeout = 30"
+    assert_eq (get r "kind") "var"
+    assert_eq (get r "symbol") "defaultTimeout"
+
+test "go_decl ignores indented lines"
+    r: go_decl "    func insideBlock() {}"
+    assert_eq r nil
+
+test "go_decl ignores non-declaration lines"
+    assert_eq (go_decl "import \"fmt\"") nil
+    assert_eq (go_decl "return nil") nil
+
+--- === pipe_decl tests === ---
+
+test "pipe_decl detects fn"
+    r: pipe_decl "fn my_func"
+    assert_eq (get r "kind") "fn"
+    assert_eq (get r "symbol") "my_func"
+
+test "pipe_decl detects export fn"
+    r: pipe_decl "export fn api_handler"
+    assert_eq (get r "kind") "fn"
+    assert_eq (get r "symbol") "api_handler"
+
+test "pipe_decl detects struct"
+    r: pipe_decl "struct Point"
+    assert_eq (get r "kind") "struct"
+    assert_eq (get r "symbol") "Point"
+
+test "pipe_decl detects export struct"
+    r: pipe_decl "export struct Config"
+    assert_eq (get r "kind") "struct"
+    assert_eq (get r "symbol") "Config"
+
+test "pipe_decl detects enum"
+    r: pipe_decl "enum Color"
+    assert_eq (get r "kind") "enum"
+    assert_eq (get r "symbol") "Color"
+
+test "pipe_decl detects export enum"
+    r: pipe_decl "export enum Status"
+    assert_eq (get r "kind") "enum"
+    assert_eq (get r "symbol") "Status"
+
+test "pipe_decl detects test"
+    r: pipe_decl "test my_test_case"
+    assert_eq (get r "kind") "test"
+    assert_eq (get r "symbol") "my_test_case"
+
+test "pipe_decl ignores indented lines"
+    assert_eq (pipe_decl "    fn indented") nil
+
+test "pipe_decl ignores comments"
+    assert_eq (pipe_decl "-- this is a comment") nil
+
+--- === scan_go_file tests === ---
+
+test "scan_go_file parses Go file"
+    tmp: "/tmp/pipe-docs-test-go"
+    make_dir tmp
+    write_file (tmp ++ "/test.go") "package main\n\nimport \"fmt\"\n\nfunc main() {\n    fmt.Println(\"hello\")\n}\n\nfunc add(a, b int) int {\n    return a + b\n}\n\ntype Config struct {\n    Host string\n    Port int\n}\n\nconst MaxRetries = 3\n\nvar defaultTimeout = 30\n"
+    decls: scan_go_file (tmp ++ "/test.go")
+    assert_eq (len decls) 5
+    assert_eq (get (at decls 0) "kind") "func"
+    assert_eq (get (at decls 0) "symbol") "main"
+    assert_eq (get (at decls 0) "line_start") 5
+    assert_eq (get (at decls 1) "symbol") "add"
+    assert_eq (get (at decls 2) "kind") "type"
+    assert_eq (get (at decls 2) "symbol") "Config"
+    assert_eq (get (at decls 3) "kind") "const"
+    assert_eq (get (at decls 3) "symbol") "MaxRetries"
+    assert_eq (get (at decls 4) "kind") "var"
+    assert_eq (get (at decls 4) "symbol") "defaultTimeout"
+
+--- === scan_pipe_file tests === ---
+
+test "scan_pipe_file parses Pipe file"
+    tmp: "/tmp/pipe-docs-test-pipe"
+    make_dir tmp
+    write_file (tmp ++ "/test.pipe") "-- header\n\nfn hello\n    \"world\"\n\nexport fn public_api\n    42\n\nstruct Point\n    x: 0\n    y: 0\n\nenum Color\n    Red\n    Green\n\nexport enum Status\n    Active\n    Inactive\n\ntest basic\n    assert_eq 1 1\n"
+    decls: scan_pipe_file (tmp ++ "/test.pipe")
+    assert_eq (len decls) 6
+    assert_eq (get (at decls 0) "kind") "fn"
+    assert_eq (get (at decls 0) "symbol") "hello"
+    assert_eq (get (at decls 1) "kind") "fn"
+    assert_eq (get (at decls 1) "symbol") "public_api"
+    assert_eq (get (at decls 2) "kind") "struct"
+    assert_eq (get (at decls 2) "symbol") "Point"
+    assert_eq (get (at decls 3) "kind") "enum"
+    assert_eq (get (at decls 3) "symbol") "Color"
+    assert_eq (get (at decls 4) "kind") "enum"
+    assert_eq (get (at decls 4) "symbol") "Status"
+    assert_eq (get (at decls 5) "kind") "test"
+    assert_eq (get (at decls 5) "symbol") "basic"
+
+--- === scan_go_file with receiver methods === ---
+
+test "scan_go_file parses receiver methods"
+    tmp: "/tmp/pipe-docs-test-receiver"
+    make_dir tmp
+    write_file (tmp ++ "/server.go") "package main\n\ntype Server struct{}\n\nfunc (s *Server) Start() error {\n    return nil\n}\n\nfunc (s *Server) Stop() {\n}\n"
+    decls: scan_go_file (tmp ++ "/server.go")
+    assert_eq (len decls) 3
+    assert_eq (get (at decls 0) "symbol") "Server"
+    assert_eq (get (at decls 1) "symbol") "Start"
+    assert_eq (get (at decls 2) "symbol") "Stop"
+
+print "=== pipe-docs code-index tests complete ==="

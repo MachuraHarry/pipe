@@ -2,8 +2,11 @@ package object
 
 import (
 	"bytes"
+	"context"
+	"os"
 	"os/exec"
 	"sync"
+	"time"
 )
 
 // ProcessHandle tracks a running subprocess started by proc_start().
@@ -53,8 +56,34 @@ func bProcStart(args ...Object) Object {
 		return newErr("proc_start: argument must be a string")
 	}
 
+	// Security: same gating as exec — profile whitelist + legacy sandbox
+	profile := ActiveProfile.Load()
+	if profile.Name != "none" {
+		if canErr := profile.CanExecCommand(cmd.Value); canErr != nil {
+			return newErr(canErr.Error())
+		}
+	} else if Sandbox.Enabled && !Sandbox.AllowExec {
+		return newErr(sandboxBlock("proc_start").Message)
+	}
+
 	shell, flag := execShell()
-	c := exec.Command(shell, flag, cmd.Value)
+	var c *exec.Cmd
+	if profile.Name != "none" && profile.Timeout > 0 {
+		ctx, cancel := context.WithTimeout(context.Background(), time.Duration(profile.Timeout)*time.Second)
+		defer cancel()
+		c = exec.CommandContext(ctx, shell, flag, cmd.Value)
+	} else {
+		c = exec.Command(shell, flag, cmd.Value)
+	}
+
+	// Security: environment isolation — match exec's env scoping
+	if profile.Name != "none" {
+		env := os.Environ()
+		for k, v := range profile.Env {
+			env = append(env, k+"="+v)
+		}
+		c.Env = env
+	}
 
 	var stdout, stderr bytes.Buffer
 	c.Stdout = &stdout

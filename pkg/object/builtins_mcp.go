@@ -147,6 +147,9 @@ func bMcpServeStdio(args ...Object) Object {
 }
 
 func bMcpServeSSE(args ...Object) Object {
+	if blockErr := checkNetworkAccess("mcp_serve_sse"); blockErr != nil {
+		return blockErr
+	}
 	if len(args) < 1 {
 		return err("mcp_serve_sse expects 1 argument (addr, e.g. ':9090')")
 	}

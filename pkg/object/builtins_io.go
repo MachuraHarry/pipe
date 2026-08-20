@@ -327,7 +327,21 @@ func bDotenv(args ...Object) Object {
 			prefix = p.Value
 		}
 	}
-	data, e := os.ReadFile(file.Value)
+
+	// Security: enforce sandbox filesystem read policy
+	profile := ActiveProfile.Load()
+	filePath := file.Value
+	if profile.Name != "none" {
+		canon, cerr := profile.canonicalRead(filePath)
+		if cerr != nil {
+			return err(cerr.Error())
+		}
+		filePath = canon
+	} else if Sandbox.Enabled && !Sandbox.AllowFS {
+		return err(sandboxBlock("dotenv").Message)
+	}
+
+	data, e := os.ReadFile(filePath)
 	if e != nil {
 		return err("dotenv: " + e.Error())
 	}
@@ -346,7 +360,11 @@ func bDotenv(args ...Object) Object {
 		if prefix != "" {
 			key = prefix + key
 		}
-		os.Setenv(key, val)
+		if profile.Name != "none" {
+			profile.Env[key] = val
+		} else {
+			os.Setenv(key, val)
+		}
 		count++
 	}
 	return &Integer{Value: int64(count)}

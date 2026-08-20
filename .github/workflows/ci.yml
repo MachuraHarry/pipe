@@ -88,10 +88,18 @@ jobs:
       env:
         DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
       run: |
+        set +e
         OUT=$(/tmp/pipe scripts/pipe-docs-smoke.pipe 2>&1)
+        RC=$?
+        set -e
         echo "$OUT"
+        echo "pipe exit code: $RC"
         if echo "$OUT" | grep -q "ERROR"; then
           echo "::error::pipe-docs RAG smoke test failed"
+          exit 1
+        fi
+        if [ $RC -ne 0 ] && ! echo "$OUT" | grep -q "SKIP"; then
+          echo "::error::pipe-docs RAG smoke test crashed (exit=$RC)"
           exit 1
         fi
         if echo "$OUT" | grep -q "OK"; then

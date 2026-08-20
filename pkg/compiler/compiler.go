@@ -734,10 +734,10 @@ func (c *Compiler) compileStatements(stmts []ast.Statement, popLast bool) error 
 
 func (c *Compiler) lastInstructionIsTerminator() bool {
 	scope := c.currentScope()
-	if len(scope.instructions) == 0 {
+	if len(scope.instructions) < 3 {
 		return false
 	}
-	last := Opcode(scope.instructions[len(scope.instructions)-1])
+	last := Opcode(scope.instructions[len(scope.instructions)-3])
 	return last == OpReturn || last == OpReturnValue || last == OpHalt
 }
 
@@ -1326,10 +1326,10 @@ func (c *Compiler) patchJump(pos int, target int) {
 
 func (c *Compiler) lastIsReturn() bool {
 	ins := c.currentScope().instructions
-	if len(ins) < 1 {
+	if len(ins) < 3 {
 		return false
 	}
-	last := Opcode(ins[len(ins)-1])
+	last := Opcode(ins[len(ins)-3])
 	return last == OpReturn || last == OpReturnValue
 }
 

@@ -2,7 +2,7 @@
 
 All notable changes to Pipe are documented here. This file follows [Keep a Changelog](https://keepachangelog.com/) format.
 
-## [Unreleased]
+## [1.1.0] — 2026-08-21
 
 ### Fixed
 - **pipe-docs MCP server** (`examples/pipe_docs_server.pipe`):

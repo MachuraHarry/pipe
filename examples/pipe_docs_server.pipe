@@ -223,6 +223,12 @@ fn mcp_search_docs query
     en: get ST "idx_en"
     de: get ST "idx_de"
     blog: get ST "idx_blog"
+    -- German queries lead with the German index; EN and blog follow as context.
+    if (looks_german query) == true && de != nil
+        try
+            return (normalize_results (doc_search de query 6))
+        catch e
+            return ("search failed: " ++ (to_str e))
     merged: []
     try
         if en != nil

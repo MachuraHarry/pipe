@@ -343,7 +343,7 @@ func (sub *SandboxProfile) IsSubsetOf(super *SandboxProfile) bool {
 		return false
 	}
 	return whitelistIsSubset(sub.NetworkWhitelist, super.NetworkWhitelist) &&
-		execWhitelistIsSubset(sub.ExecWhitelist, super.ExecWhitelist)
+		(!sub.Exec || execWhitelistIsSubset(sub.ExecWhitelist, super.ExecWhitelist))
 }
 
 // budgetIsSubset treats a budget of 0 as "unlimited" (the most permissive
@@ -756,3 +756,4 @@ func sandboxError(feature string) *Error {
 	msg := "E_SANDBOX: " + feature + " is blocked by active profile '" + ActiveProfile.Load().Name + "'"
 	return &Error{Message: msg}
 }
+

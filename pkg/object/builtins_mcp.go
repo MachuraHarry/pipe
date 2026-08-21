@@ -821,7 +821,7 @@ func promptResultText(result *mcp.GetPromptResult) string {
 
 func bMcpUseStdio(args ...Object) Object {
 	if len(args) < 1 {
-		return err("mcp_use_stdio expects at least 1 argument (command, args..., env?)")
+		return err("mcp_use_stdio expects at least 1 argument (command, args..., env?, alias?)")
 	}
 	command, ok := args[0].(*String)
 	if !ok {
@@ -840,22 +840,35 @@ func bMcpUseStdio(args ...Object) Object {
 	alias := ""
 	argEnd := len(args)
 
-	// Last argument can be a Map for environment variables, optionally
-	// followed by an alias string: mcp_use_stdio(command, args..., env?, alias?)
+	// Parse optional trailing args: env (Map) and alias (String).
+	// Signature: mcp_use_stdio(command, args..., env?, alias?)
+	// Scan from the end: alias is last (if present), env is before it.
 	if len(args) >= 2 {
-		if envMap, ok := args[len(args)-1].(*Map); ok {
-			argEnd = len(args) - 1
+		last := len(args) - 1
+		// Check if last arg is an alias string
+		if aliasStr, ok := args[last].(*String); ok {
+			// Could be alias only, or alias after env — check second-to-last
+			if last >= 2 {
+				if envMap, ok := args[last-1].(*Map); ok {
+					argEnd = last - 1
+					for k, v := range envMap.Pairs {
+						if s, ok := v.(*String); ok {
+							envVars[k] = s.Value
+						} else {
+							envVars[k] = v.Inspect()
+						}
+					}
+					alias = aliasStr.Value
+				}
+			}
+		} else if envMap, ok := args[last].(*Map); ok {
+			// Last arg is env map (no alias)
+			argEnd = last
 			for k, v := range envMap.Pairs {
 				if s, ok := v.(*String); ok {
 					envVars[k] = s.Value
 				} else {
 					envVars[k] = v.Inspect()
-				}
-			}
-			if argEnd >= 2 {
-				if aliasStr, ok := args[argEnd-1].(*String); ok {
-					alias = aliasStr.Value
-					argEnd--
 				}
 			}
 		}

@@ -16,16 +16,48 @@ import "docs-pipe"
 
 REPO_URL: "https://github.com/MachuraHarry/pipe"
 
+--- === Sandbox profiles === ---
+-- Two profiles: server-full (build phase) and server-secure (serve phase).
+-- After init completes we switch to server-secure and lock it so the MCP
+-- server runs with least-privilege: read-only FS, no exec, AI + network
+-- for provider calls only.
+-- NOTE: env vars must be captured BEFORE set_sandbox — under an active profile
+-- the env builtin only reads from the profile's Env allowlist, and API keys
+-- containing KEY/SECRET/TOKEN are additionally blocked by secretEnvMarkers.
+
+sandbox_profile "server-full" {fs: "full", exec: true, exec_whitelist: ["git"], network: true, network_whitelist: ["github.com", "raw.githubusercontent.com", "api.deepseek.com", "api.openai.com", "api.anthropic.com"], ai: true}
+sandbox_profile "server-secure" {fs: "read-only", exec: false, network: true, network_whitelist: ["api.deepseek.com", "api.openai.com", "api.anthropic.com"], ai: true}
+
 --- === Global state === ---
 
-ST: {src: "", idx_en: nil, idx_de: nil, idx_blog: nil, code_symbols: [], code_files: [], has_ai: false, err: ""}
+ST: {src: "", idx_en: nil, idx_de: nil, idx_blog: nil, code_symbols: [], code_files: [], has_ai: false, err: "", deepseek_key: "", openai_key: "", home: "", cache: ""}
+
+-- Capture env vars before sandbox activation
+_env_home: env "HOME"
+if _env_home != nil
+    set ST "home" _env_home
+_ds_key: env "DEEPSEEK_API_KEY"
+if _ds_key != nil && _ds_key != ""
+    set ST "deepseek_key" _ds_key
+_oai_key: env "OPENAI_API_KEY"
+if _oai_key != nil && _oai_key != ""
+    set ST "openai_key" _oai_key
+_env_cache: env "PIPE_DOCS_CACHE"
+if _env_cache != nil && _env_cache != ""
+    set ST "cache" _env_cache
+
+set_sandbox "server-full"
 
 --- === Cache & fetch === ---
 
 fn cache_dir
-    d: env "PIPE_DOCS_CACHE"
+    d: get ST "cache"
     if d == nil || d == ""
-        d: (env "HOME") ++ "/.pipe/cache/pipe-docs"
+        home: get ST "home"
+        if home != nil && home != ""
+            d: home ++ "/.pipe/cache/pipe-docs"
+        else
+            d: "/tmp/pipe-docs-cache"
     make_dir d
     d
 
@@ -53,14 +85,14 @@ fn refresh_repo
 --- === Provider === ---
 
 fn configure_provider
-    key: env "DEEPSEEK_API_KEY"
+    key: get ST "deepseek_key"
     if key != nil && key != ""
         ai_provider "deepseek"
         ai_set_key "deepseek" key
         ai_model "deepseek-v4-flash"
         set ST "has_ai" true
         return nil
-    okey: env "OPENAI_API_KEY"
+    okey: get ST "openai_key"
     if okey != nil && okey != ""
         ai_provider "openai"
         ai_set_key "openai" okey
@@ -481,6 +513,10 @@ fn init_all
     nil
 
 init_all 0
+
+--- Harden: switch to read-only profile and lock it ---
+set_sandbox "server-secure"
+sandbox_lock "server-secure"
 
 ai_tool "search_docs" "Semantic + keyword search across the Pipe documentation (EN + DE) and blog. Returns top matches with path, heading, line number and a snippet." {query: "Search query"} mcp_search_docs
 ai_tool "ask_docs" "Answer a question about Pipe using the documentation as context, returning the answer and cited source chunks. Requires DEEPSEEK_API_KEY." {question: "Question about Pipe"} mcp_ask_docs

@@ -235,18 +235,39 @@ fn mcp_search_docs query
         return ("search failed: " ++ (to_str e))
     normalize_results merged
 
+-- Route German-language questions to the German docs index; everything else
+-- defaults to EN (with DE fallback when EN was never indexed). Word-boundary
+-- padded tokens avoid false positives on shared substrings.
+fn looks_german q
+    if q == nil
+        return false
+    padded: " " ++ (lower q) ++ " "
+    if (contains padded "ä") || (contains padded "ö") || (contains padded "ü") || (contains padded "ß")
+        return true
+    markers: [" der ", " das ", " und ", " nicht ", " warum ", " welche ", " wieso ", " weshalb ", " wie ", " funktioniert", " prinzip", " für ", " über ", " beim ", " wird ", " werden ", " kann "]
+    i: 0
+    while i < (len markers)
+        if contains padded (at markers i)
+            return true
+        i: i + 1
+    false
+
 fn mcp_ask_docs question
     if (get ST "has_ai") == false
         return {answer: "Semantic search is unavailable: set DEEPSEEK_API_KEY (or OPENAI_API_KEY) and restart.", sources: []}
     if question == nil || question == ""
         return {answer: "", sources: []}
     idx: get ST "idx_en"
+    if (looks_german question) == true
+        de: get ST "idx_de"
+        if de != nil
+            idx: de
     if idx == nil
         idx: get ST "idx_de"
     if idx == nil
         return {answer: "No documentation index is available.", sources: []}
     try
-        doc_ask idx question 4
+        doc_ask idx question 6
     catch e
         {answer: ("ask failed: " ++ (to_str e)), sources: []}
 

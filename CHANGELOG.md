@@ -17,6 +17,7 @@ All notable changes to Pipe are documented here. This file follows [Keep a Chang
 - `pipe_decl` now also indexes `export test` declarations
 - Search snippets are truncated UTF-8-safe (word-boundary preferred, incomplete multi-byte tails dropped) instead of raw byte cuts that could produce mojibake
 - `read_source` renders numbered lines in linear time and stops rendering at the 500-line cap instead of building the full text first
+- `ask_docs` routes German-language questions to the German docs index (umlaut/token detection) instead of always querying EN first, and retrieves 6 chunks per question (was 4)
 
 ### Security
 - Path gate rejects absolute paths (e.g. `/etc/passwd`) in addition to `..` traversal; covered by `scripts/pipe-docs-security-test.pipe`

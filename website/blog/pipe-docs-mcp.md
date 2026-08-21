@@ -2,15 +2,17 @@
 [lang:de]# 🔍 pipe-docs MCP — Deine gesamte Codebase als semantische Suche, direkt in deiner KI-IDE[/lang]
 
 [lang:en]
-**A semantic search and RAG MCP server for the Pipe language — 7 tools, zero dependencies, published on the MCP Registry. Point your AI at your docs, your source code, or both, and get cited answers in seconds.**
+**A semantic search and RAG MCP server for the Pipe language — 9 tools, zero dependencies, published on the MCP Registry. Point your AI at your docs, your source code, or both, and get cited answers in seconds.**
 
 > **Related:** [docs-pipe dashboard](docs-pipe-dashboard.html) · [RAG in ~10 lines](tutorial-local-rag.html) · [Your first MCP server](tutorial-first-mcp-server.html)
 
+> *Updated for v1.1.0 (2026-08-21): nine tools, automatic routing of German questions to the German index, rebuild-only refresh, and UTF-8-safe result storage.*
+
 Most AI coding assistants can read files — but they read them *blindly*. They don't know that `docs/en/17-compiler.md` explains the register allocator, or that `pkg/compiler/compiler.go:738` contains the `lastInstructionIsTerminator` function. They don't know which chunk of documentation answers a question about sandbox profiles, and they certainly can't trace a claim back to a specific heading in a specific file.
 
-`pipe-docs` fixes that. It's a Pipe-native MCP server that turns your entire documentation tree *and* your Go/Pipe source code into a semantic search engine that any MCP-aware AI can query — with cited answers, code symbol lookup, and heading-aware chunking. No vector database, no embedding SDK, no framework. One binary, seven tools.
+`pipe-docs` fixes that. It's a Pipe-native MCP server that turns your entire documentation tree *and* your Go/Pipe source code into a semantic search engine that any MCP-aware AI can query — with cited answers, code symbol lookup, and heading-aware chunking. No vector database, no embedding SDK, no framework. One binary, nine tools.
 
-## Seven tools, one server
+## Nine tools, one server
 
 ```pipe
 import "docs-pipe"
@@ -27,17 +29,19 @@ print (get res "answer")     -- answers with [1], [2], [3] citations
 print (get res "sources")    -- [{path, line_start, heading}, ...]
 ```
 
-That's the core API — six functions: `doc_index`, `doc_search`, `doc_ask`, `doc_index_status`, `doc_reindex`, `doc_close`. The MCP server wraps them into seven tools:
+That's the core API — six functions: `doc_index`, `doc_search`, `doc_ask`, `doc_index_status`, `doc_reindex`, `doc_close`. The MCP server wraps them into nine tools:
 
 | Tool | What it does |
 |---|---|
 | `search_docs` | Semantic + keyword hybrid search across EN, DE, and blog docs |
-| `ask_docs` | RAG answer with cited sources — the AI gets context, you get traceability |
+| `ask_docs` | RAG answer with cited sources — German questions are routed to the German index automatically |
 | `search_code` | Find Go/Pipe functions, types, structs by name or keyword |
 | `read_doc` | Read a specific documentation file by path |
+| `read_source` | Read a Go/Pipe source file — numbered lines, UTF-8-safe truncation |
 | `list_docs` | List all files in EN, DE, and blog directories |
-| `index_status` | Report stats: files, chunks, symbols, has_ai flag |
-| `refresh` | Re-fetch the source repo and rebuild the index |
+| `list_sources` | List every indexed Go/Pipe source file |
+| `index_status` | Report stats: files, chunks, symbols, ready/ai_ready flags |
+| `refresh_index` | Rebuild all indexes from the cached checkout — no network after startup; picking up upstream changes needs a restart |
 
 The server runs as a single Pipe process over stdio — the same transport Claude Desktop, Cursor, opencode, and every other MCP client already speaks.
 
@@ -49,7 +53,9 @@ A naive approach embeds every paragraph and calls `nearest`. That misses context
 
 **Hybrid search.** A TF-IDF keyword score and a cosine-similarity score are fused — and the weights adapt automatically: local 128-dim embeddings lean on keywords, OpenAI's 1536-dim embeddings lean on semantics. Identifiers stay single tokens (`try_ai`, not `try` + `ai`), and a query term matching a chunk's *heading* gets a boost.
 
-**Cited answers.** `doc_ask` doesn't just answer — it cites. Every answer comes with a `sources` array: `path:line — heading`, so you can always trace a claim back to the exact doc section. The AI gets context, you get accountability.
+**Cited answers.** `doc_ask` doesn't just answer — it cites. Every answer comes with a `sources` array: `path:line — heading`, so you can always trace a claim back to the exact doc section. The AI gets context, you get accountability. And since v1.1.0, German questions are detected heuristically and answered from the German index — same citations, right language.
+
+All result text flows through SQLite, and as of v1.1.0 the bundled SQLite module handles multi-byte UTF-8 correctly — umlauts, em-dashes, and emoji in headings and snippets come back exactly as they went in, no latin-1 mojibake.
 
 ## The code index: Go and Pipe, together
 
@@ -81,21 +87,23 @@ This means when you ask an AI "where is the sandbox gate for proc_start?", it do
 
 The MCPB bundle ships five platform variants (linux-amd64, linux-arm64, darwin-amd64, darwin-arm64, windows-amd64), each ~3 MB, containing the pipe binary and the server script. No runtime, no npm, no pip — just one process.
 
-The server is built in pure Pipe: ~500 lines of server logic, ~900 lines of the `docs-pipe` module, and the MCP protocol handling is three builtins: `ai_tool`, `mcp_server`, `mcp_serve_stdio`. That's the entire dependency tree.
+The server is built in pure Pipe: ~430 lines of server logic plus a ~180-line shared library, ~900 lines of the `docs-pipe` module, and the MCP protocol handling is three builtins: `ai_tool`, `mcp_server`, `mcp_serve_stdio`. That's the entire dependency tree.
 
 ## First startup: build once, cache forever
 
-The first time the server starts, it clones the source repo and builds the docs index. This takes ~70 seconds and produces three SQLite databases (`docs-en.db`, `docs-de.db`, `docs-blog.db`). On subsequent starts, it loads from cache in ~5 seconds. The AI provider is configured lazily — `search_code`, `search_docs`, `read_doc`, and `list_docs` work without an API key. Only `ask_docs` needs one, and a full answer costs a fraction of a cent.
+The first time the server starts, it clones the source repo and builds the docs index. This takes ~70 seconds and produces three SQLite databases (`docs-en.db`, `docs-de.db`, `docs-blog.db`). On subsequent starts, it loads from cache in ~5 seconds. The AI provider is configured at startup — `search_code`, `read_doc`, `read_source`, `list_sources`, and `list_docs` work without an API key. Only `ask_docs` needs one, and a full answer costs a fraction of a cent.
 
 ```
 index_status →
   ready: true
   has_ai: true
-  source_files: 173
+  ai_ready: true
+  err: null
+  source_files: 244
   code_symbols: 2731
-  docs_en: {files: 28, chunks: 317}
-  docs_de: {files: 28, chunks: 267}
-  docs_blog: {files: 15, chunks: 198}
+  docs_en: {files: 29, chunks: 335}
+  docs_de: {files: 29, chunks: 224}
+  docs_blog: {files: 15, chunks: 93}
 ```
 
 ## Security: sandboxed by design
@@ -115,7 +123,7 @@ sandbox_lock "server-secure"
 
 During startup, `server-full` gives the build process full filesystem access and `git` via exec whitelist. Once the index is built, the server **ratchets down** to `server-secure`: read-only filesystem, no exec, network restricted to AI provider APIs only. `sandbox_lock` makes this permanent — the server cannot escalate its own privileges, even if a prompt injection tells it to.
 
-This means `read_doc` and `read_source` can only *read* files. `search_docs` and `ask_docs` can only talk to the AI provider. No shell, no writes, no network escapes. The path-traversal checks in `read_doc`/`read_source` are defense-in-depth — the sandbox is the actual gate.
+This means `read_doc` and `read_source` can only *read* files. `search_docs` and `ask_docs` can only talk to the AI provider. No shell, no writes, no network escapes. The path checks in `read_doc`/`read_source` reject absolute paths and any `..` segment before touching the filesystem — defense-in-depth; the sandbox is the actual gate.
 
 ## What this means for Pipe users
 
@@ -125,15 +133,17 @@ It's the same Pipe binary serving the MCP server that you use to write your pipe
 [/lang]
 
 [lang:de]
-**Ein semantischer Suche- und RAG-MCP-Server für die Pipe-Sprache — 7 Tools, null Abhängigkeiten, veröffentlicht auf dem MCP Registry. Richte deine KI auf deine Doku, deinen Quellcode oder beides und erhalte in Sekunden zitierte Antworten.**
+**Ein semantischer Suche- und RAG-MCP-Server für die Pipe-Sprache — 9 Tools, null Abhängigkeiten, veröffentlicht auf dem MCP Registry. Richte deine KI auf deine Doku, deinen Quellcode oder beides und erhalte in Sekunden zitierte Antworten.**
 
 > **Verwandt:** [docs-pipe Dashboard](docs-pipe-dashboard.html) · [RAG in ~10 Zeilen](tutorial-local-rag.html) · [Dein erster MCP-Server](tutorial-first-mcp-server.html)
 
+> *Aktualisiert für v1.1.0 (2026-08-21): neun Tools, automatisches Routing deutscher Fragen auf den deutschen Index, Rebuild-only-Refresh und UTF-8-sichere Ergebnis-Speicherung.*
+
 Die meisten KI-Coding-Assistenten können Dateien lesen — aber sie lesen sie *blind*. Sie wissen nicht, dass `docs/en/17-compiler.md` den Register-Allocator erklärt, oder dass `pkg/compiler/compiler.go:738` die Funktion `lastInstructionIsTerminator` enthält. Sie wissen nicht, welcher Dokumentations-Chunk eine Frage über Sandbox-Profile beantwortet, und können eine Aussage sicherlich nicht auf eine bestimmte Überschrift in einer bestimmten Datei zurückführen.
 
-`pipe-docs` löst das. Es ist ein Pipe-nativer MCP-Server, der deinen gesamten Dokumentationsbaum *und* deinen Go/Pipe-Quellcode in eine semantische Suchmaschine verwandelt, die jeder MCP-fähige AI abfragen kann — mit zitierten Antworten, Code-Symbol-Lookup und Heading-bewusstem Chunking. Keine Vektor-DB, kein Embedding-SDK, kein Framework. Eine Binary, sieben Tools.
+`pipe-docs` löst das. Es ist ein Pipe-nativer MCP-Server, der deinen gesamten Dokumentationsbaum *und* deinen Go/Pipe-Quellcode in eine semantische Suchmaschine verwandelt, die jeder MCP-fähige AI abfragen kann — mit zitierten Antworten, Code-Symbol-Lookup und Heading-bewusstem Chunking. Keine Vektor-DB, kein Embedding-SDK, kein Framework. Eine Binary, neun Tools.
 
-## Sieben Tools, ein Server
+## Neun Tools, ein Server
 
 ```pipe
 import "docs-pipe"
@@ -150,17 +160,19 @@ print (get res "answer")     -- Antworten mit [1], [2], [3] Zitaten
 print (get res "sources")    -- [{path, line_start, heading}, ...]
 ```
 
-Das ist die Kern-API — sechs Funktionen: `doc_index`, `doc_search`, `doc_ask`, `doc_index_status`, `doc_reindex`, `doc_close`. Der MCP-Server wickelt sie in sieben Tools:
+Das ist die Kern-API — sechs Funktionen: `doc_index`, `doc_search`, `doc_ask`, `doc_index_status`, `doc_reindex`, `doc_close`. Der MCP-Server wickelt sie in neun Tools:
 
 | Tool | Was es macht |
 |---|---|
-| `search_docs` | Semantische + Keyword-Hybrid-Suche über EN-, DE- und Blog-Doku |
-| `ask_docs` | RAG-Antwort mit Quellenangaben — die KI bekommt Kontext, du Nachvollziehbarkeit |
+| `search_docs` | Semantische + Keyword-Hybrid-Suche über EN-, DE- und Blog-Doku — deutsche Queries werden automatisch auf den deutschen Index geroutet |
+| `ask_docs` | RAG-Antwort mit Quellenangaben — deutsche Fragen landen automatisch im deutschen Index |
 | `search_code` | Finde Go/Pipe-Funktionen, Typen, Structs nach Name oder Keyword |
 | `read_doc` | Lies eine bestimmte Dokumentationsdatei nach Pfad |
+| `read_source` | Lies eine Go/Pipe-Quelldatei — nummerierte Zeilen, UTF-8-sicheres Kürzen |
 | `list_docs` | Liste aller Dateien in EN-, DE- und Blog-Verzeichnissen |
-| `index_status` | Statistiken: Dateien, Chunks, Symbole, has_ai-Flag |
-| `refresh` | Quellrepo neu laden und Index neu aufbauen |
+| `list_sources` | Liste aller indexierten Go/Pipe-Quelldateien |
+| `index_status` | Statistiken: Dateien, Chunks, Symbole, ready/ai_ready-Flags |
+| `refresh_index` | Baut alle Indizes aus dem lokalen Checkout neu — kein Netzwerk nach dem Start; neue Upstream-Änderungen brauchen einen Restart |
 
 Der Server läuft als einzelner Pipe-Prozess über stdio — dasselbe Transport-Protokoll, das Claude Desktop, Cursor, opencode und jeder andere MCP-Client bereits spricht.
 
@@ -172,7 +184,9 @@ Ein naiver Ansatz bettet jeden Absatz ein und ruft `nearest`. Das verliert Konte
 
 **Hybrid-Suche.** Ein TF-IDF-Keyword-Score und ein Kosinus-Ähnlichkeits-Score werden fusioniert — und die Gewichte passen sich automatisch an: lokale 128-dim-Embeddings stützen sich auf Keywords, OpenAIs 1536-dim-Embeddings stützen sich auf Semantik. Bezeichner bleiben einzelne Tokens (`try_ai`, nicht `try` + `ai`), und ein Suchbegriff, der auf die *Überschrift* eines Chunks trifft, bekommt einen Boost.
 
-**Zitierte Antworten.** `doc_ask` antwortet nicht nur — es zitiert. Jede Antwort kommt mit einem `sources`-Array: `path:line — heading`, damit du eine Aussage immer bis zur exakten Dokumentations-Section zurückverfolgen kannst. Die KI bekommt Kontext, du bekommst Verantwortlichkeit.
+**Zitierte Antworten.** `doc_ask` antwortet nicht nur — es zitiert. Jede Antwort kommt mit einem `sources`-Array: `path:line — heading`, damit du eine Aussage immer bis zur exakten Dokumentations-Section zurückverfolgen kannst. Die KI bekommt Kontext, du bekommst Verantwortlichkeit. Und seit v1.1.0 werden deutsche Fragen heuristisch erkannt und aus dem deutschen Index beantwortet — gleiche Zitate, richtige Sprache.
+
+Alle Ergebnis-Texte fließen durch SQLite, und seit v1.1.0 kann das gebündelte SQLite-Modul Multi-Byte-UTF-8 korrekt — Umlaute, Gedankenstriche und Emoji in Headings und Snippets kommen exakt so zurück, wie sie reingingen, keine Latin-1-Mojibake mehr.
 
 ## Der Code-Index: Go und Pipe zusammen
 
@@ -204,21 +218,23 @@ Das bedeutet: Wenn du eine KI fragst "wo ist der Sandbox-Gate für proc_start?",
 
 Das MCPB-Bundle liefert fünf Plattform-Varianten (linux-amd64, linux-arm64, darwin-amd64, darwin-arm64, windows-amd64), jede ~3 MB, bestehend aus der Pipe-Binary und dem Server-Script. Kein Runtime, kein npm, kein pip — nur ein Prozess.
 
-Der Server ist in reinem Pipe gebaut: ~500 Zeilen Server-Logik, ~900 Zeilen des `docs-pipe`-Moduls, und das MCP-Protokoll-Handling sind drei Builtins: `ai_tool`, `mcp_server`, `mcp_serve_stdio`. Das ist der gesamte Abhängigkeitsbaum.
+Der Server ist in reinem Pipe gebaut: ~430 Zeilen Server-Logik plus eine ~180-Zeilen-Bibliothek, ~900 Zeilen des `docs-pipe`-Moduls, und das MCP-Protokoll-Handling sind drei Builtins: `ai_tool`, `mcp_server`, `mcp_serve_stdio`. Das ist der gesamte Abhängigkeitsbaum.
 
 ## Erster Start: einmal bauen, für immer cachen
 
-Beim ersten Start des Servers wird das Quellrepo geklont und der Docs-Index aufgebaut. Das dauert ~70 Sekunden und erzeugt drei SQLite-Datenbanken (`docs-en.db`, `docs-de.db`, `docs-blog.db`). Bei folgenden Starts lädt er aus dem Cache in ~5 Sekunden. Der AI-Provider wird lazy konfiguriert — `search_code`, `search_docs`, `read_doc` und `list_docs` funktionieren ohne API-Key. Nur `ask_docs` braucht einen, und eine volle Antwort kostet einen Bruchteil eines Cents.
+Beim ersten Start des Servers wird das Quellrepo geklont und der Docs-Index aufgebaut. Das dauert ~70 Sekunden und erzeugt drei SQLite-Datenbanken (`docs-en.db`, `docs-de.db`, `docs-blog.db`). Bei folgenden Starts lädt er aus dem Cache in ~5 Sekunden. Der AI-Provider wird beim Start konfiguriert — `search_code`, `read_doc`, `read_source`, `list_sources` und `list_docs` funktionieren ohne API-Key. Nur `ask_docs` braucht einen, und eine volle Antwort kostet einen Bruchteil eines Cents.
 
 ```
 index_status →
   ready: true
   has_ai: true
-  source_files: 173
+  ai_ready: true
+  err: null
+  source_files: 244
   code_symbols: 2731
-  docs_en: {files: 28, chunks: 317}
-  docs_de: {files: 28, chunks: 267}
-  docs_blog: {files: 15, chunks: 198}
+  docs_en: {files: 29, chunks: 335}
+  docs_de: {files: 29, chunks: 224}
+  docs_blog: {files: 15, chunks: 93}
 ```
 
 ## Security: durch die Sandbox geschützt
@@ -238,7 +254,7 @@ sandbox_lock "server-secure"
 
 Während des Starts gibt `server-full` dem Build-Prozess vollen Dateisystemzugriff und `git` über die Exec-Whitelist. Sobald der Index steht, rastet der Server auf `server-secure` herunter: read-only Dateisystem, kein Exec, Netzwerk nur noch auf AI-Provider-APIs beschränkt. `sandbox_lock` macht das permanent — der Server kann seine eigenen Rechte nicht erweitern, selbst wenn eine Prompt-Injection ihn dazu auffordert.
 
-Das bedeutet: `read_doc` und `read_source` können nur *lesen*. `search_docs` und `ask_docs` können nur mit dem AI-Provider kommunizieren. Kein Shell, keine Schreibvorgänge, keine Netzwerk-Escapes. Die Path-Traversal-Checks in `read_doc`/`read_source` sind Defense-in-Diepth — die Sandbox ist das eigentliche Tor.
+Das bedeutet: `read_doc` und `read_source` können nur *lesen*. `search_docs` und `ask_docs` können nur mit dem AI-Provider kommunizieren. Kein Shell, keine Schreibvorgänge, keine Netzwerk-Escapes. Die Pfad-Checks in `read_doc`/`read_source` lehnen absolute Pfade und jedes `..`-Segment ab, bevor sie das Dateisystem berühren — Defense-in-Depth; die Sandbox ist das eigentliche Tor.
 
 ## Was das für Pipe-Nutzer bedeutet
 

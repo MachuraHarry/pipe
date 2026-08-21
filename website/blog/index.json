@@ -1,5 +1,13 @@
 [
   {
+    "id": "pipe-docs-mcp",
+    "file": "pipe-docs-mcp.md",
+    "date": "2026-08-21",
+    "tag": "release",
+    "title": {"en": "🔍 pipe-docs MCP — Your Entire Codebase as a Semantic Search, Inside Your AI IDE", "de": "🔍 pipe-docs MCP — Deine gesamte Codebase als semantische Suche, direkt in deiner KI-IDE"},
+    "excerpt": {"en": "A semantic search and RAG MCP server for the Pipe language — 7 tools, zero dependencies, published on the MCP Registry. Heading-aware chunking, hybrid search, cited answers, code symbol lookup.", "de": "Ein semantischer Suche- und RAG-MCP-Server für die Pipe-Sprache — 7 Tools, null Abhängigkeiten, veröffentlicht auf dem MCP Registry. Heading-bewusstes Chunking, Hybrid-Suche, zitierte Antworten, Code-Symbol-Lookup."}
+  },
+  {
     "id": "pipe-v1",
     "file": "pipe-v1.md",
     "date": "2026-08-17",

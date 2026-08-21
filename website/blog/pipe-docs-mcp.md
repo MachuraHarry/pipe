@@ -98,6 +98,25 @@ index_status →
   docs_blog: {files: 15, chunks: 198}
 ```
 
+## Security: sandboxed by design
+
+An MCP server that talks to AI agents is a prompt-injection target. `pipe-docs` eats its own dog food — it runs under Pipe's own sandbox, the same mechanism that protects user code.
+
+Two profiles, one ratchet:
+
+```pipe
+sandbox_profile "server-full" {fs: "full", exec: true, exec_whitelist: ["git"], network: true, network_whitelist: ["github.com", "raw.githubusercontent.com", "api.deepseek.com", "api.openai.com", "api.anthropic.com"], ai: true}
+sandbox_profile "server-secure" {fs: "read-only", exec: false, network: true, network_whitelist: ["api.deepseek.com", "api.openai.com", "api.anthropic.com"], ai: true}
+set_sandbox "server-full"
+-- ... build phase: clone repo, index docs, build code index ...
+set_sandbox "server-secure"
+sandbox_lock "server-secure"
+```
+
+During startup, `server-full` gives the build process full filesystem access and `git` via exec whitelist. Once the index is built, the server **ratchets down** to `server-secure`: read-only filesystem, no exec, network restricted to AI provider APIs only. `sandbox_lock` makes this permanent — the server cannot escalate its own privileges, even if a prompt injection tells it to.
+
+This means `read_doc` and `read_source` can only *read* files. `search_docs` and `ask_docs` can only talk to the AI provider. No shell, no writes, no network escapes. The path-traversal checks in `read_doc`/`read_source` are defense-in-depth — the sandbox is the actual gate.
+
 ## What this means for Pipe users
 
 If you're building with Pipe, your AI assistant can now *understand* your codebase — not just read files, but reason about them. Ask "how do sandbox profiles work?" and get a cited answer pointing to the exact section in the docs. Ask "where is the register allocator?" and get the file, line, and function name. Ask "what changed in the compiler?" and get the diff context.
@@ -201,6 +220,25 @@ index_status →
   docs_de: {files: 28, chunks: 267}
   docs_blog: {files: 15, chunks: 198}
 ```
+
+## Security: durch die Sandbox geschützt
+
+Ein MCP-Server, der mit KI-Agenten spricht, ist ein Prompt-Injection-Ziel. `pipe-docs` nutzt seinen eigenen Hund — er läuft unter Pipes eigener Sandbox, demselben Mechanismus, der Benutzercode schützt.
+
+Zwei Profile, eine Ratsche:
+
+```pipe
+sandbox_profile "server-full" {fs: "full", exec: true, exec_whitelist: ["git"], network: true, network_whitelist: ["github.com", "raw.githubusercontent.com", "api.deepseek.com", "api.openai.com", "api.anthropic.com"], ai: true}
+sandbox_profile "server-secure" {fs: "read-only", exec: false, network: true, network_whitelist: ["api.deepseek.com", "api.openai.com", "api.anthropic.com"], ai: true}
+set_sandbox "server-full"
+-- ... Build-Phase: Repo klonen, Doku indexieren, Code-Index aufbauen ...
+set_sandbox "server-secure"
+sandbox_lock "server-secure"
+```
+
+Während des Starts gibt `server-full` dem Build-Prozess vollen Dateisystemzugriff und `git` über die Exec-Whitelist. Sobald der Index steht, rastet der Server auf `server-secure` herunter: read-only Dateisystem, kein Exec, Netzwerk nur noch auf AI-Provider-APIs beschränkt. `sandbox_lock` macht das permanent — der Server kann seine eigenen Rechte nicht erweitern, selbst wenn eine Prompt-Injection ihn dazu auffordert.
+
+Das bedeutet: `read_doc` und `read_source` können nur *lesen*. `search_docs` und `ask_docs` können nur mit dem AI-Provider kommunizieren. Kein Shell, keine Schreibvorgänge, keine Netzwerk-Escapes. Die Path-Traversal-Checks in `read_doc`/`read_source` sind Defense-in-Diepth — die Sandbox ist das eigentliche Tor.
 
 ## Was das für Pipe-Nutzer bedeutet
 

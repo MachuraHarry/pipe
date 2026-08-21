@@ -57,6 +57,7 @@ fn configure_provider
     if key != nil && key != ""
         ai_provider "deepseek"
         ai_set_key "deepseek" key
+        ai_model "deepseek-v4-flash"
         set ST "has_ai" true
         return nil
     okey: env "OPENAI_API_KEY"
@@ -77,14 +78,23 @@ fn build_docs
     de_dir: path_join src "docs/de"
     blog_dir: path_join src "website/blog"
     if file_exists en_dir
-        idx: doc_index en_dir {lang: "en", db: (path_join cd "docs-en.db")}
-        set ST "idx_en" idx
+        db: path_join cd "docs-en.db"
+        if not (file_exists db)
+            tmp: doc_index en_dir {lang: "en", db: db}
+            doc_close tmp
+        set ST "idx_en" (doc_index en_dir {lang: "en", db: db})
     if file_exists de_dir
-        idx: doc_index de_dir {lang: "de", db: (path_join cd "docs-de.db")}
-        set ST "idx_de" idx
+        db: path_join cd "docs-de.db"
+        if not (file_exists db)
+            tmp: doc_index de_dir {lang: "de", db: db}
+            doc_close tmp
+        set ST "idx_de" (doc_index de_dir {lang: "de", db: db})
     if file_exists blog_dir
-        idx: doc_index blog_dir {lang: "en", db: (path_join cd "docs-blog.db")}
-        set ST "idx_blog" idx
+        db: path_join cd "docs-blog.db"
+        if not (file_exists db)
+            tmp: doc_index blog_dir {lang: "en", db: db}
+            doc_close tmp
+        set ST "idx_blog" (doc_index blog_dir {lang: "en", db: db})
     nil
 
 --- === Code index (Go + Pipe declaration scanner) === ---
@@ -416,6 +426,7 @@ fn mcp_index_status
     status: {}
     set status "ready" (get ST "ready")
     set status "has_ai" (get ST "has_ai")
+    set status "ai_ready" (get ST "ai_ready")
     set status "source_files" (len files)
     set status "code_symbols" (len syms)
     if en != nil
@@ -442,6 +453,17 @@ fn mcp_refresh
         if blog != nil
             doc_reindex blog
     "refreshed"
+
+--- === Lazy AI init === ---
+-- AI provider is configured lazily (on first search_docs/ask_docs call).
+-- Docs index is built at startup if not cached, loaded from cache otherwise.
+
+fn ensure_ai
+    if (get ST "ai_ready") == true
+        return nil
+    configure_provider 0
+    set ST "ai_ready" true
+    nil
 
 --- === Startup === ---
 

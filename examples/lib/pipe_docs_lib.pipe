@@ -1,0 +1,184 @@
+--! pipe-docs shared library.
+--! Pure helpers shared by examples/pipe_docs_server.pipe and the offline test
+--! scripts (scripts/pipe-docs-*.pipe): Go/Pipe declaration parsing, UTF-8-safe
+--! snippet truncation, bounded numbered source reading and path-traversal-safe
+--! file resolution. No network, no AI, no global state.
+
+--- === Identifier & declaration parsing === ---
+
+export fn go_ident s
+    -- first run of identifier characters [A-Za-z0-9_]
+    out: ""
+    i: 0
+    n: len s
+    while i < n
+        c: substring s i (i + 1)
+        ok: (c >= "a" && c <= "z") || (c >= "A" && c <= "Z") || (c >= "0" && c <= "9") || c == "_"
+        if not ok
+            break
+        out: out ++ c
+        i: i + 1
+    out
+
+export fn go_func_name line
+    rest: substring line 5 (len line)
+    if (substring rest 0 1) == "("
+        parts: split rest ") "
+        if (len parts) >= 2
+            go_ident (at parts 1)
+        else
+            ""
+    else
+        go_ident rest
+
+export fn go_decl line
+    if (substring line 0 5) == "func "
+        {kind: "func", symbol: (go_func_name line)}
+    else if (substring line 0 5) == "type "
+        {kind: "type", symbol: (go_ident (substring line 5 (len line)))}
+    else if (substring line 0 6) == "const "
+        {kind: "const", symbol: (go_ident (substring line 6 (len line)))}
+    else if (substring line 0 4) == "var "
+        {kind: "var", symbol: (go_ident (substring line 4 (len line)))}
+    else
+        nil
+
+export fn pipe_decl line
+    if (substring line 0 3) == "fn "
+        {kind: "fn", symbol: (go_ident (substring line 3 (len line)))}
+    else if (substring line 0 10) == "export fn "
+        {kind: "fn", symbol: (go_ident (substring line 10 (len line)))}
+    else if (substring line 0 7) == "struct "
+        {kind: "struct", symbol: (go_ident (substring line 7 (len line)))}
+    else if (substring line 0 14) == "export struct "
+        {kind: "struct", symbol: (go_ident (substring line 14 (len line)))}
+    else if (substring line 0 5) == "enum "
+        {kind: "enum", symbol: (go_ident (substring line 5 (len line)))}
+    else if (substring line 0 12) == "export enum "
+        {kind: "enum", symbol: (go_ident (substring line 12 (len line)))}
+    else if (substring line 0 12) == "export test "
+        {kind: "test", symbol: (go_ident (substring line 12 (len line)))}
+    else if (substring line 0 5) == "test "
+        {kind: "test", symbol: (go_ident (substring line 5 (len line)))}
+    else
+        nil
+
+export fn scan_go_file path
+    lines: read_lines path
+    out: []
+    i: 0
+    n: (len lines)
+    while i < n
+        line: at lines i
+        if (len line) > 0 && (substring line 0 1) != " " && (substring line 0 1) != "\t"
+            decl: go_decl line
+            if decl != nil
+                push out {file: path, kind: (get decl "kind"), symbol: (get decl "symbol"), line_start: (i + 1), content: (trim line)}
+        i: i + 1
+    out
+
+export fn scan_pipe_file path
+    lines: read_lines path
+    out: []
+    i: 0
+    n: (len lines)
+    while i < n
+        line: at lines i
+        if (len line) > 0 && (substring line 0 1) != " " && (substring line 0 1) != "\t"
+            decl: pipe_decl line
+            if decl != nil
+                push out {file: path, kind: (get decl "kind"), symbol: (get decl "symbol"), line_start: (i + 1), content: (trim line)}
+        i: i + 1
+    out
+
+--- === Text shaping === ---
+
+export fn truncate_utf8_safe s limit
+    -- Cut s down to <= limit bytes (+ trailing "...") without splitting a
+    -- multi-byte character: prefer a whitespace boundary; if a single word is
+    -- longer than the limit, hard-cut and drop an incomplete UTF-8 tail
+    -- sequence (detected via continuation-byte walk + lead-byte length).
+    if s == nil
+        return ""
+    if limit <= 0
+        return ""
+    if (len s) <= limit
+        return s
+    words: split s " "
+    parts: []
+    used: 0
+    i: 0
+    n: len words
+    while i < n
+        w: at words i
+        sep: 0
+        if i > 0
+            sep: 1
+        if (used + sep + (len w)) > limit
+            break
+        if i > 0
+            push parts " "
+        push parts w
+        used: used + sep + (len w)
+        i: i + 1
+    out: join parts ""
+    if out == ""
+        out: substring s 0 limit
+        bs: to_bytes out
+        bl: len bs
+        k: bl - 1
+        lim: bl - 5
+        if lim < 0
+            lim: 0
+        while k > lim && (bit_and (at bs k) 192) == 128
+            k: k - 1
+        lead: at bs k
+        need: 1
+        if lead >= 240
+            need: 4
+        else if lead >= 224
+            need: 3
+        else if lead >= 192
+            need: 2
+        if (bl - k) < need
+            out: substring out 0 k
+    out ++ "..."
+
+export fn read_with_numbers path max_lines
+    -- Render a file as "line-number<TAB>text" rows. Stops after max_lines
+    -- rows when max_lines > 0 (total still reports the full line count).
+    -- Builds the output via list + single join instead of repeated string
+    -- concatenation so large files stay linear-time.
+    lines: read_lines path
+    n: len lines
+    cap: n
+    truncated: false
+    if max_lines > 0 && max_lines < n
+        cap: max_lines
+        truncated: true
+    parts: []
+    i: 0
+    while i < cap
+        push parts ((to_str (i + 1)) ++ "\t" ++ (at lines i))
+        i: i + 1
+    text: ""
+    if cap > 0
+        text: (join parts "\n") ++ "\n"
+    {text: text, total: n, truncated: truncated}
+
+--- === Path-safety === ---
+
+export fn safe_resolve_path root path
+    -- Resolve path inside root or fail. Returns {ok: true, full: <abs path>}
+    -- on success or {ok: false, err: "<reason>"} otherwise. Rejects missing
+    -- paths, ".." traversal and absolute paths outright.
+    if path == nil || path == ""
+        return {ok: false, err: "missing path"}
+    if contains path ".."
+        return {ok: false, err: "invalid path"}
+    if (substring path 0 1) == "/"
+        return {ok: false, err: "invalid path"}
+    full: path_join root path
+    if not (file_exists full)
+        return {ok: false, err: "file not found: " ++ path}
+    {ok: true, full: full}

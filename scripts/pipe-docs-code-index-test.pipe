@@ -1,91 +1,10 @@
 --! Tests for pipe-docs code-indexing: Go/Pipe declaration parser.
---! Inlines the parsing functions from pipe_docs_server.pipe and validates
---! them against fixture files. No network or AI key required.
---! Run: pipe scripts/pipe-docs-code-index-test.pipe
+--! Exercises the shared library examples/lib/pipe_docs_lib.pipe against
+--! fixture files and validates the UTF-8-safe snippet truncation and the
+--! bounded numbered source reader. No network or AI key required.
+--! Run from the repository root: pipe scripts/pipe-docs-code-index-test.pipe
 
---- === Inlined parser helpers from pipe_docs_server.pipe === ---
-
-fn go_ident s
-    out: ""
-    i: 0
-    n: len s
-    while i < n
-        c: substring s i (i + 1)
-        ok: (c >= "a" && c <= "z") || (c >= "A" && c <= "Z") || (c >= "0" && c <= "9") || c == "_"
-        if not ok
-            break
-        out: out ++ c
-        i: i + 1
-    out
-
-fn go_func_name line
-    rest: substring line 5 (len line)
-    if (substring rest 0 1) == "("
-        parts: split rest ") "
-        if (len parts) >= 2
-            go_ident (at parts 1)
-        else
-            ""
-    else
-        go_ident rest
-
-fn go_decl line
-    if (substring line 0 5) == "func "
-        {kind: "func", symbol: (go_func_name line)}
-    else if (substring line 0 5) == "type "
-        {kind: "type", symbol: (go_ident (substring line 5 (len line)))}
-    else if (substring line 0 6) == "const "
-        {kind: "const", symbol: (go_ident (substring line 6 (len line)))}
-    else if (substring line 0 4) == "var "
-        {kind: "var", symbol: (go_ident (substring line 4 (len line)))}
-    else
-        nil
-
-fn pipe_decl line
-    if (substring line 0 3) == "fn "
-        {kind: "fn", symbol: (go_ident (substring line 3 (len line)))}
-    else if (substring line 0 10) == "export fn "
-        {kind: "fn", symbol: (go_ident (substring line 10 (len line)))}
-    else if (substring line 0 7) == "struct "
-        {kind: "struct", symbol: (go_ident (substring line 7 (len line)))}
-    else if (substring line 0 14) == "export struct "
-        {kind: "struct", symbol: (go_ident (substring line 14 (len line)))}
-    else if (substring line 0 5) == "enum "
-        {kind: "enum", symbol: (go_ident (substring line 5 (len line)))}
-    else if (substring line 0 12) == "export enum "
-        {kind: "enum", symbol: (go_ident (substring line 12 (len line)))}
-    else if (substring line 0 5) == "test "
-        {kind: "test", symbol: (go_ident (substring line 5 (len line)))}
-    else
-        nil
-
-fn scan_go_file path
-    lines: read_lines path
-    out: []
-    i: 0
-    n: (len lines)
-    while i < n
-        line: at lines i
-        if (len line) > 0 && (substring line 0 1) != " " && (substring line 0 1) != "\t"
-            decl: go_decl line
-            if decl != nil
-                push out {file: path, kind: (get decl "kind"), symbol: (get decl "symbol"), line_start: (i + 1), content: (trim line)}
-        i: i + 1
-    out
-
-fn scan_pipe_file path
-    lines: read_lines path
-    out: []
-    i: 0
-    n: (len lines)
-    while i < n
-        line: at lines i
-        if (len line) > 0 && (substring line 0 1) != " " && (substring line 0 1) != "\t"
-            decl: pipe_decl line
-            if decl != nil
-                push out {file: path, kind: (get decl "kind"), symbol: (get decl "symbol"), line_start: (i + 1), content: (trim line)}
-        i: i + 1
-    out
+import "examples/lib/pipe_docs_lib.pipe"
 
 --- === go_ident tests === ---
 
@@ -177,6 +96,11 @@ test "pipe_decl detects test"
     assert_eq (get r "kind") "test"
     assert_eq (get r "symbol") "my_test_case"
 
+test "pipe_decl detects export test"
+    r: pipe_decl "export test regression_check"
+    assert_eq (get r "kind") "test"
+    assert_eq (get r "symbol") "regression_check"
+
 test "pipe_decl ignores indented lines"
     assert_eq (pipe_decl "    fn indented") nil
 
@@ -207,9 +131,9 @@ test "scan_go_file parses Go file"
 test "scan_pipe_file parses Pipe file"
     tmp: "/tmp/pipe-docs-test-pipe"
     make_dir tmp
-    write_file (tmp ++ "/test.pipe") "-- header\n\nfn hello\n    \"world\"\n\nexport fn public_api\n    42\n\nstruct Point\n    x: 0\n    y: 0\n\nenum Color\n    Red\n    Green\n\nexport enum Status\n    Active\n    Inactive\n\ntest basic\n    assert_eq 1 1\n"
+    write_file (tmp ++ "/test.pipe") "-- header\n\nfn hello\n    \"world\"\n\nexport fn public_api\n    42\n\nstruct Point\n    x: 0\n    y: 0\n\nenum Color\n    Red\n    Green\n\nexport enum Status\n    Active\n    Inactive\n\ntest basic\n    assert_eq 1 1\n\nexport test exported_case\n    assert_eq 2 2\n"
     decls: scan_pipe_file (tmp ++ "/test.pipe")
-    assert_eq (len decls) 6
+    assert_eq (len decls) 7
     assert_eq (get (at decls 0) "kind") "fn"
     assert_eq (get (at decls 0) "symbol") "hello"
     assert_eq (get (at decls 1) "kind") "fn"
@@ -222,6 +146,8 @@ test "scan_pipe_file parses Pipe file"
     assert_eq (get (at decls 4) "symbol") "Status"
     assert_eq (get (at decls 5) "kind") "test"
     assert_eq (get (at decls 5) "symbol") "basic"
+    assert_eq (get (at decls 6) "kind") "test"
+    assert_eq (get (at decls 6) "symbol") "exported_case"
 
 --- === scan_go_file with receiver methods === ---
 
@@ -234,5 +160,61 @@ test "scan_go_file parses receiver methods"
     assert_eq (get (at decls 0) "symbol") "Server"
     assert_eq (get (at decls 1) "symbol") "Start"
     assert_eq (get (at decls 2) "symbol") "Stop"
+
+--- === truncate_utf8_safe tests === ---
+
+test "truncate_utf8_safe keeps short strings intact"
+    assert_eq (truncate_utf8_safe "kurz" 400) "kurz"
+    assert_eq (truncate_utf8_safe "" 10) ""
+    assert_eq (truncate_utf8_safe nil 10) ""
+    assert_eq (truncate_utf8_safe "abc" 0) ""
+
+test "truncate_utf8_safe cuts at word boundaries"
+    assert_eq (truncate_utf8_safe "hello world foo" 11) "hello world..."
+    assert_eq (truncate_utf8_safe "alpha beta gamma delta" 15) "alpha beta..."
+
+test "truncate_utf8_safe preserves umlauts on word cut"
+    s: "Wörterbuch Stabilität Größenwahn Überschrift"
+    r: truncate_utf8_safe s 30
+    assert_eq r "Wörterbuch Stabilität..."
+    assert_eq ((len r) <= 33) true
+
+test "truncate_utf8_safe drops incomplete UTF-8 tail"
+    s: ""
+    i: 0
+    while i < 300
+        s: s ++ "ä"
+        i: i + 1
+    r: truncate_utf8_safe s 9
+    assert_eq r "ääää..."
+    e: ""
+    j: 0
+    while j < 100
+        e: e ++ "😀"
+        j: j + 1
+    bs: to_bytes (truncate_utf8_safe e 5)
+    assert_eq (len bs) 7
+
+--- === read_with_numbers tests === ---
+
+test "read_with_numbers renders all lines unbounded"
+    tmp: "/tmp/pipe-docs-test-rwn"
+    make_dir tmp
+    write_file (tmp ++ "/a.txt") "alpha\nbeta\ngamma"
+    r: read_with_numbers (tmp ++ "/a.txt") 0
+    assert_eq (get r "total") 3
+    assert_eq (get r "truncated") false
+    assert_contains (get r "text") "1\talpha\n2\tbeta\n3\tgamma\n"
+
+test "read_with_numbers stops early when capped"
+    tmp: "/tmp/pipe-docs-test-rwn"
+    make_dir tmp
+    write_file (tmp ++ "/b.txt") "one\ntwo\nthree\nfour\nfive"
+    r: read_with_numbers (tmp ++ "/b.txt") 2
+    assert_eq (get r "total") 5
+    assert_eq (get r "truncated") true
+    text: get r "text"
+    assert_contains text "1\tone\n2\ttwo\n"
+    assert_eq (contains text "three") false
 
 print "=== pipe-docs code-index tests complete ==="

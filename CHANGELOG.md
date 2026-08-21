@@ -2,6 +2,27 @@
 
 All notable changes to Pipe are documented here. This file follows [Keep a Changelog](https://keepachangelog.com/) format.
 
+## [Unreleased]
+
+### Fixed
+- **pipe-docs MCP server** (`examples/pipe_docs_server.pipe`):
+  - `ask_docs` dropped the result when only the German docs index was available (missing return in the DE branch)
+  - `refresh_index` was a silent no-op under the locked `server-secure` sandbox (`exec: false` blocks `git pull`); it is now rebuild-only from the cached checkout and its description says so — repository updates require a server restart
+  - `index_status` reported `"ready": nil` / `"ai_ready": nil`; state is now initialized up front, `ai_ready` tracks provider configuration and startup errors are exposed as `err`
+  - AI failures in `search_docs` / `ask_docs` crashed the tool call; they are now caught and returned as error results
+- Unquoted paths in `git clone` (broke with spaces or shell metacharacters)
+
+### Changed
+- Shared parser/security helpers moved to `examples/lib/pipe_docs_lib.pipe`, consumed by the MCP server and both offline test scripts (removes three copies of the declaration scanner)
+- `pipe_decl` now also indexes `export test` declarations
+- Search snippets are truncated UTF-8-safe (word-boundary preferred, incomplete multi-byte tails dropped) instead of raw byte cuts that could produce mojibake
+- `read_source` renders numbered lines in linear time and stops rendering at the 500-line cap instead of building the full text first
+
+### Security
+- Path gate rejects absolute paths (e.g. `/etc/passwd`) in addition to `..` traversal; covered by `scripts/pipe-docs-security-test.pipe`
+
+---
+
 ## [1.0.0] — 2026-08-17
 
 ### Production-Ready Release

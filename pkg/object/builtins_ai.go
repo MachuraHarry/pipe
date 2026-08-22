@@ -11,7 +11,7 @@ import (
 
 func bAiProvider(args ...Object) Object {
 	if len(args) < 1 {
-		return err("ai_provider expects a provider name (openai, anthropic, deepseek, ollama)")
+		return err("ai_provider expects a provider name (openai, anthropic, deepseek, ollama, openrouter)")
 	}
 	s, ok := args[0].(*String)
 	if !ok {
@@ -156,7 +156,7 @@ func bAiSetKey(args ...Object) Object {
 	}
 	provider, ok := args[0].(*String)
 	if !ok {
-		return err("ai_set_key: first argument must be a string (provider: 'openai', 'deepseek', 'anthropic')")
+		return err("ai_set_key: first argument must be a string (provider: 'openai', 'deepseek', 'anthropic', 'openrouter')")
 	}
 	key, ok := args[1].(*String)
 	if !ok {
@@ -170,8 +170,10 @@ func bAiSetKey(args ...Object) Object {
 		ai.SetAPIKey("DEEPSEEK_API_KEY", key.Value)
 	case "anthropic":
 		ai.SetAPIKey("ANTHROPIC_API_KEY", key.Value)
+	case "openrouter":
+		ai.SetAPIKey("OPENROUTER_API_KEY", key.Value)
 	default:
-		return err("ai_set_key: unknown provider '" + provider.Value + "'. Use 'openai', 'deepseek', or 'anthropic'.")
+		return err("ai_set_key: unknown provider '" + provider.Value + "'. Use 'openai', 'deepseek', 'anthropic', or 'openrouter'.")
 	}
 	return &String{Value: "key set for " + provider.Value}
 }

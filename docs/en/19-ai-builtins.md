@@ -16,6 +16,8 @@ ai_provider "openai"
 ai_provider "anthropic"
 -- DeepSeek
 ai_provider "deepseek"
+-- OpenRouter (400+ models via one key, model slugs like "openai/gpt-4o-mini")
+ai_provider "openrouter"
 ```
 
 ### Model and Timeout
@@ -25,10 +27,11 @@ block passed to `ai_provider`, or at any time with `ai_model`:
 
 ```pipe
 -- Defaults (cheapest & fastest per provider):
---   openai    → gpt-4o-mini
---   anthropic → claude-3-5-haiku-20241022
---   deepseek  → deepseek-v4-flash
---   ollama    → llama3.1:8b
+--   openai      → gpt-4o-mini
+--   anthropic   → claude-3-5-haiku-20241022
+--   deepseek    → deepseek-v4-flash
+--   ollama      → llama3.1:8b
+--   openrouter  → openrouter/free
 
 -- Set provider + override model & timeout in one go
 ai_provider "deepseek" {model: "deepseek-v4-flash", timeout: 120}

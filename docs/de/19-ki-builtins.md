@@ -16,6 +16,8 @@ ai_provider "openai"
 ai_provider "anthropic"
 -- DeepSeek
 ai_provider "deepseek"
+-- OpenRouter (400+ Modelle über einen Key, Modell-Slugs wie "openai/gpt-4o-mini")
+ai_provider "openrouter"
 ```
 
 ### Modell und Timeout
@@ -25,10 +27,11 @@ kannst du es mit einem Config-Block bei `ai_provider` oder jederzeit mit `ai_mod
 
 ```pipe
 -- Standard (günstigstes & schnellstes Modell pro Provider):
---   openai    → gpt-4o-mini
---   anthropic → claude-3-5-haiku-20241022
---   deepseek  → deepseek-v4-flash
---   ollama    → llama3.1:8b
+--   openai      → gpt-4o-mini
+--   anthropic   → claude-3-5-haiku-20241022
+--   deepseek    → deepseek-v4-flash
+--   ollama      → llama3.1:8b
+--   openrouter  → openrouter/free
 
 -- Provider setzen + Modell/Timeout in einem Zug überschreiben
 ai_provider "deepseek" {model: "deepseek-v4-flash", timeout: 120}

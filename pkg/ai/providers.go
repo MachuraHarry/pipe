@@ -464,3 +464,72 @@ func ollamaEmbed(cfg Config, text string) ([]float64, error) {
 
 	return extractEmbedding(result)
 }
+
+func openrouterChat(cfg Config, req ChatRequest) (ChatResponse, error) {
+	apiKey := getKeyWithOverride("OPENROUTER_API_KEY")
+	if apiKey == "" {
+		return ChatResponse{}, fmt.Errorf("OPENROUTER_API_KEY not set")
+	}
+
+	type oaiMsg struct {
+		Role    string `json:"role"`
+		Content string `json:"content"`
+	}
+	type oaiReq struct {
+		Model     string   `json:"model"`
+		Messages  []oaiMsg `json:"messages"`
+		MaxTokens int      `json:"max_tokens,omitempty"`
+	}
+	messages := make([]oaiMsg, len(req.Messages))
+	for i, m := range req.Messages {
+		messages[i] = oaiMsg{Role: m.Role, Content: m.Content}
+	}
+
+	oai := oaiReq{
+		Model:     cfg.Model,
+		Messages:  messages,
+		MaxTokens: req.MaxTokens,
+	}
+
+	oaiBody, err := bodyWithExtra(oai, cfg.ExtraBody)
+	if err != nil {
+		return ChatResponse{}, err
+	}
+
+	result, err := httpPostJSON(EgressChat, cfg.APIHost+"/v1/chat/completions", apiKey, oaiBody, cfg.Timeout)
+	if err != nil {
+		return ChatResponse{}, err
+	}
+
+	return extractOpenAIResult(result)
+}
+
+func openrouterStream(cfg Config, req ChatRequest, onToken StreamCallback) error {
+	apiKey := getKeyWithOverride("OPENROUTER_API_KEY")
+	if apiKey == "" {
+		return fmt.Errorf("OPENROUTER_API_KEY not set")
+	}
+
+	type oaiMsg struct {
+		Role    string `json:"role"`
+		Content string `json:"content"`
+	}
+	messages := make([]oaiMsg, len(req.Messages))
+	for i, m := range req.Messages {
+		messages[i] = oaiMsg{Role: m.Role, Content: m.Content}
+	}
+
+	body := map[string]interface{}{
+		"model":    cfg.Model,
+		"messages": messages,
+		"stream":   true,
+	}
+	if req.MaxTokens > 0 {
+		body["max_tokens"] = req.MaxTokens
+	}
+	for k, v := range cfg.ExtraBody {
+		body[k] = v
+	}
+
+	return httpPostStream(EgressStream, cfg.APIHost+"/v1/chat/completions", apiKey, body, cfg.Timeout, onToken)
+}

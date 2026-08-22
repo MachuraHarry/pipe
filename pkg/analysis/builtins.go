@@ -411,7 +411,7 @@ var builtinDocs = []BuiltinDoc{
 
 	// ---- AI Configuration ----
 	{Name: "ai_provider", Signature: "ai_provider(name, {model, host, timeout}?)", Params: []Param{p("name", "string"), p("config", "map, optional")}, ReturnType: "string",
-		Description: "Sets the AI provider: \"openai\", \"anthropic\", \"deepseek\", or \"ollama\". Optionally overrides defaults with a config block, e.g. ai_provider \"deepseek\" {model: \"deepseek-v4-flash\"}.", Category: CatAIConf},
+		Description: "Sets the AI provider: \"openai\", \"anthropic\", \"deepseek\", \"ollama\", or \"openrouter\". Optionally overrides defaults with a config block, e.g. ai_provider \"deepseek\" {model: \"deepseek-v4-flash\"}.", Category: CatAIConf},
 	{Name: "ai_model", Signature: "ai_model(name)", Params: []Param{p("name", "string")}, ReturnType: "string",
 		Description: "Sets the model name for the current AI provider.", Category: CatAIConf},
 	{Name: "ai_host", Signature: "ai_host(url)", Params: []Param{p("url", "string")}, ReturnType: "string",
@@ -421,7 +421,7 @@ var builtinDocs = []BuiltinDoc{
 	{Name: "ai_cache", Signature: "ai_cache(on_off|ttl|'clear'|'stats')", Params: []Param{p("arg", "bool|number|string")}, ReturnType: "string",
 		Description: "Enables/disables AI response caching. Pass true/on/ttl-minutes to enable, false/off to disable, 'clear' to flush, 'stats' for hit/miss count.", Category: CatAIConf},
 	{Name: "ai_set_key", Signature: "ai_set_key(provider, key)", Params: []Param{p("provider", "string"), p("key", "string")}, ReturnType: "string",
-		Description: "Sets API key for the given provider ('openai', 'deepseek', 'anthropic'). Useful when env vars aren't available (browser, CI).", Category: CatAIConf},
+		Description: "Sets API key for the given provider ('openai', 'deepseek', 'anthropic', 'openrouter'). Useful when env vars aren't available (browser, CI).", Category: CatAIConf},
 	{Name: "ai_cost", Signature: "ai_cost()", Params: []Param{}, ReturnType: "map",
 		Description: "Returns a map with cost_usd, calls, cache_hits, cache_misses for the current run. Pass 'reset' to zero the metrics.", Category: CatAIConf},
 	{Name: "ai_tokens", Signature: "ai_tokens()", Params: []Param{}, ReturnType: "number",

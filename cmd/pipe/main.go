@@ -662,7 +662,7 @@ Flags:
   --sandbox-profile <name>  Use a predefined sandbox profile (strict, networked, etc.)
   --allow-ai             In sandbox: re-enable AI builtins
   --timeout N            Kill execution after N seconds
-  --ai-provider openai|anthropic|deepseek|ollama
+  --ai-provider openai|anthropic|deepseek|ollama|openrouter
   -get <url>    Download a module into ~/.pipe/modules/
   -search [term] Search available modules
   -init <name>   Create a new module scaffold (pipe.json + module.pipe)

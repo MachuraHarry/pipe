@@ -72,6 +72,9 @@ func SetProvider(name string) {
 	case "ollama":
 		ActiveConfig.APIHost = "http://localhost:11434"
 		ActiveConfig.Model = "llama3.1:8b"
+	case "openrouter":
+		ActiveConfig.APIHost = "https://openrouter.ai/api"
+		ActiveConfig.Model = "openrouter/free"
 	}
 }
 
@@ -186,6 +189,8 @@ func Chat(req ChatRequest) (ChatResponse, error) {
 		resp, err = deepSeekChat(ActiveConfig, req)
 	case "ollama":
 		resp, err = ollamaChat(ActiveConfig, req)
+	case "openrouter":
+		resp, err = openrouterChat(ActiveConfig, req)
 	default:
 		return ChatResponse{}, fmt.Errorf("unknown AI provider: %s", ActiveConfig.Provider)
 	}
@@ -229,6 +234,8 @@ func Stream(req ChatRequest, onToken StreamCallback) error {
 		return deepSeekStream(ActiveConfig, req, onToken)
 	case "ollama":
 		return ollamaStream(ActiveConfig, req, onToken)
+	case "openrouter":
+		return openrouterStream(ActiveConfig, req, onToken)
 	default:
 		return fmt.Errorf("unknown AI provider: %s", ActiveConfig.Provider)
 	}
@@ -633,6 +640,21 @@ func estimateCost(provider, model string, promptTokens, completionTokens int) fl
 		return float64(promptTokens)*0.015/1000 + float64(completionTokens)*0.075/1000
 	case "ollama":
 		return 0
+	case "openrouter":
+		switch {
+		case strings.Contains(model, "gpt-4o-mini"):
+			return float64(promptTokens)*0.00015/1000 + float64(completionTokens)*0.0006/1000
+		case strings.Contains(model, "gpt-4"):
+			return float64(promptTokens)*0.03/1000 + float64(completionTokens)*0.06/1000
+		case strings.Contains(model, "haiku"):
+			return float64(promptTokens)*0.0008/1000 + float64(completionTokens)*0.004/1000
+		case strings.Contains(model, "sonnet"):
+			return float64(promptTokens)*0.003/1000 + float64(completionTokens)*0.015/1000
+		case strings.Contains(model, "deepseek"):
+			return float64(promptTokens)*0.000435/1000 + float64(completionTokens)*0.00087/1000
+		default:
+			return float64(promptTokens)*0.005/1000 + float64(completionTokens)*0.015/1000
+		}
 	default:
 		return 0
 	}

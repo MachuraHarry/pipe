@@ -16,6 +16,7 @@ func TestSetProvider(t *testing.T) {
 		{"openai", "openai", "gpt-4o-mini", "https://api.openai.com"},
 		{"anthropic", "anthropic", "claude-3-5-haiku-20241022", "https://api.anthropic.com"},
 		{"deepseek", "deepseek", "deepseek-v4-flash", "https://api.deepseek.com"},
+		{"openrouter", "openrouter", "openrouter/free", "https://openrouter.ai/api"},
 	}
 
 	for _, tt := range tests {
@@ -102,6 +103,7 @@ func TestChatNoAPIKey(t *testing.T) {
 		{"openai missing key", "openai", "OPENAI_API_KEY"},
 		{"anthropic missing key", "anthropic", "ANTHROPIC_API_KEY"},
 		{"deepseek missing key", "deepseek", "DEEPSEEK_API_KEY"},
+		{"openrouter missing key", "openrouter", "OPENROUTER_API_KEY"},
 	}
 
 	for _, tt := range tests {

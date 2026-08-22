@@ -258,6 +258,36 @@ fn looks_german q
         i: i + 1
     false
 
+fn _significant_tokens question
+    ql: lower question
+    raw: split ql " "
+    sig: []
+    i: 0
+    while i < (len raw)
+        hy_parts: split (at raw i) "-"
+        h: 0
+        while h < (len hy_parts)
+            us_parts: split (at hy_parts h) "_"
+            u: 0
+            while u < (len us_parts)
+                t: at us_parts u
+                if (len t) >= 4
+                    push sig t
+                u: u + 1
+            h: h + 1
+        i: i + 1
+    sig
+
+fn _chunk_keyword_hits text_lower heading_lower sig
+    hits: 0
+    i: 0
+    while i < (len sig)
+        t: at sig i
+        if (contains text_lower t) || (contains heading_lower t)
+            hits: hits + 1
+        i: i + 1
+    hits
+
 fn mcp_ask_docs question
     if (get ST "has_ai") == false
         return {answer: "Semantic search is unavailable: set DEEPSEEK_API_KEY (or OPENAI_API_KEY) and restart.", sources: []}
@@ -273,7 +303,35 @@ fn mcp_ask_docs question
     if idx == nil
         return {answer: "No documentation index is available.", sources: []}
     try
-        doc_ask idx question 6
+        raw: doc_search idx question 6
+        sig: _significant_tokens question
+        needed: 1
+        if (len sig) > 1
+            needed: 2
+        filtered: []
+        fi: 0
+        while fi < (len raw)
+            r: at raw fi
+            keep: true
+            if (len sig) > 0
+                hits: _chunk_keyword_hits (lower (get r "text")) (lower (get r "heading")) sig
+                keep: hits >= needed
+            if keep && (get r "score") >= 0.1
+                push filtered r
+            fi: fi + 1
+        if (len filtered) == 0
+            return {answer: (ai_chat "You are a documentation assistant. Answer based on your general knowledge." question), sources: []}
+        context: ""
+        ci: 0
+        while ci < (len filtered)
+            r: at filtered ci
+            context: context ++ "[" ++ (to_str (ci + 1)) ++ "] " ++ (get r "path") ++ ":" ++ (to_str (get r "line_start")) ++ " — " ++ (get r "heading") ++ "\n"
+            context: context ++ (get r "text") ++ "\n---\n"
+            ci: ci + 1
+        system: "You are a documentation assistant. Answer the user's question thoroughly and in detail, based ONLY on the context provided. Explain clearly and completely, step by step where the question asks how to do something. Include code examples exactly as shown in the context when they are relevant. Do not omit details. Cite the source number [n] after every factual statement. If the context does not contain the answer, say so explicitly and do not guess."
+        user: "Context:\n" ++ context ++ "\nQuestion: " ++ question
+        answer: ai_chat system user
+        {answer: answer, sources: filtered}
     catch e
         {answer: ("ask failed: " ++ (to_str e)), sources: []}
 
@@ -308,10 +366,44 @@ fn mcp_list_docs
         set out "blog" (collect_md_files blog_dir "website/blog/")
     out
 
+fn _code_score_token symbol content file tok
+    s: 0
+    if symbol == tok
+        s: 100
+    else
+        if contains symbol tok
+            s: s + 60
+        if contains content tok
+            s: s + 10
+        if contains file tok
+            s: s + 5
+    s
+
 fn mcp_search_code query
     if query == nil || query == ""
         return []
     q: lower query
+    raw_tokens: split q " "
+    tokens: []
+    ti: 0
+    while ti < (len raw_tokens)
+        t: at raw_tokens ti
+        if (len t) > 0
+            push tokens t
+            underscore_parts: split t "_"
+            pi: 0
+            while pi < (len underscore_parts)
+                hyphen_parts: split (at underscore_parts pi) "-"
+                hi: 0
+                while hi < (len hyphen_parts)
+                    frag: at hyphen_parts hi
+                    if (len frag) >= 2 && frag != t
+                        push tokens frag
+                    hi: hi + 1
+                pi: pi + 1
+        ti: ti + 1
+    if (len tokens) == 0
+        return []
     syms: get ST "code_symbols"
     scored: []
     i: 0
@@ -321,15 +413,10 @@ fn mcp_search_code query
         content: lower (get s "content")
         file: lower (get s "file")
         score: 0
-        if symbol == q
-            score: 100
-        else
-            if contains symbol q
-                score: 60
-            if contains content q
-                score: score + 10
-            if contains file q
-                score: score + 5
+        tj: 0
+        while tj < (len tokens)
+            score: score + (_code_score_token symbol content file (at tokens tj))
+            tj: tj + 1
         if score > 0
             push scored {s: s, score: score}
         i: i + 1
@@ -363,7 +450,8 @@ fn mcp_read_source path
     text
 
 fn mcp_list_sources
-    get ST "code_files"
+    files: get ST "code_files"
+    {count: (len files), files: files}
 
 fn mcp_index_status
     syms: get ST "code_symbols"

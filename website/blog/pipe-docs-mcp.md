@@ -49,7 +49,7 @@ The server runs as a single Pipe process over stdio — the same transport Claud
 
 A naive approach embeds every paragraph and calls `nearest`. That misses context. `pipe-docs` does three things differently:
 
-**Heading-aware chunking.** Documents are split on `#`/`##`/`###` boundaries, fenced code blocks stay intact, and every chunk remembers its file, line range, and heading path — so a search for "sandbox profiles" surfaces the `Security > Sandbox Profiles > Locking` section, not just a passing mention. Indexing `docs/en` yields **28 files → 317 chunks**.
+**Heading-aware chunking.** Documents are split on `#`/`##`/`###` boundaries, fenced code blocks stay intact, and every chunk remembers its file, line range, and heading path — so a search for "sandbox profiles" surfaces the `Security > Sandbox Profiles > Locking` section, not just a passing mention. Indexing `docs/en` yields **29 files → 335 chunks**.
 
 **Hybrid search.** A TF-IDF keyword score and a cosine-similarity score are fused — and the weights adapt automatically: local 128-dim embeddings lean on keywords, OpenAI's 1536-dim embeddings lean on semantics. Identifiers stay single tokens (`try_ai`, not `try` + `ai`), and a query term matching a chunk's *heading* gets a boost.
 
@@ -180,7 +180,7 @@ Der Server läuft als einzelner Pipe-Prozess über stdio — dasselbe Transport-
 
 Ein naiver Ansatz bettet jeden Absatz ein und ruft `nearest`. Das verliert Kontext. `pipe-docs` macht drei Dinge anders:
 
-**Heading-bewusstes Chunking.** Dokumente werden an `#`/`##`/`###`-Grenzen geteilt, Code-Blöcke bleiben intakt, und jeder Chunk merkt sich seine Datei, seinen Zeilenbereich und seinen Heading-Pfad — also findet eine Suche nach "Sandbox-Profile" den Abschnitt `Security > Sandbox Profiles > Locking`, nicht nur eine beiläufige Erwähnung. Das Indexieren von `docs/en` ergibt **28 Dateien → 317 Chunks**.
+**Heading-bewusstes Chunking.** Dokumente werden an `#`/`##`/`###`-Grenzen geteilt, Code-Blöcke bleiben intakt, und jeder Chunk merkt sich seine Datei, seinen Zeilenbereich und seinen Heading-Pfad — also findet eine Suche nach "Sandbox-Profile" den Abschnitt `Security > Sandbox Profiles > Locking`, nicht nur eine beiläufige Erwähnung. Das Indexieren von `docs/en` ergibt **29 Dateien → 335 Chunks**.
 
 **Hybrid-Suche.** Ein TF-IDF-Keyword-Score und ein Kosinus-Ähnlichkeits-Score werden fusioniert — und die Gewichte passen sich automatisch an: lokale 128-dim-Embeddings stützen sich auf Keywords, OpenAIs 1536-dim-Embeddings stützen sich auf Semantik. Bezeichner bleiben einzelne Tokens (`try_ai`, nicht `try` + `ai`), und ein Suchbegriff, der auf die *Überschrift* eines Chunks trifft, bekommt einen Boost.
 

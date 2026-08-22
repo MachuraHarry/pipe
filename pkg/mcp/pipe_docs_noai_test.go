@@ -3,11 +3,13 @@ package mcp
 import (
 	"bufio"
 	"encoding/json"
+	"os"
 	"os/exec"
 	"path/filepath"
 	"runtime"
 	"strings"
 	"testing"
+	"time"
 )
 
 // TestPipeDocsNoAIEndToEnd runs the actual pipe-docs server (without any API
@@ -17,14 +19,18 @@ func TestPipeDocsNoAIEndToEnd(t *testing.T) {
 		t.Skip("skipping integration test in short mode")
 	}
 
-	pipeBin := filepath.Join(runtime.GOROOT(), "..", "bin", "pipe")
-	if _, err := exec.LookPath("pipe"); err == nil {
-		pipeBin, _ = exec.LookPath("pipe")
-	}
-
 	// Find repo root (two levels up from pkg/mcp/)
 	_, thisFile, _, _ := runtime.Caller(0)
 	repoRoot := filepath.Join(filepath.Dir(thisFile), "..", "..")
+
+	// Prefer the freshly built repo binary over any stale installed one.
+	pipeBin := filepath.Join(repoRoot, "bin", "pipe")
+	if _, err := os.Stat(pipeBin); err != nil {
+		pipeBin = "pipe"
+		if p, err := exec.LookPath("pipe"); err == nil {
+			pipeBin = p
+		}
+	}
 
 	cmd := exec.Command(pipeBin, filepath.Join(repoRoot, "examples", "pipe_docs_server.pipe"))
 	cmd.Dir = repoRoot
@@ -51,7 +57,8 @@ func TestPipeDocsNoAIEndToEnd(t *testing.T) {
 	}
 
 	waitResp := func(id int) map[string]interface{} {
-		for i := 0; i < 200; i++ {
+		deadline := time.After(30 * time.Second)
+		for {
 			select {
 			case line := <-responses:
 				var parsed map[string]interface{}
@@ -60,10 +67,11 @@ func TestPipeDocsNoAIEndToEnd(t *testing.T) {
 						return parsed
 					}
 				}
+			case <-deadline:
+				t.Fatalf("no response for id %d", id)
+				return nil
 			}
 		}
-		t.Fatalf("no response for id %d", id)
-		return nil
 	}
 
 	callTool := func(id int, name string, args interface{}) string {

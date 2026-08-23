@@ -329,3 +329,40 @@ Der erste Start klont das Repo und baut den Docs-Index mit Embeddings auf (einig
 ```
 
 Der Server wird als `.mcpb`-Bundle von `release.yml` gebaut und über `publish-mcp-docs.yml` veröffentlicht.
+
+## 25.8 Der `repo-rag`-Server
+
+Während `pipe-docs` fest auf das Pipe-Repository verdrahtet ist, bringt `examples/repo_rag_server.pipe` dasselbe Erlebnis für **ein beliebiges** Git-Repository: URL angeben, und der Server klont, indiziert und serviert die Codebase als MCP-Server über stdio.
+
+**Start:**
+
+```bash
+export REPO_RAG_URL="https://github.com/dein-user/dein-repo"
+pipe examples/repo_rag_server.pipe
+```
+
+**Tools:**
+
+| Tool | Key nötig | Beschreibung |
+|------|-----------|--------------|
+| `search_docs(query)` | optional | Markdown-Suche — semantisch-hybrid mit Chat-/Embeddings-Provider, sonst rein per Keyword |
+| `ask_docs(question)` | ja | Zitierte RAG-Antwort; fällt auf den Keyword-Chunks-Index zurück, wenn semantisches Retrieval nicht verfügbar ist |
+| `read_doc(path)` / `list_docs()` | nein | Markdown-Dateien lesen bzw. auflisten |
+| `search_code(query)` | nein | Deklarationen in Go, Pipe, Python, JS/TS, Rust + generischem Fallback finden |
+| `file_symbols(path)` | nein | Outline einer Quelldatei: jede indizierte Deklaration mit Art, Name, Zeile und Deklarationstext |
+| `read_source(path, offset)` | nein | Quellcode-Ansicht mit Zeilennummern, paginiert |
+| `list_sources()` | nein | Alle erkannten Quelldateien |
+| `repo_info()` / `index_status()` | nein | Repo-Metadaten / Index-Statistiken und letzte Sync-Counts |
+| `refresh_index()` | nein | Inkrementeller Re-Sync aus dem gecachten Checkout |
+
+**Konfiguration (env):**
+
+- `REPO_RAG_URL` (Pflicht) — zu klonendes und zu indizierendes Repository.
+- `REPO_RAG_REF` — optionaler Branch oder Tag.
+- `REPO_RAG_CACHE` — Cache-Verzeichnis (Standard `~/.pipe/cache/repo-rag/<owner>__<repo>`).
+- `DEEPSEEK_API_KEY`, `OPENAI_API_KEY` oder `OPENROUTER_API_KEY` — aktiviert `ask_docs`; mit DeepSeek/OpenAI zusätzlich die semantische Hybridsuche.
+- `REPO_RAG_MODEL` — Modell-Override für OpenRouter (Standard `nvidia/nemotron-3-super-120b-a12b:free`). OpenRouter bietet keinen Embeddings-Endpunkt, dort läuft `search_docs` im Keyword-Modus.
+
+Die Indexe bleiben über Neustarts erhalten (`code.db`, `docs-kw.db`, `docs.db`): Dateien werden per SHA-256 neu gehasht und nur bei Änderung neu gescannt — Warm Starts sind damit nahezu instant. Ein Ref-Wechsel löst automatisch frischen Clone und Index-Wipe aus.
+
+Nach dem Indizieren schaltet der Server vom Profil `rag-build` (Clone/exec/Netz für Git-Hosts) auf das verriegelte Profil `rag-serve` um: Read-only-Filesystem, kein exec, Netz auf die konfigurierten AI-Provider begrenzt. Repository-URLs werden vor jedem Shell-Kontakt gegen eine Zeichen-Allowlist validiert.

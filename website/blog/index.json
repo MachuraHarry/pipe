@@ -1,122 +1,226 @@
 [
-  {
-    "id": "pipe-docs-mcp",
-    "file": "pipe-docs-mcp.md",
-    "date": "2026-08-21",
-    "tag": "release",
-    "title": {"en": "🔍 pipe-docs MCP — Your Entire Codebase as a Semantic Search, Inside Your AI IDE", "de": "🔍 pipe-docs MCP — Deine gesamte Codebase als semantische Suche, direkt in deiner KI-IDE"},
-    "excerpt": {"en": "A semantic search and RAG MCP server for the Pipe language — 7 tools, zero dependencies, published on the MCP Registry. Heading-aware chunking, hybrid search, cited answers, code symbol lookup.", "de": "Ein semantischer Suche- und RAG-MCP-Server für die Pipe-Sprache — 7 Tools, null Abhängigkeiten, veröffentlicht auf dem MCP Registry. Heading-bewusstes Chunking, Hybrid-Suche, zitierte Antworten, Code-Symbol-Lookup."}
-  },
-  {
-    "id": "pipe-v1",
-    "file": "pipe-v1.md",
-    "date": "2026-08-17",
-    "tag": "release",
-    "title": {"en": "Pipe v1.0.0 — From Prototype to Production", "de": "Pipe v1.0.0 — Vom Prototypen zur Produktion"},
-    "excerpt": {"en": "Pipe reaches v1.0.0 — 232 builtins, 23 modules, guard clauses, concurrency primitives, MQTT 5.0, and a hardened sandbox. The first production-ready release.", "de": "Pipe erreicht v1.0.0 — 232 Builtins, 23 Module, Guard Clauses, Concurrency-Primitiven, MQTT 5.0 und eine gehärtete Sandbox. Das erste production-ready Release."}
-  },
-  {
-    "id": "mqtt-client",
-    "file": "mqtt-client.md",
-    "date": "2026-08-17",
-    "tag": "release",
-    "title": {"en": "📡 MQTT 5.0 in Pure Pipe — a Full Client in ~987 Lines", "de": "📡 MQTT 5.0 in reinem Pipe — ein vollständiger Client in ~987 Zeilen"},
-    "excerpt": {"en": "A complete MQTT 5.0 client as one pure-Pipe module — QoS 0/1/2, TLS, will, retain, keep-alive, and the full property system. No paho, no C library: just three small TCP builtins and ~987 lines of Pipe.", "de": "Ein vollständiger MQTT-5.0-Client als ein reines-Pipe-Modul — QoS 0/1/2, TLS, Will, Retain, Keep-alive und das volle Property-System. Kein paho, keine C-Bibliothek: nur drei kleine TCP-Builtins und ~987 Zeilen Pipe."}
-  },
-  {
-    "id": "micropipe-esp32",
-    "file": "micropipe-esp32.md",
-    "date": "2026-08-16",
-    "tag": "release",
-    "title": {"en": "🌍 MicroPipe — Pipe on a Microcontroller (Preview)", "de": "🌍 MicroPipe — Pipe auf dem Mikrocontroller (Preview)"},
-    "excerpt": {"en": "A faithful, dependency-free re-implementation of the Pipe core — verified against the pipe v0.9.4 binary — running on MicroPython and a real ESP32: pipelines, closures, maps, and an MCP client over WiFi, all interpreted on-device. What works today, and what's still missing.", "de": "Eine treue, abhängigkeitsfreie Neuimplementierung des Pipe-Kerns — gegen die pipe-v0.9.4-Binary verifiziert — läuft auf MicroPython und einem echten ESP32: Pipelines, Closures, Maps und ein MCP-Client über WLAN, alles on-device interpretiert. Was heute funktioniert — und was noch fehlt."}
-  },
-  {
-    "id": "docs-pipe-dashboard",
-    "file": "docs-pipe-dashboard.md",
-    "date": "2026-08-26",
-    "tag": "release",
-    "title": {"en": "🧠 docs-pipe — Turn Your Docs Into a Searchable, Question-Answering AI", "de": "🧠 docs-pipe — Verwandle deine Doku in eine durchsuchbare, Frage-beantwortende KI"},
-    "excerpt": {"en": "A documentation-native RAG module plus a web dashboard: heading-aware chunking, hybrid keyword + semantic search, cited answers, incremental re-indexing, and a one-command UI — all in pure Pipe, no vector database.", "de": "Ein dokumentations-natives RAG-Modul plus Web-Dashboard: heading-bewusstes Chunking, hybride Keyword- + semantische Suche, zitierte Antworten, inkrementelles Indexieren und ein Ein-Befehl-UI — alles in reinem Pipe, ohne Vektor-Datenbank."}
-  },
-  {
-    "id": "pipe-vs-python-benchmarks",
-    "file": "pipe-vs-python-benchmarks.md",
-    "date": "2026-08-15",
-    "tag": "insight",
-    "title": {"en": "📊 Pipe vs Python + LangChain — Measured, Not Marketed", "de": "📊 Pipe gegen Python + LangChain — gemessen, nicht vermarktet"},
-    "excerpt": {"en": "Six real task pairs, one provider, one machine: RAG in 14 LOC vs 26, 3 parallel LLM calls in 1.16s vs 9.59s, an 8.6 MB binary vs a 345 MB venv. Full code and results.json published so you can reproduce every number.", "de": "Sechs echte Aufgaben-Paare, ein Provider, eine Maschine: RAG in 14 Zeilen statt 26, 3 parallele LLM-Calls in 1,16s statt 9,59s, eine 8,6-MB-Binary statt eines 345-MB-venv. Kompletter Code und results.json veröffentlicht, damit jede Zahl reproduzierbar ist."}
-  },
-  {
-    "id": "tutorial-first-mcp-server",
-    "file": "tutorial-first-mcp-server.md",
-    "date": "2026-08-18",
-    "tag": "tutorial",
-    "title": {"en": "🔌 Your First MCP Server — in a Language, Not an SDK", "de": "🔌 Dein erster MCP-Server — in einer Sprache, nicht in einem SDK"},
-    "excerpt": {"en": "Expose a plain function to Claude, Cursor, or any MCP client in four lines — ai_tool registers it, mcp_server + mcp_serve_stdio start it. Zero dependencies.", "de": "Eine normale Funktion in vier Zeilen für Claude, Cursor oder jeden MCP-Client bereitstellen — ai_tool registriert sie, mcp_server + mcp_serve_stdio starten sie. Null Abhängigkeiten."}
-  },
-  {
-    "id": "tutorial-parallel",
-    "file": "tutorial-parallel.md",
-    "date": "2026-08-17",
-    "tag": "tutorial",
-    "title": {"en": "⚡ 3 LLM Calls in 1.5s, Not 4s — Parallel by Default", "de": "⚡ 3 LLM-Calls in 1,5s statt 4s — Parallel als Standard"},
-    "excerpt": {"en": "The >> operator starts pipeline stages in the background; futures auto-resolve when you use them. No asyncio.gather() boilerplate.", "de": "Der >>-Operator startet Pipeline-Stufen im Hintergrund; Futures lösen sich beim Benutzen automatisch auf. Kein asyncio.gather()-Boilerplate."}
-  },
-  {
-    "id": "tutorial-self-healing",
-    "file": "tutorial-self-healing.md",
-    "date": "2026-08-16",
-    "tag": "tutorial",
-    "title": {"en": "🩹 Self-Healing Code — try_ai Fixes Runtime Errors with AI", "de": "🩹 Selbstheilender Code — try_ai repariert Laufzeitfehler mit KI"},
-    "excerpt": {"en": "A type error that repairs itself: try_ai catches the crash, asks the LLM to fix the expression, and re-runs it. Healthy code costs zero API calls.", "de": "Ein Typfehler, der sich selbst repariert: try_ai fängt den Crash, lässt das LLM den Ausdruck fixen und führt ihn erneut aus. Gesunder Code kostet null API-Calls."}
-  },
-  {
-    "id": "tutorial-local-rag",
-    "file": "tutorial-local-rag.md",
-    "date": "2026-08-15",
-    "tag": "tutorial",
-    "title": {"en": "📚 RAG in ~10 Lines — No Vector Database, No pip install", "de": "📚 RAG in ~10 Zeilen — ohne Vektor-DB, ohne pip install"},
-    "excerpt": {"en": "Semantic search and retrieval-augmented generation without a vector DB or framework: embed_batch, nearest, and ask as language primitives in one ~8 MB binary.", "de": "Semantische Suche und RAG ohne Vektor-DB oder Framework: embed_batch, nearest und ask als Sprach-Primitives in einer ~8-MB-Binary."}
-  },
-  {
-    "id": "sandbox-unique",
-    "file": "sandbox-unique.md",
-    "date": "2026-08-14",
-    "tag": "insight",
-    "title": {"en": "🗝️ Unique? Powerful? What Pipe Actually Does Differently", "de": "🗝️ Einmalig? Mächtig? Was Pipe wirklich anders macht"},
-    "excerpt": {"en": "The isolation layer isn't what makes Pipe different — where the control lives is. Sandbox as a language construct, MCP as a first-class sandbox citizen, and an honest look at the limits.", "de": "Nicht die Isolationsebene macht Pipe anders — sondern wo die Kontrolle lebt. Sandbox als Sprachkonstrukt, MCP als Bürger erster Klasse der Sandbox, und ein ehrlicher Blick auf die Grenzen."}
-  },
-  {
-    "id": "mcp-cell",
-    "file": "mcp-cell.md",
-    "date": "2026-08-14",
-    "tag": "tutorial",
-    "title": {"en": "🧱 The MCP Cell — an AI That Can Only Talk to Pipe's Own MCP Server", "de": "🧱 Die MCP-Zelle — eine KI, die nur mit Pipes eigenem MCP-Server sprechen kann"},
-    "excerpt": {"en": "A sandboxed AI agent whose entire universe is Pipe's own MCP server: five tools, no free network, no free filesystem, no shell. The agent-mode demo, the real escape attempts, and a temp-only redirect bug the demo surfaced.", "de": "Eine KI in der Sandbox, deren ganzes Universum Pipes eigener MCP-Server ist: fünf Tools, kein freies Netz, kein freies Dateisystem, keine Shell. Der Agent-Modus, echte Ausbruchsversuche und ein temp-only-Redirect-Bug, den die Demo aufdeckte."}
-  },
-  {
-    "id": "sandbox-audit-continued",
-    "file": "sandbox-audit-continued.md",
-    "date": "2026-08-13",
-    "tag": "security",
-    "title": {"en": "🔬 The Audit Continues: try_ai Lied, embed Slipped, and We Made the Gates Structural", "de": "🔬 Der Audit geht weiter: try_ai log, embed schlüpfte durch — und die Gates wurden strukturell"},
-    "excerpt": {"en": "Rounds 3–6 of Pipe's sandbox audit: try_ai ignored ai:false and budget, embed/embed_batch/import were un- or mis-gated, and the CLI --sandbox flag path let http_post and tcp_connect through. The last two fixes weren't more if-branches — a central egress gate and a central network helper make the bug classes structurally impossible.", "de": "Runden 3–6 des Pipe-Sandbox-Audits: try_ai ignorierte ai:false und Budget, embed/embed_batch/import waren un- oder falsch gegatet, und der CLI-Flag-Pfad von --sandbox ließ http_post und tcp_connect durch. Die letzten beiden Fixes waren keine weiteren if-Branches — ein zentraler Egress-Gate und ein zentraler Netz-Helper machen die Fehlerklassen strukturell unmöglich."}
-  },
-  {
-    "id": "sandbox-audit-2",
-    "file": "sandbox-audit-2.md",
-    "date": "2026-08-12",
-    "tag": "security",
-    "title": {"en": "🔐 Sandbox Audit Round 2 — Three Real Escapes, Then Zero", "de": "🔐 Sandbox-Audit Runde 2 — drei echte Escapes, danach null"},
-    "excerpt": {"en": "A second red-team pass found three ratchet holes a confined script could actually use: an empty whitelist meant allow-all, the port ratchet silently dropped port restrictions, and budget/max_tool_calls were never compared. All three fixed, then two LLM runs came back with zero escapes.", "de": "Ein zweiter Red-Team-Durchgang fand drei Ratchet-Lücken, die ein eingesperrtes Skript wirklich ausnutzen konnte: leere Whitelist = alle erlaubt, der Port-Ratchet hob Port-Restriktionen auf, und Budget/max_tool_calls wurden nie verglichen. Alle drei gefixt, danach kamen zwei LLM-Läufe mit null Escapes zurück."}
-  },
-  {
-    "id": "sandbox-audit",
-    "file": "sandbox-audit.md",
-    "date": "2026-08-09",
-    "tag": "security",
-    "title": {"en": "🛡️ How I Tried to Escape My Own Sandbox — and What I Learned", "de": "🛡️ Wie ich versuchte, meine eigene Sandbox zu sprengen — und was ich dabei lernte"},
-    "excerpt": {"en": "A real LLM was ordered to escape Pipe's sandbox. 23 vectors, 25 tool calls, zero escapes. The audit trail caught everything — including a design bug that would have invalidated every exec:false profile. Here's the full report, plus what we still need to test.", "de": "Ein echtes LLM wurde beauftragt, Pipes Sandbox zu brechen. 23 Vektoren, 25 Tool-Calls, null Escapes. Der Audit-Trail dokumentiert alles — inklusive eines Design-Bugs. Der vollständige Report und was noch getestet werden muss."}
-  }
+    {
+        "id": "repo-rag-mcp",
+        "file": "repo-rag-mcp.md",
+        "date": "2026-08-23",
+        "tag": "release",
+        "title": {
+            "en": "🔍 repo-rag MCP — RAG over ANY Git Repository, Not Just This One",
+            "de": "🔍 repo-rag MCP — RAG über ein BELIEBIGES Git-Repository, nicht nur über dieses"
+        },
+        "excerpt": {
+            "en": "One command turns any Git repository into a full RAG MCP server: keyword search without API keys, cited AI answers (now with OpenRouter free models), code symbol lookup in 5 languages, file outlines — persistent SQLite indexes and a locked-down sandbox included.",
+            "de": "Ein Befehl macht aus jedem Git-Repository einen vollwertigen RAG-MCP-Server: Keyword-Suche ohne API-Key, zitierte KI-Antworten (jetzt mit OpenRouter-Free-Models), Code-Symbol-Lookup in 5 Sprachen, File-Outlines — mit persistenten SQLite-Indexen und verriegelter Sandbox."
+        }
+    },
+    {
+        "id": "pipe-docs-mcp",
+        "file": "pipe-docs-mcp.md",
+        "date": "2026-08-21",
+        "tag": "release",
+        "title": {
+            "en": "🔍 pipe-docs MCP — Your Entire Codebase as a Semantic Search, Inside Your AI IDE",
+            "de": "🔍 pipe-docs MCP — Deine gesamte Codebase als semantische Suche, direkt in deiner KI-IDE"
+        },
+        "excerpt": {
+            "en": "A semantic search and RAG MCP server for the Pipe language — 7 tools, zero dependencies, published on the MCP Registry. Heading-aware chunking, hybrid search, cited answers, code symbol lookup.",
+            "de": "Ein semantischer Suche- und RAG-MCP-Server für die Pipe-Sprache — 7 Tools, null Abhängigkeiten, veröffentlicht auf dem MCP Registry. Heading-bewusstes Chunking, Hybrid-Suche, zitierte Antworten, Code-Symbol-Lookup."
+        }
+    },
+    {
+        "id": "pipe-v1",
+        "file": "pipe-v1.md",
+        "date": "2026-08-17",
+        "tag": "release",
+        "title": {
+            "en": "Pipe v1.0.0 — From Prototype to Production",
+            "de": "Pipe v1.0.0 — Vom Prototypen zur Produktion"
+        },
+        "excerpt": {
+            "en": "Pipe reaches v1.0.0 — 232 builtins, 23 modules, guard clauses, concurrency primitives, MQTT 5.0, and a hardened sandbox. The first production-ready release.",
+            "de": "Pipe erreicht v1.0.0 — 232 Builtins, 23 Module, Guard Clauses, Concurrency-Primitiven, MQTT 5.0 und eine gehärtete Sandbox. Das erste production-ready Release."
+        }
+    },
+    {
+        "id": "mqtt-client",
+        "file": "mqtt-client.md",
+        "date": "2026-08-17",
+        "tag": "release",
+        "title": {
+            "en": "📡 MQTT 5.0 in Pure Pipe — a Full Client in ~987 Lines",
+            "de": "📡 MQTT 5.0 in reinem Pipe — ein vollständiger Client in ~987 Zeilen"
+        },
+        "excerpt": {
+            "en": "A complete MQTT 5.0 client as one pure-Pipe module — QoS 0/1/2, TLS, will, retain, keep-alive, and the full property system. No paho, no C library: just three small TCP builtins and ~987 lines of Pipe.",
+            "de": "Ein vollständiger MQTT-5.0-Client als ein reines-Pipe-Modul — QoS 0/1/2, TLS, Will, Retain, Keep-alive und das volle Property-System. Kein paho, keine C-Bibliothek: nur drei kleine TCP-Builtins und ~987 Zeilen Pipe."
+        }
+    },
+    {
+        "id": "micropipe-esp32",
+        "file": "micropipe-esp32.md",
+        "date": "2026-08-16",
+        "tag": "release",
+        "title": {
+            "en": "🌍 MicroPipe — Pipe on a Microcontroller (Preview)",
+            "de": "🌍 MicroPipe — Pipe auf dem Mikrocontroller (Preview)"
+        },
+        "excerpt": {
+            "en": "A faithful, dependency-free re-implementation of the Pipe core — verified against the pipe v0.9.4 binary — running on MicroPython and a real ESP32: pipelines, closures, maps, and an MCP client over WiFi, all interpreted on-device. What works today, and what's still missing.",
+            "de": "Eine treue, abhängigkeitsfreie Neuimplementierung des Pipe-Kerns — gegen die pipe-v0.9.4-Binary verifiziert — läuft auf MicroPython und einem echten ESP32: Pipelines, Closures, Maps und ein MCP-Client über WLAN, alles on-device interpretiert. Was heute funktioniert — und was noch fehlt."
+        }
+    },
+    {
+        "id": "docs-pipe-dashboard",
+        "file": "docs-pipe-dashboard.md",
+        "date": "2026-08-26",
+        "tag": "release",
+        "title": {
+            "en": "🧠 docs-pipe — Turn Your Docs Into a Searchable, Question-Answering AI",
+            "de": "🧠 docs-pipe — Verwandle deine Doku in eine durchsuchbare, Frage-beantwortende KI"
+        },
+        "excerpt": {
+            "en": "A documentation-native RAG module plus a web dashboard: heading-aware chunking, hybrid keyword + semantic search, cited answers, incremental re-indexing, and a one-command UI — all in pure Pipe, no vector database.",
+            "de": "Ein dokumentations-natives RAG-Modul plus Web-Dashboard: heading-bewusstes Chunking, hybride Keyword- + semantische Suche, zitierte Antworten, inkrementelles Indexieren und ein Ein-Befehl-UI — alles in reinem Pipe, ohne Vektor-Datenbank."
+        }
+    },
+    {
+        "id": "pipe-vs-python-benchmarks",
+        "file": "pipe-vs-python-benchmarks.md",
+        "date": "2026-08-15",
+        "tag": "insight",
+        "title": {
+            "en": "📊 Pipe vs Python + LangChain — Measured, Not Marketed",
+            "de": "📊 Pipe gegen Python + LangChain — gemessen, nicht vermarktet"
+        },
+        "excerpt": {
+            "en": "Six real task pairs, one provider, one machine: RAG in 14 LOC vs 26, 3 parallel LLM calls in 1.16s vs 9.59s, an 8.6 MB binary vs a 345 MB venv. Full code and results.json published so you can reproduce every number.",
+            "de": "Sechs echte Aufgaben-Paare, ein Provider, eine Maschine: RAG in 14 Zeilen statt 26, 3 parallele LLM-Calls in 1,16s statt 9,59s, eine 8,6-MB-Binary statt eines 345-MB-venv. Kompletter Code und results.json veröffentlicht, damit jede Zahl reproduzierbar ist."
+        }
+    },
+    {
+        "id": "tutorial-first-mcp-server",
+        "file": "tutorial-first-mcp-server.md",
+        "date": "2026-08-18",
+        "tag": "tutorial",
+        "title": {
+            "en": "🔌 Your First MCP Server — in a Language, Not an SDK",
+            "de": "🔌 Dein erster MCP-Server — in einer Sprache, nicht in einem SDK"
+        },
+        "excerpt": {
+            "en": "Expose a plain function to Claude, Cursor, or any MCP client in four lines — ai_tool registers it, mcp_server + mcp_serve_stdio start it. Zero dependencies.",
+            "de": "Eine normale Funktion in vier Zeilen für Claude, Cursor oder jeden MCP-Client bereitstellen — ai_tool registriert sie, mcp_server + mcp_serve_stdio starten sie. Null Abhängigkeiten."
+        }
+    },
+    {
+        "id": "tutorial-parallel",
+        "file": "tutorial-parallel.md",
+        "date": "2026-08-17",
+        "tag": "tutorial",
+        "title": {
+            "en": "⚡ 3 LLM Calls in 1.5s, Not 4s — Parallel by Default",
+            "de": "⚡ 3 LLM-Calls in 1,5s statt 4s — Parallel als Standard"
+        },
+        "excerpt": {
+            "en": "The >> operator starts pipeline stages in the background; futures auto-resolve when you use them. No asyncio.gather() boilerplate.",
+            "de": "Der >>-Operator startet Pipeline-Stufen im Hintergrund; Futures lösen sich beim Benutzen automatisch auf. Kein asyncio.gather()-Boilerplate."
+        }
+    },
+    {
+        "id": "tutorial-self-healing",
+        "file": "tutorial-self-healing.md",
+        "date": "2026-08-16",
+        "tag": "tutorial",
+        "title": {
+            "en": "🩹 Self-Healing Code — try_ai Fixes Runtime Errors with AI",
+            "de": "🩹 Selbstheilender Code — try_ai repariert Laufzeitfehler mit KI"
+        },
+        "excerpt": {
+            "en": "A type error that repairs itself: try_ai catches the crash, asks the LLM to fix the expression, and re-runs it. Healthy code costs zero API calls.",
+            "de": "Ein Typfehler, der sich selbst repariert: try_ai fängt den Crash, lässt das LLM den Ausdruck fixen und führt ihn erneut aus. Gesunder Code kostet null API-Calls."
+        }
+    },
+    {
+        "id": "tutorial-local-rag",
+        "file": "tutorial-local-rag.md",
+        "date": "2026-08-15",
+        "tag": "tutorial",
+        "title": {
+            "en": "📚 RAG in ~10 Lines — No Vector Database, No pip install",
+            "de": "📚 RAG in ~10 Zeilen — ohne Vektor-DB, ohne pip install"
+        },
+        "excerpt": {
+            "en": "Semantic search and retrieval-augmented generation without a vector DB or framework: embed_batch, nearest, and ask as language primitives in one ~8 MB binary.",
+            "de": "Semantische Suche und RAG ohne Vektor-DB oder Framework: embed_batch, nearest und ask als Sprach-Primitives in einer ~8-MB-Binary."
+        }
+    },
+    {
+        "id": "sandbox-unique",
+        "file": "sandbox-unique.md",
+        "date": "2026-08-14",
+        "tag": "insight",
+        "title": {
+            "en": "🗝️ Unique? Powerful? What Pipe Actually Does Differently",
+            "de": "🗝️ Einmalig? Mächtig? Was Pipe wirklich anders macht"
+        },
+        "excerpt": {
+            "en": "The isolation layer isn't what makes Pipe different — where the control lives is. Sandbox as a language construct, MCP as a first-class sandbox citizen, and an honest look at the limits.",
+            "de": "Nicht die Isolationsebene macht Pipe anders — sondern wo die Kontrolle lebt. Sandbox als Sprachkonstrukt, MCP als Bürger erster Klasse der Sandbox, und ein ehrlicher Blick auf die Grenzen."
+        }
+    },
+    {
+        "id": "mcp-cell",
+        "file": "mcp-cell.md",
+        "date": "2026-08-14",
+        "tag": "tutorial",
+        "title": {
+            "en": "🧱 The MCP Cell — an AI That Can Only Talk to Pipe's Own MCP Server",
+            "de": "🧱 Die MCP-Zelle — eine KI, die nur mit Pipes eigenem MCP-Server sprechen kann"
+        },
+        "excerpt": {
+            "en": "A sandboxed AI agent whose entire universe is Pipe's own MCP server: five tools, no free network, no free filesystem, no shell. The agent-mode demo, the real escape attempts, and a temp-only redirect bug the demo surfaced.",
+            "de": "Eine KI in der Sandbox, deren ganzes Universum Pipes eigener MCP-Server ist: fünf Tools, kein freies Netz, kein freies Dateisystem, keine Shell. Der Agent-Modus, echte Ausbruchsversuche und ein temp-only-Redirect-Bug, den die Demo aufdeckte."
+        }
+    },
+    {
+        "id": "sandbox-audit-continued",
+        "file": "sandbox-audit-continued.md",
+        "date": "2026-08-13",
+        "tag": "security",
+        "title": {
+            "en": "🔬 The Audit Continues: try_ai Lied, embed Slipped, and We Made the Gates Structural",
+            "de": "🔬 Der Audit geht weiter: try_ai log, embed schlüpfte durch — und die Gates wurden strukturell"
+        },
+        "excerpt": {
+            "en": "Rounds 3–6 of Pipe's sandbox audit: try_ai ignored ai:false and budget, embed/embed_batch/import were un- or mis-gated, and the CLI --sandbox flag path let http_post and tcp_connect through. The last two fixes weren't more if-branches — a central egress gate and a central network helper make the bug classes structurally impossible.",
+            "de": "Runden 3–6 des Pipe-Sandbox-Audits: try_ai ignorierte ai:false und Budget, embed/embed_batch/import waren un- oder falsch gegatet, und der CLI-Flag-Pfad von --sandbox ließ http_post und tcp_connect durch. Die letzten beiden Fixes waren keine weiteren if-Branches — ein zentraler Egress-Gate und ein zentraler Netz-Helper machen die Fehlerklassen strukturell unmöglich."
+        }
+    },
+    {
+        "id": "sandbox-audit-2",
+        "file": "sandbox-audit-2.md",
+        "date": "2026-08-12",
+        "tag": "security",
+        "title": {
+            "en": "🔐 Sandbox Audit Round 2 — Three Real Escapes, Then Zero",
+            "de": "🔐 Sandbox-Audit Runde 2 — drei echte Escapes, danach null"
+        },
+        "excerpt": {
+            "en": "A second red-team pass found three ratchet holes a confined script could actually use: an empty whitelist meant allow-all, the port ratchet silently dropped port restrictions, and budget/max_tool_calls were never compared. All three fixed, then two LLM runs came back with zero escapes.",
+            "de": "Ein zweiter Red-Team-Durchgang fand drei Ratchet-Lücken, die ein eingesperrtes Skript wirklich ausnutzen konnte: leere Whitelist = alle erlaubt, der Port-Ratchet hob Port-Restriktionen auf, und Budget/max_tool_calls wurden nie verglichen. Alle drei gefixt, danach kamen zwei LLM-Läufe mit null Escapes zurück."
+        }
+    },
+    {
+        "id": "sandbox-audit",
+        "file": "sandbox-audit.md",
+        "date": "2026-08-09",
+        "tag": "security",
+        "title": {
+            "en": "🛡️ How I Tried to Escape My Own Sandbox — and What I Learned",
+            "de": "🛡️ Wie ich versuchte, meine eigene Sandbox zu sprengen — und was ich dabei lernte"
+        },
+        "excerpt": {
+            "en": "A real LLM was ordered to escape Pipe's sandbox. 23 vectors, 25 tool calls, zero escapes. The audit trail caught everything — including a design bug that would have invalidated every exec:false profile. Here's the full report, plus what we still need to test.",
+            "de": "Ein echtes LLM wurde beauftragt, Pipes Sandbox zu brechen. 23 Vektoren, 25 Tool-Calls, null Escapes. Der Audit-Trail dokumentiert alles — inklusive eines Design-Bugs. Der vollständige Report und was noch getestet werden muss."
+        }
+    }
 ]

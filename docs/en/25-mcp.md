@@ -328,3 +328,41 @@ The first run clones the repo and embeds the docs index (a few minutes); subsequ
 ```
 
 The server is distributed as an `.mcpb` bundle built by `release.yml` and published via `publish-mcp-docs.yml`.
+
+## 25.8 The `repo-rag` Server
+
+While `pipe-docs` is hard-wired to the Pipe repository, `examples/repo_rag_server.pipe` brings the same experience to **any** Git repository: point it at a URL and it clones, indexes and serves the codebase as an MCP server over stdio.
+
+**Run it:**
+
+```bash
+export REPO_RAG_URL="https://github.com/your-user/your-repo"
+pipe examples/repo_rag_server.pipe
+```
+
+**Tools:**
+
+| Tool | Needs key | Description |
+|------|-----------|-------------|
+| `search_docs(query)` | optional | Markdown search — semantic hybrid with a chat/embeddings provider, keyword-only without any key |
+| `ask_docs(question)` | yes | Cited RAG answer; falls back to the keyword chunk index when semantic retrieval is unavailable |
+| `read_doc(path)` / `list_docs()` | no | Read or list Markdown files |
+| `search_code(query)` | no | Find declarations in Go, Pipe, Python, JS/TS, Rust + generic fallback |
+| `file_symbols(path)` | no | Outline of one source file: every indexed declaration with kind, name, line and declaration text |
+| `read_source(path, offset)` | no | Source view with line numbers, paginated |
+| `list_sources()` | no | All recognized source files |
+| `repo_info()` / `index_status()` | no | Repository metadata / index statistics and last sync counts |
+| `refresh_index()` | no | Incremental re-sync from the cached checkout |
+
+**Configuration (env):**
+
+- `REPO_RAG_URL` (required) — repository to clone and index.
+- `REPO_RAG_REF` — optional branch or tag.
+- `REPO_RAG_CACHE` — cache directory (default `~/.pipe/cache/repo-rag/<owner>__<repo>`).
+- `DEEPSEEK_API_KEY`, `OPENAI_API_KEY` or `OPENROUTER_API_KEY` — enables `ask_docs`; with DeepSeek/OpenAI also the semantic hybrid search.
+- `REPO_RAG_MODEL` — model override for OpenRouter (default `nvidia/nemotron-3-super-120b-a12b:free`). OpenRouter exposes no embeddings endpoint, so `search_docs` runs in keyword mode there.
+
+Indexes persist across restarts (`code.db`, `docs-kw.db`, `docs.db`): files are re-hashed via SHA-256 and only rescanned on change, so warm starts are near-instant. A ref change triggers a fresh clone and index wipe automatically.
+
+After indexing the server switches from the `rag-build` profile (clone/exec/network for Git hosts) to the locked `rag-serve` profile: read-only filesystem, no exec, network restricted to the configured AI providers. Repository URLs are validated against a character allowlist before reaching any shell command.
+

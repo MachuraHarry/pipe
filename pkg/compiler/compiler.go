@@ -123,9 +123,12 @@ func (s *SymbolTable) Resolve(name string) (Symbol, bool) {
 		if sym, ok := s.store[name]; ok {
 			return sym, true
 		}
-		// Modules see builtins but not the importer's globals.
-		if s.Outer != nil {
-			if sym, ok := s.Outer.Resolve(name); ok && sym.Scope == BuiltinScope {
+		// Modules see builtins but not the importer's globals. Walk the full
+		// ancestor chain and accept only BuiltinScope bindings: a global of
+		// the same name in an importer must neither mask the builtin nor end
+		// the walk short of the root, where builtins live.
+		for t := s.Outer; t != nil; t = t.Outer {
+			if sym, ok := t.store[name]; ok && sym.Scope == BuiltinScope {
 				return sym, true
 			}
 		}

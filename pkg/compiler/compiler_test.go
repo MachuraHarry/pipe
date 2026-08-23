@@ -495,6 +495,37 @@ func TestEnclosedSymbolTable(t *testing.T) {
 	}
 }
 
+func TestModuleResolveBuiltinNotMaskedByImporterGlobal(t *testing.T) {
+	// Root table with a builtin (as the VM's global symbol table has).
+	root := NewSymbolTable()
+	root.DefineBuiltin(7, "index_of")
+
+	// Nested imports: main -> lib (moduleMode) -> sqlite (moduleMode), where
+	// the lib defines its own GLOBAL "index_of" (pre-pass defineTopLevelSymbols).
+	lib := NewModuleSymbolTable(root)
+	libGlobal := lib.Define("index_of")
+	if libGlobal.Scope != GlobalScope {
+		t.Fatalf("lib definition should be GlobalScope, got %v", libGlobal.Scope)
+	}
+	sqlite := NewModuleSymbolTable(lib)
+
+	// The module must still find the builtin despite the importer's shadowing
+	// global -- and it must be the builtin, not the lib's global.
+	sym, ok := sqlite.Resolve("index_of")
+	if !ok {
+		t.Fatal("module resolve should keep walking to the root builtin")
+	}
+	if sym.Scope != BuiltinScope || sym.Index != 7 {
+		t.Errorf("expected builtin index_of (idx 7), got scope=%v idx=%d", sym.Scope, sym.Index)
+	}
+
+	// Importer globals that are NOT builtins stay invisible to the module.
+	lib.Define("helper")
+	if _, ok := sqlite.Resolve("helper"); ok {
+		t.Error("module must not see importer globals")
+	}
+}
+
 func TestMakeInstructions(t *testing.T) {
 	ins := Make(OpConstant, 42)
 	if len(ins) != 3 {

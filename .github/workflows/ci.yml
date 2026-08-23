@@ -105,7 +105,7 @@ jobs:
         if echo "$OUT" | grep -q "OK"; then
           echo "pipe-docs RAG smoke test passed"
         else
-          echo "pipe-docs RAG smoke test skipped (no DEEPSEEK_API_KEY)"
+          echo "pipe-docs RAG smoke test skipped (no DEEPSEEK_API_KEY or provider unavailable)"
         fi
 
   byte-identity:

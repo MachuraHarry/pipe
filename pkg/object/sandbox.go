@@ -756,4 +756,3 @@ func sandboxError(feature string) *Error {
 	msg := "E_SANDBOX: " + feature + " is blocked by active profile '" + ActiveProfile.Load().Name + "'"
 	return &Error{Message: msg}
 }
-

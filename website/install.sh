@@ -188,6 +188,9 @@ main() {
   else
     "$destdir/$BIN_NAME" -h 2>&1 | head -n 1 || true
   fi
+
+  echo ""
+  echo "Keep current: run 'pipe --update' anytime (or 'pipe --update-check' to only look)."
 }
 
 main "$@"

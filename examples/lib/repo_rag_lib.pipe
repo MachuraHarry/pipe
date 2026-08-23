@@ -1,0 +1,450 @@
+--! repo-rag shared library.
+--! Pure, side-effect-free helpers for examples/repo_rag_server.pipe and its
+--! offline test script (scripts/repo-rag-code-index-test.pipe): repository
+--! URL/slug parsing, junk-dir and extension classification, declaration
+--! parsing and scanning for Go, Pipe, Python, JS-TS, Rust plus a generic
+--! fallback, a recursive tree walker with junk exclusion and relative path
+--! mapping. No network, no AI, no global state.
+--! Self-contained on purpose: an imported library evaluates in its own
+--! environment and can neither relatively import siblings nor resolve their
+--! injected symbols, so every parser needed by scan_any_file lives here.
+
+--- === Identifier & string helpers ===
+
+fn rr_ident s
+    -- Leading run of identifier characters [A-Za-z0-9_].
+    out: ""
+    i: 0
+    n: len s
+    while i < n
+        c: substring s i (i + 1)
+        ok: (c >= "a" && c <= "z") || (c >= "A" && c <= "Z") || (c >= "0" && c <= "9") || c == "_"
+        if not ok
+            break
+        out: out ++ c
+        i: i + 1
+    out
+
+export fn has_prefix s p
+    if s == nil || p == nil
+        return false
+    n: len s
+    m: len p
+    if n >= m
+        (substring s 0 m) == p
+    else
+        false
+
+export fn strip_suffix s suf
+    -- Remove trailing suf when present.
+    if s == nil
+        return ""
+    n: len s
+    m: len suf
+    if n > m
+        if (substring s (n - m) n) == suf
+            return (substring s 0 (n - m))
+    s
+
+export fn index_of s sub
+    -- First index of sub in s, or -1 when absent.
+    if s == nil || sub == nil
+        return (0 - 1)
+    n: len s
+    m: len sub
+    if m == 0
+        return 0
+    i: 0
+    while i <= (n - m)
+        if (substring s i (i + m)) == sub
+            return i
+        i: i + 1
+    (0 - 1)
+
+export fn ltrim s
+    if s == nil
+        return ""
+    i: 0
+    n: len s
+    while i < n
+        c: substring s i (i + 1)
+        if c != " " && c != "\t"
+            break
+        i: i + 1
+    substring s i n
+
+--- === URL / slug parsing ===
+
+export fn slug_parts url
+    -- Derive {ok, owner, repo, slug} from any common Git URL:
+    --   https://github.com/owner/repo(.git)
+    --   git@github.com:owner/repo.git
+    --   /local/path/repo            (local clone source)
+    -- slug joins owner and repo with "__" so it is safe as one dir name.
+    if url == nil
+        return {ok: false, owner: "", repo: "", slug: ""}
+    s: trim url
+    s: strip_suffix s "/"
+    if has_prefix s "git@"
+        s: substring s 4 (len s)
+        colon: index_of s ":"
+        if colon >= 0
+            s: (substring s 0 colon) ++ "/" ++ (substring s (colon + 1) (len s))
+    proto: index_of s "://"
+    if proto >= 0
+        s: substring s (proto + 3) (len s)
+    s: strip_suffix s "/"
+    s: strip_suffix s ".git"
+    parts: split s "/"
+    n: len parts
+    if n < 2
+        return {ok: false, owner: "", repo: "", slug: ""}
+    owner: at parts (n - 2)
+    repo: at parts (n - 1)
+    if owner == "" || repo == ""
+        return {ok: false, owner: "", repo: "", slug: ""}
+    {ok: true, owner: owner, repo: repo, slug: (owner ++ "__" ++ repo)}
+
+--- === Junk dirs & extension classification ===
+
+export fn is_junk_dir name
+    -- True for directories that never carry docs or primary source.
+    -- Dotted names (.git, .github, caches ...) are handled separately by the
+    -- leading-dot rule inside walk_tree; this list covers build/vendor noise.
+    if name == nil || name == ""
+        return true
+    junk: ["node_modules", "vendor", "dist", "target", "build", "output", "coverage", "__pycache__", "venv", "deps", "_build", "Pods", "obj"]
+    contains junk name
+
+export fn ext_lang ext
+    -- Map a file extension to a dedicated scanner language ("" = none).
+    if ext == ".go"
+        return "go"
+    if ext == ".pipe"
+        return "pipe"
+    if ext == ".py" || ext == ".pyi"
+        return "python"
+    if ext == ".js" || ext == ".jsx" || ext == ".mjs" || ext == ".cjs"
+        return "javascript"
+    if ext == ".ts" || ext == ".tsx" || ext == ".mts" || ext == ".cts"
+        return "typescript"
+    if ext == ".rs"
+        return "rust"
+    ""
+
+export fn is_fallback_ext ext
+    -- Text extensions without a dedicated scanner still get generic
+    -- declaration matching. Binaries and config formats stay excluded.
+    fallback: [".c", ".h", ".cpp", ".hpp", ".cc", ".cxx", ".hh", ".java", ".kt", ".kts", ".swift", ".rb", ".php", ".cs", ".scala", ".sh", ".bash", ".zsh", ".lua", ".dart", ".ex", ".exs", ".erl", ".hrl", ".hs", ".jl", ".groovy", ".pl", ".pm", ".vue", ".svelte", ".astro", ".zig", ".nim"]
+    contains fallback ext
+
+export fn lang_for_file path
+    -- Language label used for census counting: dedicated language, else
+    -- "generic" for fallback extensions, else "" (ignored).
+    e: path_ext path
+    l: ext_lang e
+    if l != ""
+        return l
+    if is_fallback_ext e
+        return "generic"
+    ""
+
+--- === Declaration parsing: Python ===
+
+export fn ident_after line prefix
+    -- Identifier characters directly after prefix (leading spaces skipped).
+    rr_ident (ltrim (substring line (len prefix) (len line)))
+
+export fn py_decl line
+    if has_prefix line "async def "
+        return {kind: "func", symbol: (ident_after line "async def ")}
+    if has_prefix line "def "
+        return {kind: "func", symbol: (ident_after line "def ")}
+    if has_prefix line "class "
+        return {kind: "class", symbol: (ident_after line "class ")}
+    nil
+
+--- === Declaration parsing: JavaScript / TypeScript ===
+
+fn js_strip_prefixes s
+    -- Peel export/default/declare/async prefixes (up to 4 rounds).
+    rounds: 0
+    while rounds < 4
+        rounds: rounds + 1
+        if has_prefix s "export "
+            s: substring s 7 (len s)
+        else if has_prefix s "default "
+            s: substring s 8 (len s)
+        else if has_prefix s "declare "
+            s: substring s 8 (len s)
+        else if has_prefix s "async "
+            s: substring s 6 (len s)
+        else
+            break
+    s
+
+fn js_binding_kind s kw_len
+    -- const/let/var NAME = RHS -> func for arrow/function RHS, else var.
+    sym: ident_after s (substring s 0 kw_len)
+    eq: index_of s "="
+    kind: "var"
+    if eq >= 0
+        rhs: ltrim (substring s (eq + 1) (len s))
+        if (has_prefix rhs "=>") || (has_prefix rhs "function") || (has_prefix rhs "async") || (has_prefix rhs "(" && contains rhs "=>")
+            kind: "func"
+    {kind: kind, symbol: sym}
+
+export fn js_decl line
+    s: js_strip_prefixes line
+    if has_prefix s "function"
+        rest: ltrim (substring s 8 (len s))
+        if has_prefix rest "*"
+            rest: ltrim (substring rest 1 (len rest))
+        return {kind: "func", symbol: (rr_ident rest)}
+    if has_prefix s "class "
+        return {kind: "class", symbol: (ident_after s "class ")}
+    if has_prefix s "interface "
+        return {kind: "interface", symbol: (ident_after s "interface ")}
+    if has_prefix s "enum "
+        return {kind: "enum", symbol: (ident_after s "enum ")}
+    if has_prefix s "type "
+        return {kind: "type", symbol: (ident_after s "type ")}
+    if has_prefix s "const "
+        return (js_binding_kind s 6)
+    if has_prefix s "let "
+        return (js_binding_kind s 4)
+    if has_prefix s "var "
+        return (js_binding_kind s 4)
+    nil
+
+--- === Declaration parsing: Rust ===
+
+fn rs_strip_pub s
+    if has_prefix s "pub("
+        close: index_of s ")"
+        if close > 0
+            return (ltrim (substring s (close + 1) (len s)))
+        return s
+    if has_prefix s "pub "
+        return (ltrim (substring s 4 (len s)))
+    s
+
+fn rs_impl_symbol s
+    -- impl [Generics] Trait for Type { / impl Type { -> type-ish symbol.
+    rest: ltrim (substring s 4 (len s))
+    if has_prefix rest "<"
+        gt: index_of rest ">"
+        if gt >= 0
+            rest: ltrim (substring rest (gt + 1) (len rest))
+    if contains rest " for "
+        f: index_of rest " for "
+        rest: ltrim (substring rest (f + 5) (len rest))
+    brace: index_of rest "{"
+    if brace >= 0
+        rest: substring rest 0 brace
+    sym: trim rest
+    if (len sym) > 80
+        sym: substring sym 0 80
+    sym
+
+export fn rs_decl line
+    s: rs_strip_pub line
+    if has_prefix s "fn "
+        return {kind: "func", symbol: (ident_after s "fn ")}
+    if has_prefix s "struct "
+        return {kind: "struct", symbol: (ident_after s "struct ")}
+    if has_prefix s "enum "
+        return {kind: "enum", symbol: (ident_after s "enum ")}
+    if has_prefix s "trait "
+        return {kind: "trait", symbol: (ident_after s "trait ")}
+    if has_prefix s "mod "
+        return {kind: "module", symbol: (ident_after s "mod ")}
+    if has_prefix s "type "
+        return {kind: "type", symbol: (ident_after s "type ")}
+    if has_prefix s "const "
+        return {kind: "const", symbol: (ident_after s "const ")}
+    if has_prefix s "static "
+        return {kind: "const", symbol: (ident_after s "static ")}
+    if has_prefix s "impl"
+        nxt: substring s 4 5
+        if nxt == " " || nxt == "<" || nxt == "{" || nxt == ""
+            sym: rs_impl_symbol s
+            if sym != ""
+                return {kind: "impl", symbol: sym}
+        return nil
+    nil
+
+--- === Declaration parsing: generic fallback ===
+
+fn strip_visibility s
+    -- Peel up to 3 Java/C#/Kotlin style modifier prefixes.
+    mods: ["public ", "private ", "protected ", "internal ", "abstract ", "sealed ", "static ", "final ", "partial ", "override ", "virtual ", "unsafe "]
+    rounds: 0
+    while rounds < 3
+        rounds: rounds + 1
+        found: false
+        i: 0
+        n: len mods
+        while i < n
+            m: at mods i
+            if has_prefix s m
+                s: ltrim (substring s (len m) (len s))
+                found: true
+            i: i + 1
+        if not found
+            break
+    s
+
+export fn generic_decl line
+    t: trim line
+    if t == ""
+        return nil
+    c0: substring t 0 1
+    if c0 == "#" || c0 == "/" || c0 == "-" || c0 == ";" || c0 == "*" || c0 == "<" || c0 == "@"
+        return nil
+    s: strip_visibility t
+    pairs: [["def ", "func"], ["function ", "func"], ["class ", "class"], ["struct ", "struct"], ["interface ", "interface"], ["enum ", "enum"], ["trait ", "trait"], ["impl ", "impl"], ["func ", "func"], ["fn ", "func"], ["module ", "module"], ["type ", "type"], ["sub ", "func"]]
+    i: 0
+    n: len pairs
+    while i < n
+        p: at pairs i
+        if has_prefix s (at p 0)
+            sym: ident_after s (at p 0)
+            if sym != ""
+                return {kind: (at p 1), symbol: sym}
+        i: i + 1
+    nil
+
+--- === Declaration parsing: Go / Pipe (private mirrors of pipe_docs_lib) ===
+
+fn rr_go_func_name line
+    rest: substring line 5 (len line)
+    if (substring rest 0 1) == "("
+        parts: split rest ") "
+        if (len parts) >= 2
+            rr_ident (at parts 1)
+        else
+            ""
+    else
+        rr_ident rest
+
+fn rr_go_decl line
+    if has_prefix line "func "
+        return {kind: "func", symbol: (rr_go_func_name line)}
+    if has_prefix line "type "
+        return {kind: "type", symbol: (rr_ident (substring line 5 (len line)))}
+    if has_prefix line "const "
+        return {kind: "const", symbol: (rr_ident (substring line 6 (len line)))}
+    if has_prefix line "var "
+        return {kind: "var", symbol: (rr_ident (substring line 4 (len line)))}
+    nil
+
+fn rr_pipe_decl line
+    if has_prefix line "export fn "
+        return {kind: "fn", symbol: (rr_ident (substring line 10 (len line)))}
+    if has_prefix line "export struct "
+        return {kind: "struct", symbol: (rr_ident (substring line 14 (len line)))}
+    if has_prefix line "export enum "
+        return {kind: "enum", symbol: (rr_ident (substring line 12 (len line)))}
+    if has_prefix line "export test "
+        return {kind: "test", symbol: (rr_ident (substring line 12 (len line)))}
+    if has_prefix line "fn "
+        return {kind: "fn", symbol: (rr_ident (substring line 3 (len line)))}
+    if has_prefix line "struct "
+        return {kind: "struct", symbol: (rr_ident (substring line 7 (len line)))}
+    if has_prefix line "enum "
+        return {kind: "enum", symbol: (rr_ident (substring line 5 (len line)))}
+    if has_prefix line "test "
+        return {kind: "test", symbol: (rr_ident (substring line 5 (len line)))}
+    nil
+
+--- === File scanners ===
+
+fn scan_lines_with path decl_fn_name
+    -- Shared worker; decl_fn_name selects the parser via dispatch below to
+    -- avoid first-class function edge cases across both engines.
+    lines: read_lines path
+    out: []
+    i: 0
+    n: len lines
+    while i < n
+        line: at lines i
+        if (len line) > 0 && (substring line 0 1) != " " && (substring line 0 1) != "\t"
+            decl: nil
+            if decl_fn_name == "go"
+                decl: rr_go_decl line
+            else if decl_fn_name == "pipe"
+                decl: rr_pipe_decl line
+            else if decl_fn_name == "py"
+                decl: py_decl line
+            else if decl_fn_name == "js"
+                decl: js_decl line
+            else if decl_fn_name == "rs"
+                decl: rs_decl line
+            else
+                decl: generic_decl line
+            if decl != nil
+                push out {file: path, kind: (get decl "kind"), symbol: (get decl "symbol"), line_start: (i + 1), content: (trim line)}
+        i: i + 1
+    out
+
+export fn scan_py_file path
+    scan_lines_with path "py"
+
+export fn scan_js_ts_file path
+    scan_lines_with path "js"
+
+export fn scan_rs_file path
+    scan_lines_with path "rs"
+
+export fn scan_generic_file path
+    scan_lines_with path "generic"
+
+export fn scan_any_file path
+    e: path_ext path
+    lang: ext_lang e
+    if lang == "go"
+        return (scan_lines_with path "go")
+    if lang == "pipe"
+        return (scan_lines_with path "pipe")
+    if lang == "python"
+        return (scan_py_file path)
+    if lang == "javascript" || lang == "typescript"
+        return (scan_js_ts_file path)
+    if lang == "rust"
+        return (scan_rs_file path)
+    if is_fallback_ext e
+        return (scan_generic_file path)
+    []
+
+--- === Tree walking ===
+
+fn walk_extend root out
+    entries: list_dir root
+    i: 0
+    n: len entries
+    while i < n
+        e: at entries i
+        el: len e
+        if (substring e (el - 1) el) == "/"
+            name: substring e 0 (el - 1)
+            if not (is_junk_dir name)
+                if (substring name 0 1) != "."
+                    walk_extend (path_join root name) out
+        else
+            push out (path_join root e)
+        i: i + 1
+    out
+
+export fn walk_tree root
+    -- Flat list of absolute file paths below root, skipping junk directories
+    -- (build/vendor noise) and every dotted directory (.git, caches, ...).
+    t: file_type root
+    if t == "file"
+        return [root]
+    out: []
+    walk_extend root out
+    out
+
+export fn rel_path src p
+    replace p (src ++ "/") ""

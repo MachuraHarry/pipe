@@ -1,0 +1,524 @@
+--! repo-rag — a generic MCP server exposing RAG over ANY Git repository.
+--! Sibling of pipe_docs_server.pipe: instead of hardcoding the Pipe repo it
+--! takes a repository URL, clones it shallow, prunes junk directories, indexes
+--! ALL Markdown (docs-pipe module) and scans source declarations across Go,
+--! Pipe, Python, JS/TS, Rust plus a generic fallback for other languages.
+--! AI agents can then search_docs / ask_docs / search_code / read_source and
+--! friends without digging through the repository themselves.
+--!
+--! Config (env):
+--!   REPO_RAG_URL                        — required, e.g. https://github.com/user/repo
+--!   REPO_RAG_REF                        — optional branch/tag (default branch otherwise)
+--!   REPO_RAG_CACHE                      — cache dir (default ~/.pipe/cache/repo-rag/<owner>__<repo>)
+--!   DEEPSEEK_API_KEY | OPENAI_API_KEY   — enables semantic search + ask_docs
+--!
+--! Run: REPO_RAG_URL=... pipe examples/repo_rag_server.pipe
+--! The first run clones the repo and builds the docs index (a few minutes for
+--! large repositories); subsequent runs reuse the persistent SQLite index.
+--! Repository updates require deleting the cache dir or restarting (ref change
+--! triggers a fresh clone automatically).
+
+import "docs-pipe"
+import "lib/pipe_docs_lib.pipe"
+import "lib/repo_rag_lib.pipe"
+
+--- === Sandbox profiles === ---
+-- Two profiles: rag-build (clone/prune/index phase) and rag-serve (serve
+-- phase). After init completes we switch to rag-serve and lock it so the MCP
+-- server runs least-privilege: read-only FS, no exec, AI + network for
+-- provider calls only.
+-- NOTE: env vars must be captured BEFORE set_sandbox — under an active
+-- profile the env builtin only reads from the profile's Env allowlist, and
+-- API keys containing KEY/SECRET/TOKEN are additionally blocked by
+-- secretEnvMarkers.
+
+sandbox_profile "rag-build" {fs: "full", exec: true, exec_whitelist: ["git", "rm"], network: true, network_whitelist: ["github.com", "gitlab.com", "bitbucket.org", "raw.githubusercontent.com", "api.deepseek.com", "api.openai.com", "api.anthropic.com"], ai: true}
+sandbox_profile "rag-serve" {fs: "read-only", exec: false, network: true, network_whitelist: ["api.deepseek.com", "api.openai.com", "api.anthropic.com"], ai: true}
+
+--- === Global state === ---
+
+ST: {url: "", ref: "", owner: "", name: "", slug: "", src: "", home: "", cache: "", idx_docs: nil, all_files: [], md_files: [], code_symbols: [], code_files: [], languages: {}, has_ai: false, ready: false, ai_ready: false, err: ""}
+
+-- Capture env vars before sandbox activation
+_env_url: env "REPO_RAG_URL"
+if _env_url != nil && _env_url != ""
+    set ST "url" _env_url
+_env_ref: env "REPO_RAG_REF"
+if _env_ref != nil && _env_ref != ""
+    set ST "ref" _env_ref
+_env_home: env "HOME"
+if _env_home != nil
+    set ST "home" _env_home
+_ds_key: env "DEEPSEEK_API_KEY"
+if _ds_key != nil && _ds_key != ""
+    set ST "deepseek_key" _ds_key
+_oai_key: env "OPENAI_API_KEY"
+if _oai_key != nil && _oai_key != ""
+    set ST "openai_key" _oai_key
+_env_cache: env "REPO_RAG_CACHE"
+if _env_cache != nil && _env_cache != ""
+    set ST "cache" _env_cache
+
+set_sandbox "rag-build"
+
+--- === Cache & fetch === ---
+
+fn cache_dir
+    d: get ST "cache"
+    if d == nil || d == ""
+        home: get ST "home"
+        if home != nil && home != ""
+            d: home ++ "/.pipe/cache/repo-rag"
+        else
+            d: "/tmp/repo-rag-cache"
+    make_dir d
+    d
+
+fn ensure_src
+    cfg: slug_parts (get ST "url")
+    if (get cfg "ok") == false
+        return "ERROR: REPO_RAG_URL is missing or not a valid Git repository URL"
+    set ST "owner" (get cfg "owner")
+    set ST "name" (get cfg "repo")
+    set ST "slug" (get cfg "slug")
+    cd: cache_dir 0
+    root: path_join cd (get cfg "slug")
+    make_dir root
+    src: path_join root "src"
+    want_ref: get ST "ref"
+    if want_ref == nil
+        want_ref: ""
+    marker_path: path_join src ".repo-rag-ref"
+    if file_exists (path_join src ".git")
+        marker: ""
+        if file_exists marker_path
+            marker: trim (read_file marker_path)
+        if marker == want_ref
+            return src
+        -- A different ref is requested: wipe the stale checkout.
+        exec ("rm -rf \"" ++ src ++ "\"")
+    cmd: "git clone --depth 1 "
+    if want_ref != ""
+        cmd: cmd ++ "--branch \"" ++ want_ref ++ "\" "
+    cmd: cmd ++ "\"" ++ (get ST "url") ++ "\" \"" ++ src ++ "\""
+    r: exec cmd
+    if (get r "status") != 0
+        return ("ERROR: git clone failed: " ++ (get r "error"))
+    if not (file_exists src)
+        return "ERROR: git clone produced no repository"
+    write_file marker_path want_ref
+    src
+
+--- === Junk pruning === ---
+-- The docs-pipe indexer walks without exclusions, so build/vendor noise is
+-- removed physically right after clone. Deep junk dirs (nested node_modules
+-- etc.) are collected recursively; dotted directories are never entered.
+
+fn collect_junk_dirs path acc
+    entries: list_dir path
+    i: 0
+    n: len entries
+    while i < n
+        e: at entries i
+        el: len e
+        if (substring e (el - 1) el) == "/"
+            name: substring e 0 (el - 1)
+            p: path_join path name
+            if is_junk_dir name
+                push acc p
+            else if (substring name 0 1) != "."
+                collect_junk_dirs p acc
+        i: i + 1
+    acc
+
+fn prune_junk src
+    junk: []
+    collect_junk_dirs src junk
+    i: 0
+    n: len junk
+    while i < n
+        exec ("rm -rf \"" ++ (at junk i) ++ "\"")
+        i: i + 1
+    n
+
+--- === Provider === ---
+
+fn configure_provider
+    key: get ST "deepseek_key"
+    if key != nil && key != ""
+        ai_provider "deepseek"
+        ai_set_key "deepseek" key
+        ai_model "deepseek-v4-flash"
+        set ST "has_ai" true
+        return nil
+    okey: get ST "openai_key"
+    if okey != nil && okey != ""
+        ai_provider "openai"
+        ai_set_key "openai" okey
+        set ST "has_ai" true
+        return nil
+    set ST "has_ai" false
+    nil
+
+--- === Docs index (one combined corpus over ALL Markdown) === ---
+
+fn build_docs
+    src: get ST "src"
+    cd: cache_dir 0
+    db: path_join cd "docs.db"
+    if not (file_exists db)
+        tmp: doc_index src {db: db}
+        doc_close tmp
+    set ST "idx_docs" (doc_index src {db: db})
+    nil
+
+--- === Code index (multi-language declaration scan) === ---
+
+fn list_extend target src_list
+    i: 0
+    while i < (len src_list)
+        push target (at src_list i)
+        i: i + 1
+    target
+
+fn bump_lang lang
+    langs: get ST "languages"
+    cur: get langs lang
+    if cur == nil
+        cur: 0
+    set langs lang (cur + 1)
+    nil
+
+fn build_all_files
+    set ST "all_files" (walk_tree (get ST "src"))
+    nil
+
+fn build_md_list
+    src: get ST "src"
+    files: get ST "all_files"
+    md: []
+    i: 0
+    while i < (len files)
+        f: at files i
+        e: path_ext f
+        if e == ".md" || e == ".mdx"
+            push md (rel_path src f)
+        i: i + 1
+    set ST "md_files" md
+    nil
+
+fn build_code_index
+    src: get ST "src"
+    files: get ST "all_files"
+    symbols: []
+    code_files: []
+    i: 0
+    while i < (len files)
+        f: at files i
+        if (lang_for_file f) != ""
+            rel: rel_path src f
+            push code_files rel
+            bump_lang (lang_for_file f)
+            decls: scan_any_file f
+            j: 0
+            while j < (len decls)
+                set (at decls j) "file" rel
+                push symbols (at decls j)
+                j: j + 1
+        i: i + 1
+    set ST "code_symbols" symbols
+    set ST "code_files" code_files
+    nil
+
+--- === Tool implementations === ---
+
+fn normalize_results results
+    out: []
+    i: 0
+    while i < (len results)
+        r: at results i
+        item: {}
+        set item "path" (get r "path")
+        set item "heading" (get r "heading")
+        set item "line" (get r "line_start")
+        set item "score" (get r "score")
+        set item "snippet" (truncate_utf8_safe (get r "text") 400)
+        push out item
+        i: i + 1
+    out
+
+fn _significant_tokens question
+    ql: lower question
+    raw: split ql " "
+    sig: []
+    i: 0
+    while i < (len raw)
+        hy_parts: split (at raw i) "-"
+        h: 0
+        while h < (len hy_parts)
+            us_parts: split (at hy_parts h) "_"
+            u: 0
+            while u < (len us_parts)
+                t: at us_parts u
+                if (len t) >= 4
+                    push sig t
+                u: u + 1
+            h: h + 1
+        i: i + 1
+    sig
+
+fn _chunk_keyword_hits text_lower heading_lower sig
+    hits: 0
+    i: 0
+    while i < (len sig)
+        t: at sig i
+        if (contains text_lower t) || (contains heading_lower t)
+            hits: hits + 1
+        i: i + 1
+    hits
+
+fn mcp_search_docs query
+    if (get ST "has_ai") == false
+        return "Semantic search is unavailable: set DEEPSEEK_API_KEY (or OPENAI_API_KEY) and restart."
+    if query == nil || query == ""
+        return []
+    idx: get ST "idx_docs"
+    if idx == nil
+        return "No documentation index is available (no Markdown found or indexing failed)."
+    try
+        normalize_results (doc_search idx query 8)
+    catch e
+        "search failed: " ++ (to_str e)
+
+fn mcp_ask_docs question
+    if (get ST "has_ai") == false
+        return {answer: "Semantic search is unavailable: set DEEPSEEK_API_KEY (or OPENAI_API_KEY) and restart.", sources: []}
+    if question == nil || question == ""
+        return {answer: "", sources: []}
+    idx: get ST "idx_docs"
+    if idx == nil
+        return {answer: "No documentation index is available (no Markdown found or indexing failed).", sources: []}
+    try
+        raw: doc_search idx question 6
+        sig: _significant_tokens question
+        needed: 1
+        if (len sig) > 1
+            needed: 2
+        filtered: []
+        fi: 0
+        while fi < (len raw)
+            r: at raw fi
+            keep: true
+            if (len sig) > 0
+                hits: _chunk_keyword_hits (lower (get r "text")) (lower (get r "heading")) sig
+                keep: hits >= needed
+            if keep && (get r "score") >= 0.1
+                push filtered r
+            fi: fi + 1
+        if (len filtered) == 0
+            return {answer: (ai_chat "You are a documentation assistant. Answer based on your general knowledge." question), sources: []}
+        context: ""
+        ci: 0
+        while ci < (len filtered)
+            r: at filtered ci
+            context: context ++ "[" ++ (to_str (ci + 1)) ++ "] " ++ (get r "path") ++ ":" ++ (to_str (get r "line_start")) ++ " — " ++ (get r "heading") ++ "\n"
+            context: context ++ (get r "text") ++ "\n---\n"
+            ci: ci + 1
+        system: "You are a documentation assistant. Answer the user's question thoroughly and in detail, based ONLY on the context provided. Explain clearly and completely, step by step where the question asks how to do something. Include code examples exactly as shown in the context when they are relevant. Do not omit details. Cite the source number [n] after every factual statement. If the context does not contain the answer, say so explicitly and do not guess."
+        user: "Context:\n" ++ context ++ "\nQuestion: " ++ question
+        answer: ai_chat system user
+        {answer: answer, sources: filtered}
+    catch e
+        {answer: ("ask failed: " ++ (to_str e)), sources: []}
+
+fn mcp_read_doc path
+    r: safe_resolve_path (get ST "src") path
+    if (get r "ok") == false
+        return (get r "err")
+    read_file (get r "full")
+
+fn mcp_list_docs
+    md: get ST "md_files"
+    {count: (len md), files: md}
+
+fn _code_score_token symbol content file tok
+    s: 0
+    if symbol == tok
+        s: 100
+    else
+        if contains symbol tok
+            s: s + 60
+        if contains content tok
+            s: s + 10
+        if contains file tok
+            s: s + 5
+    s
+
+fn mcp_search_code query
+    if query == nil || query == ""
+        return []
+    q: lower query
+    raw_tokens: split q " "
+    tokens: []
+    ti: 0
+    while ti < (len raw_tokens)
+        t: at raw_tokens ti
+        if (len t) > 0
+            push tokens t
+            underscore_parts: split t "_"
+            pi: 0
+            while pi < (len underscore_parts)
+                hyphen_parts: split (at underscore_parts pi) "-"
+                hi: 0
+                while hi < (len hyphen_parts)
+                    frag: at hyphen_parts hi
+                    if (len frag) >= 2 && frag != t
+                        push tokens frag
+                    hi: hi + 1
+                pi: pi + 1
+        ti: ti + 1
+    if (len tokens) == 0
+        return []
+    syms: get ST "code_symbols"
+    scored: []
+    i: 0
+    while i < (len syms)
+        s: at syms i
+        symbol: lower (get s "symbol")
+        content: lower (get s "content")
+        file: lower (get s "file")
+        score: 0
+        tj: 0
+        while tj < (len tokens)
+            score: score + (_code_score_token symbol content file (at tokens tj))
+            tj: tj + 1
+        if score > 0
+            push scored {s: s, score: score}
+        i: i + 1
+    ordered: sorted_by scored (fn x: (0 - (get x "score")))
+    limit: 20
+    if limit > (len ordered)
+        limit: (len ordered)
+    out: []
+    j: 0
+    while j < limit
+        e: at ordered j
+        s: get e "s"
+        item: {}
+        set item "file" (get s "file")
+        set item "kind" (get s "kind")
+        set item "symbol" (get s "symbol")
+        set item "line" (get s "line_start")
+        set item "content" (get s "content")
+        push out item
+        j: j + 1
+    out
+
+fn mcp_read_source path
+    r: safe_resolve_path (get ST "src") path
+    if (get r "ok") == false
+        return (get r "err")
+    res: read_with_numbers (get r "full") 500
+    text: get res "text"
+    if (get res "truncated") == true
+        return text ++ "\n... (truncated, showing first 500 of " ++ (to_str (get res "total")) ++ " lines; use search_code to locate the relevant symbol)"
+    text
+
+fn mcp_list_sources
+    files: get ST "code_files"
+    {count: (len files), files: files}
+
+fn mcp_repo_info
+    info: {}
+    set info "url" (get ST "url")
+    set info "ref" (get ST "ref")
+    set info "owner" (get ST "owner")
+    set info "name" (get ST "name")
+    set info "slug" (get ST "slug")
+    set info "ready" (get ST "ready")
+    set info "has_ai" (get ST "has_ai")
+    set info "ai_ready" (get ST "ai_ready")
+    set info "err" (get ST "err")
+    set info "languages" (get ST "languages")
+    set info "markdown_files" (len (get ST "md_files"))
+    set info "source_files" (len (get ST "code_files"))
+    set info "code_symbols" (len (get ST "code_symbols"))
+    info
+
+fn mcp_index_status
+    syms: get ST "code_symbols"
+    files: get ST "code_files"
+    idx: get ST "idx_docs"
+    status: {}
+    set status "ready" (get ST "ready")
+    set status "has_ai" (get ST "has_ai")
+    set status "ai_ready" (get ST "ai_ready")
+    set status "err" (get ST "err")
+    set status "source_files" (len files)
+    set status "code_symbols" (len syms)
+    set status "markdown_files" (len (get ST "md_files"))
+    set status "languages" (get ST "languages")
+    if idx != nil
+        set status "docs" (doc_index_status idx)
+    status
+
+-- Rebuild-only: under sandbox_lock "rag-serve" exec is permanently blocked,
+-- so a network re-fetch (git pull) is impossible here by design. Indexes are
+-- rebuilt from the cached checkout; repository updates require a server
+-- restart (a ref change re-clones automatically).
+fn mcp_refresh
+    build_code_index 0
+    if (get ST "has_ai") == true
+        idx: get ST "idx_docs"
+        if idx != nil
+            doc_reindex idx
+    "refreshed"
+
+--- === Startup === ---
+
+fn init_all
+    url: get ST "url"
+    if url == nil || url == ""
+        set ST "err" "REPO_RAG_URL is not set — point it at e.g. https://github.com/user/repo and restart."
+        return nil
+    src: ensure_src 0
+    if (substring src 0 5) == "ERROR"
+        set ST "err" src
+        return nil
+    set ST "src" src
+    prune_junk src
+    build_all_files 0
+    build_md_list 0
+    configure_provider 0
+    set ST "ai_ready" (get ST "has_ai")
+    if (get ST "has_ai") == true
+        build_docs 0
+    build_code_index 0
+    set ST "ready" true
+    nil
+
+init_all 0
+
+--- Harden: switch to read-only profile and lock it ---
+set_sandbox "rag-serve"
+sandbox_lock "rag-serve"
+
+server_name: "Repo RAG"
+owner: get ST "owner"
+repo_name: get ST "name"
+if owner != "" && repo_name != ""
+    server_name: "Repo RAG (" ++ owner ++ "/" ++ repo_name ++ ")"
+
+ai_tool "search_docs" "Semantic + keyword search across ALL Markdown documentation in the repository (README, docs/, wikis). Returns top matches with path, heading, line number and a snippet." {query: "Search query"} mcp_search_docs
+ai_tool "ask_docs" "Answer a question about the repository using its documentation as context, returning the answer and cited source chunks. Requires DEEPSEEK_API_KEY." {question: "Question about the repository"} mcp_ask_docs
+ai_tool "read_doc" "Read any file from the repository by relative path (e.g. README.md, docs/architecture.md)." {path: "Repository-relative file path"} mcp_read_doc
+ai_tool "list_docs" "List all discovered Markdown files (.md/.mdx) in the repository." {} mcp_list_docs
+ai_tool "search_code" "Find functions, types, classes, structs, enums and tests in the repository source (Go, Pipe, Python, JS/TS, Rust + generic fallback) by name or keyword. Returns file, kind, symbol, line and the declaration." {query: "Symbol or keyword to find"} mcp_search_code
+ai_tool "read_source" "Read a source file with line numbers by relative path." {path: "Repository-relative source file path"} mcp_read_source
+ai_tool "list_sources" "List all recognized source files in the repository." {} mcp_list_sources
+ai_tool "repo_info" "Report which repository is indexed: URL, ref, detected languages, file counts and readiness." {} mcp_repo_info
+ai_tool "index_status" "Report index statistics: source files, code symbols, markdown files and docs chunks." {} mcp_index_status
+ai_tool "refresh_index" "Rebuild the docs and code indexes from the cached checkout (no network). Repository updates require a server restart." {} mcp_refresh
+
+mcp_server server_name "1.0.0"
+mcp_serve_stdio

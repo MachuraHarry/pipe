@@ -30,6 +30,9 @@ jobs:
         go build -o /tmp/pipe-install ./cmd/pipe
         /tmp/pipe-install -get sqlite
 
+    - name: Build repo binary (pkg/mcp end-to-end tests spawn bin/pipe)
+      run: mkdir -p bin && go build -o bin/pipe ./cmd/pipe
+
     - name: Test
       run: go test -v -race -cover ./pkg/...
 

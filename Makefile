@@ -8,8 +8,13 @@ stats:
 stats-check:
 	go run ./scripts/stats && git diff --exit-code -- stats.json README.md website/index.html website/docs.html
 
+# Version injected into local builds (CI uses the release tag instead).
+VERSION ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo dev)
+
+LDFLAGS := -s -w -X main.version=$(VERSION)
+
 build:
-	go build -ldflags="-s -w" -trimpath -o bin/pipe ./cmd/pipe
+	go build -ldflags="$(LDFLAGS)" -trimpath -o bin/pipe ./cmd/pipe
 
 build-upx: build
 	upx -q bin/pipe -o bin/pipe-upx 2>/dev/null || (echo "Install UPX: apt install upx-ucl" && false)
@@ -34,7 +39,7 @@ test-parity:
 	go test -count=1 -v ./pkg/parity/
 
 test-integration:
-	go build -o bin/pipe ./cmd/pipe
+	go build -ldflags="$(LDFLAGS)" -o bin/pipe ./cmd/pipe
 	cd test/integration && ../../bin/pipe -test
 
 repl: build

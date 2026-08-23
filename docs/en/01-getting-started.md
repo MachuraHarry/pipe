@@ -49,6 +49,18 @@ Verify:
 pipe -h
 ```
 
+### Updating
+
+Pipe ships with a built-in updater that checks the latest GitHub release and replaces the binary in place (checksum verified):
+
+```sh
+pipe --update        # download and install the latest release
+pipe --update-check  # only check whether a newer release exists
+pipe --version       # show the current version
+```
+
+Note: `--update` replaces the binary wherever it lives. When it was installed into `/usr/local/bin` as root, run the update with elevated permissions. Binaries created with `pipe -build` embed a program; updating them would discard the payload, so the updater refuses unless you set `PIPE_UPDATE_EMBEDDED=1`.
+
 ### Build from source
 
 Clone the repository, build, and verify:

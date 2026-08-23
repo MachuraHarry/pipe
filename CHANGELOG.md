@@ -2,6 +2,14 @@
 
 All notable changes to Pipe are documented here. This file follows [Keep a Changelog](https://keepachangelog.com/) format.
 
+## [Unreleased]
+
+### Added
+- **Built-in self-updater**: `pipe --update` checks the latest GitHub release and, if newer, downloads `pipe-<os>-<arch>.tar.gz`, verifies its SHA256 checksum and replaces the running binary atomically (Windows-safe rename dance). `pipe --update-check` only reports whether a new release exists; `pipe --version` prints the current version. The updater compares base semvers, so `git describe` dev builds (`v1.1.1-3-gabc1234`, `-dirty`) do not false-positive against their own release tag. Self-extracting binaries (`pipe -build`) refuse to update unless `PIPE_UPDATE_EMBEDDED=1` is set, since updating would discard the embedded program. Local `make build` now injects the version via `git describe --tags --always --dirty`.
+- **Installers** (`install.sh` / `install.ps1`) now print a "Keep current: pipe --update" hint after a successful install.
+
+---
+
 ## [1.1.1] — 2026-08-23
 
 ### Added

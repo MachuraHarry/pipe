@@ -24,6 +24,7 @@ import (
 	"github.com/MachuraHarry/pipe/pkg/module"
 	"github.com/MachuraHarry/pipe/pkg/object"
 	"github.com/MachuraHarry/pipe/pkg/parser"
+	"github.com/MachuraHarry/pipe/pkg/selfupdate"
 	"github.com/MachuraHarry/pipe/pkg/util"
 	"github.com/MachuraHarry/pipe/pkg/vm"
 	"github.com/peterh/liner"
@@ -32,6 +33,16 @@ import (
 var version = "v1.1.1"
 
 func main() {
+	// Self-update must work for every installation type, including
+	// self-extracting (-build) binaries whose payload bypasses flag parsing.
+	if doUpdate, checkOnly := scanUpdateFlags(os.Args[1:]); doUpdate || checkOnly {
+		if err := selfupdate.Run(version, checkOnly); err != nil {
+			fmt.Fprintf(os.Stderr, "pipe update: %s\n", err)
+			os.Exit(1)
+		}
+		return
+	}
+
 	// Self-extracting binary detection
 	if embedded, ok := build.LoadEmbedded(os.Args[0]); ok {
 		runEmbedded(embedded)
@@ -125,6 +136,9 @@ func main() {
 			docBuiltins = true
 		case "-h", "--help":
 			printHelp()
+			return
+		case "--version":
+			fmt.Println("Pipe (SPR)", version)
 			return
 		case "--sandbox":
 			sandbox = true
@@ -581,6 +595,24 @@ func resolveModuleURL(name string) (string, error) {
 	return object.ResolveModuleURL(modName, version)
 }
 
+// scanUpdateFlags looks for the self-update flags, but only before the
+// script file argument — anything after it belongs to the script.
+func scanUpdateFlags(args []string) (doUpdate, checkOnly bool) {
+	for _, a := range args {
+		switch a {
+		case "-update", "--update":
+			doUpdate = true
+		case "-update-check", "--update-check":
+			checkOnly = true
+		default:
+			if !strings.HasPrefix(a, "-") {
+				return
+			}
+		}
+	}
+	return
+}
+
 func formatPath(path string, checkOnly bool) (int, error) {
 	info, err := os.Stat(path)
 	if err != nil {
@@ -670,9 +702,12 @@ Flags:
   -install [dir] Install dependencies from pipe.json
   -publish [dir] Publish a module via pull request (requires gh CLI)
   -gen-registry [dir]  Generate registry.json from pipe.json files
-  -doc [file|dir]  Generate Markdown documentation from --! docstrings
-  --builtins       With -doc: generate the builtin reference
-  -h, --help    Show this help
+   -doc [file|dir]  Generate Markdown documentation from --! docstrings
+   --builtins       With -doc: generate the builtin reference
+   --version      Print version
+   --update       Download and install the latest release (self-update)
+   --update-check Only check whether a newer release exists
+   -h, --help    Show this help
 
 Examples:
   pipe examples/hello.pipe
@@ -680,9 +715,11 @@ Examples:
   pipe -init my-module            # Scaffold new module
   pipe -search                    # List all modules
   pipe -search log                # Search for "log" modules
-  pipe -get log-analyzer          # Install a module
-  pipe --sandbox script.pipe
-  pipe -build my.pipe -o my_prog
+   pipe -get log-analyzer          # Install a module
+   pipe --sandbox script.pipe
+   pipe --update                   # Self-update to the latest release
+   pipe --update-check             # Only check for a newer release
+   pipe -build my.pipe -o my_prog
   pipe -build my.pipe -o my_prog -upx  # UPX-compressed (~60% smaller)`)
 }
 

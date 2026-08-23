@@ -52,6 +52,23 @@ nach `~/.local/bin` (als root nach `/usr/local/bin`). Optionen:
 pipe -h
 ```
 
+### Aktualisieren
+
+Pipe bringt einen eingebauten Updater mit, der das neueste GitHub-Release
+prüft und die Binary direkt vor Ort ersetzt (Prüfsumme wird verifiziert):
+
+```bash
+pipe --update        # neuestes Release herunterladen und installieren
+pipe --update-check  # nur prüfen, ob es etwas Neues gibt
+pipe --version       # aktuelle Version anzeigen
+```
+
+Hinweis: `--update` ersetzt die Binary an ihrem Installationsort. Liegt sie
+in `/usr/local/bin`, das Update entsprechend mit root-Rechten ausführen.
+Binaries aus `pipe -build` betten ein Programm ein; ein Update würde dieses
+verwerfen — der Updater verweigert daher solange nicht
+`PIPE_UPDATE_EMBEDDED=1` gesetzt ist.
+
 ### Aus dem Quellcode bauen
 
 ```bash

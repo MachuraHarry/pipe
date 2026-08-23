@@ -35,6 +35,8 @@ Windows (PowerShell): `irm https://pipe-lang.com/install.ps1 | iex`
 
 The installer downloads the latest release, verifies its SHA256 checksum and installs `pipe` into `~/.local/bin` (or `/usr/local/bin` when run as root). Pin a version with `PIPE_VERSION=v1.0.0`. See the [full install docs](docs/en/01-getting-started.md).
 
+Installed copies update themselves against the latest GitHub release: `pipe --update` (or `pipe --update-check` to only look, `pipe --version` to show what you are on). The updater verifies the release checksum and replaces the binary in place.
+
 ## Privacy & DSGVO
 
 Pipe is **DSGVO-konform / GDPR-compliant by design**:

@@ -104,6 +104,8 @@ try {
     } else {
         Write-Host $help
     }
+    Write-Host ""
+    Write-Host "Keep current: run 'pipe --update' anytime (or 'pipe --update-check' to only look)."
 } finally {
     Remove-Item -Path $tmp -Recurse -Force -ErrorAction SilentlyContinue
 }

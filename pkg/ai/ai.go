@@ -641,6 +641,13 @@ func estimateCost(provider, model string, promptTokens, completionTokens int) fl
 	case "ollama":
 		return 0
 	case "openrouter":
+		// Free-tier models are $0 regardless of token counts. Without this
+		// check they fall through to the default price table and rack up
+		// phantom costs that exhaust Budget sandbox limits for calls that
+		// are actually free.
+		if strings.HasSuffix(model, ":free") {
+			return 0
+		}
 		switch {
 		case strings.Contains(model, "gpt-4o-mini"):
 			return float64(promptTokens)*0.00015/1000 + float64(completionTokens)*0.0006/1000

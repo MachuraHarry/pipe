@@ -104,6 +104,29 @@ fn valid_repo_url url
         i: i + 1
     true
 
+fn valid_repo_ref ref
+    -- Refs land inside a double-quoted shell argument (--branch "<ref>").
+    -- Same injection surface as the URL, so the same allowlist discipline
+    -- applies: a leading '-' would enable git flag injection
+    -- (--upload-pack=...), and '..' is not a legal ref component anyway.
+    -- Empty means "default branch" and stays allowed.
+    if ref == nil || ref == ""
+        return true
+    n: len ref
+    if n > 200
+        return false
+    if (substring ref 0 1) == "-"
+        return false
+    allowed: "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789._-/"
+    i: 0
+    while i < n
+        if not (contains allowed (substring ref i (i + 1)))
+            return false
+        i: i + 1
+    if contains ref ".."
+        return false
+    true
+
 --- === Cache & fetch ===
 
 fn cache_dir
@@ -688,6 +711,9 @@ fn init_all
         return nil
     if (valid_repo_url url) == false
         set ST "err" "REPO_RAG_URL contains characters outside the allowed set (letters, digits, . _ - / : @ ~ +) — refusing to pass it to the shell."
+        return nil
+    if (valid_repo_ref (get ST "ref")) == false
+        set ST "err" "REPO_RAG_REF contains characters outside the allowed set (letters, digits, . _ - /), must not start with '-' and may not contain '..' — refusing to pass it to the shell."
         return nil
     res: ensure_src 0
     if (get res "ok") == false

@@ -62,6 +62,21 @@ test "safe_resolve_path rejects absolute paths"
     assert_eq (get r "ok") false
     assert_eq (get r "err") "invalid path"
 
+test "safe_resolve_path rejects Windows drive letters"
+    r: safe_resolve_path root "C:\\Windows\\system32"
+    assert_eq (get r "ok") false
+    assert_eq (get r "err") "invalid path"
+
+test "safe_resolve_path rejects Windows drive letters with forward slashes"
+    r: safe_resolve_path root "C:/Windows/system32"
+    assert_eq (get r "ok") false
+    assert_eq (get r "err") "invalid path"
+
+test "safe_resolve_path rejects backslash traversal"
+    r: safe_resolve_path root "..\\etc\\passwd"
+    assert_eq (get r "ok") false
+    assert_eq (get r "err") "invalid path"
+
 test "safe_resolve_path reports missing files"
     r: safe_resolve_path root "nonexistent.txt"
     assert_eq (get r "ok") false

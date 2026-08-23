@@ -174,11 +174,18 @@ export fn safe_resolve_path root path
     -- paths, ".." traversal and absolute paths outright.
     if path == nil || path == ""
         return {ok: false, err: "missing path"}
-    if contains path ".."
+    -- Normalize Windows separators first so every check below also sees
+    -- backslash forms ("..\\evil", "C:\\Windows\\system32").
+    p: replace_all path "\\" "/"
+    if contains p ".."
         return {ok: false, err: "invalid path"}
-    if (substring path 0 1) == "/"
+    if (substring p 0 1) == "/"
         return {ok: false, err: "invalid path"}
-    full: path_join root path
+    -- Windows absolute paths: drive letters ("C:/...") and UNC roots
+    -- ("//server/share" -> leading "/" already caught above).
+    if (len p) >= 2 && (substring p 1 2) == ":"
+        return {ok: false, err: "invalid path"}
+    full: path_join root p
     if not (file_exists full)
         return {ok: false, err: "file not found: " ++ path}
     {ok: true, full: full}

@@ -166,3 +166,28 @@ func TestChatResponseStruct(t *testing.T) {
 		t.Errorf("content = %s, want Hello, world!", resp.Content)
 	}
 }
+
+func TestEstimateCostFreeModels(t *testing.T) {
+	// Free-tier OpenRouter models must cost exactly 0: they fall through to
+	// the default price table otherwise, and EstimateMaxCost would burn the
+	// Budget sandbox limit with phantom costs for $0 calls.
+	SetProvider("openrouter")
+	defer func() { SetProvider("openai"); SetModel("gpt-4o-mini") }()
+	models := []string{
+		"nvidia/nemotron-3-super-120b-a12b:free",
+		"deepseek/deepseek-chat-v3.1:free",
+	}
+	for _, m := range models {
+		if got := estimateCost("openrouter", m, 1000000, 1000000); got != 0 {
+			t.Errorf("estimateCost(%q) = %v, want 0", m, got)
+		}
+	}
+	SetModel("nvidia/nemotron-3-super-120b-a12b:free")
+	if got := EstimateMaxCost(4096); got != 0 {
+		t.Errorf("EstimateMaxCost with free default model = %v, want 0", got)
+	}
+	// Paid models keep their estimates.
+	if got := estimateCost("openrouter", "openai/gpt-4o-mini", 1000, 1000); got <= 0 {
+		t.Errorf("paid model estimate should be > 0, got %v", got)
+	}
+}

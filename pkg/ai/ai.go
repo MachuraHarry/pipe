@@ -75,6 +75,9 @@ func SetProvider(name string) {
 	case "openrouter":
 		ActiveConfig.APIHost = "https://openrouter.ai/api"
 		ActiveConfig.Model = "openrouter/free"
+	case "opencode":
+		ActiveConfig.APIHost = opencodeZenHost
+		ActiveConfig.Model = "big-pickle"
 	}
 }
 
@@ -191,6 +194,8 @@ func Chat(req ChatRequest) (ChatResponse, error) {
 		resp, err = ollamaChat(ActiveConfig, req)
 	case "openrouter":
 		resp, err = openrouterChat(ActiveConfig, req)
+	case "opencode":
+		resp, err = opencodeChat(ActiveConfig, req)
 	default:
 		return ChatResponse{}, fmt.Errorf("unknown AI provider: %s", ActiveConfig.Provider)
 	}
@@ -236,21 +241,27 @@ func Stream(req ChatRequest, onToken StreamCallback) error {
 		return ollamaStream(ActiveConfig, req, onToken)
 	case "openrouter":
 		return openrouterStream(ActiveConfig, req, onToken)
+	case "opencode":
+		return opencodeStream(ActiveConfig, req, onToken)
 	default:
 		return fmt.Errorf("unknown AI provider: %s", ActiveConfig.Provider)
 	}
 }
 
-func httpPostJSON(kind EgressKind, url, apiKey string, reqBody interface{}, timeout time.Duration) (map[string]interface{}, error) {
+// extraHeaders is an optional map of additional HTTP headers appended to
+// provider requests (e.g. OpenCode Zen client identification).
+type extraHeaders = map[string]string
+
+func httpPostJSON(kind EgressKind, url, apiKey string, reqBody interface{}, timeout time.Duration, hdrs ...extraHeaders) (map[string]interface{}, error) {
 	if httpPostJSONFn != nil {
-		return httpPostJSONFn(kind, url, apiKey, reqBody, timeout)
+		return httpPostJSONFn(kind, url, apiKey, reqBody, timeout, hdrs...)
 	}
-	return httpPostJSONNative(kind, url, apiKey, reqBody, timeout)
+	return httpPostJSONNative(kind, url, apiKey, reqBody, timeout, hdrs...)
 }
 
-var httpPostJSONFn func(EgressKind, string, string, interface{}, time.Duration) (map[string]interface{}, error)
+var httpPostJSONFn func(EgressKind, string, string, interface{}, time.Duration, ...extraHeaders) (map[string]interface{}, error)
 
-func httpPostJSONNative(kind EgressKind, url, apiKey string, reqBody interface{}, timeout time.Duration) (map[string]interface{}, error) {
+func httpPostJSONNative(kind EgressKind, url, apiKey string, reqBody interface{}, timeout time.Duration, hdrs ...extraHeaders) (map[string]interface{}, error) {
 	body, err := json.Marshal(reqBody)
 	if err != nil {
 		return nil, fmt.Errorf("marshal request: %w", err)
@@ -263,6 +274,11 @@ func httpPostJSONNative(kind EgressKind, url, apiKey string, reqBody interface{}
 	httpReq.Header.Set("Content-Type", "application/json")
 	if apiKey != "" {
 		httpReq.Header.Set("Authorization", "Bearer "+apiKey)
+	}
+	for _, h := range hdrs {
+		for k, v := range h {
+			httpReq.Header.Set(k, v)
+		}
 	}
 
 	client := gatedHTTPClient(kind, timeout)
@@ -288,7 +304,7 @@ func httpPostJSONNative(kind EgressKind, url, apiKey string, reqBody interface{}
 	return result, nil
 }
 
-func httpPostStream(kind EgressKind, url, apiKey string, reqBody interface{}, timeout time.Duration, callback StreamCallback) error {
+func httpPostStream(kind EgressKind, url, apiKey string, reqBody interface{}, timeout time.Duration, callback StreamCallback, hdrs ...extraHeaders) error {
 	body, err := json.Marshal(reqBody)
 	if err != nil {
 		return fmt.Errorf("marshal request: %w", err)
@@ -302,6 +318,11 @@ func httpPostStream(kind EgressKind, url, apiKey string, reqBody interface{}, ti
 	httpReq.Header.Set("Accept", "text/event-stream")
 	if apiKey != "" {
 		httpReq.Header.Set("Authorization", "Bearer "+apiKey)
+	}
+	for _, h := range hdrs {
+		for k, v := range h {
+			httpReq.Header.Set(k, v)
+		}
 	}
 
 	client := gatedHTTPClient(kind, timeout)
@@ -662,6 +683,15 @@ func estimateCost(provider, model string, promptTokens, completionTokens int) fl
 		default:
 			return float64(promptTokens)*0.005/1000 + float64(completionTokens)*0.015/1000
 		}
+	case "opencode":
+		// Free Zen models ("-free" suffix and the big-pickle stealth alias)
+		// cost nothing. Without this check they would fall through to the
+		// default price table and rack up phantom costs that exhaust Budget
+		// sandbox limits for calls that are actually free.
+		if isOpencodeFreeModel(model) {
+			return 0
+		}
+		return float64(promptTokens)*0.005/1000 + float64(completionTokens)*0.015/1000
 	default:
 		return 0
 	}

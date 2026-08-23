@@ -18,6 +18,8 @@ ai_provider "anthropic"
 ai_provider "deepseek"
 -- OpenRouter (400+ Modelle über einen Key, Modell-Slugs wie "openai/gpt-4o-mini")
 ai_provider "openrouter"
+-- OpenCode Zen (kostenlose Modelle ohne Key, bezahlte mit OPENCODE_API_KEY)
+ai_provider "opencode"
 ```
 
 ### Modell und Timeout
@@ -32,6 +34,7 @@ kannst du es mit einem Config-Block bei `ai_provider` oder jederzeit mit `ai_mod
 --   deepseek    → deepseek-v4-flash
 --   ollama      → llama3.1:8b
 --   openrouter  → openrouter/free
+--   opencode    → big-pickle
 
 -- Provider setzen + Modell/Timeout in einem Zug überschreiben
 ai_provider "deepseek" {model: "deepseek-v4-flash", timeout: 120}
@@ -90,6 +93,11 @@ export DEEPSEEK_API_KEY="sk-..."
 
 Der Provider wird automatisch anhand des gesetzten Keys erkannt. Fehlt der Key,
 schlägt die Anfrage mit einem Fehler fehl.
+
+**Ausnahme — `opencode`:** funktioniert auf den Free-Tier-Modellen (`big-pickle`,
+`*-free`) **ganz ohne Key**. `OPENCODE_API_KEY` ist nur für bezahlte Modelle oder
+höhere Rate-Limits nötig. Achtung: Free-Tier-Prompts dürfen zum Modelltraining
+verwendet werden — sensible Daten gehören dort nicht hinein.
 
 ---
 
@@ -658,6 +666,7 @@ catch e
 | Anthropic | `https://api.anthropic.com/v1/messages` | `claude-3-5-sonnet-20241022` | `ANTHROPIC_API_KEY` |
 | DeepSeek | `https://api.deepseek.com/v1/chat/completions` | `deepseek-v4-flash` | `DEEPSEEK_API_KEY` |
 | **Ollama** | `http://localhost:11434/v1/chat/completions` | `llama3.1:8b` | **Kein Key nötig!** |
+| OpenCode Zen | `https://opencode.ai/zen/v1/chat/completions` | `big-pickle` | optional: `OPENCODE_API_KEY` |
 
 ### Ollama — Lokale KI ohne Cloud
 

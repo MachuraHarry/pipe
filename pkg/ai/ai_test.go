@@ -2,6 +2,7 @@ package ai
 
 import (
 	"os"
+	"strings"
 	"testing"
 	"time"
 )
@@ -17,6 +18,7 @@ func TestSetProvider(t *testing.T) {
 		{"anthropic", "anthropic", "claude-3-5-haiku-20241022", "https://api.anthropic.com"},
 		{"deepseek", "deepseek", "deepseek-v4-flash", "https://api.deepseek.com"},
 		{"openrouter", "openrouter", "openrouter/free", "https://openrouter.ai/api"},
+		{"opencode", "opencode", "big-pickle", "https://opencode.ai/zen"},
 	}
 
 	for _, tt := range tests {
@@ -189,5 +191,72 @@ func TestEstimateCostFreeModels(t *testing.T) {
 	// Paid models keep their estimates.
 	if got := estimateCost("openrouter", "openai/gpt-4o-mini", 1000, 1000); got <= 0 {
 		t.Errorf("paid model estimate should be > 0, got %v", got)
+	}
+}
+
+func TestEstimateCostOpencodeFreeModels(t *testing.T) {
+	// Zen free-tier models ("-free" suffix and the big-pickle stealth alias)
+	// must cost exactly 0, mirroring the OpenRouter :free handling.
+	models := []string{
+		"big-pickle",
+		"deepseek-v4-flash-free",
+		"mimo-v2.5-free",
+		"nemotron-3-ultra-free",
+	}
+	for _, m := range models {
+		if got := estimateCost("opencode", m, 1000000, 1000000); got != 0 {
+			t.Errorf("estimateCost(opencode, %q) = %v, want 0", m, got)
+		}
+	}
+	if got := estimateCost("opencode", "claude-sonnet-4-5", 1000, 1000); got <= 0 {
+		t.Errorf("paid zen model estimate should be > 0, got %v", got)
+	}
+}
+
+func TestOpencodeHeaders(t *testing.T) {
+	prev := ActiveConfig
+	defer func() { ActiveConfig = prev }()
+	SetProvider("opencode")
+
+	oldVal := os.Getenv("OPENCODE_API_KEY")
+	os.Unsetenv("OPENCODE_API_KEY")
+	defer os.Setenv("OPENCODE_API_KEY", oldVal)
+
+	h1 := opencodeHeaders()
+	if h1 == nil {
+		t.Fatal("keyless mode must produce auth headers, got nil")
+	}
+	if h1["Authorization"] != "Bearer public" {
+		t.Errorf("Authorization = %q, want Bearer public", h1["Authorization"])
+	}
+	for _, k := range []string{"User-Agent", "x-opencode-client", "x-opencode-project", "x-opencode-request", "x-opencode-session"} {
+		if h1[k] == "" {
+			t.Errorf("header %q missing in keyless mode", k)
+		}
+	}
+
+	h2 := opencodeHeaders()
+	if h1["x-opencode-request"] == h2["x-opencode-request"] {
+		t.Error("x-opencode-request IDs must be unique per call")
+	}
+	if !strings.HasPrefix(h1["x-opencode-request"], "msg_") || !strings.HasPrefix(h1["x-opencode-session"], "ses_") {
+		t.Errorf("ID prefixes wrong: request=%q session=%q", h1["x-opencode-request"], h1["x-opencode-session"])
+	}
+}
+
+func TestOpencodeHeadersWithKey(t *testing.T) {
+	prev := ActiveConfig
+	defer func() { ActiveConfig = prev }()
+	SetProvider("opencode")
+
+	oldVal := os.Getenv("OPENCODE_API_KEY")
+	os.Setenv("OPENCODE_API_KEY", "sk-test")
+	defer func() {
+		os.Setenv("OPENCODE_API_KEY", oldVal)
+		delete(apiKeyOverrides, "OPENCODE_API_KEY")
+	}()
+
+	if h := opencodeHeaders(); h != nil {
+		t.Errorf("with an API key no extra headers should be sent, got %v", h)
 	}
 }

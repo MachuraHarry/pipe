@@ -15,7 +15,7 @@ func init() {
 	httpGetStringFn = httpGetStringWasm
 }
 
-func httpPostJSONWasm(kind EgressKind, url, apiKey string, reqBody interface{}, timeout time.Duration) (map[string]interface{}, error) {
+func httpPostJSONWasm(kind EgressKind, url, apiKey string, reqBody interface{}, timeout time.Duration, hdrs ...extraHeaders) (map[string]interface{}, error) {
 	bodyJSON, err := json.Marshal(reqBody)
 	if err != nil {
 		return nil, fmt.Errorf("marshal: %w", err)
@@ -32,6 +32,11 @@ func httpPostJSONWasm(kind EgressKind, url, apiKey string, reqBody interface{}, 
 		headers.Set("anthropic-dangerous-direct-browser-access", "true")
 	} else if apiKey != "" {
 		headers.Set("Authorization", "Bearer "+apiKey)
+	}
+	for _, h := range hdrs {
+		for k, v := range h {
+			headers.Set(k, v)
+		}
 	}
 
 	opts := js.Global().Get("Object").New()

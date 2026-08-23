@@ -187,6 +187,13 @@ func getProviderKey() string {
 		return getKeyWithOverride("DEEPSEEK_API_KEY")
 	case "ollama":
 		return "ollama"
+	case "opencode":
+		// Keyless public tier: the CLI-mimicking auth headers carry the
+		// credentials instead of a bearer key.
+		if key := opencodeAPIKey(); key != "" {
+			return key
+		}
+		return "public"
 	}
 	return ""
 }

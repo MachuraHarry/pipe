@@ -47,12 +47,12 @@ import "lib/repo_rag_lib.pipe"
 -- API keys containing KEY/SECRET/TOKEN are additionally blocked by
 -- secretEnvMarkers.
 
-sandbox_profile "rag-build" {fs: "full", exec: true, exec_whitelist: ["git", "rm"], network: true, network_whitelist: ["github.com", "gitlab.com", "bitbucket.org", "raw.githubusercontent.com", "api.deepseek.com", "api.openai.com", "api.anthropic.com", "openrouter.ai"], ai: true}
-sandbox_profile "rag-serve" {fs: "read-only", exec: false, network: true, network_whitelist: ["api.deepseek.com", "api.openai.com", "api.anthropic.com", "openrouter.ai"], ai: true}
+sandbox_profile "rag-build" {fs: "full", exec: true, exec_whitelist: ["git", "rm"], network: true, network_whitelist: ["github.com", "gitlab.com", "bitbucket.org", "raw.githubusercontent.com", "api.deepseek.com", "api.openai.com", "api.anthropic.com", "openrouter.ai", "opencode.ai"], ai: true}
+sandbox_profile "rag-serve" {fs: "read-only", exec: false, network: true, network_whitelist: ["api.deepseek.com", "api.openai.com", "api.anthropic.com", "openrouter.ai", "opencode.ai"], ai: true}
 
 --- === Global state === ---
 
-ST: {url: "", ref: "", owner: "", name: "", slug: "", src: "", home: "", cache: "", deepseek_key: "", openai_key: "", openrouter_key: "", model: "", idx_docs: nil, idx_code: nil, idx_kw: nil, all_files: [], md_files: [], code_symbols: [], code_files: [], languages: {}, sync_code: nil, sync_kw: nil, has_ai: false, ready: false, ai_ready: false, err: ""}
+ST: {url: "", ref: "", owner: "", name: "", slug: "", src: "", home: "", cache: "", ai: "", oc_key: "", deepseek_key: "", openai_key: "", openrouter_key: "", model: "", idx_docs: nil, idx_code: nil, idx_kw: nil, all_files: [], md_files: [], code_symbols: [], code_files: [], languages: {}, sync_code: nil, sync_kw: nil, has_ai: false, ready: false, ai_ready: false, err: ""}
 
 -- Capture env vars before sandbox activation
 _env_url: env "REPO_RAG_URL"
@@ -79,6 +79,12 @@ if _env_model != nil && _env_model != ""
 _env_cache: env "REPO_RAG_CACHE"
 if _env_cache != nil && _env_cache != ""
     set ST "cache" _env_cache
+_env_ai: env "REPO_RAG_AI"
+if _env_ai != nil && _env_ai != ""
+    set ST "ai" (lower _env_ai)
+_oc_key: env "OPENCODE_API_KEY"
+if _oc_key != nil && _oc_key != ""
+    set ST "oc_key" _oc_key
 
 set_sandbox "rag-build"
 
@@ -241,6 +247,21 @@ fn configure_provider
         model: get ST "model"
         if model == nil || model == ""
             model: "nvidia/nemotron-3-super-120b-a12b:free"
+        ai_model model
+        set ST "has_ai" true
+        return nil
+    -- OpenCode Zen (opencode.ai/zen): free public tier that works without
+    -- any API key (CLI-mimicking auth headers). Opt-in via REPO_RAG_AI=opencode
+    -- so keyword-only mode stays the default for existing setups;
+    -- OPENCODE_API_KEY enables it implicitly. Embeddings run locally.
+    ockey: get ST "oc_key"
+    if (ockey != nil && ockey != "") || (get ST "ai") == "opencode"
+        ai_provider "opencode"
+        if ockey != nil && ockey != ""
+            ai_set_key "opencode" ockey
+        model: get ST "model"
+        if model == nil || model == ""
+            model: "big-pickle"
         ai_model model
         set ST "has_ai" true
         return nil

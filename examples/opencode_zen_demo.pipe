@@ -1,0 +1,107 @@
+--! OpenCode Zen demo: free AI models without an API key.
+--! Uses https://opencode.ai/zen — the free tier works out of the box.
+--! Optional: export OPENCODE_API_KEY=... for paid models / higher limits.
+
+print "╔══════════════════════════════════════╗"
+print "║  OPENCODE ZEN — KI ohne API-Key     ║"
+print "╚══════════════════════════════════════╝"
+print ""
+
+-- Provider auf OpenCode Zen setzen (https://opencode.ai/zen)
+ai_provider "opencode"
+
+-- Das Free-Angebot rotiert monatlich und einzelne Endpunkte sind gelegentlich
+-- nicht erreichbar (503). Die Helfer unten probieren die Modelle daher
+-- solange durch, bis eines antwortet.
+-- Aktuelle Modellliste: https://opencode.ai/zen/v1/models
+free_models: ["big-pickle", "mimo-v2.5-free", "deepseek-v4-flash-free", "nemotron-3-ultra-free"]
+
+--! Runs ai_chat on the first free model that answers.
+fn chat_free system prompt
+    for m in free_models
+        try
+            ai_model m
+            r: ai_chat system prompt
+            print ("  [modell: " ++ m ++ "]")
+            return r
+        catch
+            print ("  ✗ " ++ m)
+    ""
+
+--! Runs summarize on the first free model that answers.
+fn summarize_free text
+    for m in free_models
+        try
+            ai_model m
+            r: summarize text
+            print ("  [modell: " ++ m ++ "]")
+            return r
+        catch
+            print ("  ✗ " ++ m)
+    ""
+
+--! Runs classify on the first free model that answers.
+fn classify_free text levels
+    for m in free_models
+        try
+            ai_model m
+            r: classify text levels
+            print ("  [modell: " ++ m ++ "]")
+            return r
+        catch
+            print ("  ✗ " ++ m)
+    ""
+
+--! Streams on the first free model that answers.
+fn stream_free system prompt
+    for m in free_models
+        try
+            ai_model m
+            s: ai_stream system prompt
+            print ("  [modell: " ++ m ++ "]")
+            return s
+        catch
+            print ("  ✗ " ++ m)
+    ""
+
+-- Test 1: Chat
+print "─── 1. Chat ───"
+a: chat_free "Antworte knapp." "Was ist eine Pipeline in der Programmierung? Antworte in 2 Sätzen."
+if a != "" 
+    print ""
+    print a
+print ""
+
+-- Test 2: Zusammenfassung
+print "─── 2. Summarize ───"
+s: summarize_free "Pipe ist eine einrückungsbasierte, pipeline-orientierte Skriptsprache in Go. Daten fließen sichtbar von oben nach unten durch eine Kette von Transformationen. Statt verschachtelter Funktionsaufrufe schreibt man den Datenfluss linear aus."
+if s != "" 
+    print ""
+    print s
+print ""
+
+-- Test 3: Klassifizierung
+print "─── 3. Classify ───"
+levels: ["positiv", "neutral", "negativ"]
+texts: ["Dieses Produkt ist fantastisch!", "Es funktioniert.", "Totaler Schrott, nie wieder."]
+for t in texts
+    k: classify_free t levels
+    if k != ""
+        print ("  → " ++ k)
+print ""
+
+-- Test 4: Streaming
+print "─── 4. Stream ───"
+stream_free "Du bist ein Dichter." "Schreibe einen Zweizeiler über Pipelines."
+print ""
+
+-- Kosten-Auswertung: Free-Modelle zählen als $0
+print "══════════════════════════════════════"
+print "  OpenCode Zen mit Pipe:"
+print "  • Free-Modelle ohne API-Key nutzbar"
+print "  • big-pickle und alle '*-free' kosten $0"
+print "  • Achtung: Free-Prompts dürfen zum Training"
+print "    verwendet werden — keine sensiblen Daten!"
+print "  • Die Helfer oben springen bei 503/429"
+print "    automatisch zum nächsten Free-Modell"
+print "══════════════════════════════════════"

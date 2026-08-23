@@ -122,6 +122,7 @@ func chatWithToolsRaw(messages []map[string]interface{}, tools []ToolDef) (toolR
 	if apiKey == "" {
 		return toolResponse{}, fmt.Errorf("%s API key not set", keyEnvName())
 	}
+	hdrs := activeExtraHeaders()
 
 	openaiTools := make([]map[string]interface{}, len(tools))
 	for i, t := range tools {
@@ -144,7 +145,7 @@ func chatWithToolsRaw(messages []map[string]interface{}, tools []ToolDef) (toolR
 		body[k] = v
 	}
 
-	result, err := httpPostJSON(EgressChat, ActiveConfig.APIHost+"/v1/chat/completions", apiKey, body, ActiveConfig.Timeout)
+	result, err := httpPostJSON(EgressChat, ActiveConfig.APIHost+"/v1/chat/completions", apiKey, body, ActiveConfig.Timeout, hdrs)
 	if err != nil {
 		return toolResponse{}, fmt.Errorf("chat: %w", err)
 	}

@@ -3,6 +3,8 @@ package ai
 import (
 	"bufio"
 	"bytes"
+	"crypto/rand"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -532,4 +534,165 @@ func openrouterStream(cfg Config, req ChatRequest, onToken StreamCallback) error
 	}
 
 	return httpPostStream(EgressStream, cfg.APIHost+"/v1/chat/completions", apiKey, body, cfg.Timeout, onToken)
+}
+
+// ---- OpenCode Zen Provider ----
+
+// opencodeZenHost is the base URL of the OpenCode Zen gateway.
+const opencodeZenHost = "https://opencode.ai/zen"
+
+// zenUserAgent mimics the OpenCode CLI so the keyless public tier accepts
+// requests. The exact version string is what the CLI sends; the API rejects
+// unknown clients with AuthError.
+const zenUserAgent = "opencode/1.15.0 ai-sdk/provider-utils/4.0.23 runtime/bun/1.3.13"
+
+// opencodeAPIKey returns the user's Zen API key, if one is configured.
+func opencodeAPIKey() string {
+	return getKeyWithOverride("OPENCODE_API_KEY")
+}
+
+// isOpencodeFreeModel reports whether a Zen model id belongs to the free tier.
+func isOpencodeFreeModel(model string) bool {
+	return model == "big-pickle" || strings.HasSuffix(model, "-free")
+}
+
+// randHex returns n random bytes hex-encoded, falling back to a
+// nanosecond timestamp if the system entropy source fails.
+func randHex(n int) string {
+	b := make([]byte, n)
+	if _, err := rand.Read(b); err != nil {
+		return fmt.Sprintf("%x", time.Now().UnixNano())
+	}
+	return hex.EncodeToString(b)
+}
+
+// opencodeHeaders builds the per-request HTTP headers for the Zen gateway.
+//
+// With an API key, no extra headers are needed (the caller sends the plain
+// Authorization bearer). Without a key the public tier requires the request to
+// look like it originates from the OpenCode CLI: a fixed bearer token plus
+// x-opencode-* identification headers whose request/session IDs must be
+// unique per call — hence fresh IDs on every invocation (safe for parallel
+// requests).
+func opencodeHeaders() map[string]string {
+	if opencodeAPIKey() != "" {
+		return nil
+	}
+	ts := time.Now().UnixMilli()
+	suffix := randHex(8)
+	return map[string]string{
+		"Authorization":      "Bearer public",
+		"User-Agent":         zenUserAgent,
+		"x-opencode-client":  "cli",
+		"x-opencode-project": "global",
+		"x-opencode-request": fmt.Sprintf("msg_%d_%s", ts, suffix),
+		"x-opencode-session": fmt.Sprintf("ses_%d_%s", ts, suffix),
+	}
+}
+
+// activeExtraHeaders returns provider-specific headers for the active
+// provider, used by generic paths such as tool calling.
+func activeExtraHeaders() map[string]string {
+	if ActiveConfig.Provider == "opencode" {
+		return opencodeHeaders()
+	}
+	return nil
+}
+
+func opencodeChat(cfg Config, req ChatRequest) (ChatResponse, error) {
+	type zenMsg struct {
+		Role    string `json:"role"`
+		Content string `json:"content"`
+	}
+	messages := make([]zenMsg, len(req.Messages))
+	for i, m := range req.Messages {
+		messages[i] = zenMsg{Role: m.Role, Content: m.Content}
+	}
+
+	// Free-tier models are reasoning models: part of the completion budget is
+	// consumed by thinking tokens before any visible content is produced. A
+	// generous default keeps short answers from coming back empty.
+	maxTokens := req.MaxTokens
+	if maxTokens <= 0 {
+		maxTokens = 2048
+	}
+
+	body := map[string]interface{}{
+		"model":      cfg.Model,
+		"messages":   messages,
+		"max_tokens": maxTokens,
+	}
+	for k, v := range cfg.ExtraBody {
+		body[k] = v
+	}
+
+	result, err := httpPostJSON(EgressChat, cfg.APIHost+"/v1/chat/completions", opencodeAPIKey(), body, cfg.Timeout, opencodeHeaders())
+	if err != nil {
+		if strings.Contains(err.Error(), "AuthError") || strings.Contains(err.Error(), "FreeUsageLimitError") {
+			return ChatResponse{}, fmt.Errorf("opencode zen rejected the request (%w); free tier rotates and rate-limits models — set OPENCODE_API_KEY or try another -free model", err)
+		}
+		return ChatResponse{}, err
+	}
+
+	resp, extractErr := extractOpenAIResult(result)
+	if extractErr != nil {
+		return ChatResponse{}, extractErr
+	}
+	if strings.TrimSpace(resp.Content) == "" && hasReasoningOnlyResponse(result) {
+		return ChatResponse{}, fmt.Errorf("opencode zen returned only reasoning tokens without content — increase max_tokens (current: %d)", maxTokens)
+	}
+	return resp, nil
+}
+
+// hasReasoningOnlyResponse detects the failure mode where the model spent the
+// entire completion budget on reasoning_content/reasoning and produced no
+// visible text.
+func hasReasoningOnlyResponse(result map[string]interface{}) bool {
+	choices, ok := result["choices"].([]interface{})
+	if !ok || len(choices) == 0 {
+		return false
+	}
+	choice, ok := choices[0].(map[string]interface{})
+	if !ok {
+		return false
+	}
+	msg, ok := choice["message"].(map[string]interface{})
+	if !ok {
+		return false
+	}
+	if rc, ok := msg["reasoning_content"].(string); ok && rc != "" {
+		return true
+	}
+	if r, ok := msg["reasoning"].(string); ok && r != "" {
+		return true
+	}
+	return false
+}
+
+func opencodeStream(cfg Config, req ChatRequest, onToken StreamCallback) error {
+	type zenMsg struct {
+		Role    string `json:"role"`
+		Content string `json:"content"`
+	}
+	messages := make([]zenMsg, len(req.Messages))
+	for i, m := range req.Messages {
+		messages[i] = zenMsg{Role: m.Role, Content: m.Content}
+	}
+
+	body := map[string]interface{}{
+		"model":    cfg.Model,
+		"messages": messages,
+		"stream":   true,
+	}
+	// Reasoning models burn budget on invisible thinking tokens first; keep a
+	// generous floor so short streams don't end with nothing but reasoning.
+	body["max_tokens"] = 2048
+	if req.MaxTokens > 0 {
+		body["max_tokens"] = req.MaxTokens
+	}
+	for k, v := range cfg.ExtraBody {
+		body[k] = v
+	}
+
+	return httpPostStream(EgressStream, cfg.APIHost+"/v1/chat/completions", opencodeAPIKey(), body, cfg.Timeout, onToken, opencodeHeaders())
 }

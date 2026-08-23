@@ -11,7 +11,7 @@ import (
 
 func bAiProvider(args ...Object) Object {
 	if len(args) < 1 {
-		return err("ai_provider expects a provider name (openai, anthropic, deepseek, ollama, openrouter)")
+		return err("ai_provider expects a provider name (openai, anthropic, deepseek, ollama, openrouter, opencode)")
 	}
 	s, ok := args[0].(*String)
 	if !ok {
@@ -156,7 +156,7 @@ func bAiSetKey(args ...Object) Object {
 	}
 	provider, ok := args[0].(*String)
 	if !ok {
-		return err("ai_set_key: first argument must be a string (provider: 'openai', 'deepseek', 'anthropic', 'openrouter')")
+		return err("ai_set_key: first argument must be a string (provider: 'openai', 'deepseek', 'anthropic', 'openrouter', 'opencode')")
 	}
 	key, ok := args[1].(*String)
 	if !ok {
@@ -172,8 +172,10 @@ func bAiSetKey(args ...Object) Object {
 		ai.SetAPIKey("ANTHROPIC_API_KEY", key.Value)
 	case "openrouter":
 		ai.SetAPIKey("OPENROUTER_API_KEY", key.Value)
+	case "opencode":
+		ai.SetAPIKey("OPENCODE_API_KEY", key.Value)
 	default:
-		return err("ai_set_key: unknown provider '" + provider.Value + "'. Use 'openai', 'deepseek', 'anthropic', or 'openrouter'.")
+		return err("ai_set_key: unknown provider '" + provider.Value + "'. Use 'openai', 'deepseek', 'anthropic', 'openrouter', or 'opencode'.")
 	}
 	return &String{Value: "key set for " + provider.Value}
 }
@@ -978,13 +980,21 @@ func bAiTool(args ...Object) Object {
 	return NILOBJ
 }
 
-func keysToStrings(m *Map) []string {
-	keys := make([]string, 0, len(m.Pairs))
+// keysToStrings returns the schema map's keys as a JSON-schema "required"
+// list. The []interface{} element type matches what JSON unmarshalling
+// produces so every consumer can type-assert uniformly; keys are sorted for
+// deterministic positional argument binding.
+func keysToStrings(m *Map) []interface{} {
+	names := make([]string, 0, len(m.Pairs))
 	for k := range m.Pairs {
-		keys = append(keys, k)
+		names = append(names, k)
 	}
-	sort.Strings(keys)
-	return keys
+	sort.Strings(names)
+	req := make([]interface{}, len(names))
+	for i, n := range names {
+		req[i] = n
+	}
+	return req
 }
 
 func bAiWithTools(args ...Object) Object {

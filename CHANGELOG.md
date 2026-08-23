@@ -2,6 +2,19 @@
 
 All notable changes to Pipe are documented here. This file follows [Keep a Changelog](https://keepachangelog.com/) format.
 
+## [Unreleased]
+
+### Fixed
+- **Compiler: module symbol isolation** (`959a05c`) — unaliased imports no longer flatten into one global symbol space; modules compile in an isolated scope (`moduleMode`), see only their exports plus builtins, and importers bind aliases via fresh global slots. Fixes builtin shadowing under `-vm` (e.g. sqlite's internal `exec` hiding builtin `exec`). Bytecode cache bumped to v5 (old `.pipec` files are invalidated).
+- **Compiler: while-body terminator detection** (`e6f42b7`) — statements after an inner loop at the tail of an outer loop body were dropped during bytecode generation (caused an infinite INSERT loop in the sqlite module under `-vm`).
+- **Compiler: module resolve walks the full outer chain** (`38446d7`) — a same-named global in an importing file (e.g. `repo_rag_lib.pipe`'s `index_of`) masked the root builtin for nested modules and failed compilation with "undefined variable".
+- **Disassembler**: `Instructions.String()` now handles `OpTestAbortIfError`, `OpTestResult` and `OpSelect` (2-byte operands) and bounds-checks all operand reads — no more panics when disassembling programs containing these opcodes.
+- **pkg/parity** no longer hangs: stale untracked `.pipec` artifacts were executed because the cache format did not track compiler semantics (fixed by the v5 cache version); all deterministic examples now produce byte-identical output under tree-walker and VM.
+- **sqlite module 0.8.3 / 0.8.4** (pipe-modules): UTF-8-safe SQL lexer and LIKE matcher, support for `CREATE TABLE IF NOT EXISTS` and `CREATE INDEX IF NOT EXISTS`.
+
+### Removed
+- Temporary `PIPE_VM_TICK` instruction sampler from the VM (debugging aid for the terminator investigation).
+
 ## [1.1.0] — 2026-08-21
 
 ### Fixed

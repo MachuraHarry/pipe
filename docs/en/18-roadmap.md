@@ -2,9 +2,9 @@
 
 This document outlines the past, present, and future of the Pipe language. The roadmap is organized into phases, with completed features marked accordingly.
 
-## Current Version: v1.0.0
+## Current Version: v1.1.1
 
-Pipe is currently at version **v1.0.0**, the **production-ready release**. It consolidates all features from the v0.9.x series: the full **MCP server and client** (stdio + SSE), **sandbox profiles** (declarative runtime security), **AI provider abstraction** (OpenAI, Anthropic, DeepSeek, Ollama), the **bytecode VM** (up to 55x faster than the tree-walker), **guard clauses** in match expressions, **concurrency primitives** (channels, mutex, counting semaphore), **constant folding**, and the **MQTT 5.0 module**. The module system includes directory imports, relative imports, cycle detection, SemVer resolution, and `pipe -publish`. 232 builtins, 23 modules, 643 tests.
+Pipe is currently at version **v1.1.1**, the **production-ready release**. It consolidates all features from the v0.9.x series: the full **MCP server and client** (stdio + SSE), **sandbox profiles** (declarative runtime security), **AI provider abstraction** (OpenAI, Anthropic, DeepSeek, OpenRouter, Ollama), the **bytecode VM** (up to 55x faster than the tree-walker), **guard clauses** in match expressions, **concurrency primitives** (channels, mutex, counting semaphore), **constant folding**, and the **MQTT 5.0 module**. The module system includes directory imports, relative imports, cycle detection, SemVer resolution, and `pipe -publish`. 232 builtins, 23 modules, 643 tests.
 
 ---
 

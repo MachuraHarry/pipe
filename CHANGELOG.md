@@ -2,7 +2,7 @@
 
 All notable changes to Pipe are documented here. This file follows [Keep a Changelog](https://keepachangelog.com/) format.
 
-## [Unreleased]
+## [1.1.1] — 2026-08-23
 
 ### Added
 - **repo-rag MCP server**: new `file_symbols` tool — outline of one source file (every indexed declaration with kind, name, line and declaration text, in file order). Answers purely from the in-memory index, so it works under the locked read-only serve profile.
@@ -20,10 +20,16 @@ All notable changes to Pipe are documented here. This file follows [Keep a Chang
 - **Compiler: module resolve walks the full outer chain** (`38446d7`) — a same-named global in an importing file (e.g. `repo_rag_lib.pipe`'s `index_of`) masked the root builtin for nested modules and failed compilation with "undefined variable".
 - **Disassembler**: `Instructions.String()` now handles `OpTestAbortIfError`, `OpTestResult` and `OpSelect` (2-byte operands) and bounds-checks all operand reads — no more panics when disassembling programs containing these opcodes.
 - **pkg/parity** no longer hangs: stale untracked `.pipec` artifacts were executed because the cache format did not track compiler semantics (fixed by the v5 cache version); all deterministic examples now produce byte-identical output under tree-walker and VM.
+- **pipe-docs MCP server**: `search_code` splits query tokens on `_` and `-` so snake_case queries match Go/Pipe symbols; `ask_docs` requires ≥ 2 significant-token hits plus score ≥ 0.1 before a chunk enters LLM context (suppresses generic-word noise hits on German queries)
 - **sqlite module 0.8.3 / 0.8.4** (pipe-modules): UTF-8-safe SQL lexer and LIKE matcher, support for `CREATE TABLE IF NOT EXISTS` and `CREATE INDEX IF NOT EXISTS`.
+
+### Changed
+- pipe-docs noai end-to-end test unblocked (`pkg/mcp/pipe_docs_noai_test.go`)
 
 ### Removed
 - Temporary `PIPE_VM_TICK` instruction sampler from the VM (debugging aid for the terminator investigation).
+
+---
 
 ## [1.1.0] — 2026-08-21
 

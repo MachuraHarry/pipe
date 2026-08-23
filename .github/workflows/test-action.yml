@@ -23,8 +23,8 @@ jobs:
       - name: Pinned version
         uses: ./.github/actions/pipe-action
         with:
-          version: 'v1.0.0'
-          script: print "pinned v1.0.0 binary works"
+          version: 'v1.1.1'
+          script: print "pinned v1.1.1 binary works"
 
       - name: Sandbox
         uses: ./.github/actions/pipe-action

@@ -29,7 +29,7 @@ import (
 	"github.com/peterh/liner"
 )
 
-var version = "v1.0.0"
+var version = "v1.1.1"
 
 func main() {
 	// Self-extracting binary detection

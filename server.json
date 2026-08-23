@@ -7,7 +7,7 @@
     "url": "https://github.com/MachuraHarry/pipe",
     "source": "github"
   },
-  "version": "1.0.0",
+  "version": "1.1.1",
   "packages": [
     {
       "registryType": "mcpb",

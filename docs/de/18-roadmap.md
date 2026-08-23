@@ -1,8 +1,8 @@
 # 18. Roadmap
 
-## Aktuelle Version: v1.0.0
+## Aktuelle Version: v1.1.1
 
-Pipe ist aktuell in Version **v1.0.0**, dem **Production-Ready-Release**. Es konsolidiert alle Features der v0.9.x-Serie: den vollständigen **MCP-Server und -Client** (stdio + SSE), **Sandbox-Profile** (deklarative Runtime-Sicherheit), **AI-Provider-Abstraktion** (OpenAI, Anthropic, DeepSeek, Ollama), die **Bytecode-VM** (bis zu 55x schneller als der Tree-Walker), **Guard Clauses** in Match-Ausdrücken, **Concurrency-Primitiven** (Channels, Mutex, Counting Semaphore), **Constant Folding** und das **MQTT-5.0-Modul**. Das Modulsystem umfasst Directory-Imports, relative Imports, Zyklus-Erkennung, SemVer-Auflösung und `pipe -publish`. 232 Builtins, 23 Module, 643 Tests.
+Pipe ist aktuell in Version **v1.1.1**, dem **Production-Ready-Release**. Es konsolidiert alle Features der v0.9.x-Serie: den vollständigen **MCP-Server und -Client** (stdio + SSE), **Sandbox-Profile** (deklarative Runtime-Sicherheit), **AI-Provider-Abstraktion** (OpenAI, Anthropic, DeepSeek, OpenRouter, Ollama), die **Bytecode-VM** (bis zu 55x schneller als der Tree-Walker), **Guard Clauses** in Match-Ausdrücken, **Concurrency-Primitiven** (Channels, Mutex, Counting Semaphore), **Constant Folding** und das **MQTT-5.0-Modul**. Das Modulsystem umfasst Directory-Imports, relative Imports, Zyklus-Erkennung, SemVer-Auflösung und `pipe -publish`. 232 Builtins, 23 Module, 643 Tests.
 
 ---
 

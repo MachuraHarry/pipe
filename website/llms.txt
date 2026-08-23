@@ -1,6 +1,6 @@
 # Pipe (SPR) — Semantic Pipeline Runtime
 
-> Pipe is the first programming language with built-in MCP: an MCP server and client in one ~8 MB binary. Connect to any stdio MCP server, expose your own tools to Claude Desktop and other hosts, and run AI pipelines with zero dependencies. Pure Go stdlib. v1.0.0 — production-ready.
+> Pipe is the first programming language with built-in MCP: an MCP server and client in one ~8 MB binary. Connect to any stdio MCP server, expose your own tools to Claude Desktop and other hosts, and run AI pipelines with zero dependencies. Pure Go stdlib. v1.1.1 — production-ready.
 
 ## Important
 

@@ -20,7 +20,7 @@ jobs:
         uses: ./.github/actions/pipe-action
         with:
           file: scripts/telegram_bot.pipe
-          version: v1.0.0
+          version: v1.1.1
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           GITHUB_TOKEN: ${{ github.token }}

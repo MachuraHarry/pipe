@@ -398,6 +398,16 @@ func TestConstantFoldingSkipped(t *testing.T) {
 	}
 }
 
+func TestLastInstructionTerminatorIgnoresJumpOperandBytes(t *testing.T) {
+	c := New()
+	c.emit(OpJumpBackward, 543) // low operand byte is 31, the OpReturn opcode.
+	c.emit(OpNil)
+	c.emit(OpPop)
+	if c.lastInstructionIsTerminator() {
+		t.Fatal("jump operand byte was misread as a terminator")
+	}
+}
+
 func TestCompileWhileLoop(t *testing.T) {
 	input := "while true\n    x: x + 1"
 	bc := parseAndCompile(t, input)

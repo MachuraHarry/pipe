@@ -14,8 +14,11 @@ import (
 )
 
 const (
-	magic   = "PIPEBC"
-	version = byte(4)
+	magic = "PIPEBC"
+	// version comes from the compiler so that any bytecode-semantics change
+	// (new opcodes, changed symbol/global allocation, ...) invalidates every
+	// existing .pipec cache instead of feeding stale bytecode to the VM.
+	version = compiler.CacheVersion
 )
 
 // LoadOrCompile returns the bytecode for a source file, reusing a cached

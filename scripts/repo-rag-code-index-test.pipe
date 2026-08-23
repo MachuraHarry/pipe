@@ -300,4 +300,172 @@ test "rel_path strips source prefix"
     assert_eq (rel_path "/r/src" "/r/src/pkg/a.go") "pkg/a.go"
     assert_eq (rel_path "/r/src" "/elsewhere/x.go") "/elsewhere/x.go"
 
+--- === URL / declaration edge cases ===
+
+test "slug_parts strips /tree/ branch suffix"
+    r: slug_parts "https://github.com/owner/repo/tree/main"
+    assert_eq (get r "ok") true
+    assert_eq (get r "owner") "owner"
+    assert_eq (get r "repo") "repo"
+    assert_eq (get r "slug") "owner__repo"
+
+test "go method decl survives tab after receiver"
+    tmp: "/tmp/repo-rag-test-gotab"
+    exec ("rm -rf \"" ++ tmp ++ "\"")
+    make_dir tmp
+    write_file (tmp ++ "/a.go") "package main\n\nfunc (s *Server)\tStart() error {\n\treturn nil\n}\n"
+    g: scan_any_file (tmp ++ "/a.go")
+    assert_eq (len g) 1
+    assert_eq (get (at g 0) "symbol") "Start"
+
+--- === SQL escaping tests ===
+
+test "esc_sql escapes quotes and nil"
+    assert_eq (esc_sql "don't") "don''t"
+    assert_eq (esc_sql "a'b'c") "a''b''c"
+    assert_eq (esc_sql "clean") "clean"
+    assert_eq (esc_sql "") ""
+    assert_eq (esc_sql nil) ""
+
+--- === Code index persistence (code.db) ===
+
+test "code_sync adds loads and skips unchanged files"
+    src: "/tmp/repo-rag-test-src"
+    exec ("rm -rf \"" ++ src ++ "\"")
+    make_dir (src ++ "/pkg")
+    -- b.py decl line includes a single quote (kept in the stored content)
+    -- -> exercises esc_sql on INSERT
+    write_file (src ++ "/pkg/a.go") "package pkg\n\nfunc Alpha() {}\n\ntype Config struct{}\n"
+    write_file (src ++ "/b.py") "def talk():  # don't panic\n    return 1\n"
+    h: code_db_open ":memory:" "https://x/y/z" "main"
+    st: code_sync h src
+    assert_eq (get st "added") 2
+    loaded: code_load h
+    syms: get loaded "symbols"
+    assert_eq (len syms) 3
+    langs: get loaded "languages"
+    assert_eq (get langs "go") 1
+    assert_eq (get langs "python") 1
+    -- files list is sorted by path
+    flist: get loaded "files"
+    assert_eq (at flist 0) "b.py"
+    assert_eq (at flist 1) "pkg/a.go"
+    -- precomputed lowercase fields survive the roundtrip incl. the quote
+    found_quote_row: false
+    i: 0
+    while i < (len syms)
+        s: at syms i
+        if (get s "symbol") == "talk"
+            found_quote_row: true
+            assert_eq (get s "symbol_lower") "talk"
+            assert_contains (get s "content_lower") "don't panic"
+        i: i + 1
+    assert_eq found_quote_row true
+    -- second sync without changes: everything skipped
+    st2: code_sync h src
+    assert_eq (get st2 "unchanged") 2
+    assert_eq (get st2 "added") 0
+    rr_db_close h
+
+test "code_db_open wipes on ref mismatch"
+    dbp: "/tmp/repo-rag-test-code.db"
+    exec ("rm -f \"" ++ dbp ++ "\"")
+    src2: "/tmp/repo-rag-test-src2"
+    exec ("rm -rf \"" ++ src2 ++ "\"")
+    make_dir src2
+    write_file (src2 ++ "/a.go") "package main\n\nfunc Alpha() {}\n"
+    h1: code_db_open dbp "https://x/y/z" "main"
+    code_sync h1 src2
+    rr_db_close h1
+    -- same url/ref: data survives the reopen
+    h2: code_db_open dbp "https://x/y/z" "main"
+    loaded2: code_load h2
+    assert_eq (len (get loaded2 "symbols")) 1
+    rr_db_close h2
+    -- different ref: full wipe
+    h3: code_db_open dbp "https://x/y/z" "dev"
+    loaded3: code_load h3
+    assert_eq (len (get loaded3 "symbols")) 0
+    rr_db_close h3
+
+test "code_sync detects updates and removals"
+    src3: "/tmp/repo-rag-test-src3"
+    exec ("rm -rf \"" ++ src3 ++ "\"")
+    make_dir src3
+    write_file (src3 ++ "/a.go") "package main\n\nfunc Alpha() {}\n"
+    h: code_db_open ":memory:" "u" "r"
+    st: code_sync h src3
+    assert_eq (get st "added") 1
+    write_file (src3 ++ "/a.go") "package main\n\nfunc Alpha() {}\n\nfunc Gamma() {}\n"
+    st2: code_sync h src3
+    assert_eq (get st2 "updated") 1
+    loaded: code_load h
+    assert_eq (len (get loaded "symbols")) 2
+    exec ("rm -f \"" ++ src3 ++ "/a.go\"")
+    st3: code_sync h src3
+    assert_eq (get st3 "removed") 1
+    loaded2: code_load h
+    assert_eq (len (get loaded2 "symbols")) 0
+    rr_db_close h
+
+--- === Markdown keyword index (docs-kw.db) ===
+
+test "md_chunk_file tracks headings across fences"
+    dir: "/tmp/repo-rag-test-md"
+    exec ("rm -rf \"" ++ dir ++ "\"")
+    make_dir dir
+    f: dir ++ "/a.md"
+    write_file f "# Top\n\nintro text\n\n```bash\n# not a heading\necho hi\n```\n\n## Sub\n\nbody here\n"
+    chunks: md_chunk_file f
+    assert_eq (len chunks) 1
+    c: at chunks 0
+    assert_eq (get c "heading") "Top > Sub"
+    assert_contains (get c "text") "# not a heading"
+    assert_eq (get c "line_start") 1
+
+test "md_chunk_file splits large files"
+    dir2: "/tmp/repo-rag-test-md2"
+    exec ("rm -rf \"" ++ dir2 ++ "\"")
+    make_dir dir2
+    body: ""
+    i: 0
+    while i < 120
+        body: body ++ "padding line with some filler words to grow\n"
+        i: i + 1
+    f2: dir2 ++ "/big.md"
+    write_file f2 ("# Big\n" ++ body)
+    chunks: md_chunk_file f2
+    assert_eq ((len chunks) > 1) true
+    assert_eq (get (at chunks 0) "line_start") 1
+
+test "md_sync and md_search roundtrip"
+    dir3: "/tmp/repo-rag-test-kw"
+    exec ("rm -rf \"" ++ dir3 ++ "\"")
+    make_dir dir3
+    write_file (dir3 ++ "/alpha.md") "# Alpha\n\nThe bytecode VM compiles AST nodes into instructions.\n"
+    write_file (dir3 ++ "/beta.md") "# Beta\n\nCooking pasta requires boiling water.\n"
+    kh: md_db_open ":memory:"
+    st: md_sync kh dir3
+    assert_eq (get st "added") 2
+    res: md_search kh "bytecode vm compile" 5
+    assert_eq (len res) 1
+    top: at res 0
+    assert_contains (get top "path") "alpha.md"
+    assert_contains (get top "text") "instructions"
+    -- stopword-only queries yield nothing
+    assert_eq (len (md_search kh "the and was" 5)) 0
+    -- update detection re-chunks changed files only
+    write_file (dir3 ++ "/alpha.md") "# Alpha\n\nChannels send recv mutex semaphore.\n"
+    st2: md_sync kh dir3
+    assert_eq (get st2 "updated") 1
+    assert_eq (get st2 "unchanged") 1
+    res2: md_search kh "semaphore" 5
+    assert_eq (len res2) 1
+    -- removed files prune their chunks
+    exec ("rm -f \"" ++ dir3 ++ "/beta.md\"")
+    st3: md_sync kh dir3
+    assert_eq (get st3 "removed") 1
+    assert_eq (len (md_search kh "pasta" 5)) 0
+    rr_db_close kh
+
 print "=== repo-rag code-index tests complete ==="

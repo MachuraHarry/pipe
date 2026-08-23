@@ -1,8 +1,15 @@
 --! repo-rag — a generic MCP server exposing RAG over ANY Git repository.
 --! Sibling of pipe_docs_server.pipe: instead of hardcoding the Pipe repo it
---! takes a repository URL, clones it shallow, prunes junk directories, indexes
---! ALL Markdown (docs-pipe module) and scans source declarations across Go,
---! Pipe, Python, JS/TS, Rust plus a generic fallback for other languages.
+--! takes a repository URL, clones it shallow, prunes junk directories and
+--! builds THREE persistent SQLite indexes in the cache dir:
+--!   code.db     — source declarations (Go, Pipe, Python, JS/TS, Rust +
+--!                 generic fallback), synced incrementally per-file by
+--!                 SHA-256 (repo_rag_lib)
+--!   docs-kw.db  — heading-aware Markdown chunks for keyword-only search,
+--!                 works WITHOUT any API key (repo_rag_lib)
+--!   docs.db     — docs-pipe semantic index with embeddings; only built
+--!                 when an AI key is configured, auto-reindexed when the
+--!                 checkout HEAD changes
 --! AI agents can then search_docs / ask_docs / search_code / read_source and
 --! friends without digging through the repository themselves.
 --!
@@ -10,13 +17,16 @@
 --!   REPO_RAG_URL                        — required, e.g. https://github.com/user/repo
 --!   REPO_RAG_REF                        — optional branch/tag (default branch otherwise)
 --!   REPO_RAG_CACHE                      — cache dir (default ~/.pipe/cache/repo-rag/<owner>__<repo>)
---!   DEEPSEEK_API_KEY | OPENAI_API_KEY   — enables semantic search + ask_docs
+--!   DEEPSEEK_API_KEY | OPENAI_API_KEY   — enables semantic search + ask_docs;
+--!                                         without a key search_docs falls
+--!                                         back to keyword-only mode
 --!
 --! Run: REPO_RAG_URL=... pipe examples/repo_rag_server.pipe
---! The first run clones the repo and builds the docs index (a few minutes for
---! large repositories); subsequent runs reuse the persistent SQLite index.
---! Repository updates require deleting the cache dir or restarting (ref change
---! triggers a fresh clone automatically).
+--! The first run clones the repo and builds all indexes (a few minutes for
+--! large repositories); subsequent runs reuse the SQLite databases and only
+--! hash-check files incrementally. A ref change triggers a fresh clone and
+--! index wipe automatically; other repository updates require deleting the
+--! cache dir or restarting.
 
 import "docs-pipe"
 import "lib/pipe_docs_lib.pipe"
@@ -37,7 +47,7 @@ sandbox_profile "rag-serve" {fs: "read-only", exec: false, network: true, networ
 
 --- === Global state === ---
 
-ST: {url: "", ref: "", owner: "", name: "", slug: "", src: "", home: "", cache: "", idx_docs: nil, all_files: [], md_files: [], code_symbols: [], code_files: [], languages: {}, has_ai: false, ready: false, ai_ready: false, err: ""}
+ST: {url: "", ref: "", owner: "", name: "", slug: "", src: "", home: "", cache: "", deepseek_key: "", openai_key: "", idx_docs: nil, idx_code: nil, idx_kw: nil, all_files: [], md_files: [], code_symbols: [], code_files: [], languages: {}, sync_code: nil, sync_kw: nil, has_ai: false, ready: false, ai_ready: false, err: ""}
 
 -- Capture env vars before sandbox activation
 _env_url: env "REPO_RAG_URL"
@@ -61,7 +71,29 @@ if _env_cache != nil && _env_cache != ""
 
 set_sandbox "rag-build"
 
---- === Cache & fetch === ---
+--- === Input validation ===
+-- The URL ends up inside double-quoted shell commands (git clone, rm -rf),
+-- so only a fixed safe charset may pass: no quotes, dollar, backtick,
+-- whitespace or shell metacharacters. Also rejects option-style leading
+-- dashes so the value can never be parsed as a git flag.
+
+fn valid_repo_url url
+    if url == nil || url == ""
+        return false
+    n: len url
+    if n < 4 || n > 300
+        return false
+    if (substring url 0 1) == "-"
+        return false
+    allowed: "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789._-/:@~+"
+    i: 0
+    while i < n
+        if not (contains allowed (substring url i (i + 1)))
+            return false
+        i: i + 1
+    true
+
+--- === Cache & fetch ===
 
 fn cache_dir
     d: get ST "cache"
@@ -74,10 +106,19 @@ fn cache_dir
     make_dir d
     d
 
+-- Current HEAD commit of the checkout ("" when unavailable). Used to detect
+-- upstream updates of the same ref so the semantic docs index can reindex.
+fn git_head src
+    r: exec ("git -C \"" ++ src ++ "\" rev-parse HEAD")
+    if (get r "status") != 0
+        return ""
+    trim (get r "output")
+
+-- Returns {ok: true, src: <path>} on success or {ok: false, err: <reason>}.
 fn ensure_src
     cfg: slug_parts (get ST "url")
     if (get cfg "ok") == false
-        return "ERROR: REPO_RAG_URL is missing or not a valid Git repository URL"
+        return {ok: false, err: "REPO_RAG_URL is missing or not a valid Git repository URL"}
     set ST "owner" (get cfg "owner")
     set ST "name" (get cfg "repo")
     set ST "slug" (get cfg "slug")
@@ -94,7 +135,7 @@ fn ensure_src
         if file_exists marker_path
             marker: trim (read_file marker_path)
         if marker == want_ref
-            return src
+            return {ok: true, src: src}
         -- A different ref is requested: wipe the stale checkout.
         exec ("rm -rf \"" ++ src ++ "\"")
     cmd: "git clone --depth 1 "
@@ -103,11 +144,11 @@ fn ensure_src
     cmd: cmd ++ "\"" ++ (get ST "url") ++ "\" \"" ++ src ++ "\""
     r: exec cmd
     if (get r "status") != 0
-        return ("ERROR: git clone failed: " ++ (get r "error"))
+        return {ok: false, err: ("git clone failed: " ++ (get r "error"))}
     if not (file_exists src)
-        return "ERROR: git clone produced no repository"
+        return {ok: false, err: "git clone produced no repository"}
     write_file marker_path want_ref
-    src
+    {ok: true, src: src}
 
 --- === Junk pruning === ---
 -- The docs-pipe indexer walks without exclusions, so build/vendor noise is
@@ -160,34 +201,30 @@ fn configure_provider
     set ST "has_ai" false
     nil
 
---- === Docs index (one combined corpus over ALL Markdown) === ---
+--- === Docs index (semantic, docs-pipe; requires AI) === ---
 
 fn build_docs
     src: get ST "src"
     cd: cache_dir 0
     db: path_join cd "docs.db"
+    head_path: path_join cd "docs.head"
+    head_now: git_head src
+    stored_head: ""
+    if file_exists head_path
+        stored_head: trim (read_file head_path)
     if not (file_exists db)
         tmp: doc_index src {db: db}
         doc_close tmp
     set ST "idx_docs" (doc_index src {db: db})
+    -- Same ref but newer commits upstream: incrementally re-embed only the
+    -- changed Markdown files instead of leaving a stale index behind.
+    if stored_head != "" && head_now != "" && stored_head != head_now
+        doc_reindex (get ST "idx_docs")
+    if head_now != ""
+        write_file head_path head_now
     nil
 
---- === Code index (multi-language declaration scan) === ---
-
-fn list_extend target src_list
-    i: 0
-    while i < (len src_list)
-        push target (at src_list i)
-        i: i + 1
-    target
-
-fn bump_lang lang
-    langs: get ST "languages"
-    cur: get langs lang
-    if cur == nil
-        cur: 0
-    set langs lang (cur + 1)
-    nil
+--- === Persistent indexes (code.db + docs-kw.db; work without AI) === ---
 
 fn build_all_files
     set ST "all_files" (walk_tree (get ST "src"))
@@ -207,27 +244,67 @@ fn build_md_list
     set ST "md_files" md
     nil
 
-fn build_code_index
+fn load_code_state ch
+    loaded: code_load ch
+    set ST "code_symbols" (get loaded "symbols")
+    set ST "code_files" (get loaded "files")
+    set ST "languages" (get loaded "languages")
+    nil
+
+fn open_code_db
+    code_db_open (path_join (cache_dir 0) "code.db") (get ST "url") (get ST "ref")
+
+fn open_kw_db
+    md_db_open (path_join (cache_dir 0) "docs-kw.db")
+
+-- The pure-Pipe sqlite module persists ONLY on db_close, while the serve
+-- handles stay open for the whole process lifetime. Each index therefore
+-- runs through a throwaway build handle whose close() flushes to disk,
+-- followed by a fresh serve handle loaded from the persisted file. Under
+-- the locked rag-serve profile (read-only FS) the final close fails; the
+-- catch falls back to an in-memory resync on the serving handle.
+fn sync_code_index
     src: get ST "src"
-    files: get ST "all_files"
-    symbols: []
-    code_files: []
-    i: 0
-    while i < (len files)
-        f: at files i
-        if (lang_for_file f) != ""
-            rel: rel_path src f
-            push code_files rel
-            bump_lang (lang_for_file f)
-            decls: scan_any_file f
-            j: 0
-            while j < (len decls)
-                set (at decls j) "file" rel
-                push symbols (at decls j)
-                j: j + 1
-        i: i + 1
-    set ST "code_symbols" symbols
-    set ST "code_files" code_files
+    try
+        hb: open_code_db 0
+        set ST "sync_code" (code_sync hb src)
+        load_code_state hb
+        rr_db_close hb
+        set ST "idx_code" (open_code_db 0)
+    catch e
+        ch: get ST "idx_code"
+        if ch != nil
+            set ST "sync_code" (code_sync ch src)
+            load_code_state ch
+    nil
+
+fn sync_kw_index
+    src: get ST "src"
+    try
+        kb: open_kw_db 0
+        set ST "sync_kw" (md_sync kb src)
+        rr_db_close kb
+        set ST "idx_kw" (open_kw_db 0)
+    catch e
+        kh: get ST "idx_kw"
+        if kh != nil
+            set ST "sync_kw" (md_sync kh src)
+    nil
+
+fn build_persistent
+    -- Open (or create) both SQLite indexes and incrementally sync them
+    -- against the checkout. Works without any AI key: code.db holds the
+    -- declaration index for search_code, docs-kw.db holds Markdown chunks
+    -- for keyword-only search_docs. Both syncs skip unchanged files via
+    -- SHA-256, so warm starts cost a few hash checks per file only.
+    sync_code_index 0
+    sync_kw_index 0
+    nil
+
+fn resync_persistent
+    -- Re-run the incremental syncs (refresh_index tool).
+    sync_code_index 0
+    sync_kw_index 0
     nil
 
 --- === Tool implementations === ---
@@ -278,15 +355,23 @@ fn _chunk_keyword_hits text_lower heading_lower sig
     hits
 
 fn mcp_search_docs query
-    if (get ST "has_ai") == false
-        return "Semantic search is unavailable: set DEEPSEEK_API_KEY (or OPENAI_API_KEY) and restart."
     if query == nil || query == ""
         return []
-    idx: get ST "idx_docs"
-    if idx == nil
+    -- Semantic hybrid search when an AI key is configured...
+    if (get ST "has_ai") == true
+        idx: get ST "idx_docs"
+        if idx != nil
+            try
+                return (normalize_results (doc_search idx query 8))
+            catch e
+                return ("search failed: " ++ (to_str e))
+    -- ...keyword-only fallback over the persistent Markdown chunk index,
+    -- which needs no API key and always exists.
+    kw: get ST "idx_kw"
+    if kw == nil
         return "No documentation index is available (no Markdown found or indexing failed)."
     try
-        normalize_results (doc_search idx query 8)
+        normalize_results (md_search kw query 8)
     catch e
         "search failed: " ++ (to_str e)
 
@@ -354,7 +439,19 @@ fn _code_score_token symbol content file tok
             s: s + 5
     s
 
-fn mcp_search_code query
+-- Schema keys are passed positionally in SORTED order ("limit" before
+-- "query") and omitted optionals shift remaining args left, so a call with
+-- only a query arrives as limit=<query string>, query=nil. The header of
+-- this handler normalizes both shapes.
+fn mcp_search_code limit query
+    if (is_str limit) && (query == nil)
+        query: limit
+        limit: nil
+    lim: 20
+    if is_num limit
+        lim: limit
+    if lim < 1
+        lim: 1
     if query == nil || query == ""
         return []
     q: lower query
@@ -384,8 +481,14 @@ fn mcp_search_code query
     i: 0
     while i < (len syms)
         s: at syms i
-        symbol: lower (get s "symbol")
-        content: lower (get s "content")
+        -- lowercase copies are precomputed at index time; fall back for
+        -- rows that predate the SQLite schema
+        symbol: get s "symbol_lower"
+        if symbol == nil
+            symbol: lower (get s "symbol")
+        content: get s "content_lower"
+        if content == nil
+            content: lower (get s "content")
         file: lower (get s "file")
         score: 0
         tj: 0
@@ -396,12 +499,11 @@ fn mcp_search_code query
             push scored {s: s, score: score}
         i: i + 1
     ordered: sorted_by scored (fn x: (0 - (get x "score")))
-    limit: 20
-    if limit > (len ordered)
-        limit: (len ordered)
+    if lim > (len ordered)
+        lim: (len ordered)
     out: []
     j: 0
-    while j < limit
+    while j < lim
         e: at ordered j
         s: get e "s"
         item: {}
@@ -414,14 +516,48 @@ fn mcp_search_code query
         j: j + 1
     out
 
-fn mcp_read_source path
+-- Render "line-number<TAB>text" rows for lines [start_line, start_line+max_lines),
+-- mirroring pipe_docs_lib's read_with_numbers output format but with a
+-- start offset so agents can page through long files.
+fn read_slice_numbers path start_line max_lines
+    lines: read_lines path
+    n: len lines
+    from: start_line - 1
+    if from < 0
+        from: 0
+    if from > n
+        from: n
+    to: from + max_lines
+    if to > n
+        to: n
+    parts: []
+    i: from
+    while i < to
+        push parts ((to_str (i + 1)) ++ "\t" ++ (at lines i))
+        i: i + 1
+    text: ""
+    if (len parts) > 0
+        text: (join parts "\n") ++ "\n"
+    {text: text, total: n, truncated: to < n}
+
+-- Same sorted-schema note as mcp_search_code: keys arrive as
+-- ("offset", "path"); a call with only a path arrives shifted.
+fn mcp_read_source offset path
+    if (is_str offset) && (path == nil)
+        path: offset
+        offset: nil
+    start_line: 1
+    if is_num offset
+        start_line: offset
+    if start_line < 1
+        start_line: 1
     r: safe_resolve_path (get ST "src") path
     if (get r "ok") == false
         return (get r "err")
-    res: read_with_numbers (get r "full") 500
+    res: read_slice_numbers (get r "full") start_line 500
     text: get res "text"
     if (get res "truncated") == true
-        return text ++ "\n... (truncated, showing first 500 of " ++ (to_str (get res "total")) ++ " lines; use search_code to locate the relevant symbol)"
+        return text ++ "\n... (truncated, showing lines " ++ (to_str start_line) ++ "-" ++ (to_str (start_line + 499)) ++ " of " ++ (to_str (get res "total")) ++ "; use the offset parameter or search_code to locate the relevant symbol)"
     text
 
 fn mcp_list_sources
@@ -443,12 +579,16 @@ fn mcp_repo_info
     set info "markdown_files" (len (get ST "md_files"))
     set info "source_files" (len (get ST "code_files"))
     set info "code_symbols" (len (get ST "code_symbols"))
+    set info "search_mode" "semantic+keyword"
+    if (get ST "has_ai") == false
+        set info "search_mode" "keyword-only"
     info
 
 fn mcp_index_status
     syms: get ST "code_symbols"
     files: get ST "code_files"
     idx: get ST "idx_docs"
+    kw: get ST "idx_kw"
     status: {}
     set status "ready" (get ST "ready")
     set status "has_ai" (get ST "has_ai")
@@ -458,21 +598,29 @@ fn mcp_index_status
     set status "code_symbols" (len syms)
     set status "markdown_files" (len (get ST "md_files"))
     set status "languages" (get ST "languages")
+    if kw != nil
+        set status "docs_kw" (md_status kw)
     if idx != nil
-        set status "docs" (doc_index_status idx)
+        set status "docs_semantic" (doc_index_status idx)
+    set status "sync_code" (get ST "sync_code")
+    set status "sync_kw" (get ST "sync_kw")
     status
 
 -- Rebuild-only: under sandbox_lock "rag-serve" exec is permanently blocked,
 -- so a network re-fetch (git pull) is impossible here by design. Indexes are
--- rebuilt from the cached checkout; repository updates require a server
--- restart (a ref change re-clones automatically).
+-- synced incrementally from the cached checkout (SHA-256 per file, so only
+-- changed files are rescanned); repository updates require a server restart
+-- (a ref change re-clones automatically).
 fn mcp_refresh
-    build_code_index 0
+    resync_persistent 0
     if (get ST "has_ai") == true
         idx: get ST "idx_docs"
         if idx != nil
             doc_reindex idx
-    "refreshed"
+    out: {code: (get ST "sync_code"), docs_kw: (get ST "sync_kw")}
+    if (get ST "has_ai") == true
+        set out "docs_semantic" "reindexed"
+    out
 
 --- === Startup === ---
 
@@ -481,19 +629,32 @@ fn init_all
     if url == nil || url == ""
         set ST "err" "REPO_RAG_URL is not set — point it at e.g. https://github.com/user/repo and restart."
         return nil
-    src: ensure_src 0
-    if (substring src 0 5) == "ERROR"
-        set ST "err" src
+    if (valid_repo_url url) == false
+        set ST "err" "REPO_RAG_URL contains characters outside the allowed set (letters, digits, . _ - / : @ ~ +) — refusing to pass it to the shell."
         return nil
+    res: ensure_src 0
+    if (get res "ok") == false
+        set ST "err" (get res "err")
+        return nil
+    src: get res "src"
     set ST "src" src
     prune_junk src
     build_all_files 0
     build_md_list 0
     configure_provider 0
     set ST "ai_ready" (get ST "has_ai")
+    -- Persistent code + keyword-docs indexes: no AI key required.
+    try
+        build_persistent 0
+    catch e
+        set ST "err" ("index build failed: " ++ (to_str e))
+        return nil
     if (get ST "has_ai") == true
-        build_docs 0
-    build_code_index 0
+        try
+            build_docs 0
+        catch e
+            -- Semantic search stays optional; keyword mode keeps serving.
+            nil
     set ST "ready" true
     nil
 
@@ -509,16 +670,16 @@ repo_name: get ST "name"
 if owner != "" && repo_name != ""
     server_name: "Repo RAG (" ++ owner ++ "/" ++ repo_name ++ ")"
 
-ai_tool "search_docs" "Semantic + keyword search across ALL Markdown documentation in the repository (README, docs/, wikis). Returns top matches with path, heading, line number and a snippet." {query: "Search query"} mcp_search_docs
+ai_tool "search_docs" "Search across ALL Markdown documentation in the repository (README, docs/, wikis). With an AI key configured this is a semantic hybrid search; without one it falls back to keyword-only matching. Returns top matches with path, heading, line number and a snippet." {query: "Search query"} mcp_search_docs
 ai_tool "ask_docs" "Answer a question about the repository using its documentation as context, returning the answer and cited source chunks. Requires DEEPSEEK_API_KEY." {question: "Question about the repository"} mcp_ask_docs
 ai_tool "read_doc" "Read any file from the repository by relative path (e.g. README.md, docs/architecture.md)." {path: "Repository-relative file path"} mcp_read_doc
 ai_tool "list_docs" "List all discovered Markdown files (.md/.mdx) in the repository." {} mcp_list_docs
-ai_tool "search_code" "Find functions, types, classes, structs, enums and tests in the repository source (Go, Pipe, Python, JS/TS, Rust + generic fallback) by name or keyword. Returns file, kind, symbol, line and the declaration." {query: "Symbol or keyword to find"} mcp_search_code
-ai_tool "read_source" "Read a source file with line numbers by relative path." {path: "Repository-relative source file path"} mcp_read_source
+ai_tool "search_code" "Find functions, types, classes, structs, enums and tests in the repository source (Go, Pipe, Python, JS/TS, Rust + generic fallback) by name or keyword. Returns file, kind, symbol, line and the declaration. Supports up to 200 results via limit." {limit: "Maximum number of results to return, 1-200 (default 20)", query: "Symbol or keyword to find"} mcp_search_code
+ai_tool "read_source" "Read a source file with line numbers by relative path. Shows up to 500 lines per call; use offset to page through longer files." {offset: "1-based line number to start reading from (default 1)", path: "Repository-relative source file path"} mcp_read_source
 ai_tool "list_sources" "List all recognized source files in the repository." {} mcp_list_sources
-ai_tool "repo_info" "Report which repository is indexed: URL, ref, detected languages, file counts and readiness." {} mcp_repo_info
-ai_tool "index_status" "Report index statistics: source files, code symbols, markdown files and docs chunks." {} mcp_index_status
-ai_tool "refresh_index" "Rebuild the docs and code indexes from the cached checkout (no network). Repository updates require a server restart." {} mcp_refresh
+ai_tool "repo_info" "Report which repository is indexed: URL, ref, detected languages, file counts, search mode and readiness." {} mcp_repo_info
+ai_tool "index_status" "Report index statistics: source files, code symbols, markdown files, keyword chunks, docs chunks and last sync counts." {} mcp_index_status
+ai_tool "refresh_index" "Incrementally re-sync the code and keyword-docs indexes from the cached checkout (no network, only changed files are reprocessed). Repository updates require a server restart." {} mcp_refresh
 
-mcp_server server_name "1.0.0"
+mcp_server server_name "1.1.0"
 mcp_serve_stdio

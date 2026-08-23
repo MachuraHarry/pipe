@@ -4,11 +4,16 @@ import (
 	"bytes"
 	"fmt"
 	"math"
+	"os"
 	"strings"
 
 	"github.com/MachuraHarry/pipe/pkg/compiler"
 	"github.com/MachuraHarry/pipe/pkg/object"
 )
+
+// debugTick enables the instruction sampler in Run(); set via
+// PIPE_VM_TICK=1. Temporary diagnostics aid.
+var debugTick = os.Getenv("PIPE_VM_TICK") == "1"
 
 const (
 	StackSize = 2048
@@ -108,6 +113,7 @@ type VM struct {
 	frames     []*Frame
 	frameIndex int
 	curLine    int
+	tick       uint64
 	sourceFile string
 	// pendingError is the first error produced since the last try/catch
 	// boundary. The tree-walker aborts at an uncaught error; the VM cannot
@@ -233,6 +239,24 @@ func (vm *VM) Run() (err error) {
 	for {
 		frame := vm.currentFrame()
 		ins := frame.instructions
+
+		if debugTick {
+			vm.tick++
+			if vm.tick%300000 == 0 {
+				if cl := frame.closure; cl != nil {
+					fmt.Fprintf(os.Stderr, "TICK line=%d ip=%d op=%d sp=%d fr=%d id=ins%d/loc%d/l%d", frame.lineAt(frame.ip), frame.ip, ins[frame.ip], vm.sp, vm.frameIndex, len(frame.instructions), cl.Fn.NumLocals, len(cl.Fn.Lines))
+					if len(frame.instructions) == 687 && frame.ip >= 500 {
+						l9 := vm.stack[frame.basePointer+9]
+						l10 := vm.stack[frame.basePointer+10]
+						fmt.Fprintf(os.Stderr, " L9=%v L10=%v bp=%d", l9, l10, frame.basePointer)
+					}
+					if len(frame.instructions) == 687 && frame.ip == 663 {
+						fmt.Fprintf(os.Stderr, " | vi=%v vr=%v", vm.stack[frame.basePointer+13], vm.stack[frame.basePointer+5])
+					}
+					fmt.Fprintln(os.Stderr)
+				}
+			}
+		}
 
 		if frame.ip >= len(ins) {
 			if err := vm.reportPending(); err != nil {

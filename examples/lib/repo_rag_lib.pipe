@@ -1,13 +1,20 @@
 --! repo-rag shared library.
---! Pure, side-effect-free helpers for examples/repo_rag_server.pipe and its
---! offline test script (scripts/repo-rag-code-index-test.pipe): repository
---! URL/slug parsing, junk-dir and extension classification, declaration
---! parsing and scanning for Go, Pipe, Python, JS-TS, Rust plus a generic
---! fallback, a recursive tree walker with junk exclusion and relative path
---! mapping. No network, no AI, no global state.
+--! Helpers for examples/repo_rag_server.pipe and its offline test script
+--! (scripts/repo-rag-code-index-test.pipe): repository URL/slug parsing,
+--! junk-dir and extension classification, declaration parsing and scanning
+--! for Go, Pipe, Python, JS-TS, Rust plus a generic fallback, a recursive
+--! tree walker with junk exclusion and relative path mapping — plus an
+--! opt-in SQLite persistence layer for the code-symbol index (code.db) and
+--! a keyword-only Markdown chunk index (docs-kw.db), both mirroring the
+--! incremental SHA-256 per-file scheme of the docs-pipe module.
+--! Importing this library has NO side effects (no network, no AI, no global
+--! state); database work happens only when the *_db_open/*_sync functions
+--! are called explicitly.
 --! Self-contained on purpose: an imported library evaluates in its own
 --! environment and can neither relatively import siblings nor resolve their
 --! injected symbols, so every parser needed by scan_any_file lives here.
+
+import "sqlite" as sq
 
 --- === Identifier & string helpers ===
 
@@ -95,6 +102,10 @@ export fn slug_parts url
         s: substring s (proto + 3) (len s)
     s: strip_suffix s "/"
     s: strip_suffix s ".git"
+    -- GitHub/GitLab web URLs of a branch, e.g. .../repo/tree/main
+    tree_idx: index_of s "/tree/"
+    if tree_idx > 0
+        s: substring s 0 tree_idx
     parts: split s "/"
     n: len parts
     if n < 2
@@ -319,6 +330,8 @@ export fn generic_decl line
 
 fn rr_go_func_name line
     rest: substring line 5 (len line)
+    -- gofmt may place the method name after a tab: normalize before splitting.
+    rest: replace_all rest "\t" " "
     if (substring rest 0 1) == "("
         parts: split rest ") "
         if (len parts) >= 2
@@ -448,3 +461,376 @@ export fn walk_tree root
 
 export fn rel_path src p
     replace p (src ++ "/") ""
+
+--- === SQL escaping & time ===
+
+export fn esc_sql s
+    -- Escape a value for embedding inside a single-quoted SQL literal.
+    if s == nil
+        return ""
+    replace_all s "'" "''"
+
+fn rr_now_str _
+    format_time (now) "2006-01-02 15:04:05"
+
+-- Close a database handle created by code_db_open/md_db_open. Handles live
+-- in THIS library's sqlite module instance, so callers (test scripts) must
+-- close through this wrapper instead of importing sqlite themselves.
+export fn rr_db_close h
+    sq.db_close h
+    nil
+
+--- === Code index persistence (code.db) ===
+-- Mirrors docs-pipe's incremental scheme: one row per scanned file in
+-- `files` (SHA-256 content hash), declaration rows in `symbols`. On sync,
+-- unchanged files are skipped, changed files are deleted and rescanned and
+-- vanished files are pruned. `meta` stores url/ref so a re-clone (ref
+-- change or different repository in an overridden cache dir) wipes the DB.
+-- Lowercased symbol/content copies are stored precomputed so search does
+-- not call lower() per query per symbol.
+
+export fn code_db_open db_path url ref
+    h: sq.db_open db_path
+    -- NOTE: "key" is a reserved word in the pure-Pipe SQL lexer, hence the
+    -- meta column names below.
+    sq.db_exec h "CREATE TABLE IF NOT EXISTS meta (name TEXT PRIMARY KEY, val TEXT)"
+    sq.db_exec h "CREATE TABLE IF NOT EXISTS files (path TEXT PRIMARY KEY, hash TEXT, lang TEXT)"
+    sq.db_exec h "CREATE TABLE IF NOT EXISTS symbols (id INTEGER PRIMARY KEY AUTOINCREMENT, file TEXT, kind TEXT, symbol TEXT, symbol_lower TEXT, line_start INTEGER, content TEXT, content_lower TEXT, created TEXT)"
+    m: {}
+    mrows: sq.db_query h "SELECT name, val FROM meta"
+    i: 0
+    while i < (len mrows)
+        set m (get (at mrows i) "name") (get (at mrows i) "val")
+        i: i + 1
+    if (get m "url") != url || (get m "ref") != ref
+        sq.db_exec h "DELETE FROM symbols"
+        sq.db_exec h "DELETE FROM files"
+        sq.db_exec h "DELETE FROM meta"
+    sq.db_exec h ("INSERT INTO meta (name, val) VALUES ('url', '" ++ (esc_sql url) ++ "')")
+    sq.db_exec h ("INSERT INTO meta (name, val) VALUES ('ref', '" ++ (esc_sql ref) ++ "')")
+    h
+
+fn code_index_file h f rel fhash lang
+    decls: scan_any_file f
+    k: 0
+    nd: len decls
+    while k < nd
+        d: at decls k
+        sym: get d "symbol"
+        cont: get d "content"
+        sql: "INSERT INTO symbols (file, kind, symbol, symbol_lower, line_start, content, content_lower, created) VALUES ('"
+        sql: sql ++ (esc_sql rel) ++ "', '"
+        sql: sql ++ (esc_sql (get d "kind")) ++ "', '"
+        sql: sql ++ (esc_sql sym) ++ "', '"
+        sql: sql ++ (esc_sql (lower sym)) ++ "', "
+        sql: sql ++ (to_str (get d "line_start")) ++ ", '"
+        sql: sql ++ (esc_sql cont) ++ "', '"
+        sql: sql ++ (esc_sql (lower cont)) ++ "', '"
+        sql: sql ++ (rr_now_str 0) ++ "')"
+        sq.db_exec h sql
+        k: k + 1
+    sq.db_exec h ("INSERT INTO files (path, hash, lang) VALUES ('" ++ (esc_sql rel) ++ "', '" ++ (esc_sql fhash) ++ "', '" ++ (esc_sql lang) ++ "')")
+    nil
+
+fn code_drop_file h rel
+    sq.db_exec h ("DELETE FROM symbols WHERE file = '" ++ (esc_sql rel) ++ "'")
+    sq.db_exec h ("DELETE FROM files WHERE path = '" ++ (esc_sql rel) ++ "'")
+    nil
+
+export fn code_sync h src
+    -- Incrementally bring code.db in line with the checkout at src.
+    -- Returns {added, updated, removed, unchanged}.
+    stats: {added: 0, updated: 0, removed: 0, unchanged: 0}
+    seen: {}
+    files: walk_tree src
+    i: 0
+    n: len files
+    while i < n
+        f: at files i
+        lang: lang_for_file f
+        if lang != ""
+            rel: rel_path src f
+            set seen rel true
+            fhash: sha256 (read_file f)
+            rows: sq.db_query h ("SELECT hash FROM files WHERE path = '" ++ (esc_sql rel) ++ "'")
+            if (len rows) == 0
+                code_index_file h f rel fhash lang
+                set stats "added" ((get stats "added") + 1)
+            else if (get (at rows 0) "hash") != fhash
+                code_drop_file h rel
+                code_index_file h f rel fhash lang
+                set stats "updated" ((get stats "updated") + 1)
+            else
+                set stats "unchanged" ((get stats "unchanged") + 1)
+        i: i + 1
+    frows: sq.db_query h "SELECT path FROM files"
+    j: 0
+    while j < (len frows)
+        fp: get (at frows j) "path"
+        if (get seen fp) == nil
+            code_drop_file h fp
+            set stats "removed" ((get stats "removed") + 1)
+        j: j + 1
+    stats
+
+export fn code_load h
+    -- Load everything back into the RAM shape the server serves from:
+    -- {symbols: [...], files: [...], languages: {...}}. Symbol rows keep
+    -- insertion order; the source-file list is sorted by path.
+    rows: sq.db_query h "SELECT file, kind, symbol, symbol_lower, line_start, content, content_lower FROM symbols ORDER BY id"
+    symbols: []
+    i: 0
+    n: len rows
+    while i < n
+        r: at rows i
+        item: {}
+        set item "file" (get r "file")
+        set item "kind" (get r "kind")
+        set item "symbol" (get r "symbol")
+        set item "symbol_lower" (get r "symbol_lower")
+        set item "line_start" (get r "line_start")
+        set item "content" (get r "content")
+        set item "content_lower" (get r "content_lower")
+        push symbols item
+        i: i + 1
+    frows: sq.db_query h "SELECT path, lang FROM files ORDER BY path"
+    flist: []
+    langs: {}
+    j: 0
+    nf: len frows
+    while j < nf
+        r: at frows j
+        push flist (get r "path")
+        l: get r "lang"
+        cur: get langs l
+        if cur == nil
+            set langs l 1
+        else
+            set langs l (cur + 1)
+        j: j + 1
+    {symbols: symbols, files: flist, languages: langs}
+
+--- === Markdown keyword index (docs-kw.db) ===
+-- Lightweight heading-aware chunker over ALL .md/.mdx files — docs-pipe
+-- minus embeddings. Enables keyword-only search_docs when no AI key is
+-- configured. Same incremental SHA-256 per-file scheme as the code index.
+
+fn md_is_fence line
+    if (len line) < 3
+        return false
+    (substring line 0 3) == "```"
+
+fn md_heading_level line
+    s: trim line
+    lvl: 0
+    i: 0
+    while i < (len s)
+        if (substring s i (i + 1)) == "#"
+            lvl: lvl + 1
+            i: i + 1
+        else
+            break
+    lvl
+
+fn md_heading_text line
+    s: trim line
+    lvl: md_heading_level s
+    if lvl == 0
+        return s
+    trim (substring s lvl (len s))
+
+fn md_push_heading stack level text
+    while (len stack) > 0
+        top: at stack ((len stack) - 1)
+        if (get top "level") >= level
+            pop stack
+        else
+            break
+    push stack {level: level, text: text}
+    stack
+
+fn md_heading_path stack
+    out: ""
+    i: 0
+    while i < (len stack)
+        if i > 0
+            out: out ++ " > "
+        out: out ++ (get (at stack i) "text")
+        i: i + 1
+    out
+
+export fn md_chunk_file path
+    -- Heading-aware chunks of ~1200 chars; code fences are never split and
+    -- "#" lines inside fences do not update the heading path.
+    lines: read_lines path
+    chunks: []
+    stack: []
+    in_code: false
+    buf: []
+    buf_start: 1
+    buf_chars: 0
+    heading: ""
+    i: 0
+    n: len lines
+    while i < n
+        line: at lines i
+        lineno: i + 1
+        if md_is_fence line
+            in_code: not in_code
+        if (not in_code) && ((md_heading_level line) > 0)
+            md_push_heading stack (md_heading_level line) (md_heading_text line)
+            heading: md_heading_path stack
+        push buf line
+        buf_chars: buf_chars + (len line) + 1
+        if buf_chars >= 1200
+            push chunks {file: path, heading: heading, line_start: buf_start, line_end: lineno, text: (join buf "\n")}
+            buf: []
+            buf_start: lineno + 1
+            buf_chars: 0
+        i: i + 1
+    if (len buf) > 0
+        push chunks {file: path, heading: heading, line_start: buf_start, line_end: n, text: (join buf "\n")}
+    chunks
+
+export fn md_db_open db_path
+    h: sq.db_open db_path
+    sq.db_exec h "CREATE TABLE IF NOT EXISTS files (path TEXT PRIMARY KEY, hash TEXT)"
+    sq.db_exec h "CREATE TABLE IF NOT EXISTS chunks (id INTEGER PRIMARY KEY AUTOINCREMENT, file TEXT, heading TEXT, line_start INTEGER, line_end INTEGER, content TEXT, content_lower TEXT, created TEXT)"
+    h
+
+fn md_index_file h f rel fhash
+    fchunks: md_chunk_file f
+    k: 0
+    nc: len fchunks
+    while k < nc
+        c: at fchunks k
+        text: get c "text"
+        sql: "INSERT INTO chunks (file, heading, line_start, line_end, content, content_lower, created) VALUES ('"
+        sql: sql ++ (esc_sql rel) ++ "', '"
+        sql: sql ++ (esc_sql (get c "heading")) ++ "', "
+        sql: sql ++ (to_str (get c "line_start")) ++ ", "
+        sql: sql ++ (to_str (get c "line_end")) ++ ", '"
+        sql: sql ++ (esc_sql text) ++ "', '"
+        sql: sql ++ (esc_sql (lower text)) ++ "', '"
+        sql: sql ++ (rr_now_str 0) ++ "')"
+        sq.db_exec h sql
+        k: k + 1
+    sq.db_exec h ("INSERT INTO files (path, hash) VALUES ('" ++ (esc_sql rel) ++ "', '" ++ (esc_sql fhash) ++ "')")
+    nil
+
+fn md_drop_file h rel
+    sq.db_exec h ("DELETE FROM chunks WHERE file = '" ++ (esc_sql rel) ++ "'")
+    sq.db_exec h ("DELETE FROM files WHERE path = '" ++ (esc_sql rel) ++ "'")
+    nil
+
+export fn md_sync h src
+    -- Incrementally bring docs-kw.db in line with the checkout at src over
+    -- all .md/.mdx files. Returns {added, updated, removed, unchanged}.
+    stats: {added: 0, updated: 0, removed: 0, unchanged: 0}
+    seen: {}
+    files: walk_tree src
+    i: 0
+    n: len files
+    while i < n
+        f: at files i
+        e: path_ext f
+        if e == ".md" || e == ".mdx"
+            rel: rel_path src f
+            set seen rel true
+            fhash: sha256 (read_file f)
+            rows: sq.db_query h ("SELECT hash FROM files WHERE path = '" ++ (esc_sql rel) ++ "'")
+            if (len rows) == 0
+                md_index_file h f rel fhash
+                set stats "added" ((get stats "added") + 1)
+            else if (get (at rows 0) "hash") != fhash
+                md_drop_file h rel
+                md_index_file h f rel fhash
+                set stats "updated" ((get stats "updated") + 1)
+            else
+                set stats "unchanged" ((get stats "unchanged") + 1)
+        i: i + 1
+    frows: sq.db_query h "SELECT path FROM files"
+    j: 0
+    while j < (len frows)
+        fp: get (at frows j) "path"
+        if (get seen fp) == nil
+            md_drop_file h fp
+            set stats "removed" ((get stats "removed") + 1)
+        j: j + 1
+    stats
+
+fn md_is_stop t
+    stops: split "a an the and or but if of in on at to for with about into is are was were be been being do does did doing how what which who this that these those it its as from by can could should would will not no nor your you we they he she has have had i me my them their there here when where why then than so too very just also using use der die das den dem des ein eine einer einem eines und oder aber wenn von im auf an zu zur zum für mit über ist sind war waren bin bist sein wird werden wie was welche wer dieser diese dieses es ich du er sie wir ihr man nicht kein keine auch als aus bei nach nur schon noch dann da hier dort warum wann" " "
+    contains stops t
+
+export fn md_search h query k
+    -- Keyword-only retrieval over the Markdown chunk index. Tokens are
+    -- lowercased alphanumeric runs (>= 3 chars, stopwords removed); heading
+    -- hits weigh 3x, each content occurrence counts once. Score is
+    -- normalized by the token count. Result shape matches doc_search:
+    -- {path, heading, line_start, line_end, text, score, chunk_id}.
+    if k == nil
+        k: 8
+    if query == nil || query == ""
+        return []
+    cleaned: regex_replace "[^a-z0-9äöüß_]+" " " (lower query)
+    parts: split cleaned " "
+    toks: []
+    i: 0
+    while i < (len parts)
+        t: at parts i
+        if (len t) >= 3 && (not (md_is_stop t))
+            push toks t
+        i: i + 1
+    if (len toks) == 0
+        return []
+    rows: sq.db_query h "SELECT id, file, heading, line_start, line_end, content, content_lower FROM chunks"
+    scored: []
+    i: 0
+    n: len rows
+    while i < n
+        c: at rows i
+        cl: get c "content_lower"
+        hl: lower (get c "heading")
+        s: 0
+        j: 0
+        nt: len toks
+        while j < nt
+            t: at toks j
+            if contains hl t
+                s: s + 3
+            cnt: (len (split cl t)) - 1
+            if cnt > 0
+                s: s + cnt
+            j: j + 1
+        if s > 0
+            -- float division: force one operand onto the float path so
+            -- 1-hit chunks do not truncate to score 0
+            set c "score" ((s * 1.0) / nt)
+            push scored c
+        i: i + 1
+    ordered: sorted_by scored (fn x: (0 - (get x "score")))
+    lim: k
+    if lim > (len ordered)
+        lim: (len ordered)
+    out: []
+    j: 0
+    while j < lim
+        c: at ordered j
+        item: {}
+        set item "path" (get c "file")
+        set item "heading" (get c "heading")
+        set item "line_start" (get c "line_start")
+        set item "line_end" (get c "line_end")
+        set item "text" (get c "content")
+        set item "score" (get c "score")
+        set item "chunk_id" (get c "id")
+        push out item
+        j: j + 1
+    out
+
+export fn md_status h
+    -- Chunk/file counters for index_status.
+    crows: sq.db_query h "SELECT id FROM chunks"
+    frows: sq.db_query h "SELECT path FROM files"
+    {files: (len frows), chunks: (len crows)}

@@ -59,7 +59,7 @@
     <div class="stat"><span class="stat-num">36</span><div class="stat-label">AI Builtins</div></div>
     <div class="stat"><span class="stat-num">674</span><div class="stat-label">Tests</div></div>
     <div class="stat"><span class="stat-num">238</span><div class="stat-label">Total Builtins</div></div>
-    <div class="stat"><span class="stat-num">4</span><div class="stat-label">Providers</div></div>
+    <div class="stat"><span class="stat-num">5</span><div class="stat-label">Providers</div></div>
     <div class="stat"><span class="stat-num">23</span><div class="stat-label">Modules</div></div>
   </div>
   <div class="cta">
@@ -86,6 +86,46 @@
     </div>
     <p class="term-cap" data-lang="en" class="active">A real pipeline: classify → summarize → translate → save. <a href="#play">Run it yourself below ↓</a></p>
     <p class="term-cap" data-lang="de">Eine echte Pipeline: klassifizieren → zusammenfassen → übersetzen → speichern. <a href="#play">Probier sie unten selbst aus ↓</a></p>
+  </div>
+</section>
+
+<!-- New in v1.1 -->
+<section id="new">
+  <div class="container">
+    <div class="section-head" style="margin-bottom:28px">
+      <h2 data-lang="en" class="active">New in <span>v1.1</span></h2>
+      <h2 data-lang="de">Neu in <span>v1.1</span></h2>
+    </div>
+    <div class="grid-3 reveal">
+      <a class="card" href="blog/repo-rag-mcp.html" style="display:block;text-decoration:none;color:inherit">
+        <div style="font-size:0.68rem;color:var(--fg2);font-family:var(--mono);margin-bottom:10px;display:flex;align-items:center;gap:8px"><span style="background:rgba(168,85,247,0.18);border:1px solid var(--accent);color:#c084fc;padding:1px 8px;border-radius:10px;font-size:0.62rem;font-weight:700;font-family:var(--sans)">NEW</span> MCP Server</div>
+        <h4 data-lang="en" class="active">🔍 repo-rag — any Git repo becomes a RAG server</h4>
+        <h4 data-lang="de">🔍 repo-rag — jedes Git-Repo wird zum RAG-Server</h4>
+        <p data-lang="en" class="active">One command, 11 tools: keyword search without API keys, cited AI answers, code symbol lookup in 5 languages, file outlines — sandboxed and persistent.</p>
+        <p data-lang="de">Ein Befehl, 11 Tools: Keyword-Suche ohne API-Key, zitierte KI-Antworten, Code-Symbol-Lookup in 5 Sprachen, File-Outlines — gesandboxt und persistent.</p>
+      </a>
+      <a class="card" href="docs.html" style="display:block;text-decoration:none;color:inherit">
+        <div style="font-size:0.68rem;color:var(--fg2);font-family:var(--mono);margin-bottom:10px;display:flex;align-items:center;gap:8px"><span style="background:rgba(168,85,247,0.18);border:1px solid var(--accent);color:#c084fc;padding:1px 8px;border-radius:10px;font-size:0.62rem;font-weight:700;font-family:var(--sans)">NEW</span> AI Providers</div>
+        <h4 data-lang="en" class="active">🌐 OpenRouter provider — free models included</h4>
+        <h4 data-lang="de">🌐 OpenRouter-Provider — Free Models inklusive</h4>
+        <p data-lang="en" class="active">The 5th provider runs on <code>:free</code> model slugs at zero cost: <code>ai_provider "openrouter"</code> and go.</p>
+        <p data-lang="de">Der 5. Provider läuft auf <code>:free</code>-Modellen zum Nulltarif: <code>ai_provider "openrouter"</code> und los.</p>
+      </a>
+      <a class="card" href="blog/pipe-docs-mcp.html" style="display:block;text-decoration:none;color:inherit">
+        <div style="font-size:0.68rem;color:var(--fg2);font-family:var(--mono);margin-bottom:10px;display:flex;align-items:center;gap:8px"><span style="background:rgba(168,85,247,0.18);border:1px solid var(--accent);color:#c084fc;padding:1px 8px;border-radius:10px;font-size:0.62rem;font-weight:700;font-family:var(--sans)">NEW</span> MCP Registry</div>
+        <h4 data-lang="en" class="active">🔌 pipe-docs — now on the official Registry</h4>
+        <h4 data-lang="de">🔌 pipe-docs — jetzt im offiziellen Registry</h4>
+        <p data-lang="en" class="active">Semantic search and cited RAG answers over your codebase as a standalone MCP tool — one-click install in Copilot &amp; VS Code.</p>
+        <p data-lang="de">Semantische Suche und zitierte RAG-Antworten über deine Codebase als eigenständiges MCP-Tool — One-Click-Install in Copilot &amp; VS Code.</p>
+      </a>
+      <a class="card" href="docs.html" style="display:block;text-decoration:none;color:inherit">
+        <div style="font-size:0.68rem;color:var(--fg2);font-family:var(--mono);margin-bottom:10px;display:flex;align-items:center;gap:8px"><span style="background:rgba(168,85,247,0.18);border:1px solid var(--accent);color:#c084fc;padding:1px 8px;border-radius:10px;font-size:0.62rem;font-weight:700;font-family:var(--sans)">NEW</span> Builtins</div>
+        <h4 data-lang="en" class="active">⚙️ Process management built in</h4>
+        <h4 data-lang="de">⚙️ Prozess-Management eingebaut</h4>
+        <p data-lang="en" class="active">Spawn, wait, kill, check: <code>proc_start</code>, <code>proc_wait</code>, <code>proc_kill</code>, <code>proc_running</code> — orchestrate tools and services from Pipe.</p>
+        <p data-lang="de">Starten, warten, beenden, prüfen: <code>proc_start</code>, <code>proc_wait</code>, <code>proc_kill</code>, <code>proc_running</code> — Tools und Dienste aus Pipe orchestrieren.</p>
+      </a>
+    </div>
   </div>
 </section>
 
@@ -207,8 +247,8 @@ oninput="syncHighlight();scheduleRenderGraph()" onscroll="syncScroll()">"hello w
       <div class="feature-text">
         <h3 data-lang="en" class="active"><span>RAG Pipeline</span> — Context-aware Q&amp;A</h3>
         <h3 data-lang="de"><span>RAG-Pipeline</span> — Kontextbezogene Q&amp;A</h3>
-        <p data-lang="en" class="active">Vectorize documents, find matches by meaning — not keywords. Built-in <code>embed</code>, <code>nearest</code>, <code>cosine_sim</code>. Works with every provider: OpenAI, DeepSeek, Anthropic, Ollama. No vector DB setup.</p>
-        <p data-lang="de">Dokumente vektorisieren, Treffer nach Bedeutung finden — nicht nach Stichwörtern. Eingebaute <code>embed</code>, <code>nearest</code>, <code>cosine_sim</code>. Funktioniert mit jedem Provider: OpenAI, DeepSeek, Anthropic, Ollama. Keine Vektor-DB.</p>
+        <p data-lang="en" class="active">Vectorize documents, find matches by meaning — not keywords. Built-in <code>embed</code>, <code>nearest</code>, <code>cosine_sim</code>. Works with every provider: OpenAI, DeepSeek, Anthropic, Ollama, OpenRouter. No vector DB setup.</p>
+        <p data-lang="de">Dokumente vektorisieren, Treffer nach Bedeutung finden — nicht nach Stichwörtern. Eingebaute <code>embed</code>, <code>nearest</code>, <code>cosine_sim</code>. Funktioniert mit jedem Provider: OpenAI, DeepSeek, Anthropic, Ollama, OpenRouter. Keine Vektor-DB.</p>
       </div>
       <div class="feature-code"><div class="bar"><span class="dot" style="background:var(--red)"></span><span class="dot" style="background:var(--orange)"></span><span class="dot" style="background:var(--green)"></span></div><pre><span class="fn">ai_provider</span> <span class="str">"deepseek"</span>
 
@@ -234,8 +274,8 @@ oninput="syncHighlight();scheduleRenderGraph()" onscroll="syncScroll()">"hello w
       <div class="feature-text">
         <h3 data-lang="en" class="active"><span>AI Agents</span> — Sandboxed & Parallel</h3>
         <h3 data-lang="de"><span>KI-Agenten</span> — Sandboxed & Parallel</h3>
-        <p data-lang="en" class="active">Define a tool, register it with the LLM, and let the model call it autonomously. Sandbox profiles lock down <code>exec</code>, <code>write_file</code>, and network access. The same code swaps between OpenAI, DeepSeek, and Ollama with one line.</p>
-        <p data-lang="de">Ein Tool definieren, beim LLM registrieren und das Modell autonom aufrufen lassen. Sandbox-Profile sperren <code>exec</code>, <code>write_file</code> und Netzwerkzugriff. Derselbe Code wechselt mit einer Zeile zwischen OpenAI, DeepSeek und Ollama.</p>
+        <p data-lang="en" class="active">Define a tool, register it with the LLM, and let the model call it autonomously. Sandbox profiles lock down <code>exec</code>, <code>write_file</code>, and network access. The same code swaps between OpenAI, DeepSeek, OpenRouter, and Ollama with one line.</p>
+        <p data-lang="de">Ein Tool definieren, beim LLM registrieren und das Modell autonom aufrufen lassen. Sandbox-Profile sperren <code>exec</code>, <code>write_file</code> und Netzwerkzugriff. Derselbe Code wechselt mit einer Zeile zwischen OpenAI, DeepSeek, OpenRouter und Ollama.</p>
       </div>
       <div class="feature-code"><div class="bar"><span class="dot" style="background:var(--red)"></span><span class="dot" style="background:var(--orange)"></span><span class="dot" style="background:var(--green)"></span></div><pre><span class="cmt">-- Declare a sandbox: temp files only, network ok, no exec</span>
 <span class="fn">sandbox_profile</span> <span class="str">"agent"</span> {<span class="kw">fs</span>: <span class="str">"temp-only"</span>, <span class="kw">network</span>: <span class="kw">true</span>, <span class="kw">exec</span>: <span class="kw">false</span>, <span class="kw">ai</span>: <span class="kw">true</span>}
@@ -341,11 +381,11 @@ oninput="syncHighlight();scheduleRenderGraph()" onscroll="syncScroll()">"hello w
         <p data-lang="de">Deklarative Sandbox-Profile beschränken <code>exec</code>, <code>write_file</code> und <code>http_get</code>. Essentiell für <code>ai_with_tools</code> — LLMs an die Leine nehmen.</p>
       </div>
       <div class="card">
-        <div class="icon">🚀</div>
-        <h4 data-lang="en" class="active">Deploy in seconds</h4>
-        <h4 data-lang="de">In Sekunden deployen</h4>
-        <p data-lang="en" class="active">One statically-linked ~8 MB binary. No venv, no pip, no Docker. Linux, macOS, Windows, Raspberry Pi — or your browser via WebAssembly.</p>
-        <p data-lang="de">Eine statisch gelinkte ~8 MB Binary. Kein venv, kein pip, kein Docker. Linux, macOS, Windows, Raspberry Pi — oder dein Browser per WebAssembly.</p>
+        <div class="icon">📦</div>
+        <h4 data-lang="en" class="active">One binary — deploy anywhere</h4>
+        <h4 data-lang="de">Eine Binary — überall deployen</h4>
+        <p data-lang="en" class="active">One statically-linked ~8 MB binary — no venv, no pip, no Docker. <code>pipe -build</code> embeds your script + modules; <code>-upx</code> compresses to ~2.9 MB. Linux, macOS, Windows, Raspberry Pi — or your browser via WebAssembly.</p>
+        <p data-lang="de">Eine statisch gelinkte ~8-MB-Binary — kein venv, kein pip, kein Docker. <code>pipe -build</code> bettet Skript + Module ein; <code>-upx</code> komprimiert auf ~2,9 MB. Linux, macOS, Windows, Raspberry Pi — oder dein Browser per WebAssembly.</p>
       </div>
       <div class="card">
         <div class="icon">⚡⚡</div>
@@ -358,50 +398,22 @@ oninput="syncHighlight();scheduleRenderGraph()" onscroll="syncScroll()">"hello w
         <div class="icon">🌐</div>
         <h4 data-lang="en" class="active">No vendor lock-in</h4>
         <h4 data-lang="de">Kein Vendor-Lock-in</h4>
-        <p data-lang="en" class="active">OpenAI, Anthropic, DeepSeek, Ollama. Switch providers with <code>ai_provider</code>. Same code. Same pipeline. Zero rewrites.</p>
-        <p data-lang="de">OpenAI, Anthropic, DeepSeek, Ollama. Provider wechseln mit <code>ai_provider</code>. Gleicher Code. Gleiche Pipeline. Keine Rewrites.</p>
+        <p data-lang="en" class="active">OpenAI, Anthropic, DeepSeek, Ollama, OpenRouter. Switch providers with <code>ai_provider</code>. Same code. Same pipeline. Zero rewrites.</p>
+        <p data-lang="de">OpenAI, Anthropic, DeepSeek, Ollama, OpenRouter. Provider wechseln mit <code>ai_provider</code>. Gleicher Code. Gleiche Pipeline. Keine Rewrites.</p>
       </div>
       <div class="card">
         <div class="icon">🧪</div>
-        <h4 data-lang="en" class="active">Tests built in</h4>
-        <h4 data-lang="de">Tests eingebaut</h4>
-        <p data-lang="en" class="active">Zero-setup testing: <code>test</code> blocks with <code>assert_eq</code>, <code>assert_error</code>. Run via <code>pipe -test</code>. No framework. No config. Official GitHub Action for CI.</p>
-        <p data-lang="de">Testen ohne Setup: <code>test</code>-Blöcke mit <code>assert_eq</code>, <code>assert_error</code>. Ausführen per <code>pipe -test</code>. Kein Framework. Keine Config. Offizielle GitHub Action für CI.</p>
+        <h4 data-lang="en" class="active">Tests & CI built in</h4>
+        <h4 data-lang="de">Tests & CI eingebaut</h4>
+        <p data-lang="en" class="active">Zero-setup testing: <code>test</code> blocks with <code>assert_eq</code>, <code>assert_error</code> — run via <code>pipe -test</code>. The official GitHub Action runs Pipe in CI with sandbox profiles on demand.</p>
+        <p data-lang="de">Testen ohne Setup: <code>test</code>-Blöcke mit <code>assert_eq</code>, <code>assert_error</code> — ausgeführt per <code>pipe -test</code>. Die offizielle GitHub Action führt Pipe in CI aus, Sandbox bei Bedarf.</p>
       </div>
       <div class="card">
-        <div class="icon">📦</div>
-        <h4 data-lang="en" class="active">Module ecosystem</h4>
-        <h4 data-lang="de">Modul-Ökosystem</h4>
-        <p data-lang="en" class="active">23 curated modules. Pin versions with <code>@1.0.0</code>. <code>pipe -search</code> discovers, <code>pipe -get</code> installs. Import by name — no URLs.</p>
-        <p data-lang="de">23 kuratierte Module. Versionen pinnen mit <code>@1.0.0</code>. <code>pipe -search</code> entdeckt, <code>pipe -get</code> installiert. Import per Name — keine URLs.</p>
-      </div>
-      <div class="card">
-        <div class="icon">🔌</div>
-        <h4 data-lang="en" class="active">VSCode & CI/CD ready</h4>
-        <h4 data-lang="de">VSCode & CI/CD ready</h4>
-        <p data-lang="en" class="active">LSP-powered IntelliSense: completion, hover docs, go-to-definition, diagnostics. GitHub Action runs Pipe in CI — no install, sandbox profiles on demand.</p>
-        <p data-lang="de">LSP-powered IntelliSense: Completion, Hover-Docs, Go-to-Definition, Diagnostics. GitHub Action führt Pipe in CI aus — keine Installation, Sandbox-Profile bei Bedarf.</p>
-      </div>
-      <div class="card">
-        <div class="icon">⚙️</div>
-        <h4 data-lang="en" class="active">Bytecode VM — up to 55× faster</h4>
-        <h4 data-lang="de">Bytecode-VM — bis zu 55× schneller</h4>
-        <p data-lang="en" class="active">Compile to bytecode, execute on a stack machine with automatic caching. Measured speedup depends on the workload (0.6×–55×): huge on recursion, comparable on simple loops. Tree-walker for development, VM for production.</p>
-        <p data-lang="de">Kompilieren in Bytecode, Ausführung auf einer Stack-Machine mit automatischem Caching. Die gemessene Beschleunigung hängt vom Workload ab (0.6×–55×): groß bei Rekursion, vergleichbar bei einfachen Schleifen. Tree-Walker für Entwicklung, VM für Produktion.</p>
-      </div>
-      <div class="card">
-        <div class="icon">🔌</div>
-        <h4 data-lang="en" class="active">MCP-Native</h4>
-        <h4 data-lang="de">MCP-Nativ</h4>
-        <p data-lang="en" class="active">Built-in MCP server and client. Connect to any stdio MCP server, expose your own tools. Zero dependencies — pure Go stdlib.</p>
-        <p data-lang="de">Eingebauter MCP-Server und -Client. Verbinde dich mit jedem stdio-MCP-Server, stelle eigene Tools bereit. Zero Dependencies — reines Go.</p>
-      </div>
-      <div class="card">
-        <div class="icon">💬</div>
-        <h4 data-lang="en" class="active">Social platforms built in</h4>
-        <h4 data-lang="de">Social-Plattformen eingebaut</h4>
-        <p data-lang="en" class="active">Discord webhooks and Telegram bots as Pipe modules. Send AI code reviews, notifications, chat messages — zero API costs for sending.</p>
-        <p data-lang="de">Discord-Webhooks und Telegram-Bots als Pipe-Module. Sende KI-Code-Reviews, Benachrichtigungen, Chat-Nachrichten — keine API-Kosten fürs Senden.</p>
+        <div class="icon">📚</div>
+        <h4 data-lang="en" class="active">Module ecosystem & LSP</h4>
+        <h4 data-lang="de">Modul-Ökosystem & LSP</h4>
+        <p data-lang="en" class="active">23 curated modules: discover with <code>pipe -search</code>, install with <code>pipe -get</code>, pin versions with <code>@1.0.0</code>. Plus LSP-powered IntelliSense in VSCode — completion, hover docs, go-to-definition.</p>
+        <p data-lang="de">23 kuratierte Module: entdecken mit <code>pipe -search</code>, installieren mit <code>pipe -get</code>, Versionen pinnen mit <code>@1.0.0</code>. Dazu LSP-IntelliSense in VSCode — Completion, Hover-Docs, Go-to-Definition.</p>
       </div>
       <div class="card">
         <div class="icon">🌍</div>
@@ -409,13 +421,6 @@ oninput="syncHighlight();scheduleRenderGraph()" onscroll="syncScroll()">"hello w
         <h4 data-lang="de">Web-Apps & APIs eingebaut</h4>
         <p data-lang="en" class="active"><code>pipe-web</code>: routing, JSON, middleware, and a real HTTP server. Ship APIs and dashboards as a single binary — no FastAPI, no Express. See the <a href="examples.html">AI Summarize API</a> and <a href="examples.html">RAG Knowledge Base</a> examples.</p>
         <p data-lang="de"><code>pipe-web</code>: Routing, JSON, Middleware und ein echter HTTP-Server. APIs und Dashboards als einzelne Binary ausliefern — kein FastAPI, kein Express. Siehe <a href="examples.html">AI-Zusammenfassungs-API</a> und <a href="examples.html">RAG-Wissensbasis</a>.</p>
-      </div>
-      <div class="card">
-        <div class="icon">🚀</div>
-        <h4 data-lang="en" class="active">Self-Contained Binaries</h4>
-        <h4 data-lang="de">Eigenständige Binaries</h4>
-        <p data-lang="en" class="active"><code>pipe -build</code> embeds your script + modules into a single executable. <code>pipe -build -upx</code> compresses to ~2.9 MB. Ship one file, zero dependencies.</p>
-        <p data-lang="de"><code>pipe -build</code> bettet dein Skript + Module in eine einzige Binary ein. <code>pipe -build -upx</code> komprimiert auf ~2,9 MB. Eine Datei, null Abhängigkeiten.</p>
       </div>
       <div class="card">
         <div class="icon">🧩</div>
@@ -434,14 +439,6 @@ oninput="syncHighlight();scheduleRenderGraph()" onscroll="syncScroll()">"hello w
     <div class="section-head" style="margin-bottom:36px">
       <h2 data-lang="en" class="active">Built for <span>production</span> AI workloads</h2>
       <h2 data-lang="de">Gebaut für <span>Produktions</span>-KI-Workloads</h2>
-    </div>
-    <div class="stats-inline reveal" style="gap:48px;margin-bottom:0">
-      <div class="stat"><span class="stat-num">674</span><div class="stat-label" data-lang="en" class="active">Tests</div><div class="stat-label" data-lang="de">Tests</div></div>
-      <div class="stat"><span class="stat-num">~29k</span><div class="stat-label" data-lang="en" class="active">LoC Go</div><div class="stat-label" data-lang="de">LoC Go</div></div>
-      <div class="stat"><span class="stat-num">23</span><div class="stat-label" data-lang="en" class="active">Modules</div><div class="stat-label" data-lang="de">Module</div></div>
-      <div class="stat"><span class="stat-num">4</span><div class="stat-label" data-lang="en" class="active">AI Providers</div><div class="stat-label" data-lang="de">KI-Provider</div></div>
-      <div class="stat"><span class="stat-num">~8 MB</span><div class="stat-label" data-lang="en" class="active">Binary</div><div class="stat-label" data-lang="de">Binary</div></div>
-      <div class="stat"><span class="stat-num">238</span><div class="stat-label" data-lang="en" class="active">Builtins</div><div class="stat-label" data-lang="de">Builtins</div></div>
     </div>
     <p style="margin-top:28px;color:var(--fg2);font-size:0.9rem">
       <span data-lang="en" class="active">✓ Officially listed in the <a href="https://registry.modelcontextprotocol.io/?q=MachuraHarry" style="color:var(--accent)">official MCP Registry</a> — one-click install from <a href="https://github.com/mcp/MachuraHarry/pipe" style="color:var(--accent)">GitHub MCP Registry</a> for Copilot &amp; VS Code</span>
@@ -464,14 +461,14 @@ oninput="syncHighlight();scheduleRenderGraph()" onscroll="syncScroll()">"hello w
 <section id="builtins" style="background:var(--bg2)">
   <div class="container">
      <div class="section-head"><h2 data-lang="en" class="active"><span>49 AI + MCP Builtins</span> (36 AI + 13 MCP) + 189 Standard = 238 Total</h2><h2 data-lang="de"><span>49 KI + MCP-Builtins</span> (36 KI + 13 MCP) + 189 Standard = 238 Gesamt</h2></div>
-    <div class="builtins-grid reveal">
-      <div class="builtin-group"><h4>🧠 Understanding</h4><table><tr><td>summarize</td><td>Text summarization</td></tr><tr><td>translate</td><td>Translation</td></tr><tr><td>classify</td><td>Classification</td></tr><tr><td>extract</td><td>Data extraction (JSON)</td></tr><tr><td>ask</td><td>Question answering</td></tr><tr><td>generate</td><td>Free-text generation</td></tr></table></div>
-      <div class="builtin-group"><h4>⚡ Speed & Parallel</h4><table><tr><td>ai_stream</td><td>Real-time token streaming</td></tr><tr><td>ai_batch</td><td>Auto-parallel batch</td></tr><tr><td>ai_parallel</td><td>Concurrency control</td></tr><tr><td>ai_rate_limit</td><td>Rate limiting</td></tr><tr><td>ai_chat</td><td>Low-level chat</td></tr><tr><td>ai_chat_json</td><td>Chat → structured JSON</td></tr></table></div>
-      <div class="builtin-group"><h4>🔍 Embeddings & Search</h4><table><tr><td>embed</td><td>Text → vector</td></tr><tr><td>embed_batch</td><td>Batch embeddings</td></tr><tr><td>cosine_sim</td><td>Semantic similarity</td></tr><tr><td>dot_product</td><td>Dot product</td></tr><tr><td>nearest</td><td>Top-K nearest</td></tr></table></div>
-      <div class="builtin-group"><h4>🤖 Tool Calling & Config</h4><table><tr><td>ai_tool</td><td>Register function as tool</td></tr><tr><td>ai_with_tools</td><td>Chat with tool access</td></tr><tr><td>ai_provider</td><td>Select AI provider</td></tr><tr><td>ai_model</td><td>Select model</td></tr><tr><td>ai_timeout</td><td>Set timeout</td></tr></table></div>
-      <div class="builtin-group"><h4>🔌 MCP — Model Context Protocol</h4><table><tr><td>mcp_server</td><td>Create MCP server</td></tr><tr><td>mcp_serve_stdio</td><td>Start stdio server</td></tr><tr><td>mcp_serve_sse</td><td>Start HTTP server</td></tr><tr><td>mcp_tools</td><td>List tools</td></tr><tr><td>mcp_resource</td><td>Define resource</td></tr><tr><td>mcp_resource_template</td><td>Dynamic resource</td></tr><tr><td>mcp_prompt</td><td>Define prompt</td></tr><tr><td>mcp_resources</td><td>List resources</td></tr><tr><td>mcp_read_resource</td><td>Read resource</td></tr><tr><td>mcp_prompts</td><td>List prompts</td></tr><tr><td>mcp_prompt_get</td><td>Get prompt</td></tr><tr><td>mcp_use_stdio</td><td>Connect to MCP server</td></tr><tr><td>mcp_use_sse</td><td>Connect via HTTP</td></tr></table></div>
-      <div class="builtin-group"><h4>🔒 Sandbox Profiles</h4><table><tr><td>sandbox_profile</td><td>Define a sandbox profile</td></tr><tr><td>set_sandbox</td><td>Activate a profile</td></tr><tr><td>with_sandbox</td><td>Temp profile override</td></tr><tr><td>sandbox_lock</td><td>Lock sandbox state</td></tr></table></div>
-      <div class="builtin-group"><h4>🧪 Testing</h4><table><tr><td>test</td><td>Grouped test block</td></tr><tr><td>assert</td><td>Truthy check</td></tr><tr><td>assert_eq</td><td>Equality check</td></tr><tr><td>assert_lt</td><td>Less-than check</td></tr><tr><td>assert_gt</td><td>Greater-than check</td></tr><tr><td>assert_error</td><td>Expect an error</td></tr></table></div>
+    <div class="builtins-list reveal">
+      <details class="builtin-group"><summary><span>🧠 Understanding</span><span class="b-count">6</span></summary><div class="b-body"><table><tr><td>summarize</td><td>Text summarization</td></tr><tr><td>translate</td><td>Translation</td></tr><tr><td>classify</td><td>Classification</td></tr><tr><td>extract</td><td>Data extraction (JSON)</td></tr><tr><td>ask</td><td>Question answering</td></tr><tr><td>generate</td><td>Free-text generation</td></tr></table></div></details>
+      <details class="builtin-group"><summary><span>⚡ Speed &amp; Parallel</span><span class="b-count">6</span></summary><div class="b-body"><table><tr><td>ai_stream</td><td>Real-time token streaming</td></tr><tr><td>ai_batch</td><td>Auto-parallel batch</td></tr><tr><td>ai_parallel</td><td>Concurrency control</td></tr><tr><td>ai_rate_limit</td><td>Rate limiting</td></tr><tr><td>ai_chat</td><td>Low-level chat</td></tr><tr><td>ai_chat_json</td><td>Chat → structured JSON</td></tr></table></div></details>
+      <details class="builtin-group"><summary><span>🔍 Embeddings &amp; Search</span><span class="b-count">5</span></summary><div class="b-body"><table><tr><td>embed</td><td>Text → vector</td></tr><tr><td>embed_batch</td><td>Batch embeddings</td></tr><tr><td>cosine_sim</td><td>Semantic similarity</td></tr><tr><td>dot_product</td><td>Dot product</td></tr><tr><td>nearest</td><td>Top-K nearest</td></tr></table></div></details>
+      <details class="builtin-group"><summary><span>🤖 Tool Calling &amp; Config</span><span class="b-count">5</span></summary><div class="b-body"><table><tr><td>ai_tool</td><td>Register function as tool</td></tr><tr><td>ai_with_tools</td><td>Chat with tool access</td></tr><tr><td>ai_provider</td><td>Select AI provider</td></tr><tr><td>ai_model</td><td>Select model</td></tr><tr><td>ai_timeout</td><td>Set timeout</td></tr></table></div></details>
+      <details class="builtin-group"><summary><span>🔌 MCP — Model Context Protocol</span><span class="b-count">13</span></summary><div class="b-body"><table><tr><td>mcp_server</td><td>Create MCP server</td></tr><tr><td>mcp_serve_stdio</td><td>Start stdio server</td></tr><tr><td>mcp_serve_sse</td><td>Start HTTP server</td></tr><tr><td>mcp_tools</td><td>List tools</td></tr><tr><td>mcp_resource</td><td>Define resource</td></tr><tr><td>mcp_resource_template</td><td>Dynamic resource</td></tr><tr><td>mcp_prompt</td><td>Define prompt</td></tr><tr><td>mcp_resources</td><td>List resources</td></tr><tr><td>mcp_read_resource</td><td>Read resource</td></tr><tr><td>mcp_prompts</td><td>List prompts</td></tr><tr><td>mcp_prompt_get</td><td>Get prompt</td></tr><tr><td>mcp_use_stdio</td><td>Connect to MCP server</td></tr><tr><td>mcp_use_sse</td><td>Connect via HTTP</td></tr></table></div></details>
+      <details class="builtin-group"><summary><span>🔒 Sandbox Profiles</span><span class="b-count">4</span></summary><div class="b-body"><table><tr><td>sandbox_profile</td><td>Define a sandbox profile</td></tr><tr><td>set_sandbox</td><td>Activate a profile</td></tr><tr><td>with_sandbox</td><td>Temp profile override</td></tr><tr><td>sandbox_lock</td><td>Lock sandbox state</td></tr></table></div></details>
+      <details class="builtin-group"><summary><span>🧪 Testing</span><span class="b-count">6</span></summary><div class="b-body"><table><tr><td>test</td><td>Grouped test block</td></tr><tr><td>assert</td><td>Truthy check</td></tr><tr><td>assert_eq</td><td>Equality check</td></tr><tr><td>assert_lt</td><td>Less-than check</td></tr><tr><td>assert_gt</td><td>Greater-than check</td></tr><tr><td>assert_error</td><td>Expect an error</td></tr></table></div></details>
     </div>
   </div>
 </section>
@@ -537,6 +534,44 @@ oninput="syncHighlight();scheduleRenderGraph()" onscroll="syncScroll()">"hello w
   </div>
 </section>
 
+<!-- Latest from the Blog -->
+<section id="blog" style="background:var(--bg)">
+  <div class="container">
+    <div class="section-head">
+      <h2 data-lang="en" class="active">Latest from the <span>Blog</span></h2>
+      <h2 data-lang="de">Neues aus dem <span>Blog</span></h2>
+      <p data-lang="en" class="active">Releases, deep dives, and tutorials — straight from building with Pipe.</p>
+      <p data-lang="de">Releases, Deep Dives und Tutorials — direkt aus der Entwicklung von Pipe.</p>
+    </div>
+    <div class="grid-3 reveal">
+      <a class="card" href="blog/repo-rag-mcp.html" style="display:block;text-decoration:none;color:inherit">
+        <div style="font-size:0.68rem;color:var(--accent);font-family:var(--mono);margin-bottom:10px;display:flex;align-items:center;gap:8px">2026-08-23 <span style="background:var(--bg3);padding:2px 8px;border-radius:10px;font-size:0.66rem;color:var(--fg2);font-family:var(--sans)">release</span></div>
+        <h4 data-lang="en" class="active">🔍 repo-rag MCP — RAG over ANY Git Repository, Not Just This One</h4>
+        <h4 data-lang="de">🔍 repo-rag MCP — RAG über ein BELIEBIGES Git-Repository, nicht nur über dieses</h4>
+        <p data-lang="en" class="active">One command turns any Git repository into a full RAG MCP server: keyword search without API keys, cited AI answers (now with OpenRouter free models), code symbol lookup in 5 languages, file outlines — persistent SQLite indexes and a locked-down sandbox included.</p>
+        <p data-lang="de">Ein Befehl macht aus jedem Git-Repository einen vollwertigen RAG-MCP-Server: Keyword-Suche ohne API-Key, zitierte KI-Antworten (jetzt mit OpenRouter-Free-Models), Code-Symbol-Lookup in 5 Sprachen, File-Outlines — mit persistenten SQLite-Indexen und verriegelter Sandbox.</p>
+      </a>
+      <a class="card" href="blog/pipe-docs-mcp.html" style="display:block;text-decoration:none;color:inherit">
+        <div style="font-size:0.68rem;color:var(--accent);font-family:var(--mono);margin-bottom:10px;display:flex;align-items:center;gap:8px">2026-08-21 <span style="background:var(--bg3);padding:2px 8px;border-radius:10px;font-size:0.66rem;color:var(--fg2);font-family:var(--sans)">release</span></div>
+        <h4 data-lang="en" class="active">🔍 pipe-docs MCP — Your Entire Codebase as a Semantic Search, Inside Your AI IDE</h4>
+        <h4 data-lang="de">🔍 pipe-docs MCP — Deine gesamte Codebase als semantische Suche, direkt in deiner KI-IDE</h4>
+        <p data-lang="en" class="active">A semantic search and RAG MCP server for the Pipe language — 7 tools, zero dependencies, published on the MCP Registry. Heading-aware chunking, hybrid search, cited answers, code symbol lookup.</p>
+        <p data-lang="de">Ein semantischer Suche- und RAG-MCP-Server für die Pipe-Sprache — 7 Tools, null Abhängigkeiten, veröffentlicht auf dem MCP Registry. Heading-bewusstes Chunking, Hybrid-Suche, zitierte Antworten, Code-Symbol-Lookup.</p>
+      </a>
+      <a class="card" href="blog/docs-pipe-dashboard.html" style="display:block;text-decoration:none;color:inherit">
+        <div style="font-size:0.68rem;color:var(--accent);font-family:var(--mono);margin-bottom:10px;display:flex;align-items:center;gap:8px">2026-08-15 <span style="background:var(--bg3);padding:2px 8px;border-radius:10px;font-size:0.66rem;color:var(--fg2);font-family:var(--sans)">release</span></div>
+        <h4 data-lang="en" class="active">🧠 docs-pipe — Turn Your Docs Into a Searchable, Question-Answering AI</h4>
+        <h4 data-lang="de">🧠 docs-pipe — Verwandle deine Doku in eine durchsuchbare, Frage-beantwortende KI</h4>
+        <p data-lang="en" class="active">A documentation-native RAG module plus a web dashboard: heading-aware chunking, hybrid keyword + semantic search, cited answers, incremental re-indexing, and a one-command UI — all in pure Pipe, no vector database.</p>
+        <p data-lang="de">Ein dokumentations-natives RAG-Modul plus Web-Dashboard: heading-bewusstes Chunking, hybride Keyword- + semantische Suche, zitierte Antworten, inkrementelles Indexieren und ein Ein-Befehl-UI — alles in reinem Pipe, ohne Vektor-Datenbank.</p>
+      </a>
+    </div>
+    <p style="text-align:center;margin-top:28px">
+      <a href="blog.html" class="cta-secondary"><span data-lang="en" class="active">All posts →</span><span data-lang="de">Alle Beiträge →</span></a>
+    </p>
+  </div>
+</section>
+
 <!-- Footer -->
 <footer>
   <div class="container">
@@ -599,16 +634,16 @@ var heroTexts = {
      s:'MCP server and client in one ~8 MB binary. 238 builtins, 23 modules. Zero dependencies.'},
     {h:'<span class="grad">Sandbox AI agents.</span><br>Declarative. Safe by default.',
      s:'<code>sandbox_profile</code> restricts exec, write_file, and http_get with one block. Keep LLMs on a leash — essential for <code>ai_with_tools</code>.'},
-    {h:'<span class="grad">One binary. Zero dependencies.</span><br>4 providers. No lock-in.',
-     s:'OpenAI, Anthropic, DeepSeek, Ollama. Switch with <code>ai_provider</code>. Deploy anywhere: Linux, macOS, Windows, or your browser via WebAssembly.'}
+    {h:'<span class="grad">One binary. Zero dependencies.</span><br>5 providers. No lock-in.',
+     s:'OpenAI, Anthropic, DeepSeek, Ollama, OpenRouter. Switch with <code>ai_provider</code>. Deploy anywhere: Linux, macOS, Windows, or your browser via WebAssembly.'}
   ],
   de: [
     {h:'<span class="grad">Die erste Sprache mit</span><br>eingebautem MCP',
      s:'MCP-Server und -Client in einer einzigen ~8 MB Binary. 238 Builtins, 23 Module. Null Abhängigkeiten.'},
     {h:'<span class="grad">KI-Agenten sandboxen.</span><br>Deklarativ. Standardmäßig sicher.',
      s:'<code>sandbox_profile</code> beschränkt exec, write_file und http_get mit einem Block. LLMs an die Leine nehmen — essentiell für <code>ai_with_tools</code>.'},
-    {h:'<span class="grad">Eine Binary. Null Abhängigkeiten.</span><br>4 Provider. Kein Lock-in.',
-     s:'OpenAI, Anthropic, DeepSeek, Ollama. Wechseln mit <code>ai_provider</code>. Überall deployen: Linux, macOS, Windows, oder dein Browser per WebAssembly.'}
+    {h:'<span class="grad">Eine Binary. Null Abhängigkeiten.</span><br>5 Provider. Kein Lock-in.',
+     s:'OpenAI, Anthropic, DeepSeek, Ollama, OpenRouter. Wechseln mit <code>ai_provider</code>. Überall deployen: Linux, macOS, Windows, oder dein Browser per WebAssembly.'}
   ]
 };
 

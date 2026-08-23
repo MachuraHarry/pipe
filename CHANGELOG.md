@@ -6,6 +6,7 @@ All notable changes to Pipe are documented here. This file follows [Keep a Chang
 
 ### Added
 - **repo-rag MCP server**: new `file_symbols` tool — outline of one source file (every indexed declaration with kind, name, line and declaration text, in file order). Answers purely from the in-memory index, so it works under the locked read-only serve profile.
+- **repo-rag MCP server**: OpenRouter support — `OPENROUTER_API_KEY` now enables `ask_docs` with any OpenRouter model (`REPO_RAG_MODEL` overrides; default is a `:free` model, e.g. `nvidia/nemotron-3-super-120b-a12b:free`). `openrouter.ai` was added to both sandbox network whitelists. Since OpenRouter offers no embeddings endpoint, `ask_docs` now falls back to the keyword chunk index when semantic retrieval yields nothing, so answers stay grounded with cited sources instead of degrading to general knowledge.
 
 ### Fixed
 - **Parser: `[` after an identifier in call position** — `map [1, 2, 3] (fn x: x * 10)` was mis-parsed as an index expression `map[...]` and failed at runtime. A `[` separated by whitespace from the previous token now starts a list-literal call argument; an adjacent `[` (`xs[0]`, `xs[1..3]`) remains index/slice access. Documented in both language guides.

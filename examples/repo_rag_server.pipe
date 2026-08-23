@@ -17,9 +17,14 @@
 --!   REPO_RAG_URL                        — required, e.g. https://github.com/user/repo
 --!   REPO_RAG_REF                        — optional branch/tag (default branch otherwise)
 --!   REPO_RAG_CACHE                      — cache dir (default ~/.pipe/cache/repo-rag/<owner>__<repo>)
---!   DEEPSEEK_API_KEY | OPENAI_API_KEY   — enables semantic search + ask_docs;
---!                                         without a key search_docs falls
---!                                         back to keyword-only mode
+--!   DEEPSEEK_API_KEY | OPENAI_API_KEY |
+--!   OPENROUTER_API_KEY                  — enables AI answers (ask_docs); semantic
+--!                                         search needs an embeddings endpoint,
+--!                                         which OpenRouter does not offer, so with
+--!                                         an OpenRouter key search_docs falls back
+--!                                         to keyword mode
+--!   REPO_RAG_MODEL                      — optional model override (default for
+--!                                         OpenRouter: a :free chat model)
 --!
 --! Run: REPO_RAG_URL=... pipe examples/repo_rag_server.pipe
 --! The first run clones the repo and builds all indexes (a few minutes for
@@ -42,12 +47,12 @@ import "lib/repo_rag_lib.pipe"
 -- API keys containing KEY/SECRET/TOKEN are additionally blocked by
 -- secretEnvMarkers.
 
-sandbox_profile "rag-build" {fs: "full", exec: true, exec_whitelist: ["git", "rm"], network: true, network_whitelist: ["github.com", "gitlab.com", "bitbucket.org", "raw.githubusercontent.com", "api.deepseek.com", "api.openai.com", "api.anthropic.com"], ai: true}
-sandbox_profile "rag-serve" {fs: "read-only", exec: false, network: true, network_whitelist: ["api.deepseek.com", "api.openai.com", "api.anthropic.com"], ai: true}
+sandbox_profile "rag-build" {fs: "full", exec: true, exec_whitelist: ["git", "rm"], network: true, network_whitelist: ["github.com", "gitlab.com", "bitbucket.org", "raw.githubusercontent.com", "api.deepseek.com", "api.openai.com", "api.anthropic.com", "openrouter.ai"], ai: true}
+sandbox_profile "rag-serve" {fs: "read-only", exec: false, network: true, network_whitelist: ["api.deepseek.com", "api.openai.com", "api.anthropic.com", "openrouter.ai"], ai: true}
 
 --- === Global state === ---
 
-ST: {url: "", ref: "", owner: "", name: "", slug: "", src: "", home: "", cache: "", deepseek_key: "", openai_key: "", idx_docs: nil, idx_code: nil, idx_kw: nil, all_files: [], md_files: [], code_symbols: [], code_files: [], languages: {}, sync_code: nil, sync_kw: nil, has_ai: false, ready: false, ai_ready: false, err: ""}
+ST: {url: "", ref: "", owner: "", name: "", slug: "", src: "", home: "", cache: "", deepseek_key: "", openai_key: "", openrouter_key: "", model: "", idx_docs: nil, idx_code: nil, idx_kw: nil, all_files: [], md_files: [], code_symbols: [], code_files: [], languages: {}, sync_code: nil, sync_kw: nil, has_ai: false, ready: false, ai_ready: false, err: ""}
 
 -- Capture env vars before sandbox activation
 _env_url: env "REPO_RAG_URL"
@@ -65,6 +70,12 @@ if _ds_key != nil && _ds_key != ""
 _oai_key: env "OPENAI_API_KEY"
 if _oai_key != nil && _oai_key != ""
     set ST "openai_key" _oai_key
+_or_key: env "OPENROUTER_API_KEY"
+if _or_key != nil && _or_key != ""
+    set ST "openrouter_key" _or_key
+_env_model: env "REPO_RAG_MODEL"
+if _env_model != nil && _env_model != ""
+    set ST "model" _env_model
 _env_cache: env "REPO_RAG_CACHE"
 if _env_cache != nil && _env_cache != ""
     set ST "cache" _env_cache
@@ -196,6 +207,18 @@ fn configure_provider
     if okey != nil && okey != ""
         ai_provider "openai"
         ai_set_key "openai" okey
+        set ST "has_ai" true
+        return nil
+    orkey: get ST "openrouter_key"
+    if orkey != nil && orkey != ""
+        -- OpenRouter exposes no embeddings endpoint, so the semantic docs
+        -- index stays unavailable; keyword search and ask_docs still work.
+        ai_provider "openrouter"
+        ai_set_key "openrouter" orkey
+        model: get ST "model"
+        if model == nil || model == ""
+            model: "nvidia/nemotron-3-super-120b-a12b:free"
+        ai_model model
         set ST "has_ai" true
         return nil
     set ST "has_ai" false
@@ -377,7 +400,7 @@ fn mcp_search_docs query
 
 fn mcp_ask_docs question
     if (get ST "has_ai") == false
-        return {answer: "Semantic search is unavailable: set DEEPSEEK_API_KEY (or OPENAI_API_KEY) and restart.", sources: []}
+        return {answer: "Semantic search is unavailable: set DEEPSEEK_API_KEY, OPENAI_API_KEY or OPENROUTER_API_KEY and restart.", sources: []}
     if question == nil || question == ""
         return {answer: "", sources: []}
     idx: get ST "idx_docs"
@@ -400,6 +423,17 @@ fn mcp_ask_docs question
             if keep && (get r "score") >= 0.1
                 push filtered r
             fi: fi + 1
+        if (len filtered) == 0
+            -- Semantic retrieval came up empty (e.g. OpenRouter exposes no
+            -- embeddings endpoint): fall back to the keyword chunk index so
+            -- answers stay grounded with sources instead of degrading to
+            -- general knowledge.
+            kwidx: get ST "idx_kw"
+            if kwidx != nil
+                try
+                    filtered: md_search kwidx question 6
+                catch e
+                    nil
         if (len filtered) == 0
             return {answer: (ai_chat "You are a documentation assistant. Answer based on your general knowledge." question), sources: []}
         context: ""

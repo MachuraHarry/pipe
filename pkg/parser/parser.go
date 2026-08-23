@@ -623,14 +623,14 @@ func (p *Parser) parseExpr(precedence int, allowSpaceCalls bool) ast.Expression 
 			!p.peekTokenIs(lexer.DEDENT) &&
 			!p.peekTokenIs(lexer.EOF) &&
 			!p.peekTokenIs(lexer.INDENT) &&
-			isValueToken(p.peekToken.Type) {
+			p.peekStartsCallArg() {
 			call := &ast.CallExpression{Function: leftExp}
 
 			for !p.peekTokenIs(lexer.NEWLINE) &&
 				!p.peekTokenIs(lexer.DEDENT) &&
 				!p.peekTokenIs(lexer.EOF) &&
 				!p.peekTokenIs(lexer.INDENT) &&
-				isValueToken(p.peekToken.Type) {
+				p.peekStartsCallArg() {
 				p.nextToken()
 				arg := p.parseExpressionNoSpace(PrecedenceSum)
 				call.Arguments = append(call.Arguments, arg)
@@ -681,6 +681,25 @@ func isValueToken(t lexer.TokenType) bool {
 		return true
 	}
 	return false
+}
+
+// peekAdjacent reports whether the peek token starts immediately after the
+// current token with no whitespace in between (same line).
+func (p *Parser) peekAdjacent() bool {
+	return p.peekToken.Line == p.curToken.Line &&
+		p.peekToken.Col == p.curToken.Col+len(p.curToken.Literal)
+}
+
+// peekStartsCallArg reports whether the peek token should be consumed as the
+// next space-separated call argument. A '[' qualifies only when whitespace
+// separates it from the current token: an adjacent '[' is an index/slice
+// postfix (`xs[0]`, `xs[1:3]`), while `map [1, 2] f` passes a fresh list
+// literal as the first argument.
+func (p *Parser) peekStartsCallArg() bool {
+	if p.peekTokenIs(lexer.LBRACKET) {
+		return !p.peekAdjacent()
+	}
+	return isValueToken(p.peekToken.Type)
 }
 
 // ---- Prefix parsers ----

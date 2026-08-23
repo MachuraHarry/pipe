@@ -97,6 +97,12 @@ The inline form is equivalent to the multi-line block form but allows writing
 simple function literals on a single line. Parameters before the colon become
 function parameters; the expression after the colon is the function body.
 
+> **Whitespace rule for `[`**: directly attached to a value, `[...]` is an
+> index/slice postfix (`xs[0]`, `xs[1..3]`); separated by whitespace, it starts
+> a fresh list literal — as a statement (`xs: [1, 2]`) or as a call argument
+> (`map [1, 2, 3] (fn x: x * 10)` above). Prefer a variable when you need an
+> index into an expression result: `r: map nums f` then `r[0]`.
+
 For multi-statement function bodies, use the indented block form (`fn params\n    body`).
 
 Anonymous functions are first-class values — the same as named functions, just without a name in scope.

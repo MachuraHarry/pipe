@@ -97,6 +97,12 @@ einfache Funktionsliterale in einer Zeile. Die Parameter vor dem Doppelpunkt
 werden zu Funktionsparametern; der Ausdruck nach dem Doppelpunkt ist der
 Funktionskörper.
 
+> **Leerzeichen-Regel für `[`**: direkt an einem Wert angehängt ist `[...]`
+> ein Index-/Slice-Zugriff (`xs[0]`, `xs[1..3]`); durch Leerzeichen getrennt
+> beginnt ein neues Listenliteral — als Statement (`xs: [1, 2]`) oder als
+> Aufrufargument (`map [1, 2, 3] (fn x: x * 10)` oben). Für einen Index auf
+> ein Ergebnis nutze lieber eine Variable: `r: map nums f`, dann `r[0]`.
+
 Für mehrzeilige Funktionskörper verwende die eingerückte Block-Form
 (`fn params\n    body`).
 

@@ -414,6 +414,25 @@ func (c *Compiler) Compile(node ast.Node) error {
 			c.patchJump(jumpEnd2, len(c.currentInstructions()))
 			return nil
 		}
+		if n.Operator == "[]" {
+			// Index access lowers to a call of the `at` builtin. It MUST be
+			// handled before the generic Left/Right pre-compilation below,
+			// otherwise the operands are emitted twice (stack imbalance under
+			// the VM and duplicated side effects).
+			symbol := c.resolveBuiltin("at")
+			if symbol.Scope != BuiltinScope {
+				return fmt.Errorf("builtin not found: at")
+			}
+			c.emit(OpGetBuiltin, symbol.Index)
+			if err := c.Compile(n.Left); err != nil {
+				return err
+			}
+			if err := c.Compile(n.Right); err != nil {
+				return err
+			}
+			c.emit(OpCall, 2)
+			return nil
+		}
 		if err := c.Compile(n.Left); err != nil {
 			return err
 		}
@@ -447,15 +466,6 @@ func (c *Compiler) Compile(node ast.Node) error {
 			c.emit(OpLte)
 		case "++":
 			c.emit(OpConcat)
-		case "[]":
-			c.emit(OpGetBuiltin, c.resolveBuiltin("at").Index)
-			if err := c.Compile(n.Left); err != nil {
-				return err
-			}
-			if err := c.Compile(n.Right); err != nil {
-				return err
-			}
-			c.emit(OpCall, 2)
 		default:
 			return fmt.Errorf("unknown operator: %s", n.Operator)
 		}

@@ -250,6 +250,23 @@ func TestRecursiveFunction(t *testing.T) {
 	}
 }
 
+func TestCompileIndexNoDoubleEmission(t *testing.T) {
+	// xs[0] lowers to at(xs, 0). The index operands must be emitted exactly
+	// once: the generic infix path used to pre-compile Left/Right before the
+	// "[]" case re-compiled them, producing a broken stack under -vm.
+	bc := parseAndCompile(t, "xs: [10, 20, 30]\nprint xs[0]")
+	ins := bc.Instructions.String()
+	if got := strings.Count(ins, "OpGetBuiltin"); got != 2 {
+		t.Errorf("expected 2 OpGetBuiltin (print, at), got %d:\n%s", got, ins)
+	}
+	if got := strings.Count(ins, "OpGetGlobal"); got != 1 {
+		t.Errorf("expected exactly 1 OpGetGlobal for xs, got %d:\n%s", got, ins)
+	}
+	if got := strings.Count(ins, "OpCall"); got != 2 {
+		t.Errorf("expected 2 OpCall (at, print), got %d:\n%s", got, ins)
+	}
+}
+
 func TestUserFunctionMapLiteral(t *testing.T) {
 	// A map literal inside a lambda executed via a callback builtin
 	// (map/filter route through callUserFunction -> executeFrame, which

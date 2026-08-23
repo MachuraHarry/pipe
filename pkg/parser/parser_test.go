@@ -226,6 +226,56 @@ func TestInlineLambdaAsArgument(t *testing.T) {
 	}
 }
 
+func TestBracketWhitespaceDisambiguation(t *testing.T) {
+	// A '[' separated by whitespace starts a list-literal call argument;
+	// an adjacent '[' is an index postfix.
+	program := parseProgram(t, "map [1, 2] (fn x: x * 10)")
+	expr, ok := program.Statements[0].(*ast.ExpressionStatement)
+	if !ok {
+		t.Fatalf("expected ExpressionStatement, got %T", program.Statements[0])
+	}
+	call, ok := expr.Expression.(*ast.CallExpression)
+	if !ok {
+		t.Fatalf("expected CallExpression, got %T", expr.Expression)
+	}
+	if len(call.Arguments) != 2 {
+		t.Fatalf("expected 2 args (list, lambda), got %d", len(call.Arguments))
+	}
+	list, ok := call.Arguments[0].(*ast.ListLiteral)
+	if !ok {
+		t.Fatalf("expected ListLiteral as first arg, got %T", call.Arguments[0])
+	}
+	if len(list.Elements) != 2 {
+		t.Errorf("expected 2 list elements, got %d", len(list.Elements))
+	}
+	if _, ok := call.Arguments[1].(*ast.FnLiteral); !ok {
+		t.Fatalf("expected FnLiteral as second arg, got %T", call.Arguments[1])
+	}
+
+	// Adjacent '[' stays an index postfix.
+	program = parseProgram(t, "xs[0]")
+	expr = program.Statements[0].(*ast.ExpressionStatement)
+	infix, ok := expr.Expression.(*ast.InfixExpression)
+	if !ok || infix.Operator != "[]" {
+		t.Fatalf("expected index infix '[]' for xs[0], got %T", expr.Expression)
+	}
+
+	// Spaced '[' after a plain identifier is a call with a list argument
+	// (documented behavior), not an index.
+	program = parseProgram(t, "xs [0]")
+	expr = program.Statements[0].(*ast.ExpressionStatement)
+	spaceCall, ok := expr.Expression.(*ast.CallExpression)
+	if !ok {
+		t.Fatalf("expected CallExpression for 'xs [0]', got %T", expr.Expression)
+	}
+	if len(spaceCall.Arguments) != 1 {
+		t.Fatalf("expected 1 list argument, got %d", len(spaceCall.Arguments))
+	}
+	if _, ok := spaceCall.Arguments[0].(*ast.ListLiteral); !ok {
+		t.Fatalf("expected ListLiteral argument, got %T", spaceCall.Arguments[0])
+	}
+}
+
 func TestFunctionDef(t *testing.T) {
 	input := "fn greet name\n    \"Hallo \" ++ name\n"
 	program := parseProgram(t, input)

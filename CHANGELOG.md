@@ -4,7 +4,11 @@ All notable changes to Pipe are documented here. This file follows [Keep a Chang
 
 ## [Unreleased]
 
+### Added
+- **repo-rag MCP server**: new `file_symbols` tool — outline of one source file (every indexed declaration with kind, name, line and declaration text, in file order). Answers purely from the in-memory index, so it works under the locked read-only serve profile.
+
 ### Fixed
+- **VM**: `executeFrame` (the reduced interpreter used when builtins such as `map`/`filter`/`reduce` call back into user functions) was missing `OpMap`, `OpStruct`, `OpSelect` and `OpHalt`; any map literal inside such a callback failed under `-vm` with "unknown opcode in user fn: 35". The opcodes now mirror the main loop's semantics.
 - **Compiler: module symbol isolation** (`959a05c`) — unaliased imports no longer flatten into one global symbol space; modules compile in an isolated scope (`moduleMode`), see only their exports plus builtins, and importers bind aliases via fresh global slots. Fixes builtin shadowing under `-vm` (e.g. sqlite's internal `exec` hiding builtin `exec`). Bytecode cache bumped to v5 (old `.pipec` files are invalidated).
 - **Compiler: while-body terminator detection** (`e6f42b7`) — statements after an inner loop at the tail of an outer loop body were dropped during bytecode generation (caused an infinite INSERT loop in the sqlite module under `-vm`).
 - **Compiler: module resolve walks the full outer chain** (`38446d7`) — a same-named global in an importing file (e.g. `repo_rag_lib.pipe`'s `index_of`) masked the root builtin for nested modules and failed compilation with "undefined variable".

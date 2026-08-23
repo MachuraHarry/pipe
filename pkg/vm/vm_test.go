@@ -250,6 +250,17 @@ func TestRecursiveFunction(t *testing.T) {
 	}
 }
 
+func TestUserFunctionMapLiteral(t *testing.T) {
+	// A map literal inside a lambda executed via a callback builtin
+	// (map/filter route through callUserFunction -> executeFrame, which
+	// historically missed OpMap/OpStruct/OpSelect/OpHalt and failed with
+	// "unknown opcode in user fn: 35").
+	bc := parseAndCompile(t, "nums: [1, 2]\nr: map nums (fn x: {v: x * 10})\n(at r 1).v")
+	if got := runVM(t, bc); got != "20" {
+		t.Errorf("map literal in user fn: want 20, got %s", got)
+	}
+}
+
 func TestVMDeepButLegalRecursion(t *testing.T) {
 	input := "fn count n acc\n    if n <= 0\n        acc\n    else\n        count (n - 1) (acc + 1)\n\ncount 300 0"
 	bc := parseAndCompile(t, input)

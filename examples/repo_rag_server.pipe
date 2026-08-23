@@ -564,6 +564,29 @@ fn mcp_list_sources
     files: get ST "code_files"
     {count: (len files), files: files}
 
+-- Outline of one source file: all indexed declarations in line order.
+-- Works on the in-memory symbol list loaded from code.db, so it answers
+-- without touching the filesystem (safe under the locked rag-serve profile).
+fn mcp_file_symbols path
+    if path == nil || path == ""
+        return {error: "missing required argument: path"}
+    syms: get ST "code_symbols"
+    out: []
+    i: 0
+    while i < (len syms)
+        s: at syms i
+        f: get s "file"
+        if f == path || ("./" ++ f) == path
+            entry: {kind: (get s "kind"), symbol: (get s "symbol"), line: (get s "line_start")}
+            content: get s "content"
+            if content != nil
+                set entry "content" content
+            push out entry
+            if (len out) >= 200
+                break
+        i: i + 1
+    {count: (len out), symbols: out}
+
 fn mcp_repo_info
     info: {}
     set info "url" (get ST "url")
@@ -677,6 +700,7 @@ ai_tool "list_docs" "List all discovered Markdown files (.md/.mdx) in the reposi
 ai_tool "search_code" "Find functions, types, classes, structs, enums and tests in the repository source (Go, Pipe, Python, JS/TS, Rust + generic fallback) by name or keyword. Returns file, kind, symbol, line and the declaration. Supports up to 200 results via limit." {limit: "Maximum number of results to return, 1-200 (default 20)", query: "Symbol or keyword to find"} mcp_search_code
 ai_tool "read_source" "Read a source file with line numbers by relative path. Shows up to 500 lines per call; use offset to page through longer files." {offset: "1-based line number to start reading from (default 1)", path: "Repository-relative source file path"} mcp_read_source
 ai_tool "list_sources" "List all recognized source files in the repository." {} mcp_list_sources
+ai_tool "file_symbols" "Outline of ONE source file: every indexed declaration (function, type, class, struct, test) with kind, name, line number and the declaration line, in file order. Use it to understand a file's structure before reading it; find candidate paths via search_code or list_sources." {path: "Repository-relative source file path"} mcp_file_symbols
 ai_tool "repo_info" "Report which repository is indexed: URL, ref, detected languages, file counts, search mode and readiness." {} mcp_repo_info
 ai_tool "index_status" "Report index statistics: source files, code symbols, markdown files, keyword chunks, docs chunks and last sync counts." {} mcp_index_status
 ai_tool "refresh_index" "Incrementally re-sync the code and keyword-docs indexes from the cached checkout (no network, only changed files are reprocessed). Repository updates require a server restart." {} mcp_refresh

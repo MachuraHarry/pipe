@@ -1278,6 +1278,112 @@ func (vm *VM) executeFrame() object.Object {
 			}
 			vm.push(returnVal)
 
+		case compiler.OpMap:
+			numPairs := int(compiler.ReadUint16(ins, frame.ip))
+			frame.ip += 2
+			vals := make([]object.Object, numPairs)
+			for i := numPairs - 1; i >= 0; i-- {
+				vals[i] = vm.pop()
+			}
+			pairs := make(map[string]object.Object)
+			for i := 0; i < numPairs; i++ {
+				ki := compiler.ReadUint16(ins, frame.ip)
+				frame.ip += 2
+				keyObj := vm.constants[ki]
+				if ks, ok := keyObj.(*object.String); ok {
+					pairs[ks.Value] = vals[i]
+				}
+			}
+			vm.push(&object.Map{Pairs: pairs})
+
+		case compiler.OpStruct:
+			numFields := int(compiler.ReadUint16(ins, frame.ip))
+			frame.ip += 2
+			fieldNames := make([]string, numFields)
+			for i := 0; i < numFields; i++ {
+				nameIdx := compiler.ReadUint16(ins, frame.ip)
+				frame.ip += 2
+				fieldNames[i] = vm.constants[nameIdx].(*object.String).Value
+			}
+			vals := make([]object.Object, numFields)
+			for i := numFields - 1; i >= 0; i-- {
+				vals[i] = vm.pop()
+			}
+			defObj := vm.pop()
+			def, ok := defObj.(*object.StructDef)
+			if !ok {
+				return vm.newError("E004", "expected struct definition, got %T", defObj)
+			}
+			inst := &object.StructInstance{
+				Def:    def,
+				Values: make(map[string]object.Object),
+			}
+			for i, fn := range fieldNames {
+				inst.Values[fn] = vals[i]
+			}
+			vm.push(inst)
+
+		case compiler.OpSelect:
+			numCases := int(compiler.ReadUint16(ins, frame.ip))
+			frame.ip += 2
+
+			// Collect channels from stack
+			channels := make([]object.Object, numCases)
+			for i := numCases - 1; i >= 0; i-- {
+				channels[i] = vm.pop()
+			}
+
+			// Try to find a ready channel (non-blocking check)
+			var result object.Object = object.NILOBJ
+			found := false
+			for _, ch := range channels {
+				if chanObj, ok := ch.(*object.Channel); ok {
+					val := chanObj.TryRecv()
+					if val != nil && val.Type() != object.NIL {
+						result = val
+						found = true
+						break
+					}
+				}
+			}
+
+			if !found {
+				// No channel ready - push nil, VM will skip body
+				vm.push(object.NILOBJ)
+			} else {
+				vm.push(result)
+			}
+
+			// Skip case bodies (they're compiled but we handle them here)
+			for i := 0; i < numCases; i++ {
+				for {
+					skipOp := compiler.Opcode(ins[frame.ip])
+					frame.ip++
+					if skipOp == compiler.OpPop {
+						break
+					}
+					switch skipOp {
+					case compiler.OpConstant, compiler.OpGetGlobal, compiler.OpSetGlobal,
+						compiler.OpGetLocal, compiler.OpSetLocal, compiler.OpGetBuiltin,
+						compiler.OpGetFree, compiler.OpClosure, compiler.OpCall,
+						compiler.OpJump, compiler.OpJumpNotTruthy, compiler.OpStruct,
+						compiler.OpList, compiler.OpMap, compiler.OpDot:
+						frame.ip += 2
+					}
+				}
+			}
+
+			if !found {
+				// Push nil for default case behavior
+				vm.push(object.NILOBJ)
+			}
+
+		case compiler.OpHalt:
+			if err := vm.reportPending(); err != nil {
+				return &object.Error{Message: err.Error()}
+			}
+			return nil
+
 		default:
 			return &object.Error{Message: fmt.Sprintf("unknown opcode in user fn: %d", op)}
 		}

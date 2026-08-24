@@ -1,0 +1,322 @@
+--! state.pipe — sqlite-backed game state for "Die Ruine von Aldenmoor"
+--! All game truth lives in the DB; tools mutate it exclusively.
+
+import "sqlite"
+
+-- Mutable module state wrapped in a list (lists are mutable via set).
+DBH: [nil]
+
+--! Opens an in-memory database once and returns the handle.
+fn open_db _
+    if (at DBH 0) == nil
+        set DBH 0 (db_open ":memory:")
+    at DBH 0
+
+--! Escapes single quotes for SQL string literals.
+fn sql_escape s
+    replace s "'" "''"
+
+--! Creates all tables if they do not exist.
+fn init_db _
+    h: (open_db 0)
+    db_exec h "CREATE TABLE IF NOT EXISTS player (id INTEGER PRIMARY KEY, room TEXT, hp INTEGER, inventory TEXT, won INTEGER)"
+    db_exec h "CREATE TABLE IF NOT EXISTS rooms (id TEXT PRIMARY KEY, description TEXT, items TEXT, exits TEXT)"
+    db_exec h "CREATE TABLE IF NOT EXISTS npc_memory (npc TEXT PRIMARY KEY, summary TEXT, turns INTEGER)"
+    db_exec h "CREATE TABLE IF NOT EXISTS flavor (room TEXT PRIMARY KEY, body TEXT)"
+    db_exec h "CREATE TABLE IF NOT EXISTS monsters (id TEXT PRIMARY KEY, name TEXT, room TEXT, hp INTEGER, max_hp INTEGER, defense INTEGER, loot TEXT, defeated INTEGER)"
+    db_exec h "CREATE TABLE IF NOT EXISTS quests (id TEXT PRIMARY KEY, name TEXT, description TEXT, state TEXT)"
+    db_exec h "CREATE TABLE IF NOT EXISTS reputation (fraktion TEXT PRIMARY KEY, punkte INTEGER)"
+
+--! Deletes all rows (fresh game / test isolation).
+fn reset_state _
+    h: (open_db 0)
+    db_exec h "DELETE FROM player"
+    db_exec h "DELETE FROM rooms"
+    db_exec h "DELETE FROM npc_memory"
+    db_exec h "DELETE FROM monsters"
+    db_exec h "DELETE FROM quests"
+    db_exec h "DELETE FROM reputation"
+    db_exec h "DELETE FROM flavor"
+
+--! Loads rooms.json into the rooms table.
+fn seed_rooms path
+    h: (open_db 0)
+    data: parse_json (read_file path)
+    for id in keys data
+        room: get data id
+        n: db_query h ("SELECT id FROM rooms WHERE id = '" ++ (sql_escape id) ++ "'")
+        if len n > 0
+            db_exec h ("UPDATE rooms SET description = '" ++ (sql_escape (get room "description")) ++ "', items = '" ++ (sql_escape (to_json (get room "items"))) ++ "', exits = '" ++ (sql_escape (to_json (get room "exits"))) ++ "' WHERE id = '" ++ (sql_escape id) ++ "'")
+        else
+            db_exec h ("INSERT INTO rooms VALUES ('" ++ (sql_escape id) ++ "', '" ++ (sql_escape (get room "description")) ++ "', '" ++ (sql_escape (to_json (get room "items"))) ++ "', '" ++ (sql_escape (to_json (get room "exits"))) ++ "')")
+
+--! Starts a new game: player at the entrance with empty inventory.
+fn new_game _
+    h: (open_db 0)
+    db_exec h "DELETE FROM player"
+    db_exec h "INSERT INTO player VALUES (1, 'eingang', 10, '[]', 0)"
+
+--! Returns the player row map or nil.
+fn get_player _
+    rows: db_query (open_db 0) "SELECT * FROM player WHERE id = 1"
+    if len rows > 0
+        at rows 0
+    else
+        nil
+
+--! Returns a room row map or nil.
+fn get_room room_id
+    rows: db_query (open_db 0) ("SELECT * FROM rooms WHERE id = '" ++ (sql_escape room_id) ++ "'")
+    if len rows > 0
+        at rows 0
+    else
+        nil
+
+--! Moves the player to another room.
+fn set_player_room room_id
+    db_exec (open_db 0) ("UPDATE player SET room = '" ++ (sql_escape room_id) ++ "' WHERE id = 1")
+
+--! Adds an item to the player's inventory.
+fn inventory_add item_name
+    p: (get_player 0)
+    inv: parse_json (get p "inventory")
+    push inv item_name
+    db_exec (open_db 0) ("UPDATE player SET inventory = '" ++ (sql_escape (to_json inv)) ++ "' WHERE id = 1")
+
+--! Removes an item from the player's inventory.
+fn inventory_remove item_name
+    p: (get_player 0)
+    old: parse_json (get p "inventory")
+    neu: []
+    for it in old
+        if it != item_name
+            push neu it
+    db_exec (open_db 0) ("UPDATE player SET inventory = '" ++ (sql_escape (to_json neu)) ++ "' WHERE id = 1")
+
+--! True when the player carries the given item.
+fn inventory_has item_name
+    p: (get_player 0)
+    contains (parse_json (get p "inventory")) item_name
+
+--! Removes an item from a room and returns true on success.
+fn room_take_item room_id item_name
+    room: get_room room_id
+    if room == nil
+        false
+    else
+        items: parse_json (get room "items")
+        if contains items item_name
+            rest: []
+            for it in items
+                if it != item_name
+                    push rest it
+            db_exec (open_db 0) ("UPDATE rooms SET items = '" ++ (sql_escape (to_json rest)) ++ "' WHERE id = '" ++ (sql_escape room_id) ++ "'")
+            true
+        else
+            false
+
+--! Returns the stored memory summary of an NPC (empty string if unknown).
+fn get_npc_memory npc
+    rows: db_query (open_db 0) ("SELECT summary FROM npc_memory WHERE npc = '" ++ (sql_escape npc) ++ "'")
+    if len rows > 0
+        get (at rows 0) "summary"
+    else
+        ""
+
+--! Number of dialogue exchanges with an NPC so far.
+fn npc_turns npc
+    rows: db_query (open_db 0) ("SELECT turns FROM npc_memory WHERE npc = '" ++ (sql_escape npc) ++ "'")
+    if len rows > 0
+        get (at rows 0) "turns"
+    else
+        0
+
+--! Overwrites (not appends) the compressed NPC memory; bumps the turn counter.
+fn set_npc_memory npc summary
+    h: (open_db 0)
+    rows: db_query h ("SELECT turns FROM npc_memory WHERE npc = '" ++ (sql_escape npc) ++ "'")
+    esc: sql_escape summary
+    if len rows > 0
+        db_exec h ("UPDATE npc_memory SET summary = '" ++ esc ++ "', turns = turns + 1 WHERE npc = '" ++ (sql_escape npc) ++ "'")
+    else
+        db_exec h ("INSERT INTO npc_memory VALUES ('" ++ (sql_escape npc) ++ "', '" ++ esc ++ "', 1)")
+
+--! Marks the game as won.
+fn set_won _
+    db_exec (open_db 0) "UPDATE player SET won = 1 WHERE id = 1"
+
+--! Joins a list of strings with a separator (private helper).
+fn join_str lst sep
+    out: ""
+    n: 0
+    for item in lst
+        if n > 0
+            out: out ++ sep
+        out: out ++ item
+        n: n + 1
+    out
+
+--! Seeds the monster roster (guards etc.).
+fn seed_monsters _
+    h: (open_db 0)
+    rows: [["kammerling", "Kammerling", "schatzkammer", 5, 5, 0, "muenze"]]
+    for m in rows
+        n: db_query h ("SELECT id FROM monsters WHERE id = '" ++ (at m 0) ++ "'")
+        if len n == 0
+            db_exec h ("INSERT INTO monsters VALUES ('" ++ (at m 0) ++ "', '" ++ (at m 1) ++ "', '" ++ (at m 2) ++ "', " ++ (to_str (at m 3)) ++ ", " ++ (to_str (at m 4)) ++ ", " ++ (to_str (at m 5)) ++ ", '" ++ (at m 6) ++ "', 0)")
+
+--! Seeds the quest log.
+fn seed_quests _
+    h: (open_db 0)
+    rows: []
+    push rows (["hauptquest", "Die Schuld kehren", "Bringe dem Waechter freiwillig ein Stueck des unberuehrten Erbes von Aldenmoor zurueck.", "aktiv"])
+    push rows (["klingenwacht", "Klingenwacht", "Vertreibe das Untier aus der Schatzkammer.", "aktiv"])
+    push rows (["lichtblick", "Ein Lichtblick", "Schenke dem Waechter Licht fuer seine ewige Wache.", "aktiv"])
+    for qst in rows
+        n: db_query h ("SELECT id FROM quests WHERE id = '" ++ (at qst 0) ++ "'")
+        if len n == 0
+            db_exec h ("INSERT INTO quests VALUES ('" ++ (at qst 0) ++ "', '" ++ (at qst 1) ++ "', '" ++ (at qst 2) ++ "', '" ++ (at qst 3) ++ "')")
+
+--! Seeds faction reputation scores.
+fn seed_reputation _
+    h: (open_db 0)
+    rows: [["alte_ordnung", 0], ["doerfer", 0]]
+    for r in rows
+        n: db_query h ("SELECT fraktion FROM reputation WHERE fraktion = '" ++ (at r 0) ++ "'")
+        if len n == 0
+            db_exec h ("INSERT INTO reputation VALUES ('" ++ (at r 0) ++ "', " ++ (to_str (at r 1)) ++ ")")
+
+--! Returns the quest row map or nil.
+fn get_quest quest_id
+    rows: db_query (open_db 0) ("SELECT * FROM quests WHERE id = '" ++ (sql_escape quest_id) ++ "'")
+    if len rows > 0
+        at rows 0
+    else
+        nil
+
+--! Sets the state of a quest (offen/aktiv/erledigt).
+fn quest_set quest_id state
+    db_exec (open_db 0) ("UPDATE quests SET state = '" ++ state ++ "' WHERE id = '" ++ (sql_escape quest_id) ++ "'")
+
+--! Returns all quests as row maps.
+fn all_quests _
+    db_query (open_db 0) "SELECT * FROM quests ORDER BY id"
+
+--! Adjusts faction reputation by delta (never below zero).
+fn rep_add fraktion delta
+    h: (open_db 0)
+    rows: db_query h ("SELECT punkte FROM reputation WHERE fraktion = '" ++ (sql_escape fraktion) ++ "'")
+    if len rows > 0
+        neu: (get (at rows 0) "punkte") + delta
+        if neu < 0
+            neu: 0
+        db_exec h ("UPDATE reputation SET punkte = " ++ (to_str neu) ++ " WHERE fraktion = '" ++ (sql_escape fraktion) ++ "'")
+
+--! Returns the reputation score of a faction (0 if unknown).
+fn rep_get fraktion
+    rows: db_query (open_db 0) ("SELECT punkte FROM reputation WHERE fraktion = '" ++ (sql_escape fraktion) ++ "'")
+    if len rows > 0
+        get (at rows 0) "punkte"
+    else
+        0
+
+--! Returns all alive monsters in a room.
+fn monsters_in_room room_id
+    db_query (open_db 0) ("SELECT * FROM monsters WHERE room = '" ++ (sql_escape room_id) ++ "' AND defeated = 0")
+
+--! Applies damage to a monster; returns remaining hp.
+fn monster_hit monster_id dmg
+    h: (open_db 0)
+    rows: db_query h ("SELECT hp FROM monsters WHERE id = '" ++ (sql_escape monster_id) ++ "'")
+    hp: (get (at rows 0) "hp") - dmg
+    if hp < 0
+        hp: 0
+    db_exec h ("UPDATE monsters SET hp = " ++ (to_str hp) ++ " WHERE id = '" ++ (sql_escape monster_id) ++ "'")
+    hp
+
+--! Marks a monster defeated and drops its loot into its room.
+fn monster_defeat monster_id
+    h: (open_db 0)
+    rows: db_query h ("SELECT room, loot FROM monsters WHERE id = '" ++ (sql_escape monster_id) ++ "'")
+    m: at rows 0
+    db_exec h ("UPDATE monsters SET defeated = 1 WHERE id = '" ++ (sql_escape monster_id) ++ "'")
+    quest_set "klingenwacht" "erledigt"
+    rep_add "doerfer" 1
+    loot: get m "loot"
+    if loot != ""
+        room: get_room (get m "room")
+        items: parse_json (get room "items")
+        push items loot
+        db_exec h ("UPDATE rooms SET items = '" ++ (sql_escape (to_json items)) ++ "' WHERE id = '" ++ (sql_escape (get m "room")) ++ "'")
+
+--! Updates the player's hp.
+fn set_player_hp hp
+    db_exec (open_db 0) ("UPDATE player SET hp = " ++ (to_str hp) ++ " WHERE id = 1")
+
+--! Respawns the player at the entrance after death.
+fn respawn_player _
+    h: (open_db 0)
+    db_exec h "UPDATE player SET room = 'eingang', hp = 10 WHERE id = 1"
+    rep_add "doerfer" (-1)
+
+--! Returns all rooms as row maps.
+fn all_rooms
+    db_query (open_db 0) "SELECT * FROM rooms ORDER BY id"
+
+--! Returns the stored atmospheric description of a room (empty if none).
+fn get_flavor room_id
+    rows: db_query (open_db 0) ("SELECT body FROM flavor WHERE room = '" ++ (sql_escape room_id) ++ "'")
+    if len rows > 0
+        get (at rows 0) "body"
+    else
+        ""
+
+--! Stores an atmospheric room description (newlines flattened for SQL).
+fn set_flavor room_id raw
+    h: (open_db 0)
+    flat: join_str (split raw "\n") " "
+    esc: sql_escape flat
+    rows: db_query h ("SELECT room FROM flavor WHERE room = '" ++ (sql_escape room_id) ++ "'")
+    if len rows > 0
+        db_exec h ("UPDATE flavor SET body = '" ++ esc ++ "' WHERE room = '" ++ (sql_escape room_id) ++ "'")
+    else
+        db_exec h ("INSERT INTO flavor VALUES ('" ++ (sql_escape room_id) ++ "', '" ++ esc ++ "')")
+
+--! Saves all three tables as JSON into the sandboxed saves/ directory.
+fn save_game name
+    safe: join_str (split (replace name " " "_") "/") "_"
+    h: (open_db 0)
+    data: {player: db_query h "SELECT * FROM player", rooms: db_query h "SELECT * FROM rooms", monsters: db_query h "SELECT * FROM monsters", quests: db_query h "SELECT * FROM quests", reputation: db_query h "SELECT * FROM reputation", npc_memory: db_query h "SELECT * FROM npc_memory"}
+    if !file_exists "saves"
+        make_dir "saves"
+    write_file ("saves/" ++ safe ++ ".json") (to_json data)
+    "Spielstand \"" ++ safe ++ "\" gespeichert."
+
+--! Loads a saved game from the sandboxed saves/ directory.
+fn load_game name
+    safe: join_str (split (replace name " " "_") "/") "_"
+    path: "saves/" ++ safe ++ ".json"
+    if file_exists path
+        data: parse_json (read_file path)
+        h: (open_db 0)
+        db_exec h "DELETE FROM player"
+        db_exec h "DELETE FROM rooms"
+        db_exec h "DELETE FROM monsters"
+        db_exec h "DELETE FROM quests"
+        db_exec h "DELETE FROM reputation"
+        db_exec h "DELETE FROM flavor"
+        for row in (get data "monsters")
+            db_exec h ("INSERT INTO monsters VALUES ('" ++ (sql_escape (get row "id")) ++ "', '" ++ (sql_escape (get row "name")) ++ "', '" ++ (sql_escape (get row "room")) ++ "', " ++ (to_str (get row "hp")) ++ ", " ++ (to_str (get row "max_hp")) ++ ", " ++ (to_str (get row "defense")) ++ ", '" ++ (sql_escape (get row "loot")) ++ "', " ++ (to_str (get row "defeated")) ++ ")")
+        for row in (get data "quests")
+            db_exec h ("INSERT INTO quests VALUES ('" ++ (sql_escape (get row "id")) ++ "', '" ++ (sql_escape (get row "name")) ++ "', '" ++ (sql_escape (get row "description")) ++ "', '" ++ (sql_escape (get row "state")) ++ "')")
+        for row in (get data "reputation")
+            db_exec h ("INSERT INTO reputation VALUES ('" ++ (sql_escape (get row "fraktion")) ++ "', " ++ (to_str (get row "punkte")) ++ ")")
+        for row in (get data "player")
+            db_exec h ("INSERT INTO player VALUES (" ++ (to_str (get row "id")) ++ ", '" ++ (sql_escape (get row "room")) ++ "', " ++ (to_str (get row "hp")) ++ ", '" ++ (sql_escape (get row "inventory")) ++ "', " ++ (to_str (get row "won")) ++ ")")
+        for row in (get data "rooms")
+            db_exec h ("INSERT INTO rooms VALUES ('" ++ (sql_escape (get row "id")) ++ "', '" ++ (sql_escape (get row "description")) ++ "', '" ++ (sql_escape (get row "items")) ++ "', '" ++ (sql_escape (get row "exits")) ++ "')")
+        for row in (get data "npc_memory")
+            db_exec h ("INSERT INTO npc_memory VALUES ('" ++ (sql_escape (get row "npc")) ++ "', '" ++ (sql_escape (get row "summary")) ++ "', " ++ (to_str (get row "turns")) ++ ")")
+        "Spielstand \"" ++ safe ++ "\" geladen."
+    else
+        "Kein Spielstand namens \"" ++ safe ++ "\" gefunden."

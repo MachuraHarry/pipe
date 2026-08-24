@@ -1,0 +1,132 @@
+--! Die Ruine von Aldenmoor — ein KI-Textadventure in Pipe
+--! Ausführen:  bin/pipe adventure.pipe   (aus dem adventure/-Verzeichnis)
+--! Beenden:    "ende" eingeben.
+
+import "state.pipe"
+import "tools.pipe"
+
+-- ---- Provider: OpenCode Zen, keyless free tier ($0) ----
+ai_provider "opencode"
+FREE_MODELS: ["x-preview-f-free", "laguna-s-2.1-free"]
+NARRATOR_SYSTEM: "Du bist der Erzähler eines düsteren Fantasy-Textabenteuers (deutsch). Nutze die Werkzeuge, die der Spieler braucht, und fasse die Tool-Ergebnisse atmosphärisch in höchstens 3 Sätzen zusammen. Erfinde keine Gegenstände, Untiere oder Wege, die es nicht gibt. Bei Untieren ermutige den Spieler zum Angriff (attack_enemy)."
+
+--! Probes the free models and returns the first that answers.
+fn pick_free_model models
+    for m in models
+        try
+            ai_model m
+            ask "Antworte mit genau einem Wort: bereit"
+            return m
+        catch
+            print ("  (Modell " ++ m ++ " nicht erreichbar, teste nächstes)")
+    "x-preview-f-free"
+
+--! Pre-generates atmospheric descriptions for every room in parallel.
+fn pregen_flavor _
+    rs: all_rooms
+    ids: []
+    prompts: []
+    for r in rs
+        push ids (get r "id")
+        push prompts ("Beschreibe diesen Raum atmosphärisch für ein Fantasy-Textadventure, genau 2 Sätze, keine Wiederholung des Raumnamens als Überschrift.\nRaum: " ++ (get r "id") ++ "\n" ++ (get r "description"))
+    texte: ai_batch NARRATOR_SYSTEM prompts
+    i: 0
+    for t in texte
+        if t != ""
+            set_flavor (at ids i) t
+        i: i + 1
+
+print "Verbinde mit OpenCode Zen ..."
+model: pick_free_model FREE_MODELS
+print ("Modell: " ++ model)
+ai_timeout 20
+
+-- ---- World setup (before the sandbox locks the filesystem) ----
+init_db 0
+seed_rooms "rooms.json"
+new_game 0
+seed_monsters 0
+seed_quests 0
+seed_reputation 0
+build_lore_index 0
+
+print "Erzeuge Atmosphäre (parallel, einmalig) ..."
+try
+    pregen_flavor 0
+catch
+    print "  (Atmosphären-Generierung übersprungen -- statische Beschreibungen aktiv)"
+
+-- ---- Sandbox: no shell, AI only via opencode.ai ----
+sandbox_profile "game" {fs: "temp-only", network: true, network_whitelist: ["opencode.ai"], exec: false, ai: true}
+set_sandbox "game"
+
+FERTIG: [false]
+
+AMBIENTE: ["Irgendwo tropft Wasser in gleichmäßigem Rhythmus.", "Der Wind trägt einen Hauch Glockenklang herüber.", "Staub wirbeln im Fackelschein wie kleine Sterne.", "Irgendwo knarzt altes Eisen.", "Ein kalter Zug streicht dir durchs Haar."]
+
+--! Returns a random ambient line while waiting.
+fn ambient_line _
+    at AMBIENTE (random_range 0 ((len AMBIENTE) - 1))
+
+--! Prints animated dots until something lands in the channel.
+fn think_spinner ch
+    v: try_recv ch
+    while v == nil
+        print_raw "."
+        sleep 400
+        v: try_recv ch
+    print_raw "\n"
+
+--! Runs one narrator turn via ai_with_tools, rotating free models on failure.
+fn handle_turn inp
+    print ""
+    fc: fast_command inp
+    if (get fc "handled") == true
+        print (get fc "out")
+    else
+        print (ambient_line 0)
+        ch: chan 1
+        spawn think_spinner ch
+        antwort: ""
+        ok: [false]
+        for m in FREE_MODELS
+            if (at ok 0) == false
+                try
+                    ai_model m
+                    antwort: ai_with_tools NARRATOR_SYSTEM inp
+                    set ok 0 true
+                catch
+                    print ("  (Modell " ++ m ++ " nicht erreichbar)")
+        send ch 1
+        if (at ok 0) == true
+            print antwort
+        else
+            print "Die Nebel schweigen. Versuche es noch einmal."
+    p: (get_player 0)
+    if (get p "won") == 1
+        print ""
+        print "*** Der Fluch von Aldenmoor ist gebrochen. ***"
+        print "Ser Aldric sinkt auf ein Knie, bevor er zu Staub wird -- befreit. Als du die Halle verlässt, trägst du keinen Schatz fort, nur eine Geschichte."
+        set FERTIG 0 true
+
+print ""
+print "╔══════════════════════════════════════════╗"
+print "║      DIE RUINE VON ALDENMOOR             ║"
+print "║   ein KI-Textadventure — gebaut in Pipe  ║"
+print "╚══════════════════════════════════════════╝"
+print ""
+print (look 0)
+print ""
+print "(Freitext eingeben. \"ende\" beendet das Spiel.)"
+
+-- ---- Game loop ----
+while (at FERTIG 0) == false
+    print ""
+    eingabe: input "> "
+    if eingabe != ""
+        match eingabe
+            | "ende" -> set FERTIG 0 true
+            | _ -> handle_turn eingabe
+
+print ""
+print "Danke fürs Spielen."

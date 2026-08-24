@@ -1,0 +1,3 @@
+# Pipe runtime artifacts (generated during play / tests)
+.pipe_sandbox/
+saves/

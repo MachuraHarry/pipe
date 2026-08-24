@@ -1,5 +1,19 @@
 [
   {
+    "id": "adventure-aldenmoor",
+    "file": "adventure-aldenmoor.md",
+    "date": "2026-08-24",
+    "tag": "showcase",
+    "title": {
+      "en": "🏰 Building a Keyless AI Text Adventure in Pure Pipe — \"Die Ruine von Aldenmoor\"",
+      "de": "🏰 Ein schlüsselloses KI-Textadventure in reinem Pipe — \"Die Ruine von Aldenmoor\""
+    },
+    "excerpt": {
+      "en": "A complete, playable fantasy text adventure — tool-calling, RAG, SQLite state, summarize, and a locked-down sandbox — in ~600 lines of Pipe, run entirely on the OpenCode Zen free tier. Zero API keys, zero cost, plus the two tricks that make an AI game feel instant.",
+      "de": "Ein komplettes, spielbares Fantasy-Textadventure — Tool-Calling, RAG, SQLite-State, summarize und verriegelte Sandbox — in ~600 Zeilen Pipe, komplett auf dem OpenCode-Zen-Free-Tier. Null API-Keys, null Kosten, plus die zwei Tricks, die ein KI-Spiel augenblicklich wirken lassen."
+    }
+  },
+  {
     "id": "repo-rag-stress",
     "file": "repo-rag-stress.md",
     "date": "2026-08-23",

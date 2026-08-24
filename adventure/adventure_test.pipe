@@ -1,0 +1,245 @@
+--! adventure_test.pipe — tests for the game logic (no AI calls)
+--! Run from the adventure/ directory with:  pipe -test
+
+import "pipe-test"
+import "state.pipe"
+import "tools.pipe"
+
+fn fresh_game _
+    init_db 0
+    reset_state 0
+    seed_rooms "rooms.json"
+    new_game 0
+    seed_monsters 0
+    seed_quests 0
+    seed_reputation 0
+
+--- === State & SQL === ===
+
+test "sql_escape doubles quotes"
+    expect_eq (sql_escape "O'Brien") "O''Brien" "quotes escaped"
+
+test "seed loads rooms"
+    fresh_game 0
+    room: get_room "eingang"
+    expect_not_nil room "entrance exists"
+    expect_contains (keys (parse_json (get room "exits"))) "norden" "exit north"
+    expect_contains (parse_json (get room "items")) "fackel" "torch present"
+
+test "new game player state"
+    fresh_game 0
+    p: (get_player 0)
+    expect_eq (get p "room") "eingang" "starts at entrance"
+    expect_eq (get p "won") 0 "not won yet"
+    expect_eq (get p "inventory") "[]" "empty inventory"
+
+--- === Movement === ===
+
+test "movement north"
+    fresh_game 0
+    result: move_to "norden"
+    expect_eq (get (get_player 0) "room") "halle" "player in halle"
+    expect_contains result "Halle" "description returned"
+
+test "invalid movement keeps position"
+    fresh_game 0
+    result: move_to "westen"
+    expect_contains result "kein Weg" "refusal message"
+    expect_eq (get (get_player 0) "room") "eingang" "still at entrance"
+
+--- === Items & Inventory === ===
+
+test "take item moves it to inventory"
+    fresh_game 0
+    result: take_item "fackel"
+    expect_contains result "fackel" "pickup message"
+    expect_truthy (inventory_has "fackel") "in inventory"
+    room: get_room "eingang"
+    expect_eq (get room "items") "[]" "room emptied"
+
+test "take missing item fails"
+    fresh_game 0
+    result: take_item "drachenherz"
+    expect_contains result "liegt hier nicht" "failure message"
+
+test "give item without npc in room fails"
+    fresh_game 0
+    inventory_add "muenze"
+    result: give_item "muenze" "waechter"
+    expect_contains result "niemand" "npc not here"
+
+test "give wrong item to waechter"
+    fresh_game 0
+    set_player_room "halle"
+    inventory_add "schwert"
+    result: give_item "schwert" "waechter"
+    expect_eq (get (get_player 0) "won") 0 "curse not broken"
+    expect_falsy (inventory_has "schwert") "item handed over"
+
+test "giving the muenze breaks the curse"
+    fresh_game 0
+    set_player_room "halle"
+    inventory_add "muenze"
+    result: give_item "muenze" "waechter"
+    expect_eq (get (get_player 0) "won") 1 "game won"
+    expect_contains result "Fluch" "ending text"
+
+--- === NPC Memory === ===
+
+test "npc memory roundtrip"
+    fresh_game 0
+    expect_eq (get_npc_memory "waechter") "" "no memory yet"
+    set_npc_memory "waechter" "Spieler hat sich vorgestellt."
+    expect_eq (get_npc_memory "waechter") "Spieler hat sich vorgestellt." "memory stored"
+
+test "npc memory is overwritten not appended"
+    fresh_game 0
+    set_npc_memory "waechter" "alt"
+    set_npc_memory "waechter" "neu"
+    expect_eq (get_npc_memory "waechter") "neu" "summary replaced"
+
+--- === Combat === ===
+
+test "monster seeds guard the treasure room"
+    fresh_game 0
+    set_player_room "schatzkammer"
+    ms: monsters_in_room "schatzkammer"
+    expect_eq (len ms) 1 "one monster present"
+    expect_eq (get (at ms 0) "id") "kammerling" "it is the kammerling"
+
+test "find monster by name fragment"
+    fresh_game 0
+    set_player_room "schatzkammer"
+    m: find_monster "kammer"
+    expect_not_nil m "found by fragment"
+    expect_eq (get m "name") "Kammerling" "correct monster"
+
+test "find monster fails in empty room"
+    fresh_game 0
+    m: find_monster "kammerling"
+    expect_nil m "no monster at entrance"
+
+test "defeating monster drops loot and closes quest"
+    fresh_game 0
+    set_player_room "schatzkammer"
+    m: find_monster "kammerling"
+    mid: get m "id"
+    monster_hit mid 99
+    monster_defeat mid
+    room: get_room "schatzkammer"
+    expect_contains (parse_json (get room "items")) "muenze" "loot dropped"
+    expect_eq (get (get_quest "klingenwacht") "state") "erledigt" "quest done"
+
+test "attack kills monster without sword eventually"
+    fresh_game 0
+    set_player_room "schatzkammer"
+    set_player_hp 100
+    result: attack_enemy "kammerling"
+    expect_contains result "Schaden" "combat report"
+
+test "attack with no monster fails cleanly"
+    fresh_game 0
+    result: attack_enemy "drache"
+    expect_contains result "kein Untier" "refusal"
+
+test "respawn returns player to entrance"
+    fresh_game 0
+    move_to "norden"
+    set_player_hp 1
+    respawn_player 0
+    p: (get_player 0)
+    expect_eq (get p "room") "eingang" "back at entrance"
+    expect_eq (get p "hp") 10 "hp restored"
+    expect_lt (rep_get "doerfer") 1 "villagers heard rumors"
+
+--- === Quests === ===
+
+test "quest log lists seeded quests"
+    fresh_game 0
+    log: show_quests 0
+    expect_contains log "Die Schuld kehren" "main quest listed"
+    expect_contains log "Klingenwacht" "combat quest listed"
+
+test "giving fackel closes lichtblick quest"
+    fresh_game 0
+    take_item "fackel"
+    move_to "norden"
+    give_item "fackel" "waechter"
+    expect_eq (get (get_quest "lichtblick") "state") "erledigt" "gift quest done"
+    expect_gt (rep_get "alte_ordnung") 0 "reputation gained"
+
+--- === Reputation === ===
+
+test "rep_get defaults to zero for unknown faction"
+    fresh_game 0
+    expect_eq (rep_get "gilden") 0 "unknown faction"
+
+test "rep_add accumulates"
+    fresh_game 0
+    rep_add "doerfer" 2
+    rep_add "doerfer" 3
+    expect_eq (rep_get "doerfer") 5 "accumulated"
+
+--- === Fast-Path & Flavor === ===
+
+test "fast path direction aliases"
+    fresh_game 0
+    r1: fast_command "n"
+    expect_truthy (get r1 "handled") "alias n handled"
+    expect_eq (get (get_player 0) "room") "halle" "moved north"
+    r2: fast_command "geh nach sueden"
+    expect_truthy (get r2 "handled") "geh-phrase handled"
+    expect_eq (get (get_player 0) "room") "eingang" "moved back south"
+
+test "fast path take and inventory"
+    fresh_game 0
+    r1: fast_command "nimm die fackel"
+    expect_truthy (get r1 "handled") "take handled"
+    expect_truthy (inventory_has "fackel") "torch taken via fast path"
+    r2: fast_command "inventar"
+    expect_contains (get r2 "out") "fackel" "inventory shows torch"
+
+test "fast path combat command"
+    fresh_game 0
+    set_player_room "schatzkammer"
+    set_player_hp 100
+    r: fast_command "greife den kammerling an"
+    expect_truthy (get r "handled") "attack handled"
+    m: find_monster "kammerling"
+    if m == nil
+        expect_truthy true "monster dead already"
+    else
+        expect_lt (get m "hp") 5 "monster took damage"
+
+test "fast path passes unknown input through"
+    fresh_game 0
+    r: fast_command "rede mit dem waechter über seinen fluch"
+    expect_falsy (get r "handled") "free text not handled"
+
+test "flavor roundtrip flattens newlines"
+    fresh_game 0
+    set_flavor "eingang" "Zeile eins.\nZeile zwei."
+    fl: get_flavor "eingang"
+    expect_contains fl "Zeile eins." "stored"
+    expect_falsy (contains fl "\n") "newline flattened"
+
+test "npc turns counter increments"
+    fresh_game 0
+    expect_eq (npc_turns "waechter") 0 "starts at zero"
+    set_npc_memory "waechter" "a"
+    set_npc_memory "waechter" "b"
+    expect_eq (npc_turns "waechter") 2 "two exchanges counted"
+
+--- === Save / Load === ===
+
+test "save and load restore state"
+    fresh_game 0
+    move_to "norden"
+    saved: save_game "teststand"
+    expect_contains saved "gespeichert" "save ok"
+    reset_state 0
+    init_db 0
+    seed_rooms "rooms.json"
+    loaded: load_game "teststand"
+    expect_contains loaded "geladen" "load ok"
+    expect_eq (get (get_player 0) "room") "halle" "position restored"

@@ -1,0 +1,37 @@
+{
+  "eingang": {
+    "description": "Ein verwitterter Torbogen führt in die Ruine von Aldenmoor. Moos überwuchert die geborstenen Steine, und ein kalter Zug weht aus dem Inneren.",
+    "items": ["fackel"],
+    "exits": {"norden": "halle"}
+  },
+  "halle": {
+    "description": "Eine große, staubige Halle. Rissige Fahnen alter Ordnung hängen an den Wänden. Ein Wächter in verrostetem Harnisch steht reglos an der Nordwand.",
+    "items": [],
+    "exits": {"sueden": "eingang", "osten": "schatzkammer", "westen": "hof", "norden": "kapelle"}
+  },
+  "schatzkammer": {
+    "description": "Golddurchsetzte Truhen, größtenteils geplündert. Staubige Luft flackert im Licht. Kratzspuren am Boden verraten, dass hier etwas Ungeziefer sein Unwesen treibt.",
+    "items": ["schwert"],
+    "exits": {"westen": "halle"}
+  },
+  "hof": {
+    "description": "Ein overwucherter Innenhof. Verwitterte Statuen alter Ritter säumen den Weg, Köpfe abgeschlagen von Zeit und Wetter. Wilder Beifuß wächst zwischen den Platten.",
+    "items": ["heilkraut"],
+    "exits": {"osten": "halle", "norden": "brunnen"}
+  },
+  "brunnen": {
+    "description": "Ein tiefer Steinbrunnen, das Wasser schwarz und still. Man sagt, wer hineinruft, höre seine eigene Stimme als letzte zurück.",
+    "items": [],
+    "exits": {"sueden": "hof"}
+  },
+  "kapelle": {
+    "description": "Eine kleine Ruinenkapelle. Der Altar ist leer, doch die Kerzenhalter sind frisch gekehrt -- jemand pflegt diesen Ort.",
+    "items": [],
+    "exits": {"sueden": "halle", "osten": "turm"}
+  },
+  "turm": {
+    "description": "Der eingestürzte Bergfried. Durch die offene Decke fällt ein Streifen Himmel auf ein Nest aus Fahnenresten -- hier oben hat einst der Wächter gestanden.",
+    "items": ["amulett"],
+    "exits": {"westen": "kapelle"}
+  }
+}

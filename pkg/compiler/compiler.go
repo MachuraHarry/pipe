@@ -1077,7 +1077,12 @@ func (c *Compiler) compileSelect(se *ast.SelectExpression) error {
 }
 
 func (c *Compiler) compileTryExpression(te *ast.TryExpression) error {
-	catchSym := c.symbolTable.Define(te.CatchParam.Value)
+	var catchSym Symbol
+	hasCatch := false
+	if te.CatchParam != nil {
+		catchSym = c.symbolTable.Define(te.CatchParam.Value)
+		hasCatch = true
+	}
 
 	stmts := te.TryBlock.Statements
 
@@ -1114,15 +1119,20 @@ func (c *Compiler) compileTryExpression(te *ast.TryExpression) error {
 
 	// Bind the catch parameter to the error message string, matching the
 	// tree-walker (catch err -> err is a string, not an Error object).
+	// Bare `catch` (no parameter) simply discards the error value.
 	catchBind := len(c.currentInstructions())
-	c.emit(OpErrorToString)
+	if hasCatch {
+		c.emit(OpErrorToString)
 
-	if catchSym.Scope == GlobalScope {
-		c.emit(OpSetGlobal, catchSym.Index)
+		if catchSym.Scope == GlobalScope {
+			c.emit(OpSetGlobal, catchSym.Index)
+		} else {
+			c.emit(OpSetLocal, catchSym.Index)
+		}
+		c.emit(OpPop)
 	} else {
-		c.emit(OpSetLocal, catchSym.Index)
+		c.emit(OpPop)
 	}
-	c.emit(OpPop)
 
 	for _, stmt := range te.CatchBlock.Statements[:len(te.CatchBlock.Statements)-1] {
 		if err := c.Compile(stmt); err != nil {

@@ -7,7 +7,7 @@ import "tools.pipe"
 
 -- ---- Provider: OpenCode Zen, keyless free tier ($0) ----
 ai_provider "opencode"
-FREE_MODELS: ["x-preview-f-free", "laguna-s-2.1-free"]
+FREE_MODELS: ["nemotron-3.5-lightning-free", "x-preview-f-free", "laguna-s-2.1-free"]
 NARRATOR_SYSTEM: "Du bist der Erzähler eines düsteren Fantasy-Textabenteuers (deutsch). Nutze die Werkzeuge, die der Spieler braucht, und fasse die Tool-Ergebnisse atmosphärisch in höchstens 3 Sätzen zusammen. Erfinde keine Gegenstände, Untiere oder Wege, die es nicht gibt. Bei Untieren ermutige den Spieler zum Angriff (attack_enemy)."
 
 --! Probes the free models and returns the first that answers.
@@ -51,10 +51,12 @@ seed_reputation 0
 build_lore_index 0
 
 print "Erzeuge Atmosphäre (parallel, einmalig) ..."
+ai_timeout 8
 try
     pregen_flavor 0
 catch
     print "  (Atmosphären-Generierung übersprungen -- statische Beschreibungen aktiv)"
+ai_timeout 20
 
 -- ---- Sandbox: no shell, AI only via opencode.ai ----
 sandbox_profile "game" {fs: "temp-only", network: true, network_whitelist: ["opencode.ai"], exec: false, ai: true}

@@ -1,0 +1,939 @@
+--! gen_world.pipe — AI world generation for "Worldcraft"
+--! Pipeline: user prompt -> design (ai_chat_json) -> validate -> map
+--! (ai_chat_json) -> validate (BFS connectivity) -> lore enrichment
+--! (ai_batch) -> world document. All validators are pure Pipe functions,
+--! fully testable without any AI call.
+--! This file has NO top-level side effects besides constants.
+
+import "state.pipe"
+import "tools.pipe"
+import "lore.pipe"
+
+DESIGN_SYSTEM: "Du bist ein Spiele-Design-Assistent. Antworte AUSSCHLIESSLICH als JSON-Objekt, ohne Erklärtext."
+MAP_SYSTEM: "Du bist ein Karten-Architekt für Textabenteuer. Antworte AUSSCHLIESSLICH als JSON-Objekt, ohne Erklärtext."
+
+-- Parser-Fallstrick: Inline-Listen/Maps als Funktionsargumente werden NIL.
+-- KEIN_LISTE/KEIN_MAP nur als Lese-Defaults nutzen (werden geteilt!),
+-- für Konstruktion immer frische Objekte via frische_map/frische_liste.
+KEIN_LISTE: []
+KEIN_MAP: {}
+
+--! Returns a brand-new empty map (constants are shared and mutable!).
+fn frische_map _
+    {}
+
+--! Returns a brand-new empty list.
+fn frische_liste _
+    []
+
+--! Models tried in order during world generation (rotation per attempt).
+GEN_MODELS: ["x-preview-f-free", "laguna-s-2.1-free", "nemotron-3.5-lightning-free"]
+
+--! Extracts the outermost JSON object from a raw LLM response
+--! (strips chain-of-thought prose). Returns nil when no object found.
+fn extract_json raw
+    teile: split raw "{"
+    if len teile < 2
+        nil
+    else
+        innen: ""
+        n: 0
+        for t in teile
+            if n > 0
+                innen: innen ++ "{" ++ t
+            n: n + 1
+        stuecke: split innen "}"
+        wenn: ""
+        m: 0
+        while m < ((len stuecke) - 1)
+            wenn: wenn ++ (at stuecke m) ++ "}"
+            m: m + 1
+        wenn
+
+--! Loads the resource pack from disk and returns the parsed map.
+fn load_pack path
+    parse_json (read_file path)
+
+--! Returns v when it is not nil/empty list, else the default.
+fn or_default v def
+    if v == nil
+        def
+    else
+        v
+
+--! Finds a room template row by id (nil if unknown).
+fn find_room_template pack id
+    found: [nil]
+    for m in (get pack "rooms")
+        if (at found 0) == nil
+            if (get m "id") == id
+                set found 0 m
+    at found 0
+
+--! Builds a compact catalog string (id | name | tags only) to save tokens.
+fn pack_catalog pack
+    out: "== ITEMS ==\n"
+    for it in (get pack "items")
+        out: out ++ (get it "id") ++ ": " ++ (get it "type") ++ " [" ++ (join_list (get it "tags") ",") ++ "]\n"
+    out: out ++ "== NPCS ==\n"
+    for n in (get pack "npcs")
+        out: out ++ (get n "id") ++ " (" ++ (get n "role") ++ ") [" ++ (join_list (get n "tags") ",") ++ "] " ++ (get n "temperament") ++ "\n"
+    out: out ++ "== MONSTER ==\n"
+    for m in (get pack "monsters")
+        out: out ++ (get m "id") ++ " hp=" ++ (to_str (get m "hp")) ++ " [" ++ (join_list (get m "tags") ",") ++ "]\n"
+    out: out ++ "== RAUM-TEMPLATES ==\n"
+    for r in (get pack "rooms")
+        out: out ++ (get r "id") ++ " kind=" ++ (get r "kind") ++ " [" ++ (join_list (get r "tags") ",") ++ "]\n"
+    out: out ++ "== QUEST-VORLAGEN ==\n"
+    for q in (get pack "quests")
+        out: out ++ (get q "id") ++ " ziel=" ++ (get q "goal_type") ++ " [" ++ (join_list (get q "target_tags") ",") ++ "]\n"
+    out
+
+-- ---- Validation (pure, testable) ----
+
+--! Returns a list of error strings for a design document; empty = valid.
+fn validate_design design pack
+    fehler: []
+    mech: get pack "mechanics"
+    minr: get mech "min_rooms"
+    maxr: get mech "max_rooms"
+    rz: get design "raumzahl"
+    if rz < minr || rz > maxr
+        push fehler ("raumzahl muss zwischen " ++ (to_str minr) ++ " und " ++ (to_str maxr) ++ " liegen")
+    for key in ["items", "npcs", "monsters", "quests"]
+        chosen: get design key
+        if chosen == nil
+            push fehler ("Feld '" ++ key ++ "' fehlt")
+        else
+            for id in chosen
+                if !pack_has_id pack key id
+                    push fehler ("Unbekannte ID in " ++ key ++ ": " ++ id)
+    sieg: get design "siegesbedingung"
+    if sieg != nil
+        if !contains ["give", "kill", "explore"] (get sieg "kind")
+            push fehler "siegesbedingung.kind muss give, kill oder explore sein"
+    fehler
+
+--! True when the pack section contains an entry with the given id.
+fn pack_has_id pack section id
+    found: false
+    for entry in (get pack section)
+        if !found
+            if (get entry "id") == id
+                found: true
+    found
+
+--! BFS over room exits; returns list of reachable room ids from start.
+fn reachable_rooms rooms start
+    besucht: [start]
+    queue: [start]
+    i: 0
+    while i < len queue
+        cur: at queue i
+        i: i + 1
+        room: get rooms cur
+        if room != nil
+            exits: get room "exits"
+            if exits != nil
+                for k in (keys exits)
+                    ziel: get exits k
+                    if !contains besucht ziel
+                        push besucht ziel
+                        push queue ziel
+    besucht
+
+--! Validates the generated map document; returns list of error strings.
+fn validate_map doc pack
+    fehler: []
+    rooms: get doc "rooms"
+    start: get doc "start_room"
+    if rooms == nil || len (keys rooms) == 0
+        push fehler "Keine Räume vorhanden"
+    else
+        if get rooms start == nil
+            push fehler ("Startraum existiert nicht: " ++ (to_str start))
+        for id in (keys rooms)
+            room: get rooms id
+            exits: get room "exits"
+            if exits != nil
+                for k in (keys exits)
+                    ziel: get exits k
+                    if get rooms ziel == nil
+                        push fehler ("Exit zeigt auf unbekannten Raum: " ++ id ++ " -> " ++ ziel)
+            items: get room "items"
+            if items != nil
+                for it in items
+                    if !pack_has_id pack "items" it
+                        push fehler ("Unbekanntes Item im Raum " ++ id ++ ": " ++ it)
+        if get rooms start != nil
+            errichtbare: reachable_rooms rooms start
+            if len errichtbare < len (keys rooms)
+                push fehler "Nicht alle Räume sind vom Start erreichbar"
+    npcs: get doc "npcs"
+    if npcs != nil
+        for npc in npcs
+            if get rooms (get npc "room") == nil
+                push fehler ("NPC steht in unbekanntem Raum: " ++ (get npc "id"))
+            if !pack_has_id pack "npcs" (get npc "id")
+                push fehler ("Unbekannter NPC: " ++ (get npc "id"))
+    mons: get doc "monsters"
+    if mons != nil
+        for mon in mons
+            if get rooms (get mon "room") == nil
+                push fehler ("Monster in unbekanntem Raum: " ++ (get mon "id"))
+            if !pack_has_id pack "monsters" (get mon "id")
+                push fehler ("Unbekanntes Monster: " ++ (get mon "id"))
+    objs: get doc "objectives"
+    if objs != nil && len objs > 0
+        for obj in objs
+            kind: get obj "kind"
+            if kind == "give"
+                if !pack_has_id pack "items" (get obj "target")
+                    push fehler ("Objective-Ziel ist kein Item: " ++ (get obj "target"))
+                npc_ok: false
+                if npcs != nil
+                    for npc in npcs
+                        if (get npc "id") == (get obj "npc")
+                            npc_ok: true
+                if !npc_ok
+                    push fehler ("Objective-NPC ist nicht platziert: " ++ (get obj "npc"))
+            if kind == "kill"
+                mon_ok: false
+                if mons != nil
+                    for mon in mons
+                        if (get mon "id") == (get obj "target")
+                            mon_ok: true
+                        else
+                            loot_ok: false
+                            pdef: find_pack_monster pack (get mon "id")
+                            if pdef != nil
+                                if (get pdef "loot") == (get obj "target")
+                                    loot_ok: true
+                            if loot_ok
+                                mon_ok: true
+                if !mon_ok
+                    push fehler ("Kill-Objective unerreichbar: " ++ (get obj "target"))
+            if kind == "explore"
+                if get rooms (get obj "target") == nil
+                    push fehler ("Explore-Objective zeigt auf unbekannten Raum: " ++ (get obj "target"))
+    else
+        push fehler "Keine Objectives definiert"
+    fehler
+
+--! Finds a monster definition row by id (nil if unknown).
+fn find_pack_monster pack id
+    found: [nil]
+    for m in (get pack "monsters")
+        if (at found 0) == nil
+            if (get m "id") == id
+                set found 0 m
+    at found 0
+
+--! Finds an item definition row by id (nil if unknown).
+fn find_item_def pack id
+    found: [nil]
+    for m in (get pack "items")
+        if (at found 0) == nil
+            if (get m "id") == id
+                set found 0 m
+    at found 0
+
+--! Finds an npc definition row by id (nil if unknown).
+fn find_npc_def pack id
+    found: [nil]
+    for m in (get pack "npcs")
+        if (at found 0) == nil
+            if (get m "id") == id
+                set found 0 m
+    at found 0
+
+--! Finds a quest definition row by id (nil if unknown).
+fn find_quest_def pack id
+    found: [nil]
+    for m in (get pack "quests")
+        if (at found 0) == nil
+            if (get m "id") == id
+                set found 0 m
+    at found 0
+
+--! Normalizes a player profile; unknown values fall back to normal.
+fn validate_profil profil
+    stil: get profil "stil"
+    if !contains ["normal", "kaempfer", "haendlerin", "erkunderin", "lore"] stil
+        stil: "normal"
+    schw: get profil "schwierigkeit"
+    if !contains ["leicht", "normal", "schwer"] schw
+        schw: "normal"
+    {stil: stil, schwierigkeit: schw}
+
+--! Applies a player profile deterministically to a world document:
+--! start items and gold adjust, lore gains a hint. Returns the doc.
+fn apply_profile doc profil pack
+    p: validate_profil profil
+    m: get doc "mechanics"
+    if m == nil
+        m: {start_hp: 10, start_gold: 20, respawn_hp: 10}
+    start_items: []
+    stil: get p "stil"
+    if stil == "kaempfer"
+        push start_items "schwert"
+    if stil == "erkunderin"
+        push start_items "fackel"
+        push start_items "seil"
+    if stil == "lore"
+        push start_items "fackel"
+        push lore ("Profil-Hinweis: Der Held dieser Welt jagt Geschichten und Geheimnisse mehr als Gold.")
+    if stil == "haendlerin" || (get p "schwierigkeit") == "leicht"
+        set m "start_gold" ((get m "start_gold") + 15)
+    if (get p "schwierigkeit") == "schwer"
+        gold_neu: (get m "start_gold") - 5
+        if gold_neu < 5
+            gold_neu: 5
+        set m "start_gold" gold_neu
+    set m "start_items" start_items
+    set doc "mechanics" m
+    set doc "profil" p
+    doc
+
+-- ---- AI generation steps ----
+
+--! Asks the LLM for a world design (which pack entries to use). Rotates
+--! models per attempt; parses JSON out of possibly chatty raw responses.
+fn gen_design prompt pack profil max_tries
+    katalog: pack_catalog pack
+    p: validate_profil profil
+    design: nil
+    fehler: ["noch nicht versucht"]
+    versuch: 0
+    while versuch < max_tries && len fehler > 0
+        ai_model (at GEN_MODELS (versuch % (len GEN_MODELS)))
+        nachricht: "Wunsch des Spielers:\n" ++ prompt ++ "\n\nSpieler-Profil: Stil=" ++ (get p "stil") ++ ", Schwierigkeit=" ++ (get p "schwierigkeit") ++ " (waehle Monster/Items passend zum Stil; bei schwer eher starke Monster, bei leicht schwache)\n\nVerfügbares Ressourcen-Paket:\n" ++ katalog ++ "\nErstelle ein Design. Antworte als JSON:\n{thema: str, ton: str, raumzahl: zahl, items: [ids], npcs: [ids], monsters: [ids], quests: [ids], siegesbedingung: {kind: \"give|kill|explore\", target: id, npc: id_nur_bei_give}, npc_personas: {\"<npc-id>\": \"2-3 Saetze Persoenlichkeit, aus dem Spielerwunsch abgeleitet\"}}"
+        try
+            roh: ai_chat DESIGN_SYSTEM nachricht 4000
+            design: parse_json (extract_json roh)
+            fehler: validate_design design pack
+            if len fehler > 0
+                print ("  (Design ungueltig, neuer Versuch: " ++ (join_list fehler "; ") ++ ")")
+        catch e
+            print ("  (Design-Aufruf fehlgeschlagen, neuer Versuch: " ++ e ++ ")")
+            fehler: ["api"]
+        versuch: versuch + 1
+    {design: design, errors: fehler}
+
+--! Asks the LLM for the concrete map using ONLY validated design ids.
+fn gen_map design pack max_tries
+    mech: get pack "mechanics"
+    minr: get mech "min_rooms"
+    maxr: get mech "max_rooms"
+    nutzbare_raeume: []
+    for r in (get pack "rooms")
+        push nutzbare_raeume ((get r "id") ++ "(" ++ (get r "kind") ++ ")")
+    nachricht: "Thema: " ++ (get design "thema") ++ "\nTon: " ++ (get design "ton") ++ "\nRaumzahl: exakt " ++ (to_str (get design "raumzahl")) ++ "\nErlaubte Items: " ++ (join_list (get design "items") ", ") ++ "\nErlaubte NPCs: " ++ (join_list (get design "npcs") ", ") ++ "\nErlaubte Monster: " ++ (join_list (get design "monsters") ", ") ++ "\nSiegesbedingung: " ++ (to_json (get design "siegesbedingung")) ++ "\nRaum-Templates zur Auswahl (NUR diese ids nutzen, jede höchstens einmal): " ++ (join_list nutzbare_raeume ", ") ++ "\n\nBaue die Karte. Antworte als JSON:\n{name: str, start_room: id, rooms: {\"<template-id>\": {description: str (2 Saetze, zum Thema passend), items: [item-ids ODER []], exits: {\"norden|sueden|osten|westen\": template-id}}}, npcs: [{id: str, room: template-id}], monsters: [{id: str, room: template-id}], objectives: [{id: str, kind: \"" ++ (to_json (get design "siegesbedingung")) ++ "\"-passend, target: item-oder-monster-id, npc: npc-id-oder-\"\", state: \"offen\"}]}\nAlle Räume müssen vom start_room aus erreichbar sein."
+    doc: nil
+    fehler: ["noch nicht versucht"]
+    versuch: 0
+    while versuch < max_tries && len fehler > 0
+        ai_model (at GEN_MODELS (versuch % (len GEN_MODELS)))
+        try
+            roh: ai_chat MAP_SYSTEM nachricht 6000
+            doc: normalize_map (parse_json (extract_json roh)) pack design
+            fehler: validate_map doc pack
+            if len fehler > 0
+                print ("  (Karte ungueltig, neuer Versuch: " ++ (join_list fehler "; ") ++ ")")
+        catch e
+            print ("  (Karten-Aufruf fehlgeschlagen, neuer Versuch: " ++ e ++ ")")
+            fehler: ["api"]
+        versuch: versuch + 1
+    {doc: doc, errors: fehler}
+
+--! Fills missing fields of the raw LLM map with deterministic defaults:
+--! monster stats come from the pack, NPC persona/role from the pack,
+--! quest entries are derived from the chosen quest templates.
+fn normalize_map raw pack design
+    rooms_raw: get raw "rooms"
+    rooms: {}
+    for id in keys rooms_raw
+        r: get rooms_raw id
+        desc: get r "description"
+        if desc == "" || desc == nil
+            tpl: find_room_template pack id
+            if tpl != nil
+                desc: get tpl "description"
+        items: get r "items"
+        if items == nil
+            items: []
+        exits: get r "exits"
+        if exits == nil
+            exits: (frische_map 0)
+        set rooms id {description: desc, items: items, exits: exits}
+    npcs: []
+    for npc in (or_default (get raw "npcs") KEIN_LISTE)
+        def: find_npc_def pack (get npc "id")
+        persona: ""
+        temperament: ""
+        role: ""
+        buys: 0
+        sells: 0
+        name: get npc "id"
+        if def != nil
+            persona: get def "persona"
+            temperament: get def "temperament"
+            role: get def "role"
+            buys: get def "buys_pct"
+            sells: get def "sells_pct"
+            name: get def "name"
+        -- Wunsch-Personas überschreiben nur den Text, nie die Mechanik.
+        personas: get design "npc_personas"
+        if personas != nil
+            wunsch_persona: get personas (get npc "id")
+            if wunsch_persona != nil && wunsch_persona != ""
+                persona: wunsch_persona
+        push npcs {id: (get npc "id"), name: name, role: role, temperament: temperament, buys_pct: buys, sells_pct: sells, persona: persona, room: (get npc "room")}
+    monsters: []
+    for mon in (or_default (get raw "monsters") KEIN_LISTE)
+        def: find_pack_monster pack (get mon "id")
+        hp: 5
+        defense: 0
+        loot: ""
+        name: get mon "id"
+        if def != nil
+            hp: get def "hp"
+            defense: get def "defense"
+            loot: get def "loot"
+            name: get def "name"
+        push monsters {id: (get mon "id"), name: name, room: (get mon "room"), hp: hp, max_hp: hp, defense: defense, loot: loot}
+    quests: []
+    for qid in (or_default (get design "quests") KEIN_LISTE)
+        def: find_quest_def pack qid
+        if def != nil
+            push quests {id: qid, name: (get def "name_pattern"), description: (get def "desc_pattern"), state: "aktiv"}
+    objectives: or_default (get raw "objectives") KEIN_LISTE
+    for obj in objectives
+        set obj "state" "offen"
+    mech: get pack "mechanics"
+    {name: (or_default (get raw "name") (get design "thema")), start_room: (get raw "start_room"), rooms: rooms, npcs: npcs, monsters: monsters, quests: quests, objectives: objectives, factions: (get pack "factions"), mechanics: {start_hp: (get mech "start_hp"), start_gold: (get mech "start_gold"), respawn_hp: (get mech "respawn_hp")}, lore: KEIN_LISTE}
+
+-- ---- Lore enrichment & orchestration ----
+
+--! Seeds the DB from a world document and applies flavors + lore index.
+fn seed_full doc
+    seed_world doc
+    fl: get doc "flavors"
+    if fl != nil
+        for id in keys fl
+            set_flavor id (get fl id)
+    lore_set_docs (or_default (get doc "lore") KEIN_LISTE)
+
+
+--! Pre-generates atmospheric room descriptions and NPC backstories in
+--! parallel and stores them inside the world document (rooms get a
+--! parallel "flavors" map, NPCs keep persona enriched, lore list filled).
+fn enrich_lore doc thema ton
+    ids: []
+    prompts: []
+    for id in keys (get doc "rooms")
+        r: get (get doc "rooms") id
+        push ids id
+        push prompts ("Beschreibe diesen Raum atmosphärisch für ein Fantasy-Textabenteuer (Ton: " ++ ton ++ ", Thema: " ++ thema ++ "), genau 2 Sätze, keine Wiederholung des Raumnamens.\nRaum: " ++ id ++ "\n" ++ (get r "description"))
+    texte: ai_batch NARRATOR_SYSTEM prompts
+    flavors: {}
+    i: 0
+    for t in texte
+        if t != ""
+            set flavors (at ids i) t
+        i: i + 1
+    set doc "flavors" flavors
+    lore: KEIN_LISTE
+    push lore ("Welt: " ++ (get doc "name") ++ ". Thema: " ++ thema ++ ". Ton: " ++ ton ++ ".")
+    npc_prompts: []
+    npc_names: []
+    for npc in (get doc "npcs")
+        push npc_names (get npc "id")
+        push npc_prompts ("Schreibe eine kurze Hintergrundgeschichte (3-4 Sätze) für diesen NPC: Name " ++ (get npc "name") ++ ", Rolle " ++ (get npc "role") ++ ". Welt-Thema: " ++ thema ++ ".")
+    geschichten: ai_batch NARRATOR_SYSTEM npc_prompts
+    j: 0
+    for g in geschichten
+        if g != ""
+            push lore ((at npc_names j) ++ ": " ++ g)
+        j: j + 1
+    set doc "lore" lore
+    doc
+
+NARRATOR_SYSTEM: "Du bist ein fantasievoller Autor für düstere Fantasy-Textabenteuer (deutsch). Halte dich exakt an die geforderte Länge."
+
+--! Deterministic fallback world built purely from pack templates — used when
+--! the AI is unreachable or keeps producing invalid output.
+fn fallback_world pack
+    rooms_raw: []
+    for tpl in (get pack "rooms")
+        push rooms_raw tpl
+    start: "tpl_eingang"
+    kette: ["tpl_eingang", "tpl_halle", "tpl_laden", "tpl_kapelle", "tpl_dungeon", "tpl_gruft", "tpl_schatzkammer", "tpl_hof", "tpl_brunnen", "tpl_turm"]
+    richtungen: ["norden", "osten", "sueden", "westen", "norden", "osten", "sueden", "osten", "norden"]
+    gegenteil: {norden: "sueden", sueden: "norden", osten: "westen", westen: "osten"}
+    rooms: {}
+    i: 0
+    while i < len kette
+        id: at kette i
+        tpl: find_room_template pack id
+        items: []
+        if (get tpl "item_tags") != nil && len (get tpl "item_tags") > 0
+            push items "fackel"
+        exits: (frische_map 0)
+        if i + 1 < len kette
+            set exits (at richtungen i) (at kette (i + 1))
+        if i > 0
+            zurueck: get gegenteil (at richtungen (i - 1))
+            set exits zurueck (at kette (i - 1))
+        set rooms id {description: (get tpl "description"), items: items, exits: exits}
+        i: i + 1
+    hilda_def: find_npc_def pack "kraemerin_hilda"
+    aldric_def: find_npc_def pack "weiser_aldric"
+    npcs: [{id: "kraemerin_hilda", name: (get hilda_def "name"), role: (get hilda_def "role"), temperament: (get hilda_def "temperament"), buys_pct: (get hilda_def "buys_pct"), sells_pct: (get hilda_def "sells_pct"), persona: (get hilda_def "persona"), room: "tpl_laden"}, {id: "weiser_aldric", name: (get aldric_def "name"), role: (get aldric_def "role"), temperament: (get aldric_def "temperament"), buys_pct: 0, sells_pct: 0, persona: (get aldric_def "persona"), room: "tpl_halle"}]
+    kammer_def: find_pack_monster pack "kammerling"
+    monsters: [{id: "kammerling", name: (get kammer_def "name"), room: "tpl_schatzkammer", hp: (get kammer_def "hp"), max_hp: (get kammer_def "hp"), defense: (get kammer_def "defense"), loot: (get kammer_def "loot")}]
+    quests: [{id: "q_gabe_des_erbes", name: "Die Gabe des Erbes", description: "Bringe ein Stück des unberührten Erbes freiwillig zum Bewacher des Ortes.", state: "aktiv"}, {id: "q_ungewuerm", name: "Das Ungewürm", description: "Vertreibe das Untier aus dem Schatzraum.", state: "aktiv"}]
+    mech: get pack "mechanics"
+    {name: "Die Musterwelt", start_room: start, rooms: rooms, npcs: npcs, monsters: monsters, quests: quests, objectives: [{id: "obj_gabe", kind: "give", target: "goldmuenze", npc: "weiser_aldric", state: "offen"}], factions: (get pack "factions"), mechanics: {start_hp: (get mech "start_hp"), start_gold: (get mech "start_gold"), respawn_hp: (get mech "respawn_hp")}, lore: ["Die Musterwelt ist ein ruhiger Übungsort der Alten Ordnung."]}
+
+-- ---- Welt-Wachstum: Erweiterung zur Laufzeit ----
+
+EXP_SYSTEM: "Du bist ein Karten-Architekt für Textabenteuer. Du erweiterst eine bestehende Karte. Antworte AUSSCHLIESSLICH als JSON-Objekt, ohne Erklärtext."
+
+--! Maximum of total rooms in a world (pack override possible).
+fn room_cap pack
+    mech: get pack "mechanics"
+    cap: get mech "max_rooms_total"
+    if cap == nil
+        25
+    else
+        cap
+
+--! True when id is a template id or a clone of one (tpl_x, tpl_x_2, ...).
+fn is_template_id pack id
+    found: false
+    for tpl in (get pack "rooms")
+        if !found
+            tid: get tpl "id"
+            if id == tid
+                found: true
+            else
+                if contains (split id tid) ""
+                    found: true
+    found
+
+--! Template a clone-id belongs to (exact match first, then prefix).
+fn base_template_id pack id
+    exakt: find_room_template pack id
+    if exakt != nil
+        id
+    else
+        basis: id
+        for tpl in (get pack "rooms")
+            tid: get tpl "id"
+            if contains (split id tid) ""
+                if basis == id
+                    basis: tid
+        basis
+
+--! Ids already placed in the doc for npcs/monsters.
+fn placed_ids doc section
+    out: []
+    for e in (or_default (get doc section) KEIN_LISTE)
+        push out (get e "id")
+    out
+
+--! Item ids currently lying anywhere in the world.
+fn items_in_doc doc
+    out: []
+    for id in keys (get doc "rooms")
+        r: get (get doc "rooms") id
+        for it in (or_default (get r "items") KEIN_LISTE)
+            push out it
+    out
+
+--! Quest ids already present in the world document.
+fn quest_ids_in_doc doc
+    out: []
+    for q in (or_default (get doc "quests") KEIN_LISTE)
+        push out (get q "id")
+    out
+
+--! Loot values of all monsters currently placed in the world.
+fn monster_loots_in_doc doc pack
+    out: []
+    for m in (or_default (get doc "monsters") KEIN_LISTE)
+        def: find_pack_monster pack (get m "id")
+        if def != nil
+            loot: get def "loot"
+            if loot != "" && loot != nil
+                push out loot
+    out
+
+--! Validates one objective against allowed resources; returns error or "".
+fn validate_single_ziel obj erlaubte_npc erlaubte_mon erlaubte_loots erlaubte_raeume neue_quests doc pack
+    kind: get obj "kind"
+    if !contains ["give", "kill", "explore"] kind
+        "objective.kind muss give, kill oder explore sein"
+    else
+        if kind == "give"
+            if !pack_has_id pack "items" (get obj "target")
+                ("give-Ziel ist kein Pack-Item: " ++ (to_str (get obj "target")))
+            else
+                if !contains erlaubte_npc (get obj "npc")
+                    ("give-NPC ist nicht in der Welt: " ++ (to_str (get obj "npc")))
+                else
+                    ""
+        else
+            if kind == "kill"
+                ziel_ok: contains erlaubte_mon (get obj "target")
+                if !ziel_ok
+                    ziel_ok: contains erlaubte_loots (get obj "target")
+                if !ziel_ok
+                    ("kill-Ziel ist nicht erreichbar: " ++ (to_str (get obj "target")))
+                else
+                    ""
+            else
+                if !contains erlaubte_raeume (get obj "target")
+                    ("explore-Ziel ist kein Raum der Welt: " ++ (to_str (get obj "target")))
+                else
+                    qid: or_default_str (get obj "quest_id")
+                    if qid != "" && !contains neue_quests qid
+                        ("quest_id zeigt nicht auf eine neue Quest: " ++ qid)
+                    else
+                        ""
+
+--! Asks the LLM for a world expansion (1-3 new rooms + inhabitants).
+fn gen_expansion doc wunsch pack max_tries
+    freie_tpl: []
+    for tpl in (get pack "rooms")
+        if get (get doc "rooms") (get tpl "id") == nil
+            push freie_tpl (get tpl "id")
+    freie_npc: []
+    for n in (get pack "npcs")
+        if !contains (placed_ids doc "npcs") (get n "id")
+            push freie_npc ((get n "id") ++ "(" ++ (get n "role") ++ ")")
+    freie_mon: []
+    for m in (get pack "monsters")
+        if !contains (placed_ids doc "monsters") (get m "id")
+            push freie_mon (get m "id")
+    freie_items: []
+    for it in (get pack "items")
+        if !contains (items_in_doc doc) (get it "id")
+            push freie_items (get it "id")
+    freie_quests: []
+    for q in (get pack "quests")
+        if !contains (quest_ids_in_doc doc) (get q "id")
+            push freie_quests ((get q "id") ++ " ziel=" ++ (get q "goal_type") ++ " ziel_tags=[" ++ (join_list (get q "target_tags") ",") ++ "]")
+    rest: (room_cap pack) - len (keys (get doc "rooms"))
+    nachricht: "Bestehende Räume: " ++ (join_list (keys (get doc "rooms")) ", ") ++ "\nFreie Raum-Templates (bevorzugt nutzen): " ++ (join_list freie_tpl ", ") ++ "\nNoch nicht platzierte NPCs: " ++ (join_list freie_npc ", ") ++ "\nNoch nicht platzierte Monster: " ++ (join_list freie_mon ", ") ++ "\nNoch nicht platzierte Items: " ++ (join_list freie_items ", ") ++ "\nNoch unbenutzte Quest-Vorlagen: " ++ (join_list freie_quests ", ") ++ "\nMaximal noch " ++ (to_str rest) ++ " neue Räume insgesamt; jetzt 1-3.\nWunsch des Spielers: " ++ wunsch ++ "\n\nErweitere die Karte passend zum Wunsch. Neue Räume dürfen intern Ausgänge untereinander haben (exits zeigen NUR auf andere NEUE Räume). Die Anbindung an die alte Karte läuft ausschließlich über links (anchor MUSS ein bestehender Raum sein und dir eine dort FREIE Richtung). Optional darfst du bis zu 2 neue Aufgaben mitbringen, die die neuen Gebiete nutzen.\nAntworte als JSON:\n{rooms: {\"<template-id>\": {description: str (2 Saetze), items: [item-ids ODER []]}}, links: [{anchor: bestehende-raum-id, dir: \"norden|sueden|osten|westen\", room: neue-raum-id}], npcs: [{id: str, room: neue-raum-id}], monsters: [{id: str, room: neue-raum-id}], quests: [vorlagen-ids ODER []], objectives: [{id: \"obj_<name>\", kind: \"give|kill|explore\", target: item-oder-monster-oder-raum-id, npc: npc-id-oder-\"\", quest_id: neue-quest-id-oder-\"\"}]}"
+    exp: nil
+    fehler: ["noch nicht versucht"]
+    versuch: 0
+    while versuch < max_tries && len fehler > 0
+        ai_model (at GEN_MODELS (versuch % (len GEN_MODELS)))
+        try
+            roh: ai_chat EXP_SYSTEM nachricht 4000
+            exp: parse_json (extract_json roh)
+            fehler: validate_expansion exp doc pack
+            if len fehler > 0
+                print ("  (Erweiterung ungueltig, neuer Versuch: " ++ (join_list fehler "; ") ++ ")")
+        catch e
+            print ("  (Erweiterungs-Aufruf fehlgeschlagen, neuer Versuch: " ++ e ++ ")")
+            fehler: ["api"]
+        versuch: versuch + 1
+    {exp: exp, errors: fehler}
+
+--! Validates an expansion against the current world document; returns errors.
+fn validate_expansion exp doc pack
+    fehler: []
+    if exp == nil
+        push fehler "Keine Erweiterung erhalten"
+    else
+        neu_raeume: get exp "rooms"
+        if neu_raeume == nil || len (keys neu_raeume) == 0
+            push fehler "Keine neuen Räume"
+        else
+            if len (keys neu_raeume) > 3
+                push fehler "Mehr als 3 neue Räume pro Erweiterung"
+            if (len (keys (get doc "rooms"))) + (len (keys neu_raeume)) > (room_cap pack)
+                push fehler "Raum-Limit der Welt erreicht"
+            for id in keys neu_raeume
+                if get (get doc "rooms") id != nil
+                    push fehler ("Raum existiert bereits: " ++ id)
+                if !is_template_id pack id
+                    push fehler ("Neuer Raum basiert auf keinem Template: " ++ id)
+                r: get neu_raeume id
+                for it in (or_default (get r "items") KEIN_LISTE)
+                    if !pack_has_id pack "items" it
+                        push fehler ("Unbekanntes Item: " ++ it)
+                exits: get r "exits"
+                if exits != nil
+                    for k in keys exits
+                        ziel: get exits k
+                        if get neu_raeume ziel == nil
+                            push fehler ("Exits neuer Räume dürfen nur auf neue Räume zeigen: " ++ id ++ " -> " ++ ziel)
+        links: get exp "links"
+        if links == nil || len links == 0
+            push fehler "Keine Anbindung (links) angegeben"
+        else
+            for l in links
+                anchor: get l "anchor"
+                -- Anker darf ein bestehender ODER ein neuer Raum sein.
+                alt: get neu_raeume anchor
+                if alt != nil
+                    belegt: get (or_default (get alt "exits") KEIN_MAP) (get l "dir")
+                    if belegt != nil
+                        push fehler ("Richtung am Anker bereits belegt: " ++ anchor ++ "/" ++ (get l "dir"))
+                else
+                    alt_alt: get (get doc "rooms") anchor
+                    if alt_alt == nil
+                        push fehler ("Anker ist weder bestehend noch neu: " ++ anchor)
+                    else
+                        belegt2: get (or_default (get alt_alt "exits") {}) (get l "dir")
+                        if belegt2 != nil
+                            push fehler ("Richtung am Anker bereits belegt: " ++ anchor ++ "/" ++ (get l "dir"))
+                if get neu_raeume (get l "room") == nil
+                    push fehler ("Link zeigt auf keinen neuen Raum: " ++ (to_str (get l "room")))
+        npc_ids: placed_ids doc "npcs"
+        for npc in (or_default (get exp "npcs") KEIN_LISTE)
+            if contains npc_ids (get npc "id")
+                push fehler ("NPC steht bereits in der Welt: " ++ (get npc "id"))
+            if !pack_has_id pack "npcs" (get npc "id")
+                push fehler ("Unbekannter NPC: " ++ (get npc "id"))
+            if get neu_raeume (get npc "room") == nil
+                push fehler ("NPC in keinem neuen Raum: " ++ (get npc "id"))
+        mon_ids: placed_ids doc "monsters"
+        for mon in (or_default (get exp "monsters") KEIN_LISTE)
+            if contains mon_ids (get mon "id")
+                push fehler ("Monster existiert bereits: " ++ (get mon "id"))
+            if !pack_has_id pack "monsters" (get mon "id")
+                push fehler ("Unbekanntes Monster: " ++ (get mon "id"))
+            if get neu_raeume (get mon "room") == nil
+                push fehler ("Monster in keinem neuen Raum: " ++ (get mon "id"))
+        -- Aufgaben: max. 2, gekoppelt an neue Quests, erreichbare Ziele
+        neue_quests: or_default (get exp "quests") KEIN_LISTE
+        if len neue_quests > 3
+            push fehler "Mehr als 3 neue Quests pro Erweiterung"
+        for qid in neue_quests
+            if !pack_has_id pack "quests" qid
+                push fehler ("Unbekannte Quest-Vorlage: " ++ qid)
+            if contains (quest_ids_in_doc doc) qid
+                push fehler ("Quest bereits in der Welt: " ++ qid)
+        objs: or_default (get exp "objectives") KEIN_LISTE
+        if len objs > 2
+            push fehler "Mehr als 2 Objectives pro Erweiterung"
+        erlaubte_npc: npc_ids
+        for n2 in (or_default (get exp "npcs") KEIN_LISTE)
+            push erlaubte_npc (get n2 "id")
+        erlaubte_mon: mon_ids
+        erlaubte_loots: monster_loots_in_doc doc pack
+        for m2 in (or_default (get exp "monsters") KEIN_LISTE)
+            push erlaubte_mon (get m2 "id")
+            def2: find_pack_monster pack (get m2 "id")
+            if def2 != nil && (get def2 "loot") != ""
+                push erlaubte_loots (get def2 "loot")
+        erlaubte_raeume: keys (get doc "rooms")
+        for rid in keys neu_raeume
+            push erlaubte_raeume rid
+        for obj in objs
+            ziel_fehler: validate_single_ziel obj erlaubte_npc erlaubte_mon erlaubte_loots erlaubte_raeume neue_quests doc pack
+            if ziel_fehler != ""
+                push fehler ziel_fehler
+    fehler
+
+--! Merges a validated expansion into the doc and the live DB.
+--! Returns a human-readable summary. Caller persists the doc afterwards.
+fn merge_expansion exp doc pack
+    neu_raeume: get exp "rooms"
+    gegenteil: {norden: "sueden", sueden: "norden", osten: "westen", westen: "osten"}
+    -- 1) Rooms normalized into the doc + DB
+    for id in keys neu_raeume
+        roh_r: get neu_raeume id
+        desc: get roh_r "description"
+        if desc == nil || desc == ""
+            tpl: find_room_template pack (base_template_id pack id)
+            desc: get tpl "description"
+        r: {description: desc, items: (or_default (get roh_r "items") KEIN_LISTE), exits: (frische_map 0)}
+        set (get doc "rooms") id r
+        seed_room_row id r
+    -- 2) Links: free direction on the anchor + automatic backlink
+    for l in (get exp "links")
+        anchor_map: get (get doc "rooms") (get l "anchor")
+        set (get anchor_map "exits") (get l "dir") (get l "room")
+        db_exec (open_db 0) ("UPDATE rooms SET exits = '" ++ (sql_escape (to_json (get anchor_map "exits"))) ++ "' WHERE id = '" ++ (sql_escape (get l "anchor")) ++ "'")
+        neu_map: get (get doc "rooms") (get l "room")
+        rueck: get gegenteil (get l "dir")
+        if (get (get neu_map "exits") rueck) == nil
+            set (get neu_map "exits") rueck (get l "anchor")
+            db_exec (open_db 0) ("UPDATE rooms SET exits = '" ++ (sql_escape (to_json (get neu_map "exits"))) ++ "' WHERE id = '" ++ (sql_escape (get l "room")) ++ "'")
+    -- 3) NPCs with pack stats (+ wish persona stays untouched here)
+    for npc in (or_default (get exp "npcs") KEIN_LISTE)
+        def: find_npc_def pack (get npc "id")
+        row: {id: (get npc "id"), name: (get def "name"), role: (get def "role"), temperament: (get def "temperament"), buys_pct: (get def "buys_pct"), sells_pct: (get def "sells_pct"), persona: (get def "persona"), room: (get npc "room")}
+        push (get doc "npcs") row
+        seed_npc_row row
+    -- 4) Monsters with pack stats
+    for mon in (or_default (get exp "monsters") KEIN_LISTE)
+        def: find_pack_monster pack (get mon "id")
+        row: {id: (get mon "id"), name: (get def "name"), room: (get mon "room"), hp: (get def "hp"), max_hp: (get def "hp"), defense: (get def "defense"), loot: (get def "loot")}
+        push (get doc "monsters") row
+        seed_monster_row row
+    -- 4b) Quests + gekoppelte Objectives
+    for qid in (or_default (get exp "quests") KEIN_LISTE)
+        def_q: find_quest_def pack qid
+        qrow: {id: qid, name: (get def_q "name_pattern"), description: (get def_q "desc_pattern"), state: "aktiv"}
+        push (get doc "quests") qrow
+        seed_quest_row qrow
+    ziel_zaehler: len (or_default (get doc "objectives") KEIN_LISTE)
+    for obj in (or_default (get exp "objectives") KEIN_LISTE)
+        ziel_zaehler: ziel_zaehler + 1
+        oid: or_default_str (get obj "id")
+        if oid == ""
+            oid: "obj_erw_" ++ (to_str ziel_zaehler)
+        orow: {id: oid, kind: (get obj "kind"), target: (get obj "target"), npc: or_default_str (get obj "npc"), state: "offen", quest: or_default_str (get obj "quest_id")}
+        push (get doc "objectives") orow
+        seed_objective_row orow
+    -- 5) Bookkeeping
+    set doc "expansionen" ((or_default (get doc "expansionen") 0) + 1)
+    lore_neu: get doc "lore"
+    if lore_neu == nil
+        lore_neu: (frische_liste 0)
+    set doc "lore" lore_neu
+    push lore_neu ("Erweiterung " ++ (to_str (get doc "expansionen")) ++ ": Neue Gebiete — " ++ (join_list (keys neu_raeume) ", ") ++ ".")
+    zusammen: "Die Welt wächst: " ++ (to_str (len (keys neu_raeume))) ++ " neue Räume (" ++ (join_list (keys neu_raeume) ", ") ++ ")"
+    if len (or_default (get exp "npcs") KEIN_LISTE) > 0
+        zusammen: zusammen ++ ", neue Begegnungen erwartet dich"
+    if len (or_default (get exp "objectives") KEIN_LISTE) > 0
+        zusammen: zusammen ++ ", " ++ (to_str (len (get exp "objectives"))) ++ " neue Aufgabe(n) im Quest-Log"
+    zusammen ++ "."
+
+--! Full expansion turn: generate, validate, merge, persist. Used by the
+--! game loop fast path and as an ai_tool.
+fn expand_world_ai wunsch
+    doc: get_doc 0
+    if doc == nil
+        "Keine Welt geladen."
+    else
+        erg: gen_expansion doc wunsch (get_pack 0) 3
+        if len (get erg "errors") > 0
+            "Der Nebel ist noch zu dicht -- diesmal misslingt die Erweiterung. Versuche es gleich noch einmal."
+        else
+            bericht: merge_expansion (get erg "exp") doc (get_pack 0)
+            save_current_world doc
+            bericht
+
+ai_tool "expand_world" "Erweitere die Welt um neue Raeume und Bewohner" {wunsch: "Wohin oder was soll entstehen, z.B. einen Dungeon im Westen"} expand_world_ai
+
+
+-- ---- Neues Abenteuer: frische Siegesbedingung nach dem Sieg ----
+
+--! Asks the LLM for 1 new objective (+ optional quest) using ONLY resources
+--! already present or still free in the pack.
+fn gen_neue_objektive doc pack max_tries
+    freie_quests: []
+    for q in (get pack "quests")
+        if !contains (quest_ids_in_doc doc) (get q "id")
+            push freie_quests ((get q "id") ++ " ziel=" ++ (get q "goal_type") ++ " ziel_tags=[" ++ (join_list (get q "target_tags") ",") ++ "]")
+    platzierte_npc: []
+    for n in (get doc "npcs")
+        push platzierte_npc ((get n "id") ++ "@" ++ (get n "room"))
+    platzierte_mon: []
+    for m in (get doc "monsters")
+        def: find_pack_monster pack (get m "id")
+        if def != nil && (get def "loot") != ""
+            push platzierte_mon ((get m "id") ++ "/loot:" ++ (get def "loot"))
+        else
+            push platzierte_mon (get m "id")
+    nachricht: "Welt: " ++ (get doc "name") ++ "\nRäume: " ++ (join_list (keys (get doc "rooms")) ", ") ++ "\nPlatzierte NPCs: " ++ (join_list platzierte_npc ", ") ++ "\nPlatzierte Monster (inkl. Loot): " ++ (join_list platzierte_mon ", ") ++ "\nNoch unbenutzte Quest-Vorlagen: " ++ (join_list freie_quests ", ") ++ "\n\nSchaffe EINE neue, erreichbare Siegesbedingung aus diesen Ressourcen. Antworte als JSON:\n{quests: [0-1 vorlagen-ids ODER []], objectives: [{id: \"obj_<name>\", kind: \"give|kill|explore\", target: passende-id, npc: npc-id-oder-\"\", quest_id: neue-quest-id-oder-\"\"}]}"
+    erg: nil
+    fehler: ["noch nicht versucht"]
+    versuch: 0
+    while versuch < max_tries && len fehler > 0
+        ai_model (at GEN_MODELS (versuch % (len GEN_MODELS)))
+        try
+            roh: ai_chat EXP_SYSTEM nachricht 2000
+            erg: parse_json (extract_json roh)
+            fehler: validate_neue_objektive erg doc pack
+            if len fehler > 0
+                print ("  (Neue Aufgabe ungueltig, neuer Versuch: " ++ (join_list fehler "; ") ++ ")")
+        catch e
+            print ("  (Aufgaben-Aufruf fehlgeschlagen, neuer Versuch: " ++ e ++ ")")
+            fehler: ["api"]
+        versuch: versuch + 1
+    {erg: erg, errors: fehler}
+
+--! Validates a neues-abenteuer response against the current world.
+fn validate_neue_objektive erg doc pack
+    fehler: []
+    if erg == nil
+        push fehler "Keine Antwort erhalten"
+    else
+        neue_quests: or_default (get erg "quests") KEIN_LISTE
+        for qid in neue_quests
+            if !pack_has_id pack "quests" qid
+                push fehler ("Unbekannte Quest-Vorlage: " ++ qid)
+            if contains (quest_ids_in_doc doc) qid
+                push fehler ("Quest bereits in der Welt: " ++ qid)
+        objs: get erg "objectives"
+        if objs == nil || len objs == 0
+            push fehler "Keine objectives angegeben"
+        else
+            if len objs > 1
+                push fehler "Genau eine neue Aufgabe erwartet"
+            erlaubte_npc: placed_ids doc "npcs"
+            erlaubte_mon: placed_ids doc "monsters"
+            erlaubte_loots: monster_loots_in_doc doc pack
+            erlaubte_raeume: keys (get doc "rooms")
+            for obj in objs
+                ziel_fehler: validate_single_ziel obj erlaubte_npc erlaubte_mon erlaubte_loots erlaubte_raeume neue_quests doc pack
+                if ziel_fehler != ""
+                    push fehler ziel_fehler
+    fehler
+
+--! Appends validated quests/objectives to doc + DB; returns summary.
+fn merge_neue_objektive erg doc pack
+    anzahl_q: 0
+    for qid in (or_default (get erg "quests") KEIN_LISTE)
+        def_q: find_quest_def pack qid
+        qrow: {id: qid, name: (get def_q "name_pattern"), description: (get def_q "desc_pattern"), state: "aktiv"}
+        push (get doc "quests") qrow
+        seed_quest_row qrow
+        anzahl_q: anzahl_q + 1
+    ziel_zaehler: len (or_default (get doc "objectives") KEIN_LISTE)
+    anzahl_o: 0
+    for obj in (or_default (get erg "objectives") KEIN_LISTE)
+        ziel_zaehler: ziel_zaehler + 1
+        oid: or_default_str (get obj "id")
+        if oid == ""
+            oid: "obj_ab_" ++ (to_str ziel_zaehler)
+        orow: {id: oid, kind: (get obj "kind"), target: (get obj "target"), npc: or_default_str (get obj "npc"), state: "offen", quest: or_default_str (get obj "quest_id")}
+        push (get doc "objectives") orow
+        seed_objective_row orow
+        anzahl_o: anzahl_o + 1
+    lore_neu: get doc "lore"
+    if lore_neu == nil
+        lore_neu: (frische_liste 0)
+    set doc "lore" lore_neu
+    push lore_neu ("Ein neues Abenteuer ruht über der Welt: " ++ (to_str anzahl_o) ++ " neue Aufgabe.")
+    zusammen: "Ein neues Abenteuer beginnt: " ++ (to_str anzahl_o) ++ " neue Aufgabe(n)"
+    if anzahl_q > 0
+        zusammen: zusammen ++ ", mit einer frischen Quest im Log"
+    zusammen ++ "."
+
+--! Full neues-abenteuer turn: generate, validate, merge, reset won, persist.
+fn neues_abenteuer_ai _
+    doc: get_doc 0
+    if doc == nil
+        "Keine Welt geladen."
+    else
+        erg: gen_neue_objektive doc (get_pack 0) 3
+        if len (get erg "errors") > 0
+            "Die Sterne verschweigen ihr nächstes Rätsel -- versuche es gleich noch einmal."
+        else
+            reset_won 0
+            bericht: merge_neue_objektive (get erg "erg") doc (get_pack 0)
+            save_current_world doc
+            bericht
+
+ai_tool "neues_abenteuer" "Beginne ein neues Abenteuer mit einer neuen Siegesbedingung" {} neues_abenteuer_ai

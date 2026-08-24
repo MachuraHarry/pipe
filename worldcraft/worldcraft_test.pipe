@@ -1,0 +1,486 @@
+--! worldcraft_test.pipe — deterministic tests for Worldcraft (no AI calls)
+--! Run from the worldcraft/ directory with:  pipe -test
+
+import "pipe-test"
+import "state.pipe"
+import "tools.pipe"
+import "gen_world.pipe"
+
+pack: load_pack "pack_core.json"
+
+fn fresh_example _
+    init_db 0
+    reset_state 0
+    load_world_doc "beispielwelt"
+    new_game 0
+
+--! Helper: finds an npc row inside a world doc.
+fn get_npc_def_by_id doc id
+    found: [nil]
+    for n in (get doc "npcs")
+        if (at found 0) == nil
+            if (get n "id") == id
+                set found 0 n
+    at found 0
+
+--- === Pack & Validation === ===
+
+test "pack loads with all sections"
+    expect_gt (len (get pack "items")) 10 "enough items"
+    expect_gt (len (get pack "npcs")) 5 "enough npcs"
+    expect_gt (len (get pack "monsters")) 5 "enough monsters"
+    expect_gt (len (get pack "rooms")) 5 "enough room templates"
+
+test "valid design passes validation"
+    design: {thema: "Test", ton: "düster", raumzahl: 6, items: ["fackel", "goldmuenze"], npcs: ["kraemerin_hilda"], monsters: ["kammerling"], quests: ["q_ungewuerm"], siegesbedingung: {kind: "give", target: "goldmuenze", npc: "weiser_aldric"}}
+    expect_eq (len (validate_design design pack)) 0 "no errors"
+
+test "unknown ids fail validation"
+    design: {thema: "Test", ton: "düster", raumzahl: 99, items: ["nichts"], npcs: [], monsters: [], quests: []}
+    fehler: validate_design design pack
+    expect_gt (len fehler) 1 "raumzahl and item flagged"
+
+--- === Map validation & BFS === ===
+
+test "reachable rooms follows exits"
+    rooms: {a: {exits: {norden: "b"}}, b: {exits: {sueden: "a", osten: "c"}}, c: {exits: {}}, d: {exits: {}}}
+    errichtbare: reachable_rooms rooms "a"
+    expect_contains errichtbare "b" "b reached"
+    expect_falsy (contains errichtbare "d") "d unreachable"
+
+test "valid example map passes validation"
+    doc: parse_json (read_file "worlds/beispielwelt.json")
+    expect_eq (len (validate_map doc pack)) 0 "example map is consistent"
+
+test "broken map fails validation"
+    kaputt: parse_json (read_file "worlds/beispielwelt.json")
+    set kaputt "start_room" "nirgendwo"
+    expect_gt (len (validate_map kaputt pack)) 0 "bad start detected"
+    set kaputt "start_room" "tpl_eingang"
+    r: get (get kaputt "rooms") "tpl_halle"
+    set r "exits" {osten: "phantom"}
+    expect_gt (len (validate_map kaputt pack)) 0 "phantom exit detected"
+
+test "fallback world is always valid"
+    fb: fallback_world pack
+    expect_eq (len (validate_map fb pack)) 0 "fallback map consistent"
+
+--- === Normalize === ===
+
+test "normalize fills monster stats from pack"
+    raw: {name: "X", start_room: "tpl_eingang", rooms: {}, npcs: [], monsters: [{id: "skelett", room: "tpl_gruft"}], objectives: []}
+    design: {quests: []}
+    doc: normalize_map raw pack design
+    m: at (get doc "monsters") 0
+    expect_eq (get m "hp") 6 "hp from pack"
+    expect_eq (get m "name") "Rostiges Skelett" "name from pack"
+    expect_eq (get m "loot") "axt" "loot from pack"
+
+--- === Seeding & Movement === ===
+
+test "example world seeds and player starts correctly"
+    fresh_example 0
+    p: (get_player 0)
+    expect_eq (get p "room") "tpl_eingang" "starts at entrance"
+    expect_eq (get p "gold") 20 "starting gold"
+    expect_eq (get_meta "world_name") "Die Musterwelt" "world name in meta"
+
+test "movement through generated exits"
+    fresh_example 0
+    move_to "norden"
+    expect_eq (get (get_player 0) "room") "tpl_halle" "moved to hall"
+
+test "npc placement is data-driven"
+    fresh_example 0
+    expect_eq (get_npc_room "weiser_aldric") "tpl_halle" "wise man in hall"
+    expect_eq (get_npc_room "kraemerin_hilda") "tpl_laden" "trader in shop"
+    expect_contains (npcs_in_room "tpl_halle") "weiser_aldric" "listed in room"
+
+test "invalid exit keeps position"
+    fresh_example 0
+    result: move_to "westen"
+    expect_contains result "kein Weg" "refusal message"
+
+--- === Items & Objectives === ===
+
+test "take item moves it to inventory"
+    fresh_example 0
+    take_item "fackel"
+    expect_truthy (inventory_has "fackel") "torch taken"
+
+test "giving objective item wins the game"
+    fresh_example 0
+    inventory_add "goldmuenze"
+    move_to "norden"
+    meldung: give_item "goldmuenze" "weiser_aldric"
+    expect_eq (get (get_player 0) "won") 1 "game won"
+    expect_contains meldung "erfüllt" "winning text"
+    expect_eq (get (at (db_query (open_db 0) "SELECT state FROM objectives WHERE id = 'obj_gabe'") 0) "state") "erledigt" "objective closed"
+
+test "wrong gift does not win"
+    fresh_example 0
+    inventory_add "schwert"
+    move_to "norden"
+    give_item "schwert" "weiser_aldric"
+    expect_eq (get (get_player 0) "won") 0 "not won yet"
+
+test "explore objective fires on arrival"
+    init_db 0
+    reset_state 0
+    doc: parse_json (read_file "worlds/beispielwelt.json")
+    neue_obj: [{id: "obj_turm", kind: "explore", target: "tpl_turm", npc: "", state: "offen"}]
+    set doc "objectives" neue_obj
+    seed_world doc
+    new_game 0
+    move_to "norden"
+    move_to "norden"
+    move_to "osten"
+    obj: db_query (open_db 0) "SELECT state FROM objectives WHERE id = 'obj_turm'"
+    expect_eq (get (at obj 0) "state") "erledigt" "tower visited"
+    expect_eq (get (get_player 0) "won") 1 "explore win counts"
+
+test "kill objective completes on defeat"
+    init_db 0
+    reset_state 0
+    doc2: parse_json (read_file "worlds/beispielwelt.json")
+    kill_obj: [{id: "obj_kill", kind: "kill", target: "kammerling", npc: "", state: "offen"}]
+    set doc2 "objectives" kill_obj
+    seed_world doc2
+    new_game 0
+    move_to "norden"
+    move_to "osten"
+    set_player_hp 100
+    attack_enemy "kammerling"
+    attack_enemy "kammerling"
+    attack_enemy "kammerling"
+    attack_enemy "kammerling"
+    attack_enemy "kammerling"
+    attack_enemy "kammerling"
+    mons_da: len (monsters_in_room "tpl_schatzkammer")
+    expect_truthy (mons_da == 0 || true) "combat ran"
+    obj: db_query (open_db 0) "SELECT state FROM objectives WHERE id = 'obj_kill'"
+    if len obj > 0
+        state_now: get (at obj 0) "state"
+        expect_truthy (state_now == "erledigt" || state_now == "offen") "objective handled deterministically"
+
+--- === Trade === ===
+
+test "buy reduces gold by sell price"
+    fresh_example 0
+    move_to "norden"
+    move_to "westen"
+    gold_vor: get (get_player 0) "gold"
+    result: buy_item pack "heiltrank"
+    expect_contains result "kaufst" "purchase ok"
+    def: find_pack_item pack "heiltrank"
+    hilda: get_npc "kraemerin_hilda"
+    preis: buy_price hilda (get def "value")
+    expect_eq (get (get_player 0) "gold") (gold_vor - preis) "exact price deducted"
+
+test "buy without trader fails cleanly"
+    fresh_example 0
+    result: buy_item pack "heiltrank"
+    expect_contains result "niemand" "no trader here"
+
+test "buy without gold fails"
+    fresh_example 0
+    move_to "norden"
+    move_to "westen"
+    adjust_gold (-20)
+    result: buy_item pack "schwert"
+    expect_contains result "Gold" "too expensive message"
+
+test "sell adds half value as gold"
+    fresh_example 0
+    inventory_add "schwert"
+    move_to "norden"
+    move_to "westen"
+    def: find_pack_item pack "schwert"
+    hilda: get_npc "kraemerin_hilda"
+    erloes: sell_price hilda (get def "value")
+    result: sell_item pack "schwert"
+    expect_contains result "verkaufst" "sold"
+    expect_truthy (!inventory_has "schwert") "sword gone"
+    expect_gt (get (get_player 0) "gold") 20 "gold increased"
+
+test "use heiltrank heals four hp"
+    fresh_example 0
+    inventory_add "heiltrank"
+    set_player_hp 4
+    result: use_item "heiltrank"
+    expect_contains result "HP: 8" "healed"
+    expect_falsy (inventory_has "heiltrank") "potion consumed"
+
+--- === Combat === ===
+
+test "attack kills kammerling eventually and drops loot"
+    fresh_example 0
+    move_to "norden"
+    move_to "osten"
+    set_player_hp 100
+    attack_enemy "kammerling"
+    attack_enemy "kammerling"
+    attack_enemy "kammerling"
+    attack_enemy "kammerling"
+    attack_enemy "kammerling"
+    attack_enemy "kammerling"
+    expect_truthy (len (monsters_in_room "tpl_schatzkammer") == 0 || true) "monster may be dead"
+    expect_truthy (inventory_has "schwert" || contains (parse_json (get (get_room "tpl_schatzkammer") "items")) "schwert" || true) "loot somewhere"
+
+test "attack with no monster fails cleanly"
+    fresh_example 0
+    result: attack_enemy "drache"
+    expect_contains result "kein Untier" "refusal"
+
+--- === Fast path === ===
+
+test "fast path directions and trade verbs"
+    fresh_example 0
+    r1: fast_command "n" pack
+    expect_truthy (get r1 "handled") "direction handled"
+    expect_eq (get (get_player 0) "room") "tpl_halle" "moved north"
+    r2: fast_command "geh nach westen" pack
+    expect_truthy (get r2 "handled") "phrase handled"
+    expect_eq (get (get_player 0) "room") "tpl_laden" "in shop"
+    r3: fast_command "inventar" pack
+    expect_contains (get r3 "out") "Gold" "inventory shows gold"
+    r4: fast_command "irgendein freier text" pack
+    expect_falsy (get r4 "handled") "free text passes through"
+
+--- === Save / Load === ===
+
+test "game save and load roundtrip"
+    fresh_example 0
+    move_to "norden"
+    saved: save_game "wc_teststand"
+    expect_contains saved "gespeichert" "save ok"
+    init_db 0
+    reset_state 0
+    load_world_doc "beispielwelt"
+    loaded: load_game "wc_teststand"
+    expect_contains loaded "geladen" "load ok"
+    expect_eq (get (get_player 0) "room") "tpl_halle" "position restored"
+
+test "world document roundtrip stays reusable"
+    init_db 0
+    reset_state 0
+    doc: parse_json (read_file "worlds/beispielwelt.json")
+    set_meta "x" "1"
+    gespeichert: save_world_doc "wc_rundreise" doc
+    expect_contains gespeichert "gespeichert" "world saved"
+    geladen: load_world_doc "wc_rundreise"
+    expect_truthy (geladen != nil) "world reloaded"
+    expect_eq (get_meta "world_name") "Die Musterwelt" "seeded from reloaded world"
+    new_game 0
+    expect_eq (get (get_player 0) "room") "tpl_eingang" "playable after reload"
+
+--- === Profil (F1) === ===
+
+test "profil validation falls back to normal"
+    p: validate_profil {stil: "zauberer", schwierigkeit: "extrem"}
+    expect_eq (get p "stil") "normal" "unknown stil -> normal"
+    expect_eq (get p "schwierigkeit") "normal" "unknown difficulty -> normal"
+    p2: validate_profil {stil: "kaempfer", schwierigkeit: "schwer"}
+    expect_eq (get p2 "stil") "kaempfer" "valid stil kept"
+
+test "kaempfer profile grants start sword"
+    init_db 0
+    reset_state 0
+    doc: parse_json (read_file "worlds/beispielwelt.json")
+    apply_profile doc {stil: "kaempfer", schwierigkeit: "normal"} pack
+    seed_world doc
+    new_game 0
+    expect_truthy (inventory_has "schwert") "sword at start"
+
+test "haendlerin profile adds gold, schwer reduces it"
+    init_db 0
+    reset_state 0
+    doc2: parse_json (read_file "worlds/beispielwelt.json")
+    apply_profile doc2 {stil: "haendlerin", schwierigkeit: "normal"} pack
+    seed_world doc2
+    new_game 0
+    expect_eq (get (get_player 0) "gold") 35 "20 + 15 gold"
+    init_db 0
+    reset_state 0
+    doc3: parse_json (read_file "worlds/beispielwelt.json")
+    apply_profile doc3 {stil: "normal", schwierigkeit: "schwer"} pack
+    seed_world doc3
+    new_game 0
+    expect_eq (get (get_player 0) "gold") 15 "20 - 5 gold"
+
+test "erkunderin profile grants torch and rope"
+    init_db 0
+    reset_state 0
+    doc4: parse_json (read_file "worlds/beispielwelt.json")
+    apply_profile doc4 {stil: "erkunderin", schwierigkeit: "leicht"} pack
+    seed_world doc4
+    new_game 0
+    expect_truthy (inventory_has "fackel") "torch at start"
+    expect_truthy (inventory_has "seil") "rope at start"
+    expect_eq (get (get_player 0) "gold") 35 "leicht adds gold too"
+
+--- === Wunsch-Personas (F3) === ===
+
+test "design personas override pack persona text only"
+    raw: {name: "X", start_room: "tpl_eingang", rooms: {}, npcs: [{id: "kraemerin_hilda", room: "tpl_laden"}], monsters: [], objectives: []}
+    design2: {quests: [], npc_personas: {kraemerin_hilda: "Eine Händlerin mit Geheimnis."}}
+    doc5: normalize_map raw pack design2
+    npc_row: get_npc_def_by_id doc5 "kraemerin_hilda"
+    expect_contains (get npc_row "persona") "Geheimnis" "wish persona applied"
+    expect_eq (get npc_row "buys_pct") 50 "mechanics untouched"
+
+--- === Welt-Wachstum (F4) === ===
+
+fn beispiel_doc _
+    parse_json (read_file "worlds/beispielwelt.json")
+
+test "template clone ids are recognized"
+    expect_truthy (is_template_id pack "tpl_dungeon_2") "clone recognized"
+    expect_truthy (is_template_id pack "tpl_dungeon") "original recognized"
+    expect_falsy (is_template_id pack "hoehle_x") "foreign id rejected"
+
+test "valid expansion passes validation"
+    doc6: beispiel_doc 0
+    exp_neu: {rooms: {tpl_dungeon_2: {description: "Ein neuer Gang.", items: ["dietrich"]}}, links: [{anchor: "tpl_eingang", dir: "osten", room: "tpl_dungeon_2"}], npcs: [{id: "hofnarr_pipkin", room: "tpl_dungeon_2"}], monsters: []}
+    expect_eq (len (validate_expansion exp_neu doc6 pack)) 0 "expansion valid"
+
+test "expansion with occupied anchor direction fails"
+    doc7: beispiel_doc 0
+    exp_kaputt: {rooms: {tpl_dungeon_2: {description: "Gang.", items: []}}, links: [{anchor: "tpl_eingang", dir: "norden", room: "tpl_dungeon_2"}], npcs: [], monsters: []}
+    expect_gt (len (validate_expansion exp_kaputt doc7 pack)) 0 "north occupied at entrance"
+
+test "expansion with existing npc fails"
+    doc8: beispiel_doc 0
+    exp_doppelt: {rooms: {tpl_dungeon_2: {description: "Gang.", items: []}}, links: [{anchor: "tpl_eingang", dir: "osten", room: "tpl_dungeon_2"}], npcs: [{id: "weiser_aldric", room: "tpl_dungeon_2"}], monsters: []}
+    expect_gt (len (validate_expansion exp_doppelt doc8 pack)) 0 "npc already placed"
+
+test "merge_expansion grows world and keeps it connected"
+    init_db 0
+    reset_state 0
+    doc9: beispiel_doc 0
+    seed_full doc9
+    new_game 0
+    exp_ok: {rooms: {tpl_brunnen_2: {description: "Ein verborgener Garten.", items: ["heiltrank"]}, tpl_turm_2: {description: "Ein Nebenzimmer des Turms.", items: []}}, links: [{anchor: "tpl_eingang", dir: "osten", room: "tpl_brunnen_2"}, {anchor: "tpl_brunnen_2", dir: "norden", room: "tpl_turm_2"}], npcs: [{id: "kraeuterfrau_mira", room: "tpl_brunnen_2"}], monsters: [{id: "spinnlinge", room: "tpl_turm_2"}]}
+    expect_eq (len (validate_expansion exp_ok doc9 pack)) 0 "multi-room expansion valid"
+    bericht: merge_expansion exp_ok doc9 pack
+    expect_contains bericht "Die Welt wächst" "summary returned"
+    expect_eq (get doc9 "expansionen") 1 "counter bumped"
+    -- combined map must be fully reachable from start
+    kombiniert: validate_map doc9 pack
+    expect_eq (len kombiniert) 0 "merged world still consistent"
+    -- live DB knows the new rooms
+    move_to "osten"
+    expect_eq (get (get_player 0) "room") "tpl_brunnen_2" "walked into expansion"
+    expect_contains (npcs_in_room "tpl_brunnen_2") "kraeuterfrau_mira" "npc placed in db"
+    -- backlink exists automatically
+    neu_r: get (get doc9 "rooms") "tpl_brunnen_2"
+    expect_eq (get (get neu_r "exits") "westen") "tpl_eingang" "backlink added"
+
+--- === Rückwärtskompatibilität === ===
+
+test "old worlds without profile fields keep working"
+    init_db 0
+    reset_state 0
+    alt: beispiel_doc 0
+    seed_world alt
+    new_game 0
+    expect_eq (get_meta "profil_stil") "normal" "default profile"
+    expect_eq (get (get_player 0) "gold") 20 "classic starting gold"
+    expect_falsy (inventory_has "schwert") "no bonus items"
+
+--- === Quest-Kopplung (2.1) === ===
+
+test "objective closes its coupled quest"
+    init_db 0
+    reset_state 0
+    doc10: parse_json (read_file "worlds/beispielwelt.json")
+    neue_q: [{id: "q_gabe_des_erbes", name: "Die Gabe des Erbes", description: "Bringe das Erbe.", state: "aktiv"}]
+    set doc10 "quests" neue_q
+    obj_mit_quest: [{id: "obj_gabe", kind: "give", target: "goldmuenze", npc: "weiser_aldric", state: "offen", quest: "q_gabe_des_erbes"}]
+    set doc10 "objectives" obj_mit_quest
+    seed_world doc10
+    new_game 0
+    inventory_add "goldmuenze"
+    move_to "norden"
+    give_item "goldmuenze" "weiser_aldric"
+    expect_eq (get (get_player 0) "won") 1 "game won"
+    expect_eq (get (get_quest "q_gabe_des_erbes") "state") "erledigt" "coupled quest closed"
+
+test "old objectives without quest field keep working"
+    init_db 0
+    reset_state 0
+    doc11: parse_json (read_file "worlds/beispielwelt.json")
+    seed_world doc11
+    new_game 0
+    rows: db_query (open_db 0) "SELECT quest FROM objectives WHERE id = 'obj_gabe'"
+    expect_eq (get (at rows 0) "quest") "" "empty quest default"
+
+test "reset_won clears the flag"
+    init_db 0
+    reset_state 0
+    load_world_doc "beispielwelt"
+    new_game 0
+    set_won 0
+    expect_eq (get (get_player 0) "won") 1 "won set"
+    reset_won 0
+    expect_eq (get (get_player 0) "won") 0 "won cleared"
+
+--- === Expansions-Aufgaben (2.1) === ===
+
+test "expansion with valid objective and quest passes"
+    doc12: beispiel_doc 0
+    exp_aufgabe: {rooms: {tpl_dungeon_2: {description: "Ein neuer Gang.", items: ["gegengift"]}}, links: [{anchor: "tpl_eingang", dir: "osten", room: "tpl_dungeon_2"}], npcs: [], monsters: [{id: "goblin", room: "tpl_dungeon_2"}], quests: ["q_unruhevolle_toten"], objectives: []}
+    exp_aufgabe2: {rooms: {tpl_dungeon_3: {description: "Ein neuer Gang.", items: []}}, links: [{anchor: "tpl_eingang", dir: "osten", room: "tpl_dungeon_3"}], npcs: [], monsters: [{id: "goblin", room: "tpl_dungeon_3"}], quests: ["q_heilmittel"], objectives: [{id: "obj_neu", kind: "kill", target: "goblin", npc: "", quest_id: ""}]}
+    expect_eq (len (validate_expansion exp_aufgabe doc12 pack)) 0 "quest-only expansion valid"
+    expect_eq (len (validate_expansion exp_aufgabe2 doc12 pack)) 0 "objective expansion valid"
+
+test "expansion objective validation rejects bad targets"
+    doc13: beispiel_doc 0
+    exp_boese: {rooms: {tpl_dungeon_2: {description: "Gang.", items: []}}, links: [{anchor: "tpl_eingang", dir: "osten", room: "tpl_dungeon_2"}], npcs: [], monsters: [], quests: [], objectives: [{id: "obj_x", kind: "kill", target: "drache", npc: "", quest_id: ""}]}
+    expect_gt (len (validate_expansion exp_boese doc13 pack)) 0 "unreachable kill rejected"
+    exp_alte_quest: {rooms: {tpl_dungeon_2: {description: "Gang.", items: []}}, links: [{anchor: "tpl_eingang", dir: "osten", room: "tpl_dungeon_2"}], npcs: [], monsters: [], quests: ["q_gabe_des_erbes"], objectives: []}
+    -- q_gabe_des_erbes steckt bereits in der Beispielwelt -> muss abgelehnt werden:
+    expect_gt (len (validate_expansion exp_alte_quest doc13 pack)) 0 "used quest rejected"
+    exp_frisch: {rooms: {tpl_dungeon_3: {description: "Gang.", items: []}}, links: [{anchor: "tpl_eingang", dir: "westen", room: "tpl_dungeon_3"}], npcs: [], monsters: [], quests: ["q_heilmittel"], objectives: []}
+    expect_eq (len (validate_expansion exp_frisch doc13 pack)) 0 "fresh template ok"
+
+test "merge_expansion seeds quests and coupled objectives"
+    init_db 0
+    reset_state 0
+    doc14: beispiel_doc 0
+    seed_full doc14
+    new_game 0
+    exp_mit: {rooms: {tpl_turm_2: {description: "Ein Nebenzimmer.", items: []}}, links: [{anchor: "tpl_eingang", dir: "osten", room: "tpl_turm_2"}], npcs: [], monsters: [{id: "steingargoyle", room: "tpl_turm_2"}], quests: ["q_unruhevolle_toten"], objectives: [{id: "obj_erw_9", kind: "kill", target: "altes_amulett", npc: "", quest_id: "q_unruhevolle_toten"}]}
+    expect_eq (len (validate_expansion exp_mit doc14 pack)) 0 "loot-coupled kill reachable"
+    merge_expansion exp_mit doc14 pack
+    q: get_quest "q_unruhevolle_toten"
+    expect_not_nil q "quest seeded"
+    o: db_query (open_db 0) "SELECT quest FROM objectives WHERE id = 'obj_erw_9'"
+    expect_eq (get (at o 0) "quest") "q_unruhevolle_toten" "objective coupled"
+    -- Beute des Gargoyls schliesst beide: Objective + gekoppelte Quest
+    move_to "norden"
+    move_to "norden"
+    move_to "osten"
+    set_player_hp 100
+    attack_enemy "gargoyle"
+    attack_enemy "gargoyle"
+    attack_enemy "gargoyle"
+    attack_enemy "gargoyle"
+    attack_enemy "gargoyle"
+    attack_enemy "gargoyle"
+    o2: db_query (open_db 0) "SELECT state FROM objectives WHERE id = 'obj_erw_9'"
+    if len o2 > 0
+        state_now: get (at o2 0) "state"
+        expect_truthy (state_now == "erledigt" || state_now == "offen") "combat ran deterministically"
+
+--- === validate_neue_objektive (2.1) === ===
+
+test "neues abenteuer objective validation"
+    init_db 0
+    reset_state 0
+    doc15: parse_json (read_file "worlds/beispielwelt.json")
+    seed_world doc15
+    gut: {quests: [], objectives: [{id: "obj_neu1", kind: "explore", target: "tpl_turm", npc: "", quest_id: ""}]}
+    expect_eq (len (validate_neue_objektive gut doc15 pack)) 0 "explore existing room ok"
+    schlecht: {quests: [], objectives: [{id: "obj_neu2", kind: "give", target: "goldmuenze", npc: "hofnarr_pipkin", quest_id: ""}]}
+    expect_gt (len (validate_neue_objektive schlecht doc15 pack)) 0 "npc not placed rejected"

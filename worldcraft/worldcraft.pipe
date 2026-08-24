@@ -1,0 +1,259 @@
+--! Worldcraft — ein KI-Textadventure mit generierbaren, wiederverwendbaren Welten
+--! Ausführen:  bin/pipe worldcraft.pipe   (aus dem worldcraft/-Verzeichnis)
+--! Beim Start: Weltname eingeben — existiert worlds/<name>.json, wird sie
+--! ohne KI geladen; sonst fragt die KI nach deinem Weltwunsch und baut sie.
+--! Beenden:    "ende" eingeben.
+
+import "state.pipe"
+import "tools.pipe"
+import "lore.pipe"
+import "gen_world.pipe"
+
+-- ---- Provider: OpenCode Zen, keyless free tier ($0) ----
+ai_provider "opencode"
+FREE_MODELS: ["nemotron-3.5-lightning-free", "x-preview-f-free", "laguna-s-2.1-free"]
+NARRATOR_SYSTEM: "Du bist der Erzähler eines düsteren Fantasy-Textabenteuers (deutsch). Nutze die Werkzeuge, die der Spieler braucht, und fasse die Tool-Ergebnisse atmosphärisch in höchstens 3 Sätzen zusammen. Erfinde keine Gegenstände, Untiere oder Wege, die es nicht gibt. Bei Untieren ermutige den Spieler zum Angriff (attack_enemy), bei Händlern zum Handel (buy_item/sell_item)."
+
+--! Probes the free models and returns the first that answers.
+fn pick_free_model models
+    for m in models
+        try
+            ai_model m
+            ask "Antworte mit genau einem Wort: bereit"
+            return m
+        catch
+            print ("  (Modell " ++ m ++ " nicht erreichbar, teste nächstes)")
+    "x-preview-f-free"
+
+--! Builds the lore index without failing hard when embeddings are down.
+fn lore_index_build_safe _
+    try
+        build_lore_index 0
+    catch
+        print "  (Lore-Index übersprungen)"
+
+print ""
+print "╔══════════════════════════════════════════╗"
+print "║  WORLDCRAFT                              ║"
+print "║  KI-Textadventure mit eigenen Welten     ║"
+print "╚══════════════════════════════════════════╝"
+print ""
+
+pack: load_pack "pack_core.json"
+set_pack pack
+
+init_db 0
+
+WELT_FERTIG: [false]
+DOC: [nil]
+
+print "Weltnamen eingeben (existierende Welt wird geladen, neue erstellt):"
+weltname: input "> "
+if trim weltname == ""
+    weltname: "beispielwelt"
+set_meta "world_file" weltname
+
+--! Joins briefing lines with spaces (prompt-safe single string).
+fn join_str_lines zeilen
+    out: ""
+    n: 0
+    for z in zeilen
+        if n > 0
+            out: out ++ " "
+        out: out ++ (trim z)
+        n: n + 1
+    out
+
+doc: nil
+PROFIL: [{stil: "normal", schwierigkeit: "normal"}]
+vorhanden: load_world_doc weltname
+if vorhanden != nil
+    print ("Welt \"" ++ (get_meta "world_name") ++ "\" geladen -- willkommen zurück.")
+    set DOC 0 vorhanden
+    set WELT_FERTIG 0 true
+else
+    -- ---- Spieler-Profil ----
+    print ""
+    print "Profil — Schwierigkeit (leicht/normal/schwer, Enter = normal):"
+    schw_input: lower (trim (input "> "))
+    schwierigkeit: schw_input
+    if !contains ["leicht", "normal", "schwer"] schwierigkeit
+        schwierigkeit: "normal"
+    print "Profil — Spielstil (kaempfer/haendlerin/erkunderin/lore, Enter = normal):"
+    stil_input: lower (trim (input "> "))
+    stil: stil_input
+    if !contains ["normal", "kaempfer", "haendlerin", "erkunderin", "lore"] stil
+        stil: "normal"
+    set PROFIL 0 {stil: stil, schwierigkeit: schwierigkeit}
+    -- ---- Mehrzeiliges Welt-Briefing ----
+    print ""
+    print "Beschreibe deine Welt (mehrere Zeilen möglich). Wie soll sie aussehen?"
+    print "Welche Stimmung, welche Orte, welche Bewohner, welche Geschichte?"
+    print "Eingabe mit einer Zeile \"fertig\" abschließen. (Sofort \"fertig\" = Musterwelt)"
+    wunsch_zeilen: []
+    while true
+        zeile: input "> "
+        if trim zeile == "fertig"
+            break
+        if trim zeile != ""
+            push wunsch_zeilen zeile
+    wunsch: join_str_lines wunsch_zeilen
+    if trim wunsch == ""
+        doc: fallback_world pack
+    else
+        ai_provider "opencode"
+        model: pick_free_model FREE_MODELS
+        print ("Modell: " ++ model)
+        ai_timeout 120
+        print ""
+        print "Entwerfe Design ..."
+        doc: nil
+        try
+            erg: gen_design wunsch pack (at PROFIL 0) 3
+            if len (get erg "errors") > 0
+                print "  (Design fehlgeschlagen -- nutze Musterwelt als Fundament)"
+                doc: fallback_world pack
+            else
+                design: get erg "design"
+                print "Baue Karte ..."
+                karte: gen_map design pack 3
+                if len (get karte "errors") > 0
+                    print "  (Karte fehlgeschlagen -- nutze Musterwelt als Fundament)"
+                    doc: fallback_world pack
+                else
+                    doc: get karte "doc"
+                    print "Erzeuge Atmosphäre (parallel) ..."
+                    try
+                        enrich_lore doc (get design "thema") (get design "ton")
+                    catch
+                        print "  (Atmosphären-Generierung übersprungen)"
+        catch e
+            print ("  (Weltgenerierung nicht erreichbar: " ++ e ++ ")")
+            print "  -- nutze Musterwelt als Fundament"
+            doc: fallback_world pack
+if doc == nil
+    doc: fallback_world pack
+if (at WELT_FERTIG 0) == false
+    apply_profile doc (at PROFIL 0) pack
+    save_world_doc weltname doc
+    seed_full doc
+    lore_index_build_safe 0
+    set WELT_FERTIG 0 true
+set DOC 0 doc
+set_doc doc
+
+set_doc (at DOC 0)
+
+new_game 0
+lore_index_build_safe 0
+
+-- ---- Sandbox: no shell, AI only via opencode.ai; file writes only by our
+-- ---- own game functions (world persistence), no fs tools exposed to the LLM.
+sandbox_profile "game" {fs: "full", network: true, network_whitelist: ["opencode.ai"], exec: false, ai: true}
+set_sandbox "game"
+
+FERTIG: [false]
+
+AMBIENTE: ["Irgendwo tropft Wasser in gleichmäßigem Rhythmus.", "Der Wind trägt einen Hauch Glockenklang herüber.", "Staub wirbeln im Fackelschein wie kleine Sterne.", "Irgendwo knarzt altes Eisen.", "Ein kalter Zug streicht dir durchs Haar."]
+
+--! Returns a random ambient line while waiting.
+fn ambient_line _
+    at AMBIENTE (random_range 0 ((len AMBIENTE) - 1))
+
+--! Prints animated dots until something lands in the channel.
+fn think_spinner ch
+    v: try_recv ch
+    while v == nil
+        print_raw "."
+        sleep 400
+        v: try_recv ch
+    print_raw "\n"
+
+--! Extracts everything after the first word (for "erweitere <wunsch>").
+fn erweitere_wunsch inp
+    ws: split (trim inp) " "
+    out: []
+    i: 1
+    while i < len ws
+        push out (at ws i)
+        i: i + 1
+    join_list out " "
+
+WON_NOTED: [false]
+
+--! Runs one narrator turn via ai_with_tools, rotating free models on failure.
+fn handle_turn inp
+    print ""
+    t: lower (trim inp)
+    erstes: at (split t " ") 0
+    if contains t "neues abenteuer"
+        ch: chan 1
+        spawn think_spinner ch
+        bericht: neues_abenteuer_ai 0
+        send ch 1
+        print bericht
+        set WON_NOTED 0 false
+    else
+        if erstes == "erweitere" || erstes == "erweitern"
+            wunsch: erweitere_wunsch inp
+            ch3: chan 1
+            spawn think_spinner ch3
+            bericht2: expand_world_ai wunsch
+            send ch3 1
+            print bericht2
+        else
+            fc: fast_command inp (get_pack 0)
+            if (get fc "handled") == true
+                print (get fc "out")
+            else
+                print (ambient_line 0)
+                ch2: chan 1
+                spawn think_spinner ch2
+                antwort: ""
+                ok: [false]
+                for m in FREE_MODELS
+                    if (at ok 0) == false
+                        try
+                            ai_model m
+                            antwort: ai_with_tools NARRATOR_SYSTEM inp
+                            set ok 0 true
+                        catch
+                            print ("  (Modell " ++ m ++ " nicht erreichbar)")
+                send ch2 1
+                if (at ok 0) == true
+                    print antwort
+                else
+                    print "Die Nebel schweigen. Versuche es noch einmal."
+    p: (get_player 0)
+    if (get p "won") == 1
+        if (at WON_NOTED 0) == false
+            print ""
+            print "*** Deine Aufgabe in \"" ++ (get_meta "world_name") ++ "\" ist erfüllt. ***"
+            print "Du kannst weitererkunden, die Welt mit \"erweitere welt ...\" vergrößern"
+            print "oder \"ende\" sagen."
+            set WON_NOTED 0 true
+
+doc_now: at DOC 0
+print ""
+print ("=== " ++ (get_meta "world_name") ++ " ===")
+if doc_now != nil
+    thema: get doc_now "thema"
+    if thema != nil && thema != ""
+        print ("Thema: " ++ thema)
+print ""
+print (look 0)
+print ""
+print "(Freitext eingeben. \"erweitere welt <wunsch>\" vergrößert die Welt."
+print " \"ende\" beendet das Spiel.)"
+
+-- ---- Game loop ----
+while (at FERTIG 0) == false
+    print ""
+    eingabe: input "> "
+    if eingabe != ""
+        match eingabe
+            | "ende" -> set FERTIG 0 true
+            | _ -> handle_turn eingabe
+
+print ""
+print "Danke fürs Spielen. Deine Welt liegt unter worlds/ bereit für den nächsten Besuch."

@@ -1,0 +1,33 @@
+--! lore.pipe — RAG layer for world consistency in "Worldcraft"
+--! Builds a vector index over the generated world's lore documents once
+--! after loading/generating a world and serves small context snippets for
+--! talk_to. With the opencode provider embed falls back to the local hash
+--! embedder — no API cost.
+
+LORE_DOCS: [nil]
+LORE_INDEX: [nil]
+
+--! Registers the lore document list of the current world.
+fn lore_set_docs docs
+    set LORE_DOCS 0 docs
+    set LORE_INDEX 0 nil
+
+--! Embeds all registered documents once, caches the index.
+fn build_lore_index _
+    docs: at LORE_DOCS 0
+    if docs != nil && len docs > 0
+        vecs: embed_batch docs
+        set LORE_INDEX 0 {docs: docs, vectors: vecs}
+
+--! Returns the most relevant lore snippet(s) for a query.
+fn lore_context query
+    idx: at LORE_INDEX 0
+    if idx == nil
+        ""
+    else
+        qv: embed query
+        top: nearest qv (get idx "vectors") 1
+        out: ""
+        for i in top
+            out: out ++ "\n---\n" ++ (at (get idx "docs") i)
+        out

@@ -1,0 +1,388 @@
+--! tools.pipe — AI-callable game actions for "Worldcraft"
+--! The LLM never mutates state directly: every ai_tool below goes through
+--! pure functions in state.pipe, so the DB stays the single source of truth.
+--! Win conditions and NPC placement are data-driven (objectives/npc_placement).
+
+import "state.pipe"
+
+-- Module-held resource pack (set once at startup by worldcraft.pipe).
+PACK: [nil]
+
+--! Stores the loaded resource pack for AI-facing wrappers.
+fn set_pack p
+    set PACK 0 p
+
+--! Returns the stored resource pack.
+fn get_pack _
+    at PACK 0
+
+-- Module-held world document (set once after loading/generation).
+DOC_HOLDER: [nil]
+
+--! Stores the current world document.
+fn set_doc doc
+    set DOC_HOLDER 0 doc
+
+--! Returns the current world document.
+fn get_doc _
+    at DOC_HOLDER 0
+
+--! Factual description of the current room (the narrator LLM wraps this).
+fn look _
+    p: (get_player 0)
+    room: get_room (get p "room")
+    if room == nil
+        "Du schwebst im Nichts. (Fehler: Raum unbekannt)"
+    else
+        rid: get p "room"
+        fl: get_flavor rid
+        basis: get room "description"
+        if fl != ""
+            basis: fl
+        beschr: "== " ++ rid ++ " ==\n" ++ basis
+        npcs: npcs_in_room rid
+        if len npcs > 0
+            namen: []
+            for n in npcs
+                npc: get_npc n
+                push namen (get npc "name")
+            beschr: beschr ++ "\nHier sind: " ++ (join_list namen ", ")
+        items: parse_json (get room "items")
+        if len items > 0
+            beschr: beschr ++ "\nHier liegt: " ++ (join_list items ", ")
+        ms: monsters_in_room rid
+        if len ms > 0
+            mons: []
+            for m in ms
+                push mons (get m "name")
+            beschr: beschr ++ "\nUntier hier: " ++ (join_list mons ", ")
+        exits: parse_json (get room "exits")
+        if len exits > 0
+            beschr: beschr ++ "\nAusgänge: " ++ (join_list (keys exits) ", ")
+        beschr
+
+--! Moves through an exit; returns the new room description.
+fn move_to exit_name
+    p: (get_player 0)
+    room: get_room (get p "room")
+    if room == nil
+        "Dein Ort ist unbekannt. (Fehler)"
+    else
+        exits: parse_json (get room "exits")
+        if contains (keys exits) exit_name
+            ziel: get exits exit_name
+            set_player_room ziel
+            check_explore_objective ziel
+            look 0
+        else
+            "Dorthin führt kein Weg."
+
+--! Picks up an item from the current room.
+fn take_item item_name
+    p: (get_player 0)
+    if inventory_has item_name
+        "Das trägst du bereits."
+    else
+        if room_take_item (get p "room") item_name
+            inventory_add item_name
+            "Du nimmst: " ++ item_name
+        else
+            "Das liegt hier nicht."
+
+--! Offers an item to an NPC present in the room. Completes give-objectives;
+--! giving anything raises reputation with the alte_ordnung slightly.
+fn give_item item_name npc_id
+    p: (get_player 0)
+    npc_here: get_npc_room npc_id
+    if npc_here != (get p "room")
+        "Hier ist niemand namens " ++ npc_id ++ "."
+    else
+        if !inventory_has item_name
+            "Das trägst du bei dir nicht."
+        else
+            inventory_remove item_name
+            rep_add "alte_ordnung" 1
+            won: check_give_objective item_name npc_id
+            meldung: npc_id ++ " betrachtet " ++ item_name ++ " schweigend und legt es beiseite."
+            if won
+                meldung: npc_id ++ " nimmt " ++ item_name ++ " mit beiden Händen entgegen. Etwas Altes und Verwundetes löst sich -- die Aufgabe ist erfüllt."
+            meldung
+
+--! Finds an alive monster in the current room matching the given name/id.
+fn find_monster name_or_id
+    p: (get_player 0)
+    ms: monsters_in_room (get p "room")
+    found: [nil]
+    for m in ms
+        if (at found 0) == nil
+            if (get m "id") == name_or_id
+                set found 0 m
+            else
+                if contains (lower (get m "name")) (lower name_or_id)
+                    set found 0 m
+    at found 0
+
+--! Attacks a monster in the current room; the monster strikes back.
+fn attack_enemy target
+    p: (get_player 0)
+    m: find_monster target
+    if m == nil
+        "Hier gibt es kein Untier dieses Namens."
+    else
+        bonus: 0
+        if inventory_has "schwert"
+            bonus: 2
+        if inventory_has "axt"
+            bonus: 2
+        dmg: (random_range 1 6) + bonus - (get m "defense")
+        if dmg < 0
+            dmg: 0
+        hp: monster_hit (get m "id") dmg
+        bericht: "Dein Angriff trifft für " ++ (to_str dmg) ++ " Schaden."
+        if hp <= 0
+            monster_defeat (get m "id")
+            bericht: bericht ++ "\nDas Untier ist tot!"
+            if (get m "loot") != ""
+                bericht: bericht ++ " Sein Fall legt frei: " ++ (get m "loot") ++ "."
+        else
+            rache: random_range 1 3
+            php: (get p "hp") - rache
+            set_player_hp php
+            bericht: bericht ++ "\nEs schlägt zurück für " ++ (to_str rache) ++ " Schaden. (Deine HP: " ++ (to_str php) ++ ")"
+            if php <= 0
+                (respawn_player 0)
+                bericht: bericht ++ "\nSchwarz wird es vor deinen Augen. Du erwachst am Anfang -- hereingetragen von fremden Händen."
+        bericht
+
+-- ---- Trade ----
+
+--! True when a haendler NPC stands in the player's room; returns its id.
+fn trader_in_room _
+    p: (get_player 0)
+    hier: npcs_in_room (get p "room")
+    found: [""]
+    for nid in hier
+        if (at found 0) == ""
+            npc: get_npc nid
+            if (get npc "role") == "haendler"
+                set found 0 nid
+    at found 0
+
+--! Price the trader charges for an item (value * sells_pct / 100).
+fn buy_price npc_row value
+    ((value * (get npc_row "sells_pct")) + 50) / 100
+
+--! Price the trader pays for an item (value * buys_pct / 100).
+fn sell_price npc_row value
+    (value * (get npc_row "buys_pct")) / 100
+
+--! Looks up an item definition row by id or name fragment.
+fn find_pack_item pack name_or_id
+    found: [nil]
+    for it in (get pack "items")
+        if (at found 0) == nil
+            if (get it "id") == name_or_id
+                set found 0 it
+            else
+                if contains (lower (get it "name")) (lower name_or_id)
+                    set found 0 it
+    at found 0
+
+--! Buys an item from the trader in the current room.
+fn buy_item pack item_name
+    t: trader_in_room 0
+    if t == ""
+        "Hier kann niemand etwas verkaufen."
+    else
+        def: find_pack_item pack item_name
+        if def == nil
+            "Das führt kein Händler im Sortiment."
+        else
+            npc: get_npc t
+            preis: buy_price npc (get def "value")
+            p: (get_player 0)
+            if (get p "gold") < preis
+                "Dafür fehlt dir das Gold (" ++ (to_str preis) ++ " benötigt)."
+            else
+                adjust_gold (-preis)
+                inventory_add (get def "id")
+                "Du kaufst " ++ (get def "id") ++ " für " ++ (to_str preis) ++ " Gold. (Rest: " ++ (to_str (get (get_player 0) "gold")) ++ ")"
+
+--! Sells an item from the inventory to the trader in the current room.
+fn sell_item pack item_name
+    t: trader_in_room 0
+    if t == ""
+        "Hier gibt es niemanden, der kauft."
+    else
+        if !inventory_has item_name
+            "Das trägst du nicht bei dir."
+        else
+            def: find_pack_item pack item_name
+            if def == nil
+                "Das interessiert hier niemanden."
+            else
+                npc: get_npc t
+                preis: sell_price npc (get def "value")
+                inventory_remove (get def "id")
+                gold: adjust_gold preis
+                "Du verkaufst " ++ (get def "id") ++ " für " ++ (to_str preis) ++ " Gold. (Kasse: " ++ (to_str gold) ++ ")"
+
+--! Uses an item from the inventory. Heiltrank heals; others give flavor text.
+fn use_item item_name
+    if !inventory_has item_name
+        "Das trägst du nicht bei dir."
+    else
+        if item_name == "heiltrank"
+            inventory_remove item_name
+            p: (get_player 0)
+            neu: (get p "hp") + 4
+            set_player_hp neu
+            "Du trinkst den Heiltrank. Wärme breitet sich aus. (HP: " ++ (to_str neu) ++ ")"
+        else
+            if item_name == "fackel"
+                "Die Fackel flackert auf und wirft tanzendes Licht in die Dunkelheit."
+            else
+                if item_name == "laterne"
+                    "Du öffnest die Laterne -- ein ruhiger, goldener Lichtschein."
+                else
+                    "Das lässt sich gerade nicht gebrauchen."
+
+-- ---- Quest log & inventory display ----
+
+--! Lists the quest log with states.
+fn show_quests _
+    qs: (all_quests 0)
+    if len qs == 0
+        "Keine Einträge im Quest-Log."
+    else
+        out: ""
+        for qst in qs
+            mark: "[ ]"
+            if (get qst "state") == "erledigt"
+                mark: "[x]"
+            out: out ++ "\n" ++ mark ++ " " ++ (get qst "name") ++ ": " ++ (get qst "description")
+        "Quest-Log:" ++ out
+
+--! Shows what the player carries plus gold and hp.
+fn show_inventory _
+    p: (get_player 0)
+    inv: parse_json (get p "inventory")
+    kopf: "Gold: " ++ (to_str (get p "gold")) ++ " | HP: " ++ (to_str (get p "hp"))
+    if len inv > 0
+        kopf ++ "\nDu trägst bei dir: " ++ (join_list inv ", ")
+    else
+        kopf ++ "\nDeine Hände sind leer."
+
+--! Talks to an NPC; reply comes from the LLM, memory is compressed via summarize.
+fn talk_to npc_id last_message
+    p: (get_player 0)
+    npc_here: get_npc_room npc_id
+    if npc_here != (get p "room")
+        "Hier ist niemand namens " ++ npc_id ++ "."
+    else
+        alt: get_npc_memory npc_id
+        turns: npc_turns npc_id
+        if (turns % 3) == 2
+            mem: summarize (alt ++ "\nSpieler: " ++ last_message)
+        else
+            mem: alt
+        persona: get_npc_persona_text npc_id
+        reply: ask ("Du bist " ++ persona ++ "\n\nBisherige Erinnerung an dieses Gespräch:\n" ++ mem ++ "\nDer Abenteurer sagt: \"" ++ last_message ++ "\"\n\nAntworte in Charakter, 1-3 Sätze.")
+        set_npc_memory npc_id (summarize ("Gespräch mit dem Abenteurer. " ++ mem ++ "\nSpieler: " ++ last_message ++ "\nAntwort: " ++ reply))
+        reply
+
+--! Builds the persona prompt for an NPC from its DB row.
+fn get_npc_persona_text npc_id
+    npc: get_npc npc_id
+    if npc == nil
+        "ein mysteriöser Fremder. Antworte knapp."
+    else
+        "ein NPC dieser Welt:\nName: " ++ (get npc "name") ++ "\nRolle: " ++ (get npc "role") ++ "\nWesen: " ++ (get npc "temperament") ++ "\nHintergrund: " ++ (get npc "persona")
+
+-- ---- Fast path commands (no AI) ----
+
+--! Extracts all words after the first as lowercase item/target name.
+fn first_word s
+    ws: split s " "
+    if len ws > 0
+        at ws 0
+    else
+        ""
+
+fn rest_words cmd
+    w: split cmd " "
+    out: []
+    i: 1
+    if len w > 1
+        a: lower (at w 1)
+        if a == "die" || a == "den" || a == "der" || a == "das" || a == "dem" || a == "einen" || a == "eine" || a == "ein" || a == "the"
+            i: 2
+    while i < (len w)
+        push out (lower (at w i))
+        i: i + 1
+    join_list out " "
+
+--! Handles common commands locally (no AI): returns {handled, text}.
+fn fast_command cmd pack
+    t: lower (trim cmd)
+    w: split t " "
+    erstes: at w 0
+    if erstes == "norden" || erstes == "n" || (erstes == "geh" && contains t "norden")
+        {handled: true, out: move_to "norden"}
+    else
+        if erstes == "sueden" || erstes == "süden" || erstes == "s" || (erstes == "geh" && contains t "sueden")
+            {handled: true, out: move_to "sueden"}
+        else
+            if erstes == "osten" || erstes == "o" || (erstes == "geh" && contains t "osten")
+                {handled: true, out: move_to "osten"}
+            else
+                if erstes == "westen" || erstes == "w" || (erstes == "geh" && contains t "westen")
+                    {handled: true, out: move_to "westen"}
+                else
+                    if erstes == "nimm" && len w > 1
+                        {handled: true, out: take_item (rest_words t)}
+                    else
+                        if (erstes == "kauf" || erstes == "kaufe") && len w > 1
+                            {handled: true, out: buy_item pack (rest_words t)}
+                        else
+                            if (erstes == "verkauf" || erstes == "verkaufe") && len w > 1
+                                {handled: true, out: sell_item pack (rest_words t)}
+                            else
+                                if (erstes == "benutze" || erstes == "trinke") && len w > 1
+                                    {handled: true, out: use_item (rest_words t)}
+                                else
+                                    if erstes == "inventar" || erstes == "inv" || erstes == "i"
+                                        {handled: true, out: show_inventory 0}
+                                    else
+                                        if erstes == "quests" || erstes == "aufgaben" || erstes == "log"
+                                            {handled: true, out: show_quests 0}
+                                        else
+                                            if (erstes == "schau" || erstes == "umschauen" || erstes == "look")
+                                                {handled: true, out: look 0}
+                                            else
+                                                if (erstes == "greife" || erstes == "angriff" || erstes == "kämpfe") && len w > 1
+                                                    {handled: true, out: attack_enemy (first_word (rest_words t))}
+                                                else
+                                                    {handled: false, out: ""}
+
+-- ---- Tool registration for ai_with_tools ----
+
+ai_tool "look" "Beschreibe die aktuelle Umgebung" {} look
+ai_tool "move_to" "Bewege den Spieler durch einen Ausgang (z.B. norden, sueden, osten, westen)" {exit_name: "Himmelsrichtung des Ausgangs"} move_to
+ai_tool "take_item" "Hebe einen Gegenstand aus dem Raum auf" {item_name: "Name des Gegenstands"} take_item
+ai_tool "give_item" "Biete einem NPC einen Gegenstand an" {item_name: "Name des Gegenstands", npc: "ID des NPCs"} give_item
+ai_tool "show_inventory" "Zeige Inventar, Gold und HP des Spielers" {} show_inventory
+ai_tool "talk_to" "Sprich mit einem NPC im Raum" {npc: "ID des NPCs", last_message: "Was der Spieler sagen möchte"} talk_to
+ai_tool "attack_enemy" "Greife ein Untier im aktuellen Raum an" {target: "Name oder ID des Untiers"} attack_enemy
+ai_tool "show_quests" "Zeige das Quest-Log" {} show_quests
+ai_tool "save_game" "Speichere den Spielstand unter einem Namen" {name: "Name des Spielstands"} save_game
+ai_tool "load_game" "Lade einen gespeicherten Spielstand" {name: "Name des Spielstands"} load_game
+--! AI-facing trade wrappers (pack comes from set_pack).
+fn buy_item_ai item_name
+    buy_item (get_pack 0) item_name
+
+fn sell_item_ai item_name
+    sell_item (get_pack 0) item_name
+
+ai_tool "buy_item" "Kaufe einen Gegenstand beim Händler im Raum" {item_name: "Name des Gegenstands"} buy_item_ai
+ai_tool "sell_item" "Verkaufe einen Gegenstand an den Händler im Raum" {item_name: "Name des Gegenstands"} sell_item_ai

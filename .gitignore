@@ -51,3 +51,6 @@ website/feed.xml
 website/sitemap.xml
 docs/tests/sandbox-audit/out/
 pipe
+worldcraft/saves/
+worldcraft/.pipe_sandbox/
+worldcraft/worlds/wc_rundreise.json

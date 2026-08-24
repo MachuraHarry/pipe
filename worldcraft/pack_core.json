@@ -1,0 +1,77 @@
+{
+  "items": [
+    {"id": "schwert", "name": "schwert", "type": "waffe", "value": 25, "tags": ["klinge", "stahl", "kampf"], "desc": "Ein solides Langschwert mit leicht gekerbter Klinge."},
+    {"id": "axt", "name": "axt", "type": "waffe", "value": 20, "tags": ["klinge", "holzfaeller", "kampf"], "desc": "Eine schwere Holzfälleraxt, die auch Schädel spaltet."},
+    {"id": "dolch", "name": "dolch", "type": "waffe", "value": 10, "tags": ["klinge", "heimlich", "kampf"], "desc": "Ein kurzer, handlicher Dolch."},
+    {"id": "bogen", "name": "bogen", "type": "waffe", "value": 18, "tags": ["fernkaempfer", "wald", "kampf"], "desc": "Ein Eibenkurzbogen mit behaartem Sehnenzug."},
+    {"id": "streitkolben", "name": "streitkolben", "type": "waffe", "value": 12, "tags": ["stumpf", "kampf"], "desc": "Ein eiserner Kolben an ledernem Riemen."},
+    {"id": "heiltrank", "name": "heiltrank", "type": "trank", "value": 15, "tags": ["heilung", "rot", "glas"], "desc": "Ein rot schimmernder Trank, der Wunden schließt."},
+    {"id": "krafttrank", "name": "krafttrank", "type": "trank", "value": 12, "tags": ["staerke", "bernstein", "glas"], "desc": "Dickflüssig und bitter -- verleiht kurze Kraft."},
+    {"id": "gegengift", "name": "gegengift", "type": "trank", "value": 10, "tags": ["gift", "gruen", "glas"], "desc": "Grünliche Essenz gegen Spinnen- und Schlangengift."},
+    {"id": "fackel", "name": "fackel", "type": "werkzeug", "value": 3, "tags": ["licht", "feuer", "dunkelheit"], "desc": "Eine teergefüllte Fackel, wirft flackerndes Licht."},
+    {"id": "laterne", "name": "laterne", "type": "werkzeug", "value": 9, "tags": ["licht", "dauerhaft"], "desc": "Eine geschützte Öllaterne, windfest."},
+    {"id": "seil", "name": "seil", "type": "werkzeug", "value": 5, "tags": ["klettern", "grube", "abgrund"], "desc": "Zehn Ellen geteertes Hanfseil."},
+    {"id": "dietrich", "name": "dietrich", "type": "werkzeug", "value": 8, "tags": ["schloss", "truhe", "heimlich"], "desc": "Gebogener Draht für verschlossene Truhen und Türen."},
+    {"id": "schaufel", "name": "schaufel", "type": "werkzeug", "value": 4, "tags": ["grab", "erde", "versteck"], "desc": "Eine faltbare Klappschaufel für Grabarbeit."},
+    {"id": "goldmuenze", "name": "goldmuenze", "type": "quest", "value": 50, "tags": ["erbe", "gold", "gabe", "unberuehrt"], "desc": "Eine alte Goldmünze, nie im Umlauf -- wertvoll als freiwillige Gabe."},
+    {"id": "altes_amulett", "name": "altes_amulett", "type": "quest", "value": 40, "tags": ["erbe", "schmuck", "gedaechtnis"], "desc": "Ein vergilbtes Amulett mit eingraviertem Namen."},
+    {"id": "versiegeltes_buch", "name": "versiegeltes_buch", "type": "quest", "value": 35, "tags": ["wissen", "siegel", "geheimnis"], "desc": "Ein Buch mit unzerbrochenem Wachssiegel."}
+  ],
+  "npcs": [
+    {"id": "kraemerin_hilda", "name": "Krämerin Hilda", "role": "haendler", "temperament": "freundlich, redselig, handelt hart", "buys_pct": 50, "sells_pct": 130, "wares_tags": ["trank", "werkzeug"], "persona": "Eine rundliche Krämerin, die jeden Gruß mit Anekdoten beantwortet und über Preise gerne verhandelt.", "tags": ["dorf", "handel", "waren"]},
+    {"id": "schmied_gorim", "name": "Schmied Gorim", "role": "haendler", "temperament": "knapp, stolz auf seine Arbeit", "buys_pct": 60, "sells_pct": 140, "wares_tags": ["waffe", "klinge"], "persona": "Ein bartiger Schmied mit vernarbten Händen; er spricht wenig, aber seine Waffen sprechen laut.", "tags": ["dorf", "waffen", "handel"]},
+    {"id": "wanderhaendler_finn", "name": "Wanderhändler Finn", "role": "haendler", "temperament": "verschmitzt, superstitiös", "buys_pct": 45, "sells_pct": 150, "wares_tags": ["trank", "quest", "werkzeug"], "persona": "Ein schlanker Mann mit Wanderpaket; er kennt Gerüchte aus allen Landen und verkauft sie gleich mit.", "tags": ["strasse", "geruechte", "handel"]},
+    {"id": "wache_bruno", "name": "Wache Bruno", "role": "waechter", "temperament": "pflichtbewusst, misstrauisch gegenüber Fremden", "buys_pct": 0, "sells_pct": 0, "wares_tags": [], "persona": "Ein breiter Mann in schlichtem Harnisch, der Fragen mit Gegenfragen beantwortet.", "tags": ["tor", "ordnung", "bewachung"]},
+    {"id": "tempelwacht_sirine", "name": "Tempelwacht Sirine", "role": "waechter", "temperament": "ernst, fromm, rätselhaft", "buys_pct": 0, "sells_pct": 0, "wares_tags": [], "persona": "Eine geweihte Wächterin in verblassten Gewändern; ihre Worte klingen wie gesprochene Gelübde.", "tags": ["tempel", "glaube", "bewachung"]},
+    {"id": "weiser_aldric", "name": "Weiser Aldric", "role": "weiser", "temperament": "langsam sprechend, rätselhaft, gütig", "buys_pct": 0, "sells_pct": 0, "wares_tags": [], "persona": "Ein alter Gelehrter, der Antworten in Form von Rätseln gibt und die Geschichte der Gegend kennt.", "tags": ["geschichte", "raetsel", "wissen"]},
+    {"id": "kraeuterfrau_mira", "name": "Kräuterfrau Mira", "role": "heiler", "temperament": "warmherzig, abergläubisch", "buys_pct": 70, "sells_pct": 120, "wares_tags": ["trank", "heilung"], "persona": "Eine graue Frau mit Beuteltaschen voller Kräuter; sie riecht Krankheiten, bevor sie sichtbar sind.", "tags": ["heilung", "kraeuter", "dorf"]},
+    {"id": "hofnarr_pipkin", "name": "Hofnarr Pipkin", "role": "bettler", "temperament": "verspielt, wahnsinnig weise", "buys_pct": 100, "sells_pct": 0, "wares_tags": [], "persona": "Ein zerlumpter Narr, der Reime spricht und in seinem Unsinn seltsame Wahrheiten verbreitet.", "tags": ["geruechte", "hinweise", "armut"]}
+  ],
+  "monsters": [
+    {"id": "ratte", "name": "Riesenratte", "hp": 2, "defense": 0, "loot": "", "difficulty": 1, "tags": ["ungeziefer", "keller", "schwach"]},
+    {"id": "spinnlinge", "name": "Spinnlinge", "hp": 3, "defense": 0, "loot": "", "difficulty": 1, "tags": ["gift", "netz", "schwach"]},
+    {"id": "grabwicht", "name": "Grabwicht", "hp": 3, "defense": 1, "loot": "goldmuenze", "difficulty": 2, "tags": ["grab", "dieb", "klein"]},
+    {"id": "kammerling", "name": "Kammerling", "hp": 5, "defense": 0, "loot": "goldmuenze", "difficulty": 2, "tags": ["schatz", "ungeziefer"]},
+    {"id": "fluchgeist", "name": "Fluchgeist", "hp": 5, "defense": 1, "loot": "altes_amulett", "difficulty": 3, "tags": ["geist", "fluch", "kapelle"]},
+    {"id": "goblin", "name": "Goblinplünderer", "hp": 4, "defense": 1, "loot": "dietrich", "difficulty": 2, "tags": ["goblin", "pluenderer"]},
+    {"id": "skelett", "name": "Rostiges Skelett", "hp": 6, "defense": 2, "loot": "axt", "difficulty": 3, "tags": ["untot", "ruine", "krieger"]},
+    {"id": "schattenwolf", "name": "Schattenwolf", "hp": 7, "defense": 1, "loot": "", "difficulty": 4, "tags": ["tier", "dunkelheit", "wald"]},
+    {"id": "moorshulk", "name": "Moorshulk", "hp": 8, "defense": 2, "loot": "versiegeltes_buch", "difficulty": 4, "tags": ["sumpf", "bestie", "gross"]},
+    {"id": "steingargoyle", "name": "Steingargoyle", "hp": 9, "defense": 3, "loot": "altes_amulett", "difficulty": 5, "tags": ["stein", "wache", "turm"]}
+  ],
+  "rooms": [
+    {"id": "tpl_eingang", "kind": "eingang", "description": "Ein verwitterter Zugang führt ins Innere. Moos überwuchert die geborstenen Steine, und ein kalter Zug weht entgegen.", "item_tags": ["licht"], "tags": ["eingang", "ruine", "start"]},
+    {"id": "tpl_halle", "kind": "halle", "description": "Eine große, staubige Halle. Hohe Bögen tragen eine rissige Decke, Schatten sammeln sich in den Ecken.", "item_tags": [], "tags": ["zentrum", "ruine"]},
+    {"id": "tpl_laden", "kind": "laden", "description": "Ein enges Gemach voller Regale, Fässer und hängender Bündel. Hier wird gehandelt, gelacht und gefeilscht.", "item_tags": ["trank", "werkzeug"], "tags": ["handel", "npc"]},
+    {"id": "tpl_kapelle", "kind": "kapelle", "description": "Eine kleine Kapelle. Der Altar ist leer, doch der Boden ist frisch gekehrt -- jemand pflegt diesen Ort.", "item_tags": ["quest"], "tags": ["heilig", "still"]},
+    {"id": "tpl_dungeon", "kind": "dungeon", "description": "Ein enger, feuchter Gang. Wasser tropft von den Wänden, und der Boden gibt unter jedem Schritt leise nach.", "item_tags": ["werkzeug"], "tags": ["gefahrvoll", "dunkel"]},
+    {"id": "tpl_gruft", "kind": "gruft", "description": "Steinerne Ruhebetten säumen die Wände, ihre Insassen längst zu Staub. Die Luft schmeckt alt.", "item_tags": ["quest"], "tags": ["grab", "untot", "gefahrvoll"]},
+    {"id": "tpl_schatzkammer", "kind": "schatzkammer", "description": "Golddurchsetzte Truhen, größtenteils geplündert. Kratzspuren am Boden verraten, dass hier etwas sein Unwesen treibt.", "item_tags": ["quest"], "tags": ["schatz", "gefahrvoll"]},
+    {"id": "tpl_hof", "kind": "hof", "description": "Ein überwucherter Innenhof. Verwitterte Statuen säumen den Weg, wildes Kraut wächst zwischen den Platten.", "item_tags": ["trank"], "tags": ["offen", "ruine"]},
+    {"id": "tpl_brunnen", "kind": "brunnen", "description": "Ein tiefer Steinbrunnen, das Wasser schwarz und still. Wer hier hineinruft, hört seine eigene Stimme als letztes zurück.", "item_tags": [], "tags": ["wasser", "geheimnisvoll"]},
+    {"id": "tpl_turm", "kind": "turm", "description": "Der halb eingestürzte Turm. Durch die offene Decke fällt ein Streifen Himmel auf Trümmer alter Zeiten.", "item_tags": ["quest"], "tags": ["aussicht", "ruine", "hoch"]}
+  ],
+  "quests": [
+    {"id": "q_gabe_des_erbes", "goal_type": "give", "target_tags": ["erbe", "gabe"], "reward": "Dank der Alten Ordnung", "name_pattern": "Die Gabe des Erbes", "desc_pattern": "Bringe ein Stück des unberührten Erbes freiwillig zum Bewacher des Ortes."},
+    {"id": "q_licht_in_der_finsternis", "goal_type": "give", "target_tags": ["licht"], "reward": "Vertrauen der Wache", "name_pattern": "Licht in der Finsternis", "desc_pattern": "Schenke dem Wächter Licht für seine einsame Wacht."},
+    {"id": "q_ungewuerm", "goal_type": "kill", "target_tags": ["schatz", "ungeziefer"], "reward": "Beute des Untiers", "name_pattern": "Das Ungewürm", "desc_pattern": "Vertreibe das Untier aus dem Schatzraum."},
+    {"id": "q_unruhevolle_toten", "goal_type": "kill", "target_tags": ["untot"], "reward": "Ruhe für die Gräber", "name_pattern": "Unruhevolle Toten", "desc_pattern": "Erlose das untote Wesen, das die Gräber plagt."},
+    {"id": "q_heilmittel", "goal_type": "fetch", "target_tags": ["heilung"], "reward": "Dankbarkeit der Kranken", "name_pattern": "Ein Heilmittel", "desc_pattern": "Besorge einen Heiltrank für den, der ihn braucht."},
+    {"id": "q_wissen_bergens", "goal_type": "explore", "target_tags": ["hoch", "aussicht"], "reward": "Weitblick und Wissen", "name_pattern": "Wissen bergauf", "desc_pattern": "Erklimme den höchsten Punkt des Ortes und kehre zurück."}
+  ],
+  "factions": [
+    ["alte_ordnung", 0],
+    ["doerfer", 0],
+    ["dunkle_macht", 0]
+  ],
+  "mechanics": {
+    "start_hp": 10,
+    "start_gold": 20,
+    "max_rooms": 12,
+    "min_rooms": 5,
+    "max_rooms_total": 25,
+    "attack_bonus_waffe": 2,
+    "heiltrank_heilung": 4,
+    "respawn_hp": 10
+  }
+}

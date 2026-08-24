@@ -1,0 +1,59 @@
+{
+  "name": "Die Musterwelt",
+  "thema": "Eine verfallene Ordensburg im Morgennebel",
+  "ton": "düster, aber hoffnungsvoll",
+  "start_room": "tpl_eingang",
+  "rooms": {
+    "tpl_eingang": {
+      "description": "Ein verwitterter Torbogen führt in die Musterwelt. Moos überwuchert die geborstenen Steine, und ein kalter Zug weht aus dem Inneren.",
+      "items": ["fackel"],
+      "exits": {"norden": "tpl_halle"}
+    },
+    "tpl_halle": {
+      "description": "Eine große, staubige Halle. Rissige Fahnen alter Ordnung hängen an den Wänden. Ein weiser Alter steht reglos am Kopfende.",
+      "items": [],
+      "exits": {"sueden": "tpl_eingang", "osten": "tpl_schatzkammer", "westen": "tpl_laden", "norden": "tpl_kapelle"}
+    },
+    "tpl_schatzkammer": {
+      "description": "Golddurchsetzte Truhen, größtenteils geplündert. Kratzspuren am Boden verraten, dass hier etwas Ungeziefer sein Unwesen treibt.",
+      "items": ["schwert"],
+      "exits": {"westen": "tpl_halle"}
+    },
+    "tpl_laden": {
+      "description": "Ein enges Gemach voller Regale und Fässer. Eine freundliche Krämerin feilscht hier mit Jedermann.",
+      "items": [],
+      "exits": {"osten": "tpl_halle"}
+    },
+    "tpl_kapelle": {
+      "description": "Eine kleine Ruinenkapelle. Der Altar ist leer, doch die Kerzenhalter sind frisch gekehrt -- jemand pflegt diesen Ort.",
+      "items": [],
+      "exits": {"sueden": "tpl_halle", "osten": "tpl_turm"}
+    },
+    "tpl_turm": {
+      "description": "Der eingestürzte Bergfried. Durch die offene Decke fällt ein Streifen Himmel auf ein Nest aus Fahnenresten.",
+      "items": ["altes_amulett"],
+      "exits": {"westen": "tpl_kapelle"}
+    }
+  },
+  "npcs": [
+    {"id": "kraemerin_hilda", "name": "Krämerin Hilda", "role": "haendler", "temperament": "freundlich, redselig, handelt hart", "buys_pct": 50, "sells_pct": 130, "persona": "Eine rundliche Krämerin, die jeden Gruß mit Anekdoten beantwortet.", "room": "tpl_laden"},
+    {"id": "weiser_aldric", "name": "Weiser Aldric", "role": "weiser", "temperament": "langsam sprechend, rätselhaft, gütig", "buys_pct": 0, "sells_pct": 0, "persona": "Ein alter Gelehrter, der Antworten in Form von Rätseln gibt und die Geschichte des Ortes kennt. Er wünscht sich, ein Stück des unberührten Erbes zurückzuerhalten -- freiwillig gegeben, nie genommen.", "room": "tpl_halle"}
+  ],
+  "monsters": [
+    {"id": "kammerling", "name": "Kammerling", "room": "tpl_schatzkammer", "hp": 5, "max_hp": 5, "defense": 0, "loot": "goldmuenze"}
+  ],
+  "quests": [
+    {"id": "q_gabe_des_erbes", "name": "Die Gabe des Erbes", "description": "Bringe dem Weisen freiwillig ein Stück des unberührten Erbes zurück.", "state": "aktiv"},
+    {"id": "q_ungewuerm", "name": "Das Ungewürm", "description": "Vertreibe das Untier aus dem Schatzraum.", "state": "aktiv"}
+  ],
+  "objectives": [
+    {"id": "obj_gabe", "kind": "give", "target": "goldmuenze", "npc": "weiser_aldric", "state": "offen"}
+  ],
+  "factions": [["alte_ordnung", 0], ["doerfer", 0], ["dunkle_macht", 0]],
+  "mechanics": {"start_hp": 10, "start_gold": 20, "respawn_hp": 10},
+  "flavors": {},
+  "lore": [
+    "Welt: Die Musterwelt. Thema: Eine verfallene Ordensburg im Morgennebel. Ton: düster, aber hoffnungsvoll.",
+    "weiser_aldric: Der Weise war einst Bibliothekar der Ordensburg. Als der Fluch kam, blieb er zurück und hütet nun das Wissen über das Erbe. Er nimmt niemals -- Geschenke dagegen berühren ihn tief."
+  ]
+}

@@ -1,5 +1,19 @@
 [
   {
+    "id": "worldcraft-showcase",
+    "file": "worldcraft-showcase.md",
+    "date": "2026-08-24",
+    "tag": "showcase",
+    "title": {
+      "en": "🌍 Worldcraft — an AI Game Where Your World Grows Forever",
+      "de": "🌍 Worldcraft — ein KI-Spiel, dessen Welt für immer mitwächst"
+    },
+    "excerpt": {
+      "en": "You describe a world, the AI builds it from a fixed resource pack — validated, normalized, saved as a reusable JSON artifact. Then it grows while you play ('erweitere welt'), and 'neues abenteuer' hands you fresh win conditions forever. Pure Pipe, free tier, $0.00 per session.",
+      "de": "Du beschreibst eine Welt, die KI baut sie aus einem festen Ressourcen-Paket — validiert, normalisiert, gespeichert als wiederverwendbares JSON-Artefakt. Dann wächst sie beim Spielen ('erweitere welt'), und 'neues abenteuer' liefert endlos neue Siegesbedingungen. Reines Pipe, Free-Tier, $0,00 pro Session."
+    }
+  },
+  {
     "id": "adventure-aldenmoor",
     "file": "adventure-aldenmoor.md",
     "date": "2026-08-24",

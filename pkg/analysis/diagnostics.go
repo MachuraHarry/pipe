@@ -122,6 +122,9 @@ func (r *LintResult) addUnusedWarnings(a *Analysis) {
 			continue
 		}
 		if len(s.Usages) == 0 {
+			if s.Name == "_" {
+				continue
+			}
 			r.add(Diagnostic{
 				Range: Range{
 					Start: s.Pos,

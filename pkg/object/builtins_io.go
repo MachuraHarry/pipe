@@ -1,6 +1,7 @@
 package object
 
 import (
+	"bufio"
 	"context"
 	"fmt"
 	"io"
@@ -105,15 +106,21 @@ func bPrintRaw(args ...Object) Object {
 	return NILOBJ
 }
 
+// stdinReader is a shared buffered reader so that consecutive input() calls
+// don't lose bytes buffered by a previous call.
+var stdinReader = bufio.NewReader(os.Stdin)
+
 func bInput(args ...Object) Object {
 	if len(args) > 0 {
 		if prompt, ok := args[0].(*String); ok {
 			fmt.Print(prompt.Value)
 		}
 	}
-	var line string
-	fmt.Scanln(&line)
-	return &String{Value: line}
+	line, readErr := stdinReader.ReadString('\n')
+	if readErr != nil && line == "" {
+		return &String{Value: ""}
+	}
+	return &String{Value: strings.TrimSpace(line)}
 }
 
 func bReadFile(args ...Object) Object {

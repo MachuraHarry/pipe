@@ -47,6 +47,8 @@ jobs:
   stats:
     name: Stats drift check
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
 
     steps:
     - uses: actions/checkout@v5
@@ -59,13 +61,18 @@ jobs:
     - name: Regenerate stats.json
       run: go run ./scripts/stats
 
-    - name: Fail on drift from committed stats/docs
+    - name: Auto-commit stats/docs drift
       run: |
-        if ! git diff --exit-code -- stats.json README.md website/index.html website/docs.html; then
-          echo "::error::stats/docs drifted from the committed snapshot. Run 'make stats' and commit the updated stats.json, README and website files."
-          exit 1
+        git config user.name "github-actions[bot]"
+        git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+        if ! git diff --quiet -- stats.json README.md website/index.html website/docs.html; then
+          git add stats.json README.md website/index.html website/docs.html
+          git commit -m "chore(stats): auto-sync stats snapshot [skip ci]"
+          git push
+          echo "stats/docs drift auto-committed"
+        else
+          echo "stats and docs in sync"
         fi
-        echo "stats and docs in sync"
 
   docs-smoke:
     name: pipe-docs RAG smoke

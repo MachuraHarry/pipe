@@ -8,9 +8,9 @@
     "sandbox": 4,
     "stdlib": 176
   },
-  "examples": 92,
-  "go_tests": 674,
-  "test_packages": 19,
+  "examples": 93,
+  "go_tests": 687,
+  "test_packages": 20,
   "ast_node_types": 42,
   "docs_en_chapters": 28,
   "docs_de_chapters": 28,

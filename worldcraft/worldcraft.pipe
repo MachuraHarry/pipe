@@ -8,22 +8,10 @@ import "state.pipe"
 import "tools.pipe"
 import "lore.pipe"
 import "gen_world.pipe"
+import "turns.pipe"
 
 -- ---- Provider: OpenCode Zen, keyless free tier ($0) ----
 ai_provider "opencode"
-FREE_MODELS: ["nemotron-3.5-lightning-free", "x-preview-f-free", "laguna-s-2.1-free"]
-NARRATOR_SYSTEM: "Du bist der Erzähler eines düsteren Fantasy-Textabenteuers (deutsch). Nutze die Werkzeuge, die der Spieler braucht, und fasse die Tool-Ergebnisse atmosphärisch in höchstens 3 Sätzen zusammen. Erfinde keine Gegenstände, Untiere oder Wege, die es nicht gibt. Bei Untieren ermutige den Spieler zum Angriff (attack_enemy), bei Händlern zum Handel (buy_item/sell_item)."
-
---! Probes the free models and returns the first that answers.
-fn pick_free_model models
-    for m in models
-        try
-            ai_model m
-            ask "Antworte mit genau einem Wort: bereit"
-            return m
-        catch
-            print ("  (Modell " ++ m ++ " nicht erreichbar, teste nächstes)")
-    "x-preview-f-free"
 
 --! Builds the lore index without failing hard when embeddings are down.
 fn lore_index_build_safe _
@@ -104,7 +92,7 @@ else
         ai_provider "opencode"
         model: pick_free_model FREE_MODELS
         print ("Modell: " ++ model)
-        ai_timeout 120
+        ai_timeout AI_TIMEOUT_TURN
         print ""
         print "Entwerfe Design ..."
         doc: nil
@@ -181,49 +169,29 @@ fn erweitere_wunsch inp
 
 WON_NOTED: [false]
 
---! Runs one narrator turn via ai_with_tools, rotating free models on failure.
+--! Runs one turn with terminal flavor: spinner + ambient line, shared core.
 fn handle_turn inp
     print ""
     t: lower (trim inp)
     erstes: at (split t " ") 0
-    if contains t "neues abenteuer"
+    langsam: contains t "neues abenteuer" || erstes == "erweitere" || erstes == "erweitern"
+    if !langsam
+        fc: fast_command inp (get_pack 0)
+        if (get fc "handled") == true
+            print (get fc "out")
+            langsam: false
+        else
+            print (ambient_line 0)
+            langsam: true
+    if langsam
         ch: chan 1
         spawn think_spinner ch
-        bericht: neues_abenteuer_ai 0
+        erg: process_turn inp
         send ch 1
-        print bericht
-        set WON_NOTED 0 false
-    else
-        if erstes == "erweitere" || erstes == "erweitern"
-            wunsch: erweitere_wunsch inp
-            ch3: chan 1
-            spawn think_spinner ch3
-            bericht2: expand_world_ai wunsch
-            send ch3 1
-            print bericht2
+        if (get erg "narration") != ""
+            print (get erg "narration")
         else
-            fc: fast_command inp (get_pack 0)
-            if (get fc "handled") == true
-                print (get fc "out")
-            else
-                print (ambient_line 0)
-                ch2: chan 1
-                spawn think_spinner ch2
-                antwort: ""
-                ok: [false]
-                for m in FREE_MODELS
-                    if (at ok 0) == false
-                        try
-                            ai_model m
-                            antwort: ai_with_tools NARRATOR_SYSTEM inp
-                            set ok 0 true
-                        catch
-                            print ("  (Modell " ++ m ++ " nicht erreichbar)")
-                send ch2 1
-                if (at ok 0) == true
-                    print antwort
-                else
-                    print "Die Nebel schweigen. Versuche es noch einmal."
+            print "Die Nebel schweigen. Versuche es noch einmal."
     p: (get_player 0)
     if (get p "won") == 1
         if (at WON_NOTED 0) == false

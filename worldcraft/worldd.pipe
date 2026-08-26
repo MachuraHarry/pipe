@@ -1,0 +1,237 @@
+--! worldd.pipe — single-session Worldcraft game host.
+--! Started by the supervisor (server.pipe):  bin/pipe worldd.pipe <id> <port>
+--! Hosts exactly ONE session: its own in-memory sqlite world, its own HTTP
+--! port, its own async job queue. All gameplay flows through turns.pipe/api.pipe,
+--! identical to the terminal version.
+
+import "state.pipe"
+import "tools.pipe"
+import "lore.pipe"
+import "gen_world.pipe"
+import "turns.pipe"
+import "api.pipe"
+
+SID: ["?"]
+PORT: ["0"]
+READY: [false]
+BOOT_ERROR: [""]
+SHUTDOWN: [false]
+
+ACTIVE: [nil]
+JOBS: {}
+
+JOB_COUNTER: [0]
+
+-- ---- Session persistence (reuses tested save_game/load_game blobs) ----
+
+fn persist_session _
+    save_game ("session_" ++ (at SID 0))
+
+fn restore_session_if_any _
+    name: "session_" ++ (at SID 0)
+    safe: safe_name name
+    if file_exists ("saves/" ++ safe ++ ".json")
+        load_game name
+
+-- ---- Boot ----
+
+--! Loads an existing world or generates a new one from the session config.
+fn boot_task _
+    try
+        pack: load_pack "pack_core.json"
+        set_pack pack
+        init_db 0
+        config_path: ".sessions/" ++ (at SID 0) ++ ".config.json"
+        cfg: parse_json (read_file config_path)
+        weltname: get cfg "world"
+        if weltname == nil || weltname == ""
+            weltname: (at SID 0)
+        vorhanden: load_world_doc weltname
+        if vorhanden != nil
+            set_meta "world_file" weltname
+        else
+            -- Neue Welt: Briefing (+ optional Profil) aus der Config generieren.
+            ai_provider "opencode"
+            model: pick_free_model FREE_MODELS
+            print ("[worldd " ++ (at SID 0) ++ "] Modell: " ++ model)
+            wunsch: get cfg "briefing"
+            if wunsch == nil || wunsch == ""
+                doc: fallback_world pack
+                apply_profile doc {stil: "normal", schwierigkeit: "normal"} pack
+                save_world_doc weltname doc
+                seed_full doc
+            else
+                profil: get cfg "profil"
+                if profil == nil
+                    profil: {stil: "normal", schwierigkeit: "normal"}
+                erg: gen_design wunsch pack profil 3
+                doc2: nil
+                if len (get erg "errors") > 0
+                    doc2: fallback_world pack
+                else
+                    design: get erg "design"
+                    karte: gen_map design pack 3
+                    if len (get karte "errors") > 0
+                        doc2: fallback_world pack
+                    else
+                        doc2: get karte "doc"
+                        try
+                            enrich_lore doc2 (get design "thema") (get design "ton")
+                        catch
+                            print "[worldd] Atmosphäre übersprungen"
+                apply_profile doc2 profil pack
+                set_meta "world_file" weltname
+                save_world_doc weltname doc2
+                seed_full doc2
+        restore_session_if_any 0
+        new_game 0
+        lore_index_build_quiet 0
+        set READY 0 true
+        print ("[worldd " ++ (at SID 0) ++ "] bereit auf :" ++ (at PORT 0))
+    catch e
+        set BOOT_ERROR 0 e
+        print ("[worldd " ++ (at SID 0) ++ "] Boot-Fehler: " ++ e)
+
+--! Builds the lore index without failing hard when embeddings are down.
+fn lore_index_build_quiet _
+    try
+        build_lore_index 0
+    catch
+        print "[worldd] Lore-Index übersprungen"
+
+-- ---- Job queue (one active job — one player per session) ----
+
+--! Creates a job entry and spawns its processing. Returns {job_id}.
+fn create_job kind payload
+    if (at ACTIVE 0) != nil
+        nil
+    else
+        set JOB_COUNTER 0 ((at JOB_COUNTER 0) + 1)
+        jid: "j" ++ (to_str (at JOB_COUNTER 0))
+        set JOBS jid {id: jid, kind: kind, status: "running", result: nil, error: ""}
+        set ACTIVE 0 jid
+        spawn run_job_task jid kind payload
+        {job_id: jid}
+
+--! Background worker for one job.
+fn run_job_task jid kind payload
+    erg: nil
+    err: ""
+    try
+        if kind == "expand"
+            erg: expand_world_ai (get payload "wunsch")
+        else
+            if kind == "new_adventure"
+                erg: neues_abenteuer_ai 0
+            else
+                erg2: api_turn (get payload "input")
+                erg: erg2
+    catch e
+        err: e
+        erg: ""
+    persist_session 0
+    job: get JOBS jid
+    if job != nil
+        set job "status" "done"
+        if erg != nil && (type_of erg) != "STRING"
+            set job "result" erg
+        else
+            set job "result" {narration: erg, dialog: nil, state: (api_state 0), options: (build_options 0)}
+        set job "error" err
+    set ACTIVE 0 nil
+
+--! Job status/result map or nil.
+fn get_job jid
+    get JOBS jid
+
+-- ---- Routes ----
+
+fn handle_root req
+    method: get req "method"
+    path: get req "path"
+    if path == "/health"
+        body: {status: "ok", session: (at SID 0), ready: (at READY 0), error: (at BOOT_ERROR 0)}
+        json_res 200 body
+    else
+        if !(at READY 0)
+            booterr: at BOOT_ERROR 0
+            if booterr != ""
+                json_err 500 "boot_failed" booterr
+            else
+                json_err 503 "booting" "Welt wird vorbereitet — bitte pollen"
+        else
+            if method == "OPTIONS"
+                json_res 200 {}
+            else
+                if path == "/state" && method == "GET"
+                    json_res 200 (api_intro 0)
+                else
+                    if path == "/command" && method == "POST"
+                        route_job req "command"
+                    else
+                        if path == "/expand" && method == "POST"
+                            route_job req "expand"
+                        else
+                            if path == "/new-adventure" && method == "POST"
+                                route_job req "new_adventure"
+                            else
+                                if path == "/shutdown" && method == "POST"
+                                    persist_session 0
+                                    set SHUTDOWN 0 true
+                                    json_res 200 {status: "bye"}
+                                else
+                                    if starts_with_jobs path && method == "GET"
+                                        jid: job_id_of path
+                                        job: get_job jid
+                                        if job == nil
+                                            json_err 404 "unknown_job" ("Kein Job: " ++ jid)
+                                        else
+                                            if (get job "status") == "done" && (get job "error") != ""
+                                                json_res 200 {job_id: jid, status: "done", error: (get job "error")}
+                                            else
+                                                json_res 200 job
+                                    else
+                                        json_err 404 "not_found" ("Unbekannter Pfad: " ++ path)
+
+--! POST /command | /expand | /new-adventure → 202 + job_id (oder 409 wenn busy).
+fn route_job req kind
+    body_raw: get req "body"
+    payload: {}
+    if body_raw != "" && body_raw != nil
+        payload: parse_json body_raw
+    job: create_job kind payload
+    if job == nil
+        json_err 409 "busy" "Ein Zug läuft bereits — bitte poll den offenen Job"
+    else
+        json_res 202 {job_id: (get job "job_id"), status: "running"}
+
+--! True when path starts with "/jobs/".
+fn starts_with_jobs path
+    teile: split path "/jobs/"
+    len teile > 1
+
+--! Extracts the job id from "/jobs/<id>".
+fn job_id_of path
+    teile: split path "/jobs/"
+    at teile 1
+
+-- ---- Main ----
+
+if len args >= 2
+    set SID 0 (at args 0)
+    set PORT 0 (at args 1)
+else
+    print "Nutzung: pipe worldd.pipe <session-id> <port>"
+    raise "fehlende Argumente"
+
+print ("[worldd " ++ (at SID 0) ++ "] starte auf :" ++ (at PORT 0))
+ai_provider "opencode"
+srv: http_server ("0.0.0.0:" ++ (at PORT 0)) handle_root
+
+spawn boot_task 0
+
+while !(at SHUTDOWN 0)
+    sleep 300
+
+http_close srv
+print ("[worldd " ++ (at SID 0) ++ "] beendet.")

@@ -1,0 +1,93 @@
+--! turns.pipe — shared turn-processing core for Worldcraft frontends.
+--! Both the terminal (worldcraft.pipe) and the HTTP worker (worldd.pipe)
+--! use these functions, so gameplay behaves identically everywhere.
+--! Frontends only add I/O flavor: spinners, ambient lines, JSON envelopes.
+
+import "state.pipe"
+import "tools.pipe"
+import "gen_world.pipe"
+
+NARRATOR_SYSTEM: "Du bist der Erzähler eines düsteren Fantasy-Textabenteuers (deutsch). Nutze die Werkzeuge, die der Spieler braucht, und fasse die Tool-Ergebnisse atmosphärisch in höchstens 3 Sätzen zusammen. Erfinde keine Gegenstände, Untiere oder Wege, die es nicht gibt. Bei Untieren ermutige den Spieler zum Angriff (attack_enemy), bei Händlern zum Handel (buy_item/sell_item)."
+
+FREE_MODELS: ["nemotron-3.5-lightning-free", "x-preview-f-free", "laguna-s-2.1-free"]
+
+AI_TIMEOUT_TURN: 120
+
+--! Probes the free models and returns the first that answers.
+fn pick_free_model models
+    for m in models
+        try
+            ai_model m
+            ask "Antworte mit genau einem Wort: bereit"
+            return m
+        catch
+            print ("  (Modell " ++ m ++ " nicht erreichbar, teste nächstes)")
+    "x-preview-f-free"
+
+--! One narrator call with model rotation. Returns the narration text,
+--! or "" when every model failed.
+fn narrator_reply inp
+    antwort: ""
+    ok: false
+    for m in FREE_MODELS
+        if !ok
+            try
+                ai_model m
+                antwort: ai_with_tools NARRATOR_SYSTEM inp
+                ok: true
+            catch
+                print ("  (Modell " ++ m ++ " nicht erreichbar)")
+    if ok
+        antwort
+    else
+        ""
+
+--! True when the input asks for a world expansion.
+fn is_expand_input t
+    erstes: at (split t " ") 0
+    erstes == "erweitere" || erstes == "erweitern"
+
+--! Extracts everything after the first word ("erweitere <wunsch>").
+fn expand_wunsch_of inp
+    ws: split (trim inp) " "
+    out: []
+    i: 1
+    while i < len ws
+        push out (at ws i)
+        i: i + 1
+    join_list out " "
+
+--! Full synchronous turn for headless frontends (HTTP server).
+--! Returns {type, narration, error, won}:
+--!   type: "fast" | "narrator" | "expand" | "new_adventure"
+--!   narration carries the player-facing text; "" on hard failure.
+fn process_turn inp
+    t: lower (trim inp)
+    result: {type: "narrator", narration: "", error: "", won: 0}
+    if contains t "neues abenteuer"
+        set result "type" "new_adventure"
+        set result "narration" (neues_abenteuer_ai 0)
+    else
+        if is_expand_input t
+            set result "type" "expand"
+            set result "narration" (expand_world_ai (expand_wunsch_of inp))
+        else
+            fc: fast_command inp (get_pack 0)
+            if (get fc "handled") == true
+                set result "type" "fast"
+                set result "narration" (get fc "out")
+            else
+                text: narrator_reply inp
+                if text == ""
+                    set result "error" "alle Modelle nicht erreichbar"
+                else
+                    set result "narration" text
+    set result "won" (get (get_player 0) "won")
+    result
+
+--! Provider boot: select provider + first working model. Safe to call in a
+--! background task; prints progress like the terminal version does.
+fn ai_boot _
+    ai_provider "opencode"
+    pick_free_model FREE_MODELS
+    ai_timeout AI_TIMEOUT_TURN

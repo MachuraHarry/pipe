@@ -1,0 +1,120 @@
+--! api.pipe — JSON layer for the Worldcraft HTTP server.
+--! Converts engine state into structured maps and generates player-facing
+--! choice options: deterministic ones from state, dialog choices via LLM.
+
+import "state.pipe"
+import "tools.pipe"
+import "turns.pipe"
+
+-- ---- State serialization ----
+
+--! Full game-state map for API responses.
+fn api_state _
+    p: (get_player 0)
+    if p == nil
+        {error: {code: "no_player", message: "Kein Spiel gestartet"}}
+    else
+        rid: get p "room"
+        room: get_room rid
+        exits: []
+        items: []
+        if room != nil
+            exits: keys (parse_json (get room "exits"))
+            items: parse_json (get room "items")
+        npcs: []
+        for nid in (npcs_in_room rid)
+            npc_row: get_npc nid
+            push npcs {id: nid, name: (get npc_row "name"), role: (get npc_row "role")}
+        monsters: []
+        for m in (monsters_in_room rid)
+            push monsters {id: (get m "id"), name: (get m "name"), hp: (get m "hp"), max_hp: (get m "max_hp")}
+        quests: []
+        for q in (all_quests 0)
+            push quests {id: (get q "id"), name: (get q "name"), state: (get q "state")}
+        won_flag: (get p "won") == 1
+        {world: (get_meta "world_name"), room: rid, room_description: (look 0), exits: exits, items: items, npcs: npcs, monsters: monsters, hp: (get p "hp"), gold: (get p "gold"), inventory: parse_json (get p "inventory"), quests: quests, won: won_flag}
+
+-- ---- Option generation ----
+
+--! Deterministic options from current state (fast-path compatible).
+fn build_options _
+    p: (get_player 0)
+    opts: []
+    if p != nil
+        rid: get p "room"
+        room: get_room rid
+        if room != nil
+            exits: parse_json (get room "exits")
+            for k in keys exits
+                push opts ("geh nach " ++ k)
+            for it in (parse_json (get room "items"))
+                push opts ("nimm " ++ it)
+            for nid in (npcs_in_room rid)
+                npc_row: get_npc nid
+                rolle: get npc_row "role"
+                push opts ("rede mit " ++ nid)
+                if rolle == "haendler"
+                    push opts ("kauf …")
+                    push opts ("verkauf …")
+            for m in (monsters_in_room rid)
+                push opts ("greife " ++ (get m "id") ++ " an")
+        push opts ("inventar")
+        push opts ("quests")
+        opts
+    else
+        opts
+
+-- ---- Dialog choices ----
+
+--! Asks the model for 3 short follow-up commands after an NPC exchange.
+--! Falls back to a deterministic trio when AI is unavailable.
+fn gen_dialog_choices npc_id reply
+    fallback: [("frag " ++ npc_id ++ " nach hinweisen"), ("gib " ++ npc_id ++ " etwas"), ("geh weiter")]
+    try
+        roh: ai_chat_json "Du assistierst einem Textadventure-Spieler. Antworte nur als JSON." ("NPC-Antwort war: \"" ++ reply ++ "\"\nSchlage 3 kurze nächste Spieler-Befehle auf Deutsch an (je 2-4 Wörter, imperative Kurzform wie im Spiel). JSON: {choices: [str, str, str]}") 300
+        choices: or_default_list (get roh "choices")
+        if len choices >= 1
+            choices
+        else
+            fallback
+    catch
+        fallback
+
+--! Builds a dialog envelope from the last captured exchange (nil if none).
+fn api_dialog _
+    d: take_last_dialog 0
+    if d == nil
+        nil
+    else
+        {speaker: (get d "name"), npc: (get d "npc"), player_line: (get d "player"), reply: (get d "reply"), choices: (gen_dialog_choices (get d "npc") (get d "reply"))}
+
+-- ---- Turn envelope ----
+
+--! Processes one input and wraps everything into the API response map.
+fn api_turn inp
+    erg: process_turn inp
+    antwort: {narration: (get erg "narration"), type: (get erg "type"), dialog: (api_dialog 0), state: (api_state 0), options: (build_options 0)}
+    if (get erg "error") != ""
+        set antwort "error" {code: "ai_unavailable", message: (get erg "error")}
+    antwort
+
+--! Intro payload right after session boot.
+fn api_intro _
+    {narration: (look 0), dialog: nil, state: (api_state 0), options: (build_options 0)}
+
+-- ---- JSON response helper ----
+
+--! CORS + JSON headers (keys with dashes need set, not literals).
+JSON_HEADERS: {}
+set JSON_HEADERS "Content-Type" "application/json"
+set JSON_HEADERS "Access-Control-Allow-Origin" "*"
+set JSON_HEADERS "Access-Control-Allow-Headers" "Authorization, Content-Type"
+set JSON_HEADERS "Access-Control-Allow-Methods" "GET, POST, DELETE, OPTIONS"
+
+--! JSON response with CORS headers.
+fn json_res status body_map
+    {status: status, headers: JSON_HEADERS, body: to_json body_map}
+
+--! Standard error envelope.
+fn json_err status code message
+    json_res status {error: {code: code, message: message}}

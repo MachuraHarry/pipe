@@ -274,6 +274,15 @@ fn show_inventory _
         kopf ++ "\nDeine Hände sind leer."
 
 --! Talks to an NPC; reply comes from the LLM, memory is compressed via summarize.
+--! The last dialog exchange is captured for API frontends (see api.pipe).
+LAST_DIALOG: [nil]
+
+--! Reads and clears the last captured dialog exchange (nil if none).
+fn take_last_dialog _
+    d: at LAST_DIALOG 0
+    set LAST_DIALOG 0 nil
+    d
+
 fn talk_to npc_id last_message
     p: (get_player 0)
     npc_here: get_npc_room npc_id
@@ -289,6 +298,11 @@ fn talk_to npc_id last_message
         persona: get_npc_persona_text npc_id
         reply: ask ("Du bist " ++ persona ++ "\n\nBisherige Erinnerung an dieses Gespräch:\n" ++ mem ++ "\nDer Abenteurer sagt: \"" ++ last_message ++ "\"\n\nAntworte in Charakter, 1-3 Sätze.")
         set_npc_memory npc_id (summarize ("Gespräch mit dem Abenteurer. " ++ mem ++ "\nSpieler: " ++ last_message ++ "\nAntwort: " ++ reply))
+        npc_row: get_npc npc_id
+        name: npc_id
+        if npc_row != nil
+            name: get npc_row "name"
+        set LAST_DIALOG 0 {npc: npc_id, name: name, player: last_message, reply: reply}
         reply
 
 --! Builds the persona prompt for an NPC from its DB row.

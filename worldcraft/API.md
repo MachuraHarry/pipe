@@ -1,18 +1,26 @@
-# Worldcraft Server — API-Spezifikation (v1)
+# Worldcraft Server — API-Spezifikation (v1.1)
 
 HTTP/JSON-Backend für Worldcraft. Jede Spiel-Session läuft in einem **isolierten
 OS-Prozess** mit eigener In-Memory-Welt — mehrere Spieler/Session stören sich nie.
-Langsame KI-Operationen laufen asynchron über Jobs.
+Langsame KI-Operationen laufen asynchron über Jobs; idle Sessions beenden sich
+selbst (mit Persistenz) und lassen sich per `resume` wiederbeleben.
 
 Server starten (aus `worldcraft/`):
 
 ```bash
 ../bin/pipe server.pipe                    # Port 8080
-WORLDCRAFT_TOKEN=geheim ../bin/pipe server.pipe   # mit Auth
+WORLDCRAFT_TOKEN=admin123 ../bin/pipe server.pipe   # mit Admin-Gate
 ```
 
-Auth: Wenn `WORLDCRAFT_TOKEN` gesetzt ist, muss jeder Request den Header
-`Authorization: Bearer <token>` tragen.
+## Auth-Modell (zwei Ebenen)
+
+| Token | Wofür | Woher |
+|---|---|---|
+| **Admin-Token** (`WORLDCRAFT_TOKEN`, optional) | Nur `POST /sessions` und `GET /worlds` | Server-Betreiber — steckt **nicht** in der App |
+| **Session-Secret** (~48 Hex-Zeichen) | Alle Aufrufe zu genau einer Session (`Authorization: Bearer <secret>`) | Wird bei Session-Erstellung **einmalig** mitgeliefert; App muss es persistieren |
+
+Falsches/fehlendes Secret → `401 unauthorized`. Session-IDs sind nicht erratbar
+geschützt, weil ohne Secret jeder Call abgelehnt wird.
 
 ---
 
@@ -25,6 +33,10 @@ Auth: Wenn `WORLDCRAFT_TOKEN` gesetzt ist, muss jeder Request den Header
   Ergebnis abholen per Polling auf dem Job-Pfad (Fastpath-Kommandos sind meist
   nach einer Poll sofort `done`). Ein Session hat max. **einen** aktiven Job;
   zweiter Versuch → `409 {error:{code:"busy"}}`.
+- **Idle-Timeout**: Ohne Requests beendet ein Worker sich selbst nach
+  standardmäßig 10 Minuten (pro Session konfigurierbar via `idle_minutes`),
+  nachdem er den Spielstand persistiert hat. Der Zustand geht nicht verloren:
+  `/resume` belebt die Session jederzeit wieder.
 
 ---
 
@@ -45,7 +57,7 @@ Variante A — existierende Welt (sofort spielbar):
 ```
 Variante B — neue Welt generieren (dauert ~2 Min., siehe Boot-Job unten):
 ```json
-{"world": "meinewelt", "briefing": "Schwebende Inseln...", "profil": {"stil": "kaempfer", "schwierigkeit": "normal"}}
+{"world": "meinewelt", "briefing": "Schwebende Inseln...", "profil": {"stil": "kaempfer", "schwierigkeit": "normal"}, "idle_minutes": 10}
 ```
 
 Antwort `201`:
@@ -53,13 +65,25 @@ Antwort `201`:
 {
   "session_id": "s1787730632_1",
   "world": "beispielwelt",
+  "secret": "3c092da094c2...",
   "ready": true,
   "state": { ...siehe State-Objekt... },
   "options": ["geh nach norden", "nimm fackel", "..."]
 }
 ```
 `ready: false` → Welt generiert noch; solange `GET /sessions/{id}/state` pollen,
-bis das State-Objekt gefüllt ist.
+bis das State-Objekt gefüllt ist. **Das `secret` muss die App speichern** —
+es ist der einzige Schlüssel zu dieser Session.
+
+### `POST /api/v1/sessions/{id}/resume`
+Belebt eine Session wieder — etwa nachdem die App gekillt wurde, das Handy
+eingeschlafen ist oder der Server neu gestartet wurde. Bearer = Session-Secret.
+
+- Läuft der Worker noch → `200` mit aktuellem State.
+- Ist er weg (idle-tod, Crash, Supervisor-Restart) → Worker wird aus der
+  persistierten Meta-Datei (`port`, `world`) neu gestartet, der Spielstand
+  (`saves/session_<id>.json`) automatisch wiederhergestellt → `200` mit dem
+  exakten Stand vor dem Tod (Position, HP, Gold, Inventar).
 
 ### `GET /api/v1/sessions/{id}/state`
 Voller Zustand + Intro-Narration:
@@ -124,7 +148,8 @@ unverändert — einfach wiederholen.
 Neue Siegesbedingung nach einem Sieg (`won: true`). → `202 {job_id}`.
 
 ### `DELETE /api/v1/sessions/{id}`
-Speichert den Spielstand des Workers und beendet den Prozess.
+Beendet den Worker **und löscht Spielstand + Metadaten** (bewusstes Beenden =
+Neuanfang möglich). Nur der Idle-Timeout/Resume erhält den Stand.
 
 ---
 

@@ -16,6 +16,8 @@ PORT: ["0"]
 READY: [false]
 BOOT_ERROR: [""]
 SHUTDOWN: [false]
+LAST_SEEN: [0]
+IDLE_MS: [600000]
 
 ACTIVE: [nil]
 JOBS: {}
@@ -27,11 +29,17 @@ JOB_COUNTER: [0]
 fn persist_session _
     save_game ("session_" ++ (at SID 0))
 
+--! Restores a previous player state if one exists. Returns true when the
+--! DB now holds the restored state (caller must NOT call new_game then).
 fn restore_session_if_any _
     name: "session_" ++ (at SID 0)
     safe: safe_name name
-    if file_exists ("saves/" ++ safe ++ ".json")
+    path: "saves/" ++ safe ++ ".json"
+    if file_exists path
         load_game name
+        true
+    else
+        false
 
 -- ---- Boot ----
 
@@ -83,8 +91,9 @@ fn boot_task _
                 set_meta "world_file" weltname
                 save_world_doc weltname doc2
                 seed_full doc2
-        restore_session_if_any 0
-        new_game 0
+        restored: restore_session_if_any 0
+        if !restored
+            new_game 0
         lore_index_build_quiet 0
         set READY 0 true
         print ("[worldd " ++ (at SID 0) ++ "] bereit auf :" ++ (at PORT 0))
@@ -147,6 +156,7 @@ fn get_job jid
 -- ---- Routes ----
 
 fn handle_root req
+    set LAST_SEEN 0 (time_ms)
     method: get req "method"
     path: get req "path"
     if path == "/health"
@@ -221,17 +231,24 @@ if len args >= 2
     set SID 0 (at args 0)
     set PORT 0 (at args 1)
 else
-    print "Nutzung: pipe worldd.pipe <session-id> <port>"
+    print "Nutzung: pipe worldd.pipe <session-id> <port> [idle_ms]"
     raise "fehlende Argumente"
+if len args >= 3
+    set IDLE_MS 0 (to_num (at args 2))
 
 print ("[worldd " ++ (at SID 0) ++ "] starte auf :" ++ (at PORT 0))
 ai_provider "opencode"
 srv: http_server ("0.0.0.0:" ++ (at PORT 0)) handle_root
 
 spawn boot_task 0
+set LAST_SEEN 0 (time_ms)
 
 while !(at SHUTDOWN 0)
     sleep 300
+    if ((time_ms) - (at LAST_SEEN 0)) > (at IDLE_MS 0)
+        print "[worldd] idle-timeout — speichere und beende."
+        persist_session 0
+        set SHUTDOWN 0 true
 
 http_close srv
 print ("[worldd " ++ (at SID 0) ++ "] beendet.")

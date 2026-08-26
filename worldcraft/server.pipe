@@ -1,21 +1,37 @@
 --! server.pipe — Worldcraft supervisor: one OS process per game session.
 --! Run from the worldcraft/ directory:   ../bin/pipe server.pipe
---! Optional auth:  export WORLDCRAFT_TOKEN="..."
 --!
---! POST /api/v1/sessions        {world} | {world, briefing, profil}
---! GET  /api/v1/worlds
---! *    /api/v1/sessions/{id}/...      → proxied to the session worker
---! DELETE /api/v1/sessions/{id}        → shutdown + cleanup
+--! Auth model (v2):
+--!   - WORLDCRAFT_TOKEN (optional, env): ADMIN gate for POST /sessions and
+--!     GET /worlds only. A bundled app never needs this token.
+--!   - Every session gets its own random SECRET, returned exactly once in the
+--!     create/resume response. All session-scoped calls require
+--!     `Authorization: Bearer <session-secret>`.
+--!
+--! Endpoints:
+--!   GET    /api/v1/worlds                          [admin token]
+--!   POST   /api/v1/sessions                        [admin token]
+--!   POST   /api/v1/sessions/{id}/resume            [session secret]
+--!   GET    /api/v1/sessions/{id}/state|jobs/{jid}  [session secret]
+--!   POST   /api/v1/sessions/{id}/command|expand|
+--!          new-adventure|shutdown                  [session secret]
+--!   DELETE /api/v1/sessions/{id}                   [session secret]
 
 import "state.pipe"
 
-KEIN_H: {}
-
 HTTP_PORT: "8080"
 PORT_BASE: 8100
-PORT_COUNTER: [0]
+
+KEIN_H: {}
 SESSIONS: {}
 SESSION_COUNTER: [0]
+PORT_COUNTER: [0]
+
+JSONH: {}
+set JSONH "Content-Type" "application/json"
+set JSONH "Access-Control-Allow-Origin" "*"
+set JSONH "Access-Control-Allow-Headers" "Authorization, Content-Type"
+set JSONH "Access-Control-Allow-Methods" "GET, POST, DELETE, OPTIONS"
 
 -- ---- Helpers ----
 
@@ -26,38 +42,36 @@ fn env_or key default
     else
         v
 
-fn json_headers_extra h
-    set h "Access-Control-Allow-Origin" "*"
-    set h "Access-Control-Allow-Headers" "Authorization, Content-Type"
-    set h "Access-Control-Allow-Methods" "GET, POST, DELETE, OPTIONS"
-    h
-
-JSONH: {}
-set JSONH "Content-Type" "application/json"
-set JSONH "Access-Control-Allow-Origin" "*"
-set JSONH "Access-Control-Allow-Headers" "Authorization, Content-Type"
-set JSONH "Access-Control-Allow-Methods" "GET, POST, DELETE, OPTIONS"
-
 fn jres status body
     {status: status, headers: JSONH, body: to_json body}
 
 fn jerr status code message
     jres status {error: {code: code, message: message}}
 
-fn authorized req
+fn bearer_of req
+    headers: get req "headers"
+    if headers == nil
+        ""
+    else
+        or_default_str (get headers "Authorization")
+
+--! Admin gate: only active when WORLDCRAFT_TOKEN is set.
+fn admin_authorized req
     token: env_or "WORLDCRAFT_TOKEN" ""
     if token == ""
         true
     else
-        headers: get req "headers"
-        if headers == nil
-            false
-        else
-            auth: get headers "Authorization"
-            if auth == nil
-                false
-            else
-                auth == ("Bearer " ++ token)
+        bearer_of req == ("Bearer " ++ token)
+
+--! Random hex-ish session secret (~48 chars).
+fn make_secret _
+    zeichen: "0123456789abcdef"
+    out: ""
+    i: 0
+    while i < 48
+        out: out ++ (at zeichen (random_range 0 15))
+        i: i + 1
+    out
 
 fn next_port _
     set PORT_COUNTER 0 ((at PORT_COUNTER 0) + 1)
@@ -67,12 +81,52 @@ fn new_session_id _
     set SESSION_COUNTER 0 ((at SESSION_COUNTER 0) + 1)
     "s" ++ (to_str (now)) ++ "_" ++ (to_str (at SESSION_COUNTER 0))
 
---! Registers a session in the in-memory registry.
-fn register_session sid world port handle
-    set SESSIONS sid {id: sid, world: world, port: port, proc: handle}
+-- ---- Session registry ----
+
+--! Registers a session and persists its metadata so /resume can revive it
+--! even after a supervisor restart.
+fn register_session sid world port handle secret
+    set SESSIONS sid {id: sid, world: world, port: port, proc: handle, secret: secret}
+    if !file_exists ".sessions"
+        make_dir ".sessions"
+    write_file (".sessions/" ++ sid ++ ".meta.json") (to_json {secret: secret, port: (to_str port), world: world})
 
 fn get_session sid
     get SESSIONS sid
+
+fn meta_secret sid
+    path: ".sessions/" ++ sid ++ ".meta.json"
+    if file_exists path
+        m: parse_json (read_file path)
+        get m "secret"
+    else
+        nil
+
+--! Per-session auth: Bearer must match the session's own secret.
+fn session_auth_ok req sid
+    expected: nil
+    sess: get_session sid
+    if sess != nil
+        expected: get sess "secret"
+    if expected == nil || expected == ""
+        expected: meta_secret sid
+    expected != nil && expected != "" && (bearer_of req) == ("Bearer " ++ expected)
+
+--! Removes all on-disk traces of a deliberately terminated session.
+fn cleanup_session_files sid
+    try
+        file_delete (".sessions/" ++ sid ++ ".config.json")
+    catch
+        print ""
+    try
+        file_delete (".sessions/" ++ sid ++ ".meta.json")
+    catch
+        print ""
+    safe: safe_name ("session_" ++ sid)
+    try
+        file_delete ("saves/" ++ safe ++ ".json")
+    catch
+        print ""
 
 fn drop_session sid
     -- maps have no delete; keep a tombstone so lookups fail cleanly.
@@ -94,6 +148,19 @@ fn wait_healthy port
         i: i + 1
     ok
 
+--! Fetches state + options from a healthy worker; returns [state, options].
+fn fetch_intro port
+    holder: [nil, nil]
+    try
+        intro: http_get ("http://localhost:" ++ port ++ "/state")
+        sm: parse_json (get intro "body")
+        if sm != nil
+            set holder 0 (get sm "state")
+            set holder 1 (get sm "options")
+    catch
+        print ""
+    holder
+
 -- ---- Session creation ----
 
 fn create_session body_raw
@@ -110,28 +177,94 @@ fn create_session body_raw
             if weltname == nil || weltname == ""
                 weltname: sid
             port: next_port 0
-            -- Config für den Worker schreiben (Welt oder Briefing + Profil).
             if !file_exists ".sessions"
                 make_dir ".sessions"
             write_file (".sessions/" ++ sid ++ ".config.json") (to_json cfg)
-            cmd: "../bin/pipe worldd.pipe " ++ sid ++ " " ++ port
+            idle_min: get cfg "idle_minutes"
+            if idle_min == nil
+                idle_min: 10
+            idle_ms: idle_min * 60000
+            cmd: "../bin/pipe worldd.pipe " ++ sid ++ " " ++ port ++ " " ++ (to_str idle_ms)
             handle: proc_start cmd
             if wait_healthy port
-                register_session sid weltname port handle
-                health: http_get ("http://localhost:" ++ port ++ "/health")
-                hbody: parse_json (get health "body")
-                bereit: get hbody "ready"
+                secret: make_secret 0
+                register_session sid weltname port handle secret
+                bereit: false
                 holder: [nil, nil]
-                if bereit == true
-                    intro: http_get ("http://localhost:" ++ port ++ "/state")
-                    state_map: parse_json (get intro "body")
-                    if state_map != nil
-                        set holder 0 (get state_map "state")
-                        set holder 1 (get state_map "options")
-                jres 201 {session_id: sid, world: weltname, ready: (bereit == true), state: (at holder 0), options: (at holder 1)}
+                try
+                    health: http_get ("http://localhost:" ++ port ++ "/health")
+                    hbody: parse_json (get health "body")
+                    if hbody != nil
+                        bereit: (get hbody "ready") == true
+                    if bereit
+                        intro: http_get ("http://localhost:" ++ port ++ "/state")
+                        state_map: parse_json (get intro "body")
+                        if state_map != nil
+                            set holder 0 (get state_map "state")
+                            set holder 1 (get state_map "options")
+                catch
+                    print ""
+                jres 201 {session_id: sid, world: weltname, secret: secret, ready: bereit, state: (at holder 0), options: (at holder 1)}
             else
                 drop_session sid
+                cleanup_session_files sid
                 jerr 502 "worker_start_failed" ("Worker auf Port " ++ port ++ " nicht gesund geworden")
+
+-- ---- Resume ----
+
+--! Brings the worker back up if needed. Returns
+--! {ok, port, world, error_response} where error_response is a list-wrapped
+--! jerr map (or nil-list on success).
+fn ensure_worker_alive sid
+    sess: get_session sid
+    port: nil
+    weltname: nil
+    ok: false
+    resp: [nil]
+    if sess != nil
+        port: get sess "port"
+        weltname: get sess "world"
+        try
+            h: http_get ("http://localhost:" ++ port ++ "/health")
+            if (get h "status") == 200
+                ok: true
+        catch
+            print ""
+    if !ok
+        meta_path: ".sessions/" ++ sid ++ ".meta.json"
+        if !file_exists meta_path
+            set resp 0 (jerr 404 "unknown_session" ("Keine wiederbelebbarbare Session: " ++ sid))
+        else
+            meta: parse_json (read_file meta_path)
+            port: to_str (get meta "port")
+            weltname: get meta "world"
+            handle: proc_start ("../bin/pipe worldd.pipe " ++ sid ++ " " ++ port)
+            if wait_healthy port
+                register_session sid weltname port handle (get meta "secret")
+                ok: true
+            else
+                set resp 0 (jerr 502 "worker_start_failed" ("Worker auf Port " ++ port ++ " nicht gesund geworden"))
+    {ok: ok, port: port, world: weltname, response: resp}
+
+fn resume_session sid req
+    if !session_auth_ok req sid
+        jerr 401 "unauthorized" "Fehlendes oder falsches Session-Secret"
+    else
+        st: ensure_worker_alive sid
+        if (get st "ok")
+            -- Nach einem Respawn ist die Welt evtl. noch im Boot — pollen bis State da.
+            holder: [nil, nil]
+            versuch: 0
+            while versuch < 30 && (at holder 0) == nil
+                sleep 1000
+                h2: fetch_intro (get st "port")
+                if (at h2 0) != nil
+                    set holder 0 (at h2 0)
+                    set holder 1 (at h2 1)
+                versuch: versuch + 1
+            jres 200 {session_id: sid, world: (get st "world"), ready: ((at holder 0) != nil), state: (at holder 0), options: (at holder 1)}
+        else
+            at (get st "response") 0
 
 -- ---- Proxying ----
 
@@ -152,11 +285,11 @@ fn proxy_session sid suffix method body_raw
         catch e
             fehler: e
         if fehler != ""
-            jerr 502 "worker_unreachable" ("Session-Prozess antwortet nicht: " ++ fehler)
+            jerr 502 "worker_unreachable" ("Session-Prozess antwortet nicht (evtl. idle-beendet — /resume nutzen): " ++ fehler)
         else
             status: get antwort "status"
             if status == nil || status == 0
-                jerr 502 "worker_unreachable" "Session-Prozess antwortet nicht"
+                jerr 502 "worker_unreachable" "Session-Prozess antwortet nicht (evtl. idle-beendet — /resume nutzen)"
             else
                 {status: status, headers: JSONH, body: (get antwort "body")}
 
@@ -169,49 +302,59 @@ fn route req
     if method == "OPTIONS"
         jres 200 {}
     else
-        if !authorized req
-            jerr 401 "unauthorized" "Fehlender oder falscher Bearer-Token"
-        else
-            if path == "/api/v1/worlds" && method == "GET"
+        if path == "/api/v1/worlds" && method == "GET"
+            if !admin_authorized req
+                jerr 401 "unauthorized" "Fehlender oder falscher Admin-Token"
+            else
                 welten: []
                 for f in (list_dir "worlds")
                     if contains f ".json"
                         push welten (replace f ".json" "")
                 jres 200 {worlds: welten}
-            else
-                if path == "/api/v1/sessions" && method == "POST"
-                    create_session body
+        else
+            if path == "/api/v1/sessions" && method == "POST"
+                if !admin_authorized req
+                    jerr 401 "unauthorized" "Fehlender oder falscher Admin-Token"
                 else
-                    teile: split path "/"
-                    -- /api/v1/sessions/<id>[/<suffix>]
-                    if len teile >= 5 && (at teile 1) == "api" && (at teile 2) == "v1" && (at teile 3) == "sessions"
-                        sid: at teile 4
-                        rest: ""
-                        i: 5
-                        while i < len teile
-                            rest: rest ++ "/" ++ (at teile i)
-                            i: i + 1
-                        if rest == "" && method == "DELETE"
-                            sess: get_session sid
-                            if sess == nil
-                                jerr 404 "unknown_session" ("Keine Session: " ++ sid)
-                            else
-                                proxy sess "/shutdown" "POST" ""
-                                drop_session sid
-                                jres 200 {status: "terminated", session_id: sid}
-                        else
-                            if rest == "" && method == "GET"
-                                proxy_session sid "/health" "GET" ""
-                            else
-                                if rest != ""
-                                    m: method
-                                    if m != "GET" && m != "POST" && m != "DELETE"
-                                        m: "GET"
-                                    proxy_session sid rest m body
-                                else
-                                    jerr 400 "bad_request" "Unvollständiger Pfad"
+                    create_session body
+            else
+                teile: split path "/"
+                if len teile >= 5 && (at teile 1) == "api" && (at teile 2) == "v1" && (at teile 3) == "sessions"
+                    sid: at teile 4
+                    rest: ""
+                    i: 5
+                    while i < len teile
+                        rest: rest ++ "/" ++ (at teile i)
+                        i: i + 1
+                    if rest == "/resume" && method == "POST"
+                        resume_session sid req
                     else
-                        jerr 404 "not_found" ("Unbekannter Pfad: " ++ path)
+                        if !session_auth_ok req sid
+                            jerr 401 "unauthorized" "Fehlendes oder falsches Session-Secret"
+                        else
+                            if rest == "" && method == "DELETE"
+                                sess: get_session sid
+                                if sess != nil
+                                    proxy sess "/shutdown" "POST" ""
+                                    drop_session sid
+                                cleanup_session_files sid
+                                jres 200 {status: "terminated", session_id: sid}
+                            else
+                                if rest == "" && method == "GET"
+                                    proxy_session sid "/health" "GET" ""
+                                else
+                                    if rest != "" && rest != "/shutdown"
+                                        m: method
+                                        if m != "GET" && m != "POST" && m != "DELETE"
+                                            m: "GET"
+                                        proxy_session sid rest m body
+                                    else
+                                        if rest == "/shutdown"
+                                            jerr 403 "forbidden" "Shutdown läuft nur über DELETE der Session"
+                                        else
+                                            jerr 400 "bad_request" "Unvollständiger Pfad"
+                else
+                    jerr 404 "not_found" ("Unbekannter Pfad: " ++ path)
 
 --! Last line of defence: a handler crash must never kill the supervisor.
 fn route_safe req
@@ -227,7 +370,7 @@ if !file_exists "worlds"
 print ("Worldcraft Server — http://localhost:" ++ HTTP_PORT)
 token: env_or "WORLDCRAFT_TOKEN" ""
 if token != ""
-    print "Auth: Bearer-Token aktiv."
+    print "Admin-Token aktiv (POST /sessions, GET /worlds)."
 print "Beenden mit Ctrl+C."
 srv: http_server ("0.0.0.0:" ++ HTTP_PORT) route_safe
 while true

@@ -107,10 +107,31 @@ fn build_options _
 
 -- ---- Dialog choices ----
 
+--! Objective-aware deterministic dialog choices used when AI is unavailable.
+--! Surfaces the concrete next step of the open quest instead of a static trio.
+fn dialog_choice_fallback npc_id
+    opts: []
+    obj: next_open_objective 0
+    if obj != nil
+        ziel: get obj "target"
+        wem: get obj "npc"
+        if (get obj "kind") == "give"
+            if wem == npc_id
+                if player_carries ziel
+                    push opts ("gib " ++ wem ++ " " ++ ziel)
+            else
+                push opts ("rede mit " ++ wem)
+        if (get obj "kind") == "kill" || (get obj "kind") == "fetch"
+            push opts ("inventar")
+    push opts ("frag " ++ npc_id ++ " nach hinweisen")
+    push opts ("quests")
+    push opts ("geh weiter")
+    opts
+
 --! Asks the model for 3 short follow-up commands after an NPC exchange.
---! Falls back to a deterministic trio when AI is unavailable.
+--! Falls back to objective-driven choices when AI is unavailable.
 fn gen_dialog_choices npc_id reply
-    fallback: [("frag " ++ npc_id ++ " nach hinweisen"), ("gib " ++ npc_id ++ " etwas"), ("geh weiter")]
+    fallback: (dialog_choice_fallback npc_id)
     try
         roh: ai_chat_json "Du assistierst einem Textadventure-Spieler. Antworte nur als JSON." ("NPC-Antwort war: \"" ++ reply ++ "\"\nSchlage 3 kurze nächste Spieler-Befehle auf Deutsch an (je 2-4 Wörter, imperative Kurzform wie im Spiel). JSON: {choices: [str, str, str]}") 300
         choices: or_default_list (get roh "choices")

@@ -828,3 +828,74 @@ fn load_world_doc name
 --! Saves the currently loaded world document back to its file.
 fn save_current_world doc
     save_world_doc (get_meta "world_file") doc
+-- ---- Hint / dialogue-context helpers (deterministic, no AI) ----
+
+--! First unfinished objective row or nil.
+fn next_open_objective _
+    rows: db_query (open_db 0) "SELECT * FROM objectives WHERE state != 'erledigt' ORDER BY id LIMIT 1"
+    if len rows > 0
+        at rows 0
+    else
+        nil
+
+--! True when the player carries item_name.
+fn player_carries item_name
+    p: get_player 0
+    inv: []
+    try
+        inv: parse_json (get p "inventory")
+    catch
+        inv: []
+    if inv != nil
+        contains inv item_name
+    else
+        false
+
+--! Room row whose items list contains item_name, or nil.
+fn room_holding_item item_name
+    rows: db_query (open_db 0) "SELECT * FROM rooms"
+    found: [nil]
+    for r in rows
+        if (at found 0) == nil
+            liste: []
+            try
+                liste: parse_json (get r "items")
+            catch
+                liste: []
+            if liste != nil
+                if contains liste item_name
+                    set found 0 r
+    at found 0
+
+--! Room id of an undefeated monster matching target (id or loot), or "".
+fn monster_target_room target
+    rows: db_query (open_db 0) ("SELECT room FROM monsters WHERE defeated != 1 AND (id = '" ++ (sql_escape target) ++ "' OR loot = '" ++ (sql_escape target) ++ "')")
+    if len rows > 0
+        get (at rows 0) "room"
+    else
+        ""
+
+--! Undefeated monster row that carries item_name as loot, or nil.
+fn monster_carrying_item item_name
+    rows: db_query (open_db 0) ("SELECT * FROM monsters WHERE defeated != 1 AND loot = '" ++ (sql_escape item_name) ++ "'")
+    if len rows > 0
+        at rows 0
+    else
+        nil
+
+--! Display name of a room row: name column when set, else the room id.
+fn room_display_name rmap
+    nm: get rmap "name"
+    if nm == nil || nm == ""
+        get rmap "id"
+    else
+        nm
+
+--! Nice display name of a room id (looks it up; "" stays "").
+fn room_name_of room_id
+    rows: db_query (open_db 0) ("SELECT * FROM rooms WHERE id = '" ++ (sql_escape room_id) ++ "'")
+    if len rows > 0
+        room_display_name (at rows 0)
+    else
+        ""
+

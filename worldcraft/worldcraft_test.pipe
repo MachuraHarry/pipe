@@ -6,6 +6,7 @@ import "state.pipe"
 import "tools.pipe"
 import "gen_world.pipe"
 import "turns.pipe"
+import "api.pipe"
 
 pack: load_pack "pack_core.json"
 set_pack pack
@@ -324,14 +325,44 @@ test "give command routes to give_item without AI"
     expect_eq (get result "error") "" "no AI error set"
     expect_eq (get (get_player 0) "won") 1 "giving objective wins"
 
-test "npc fallback reply is deterministic and never silent"
+test "npc fallback reply is deterministic and never mentions the narrator"
     fresh_example 0
-    antwort: fallback_npc_reply "Weiser Aldric" "weise" "rede mit weiser_aldric"
+    antwort: fallback_npc_reply "weiser_aldric" "Weiser Aldric" "weise" "rede mit weiser_aldric"
     expect_truthy (len antwort > 0) "fallback produces text"
     expect_contains antwort "Weiser Aldric" "fallback names the npc"
-    antwort2: fallback_npc_reply "Hilda" "haendler" "hallo"
+    expect_truthy (!contains antwort "Erzähler") "no narrator note"
+    antwort2: fallback_npc_reply "hilda" "Hilda" "haendler" "hallo"
     expect_contains antwort2 "Sei gegrüßt" "greeting detected"
-    expect_contains antwort2 "Hilda" "names trader"
+
+test "hint request yields concrete objective hints without AI"
+    fresh_example 0
+    move_to "norden"
+    result: process_turn "frag weiser_aldric nach hinweisen"
+    expect_eq (get result "type") "narrator" "stays narrator type"
+    expect_eq (get result "error") "" "no AI error set"
+    d: (at LAST_DIALOG 0)
+    expect_truthy (d != nil) "dialog envelope set"
+    reply: get d "reply"
+    expect_contains reply "goldmuenze" "hint names the objective item"
+    expect_contains reply "Kammerling" "hint names the loot monster"
+    expect_truthy (!contains reply "Erzähler") "no narrator note in dialog"
+
+test "hint carries item in inventory already gives concrete give command"
+    fresh_example 0
+    move_to "norden"
+    inventory_add "goldmuenze"
+    process_talk "frag weiser_aldric nach hinweisen"
+    reply: get (at LAST_DIALOG 0) "reply"
+    expect_contains reply "gib weiser_aldric goldmuenze" "exact give command suggested"
+
+test "dialog choices become objective-driven without AI"
+    fresh_example 0
+    c: gen_dialog_choices "weiser_aldric" ""
+    expect_contains c "frag weiser_aldric nach hinweisen" "hint choice present"
+    expect_contains c "geh weiter" "continue choice present"
+    inventory_add "goldmuenze"
+    c2: gen_dialog_choices "weiser_aldric" ""
+    expect_contains c2 "gib weiser_aldric goldmuenze" "give choice surfaced after pickup"
 
 test "find_talk_cmd extracts talk/give commands from garbage-prefixed input"
     fresh_example 0

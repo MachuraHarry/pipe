@@ -66,14 +66,32 @@ fn is_talk_input t
     w: split t " "
     (at w 0) == "rede" || (at w 0) == "frag" || (at w 0) == "gib"
 
---! Removes a leading greeting word so "Hallo gib X Y" still resolves locally.
-fn strip_greeting t
-    w: split t " "
-    greetings: ["hallo", "hi", "hey", "servus", "moin", "tach", "guten", "grüß", "gruss", "guten tag"]
-    if contains greetings (at w 0)
-        words_from w 1
-    else
-        t
+--! Finds an NPC talk/give sub-command anywhere in the input and returns it
+--! normalized, e.g. "nach hinweisen frag harald nach hinweisen" ->
+--! "frag harald nach hinweisen". A candidate only counts when its <npc> is a
+--! known NPC, so natural-language text stays on the AI narrator. Returns ""
+--! when no such sub-command exists.
+fn find_talk_cmd t
+    w: split (lower (trim t)) " "
+    n: len w
+    i: 0
+    while i < n
+        npc: ""
+        if (at w i) == "gib"
+            if n > i + 2
+                npc: at w (i + 1)
+        else
+            if (at w i) == "frag"
+                if n > i + 1
+                    npc: at w (i + 1)
+            else
+                if (at w i) == "rede" && n > i + 2 && (at w (i + 1)) == "mit"
+                    npc: at w (i + 2)
+        if npc != ""
+            if get_npc npc != nil
+                return (words_from w i)
+        i: i + 1
+    ""
 
 --! Joins words [from, len) of a split command into one lowercase string.
 fn words_from ws from
@@ -156,13 +174,13 @@ fn process_turn inp
                 log "TURN" "Typ: talk"
                 set result "narration" (process_talk inp)
             else
-                gc: strip_greeting t
-                if gc != t && is_talk_input gc
+                cmd: find_talk_cmd t
+                if cmd != ""
                     set result "type" "narrator"
-                    log "TURN" "Typ: talk (gegruesst)"
-                    set result "narration" (process_talk gc)
+                    log "TURN" "Typ: talk (embedded)"
+                    set result "narration" (process_talk cmd)
                 else
-                    if t == "geh weiter" || t == "weiter"
+                    if t == "geh weiter" || t == "weiter" || contains t "geh weiter"
                         set result "type" "fast"
                         log "TURN" "Typ: fast (weiter)"
                         set result "narration" (look 0)

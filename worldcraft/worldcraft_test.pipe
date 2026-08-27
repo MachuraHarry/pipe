@@ -333,10 +333,31 @@ test "npc fallback reply is deterministic and never silent"
     expect_contains antwort2 "Sei gegrüßt" "greeting detected"
     expect_contains antwort2 "Hilda" "names trader"
 
-test "strip_greeting drops a leading greeting word"
-    expect_eq (strip_greeting "hallo gib erik etwas") "gib erik etwas" "hallo stripped"
-    expect_eq (strip_greeting "hi rede mit elara") "rede mit elara" "hi stripped"
-    expect_eq (strip_greeting "geh nach norden") "geh nach norden" "no greeting -> unchanged"
+test "find_talk_cmd extracts talk/give commands from garbage-prefixed input"
+    fresh_example 0
+    move_to "norden"
+    expect_eq (find_talk_cmd "nach hinweisen frag weiser_aldric nach hinweisen") "frag weiser_aldric nach hinweisen" "embedded frag found"
+    expect_eq (find_talk_cmd "Hallo gib weiser_aldric goldmuenze") "gib weiser_aldric goldmuenze" "embedded gib found"
+    expect_eq (find_talk_cmd "bitte rede mit weiser_aldric kurz") "rede mit weiser_aldric kurz" "embedded rede mit found"
+    expect_eq (find_talk_cmd "geh weiter") "" "movement not matched"
+    expect_eq (find_talk_cmd "") "" "empty input safe"
+    expect_eq (find_talk_cmd "frag niemand") "" "unknown npc rejected"
+
+test "garbage-prefixed frag reaches the npc dialog instead of the narrator error"
+    fresh_example 0
+    move_to "norden"
+    result: process_turn "nach hinweisen frag weiser_aldric nach hinweisen"
+    expect_eq (get result "type") "narrator" "stays narrator type"
+    expect_eq (get result "error") "" "no AI error set"
+    expect_truthy ((at LAST_DIALOG 0) != nil) "dialog envelope set"
+
+test "garbage-prefixed geh weiter resolves deterministically"
+    fresh_example 0
+    move_to "norden"
+    result: process_turn "nach hinweisen geh weiter"
+    expect_eq (get result "type") "fast" "prefixed geh weiter stays fast"
+    expect_eq (get result "error") "" "no AI error set"
+    expect_truthy (len (get result "narration") > 0) "room description shown"
 
 test "geh weiter is resolved deterministically without AI"
     fresh_example 0

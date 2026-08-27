@@ -1,21 +1,67 @@
 {
+  "archetypes": {
+    "items": {
+      "waffe_nahkampf": {"type": "waffe", "damage_bonus": 2, "value_range": [10, 50], "ranged": false, "use_effect": "none"},
+      "waffe_fernkampf": {"type": "waffe", "damage_bonus": 1, "value_range": [15, 60], "ranged": true, "use_effect": "none"},
+      "waffe_stumpf": {"type": "waffe", "damage_bonus": 1, "value_range": [8, 30], "ranged": false, "use_effect": "none"},
+      "heilitem": {"type": "konsum", "use_effect": "heal", "use_value_range": [3, 10], "value_range": [5, 30]},
+      "starkheit_item": {"type": "konsum", "use_effect": "buff", "buff_stat": "angriff", "buff_value_range": [2, 4], "buff_rounds_range": [2, 4], "value_range": [5, 25]},
+      "gift_counter": {"type": "konsum", "use_effect": "clear_buff", "clear_stat": "gift", "value_range": [5, 20]},
+      "werkzeug": {"type": "werkzeug", "use_effect": "none", "use_text": true, "value_range": [1, 20]},
+      "quest_item": {"type": "quest", "use_effect": "none", "value_range": [0, 0]}
+    },
+    "monsters": {
+      "schwach": {"hp_range": [2, 4], "defense_range": [0, 1], "difficulty": 1, "ability_chance_range": [20, 50]},
+      "mittel": {"hp_range": [4, 7], "defense_range": [0, 2], "difficulty": 2, "ability_chance_range": [25, 40]},
+      "stark": {"hp_range": [6, 10], "defense_range": [1, 3], "difficulty": 3, "ability_chance_range": [20, 35]},
+      "elite": {"hp_range": [8, 12], "defense_range": [2, 4], "difficulty": 4, "ability_chance_range": [15, 30]},
+      "boss": {"hp_range": [12, 18], "defense_range": [3, 5], "difficulty": 5, "ability_chance_range": [15, 25]}
+    },
+    "npcs": {
+      "haendler": {"role": "haendler", "buys_pct_range": [40, 60], "sells_pct_range": [120, 150]},
+      "infoquelle": {"role": "weiser", "buys_pct": 0, "sells_pct": 0},
+      "questgeber": {"role": "questgeber", "buys_pct": 0, "sells_pct": 0},
+      "kampfpartei": {"role": "waechter", "buys_pct": 0, "sells_pct": 0},
+      "heiler": {"role": "heiler", "buys_pct_range": [60, 80], "sells_pct_range": [110, 130]},
+      "bettler": {"role": "bettler", "buys_pct": 100, "sells_pct": 0}
+    },
+    "spells": {
+      "angriff": {"typ": "angriff", "manakosten_range": [3, 6], "schaden_range": [4, 8]},
+      "heilung": {"typ": "heilung", "manakosten_range": [3, 5], "heil_range": [4, 8]},
+      "verteidigung": {"typ": "verteidigung", "manakosten_range": [2, 3], "defense_range": [1, 3]}
+    },
+    "factions": [
+      "ordnung",
+      "unterwelt",
+      "neutral"
+    ],
+    "buff_effects": {
+      "gift": {"mechanic": "dot", "default_value": 1, "default_rounds": 3},
+      "schwaeche": {"mechanic": "stat_reduce", "default_value": 2, "default_rounds": 2},
+      "schreck": {"mechanic": "fear", "default_value": 1, "default_rounds": 1},
+      "paralyse": {"mechanic": "skip_turn", "default_value": 1, "default_rounds": 1},
+      "angriff_down": {"mechanic": "stat_reduce", "default_value": 1, "default_rounds": 2},
+      "langsam": {"mechanic": "stat_reduce", "default_value": 1, "default_rounds": 2},
+      "defense_up": {"mechanic": "stat_boost", "default_value": 2, "default_rounds": 3}
+    }
+  },
   "items": [
-    {"id": "schwert", "name": "schwert", "type": "waffe", "value": 25, "tags": ["klinge", "stahl", "kampf"], "desc": "Ein solides Langschwert mit leicht gekerbter Klinge."},
-    {"id": "axt", "name": "axt", "type": "waffe", "value": 20, "tags": ["klinge", "holzfaeller", "kampf"], "desc": "Eine schwere Holzfälleraxt, die auch Schädel spaltet."},
-    {"id": "dolch", "name": "dolch", "type": "waffe", "value": 10, "tags": ["klinge", "heimlich", "kampf"], "desc": "Ein kurzer, handlicher Dolch."},
-    {"id": "bogen", "name": "bogen", "type": "waffe", "value": 18, "tags": ["fernkaempfer", "wald", "kampf"], "desc": "Ein Eibenkurzbogen mit behaartem Sehnenzug."},
-    {"id": "streitkolben", "name": "streitkolben", "type": "waffe", "value": 12, "tags": ["stumpf", "kampf"], "desc": "Ein eiserner Kolben an ledernem Riemen."},
-    {"id": "heiltrank", "name": "heiltrank", "type": "trank", "value": 15, "tags": ["heilung", "rot", "glas"], "desc": "Ein rot schimmernder Trank, der Wunden schließt."},
-    {"id": "krafttrank", "name": "krafttrank", "type": "trank", "value": 12, "tags": ["staerke", "bernstein", "glas"], "desc": "Dickflüssig und bitter -- verleiht kurze Kraft."},
-    {"id": "gegengift", "name": "gegengift", "type": "trank", "value": 10, "tags": ["gift", "gruen", "glas"], "desc": "Grünliche Essenz gegen Spinnen- und Schlangengift."},
-    {"id": "fackel", "name": "fackel", "type": "werkzeug", "value": 3, "tags": ["licht", "feuer", "dunkelheit"], "desc": "Eine teergefüllte Fackel, wirft flackerndes Licht."},
-    {"id": "laterne", "name": "laterne", "type": "werkzeug", "value": 9, "tags": ["licht", "dauerhaft"], "desc": "Eine geschützte Öllaterne, windfest."},
-    {"id": "seil", "name": "seil", "type": "werkzeug", "value": 5, "tags": ["klettern", "grube", "abgrund"], "desc": "Zehn Ellen geteertes Hanfseil."},
-    {"id": "dietrich", "name": "dietrich", "type": "werkzeug", "value": 8, "tags": ["schloss", "truhe", "heimlich"], "desc": "Gebogener Draht für verschlossene Truhen und Türen."},
-    {"id": "schaufel", "name": "schaufel", "type": "werkzeug", "value": 4, "tags": ["grab", "erde", "versteck"], "desc": "Eine faltbare Klappschaufel für Grabarbeit."},
-    {"id": "goldmuenze", "name": "goldmuenze", "type": "quest", "value": 50, "tags": ["erbe", "gold", "gabe", "unberuehrt"], "desc": "Eine alte Goldmünze, nie im Umlauf -- wertvoll als freiwillige Gabe."},
-    {"id": "altes_amulett", "name": "altes_amulett", "type": "quest", "value": 40, "tags": ["erbe", "schmuck", "gedaechtnis"], "desc": "Ein vergilbtes Amulett mit eingraviertem Namen."},
-    {"id": "versiegeltes_buch", "name": "versiegeltes_buch", "type": "quest", "value": 35, "tags": ["wissen", "siegel", "geheimnis"], "desc": "Ein Buch mit unzerbrochenem Wachssiegel."}
+    {"id": "schwert", "name": "schwert", "type": "waffe", "value": 25, "tags": ["klinge", "stahl", "kampf"], "desc": "Ein solides Langschwert mit leicht gekerbter Klinge.", "damage_bonus": 2, "ranged": false, "use_effect": "none"},
+    {"id": "axt", "name": "axt", "type": "waffe", "value": 20, "tags": ["klinge", "holzfaeller", "kampf"], "desc": "Eine schwere Holzfälleraxt, die auch Schädel spaltet.", "damage_bonus": 2, "ranged": false, "use_effect": "none"},
+    {"id": "dolch", "name": "dolch", "type": "waffe", "value": 10, "tags": ["klinge", "heimlich", "kampf"], "desc": "Ein kurzer, handlicher Dolch.", "damage_bonus": 1, "ranged": false, "use_effect": "none"},
+    {"id": "bogen", "name": "bogen", "type": "waffe", "value": 18, "tags": ["fernkaempfer", "wald", "kampf"], "desc": "Ein Eibenkurzbogen mit behaartem Sehnenzug.", "damage_bonus": 1, "ranged": true, "use_effect": "none"},
+    {"id": "streitkolben", "name": "streitkolben", "type": "waffe", "value": 12, "tags": ["stumpf", "kampf"], "desc": "Ein eiserner Kolben an ledernem Riemen.", "damage_bonus": 1, "ranged": false, "use_effect": "none"},
+    {"id": "heiltrank", "name": "heiltrank", "type": "konsum", "value": 15, "tags": ["heilung", "rot", "glas"], "desc": "Ein rot schimmernder Trank, der Wunden schließt.", "use_effect": "heal", "use_value": 4},
+    {"id": "krafttrank", "name": "krafttrank", "type": "konsum", "value": 12, "tags": ["staerke", "bernstein", "glas"], "desc": "Dickflüssig und bitter -- verleiht kurze Kraft.", "use_effect": "buff", "buff_stat": "angriff", "buff_value": 3, "buff_rounds": 3},
+    {"id": "gegengift", "name": "gegengift", "type": "konsum", "value": 10, "tags": ["gift", "gruen", "glas"], "desc": "Grünliche Essenz gegen Spinnen- und Schlangengift.", "use_effect": "clear_buff", "clear_stat": "gift"},
+    {"id": "fackel", "name": "fackel", "type": "werkzeug", "value": 3, "tags": ["licht", "feuer", "dunkelheit"], "desc": "Eine teergefüllte Fackel, wirft flackerndes Licht.", "use_effect": "none", "use_text": true},
+    {"id": "laterne", "name": "laterne", "type": "werkzeug", "value": 9, "tags": ["licht", "dauerhaft"], "desc": "Eine geschützte Öllaterne, windfest.", "use_effect": "none", "use_text": true},
+    {"id": "seil", "name": "seil", "type": "werkzeug", "value": 5, "tags": ["klettern", "grube", "abgrund"], "desc": "Zehn Ellen geteertes Hanfseil.", "use_effect": "none"},
+    {"id": "dietrich", "name": "dietrich", "type": "werkzeug", "value": 8, "tags": ["schloss", "truhe", "heimlich"], "desc": "Gebogener Draht für verschlossene Truhen und Türen.", "use_effect": "none"},
+    {"id": "schaufel", "name": "schaufel", "type": "werkzeug", "value": 4, "tags": ["grab", "erde", "versteck"], "desc": "Eine faltbare Klappschaufel für Grabarbeit.", "use_effect": "none"},
+    {"id": "goldmuenze", "name": "goldmuenze", "type": "quest", "value": 50, "tags": ["erbe", "gold", "gabe", "unberuehrt"], "desc": "Eine alte Goldmünze, nie im Umlauf -- wertvoll als freiwillige Gabe.", "use_effect": "none"},
+    {"id": "altes_amulett", "name": "altes_amulett", "type": "quest", "value": 40, "tags": ["erbe", "schmuck", "gedaechtnis"], "desc": "Ein vergilbtes Amulett mit eingraviertem Namen.", "use_effect": "none"},
+    {"id": "versiegeltes_buch", "name": "versiegeltes_buch", "type": "quest", "value": 35, "tags": ["wissen", "siegel", "geheimnis"], "desc": "Ein Buch mit unzerbrochenem Wachssiegel.", "use_effect": "none"}
   ],
   "npcs": [
     {"id": "kraemerin_hilda", "name": "Krämerin Hilda", "role": "haendler", "temperament": "freundlich, redselig, handelt hart", "buys_pct": 50, "sells_pct": 130, "wares_tags": ["trank", "werkzeug"], "persona": "Eine rundliche Krämerin, die jeden Gruß mit Anekdoten beantwortet und über Preise gerne verhandelt.", "tags": ["dorf", "handel", "waren"]},
@@ -64,14 +110,36 @@
     ["doerfer", 0],
     ["dunkle_macht", 0]
   ],
+  "spells": [
+    {"id": "feuerball", "name": "Feuerball", "typ": "angriff", "manakosten": 3, "schaden": 5, "effekt": null, "beschreibung": "Ein Ball aus reinem Feuer, der den Gegner versengt."},
+    {"id": "eis_schild", "name": "Eis-Schild", "typ": "verteidigung", "manakosten": 2, "schaden": 0, "effekt": "block_1", "beschreibung": "Eine dünne Eisschicht, die einen Angriff absorbiert."},
+    {"id": "heilzauber", "name": "Heilzauber", "typ": "heilung", "manakosten": 4, "schaden": 0, "effekt": "heal_5", "beschreibung": "Wärme durchströmt den Körper und schließt Wunden."},
+    {"id": "blitz", "name": "Blitz", "typ": "angriff", "manakosten": 5, "schaden": 8, "effekt": "paralyse", "beschreibung": "Ein blauer Lichtbogen, der den Gegner starr macht."},
+    {"id": "schild", "name": "Schildzauber", "typ": "verteidigung", "manakosten": 2, "schaden": 0, "effekt": "defense_2_3runden", "beschreibung": "Unsichtbarer Schutz, der 3 Runden hält."}
+  ],
+  "monster_abilities": [
+    {"monster": "spinnlinge", "ability": "giftbiss", "effekt": "gift", "wert": 1, "runden": 3, "chance": 40},
+    {"monster": "fluchgeist", "ability": "fluch", "effekt": "schwaeche", "wert": 2, "runden": 2, "chance": 30},
+    {"monster": "skelett", "ability": "todklage", "effekt": "schreck", "wert": 1, "runden": 1, "chance": 25},
+    {"monster": "schattenwolf", "ability": "heulen", "effekt": "angriff_down", "wert": 1, "runden": 2, "chance": 35},
+    {"monster": "moorshulk", "ability": "schleimhaut", "effekt": "langsam", "wert": 1, "runden": 2, "chance": 30},
+    {"monster": "steingargoyle", "ability": "steinhaut", "effekt": "defense_up", "wert": 2, "runden": 3, "chance": 25},
+    {"monster": "goblin", "ability": "wurfdolch", "effekt": null, "wert": 2, "runden": 0, "chance": 30},
+    {"monster": "ratte", "ability": "biss", "effekt": null, "wert": 1, "runden": 0, "chance": 50}
+  ],
   "mechanics": {
     "start_hp": 10,
     "start_gold": 20,
+    "start_mana": 8,
+    "max_mana": 15,
     "max_rooms": 12,
     "min_rooms": 5,
     "max_rooms_total": 25,
     "attack_bonus_waffe": 2,
     "heiltrank_heilung": 4,
-    "respawn_hp": 10
+    "respawn_hp": 10,
+    "respawn_mana": 4,
+    "defense_bonus_schild": 2,
+    "monster_ability_base_chance": 30
   }
 }

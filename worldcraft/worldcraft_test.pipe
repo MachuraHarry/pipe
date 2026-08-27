@@ -7,12 +7,19 @@ import "tools.pipe"
 import "gen_world.pipe"
 
 pack: load_pack "pack_core.json"
+set_pack pack
 
 fn fresh_example _
     init_db 0
     reset_state 0
     load_world_doc "beispielwelt"
+    seed_pack_extras pack
     new_game 0
+
+--! Helper: seeds world + pack extras for tests.
+fn seed_world_full doc
+    seed_world doc
+    seed_pack_extras pack
 
 --! Helper: finds an npc row inside a world doc.
 fn get_npc_def_by_id doc id
@@ -130,7 +137,7 @@ test "explore objective fires on arrival"
     doc: parse_json (read_file "worlds/beispielwelt.json")
     neue_obj: [{id: "obj_turm", kind: "explore", target: "tpl_turm", npc: "", state: "offen"}]
     set doc "objectives" neue_obj
-    seed_world doc
+    seed_world_full doc
     new_game 0
     move_to "norden"
     move_to "norden"
@@ -145,7 +152,7 @@ test "kill objective completes on defeat"
     doc2: parse_json (read_file "worlds/beispielwelt.json")
     kill_obj: [{id: "obj_kill", kind: "kill", target: "kammerling", npc: "", state: "offen"}]
     set doc2 "objectives" kill_obj
-    seed_world doc2
+    seed_world_full doc2
     new_game 0
     move_to "norden"
     move_to "osten"
@@ -257,6 +264,7 @@ test "game save and load roundtrip"
     init_db 0
     reset_state 0
     load_world_doc "beispielwelt"
+    seed_pack_extras pack
     loaded: load_game "wc_teststand"
     expect_contains loaded "geladen" "load ok"
     expect_eq (get (get_player 0) "room") "tpl_halle" "position restored"
@@ -269,6 +277,7 @@ test "world document roundtrip stays reusable"
     gespeichert: save_world_doc "wc_rundreise" doc
     expect_contains gespeichert "gespeichert" "world saved"
     geladen: load_world_doc "wc_rundreise"
+    seed_pack_extras pack
     expect_truthy (geladen != nil) "world reloaded"
     expect_eq (get_meta "world_name") "Die Musterwelt" "seeded from reloaded world"
     new_game 0
@@ -288,7 +297,7 @@ test "kaempfer profile grants start sword"
     reset_state 0
     doc: parse_json (read_file "worlds/beispielwelt.json")
     apply_profile doc {stil: "kaempfer", schwierigkeit: "normal"} pack
-    seed_world doc
+    seed_world_full doc
     new_game 0
     expect_truthy (inventory_has "schwert") "sword at start"
 
@@ -297,14 +306,14 @@ test "haendlerin profile adds gold, schwer reduces it"
     reset_state 0
     doc2: parse_json (read_file "worlds/beispielwelt.json")
     apply_profile doc2 {stil: "haendlerin", schwierigkeit: "normal"} pack
-    seed_world doc2
+    seed_world_full doc2
     new_game 0
     expect_eq (get (get_player 0) "gold") 35 "20 + 15 gold"
     init_db 0
     reset_state 0
     doc3: parse_json (read_file "worlds/beispielwelt.json")
     apply_profile doc3 {stil: "normal", schwierigkeit: "schwer"} pack
-    seed_world doc3
+    seed_world_full doc3
     new_game 0
     expect_eq (get (get_player 0) "gold") 15 "20 - 5 gold"
 
@@ -313,7 +322,7 @@ test "erkunderin profile grants torch and rope"
     reset_state 0
     doc4: parse_json (read_file "worlds/beispielwelt.json")
     apply_profile doc4 {stil: "erkunderin", schwierigkeit: "leicht"} pack
-    seed_world doc4
+    seed_world_full doc4
     new_game 0
     expect_truthy (inventory_has "fackel") "torch at start"
     expect_truthy (inventory_has "seil") "rope at start"
@@ -382,7 +391,7 @@ test "old worlds without profile fields keep working"
     init_db 0
     reset_state 0
     alt: beispiel_doc 0
-    seed_world alt
+    seed_world_full alt
     new_game 0
     expect_eq (get_meta "profil_stil") "normal" "default profile"
     expect_eq (get (get_player 0) "gold") 20 "classic starting gold"
@@ -398,7 +407,7 @@ test "objective closes its coupled quest"
     set doc10 "quests" neue_q
     obj_mit_quest: [{id: "obj_gabe", kind: "give", target: "goldmuenze", npc: "weiser_aldric", state: "offen", quest: "q_gabe_des_erbes"}]
     set doc10 "objectives" obj_mit_quest
-    seed_world doc10
+    seed_world_full doc10
     new_game 0
     inventory_add "goldmuenze"
     move_to "norden"
@@ -410,7 +419,7 @@ test "old objectives without quest field keep working"
     init_db 0
     reset_state 0
     doc11: parse_json (read_file "worlds/beispielwelt.json")
-    seed_world doc11
+    seed_world_full doc11
     new_game 0
     rows: db_query (open_db 0) "SELECT quest FROM objectives WHERE id = 'obj_gabe'"
     expect_eq (get (at rows 0) "quest") "" "empty quest default"
@@ -419,6 +428,7 @@ test "reset_won clears the flag"
     init_db 0
     reset_state 0
     load_world_doc "beispielwelt"
+    seed_pack_extras pack
     new_game 0
     set_won 0
     expect_eq (get (get_player 0) "won") 1 "won set"
@@ -479,8 +489,342 @@ test "neues abenteuer objective validation"
     init_db 0
     reset_state 0
     doc15: parse_json (read_file "worlds/beispielwelt.json")
-    seed_world doc15
+    seed_world_full doc15
     gut: {quests: [], objectives: [{id: "obj_neu1", kind: "explore", target: "tpl_turm", npc: "", quest_id: ""}]}
     expect_eq (len (validate_neue_objektive gut doc15 pack)) 0 "explore existing room ok"
     schlecht: {quests: [], objectives: [{id: "obj_neu2", kind: "give", target: "goldmuenze", npc: "hofnarr_pipkin", quest_id: ""}]}
     expect_gt (len (validate_neue_objektive schlecht doc15 pack)) 0 "npc not placed rejected"
+
+--- === Phase 1: Buff system === ===
+
+test "apply_buff stores and get_buff reads it"
+    init_db 0
+    reset_state 0
+    expect_eq (get_buff "angriff") 0 "no buff initially"
+    apply_buff "angriff" 3 5
+    expect_eq (get_buff "angriff") 3 "buff stored"
+    buff_list: all_buffs 0
+    expect_eq (len buff_list) 1 "one buff active"
+    expect_eq (get (at buff_list 0) "runden") 5 "5 rounds left"
+
+test "tick_buffs decrements and removes expired buffs"
+    init_db 0
+    reset_state 0
+    apply_buff "angriff" 2 1
+    expect_eq (get_buff "angriff") 2 "buff active"
+    tick_buffs 0
+    expect_eq (get_buff "angriff") 0 "buff expired after tick"
+
+test "clear_buff removes buff of given art"
+    init_db 0
+    reset_state 0
+    apply_buff "angriff" 3 3
+    apply_buff "verteidigung" 2 3
+    clear_buff "angriff"
+    expect_eq (get_buff "angriff") 0 "angriff cleared"
+    expect_eq (get_buff "verteidigung") 2 "verteidigung still active"
+
+--- === Phase 1: Fetch quest objective === ===
+
+test "fetch objective completes when picking up item"
+    fresh_example 0
+    -- The example world has a fetch objective for heiltrank
+    objectives: db_query (open_db 0) "SELECT * FROM objectives WHERE kind = 'fetch'"
+    if len objectives > 0
+        obj: at objectives 0
+        target_item: get obj "target"
+        -- Put item in room and pick it up
+        set_player_room "tpl_halle"
+        room_add_item "tpl_halle" target_item
+        take_item target_item
+        updated: db_query (open_db 0) ("SELECT state FROM objectives WHERE id = '" ++ (get obj "id") ++ "'")
+        if len updated > 0
+            expect_eq (get (at updated 0) "state") "erledigt" "fetch objective completed"
+
+--- === Phase 1: use_item extended === ===
+
+test "use krafttrank applies attack buff"
+    init_db 0
+    reset_state 0
+    load_world_doc "beispielwelt"
+    seed_pack_extras pack
+    new_game 0
+    inventory_add "krafttrank"
+    result: use_item "krafttrank"
+    expect_contains result "krafttrank" "krafttrank text"
+    expect_eq (get_buff "angriff") 3 "attack buff applied"
+    expect_falsy (inventory_has "krafttrank") "krafttrank consumed"
+
+test "use gegengift clears gift buff"
+    init_db 0
+    reset_state 0
+    load_world_doc "beispielwelt"
+    seed_pack_extras pack
+    new_game 0
+    apply_buff "gift" 2 3
+    inventory_add "gegengift"
+    result: use_item "gegengift"
+    expect_contains result "gegengift" "gegengift text"
+    expect_eq (get_buff "gift") 0 "gift buff cleared"
+
+test "use bow gives weapon hint"
+    init_db 0
+    reset_state 0
+    load_world_doc "beispielwelt"
+    seed_pack_extras pack
+    new_game 0
+    inventory_add "bogen"
+    result: use_item "bogen"
+    expect_contains result "bogen" "bow is a weapon"
+
+--- === Phase 1: attack_enemy with pack mechanics === ===
+
+test "attack reads waffen_bonus from pack mechanics"
+    init_db 0
+    reset_state 0
+    load_world_doc "beispielwelt"
+    seed_pack_extras pack
+    new_game 0
+    -- Set mechanics
+    set_meta "mechanics" (to_json {attack_bonus_waffe: 5, heiltrank_heilung: 4, start_hp: 10, start_gold: 20, respawn_hp: 10})
+    -- Place a weak monster in player room
+    p: (get_player 0)
+    set_player_room "tpl_halle"
+    db_exec (open_db 0) "INSERT INTO monsters VALUES ('test_mon', 'Testmonster', 'tpl_halle', 20, 20, 0, '', 0)"
+    inventory_add "schwert"
+    -- Attack multiple times, should do at least 5 + 1 = 6 damage (5 waffen_bonus + 1-6 random)
+    dmg_min: 999
+    i: 0
+    while i < 3
+        result: attack_enemy "test_mon"
+        rows: db_query (open_db 0) "SELECT hp FROM monsters WHERE id = 'test_mon'"
+        if len rows > 0
+            hp_now: get (at rows 0) "hp"
+            if hp_now < dmg_min
+                dmg_min: hp_now
+        i: i + 1
+    expect_lt dmg_min 18 "pack waffen_bonus (5) applied: at least 7 damage in one hit"
+
+--- === Phase 1: look shows item descriptions === ===
+
+test "look includes item descriptions from pack"
+    init_db 0
+    reset_state 0
+    set_pack pack
+    load_world_doc "beispielwelt"
+    seed_pack_extras pack
+    new_game 0
+    p: (get_player 0)
+    rid: get p "room"
+    room_add_item rid "fackel"
+    desc: look 0
+    expect_contains desc "fackel" "item name shown"
+    expect_contains desc "Fackel" "item description shown"
+
+--- === Phase 2: Mana, Spells, XP, Monster Abilities === ===
+
+test "mana initialized on new game"
+    fresh_example 0
+    p: (get_player 0)
+    expect_gt (get p "mana") 0 "mana > 0"
+    expect_gt (get p "max_mana") 0 "max_mana > 0"
+
+test "spells seeded from pack"
+    fresh_example 0
+    spells_db: db_query (open_db 0) "SELECT * FROM spells"
+    expect_gt (len spells_db) 0 "spells table has entries"
+
+test "learn and know spell"
+    fresh_example 0
+    learn_spell "feuerball"
+    expect_truthy (knows_spell "feuerball") "knows feuerball"
+    sp: get_spell "feuerball"
+    expect_eq (get sp "typ") "angriff" "spell type is angriff"
+    spells: player_spells 0
+    expect_eq (len spells) 1 "one spell learned"
+
+test "player_spells lists learned spells"
+    fresh_example 0
+    learn_spell "feuerball"
+    learn_spell "heilzauber"
+    spells: player_spells 0
+    expect_eq (len spells) 2 "two spells"
+
+test "has_mana and spend_mana"
+    fresh_example 0
+    p: (get_player 0)
+    mana_start: get p "mana"
+    expect_gt mana_start 0 "starts with mana"
+    spent: spend_mana mana_start
+    p2: (get_player 0)
+    expect_eq (get p2 "mana") 0 "mana is zero after spending all"
+    spent2: spend_mana 1
+    p3: (get_player 0)
+    expect_eq (get p3 "mana") 0 "mana stays zero when over-spending"
+
+test "adjust_mana caps at max"
+    fresh_example 0
+    p: (get_player 0)
+    max_m: get p "max_mana"
+    adjust_mana 999
+    p2: (get_player 0)
+    expect_eq (get p2 "mana") max_m "capped at max_mana"
+
+test "xp system works"
+    fresh_example 0
+    expect_eq (get_xp 0) 0 "start with 0 xp"
+    add_xp 25
+    expect_eq (get_xp 0) 25 "25 xp after add"
+    add_xp 10
+    expect_eq (get_xp 0) 35 "35 xp after second add"
+
+test "monster abilities seeded from pack"
+    fresh_example 0
+    abs: get_monster_abilities "ratte"
+    expect_gt (len abs) 0 "ratte has abilities"
+
+test "defend applies defense buff"
+    fresh_example 0
+    result: defend 0
+    expect_contains result "Verteidigung" "defend message"
+    expect_gt (get_buff "verteidigung") 0 "defense buff active"
+
+test "show_spells shows mana and spells"
+    fresh_example 0
+    learn_spell "feuerball"
+    sp_count: len (player_spells 0)
+    expect_gt sp_count 0 "player has spells after learning"
+    result: show_spells 0
+    expect_contains result "Mana" "shows mana"
+
+test "cast spell on monster"
+    init_db 0
+    reset_state 0
+    set_pack pack
+    load_world_doc "beispielwelt"
+    seed_pack_extras pack
+    new_game 0
+    learn_spell "feuerball"
+    p: (get_player 0)
+    set_player_room "tpl_halle"
+    db_exec (open_db 0) "INSERT INTO monsters VALUES ('test_dummi', 'Test Dummy', 'tpl_halle', 30, 30, 0, '', 0)"
+    mana_before: get (get_player 0) "mana"
+    result: cast_spell "feuerball" "test_dummi"
+    expect_contains result "Energie" "spell hit text"
+    expect_lt (get (get_player 0) "mana") mana_before "mana spent"
+
+test "cast spell without enough mana"
+    fresh_example 0
+    learn_spell "feuerball"
+    sp: get_spell "feuerball"
+    kosten: get sp "manakosten"
+    p: (get_player 0)
+    adjust_mana (- (get p "mana") + kosten - 1)
+    result: cast_spell "feuerball" "nix"
+    expect_contains result "Nicht genug Mana" "not enough mana"
+
+test "cast spell unknown spell fails"
+    fresh_example 0
+    result: cast_spell "nonsens" "nix"
+    expect_contains result "kennst" "unknown spell"
+
+test "save and load preserves mana and spells"
+    fresh_example 0
+    learn_spell "feuerball"
+    spend_mana 3
+    p: (get_player 0)
+    mana_saved: get p "mana"
+    save_game "test_phase2"
+    init_db 0
+    reset_state 0
+    load_world_doc "beispielwelt"
+    seed_pack_extras pack
+    loaded: load_game "test_phase2"
+    p2: (get_player 0)
+    expect_eq (get p2 "mana") mana_saved "mana preserved after load"
+    expect_truthy (knows_spell "feuerball") "spell preserved after load"
+
+test "attack_enemy applies debuffs to damage"
+    init_db 0
+    reset_state 0
+    set_pack pack
+    load_world_doc "beispielwelt"
+    seed_pack_extras pack
+    new_game 0
+    p: (get_player 0)
+    set_player_room "tpl_halle"
+    db_exec (open_db 0) "INSERT INTO monsters VALUES ('test_zombie', 'Zombie', 'tpl_halle', 50, 50, 0, '', 0)"
+    apply_buff "schwaeche" 2 3
+    inventory_add "schwert"
+    result: attack_enemy "test_zombie"
+    expect_contains result "Angriff" "attack message"
+
+--- === Phase 5: Custom items, data-driven profiles, theme-aware narrator === ===
+
+test "custom items can be seeded and found"
+    init_db 0
+    reset_state 0
+    custom: [{id: "laserschwert", name: "Laserschwert", type: "waffe", value: 99, tags: ["energie", "kampf"], desc: "Ein schimmerndes Schwert aus reinem Licht.", damage_bonus: 5, ranged: false, use_effect: "none", use_value: 0, buff_stat: "", buff_value: 0, buff_rounds: 0, clear_stat: "", use_text: false}]
+    seed_custom_items custom
+    found: find_custom_item "laserschwert"
+    expect_not_nil found "custom item found"
+    expect_eq (get found "damage_bonus") 5 "damage_bonus stored"
+    expect_eq (get found "type") "waffe" "type stored"
+
+test "find_pack_item also finds custom items"
+    init_db 0
+    reset_state 0
+    custom2: [{id: "plasmapistole", name: "Plasmapistole", type: "waffe", value: 80, tags: ["energie", "fern", "kampf"], desc: "Eine schwere Plasmapistole.", damage_bonus: 3, ranged: true, use_effect: "none", use_value: 0, buff_stat: "", buff_value: 0, buff_rounds: 0, clear_stat: "", use_text: false}]
+    seed_custom_items custom2
+    pack: get_pack 0
+    found: find_pack_item pack "plasmapistole"
+    expect_not_nil found "custom item found via find_pack_item"
+    expect_eq (get found "ranged") true "ranged flag preserved"
+
+test "data-driven use_item with custom consumable"
+    init_db 0
+    reset_state 0
+    load_world_doc "beispielwelt"
+    seed_pack_extras pack
+    new_game 0
+    custom3: [{id: "superheiltrank", name: "Superheiltrank", type: "konsum", value: 50, tags: ["heilung"], desc: "Ein leuchtend blauer Trank.", damage_bonus: 0, ranged: false, use_effect: "heal", use_value: 8, buff_stat: "", buff_value: 0, buff_rounds: 0, clear_stat: "", use_text: false}]
+    seed_custom_items custom3
+    inventory_add "superheiltrank"
+    set_player_hp 2
+    result: use_item "superheiltrank"
+    expect_contains result "Superheiltrank" "custom heal item used"
+    expect_eq (get (get_player 0) "hp") 10 "healed for 8"
+
+test "apply_profile uses tag-based item lookup"
+    init_db 0
+    reset_state 0
+    doc: parse_json (read_file "worlds/beispielwelt.json")
+    -- Add a custom weapon to the pack items in the doc
+    custom4: [{id: "energiesabel", name: "Energiesäbel", type: "waffe", value: 60, tags: ["energie", "kampf"], desc: "Ein leuchtender Säbel.", damage_bonus: 4, ranged: false, use_effect: "none", use_value: 0, buff_stat: "", buff_value: 0, buff_rounds: 0, clear_stat: "", use_text: false}]
+    set doc "custom_items" custom4
+    -- Create a modified pack that includes the custom item
+    mod_pack: get_pack 0
+    push (get mod_pack "items") (at custom4 0)
+    -- apply_profile BEFORE seed_world (same order as worldcraft.pipe)
+    apply_profile doc {stil: "kaempfer", schwierigkeit: "normal"} mod_pack
+    seed_world_full doc
+    new_game 0
+    -- Should have the custom weapon (found via "kampf" tag) or the original schwert
+    inv: parse_json (get (get_player 0) "inventory")
+    expect_gt (len inv) 0 "kaempfer gets a weapon"
+
+test "narrator_system returns theme-aware text"
+    init_db 0
+    reset_state 0
+    set_meta "theme" "Cyberpunk"
+    set_meta "ton" "neon-geschwängert"
+    result: narrator_system 0
+    expect_contains result "Cyberpunk" "theme in narrator"
+    expect_contains result "neon-geschwängert" "ton in narrator"
+
+test "narrator_system falls back to fantasy"
+    init_db 0
+    reset_state 0
+    result: narrator_system 0
+    expect_contains result "Fantasy" "default theme"
+    expect_contains result "düster" "default ton"

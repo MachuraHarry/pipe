@@ -6,10 +6,9 @@
 import "state.pipe"
 import "tools.pipe"
 import "gen_world.pipe"
+import "log.pipe"
 
-NARRATOR_SYSTEM: "Du bist der Erzähler eines düsteren Fantasy-Textabenteuers (deutsch). Nutze die Werkzeuge, die der Spieler braucht, und fasse die Tool-Ergebnisse atmosphärisch in höchstens 3 Sätzen zusammen. Erfinde keine Gegenstände, Untiere oder Wege, die es nicht gibt. Bei Untieren ermutige den Spieler zum Angriff (attack_enemy), bei Händlern zum Handel (buy_item/sell_item)."
-
-FREE_MODELS: ["nemotron-3.5-lightning-free", "x-preview-f-free", "laguna-s-2.1-free"]
+FREE_MODELS: ["big-pickle"]
 
 AI_TIMEOUT_TURN: 120
 
@@ -27,19 +26,23 @@ fn pick_free_model models
 --! One narrator call with model rotation. Returns the narration text,
 --! or "" when every model failed.
 fn narrator_reply inp
+    log "NARRATOR" "Starte Narrator-Antwort"
     antwort: ""
     ok: false
     for m in FREE_MODELS
         if !ok
             try
+                log "NARRATOR" "Teste Modell " ++ m
                 ai_model m
-                antwort: ai_with_tools NARRATOR_SYSTEM inp
+                antwort: ai_with_tools (narrator_system 0) inp
+                log "NARRATOR" "Modell " ++ m ++ " hat geantwortet (" ++ (to_str (len antwort)) ++ " Zeichen)"
                 ok: true
-            catch
-                print ("  (Modell " ++ m ++ " nicht erreichbar)")
+            catch e
+                log "NARRATOR" "Modell " ++ m ++ " fehlgeschlagen: " ++ e
     if ok
         antwort
     else
+        log_err "NARRATOR" "Alle Modelle fehlgeschlagen"
         ""
 
 --! True when the input asks for a world expansion.
@@ -63,26 +66,34 @@ fn expand_wunsch_of inp
 --!   narration carries the player-facing text; "" on hard failure.
 fn process_turn inp
     t: lower (trim inp)
+    log "TURN" "Eingabe: " ++ inp
     result: {type: "narrator", narration: "", error: "", won: 0}
     if contains t "neues abenteuer"
         set result "type" "new_adventure"
+        log "TURN" "Typ: new_adventure"
         set result "narration" (neues_abenteuer_ai 0)
     else
         if is_expand_input t
             set result "type" "expand"
+            log "TURN" "Typ: expand"
             set result "narration" (expand_world_ai (expand_wunsch_of inp))
         else
             fc: fast_command inp (get_pack 0)
             if (get fc "handled") == true
                 set result "type" "fast"
+                log "TURN" "Typ: fast"
                 set result "narration" (get fc "out")
             else
+                log "TURN" "Typ: narrator"
                 text: narrator_reply inp
                 if text == ""
                     set result "error" "alle Modelle nicht erreichbar"
+                    log_err "TURN" "Alle Modelle nicht erreichbar"
                 else
                     set result "narration" text
     set result "won" (get (get_player 0) "won")
+    tick_buffs 0
+    log "TURN" "Fertig: won=" ++ (to_str (get result "won"))
     result
 
 --! Provider boot: select provider + first working model. Safe to call in a

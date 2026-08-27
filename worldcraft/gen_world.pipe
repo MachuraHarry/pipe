@@ -8,6 +8,7 @@
 import "state.pipe"
 import "tools.pipe"
 import "lore.pipe"
+import "log.pipe"
 
 DESIGN_SYSTEM: "Du bist ein Spiele-Design-Assistent. Antworte AUSSCHLIESSLICH als JSON-Objekt, ohne Erklärtext."
 MAP_SYSTEM: "Du bist ein Karten-Architekt für Textabenteuer. Antworte AUSSCHLIESSLICH als JSON-Objekt, ohne Erklärtext."
@@ -27,7 +28,7 @@ fn frische_liste _
     []
 
 --! Models tried in order during world generation (rotation per attempt).
-GEN_MODELS: ["x-preview-f-free", "laguna-s-2.1-free", "nemotron-3.5-lightning-free"]
+GEN_MODELS: ["big-pickle"]
 
 --! Extracts the outermost JSON object from a raw LLM response
 --! (strips chain-of-thought prose). Returns nil when no object found.
@@ -115,12 +116,18 @@ fn validate_design design pack
     fehler
 
 --! True when the pack section contains an entry with the given id.
+--! Also checks custom items in DB for the "items" section.
 fn pack_has_id pack section id
     found: false
     for entry in (get pack section)
         if !found
             if (get entry "id") == id
                 found: true
+    -- For items, also check custom_items table
+    if !found && section == "items"
+        custom: find_custom_item id
+        if custom != nil
+            found: true
     found
 
 --! BFS over room exits; returns list of reachable room ids from start.
@@ -266,6 +273,13 @@ fn validate_profil profil
         schw: "normal"
     {stil: stil, schwierigkeit: schw}
 
+--! Finds the first pack item matching a tag (returns id or "").
+fn find_item_by_tag pack tag
+    for it in (get pack "items")
+        if contains (get it "tags") tag
+            return (get it "id")
+    ""
+
 --! Applies a player profile deterministically to a world document:
 --! start items and gold adjust, lore gains a hint. Returns the doc.
 fn apply_profile doc profil pack
@@ -276,12 +290,20 @@ fn apply_profile doc profil pack
     start_items: []
     stil: get p "stil"
     if stil == "kaempfer"
-        push start_items "schwert"
+        waffe: find_item_by_tag pack "kampf"
+        if waffe != ""
+            push start_items waffe
     if stil == "erkunderin"
-        push start_items "fackel"
-        push start_items "seil"
+        licht: find_item_by_tag pack "licht"
+        if licht != ""
+            push start_items licht
+        kletter: find_item_by_tag pack "klettern"
+        if kletter != ""
+            push start_items kletter
     if stil == "lore"
-        push start_items "fackel"
+        licht: find_item_by_tag pack "licht"
+        if licht != ""
+            push start_items licht
         push lore ("Profil-Hinweis: Der Held dieser Welt jagt Geschichten und Geheimnisse mehr als Gold.")
     if stil == "haendlerin" || (get p "schwierigkeit") == "leicht"
         set m "start_gold" ((get m "start_gold") + 15)
@@ -300,28 +322,37 @@ fn apply_profile doc profil pack
 --! Asks the LLM for a world design (which pack entries to use). Rotates
 --! models per attempt; parses JSON out of possibly chatty raw responses.
 fn gen_design prompt pack profil max_tries
+    log_block "GEN-DESIGN" "Starte Design-Generierung"
     katalog: pack_catalog pack
     p: validate_profil profil
     design: nil
     fehler: ["noch nicht versucht"]
     versuch: 0
     while versuch < max_tries && len fehler > 0
-        ai_model (at GEN_MODELS (versuch % (len GEN_MODELS)))
+        modell: (at GEN_MODELS (versuch % (len GEN_MODELS)))
+        log "GEN-DESIGN" "Versuch " ++ (to_str (versuch + 1)) ++ "/" ++ (to_str max_tries) ++ " Modell=" ++ modell
+        ai_model modell
         nachricht: "Wunsch des Spielers:\n" ++ prompt ++ "\n\nSpieler-Profil: Stil=" ++ (get p "stil") ++ ", Schwierigkeit=" ++ (get p "schwierigkeit") ++ " (waehle Monster/Items passend zum Stil; bei schwer eher starke Monster, bei leicht schwache)\n\nVerfügbares Ressourcen-Paket:\n" ++ katalog ++ "\nErstelle ein Design. Antworte als JSON:\n{thema: str, ton: str, raumzahl: zahl, items: [ids], npcs: [ids], monsters: [ids], quests: [ids], siegesbedingung: {kind: \"give|kill|explore\", target: id, npc: id_nur_bei_give}, npc_personas: {\"<npc-id>\": \"2-3 Saetze Persoenlichkeit, aus dem Spielerwunsch abgeleitet\"}}"
         try
             roh: ai_chat DESIGN_SYSTEM nachricht 4000
+            log "GEN-DESIGN" "AI-Antwort erhalten (" ++ (to_str (len roh)) ++ " Zeichen)"
             design: parse_json (extract_json roh)
+            if design == nil
+                log_err "GEN-DESIGN" "JSON-Parsing fehlgeschlagen"
             fehler: validate_design design pack
             if len fehler > 0
-                print ("  (Design ungueltig, neuer Versuch: " ++ (join_list fehler "; ") ++ ")")
+                log "GEN-DESIGN" "Validierung fehlgeschlagen: " ++ (join_list fehler "; ")
         catch e
-            print ("  (Design-Aufruf fehlgeschlagen, neuer Versuch: " ++ e ++ ")")
+            log_err "GEN-DESIGN" "AI-Call fehlgeschlagen: " ++ e
             fehler: ["api"]
         versuch: versuch + 1
+    if len fehler == 0
+        log "GEN-DESIGN" "Design gueltig: Thema=" ++ (get design "thema") ++ " Ton=" ++ (get design "ton")
     {design: design, errors: fehler}
 
 --! Asks the LLM for the concrete map using ONLY validated design ids.
 fn gen_map design pack max_tries
+    log_block "GEN-MAP" "Starte Karten-Generierung"
     mech: get pack "mechanics"
     minr: get mech "min_rooms"
     maxr: get mech "max_rooms"
@@ -333,17 +364,24 @@ fn gen_map design pack max_tries
     fehler: ["noch nicht versucht"]
     versuch: 0
     while versuch < max_tries && len fehler > 0
-        ai_model (at GEN_MODELS (versuch % (len GEN_MODELS)))
+        modell: (at GEN_MODELS (versuch % (len GEN_MODELS)))
+        log "GEN-MAP" "Versuch " ++ (to_str (versuch + 1)) ++ "/" ++ (to_str max_tries) ++ " Modell=" ++ modell
+        ai_model modell
         try
             roh: ai_chat MAP_SYSTEM nachricht 6000
+            log "GEN-MAP" "AI-Antwort erhalten (" ++ (to_str (len roh)) ++ " Zeichen)"
             doc: normalize_map (parse_json (extract_json roh)) pack design
+            if doc == nil
+                log_err "GEN-MAP" "JSON-Parsing fehlgeschlagen"
             fehler: validate_map doc pack
             if len fehler > 0
-                print ("  (Karte ungueltig, neuer Versuch: " ++ (join_list fehler "; ") ++ ")")
+                log "GEN-MAP" "Validierung fehlgeschlagen: " ++ (join_list fehler "; ")
         catch e
-            print ("  (Karten-Aufruf fehlgeschlagen, neuer Versuch: " ++ e ++ ")")
+            log_err "GEN-MAP" "AI-Call fehlgeschlagen: " ++ e
             fehler: ["api"]
         versuch: versuch + 1
+    if len fehler == 0
+        log "GEN-MAP" "Karte gueltig: " ++ (to_str (len (keys (get doc "rooms")))) ++ " Raeume"
     {doc: doc, errors: fehler}
 
 --! Fills missing fields of the raw LLM map with deterministic defaults:
@@ -411,13 +449,16 @@ fn normalize_map raw pack design
     for obj in objectives
         set obj "state" "offen"
     mech: get pack "mechanics"
-    {name: (or_default (get raw "name") (get design "thema")), start_room: (get raw "start_room"), rooms: rooms, npcs: npcs, monsters: monsters, quests: quests, objectives: objectives, factions: (get pack "factions"), mechanics: {start_hp: (get mech "start_hp"), start_gold: (get mech "start_gold"), respawn_hp: (get mech "respawn_hp")}, lore: KEIN_LISTE}
+    {name: (or_default (get raw "name") (get design "thema")), start_room: (get raw "start_room"), rooms: rooms, npcs: npcs, monsters: monsters, quests: quests, objectives: objectives, factions: (get pack "factions"), mechanics: {start_hp: (get mech "start_hp"), start_gold: (get mech "start_gold"), respawn_hp: (get mech "respawn_hp")}, lore: KEIN_LISTE, thema: (or_default (get design "thema") ""), ton: (or_default (get design "ton") "")}
 
 -- ---- Lore enrichment & orchestration ----
 
 --! Seeds the DB from a world document and applies flavors + lore index.
 fn seed_full doc
     seed_world doc
+    pack: get_pack 0
+    if pack != nil
+        seed_pack_extras pack
     fl: get doc "flavors"
     if fl != nil
         for id in keys fl
@@ -429,13 +470,15 @@ fn seed_full doc
 --! parallel and stores them inside the world document (rooms get a
 --! parallel "flavors" map, NPCs keep persona enriched, lore list filled).
 fn enrich_lore doc thema ton
+    log "ENRICH" "Starte Lore-Anreicherung fuer Thema=" ++ thema ++ " Ton=" ++ ton
     ids: []
     prompts: []
     for id in keys (get doc "rooms")
         r: get (get doc "rooms") id
         push ids id
-        push prompts ("Beschreibe diesen Raum atmosphärisch für ein Fantasy-Textabenteuer (Ton: " ++ ton ++ ", Thema: " ++ thema ++ "), genau 2 Sätze, keine Wiederholung des Raumnamens.\nRaum: " ++ id ++ "\n" ++ (get r "description"))
-    texte: ai_batch NARRATOR_SYSTEM prompts
+        push prompts ("Beschreibe diesen Raum atmosphärisch für ein " ++ ton ++ "es " ++ thema ++ "-Abenteuer, genau 2 Sätze, keine Wiederholung des Raumnamens.\nRaum: " ++ id ++ "\n" ++ (get r "description"))
+    texte: ai_batch (narrator_author 0) prompts
+    log "ENRICH" "Raum-Beschreibungen generiert: " ++ (to_str (len texte)) ++ " Stueck"
     flavors: {}
     i: 0
     for t in texte
@@ -450,7 +493,8 @@ fn enrich_lore doc thema ton
     for npc in (get doc "npcs")
         push npc_names (get npc "id")
         push npc_prompts ("Schreibe eine kurze Hintergrundgeschichte (3-4 Sätze) für diesen NPC: Name " ++ (get npc "name") ++ ", Rolle " ++ (get npc "role") ++ ". Welt-Thema: " ++ thema ++ ".")
-    geschichten: ai_batch NARRATOR_SYSTEM npc_prompts
+    geschichten: ai_batch (narrator_author 0) npc_prompts
+    log "ENRICH" "NPC-Hintergrundgeschichten generiert: " ++ (to_str (len geschichten)) ++ " Stueck"
     j: 0
     for g in geschichten
         if g != ""
@@ -458,8 +502,6 @@ fn enrich_lore doc thema ton
         j: j + 1
     set doc "lore" lore
     doc
-
-NARRATOR_SYSTEM: "Du bist ein fantasievoller Autor für düstere Fantasy-Textabenteuer (deutsch). Halte dich exakt an die geforderte Länge."
 
 --! Deterministic fallback world built purely from pack templates — used when
 --! the AI is unreachable or keeps producing invalid output.
@@ -605,6 +647,7 @@ fn validate_single_ziel obj erlaubte_npc erlaubte_mon erlaubte_loots erlaubte_ra
 
 --! Asks the LLM for a world expansion (1-3 new rooms + inhabitants).
 fn gen_expansion doc wunsch pack max_tries
+    log_block "GEN-EXP" "Starte Erweiterungs-Generierung"
     freie_tpl: []
     for tpl in (get pack "rooms")
         if get (get doc "rooms") (get tpl "id") == nil
@@ -631,17 +674,22 @@ fn gen_expansion doc wunsch pack max_tries
     fehler: ["noch nicht versucht"]
     versuch: 0
     while versuch < max_tries && len fehler > 0
-        ai_model (at GEN_MODELS (versuch % (len GEN_MODELS)))
+        modell: (at GEN_MODELS (versuch % (len GEN_MODELS)))
+        log "GEN-EXP" "Versuch " ++ (to_str (versuch + 1)) ++ "/" ++ (to_str max_tries) ++ " Modell=" ++ modell
+        ai_model modell
         try
             roh: ai_chat EXP_SYSTEM nachricht 4000
+            log "GEN-EXP" "AI-Antwort erhalten (" ++ (to_str (len roh)) ++ " Zeichen)"
             exp: parse_json (extract_json roh)
             fehler: validate_expansion exp doc pack
             if len fehler > 0
-                print ("  (Erweiterung ungueltig, neuer Versuch: " ++ (join_list fehler "; ") ++ ")")
+                log "GEN-EXP" "Validierung fehlgeschlagen: " ++ (join_list fehler "; ")
         catch e
-            print ("  (Erweiterungs-Aufruf fehlgeschlagen, neuer Versuch: " ++ e ++ ")")
+            log_err "GEN-EXP" "AI-Call fehlgeschlagen: " ++ e
             fehler: ["api"]
         versuch: versuch + 1
+    if len fehler == 0
+        log "GEN-EXP" "Erweiterung gueltig: " ++ (to_str (len (keys (get exp "rooms")))) ++ " neue Raeume"
     {exp: exp, errors: fehler}
 
 --! Validates an expansion against the current world document; returns errors.
@@ -811,16 +859,20 @@ fn merge_expansion exp doc pack
 --! Full expansion turn: generate, validate, merge, persist. Used by the
 --! game loop fast path and as an ai_tool.
 fn expand_world_ai wunsch
+    log "EXPAND" "Erweitere Welt: " ++ wunsch
     doc: get_doc 0
     if doc == nil
+        log_err "EXPAND" "Keine Welt geladen"
         "Keine Welt geladen."
     else
         erg: gen_expansion doc wunsch (get_pack 0) 3
         if len (get erg "errors") > 0
+            log_err "EXPAND" "Fehler: " ++ (join_list (get erg "errors") "; ")
             "Der Nebel ist noch zu dicht -- diesmal misslingt die Erweiterung. Versuche es gleich noch einmal."
         else
             bericht: merge_expansion (get erg "exp") doc (get_pack 0)
             save_current_world doc
+            log "EXPAND" "Erweiterung abgeschlossen"
             bericht
 
 ai_tool "expand_world" "Erweitere die Welt um neue Raeume und Bewohner" {wunsch: "Wohin oder was soll entstehen, z.B. einen Dungeon im Westen"} expand_world_ai
@@ -831,6 +883,7 @@ ai_tool "expand_world" "Erweitere die Welt um neue Raeume und Bewohner" {wunsch:
 --! Asks the LLM for 1 new objective (+ optional quest) using ONLY resources
 --! already present or still free in the pack.
 fn gen_neue_objektive doc pack max_tries
+    log_block "GEN-NEW" "Starte neue Siegesbedingung"
     freie_quests: []
     for q in (get pack "quests")
         if !contains (quest_ids_in_doc doc) (get q "id")
@@ -850,17 +903,22 @@ fn gen_neue_objektive doc pack max_tries
     fehler: ["noch nicht versucht"]
     versuch: 0
     while versuch < max_tries && len fehler > 0
-        ai_model (at GEN_MODELS (versuch % (len GEN_MODELS)))
+        modell: (at GEN_MODELS (versuch % (len GEN_MODELS)))
+        log "GEN-NEW" "Versuch " ++ (to_str (versuch + 1)) ++ "/" ++ (to_str max_tries) ++ " Modell=" ++ modell
+        ai_model modell
         try
             roh: ai_chat EXP_SYSTEM nachricht 2000
+            log "GEN-NEW" "AI-Antwort erhalten (" ++ (to_str (len roh)) ++ " Zeichen)"
             erg: parse_json (extract_json roh)
             fehler: validate_neue_objektive erg doc pack
             if len fehler > 0
-                print ("  (Neue Aufgabe ungueltig, neuer Versuch: " ++ (join_list fehler "; ") ++ ")")
+                log "GEN-NEW" "Validierung fehlgeschlagen: " ++ (join_list fehler "; ")
         catch e
-            print ("  (Aufgaben-Aufruf fehlgeschlagen, neuer Versuch: " ++ e ++ ")")
+            log_err "GEN-NEW" "AI-Call fehlgeschlagen: " ++ e
             fehler: ["api"]
         versuch: versuch + 1
+    if len fehler == 0
+        log "GEN-NEW" "Neue Aufgabe gueltig"
     {erg: erg, errors: fehler}
 
 --! Validates a neues-abenteuer response against the current world.
@@ -923,17 +981,21 @@ fn merge_neue_objektive erg doc pack
 
 --! Full neues-abenteuer turn: generate, validate, merge, reset won, persist.
 fn neues_abenteuer_ai _
+    log "NEW-ADV" "Starte neues Abenteuer"
     doc: get_doc 0
     if doc == nil
+        log_err "NEW-ADV" "Keine Welt geladen"
         "Keine Welt geladen."
     else
         erg: gen_neue_objektive doc (get_pack 0) 3
         if len (get erg "errors") > 0
+            log_err "NEW-ADV" "Fehler: " ++ (join_list (get erg "errors") "; ")
             "Die Sterne verschweigen ihr nächstes Rätsel -- versuche es gleich noch einmal."
         else
             reset_won 0
             bericht: merge_neue_objektive (get erg "erg") doc (get_pack 0)
             save_current_world doc
+            log "NEW-ADV" "Neues Abenteuer abgeschlossen"
             bericht
 
 ai_tool "neues_abenteuer" "Beginne ein neues Abenteuer mit einer neuen Siegesbedingung" {} neues_abenteuer_ai

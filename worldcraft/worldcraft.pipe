@@ -56,6 +56,7 @@ doc: nil
 PROFIL: [{stil: "normal", schwierigkeit: "normal"}]
 vorhanden: load_world_doc weltname
 if vorhanden != nil
+    seed_pack_extras pack
     print ("Welt \"" ++ (get_meta "world_name") ++ "\" geladen -- willkommen zurück.")
     set DOC 0 vorhanden
     set WELT_FERTIG 0 true

@@ -20,7 +20,15 @@ fn api_state _
         items: []
         if room != nil
             exits: keys (parse_json (get room "exits"))
-            items: parse_json (get room "items")
+            raw_items: parse_json (get room "items")
+            pack: get_pack 0
+            for it in raw_items
+                desc: ""
+                if pack != nil
+                    def: find_pack_item pack it
+                    if def != nil && get def "desc" != nil
+                        desc: get def "desc"
+                push items {id: it, name: it, desc: desc}
         npcs: []
         for nid in (npcs_in_room rid)
             npc_row: get_npc nid
@@ -31,8 +39,17 @@ fn api_state _
         quests: []
         for q in (all_quests 0)
             push quests {id: (get q "id"), name: (get q "name"), state: (get q "state")}
+        buffs_list: []
+        for b in (all_buffs 0)
+            push buffs_list {art: (get b "art"), wert: (get b "wert"), runden: (get b "runden")}
+        spells_list: []
+        for sp in (player_spells 0)
+            push spells_list {id: (get sp "id"), name: (get sp "name"), typ: (get sp "typ"), manakosten: (get sp "manakosten"), schaden: (get sp "schaden")}
+        xp_val: 0
+        if get p "xp" != nil
+            xp_val: get p "xp"
         won_flag: (get p "won") == 1
-        {world: (get_meta "world_name"), room: rid, room_description: (look 0), exits: exits, items: items, npcs: npcs, monsters: monsters, hp: (get p "hp"), gold: (get p "gold"), inventory: parse_json (get p "inventory"), quests: quests, won: won_flag}
+        {world: (get_meta "world_name"), room: rid, room_description: (look 0), exits: exits, items: items, npcs: npcs, monsters: monsters, hp: (get p "hp"), max_hp: (get p "max_hp"), gold: (get p "gold"), mana: (get p "mana"), max_mana: (get p "max_mana"), xp: xp_val, inventory: parse_json (get p "inventory"), quests: quests, spells: spells_list, buffs: buffs_list, won: won_flag}
 
 -- ---- Option generation ----
 
@@ -54,10 +71,27 @@ fn build_options _
                 rolle: get npc_row "role"
                 push opts ("rede mit " ++ nid)
                 if rolle == "haendler"
-                    push opts ("kauf …")
-                    push opts ("verkauf …")
+                    push opts ("kauf ...")
+                    push opts ("verkauf ...")
             for m in (monsters_in_room rid)
                 push opts ("greife " ++ (get m "id") ++ " an")
+                --! Add spell options for monsters
+                sp_list: player_spells 0
+                for sp in sp_list
+                    if (get sp "typ") == "angriff"
+                        push opts ("zauber " ++ (get sp "id") ++ " auf " ++ (get m "id"))
+                push opts ("wehre dich")
+            --! Show usable items in inventory (data-driven via pack)
+            inv: parse_json (get p "inventory")
+            pack: get_pack 0
+            for it in inv
+                if pack != nil
+                    def: find_pack_item pack it
+                    if item_usable def
+                        push opts ("benutze " ++ it)
+            --! Show spell list option if player knows spells
+            if len (player_spells 0) > 0
+                push opts ("magie")
         push opts ("inventar")
         push opts ("quests")
         opts

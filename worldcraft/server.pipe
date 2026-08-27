@@ -18,6 +18,7 @@
 --!   DELETE /api/v1/sessions/{id}                   [session secret]
 
 import "state.pipe"
+import "log.pipe"
 
 HTTP_PORT: "8080"
 PORT_BASE: 8100
@@ -32,6 +33,19 @@ set JSONH "Content-Type" "application/json"
 set JSONH "Access-Control-Allow-Origin" "*"
 set JSONH "Access-Control-Allow-Headers" "Authorization, Content-Type"
 set JSONH "Access-Control-Allow-Methods" "GET, POST, DELETE, OPTIONS"
+
+MIMES: {}
+set MIMES ".html" "text/html; charset=utf-8"
+set MIMES ".css"  "text/css; charset=utf-8"
+set MIMES ".js"   "application/javascript; charset=utf-8"
+set MIMES ".json" "application/json"
+set MIMES ".png"  "image/png"
+set MIMES ".svg"  "image/svg+xml"
+set MIMES ".ico"  "image/x-icon"
+set MIMES ".woff2" "font/woff2"
+set MIMES ".mp3"  "audio/mpeg"
+set MIMES ".ogg"  "audio/ogg"
+set MIMES ".webmanifest" "application/manifest+json"
 
 -- ---- Helpers ----
 
@@ -164,19 +178,23 @@ fn fetch_intro port
 -- ---- Session creation ----
 
 fn create_session body_raw
+    log "SRV" "Neue Session-Anfrage"
     cfg: parse_json body_raw
     if cfg == nil
+        log_err "SRV" "Ungueltiges JSON"
         jerr 400 "bad_json" "Body muss JSON sein"
     else
         weltname: get cfg "world"
         briefing: get cfg "briefing"
         if (weltname == nil || weltname == "") && (briefing == nil || briefing == "")
+            log_err "SRV" "Weder 'world' noch 'briefing' angegeben"
             jerr 400 "missing_world" "'world' oder 'briefing' angeben"
         else
             sid: new_session_id 0
             if weltname == nil || weltname == ""
                 weltname: sid
             port: next_port 0
+            log "SRV" "Session " ++ sid ++ " Port=" ++ port ++ " Welt=" ++ weltname
             if !file_exists ".sessions"
                 make_dir ".sessions"
             write_file (".sessions/" ++ sid ++ ".config.json") (to_json cfg)
@@ -185,6 +203,7 @@ fn create_session body_raw
                 idle_min: 10
             idle_ms: idle_min * 60000
             cmd: "../bin/pipe worldd.pipe " ++ sid ++ " " ++ port ++ " " ++ (to_str idle_ms)
+            log "SRV" "Starte Worker: " ++ cmd
             handle: proc_start cmd
             if wait_healthy port
                 secret: make_secret 0
@@ -204,8 +223,10 @@ fn create_session body_raw
                             set holder 1 (get state_map "options")
                 catch
                     print ""
+                log "SRV" "Session " ++ sid ++ " bereit=" ++ (to_str bereit)
                 jres 201 {session_id: sid, world: weltname, secret: secret, ready: bereit, state: (at holder 0), options: (at holder 1)}
             else
+                log_err "SRV" "Worker auf Port " ++ port ++ " nicht gesund"
                 drop_session sid
                 cleanup_session_files sid
                 jerr 502 "worker_start_failed" ("Worker auf Port " ++ port ++ " nicht gesund geworden")
@@ -293,6 +314,33 @@ fn proxy_session sid suffix method body_raw
             else
                 {status: status, headers: JSONH, body: (get antwort "body")}
 
+-- ---- Static file serving ----
+
+fn serve_static req
+    method: get req "method"
+    if method != "GET"
+        nil
+    else
+        path: get req "path"
+        if path == "/"
+            path: "/index.html"
+        disk: "web" ++ path
+        if file_exists disk
+            ext: ""
+            teile: split disk "."
+            if len teile > 1
+                ext: "." ++ (at teile ((len teile) - 1))
+            ct: get MIMES ext
+            if ct == nil || ct == ""
+                ct: "application/octet-stream"
+            sh: {}
+            set sh "Content-Type" ct
+            set sh "Access-Control-Allow-Origin" "*"
+            set sh "Cache-Control" "public, max-age=3600"
+            {status: 200, headers: sh, body: read_file disk}
+        else
+            nil
+
 -- ---- Routing ----
 
 fn route req
@@ -354,7 +402,11 @@ fn route req
                                         else
                                             jerr 400 "bad_request" "Unvollständiger Pfad"
                 else
-                    jerr 404 "not_found" ("Unbekannter Pfad: " ++ path)
+                    stat: serve_static req
+                    if stat != nil
+                        stat
+                    else
+                        jerr 404 "not_found" ("Unbekannter Pfad: " ++ path)
 
 --! Last line of defence: a handler crash must never kill the supervisor.
 fn route_safe req

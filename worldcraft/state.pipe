@@ -23,7 +23,7 @@ fn sql_escape s
 fn init_db _
     h: (open_db 0)
     db_exec h "CREATE TABLE IF NOT EXISTS meta (mkey TEXT PRIMARY KEY, mval TEXT)"
-    db_exec h "CREATE TABLE IF NOT EXISTS player (id INTEGER PRIMARY KEY, room TEXT, hp INTEGER, gold INTEGER, inventory TEXT, won INTEGER)"
+    db_exec h "CREATE TABLE IF NOT EXISTS player (id INTEGER PRIMARY KEY, room TEXT, hp INTEGER, max_hp INTEGER, gold INTEGER, mana INTEGER, max_mana INTEGER, xp INTEGER, inventory TEXT, won INTEGER)"
     db_exec h "CREATE TABLE IF NOT EXISTS rooms (id TEXT PRIMARY KEY, description TEXT, items TEXT, exits TEXT)"
     db_exec h "CREATE TABLE IF NOT EXISTS npcs (id TEXT PRIMARY KEY, name TEXT, role TEXT, temperament TEXT, buys_pct INTEGER, sells_pct INTEGER, persona TEXT)"
     db_exec h "CREATE TABLE IF NOT EXISTS npc_placement (npc TEXT PRIMARY KEY, room TEXT)"
@@ -33,11 +33,16 @@ fn init_db _
     db_exec h "CREATE TABLE IF NOT EXISTS quests (id TEXT PRIMARY KEY, name TEXT, description TEXT, state TEXT)"
     db_exec h "CREATE TABLE IF NOT EXISTS objectives (id TEXT PRIMARY KEY, kind TEXT, target TEXT, npc TEXT, state TEXT, quest TEXT)"
     db_exec h "CREATE TABLE IF NOT EXISTS reputation (fraktion TEXT PRIMARY KEY, punkte INTEGER)"
+    db_exec h "CREATE TABLE IF NOT EXISTS buffs (spieler INTEGER, art TEXT, wert INTEGER, runden INTEGER)"
+    db_exec h "CREATE TABLE IF NOT EXISTS spells (id TEXT PRIMARY KEY, name TEXT, typ TEXT, manakosten INTEGER, schaden INTEGER, effekt TEXT, beschreibung TEXT)"
+    db_exec h "CREATE TABLE IF NOT EXISTS player_spells (spieler INTEGER, spell_id TEXT)"
+    db_exec h "CREATE TABLE IF NOT EXISTS monster_abilities (monster TEXT, ability TEXT, effekt TEXT, wert INTEGER, runden INTEGER, chance INTEGER)"
+    db_exec h "CREATE TABLE IF NOT EXISTS custom_items (id TEXT PRIMARY KEY, name TEXT, type TEXT, value INTEGER, tags TEXT, desc TEXT, damage_bonus INTEGER, ranged INTEGER, use_effect TEXT, use_value INTEGER, buff_stat TEXT, buff_value INTEGER, buff_rounds INTEGER, clear_stat TEXT, use_text INTEGER)"
 
 --! Deletes all rows (fresh game / test isolation).
 fn reset_state _
     h: (open_db 0)
-    for t in ["meta", "player", "rooms", "npcs", "npc_placement", "npc_memory", "flavor", "monsters", "quests", "objectives", "reputation"]
+    for t in ["meta", "player", "rooms", "npcs", "npc_placement", "npc_memory", "flavor", "monsters", "quests", "objectives", "reputation", "buffs", "spells", "player_spells", "monster_abilities", "custom_items"]
         db_exec h ("DELETE FROM " ++ t)
 
 --! Reads a meta value (empty string if unknown).
@@ -122,6 +127,12 @@ fn seed_world doc
     h: (open_db 0)
     set_meta "world_name" (get doc "name")
     set_meta "start_room" (get doc "start_room")
+    thema: or_default_str (get doc "thema")
+    if thema != ""
+        set_meta "theme" thema
+    ton: or_default_str (get doc "ton")
+    if ton != ""
+        set_meta "ton" ton
     m: get doc "mechanics"
     if m == nil
         m: {start_hp: 10, start_gold: 20, respawn_hp: 10}
@@ -150,6 +161,74 @@ fn seed_world doc
         if len frak > 1
             rep: (at frak 1)
         db_exec h ("INSERT INTO reputation VALUES ('" ++ (sql_escape (at frak 0)) ++ "', " ++ (to_str rep) ++ ")")
+    --! Seed custom items if present in world doc
+    custom_items_raw: or_default_list (get doc "custom_items")
+    if len custom_items_raw > 0
+        seed_custom_items custom_items_raw
+
+--! Seeds spells and monster abilities from the resource pack.
+fn seed_pack_extras pack
+    h: (open_db 0)
+    spells: or_default_list (get pack "spells")
+    for sp in spells
+        db_exec h ("INSERT INTO spells VALUES ('" ++ (sql_escape (get sp "id")) ++ "', '" ++ (sql_escape (get sp "name")) ++ "', '" ++ (sql_escape (get sp "typ")) ++ "', " ++ (to_str (get sp "manakosten")) ++ ", " ++ (to_str (get sp "schaden")) ++ ", '" ++ (sql_escape (or_default_str (get sp "effekt"))) ++ "', '" ++ (sql_escape (get sp "beschreibung")) ++ "')")
+    mon_abs: or_default_list (get pack "monster_abilities")
+    for ma in mon_abs
+        db_exec h ("INSERT INTO monster_abilities VALUES ('" ++ (sql_escape (get ma "monster")) ++ "', '" ++ (sql_escape (get ma "ability")) ++ "', '" ++ (sql_escape (or_default_str (get ma "effekt"))) ++ "', " ++ (to_str (get ma "wert")) ++ ", " ++ (to_str (get ma "runden")) ++ ", " ++ (to_str (get ma "chance")) ++ ")")
+
+-- ---- Custom items (AI-generated, stored in world doc + DB) ----
+
+--! Seeds custom items from a list into the custom_items table.
+fn seed_custom_items items
+    h: (open_db 0)
+    for it in items
+        tags_str: or_default_str (to_json (get it "tags"))
+        dmg: 0
+        if get it "damage_bonus" != nil
+            dmg: get it "damage_bonus"
+        ranged: 0
+        if (get it "ranged") == true
+            ranged: 1
+        uv: 0
+        if get it "use_value" != nil
+            uv: get it "use_value"
+        bv: 0
+        if get it "buff_value" != nil
+            bv: get it "buff_value"
+        br: 0
+        if get it "buff_rounds" != nil
+            br: get it "buff_rounds"
+        ut: 0
+        if (get it "use_text") == true
+            ut: 1
+        db_exec h ("INSERT INTO custom_items VALUES ('" ++ (sql_escape (get it "id")) ++ "', '" ++ (sql_escape (or_default_str (get it "name"))) ++ "', '" ++ (sql_escape (or_default_str (get it "type"))) ++ "', " ++ (to_str (or_default_val (get it "value") 0)) ++ ", '" ++ (sql_escape tags_str) ++ "', '" ++ (sql_escape (or_default_str (get it "desc"))) ++ "', " ++ (to_str dmg) ++ ", " ++ (to_str ranged) ++ ", '" ++ (sql_escape (or_default_str (get it "use_effect"))) ++ "', " ++ (to_str uv) ++ ", '" ++ (sql_escape (or_default_str (get it "buff_stat"))) ++ "', " ++ (to_str bv) ++ ", " ++ (to_str br) ++ ", '" ++ (sql_escape (or_default_str (get it "clear_stat"))) ++ "', " ++ (to_str ut) ++ ")")
+
+--! Returns a custom item row as map (nil if unknown or table missing).
+fn find_custom_item item_id
+    try
+        rows: db_query (open_db 0) ("SELECT * FROM custom_items WHERE id = '" ++ (sql_escape item_id) ++ "'")
+        if len rows > 0
+            r: at rows 0
+            -- Reconstruct as map matching pack item format
+            ut: get r "use_text"
+            use_text_flag: false
+            if ut != nil && ut == 1
+                use_text_flag: true
+            ranged_flag: false
+            if (get r "ranged") == 1
+                ranged_flag: true
+            {id: (get r "id"), name: (get r "name"), type: (get r "type"), value: (get r "value"), tags: (parse_json (get r "tags")), desc: (get r "desc"), damage_bonus: (get r "damage_bonus"), ranged: ranged_flag, use_effect: (get r "use_effect"), use_value: (get r "use_value"), buff_stat: (get r "buff_stat"), buff_value: (get r "buff_value"), buff_rounds: (get r "buff_rounds"), clear_stat: (get r "clear_stat"), use_text: use_text_flag}
+        else
+            nil
+    catch
+        nil
+
+--! Returns v when it is a non-nil value, else the default.
+fn or_default_val v def
+    if v == nil
+        def
+    else
+        v
 
 --! Returns v when it is a non-nil list, else an empty list.
 fn or_default_list v
@@ -162,7 +241,16 @@ fn or_default_list v
 fn new_game _
     h: (open_db 0)
     db_exec h "DELETE FROM player"
-    db_exec h ("INSERT INTO player VALUES (1, '" ++ (sql_escape (get_meta "start_room")) ++ "', " ++ (get_meta "start_hp") ++ ", " ++ (get_meta "start_gold") ++ ", '[]', 0)")
+    start_mana: 8
+    max_mana_val: 15
+    m_raw: get_meta "mechanics"
+    if m_raw != ""
+        m: parse_json m_raw
+        if get m "start_mana" != nil
+            start_mana: get m "start_mana"
+        if get m "max_mana" != nil
+            max_mana_val: get m "max_mana"
+    db_exec h ("INSERT INTO player VALUES (1, '" ++ (sql_escape (get_meta "start_room")) ++ "', " ++ (get_meta "start_hp") ++ ", " ++ (get_meta "start_hp") ++ ", " ++ (get_meta "start_gold") ++ ", " ++ (to_str start_mana) ++ ", " ++ (to_str max_mana_val) ++ ", 0, '[]', 0)")
     for it in (parse_json (get_meta "start_items"))
         inventory_add it
 
@@ -342,6 +430,16 @@ fn check_explore_objective room_id
             won: true
     won
 
+--! Checks fetch-objectives after picking up an item; completes matching ones.
+fn check_fetch_objective item_name
+    h: (open_db 0)
+    rows: db_query h ("SELECT id FROM objectives WHERE kind = 'fetch' AND target = '" ++ (sql_escape item_name) ++ "' AND state != 'erledigt'")
+    won: false
+    for row in rows
+        if objective_complete (get row "id")
+            won: true
+    won
+
 -- ---- Quests & reputation ----
 
 --! Returns the quest row map or nil.
@@ -381,6 +479,36 @@ fn rep_get fraktion
         get (at rows 0) "punkte"
     else
         0
+
+-- ---- Buffs (temporary stat modifications) ----
+
+--! Applies a buff to the player. Replaces existing buff of same art.
+fn apply_buff art wert runden
+    h: (open_db 0)
+    db_exec h ("DELETE FROM buffs WHERE spieler = 1 AND art = '" ++ (sql_escape art) ++ "'")
+    db_exec h ("INSERT INTO buffs VALUES (1, '" ++ (sql_escape art) ++ "', " ++ (to_str wert) ++ ", " ++ (to_str runden) ++ ")")
+
+--! Reduces all buff durations by 1; removes expired buffs.
+fn tick_buffs _
+    h: (open_db 0)
+    db_exec h "UPDATE buffs SET runden = runden - 1 WHERE spieler = 1"
+    db_exec h "DELETE FROM buffs WHERE spieler = 1 AND runden <= 0"
+
+--! Returns the buff value for a given art (0 if none active).
+fn get_buff art
+    rows: db_query (open_db 0) ("SELECT wert FROM buffs WHERE spieler = 1 AND art = '" ++ (sql_escape art) ++ "'")
+    if len rows > 0
+        get (at rows 0) "wert"
+    else
+        0
+
+--! Removes all buffs of a given art.
+fn clear_buff art
+    db_exec (open_db 0) ("DELETE FROM buffs WHERE spieler = 1 AND art = '" ++ (sql_escape art) ++ "'")
+
+--! Returns all active buffs as row maps.
+fn all_buffs _
+    db_query (open_db 0) "SELECT art, wert, runden FROM buffs WHERE spieler = 1"
 
 -- ---- Monsters & combat support ----
 
@@ -425,10 +553,132 @@ fn adjust_gold delta
     db_exec (open_db 0) ("UPDATE player SET gold = " ++ (to_str neu) ++ " WHERE id = 1")
     neu
 
+-- ---- Mana ----
+
+--! Adjusts mana by delta (clamped to 0..max_mana); returns new amount.
+fn adjust_mana delta
+    p: (get_player 0)
+    aktuell: get p "mana"
+    maximum: get p "max_mana"
+    neu: aktuell + delta
+    if neu < 0
+        neu: 0
+    if neu > maximum
+        neu: maximum
+    db_exec (open_db 0) ("UPDATE player SET mana = " ++ (to_str neu) ++ " WHERE id = 1")
+    neu
+
+--! True when the player has enough mana for a spell.
+fn has_mana cost
+    p: (get_player 0)
+    (get p "mana") >= cost
+
+--! Spends mana; returns true on success.
+fn spend_mana cost
+    p: (get_player 0)
+    if (get p "mana") < cost
+        false
+    else
+        adjust_mana (-cost)
+        true
+
+-- ---- Spells (learned by player) ----
+
+--! Learns a spell from the pack.
+fn learn_spell spell_id
+    h: (open_db 0)
+    rows: db_query h ("SELECT id FROM player_spells WHERE spieler = 1 AND spell_id = '" ++ (sql_escape spell_id) ++ "'")
+    if len rows > 0
+        false
+    else
+        db_exec h ("INSERT INTO player_spells VALUES (1, '" ++ (sql_escape spell_id) ++ "')")
+        true
+
+--! Returns all spells the player has learned.
+fn player_spells _
+    h: (open_db 0)
+    ps_rows: db_query h "SELECT spell_id FROM player_spells WHERE spieler = 1"
+    if len ps_rows == 0
+        []
+    else
+        all_spells: db_query h "SELECT * FROM spells"
+        result: []
+        for sp in all_spells
+            sp_id: get sp "id"
+            for pr in ps_rows
+                if sp_id == (get pr "spell_id")
+                    push result sp
+        result
+
+--! Returns a spell definition by id.
+fn get_spell spell_id
+    rows: db_query (open_db 0) ("SELECT * FROM spells WHERE id = '" ++ (sql_escape spell_id) ++ "'")
+    if len rows > 0
+        at rows 0
+    else
+        nil
+
+--! Checks if the player knows a spell.
+fn knows_spell spell_id
+    rows: db_query (open_db 0) ("SELECT id FROM player_spells WHERE spieler = 1 AND spell_id = '" ++ (sql_escape spell_id) ++ "'")
+    len rows > 0
+
+-- ---- Monster abilities ----
+
+--! Returns all abilities for a monster type.
+fn get_monster_abilities monster_id
+    db_query (open_db 0) ("SELECT * FROM monster_abilities WHERE monster = '" ++ (sql_escape monster_id) ++ "'")
+
+--! Theme-aware narrator system prompt.
+fn narrator_system _
+    theme: get_meta "theme"
+    if theme == "" || theme == nil
+        theme: "Fantasy"
+    ton: get_meta "ton"
+    if ton == "" || ton == nil
+        ton: "düster"
+    "Du bist der Erzähler eines " ++ ton ++ "en " ++ theme ++ "-Textabenteuers (deutsch). Nutze die Werkzeuge, die der Spieler braucht, und fasse die Tool-Ergebnisse atmosphärisch in höchstens 3 Sätzen zusammen. Erfinde keine Gegenstände, Untiere oder Wege, die es nicht gibt. Bei Untieren ermutige den Spieler zum Angriff (attack_enemy), bei Händlern zum Handel (buy_item/sell_item)."
+
+--! Narrator prompt for lore/enrichment generation (shorter, author-focused).
+fn narrator_author _
+    theme: get_meta "theme"
+    if theme == "" || theme == nil
+        theme: "Fantasy"
+    ton: get_meta "ton"
+    if ton == "" || ton == nil
+        ton: "düster"
+    "Du bist ein fantasievoller Autor für " ++ ton ++ "e " ++ theme ++ "-Textabenteuer (deutsch). Halte dich exakt an die geforderte Länge."
+
+-- ---- Player XP / Level ----
+
+--! Adds XP to the player; returns new total.
+fn add_xp amount
+    p: (get_player 0)
+    xp: 0
+    if get p "xp" != nil
+        xp: get p "xp"
+    neu: xp + amount
+    db_exec (open_db 0) ("UPDATE player SET xp = " ++ (to_str neu) ++ " WHERE id = 1")
+    neu
+
+--! Returns the player's XP.
+fn get_xp _
+    p: (get_player 0)
+    if get p "xp" != nil
+        get p "xp"
+    else
+        0
+
 --! Respawns the player at the start room after death.
 fn respawn_player _
     h: (open_db 0)
-    db_exec h ("UPDATE player SET room = '" ++ (sql_escape (get_meta "start_room")) ++ "', hp = " ++ (get_meta "respawn_hp") ++ " WHERE id = 1")
+    respawn_mana: 4
+    m_raw: get_meta "mechanics"
+    if m_raw != ""
+        m: parse_json m_raw
+        if get m "respawn_mana" != nil
+            respawn_mana: get m "respawn_mana"
+    db_exec h ("UPDATE player SET room = '" ++ (sql_escape (get_meta "start_room")) ++ "', hp = " ++ (get_meta "respawn_hp") ++ ", mana = " ++ (to_str respawn_mana) ++ " WHERE id = 1")
     rep_add "doerfer" (-1)
 
 --! Returns all rooms as row maps.
@@ -462,7 +712,7 @@ fn set_flavor room_id raw
 fn save_game name
     safe: join_list (split (replace name " " "_") "/") "_"
     h: (open_db 0)
-    data: {player: db_query h "SELECT * FROM player", rooms: db_query h "SELECT * FROM rooms", monsters: db_query h "SELECT * FROM monsters", quests: db_query h "SELECT * FROM quests", objectives: db_query h "SELECT * FROM objectives", reputation: db_query h "SELECT * FROM reputation", npc_memory: db_query h "SELECT * FROM npc_memory"}
+    data: {player: db_query h "SELECT * FROM player", rooms: db_query h "SELECT * FROM rooms", monsters: db_query h "SELECT * FROM monsters", quests: db_query h "SELECT * FROM quests", objectives: db_query h "SELECT * FROM objectives", reputation: db_query h "SELECT * FROM reputation", npc_memory: db_query h "SELECT * FROM npc_memory", flavor: db_query h "SELECT * FROM flavor", buffs: db_query h "SELECT * FROM buffs", player_spells: db_query h "SELECT * FROM player_spells", monster_abilities: db_query h "SELECT * FROM monster_abilities"}
     if !file_exists "saves"
         make_dir "saves"
     write_file ("saves/" ++ safe ++ ".json") (to_json data)
@@ -490,6 +740,7 @@ fn restore_save data
     db_exec h "DELETE FROM reputation"
     db_exec h "DELETE FROM flavor"
     db_exec h "DELETE FROM npc_memory"
+    db_exec h "DELETE FROM buffs"
     for row in (get data "monsters")
         db_exec h ("INSERT INTO monsters VALUES ('" ++ (sql_escape (get row "id")) ++ "', '" ++ (sql_escape (get row "name")) ++ "', '" ++ (sql_escape (get row "room")) ++ "', " ++ (to_str (get row "hp")) ++ ", " ++ (to_str (get row "max_hp")) ++ ", " ++ (to_str (get row "defense")) ++ ", '" ++ (sql_escape (get row "loot")) ++ "', " ++ (to_str (get row "defeated")) ++ ")")
     for row in (get data "quests")
@@ -499,11 +750,40 @@ fn restore_save data
     for row in (get data "reputation")
         db_exec h ("INSERT INTO reputation VALUES ('" ++ (sql_escape (get row "fraktion")) ++ "', " ++ (to_str (get row "punkte")) ++ ")")
     for row in (get data "player")
-        db_exec h ("INSERT INTO player VALUES (" ++ (to_str (get row "id")) ++ ", '" ++ (sql_escape (get row "room")) ++ "', " ++ (to_str (get row "hp")) ++ ", " ++ (to_str (get row "gold")) ++ ", '" ++ (sql_escape (get row "inventory")) ++ "', " ++ (to_str (get row "won")) ++ ")")
+        --! Backwards compatible: old saves have 6 columns, new saves have 10
+        mana_val: 8
+        max_mana_val: 15
+        xp_val: 0
+        max_hp_val: 10
+        if get row "max_hp" != nil
+            max_hp_val: get row "max_hp"
+        if get row "mana" != nil
+            mana_val: get row "mana"
+        if get row "max_mana" != nil
+            max_mana_val: get row "max_mana"
+        if get row "xp" != nil
+            xp_val: get row "xp"
+        db_exec h ("INSERT INTO player VALUES (" ++ (to_str (get row "id")) ++ ", '" ++ (sql_escape (get row "room")) ++ "', " ++ (to_str (get row "hp")) ++ ", " ++ (to_str max_hp_val) ++ ", " ++ (to_str (get row "gold")) ++ ", " ++ (to_str mana_val) ++ ", " ++ (to_str max_mana_val) ++ ", " ++ (to_str xp_val) ++ ", '" ++ (sql_escape (get row "inventory")) ++ "', " ++ (to_str (get row "won")) ++ ")")
     for row in (get data "rooms")
         db_exec h ("INSERT INTO rooms VALUES ('" ++ (sql_escape (get row "id")) ++ "', '" ++ (sql_escape (get row "description")) ++ "', '" ++ (sql_escape (get row "items")) ++ "', '" ++ (sql_escape (get row "exits")) ++ "')")
     for row in (get data "npc_memory")
         db_exec h ("INSERT INTO npc_memory VALUES ('" ++ (sql_escape (get row "npc")) ++ "', '" ++ (sql_escape (get row "summary")) ++ "', " ++ (to_str (get row "turns")) ++ ")")
+    --! Restore flavor if saved (backwards compatible with old saves)
+    flav: or_default_list (get data "flavor")
+    for row in flav
+        db_exec h ("INSERT INTO flavor VALUES ('" ++ (sql_escape (get row "room")) ++ "', '" ++ (sql_escape (get row "body")) ++ "')")
+    --! Restore buffs if saved (backwards compatible)
+    buff_data: or_default_list (get data "buffs")
+    for row in buff_data
+        db_exec h ("INSERT INTO buffs VALUES (" ++ (to_str (get row "spieler")) ++ ", '" ++ (sql_escape (get row "art")) ++ "', " ++ (to_str (get row "wert")) ++ ", " ++ (to_str (get row "runden")) ++ ")")
+    --! Restore player spells if saved (backwards compatible)
+    ps_data: or_default_list (get data "player_spells")
+    for row in ps_data
+        db_exec h ("INSERT INTO player_spells VALUES (" ++ (to_str (get row "spieler")) ++ ", '" ++ (sql_escape (get row "spell_id")) ++ "')")
+    --! Restore monster abilities if saved (backwards compatible)
+    ma_data: or_default_list (get data "monster_abilities")
+    for row in ma_data
+        db_exec h ("INSERT INTO monster_abilities VALUES ('" ++ (sql_escape (get row "monster")) ++ "', '" ++ (sql_escape (get row "ability")) ++ "', '" ++ (sql_escape (get row "effekt")) ++ "', " ++ (to_str (get row "wert")) ++ ", " ++ (to_str (get row "runden")) ++ ", " ++ (to_str (get row "chance")) ++ ")")
 
 --! Saves the full world document (as produced by gen_world / loaded from disk)
 --! plus current state snapshot under worlds/. A saved world stays reusable:

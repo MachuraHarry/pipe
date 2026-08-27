@@ -4,6 +4,7 @@
 --! Win conditions and NPC placement are data-driven (objectives/npc_placement).
 
 import "state.pipe"
+import "lore.pipe"
 
 -- Module-held resource pack (set once at startup by worldcraft.pipe).
 PACK: [nil]
@@ -49,7 +50,16 @@ fn look _
             beschr: beschr ++ "\nHier sind: " ++ (join_list namen ", ")
         items: parse_json (get room "items")
         if len items > 0
-            beschr: beschr ++ "\nHier liegt: " ++ (join_list items ", ")
+            pack: get_pack 0
+            item_listen: []
+            for it in items
+                eintrag: it
+                if pack != nil
+                    def: find_pack_item pack it
+                    if def != nil && get def "desc" != nil
+                        eintrag: it ++ " -- " ++ (get def "desc")
+                push item_listen eintrag
+            beschr: beschr ++ "\nHier liegt: " ++ (join_list item_listen "\n  ")
         ms: monsters_in_room rid
         if len ms > 0
             mons: []
@@ -85,6 +95,7 @@ fn take_item item_name
     else
         if room_take_item (get p "room") item_name
             inventory_add item_name
+            check_fetch_objective item_name
             "Du nimmst: " ++ item_name
         else
             "Das liegt hier nicht."
@@ -122,6 +133,140 @@ fn find_monster name_or_id
                     set found 0 m
     at found 0
 
+-- ---- Magic system ----
+
+--! Shows all spells the player has learned.
+fn show_spells _
+    spells: player_spells 0
+    p: (get_player 0)
+    mana: 0
+    max_mana: 0
+    if p != nil
+        if get p "mana" != nil
+            mana: get p "mana"
+        if get p "max_mana" != nil
+            max_mana: get p "max_mana"
+    if len spells == 0
+        "Du kennst keine Zauber. (Mana: " ++ (to_str mana) ++ "/" ++ (to_str max_mana) ++ ")"
+    else
+        out: "Mana: " ++ (to_str mana) ++ "/" ++ (to_str max_mana) ++ "\nZauber:"
+        for sp in spells
+            sp_name: or_default_str (get sp "name")
+            sp_typ: or_default_str (get sp "typ")
+            sp_kosten: 0
+            if get sp "manakosten" != nil
+                sp_kosten: get sp "manakosten"
+            sp_schaden: 0
+            if get sp "schaden" != nil
+                sp_schaden: get sp "schaden"
+            sp_beschreibung: or_default_str (get sp "beschreibung")
+            out: out ++ "\n  " ++ sp_name ++ " (" ++ sp_typ ++ ") -- " ++ (to_str sp_kosten) ++ " Mana"
+            if sp_schaden > 0
+                out: out ++ ", " ++ (to_str sp_schaden) ++ " Schaden"
+            out: out ++ "\n    " ++ sp_beschreibung
+        out
+
+--! Learns a spell if the player doesn't know it yet (user-facing with message).
+fn learn_spell_ui spell_id
+    sp: get_spell spell_id
+    if sp == nil
+        "Diesen Zauber gibt es nicht."
+    else
+        if knows_spell spell_id
+            "Du kennst diesen Zauber bereits."
+        else
+            learn_spell spell_id
+            "Du hast gelernt: " ++ (get sp "name") ++ " -- " ++ (get sp "beschreibung")
+
+--! Casts a spell on a target.
+fn cast_spell spell_name target
+    sp: nil
+    -- Find spell by name or id
+    all_spells: player_spells 0
+    for s in all_spells
+        sid: or_default_str (get s "id")
+        sname: or_default_str (get s "name")
+        if sid == spell_name || lower sname == lower spell_name
+            sp: s
+    if sp == nil
+        "Du kennst diesen Zauber nicht oder er existiert nicht."
+    else
+        kosten: get sp "manakosten"
+        if !has_mana kosten
+            "Nicht genug Mana. (" ++ (to_str kosten) ++ " benötigt, " ++ (to_str (get (get_player 0) "mana")) ++ " vorhanden)"
+        else
+            typ: get sp "typ"
+            if typ == "angriff"
+                m: find_monster target
+                if m == nil
+                    "Hier gibt es kein Untier namens " ++ target ++ "."
+                else
+                    spend_mana kosten
+                    schaden: get sp "schaden"
+                    eff: get sp "effekt"
+                    bericht: "Du wirbst " ++ (get sp "name") ++ "! Ein Schauer aus Energie trifft " ++ (get m "name") ++ " für " ++ (to_str schaden) ++ " Schaden."
+                    hp: monster_hit (get m "id") schaden
+                    if hp <= 0
+                        monster_defeat (get m "id")
+                        bericht: bericht ++ "\nDas Untier ist besiegt!"
+                        if (get m "loot") != ""
+                            bericht: bericht ++ " Sein Fall legt frei: " ++ (get m "loot") ++ "."
+                    else
+                        if eff == "paralyse"
+                            apply_buff ("paralyse_" ++ (get m "id")) 1 1
+                            bericht: bericht ++ "\n" ++ (get m "name") ++ " ist gelähmt und kann nicht zurückschlagen!"
+                        else
+                            -- Monster retaliates normally
+                            rache: random_range 1 3
+                            php: (get (get_player 0) "hp") - rache
+                            set_player_hp php
+                            bericht: bericht ++ "\nEs schlägt zurück für " ++ (to_str rache) ++ " Schaden. (HP: " ++ (to_str php) ++ ")"
+                            if php <= 0
+                                (respawn_player 0)
+                                bericht: bericht ++ "\nSchwarz wird es vor deinen Augen. Du erwachst am Anfang."
+                    bericht
+            else
+                if typ == "heilung"
+                    spend_mana kosten
+                    heil: 5
+                    eff: get sp "effekt"
+                    if eff != "" && contains eff "heal_"
+                        heil_str: replace eff "heal_" ""
+                        heil: (to_num heil_str)
+                    p: (get_player 0)
+                    neu: (get p "hp") + heil
+                    max_hp_val: 10
+                    if get_meta "start_hp" != ""
+                        max_hp_val: (to_num (get_meta "start_hp"))
+                    if neu > max_hp_val
+                        neu: max_hp_val
+                    set_player_hp neu
+                    "Du wirbst " ++ (get sp "name") ++ ". Wärme durchströmt deinen Körper. (HP: " ++ (to_str neu) ++ ")"
+                else
+                    if typ == "verteidigung"
+                        spend_mana kosten
+                        eff: get sp "effekt"
+                        if eff == "block_1"
+                            apply_buff "eis_schild" 1 1
+                            "Du wirbst " ++ (get sp "name") ++ ". Ein eisiger Schimmer umhüllt dich -- ein Angriff wird absorbiert."
+                        else
+                            if contains eff "defense_"
+                                runden: 3
+                                if contains eff "3runden"
+                                    runden: 3
+                                apply_buff "verteidigung" 2 runden
+                                "Du wirbst " ++ (get sp "name") ++ ". Ein unsichtbarer Schutz lagert sich um dich. (+2 Verteidigung für " ++ (to_str runden) ++ " Runden)"
+                            else
+                                apply_buff "verteidigung" 1 2
+                                "Du wirbst " ++ (get sp "name") ++ ". Dein Körper fühlt sich fester an."
+                    else
+                        "Dieser Zaubertyp ist noch nicht implementiert."
+
+--! Defends without a spell: reduces incoming damage for one round.
+fn defend _
+    apply_buff "verteidigung" 2 1
+    "Du positionierst dich defensiv. (+2 Verteidigung für diese Runde)"
+
 --! Attacks a monster in the current room; the monster strikes back.
 fn attack_enemy target
     p: (get_player 0)
@@ -129,29 +274,122 @@ fn attack_enemy target
     if m == nil
         "Hier gibt es kein Untier dieses Namens."
     else
+        pack: get_pack 0
+        mechanics_raw: get_meta "mechanics"
+        mechanics: {}
+        if mechanics_raw != ""
+            mechanics: parse_json mechanics_raw
+        waffen_bonus: 2
+        if mechanics != {} && get mechanics "attack_bonus_waffe" != nil
+            waffen_bonus: get mechanics "attack_bonus_waffe"
         bonus: 0
-        if inventory_has "schwert"
-            bonus: 2
-        if inventory_has "axt"
-            bonus: 2
+        --! Data-driven weapon bonuses: each weapon in inventory contributes damage_bonus from pack
+        inv: parse_json (get p "inventory")
+        for it in inv
+            if pack != nil
+                def: find_pack_item pack it
+                if def != nil
+                    itype: or_default_str (get def "type")
+                    if itype == "waffe"
+                        dbonus: get def "damage_bonus"
+                        if dbonus != nil
+                            bonus: bonus + dbonus
+                        else
+                            bonus: bonus + waffen_bonus
+                    else
+                        if (get def "use_effect") == "buff" && (get def "buff_stat") == "angriff"
+                            bonus: bonus + 1
+        --! Apply buff/debuff modifiers
+        buff_bonus: get_buff "angriff"
+        debuff: get_buff "schwaeche"
+        debuff2: get_buff "angriff_down"
+        bonus: bonus + buff_bonus - debuff - debuff2
+        if bonus < 0
+            bonus: 0
         dmg: (random_range 1 6) + bonus - (get m "defense")
+        --! Verteidigungsbuff des Spielers
+        verteidigung: get_buff "verteidigung"
         if dmg < 0
             dmg: 0
         hp: monster_hit (get m "id") dmg
         bericht: "Dein Angriff trifft für " ++ (to_str dmg) ++ " Schaden."
         if hp <= 0
             monster_defeat (get m "id")
-            bericht: bericht ++ "\nDas Untier ist tot!"
+            mon_diff: 1
+            if get m "difficulty" != nil
+                mon_diff: get m "difficulty"
+            xp_betrag: mon_diff * 10
+            add_xp xp_betrag
+            bericht: bericht ++ "\nDas Untier ist tot! (+" ++ (to_str xp_betrag) ++ " XP)"
             if (get m "loot") != ""
                 bericht: bericht ++ " Sein Fall legt frei: " ++ (get m "loot") ++ "."
         else
-            rache: random_range 1 3
-            php: (get p "hp") - rache
-            set_player_hp php
-            bericht: bericht ++ "\nEs schlägt zurück für " ++ (to_str rache) ++ " Schaden. (Deine HP: " ++ (to_str php) ++ ")"
-            if php <= 0
-                (respawn_player 0)
-                bericht: bericht ++ "\nSchwarz wird es vor deinen Augen. Du erwachst am Anfang -- hereingetragen von fremden Händen."
+            --! Check if monster is paralyzed
+            paralyzed: get_buff ("paralyse_" ++ (get m "id"))
+            if paralyzed > 0
+                bericht: bericht ++ "\n" ++ (get m "name") ++ " ist gelähmt und kann nicht zurückschlagen."
+            else
+                --! Monster ability check
+                mon_type: (get m "id")
+                abilities: get_monster_abilities mon_type
+                ability_angewendet: false
+                for ab in abilities
+                    if !ability_angewendet
+                        chance: get ab "chance"
+                        roll: random_range 1 100
+                        if roll <= chance
+                            ability_angewendet: true
+                            eff: get ab "effekt"
+                            wert: get ab "wert"
+                            runden: get ab "runden"
+                            bericht: bericht ++ "\n" ++ (get m "name") ++ " setzt " ++ (get ab "ability") ++ " ein!"
+                            if eff == "gift"
+                                apply_buff "gift" wert runden
+                                bericht: bericht ++ " Du wirst vergiftet! (-" ++ (to_str wert) ++ " HP pro Runde)"
+                            else
+                                if eff == "schwaeche"
+                                    apply_buff "schwaeche" wert runden
+                                    bericht: bericht ++ " Du fühlst dich schwächer."
+                                else
+                                    if eff == "schreck"
+                                        apply_buff "schreck" wert runden
+                                        bericht: bericht ++ " Ein Schauer des Grausen überläuft dich."
+                                    else
+                                        if eff == "angriff_down"
+                                            apply_buff "angriff_down" wert runden
+                                            bericht: bericht ++ " Dein Angriff wird geschwächt."
+                                        else
+                                            if eff == "langsam"
+                                                apply_buff "langsam" wert runden
+                                                bericht: bericht ++ " Du wirst langsamer."
+                                            else
+                                                if eff == "defense_up"
+                                                    apply_buff ("monster_def_" ++ mon_type) wert runden
+                                                    bericht: bericht ++ " Die Haut wird fester."
+                                                else
+                                                    -- Direct damage ability (e.g. wurfdolch)
+                                                    bericht: bericht ++ " trifft dich für " ++ (to_str wert) ++ " Schaden!"
+                --! Monster retaliates (if not paralyzed and no eis_schild)
+                eis_schild: get_buff "eis_schild"
+                if !ability_angewendet || eis_schild > 0
+                    if eis_schild > 0
+                        clear_buff "eis_schild"
+                        bericht: bericht ++ "\nDein Eis-Schild absorbiert den Schlag."
+                    else
+                        rache: random_range 1 3
+                        --! Reduce damage by player defense buff
+                        rache: rache - verteidigung
+                        if rache < 0
+                            rache: 0
+                        --! Check monster defense_up buff
+                        mon_def_buff: get_buff ("monster_def_" ++ mon_type)
+                        -- Monster defense_up doesn't reduce retaliation, only incoming damage
+                        php: (get p "hp") - rache
+                        set_player_hp php
+                        bericht: bericht ++ "\nEs schlägt zurück für " ++ (to_str rache) ++ " Schaden. (HP: " ++ (to_str php) ++ ")"
+                        if php <= 0
+                            (respawn_player 0)
+                            bericht: bericht ++ "\nSchwarz wird es vor deinen Augen. Du erwachst am Anfang -- hereingetragen von fremden Händen."
         bericht
 
 -- ---- Trade ----
@@ -176,16 +414,22 @@ fn buy_price npc_row value
 fn sell_price npc_row value
     (value * (get npc_row "buys_pct")) / 100
 
---! Looks up an item definition row by id or name fragment.
+--! Looks up an item definition row by id or name fragment (pack + custom items).
 fn find_pack_item pack name_or_id
     found: [nil]
-    for it in (get pack "items")
-        if (at found 0) == nil
-            if (get it "id") == name_or_id
-                set found 0 it
-            else
-                if contains (lower (get it "name")) (lower name_or_id)
+    if pack != nil
+        for it in (get pack "items")
+            if (at found 0) == nil
+                if (get it "id") == name_or_id
                     set found 0 it
+                else
+                    if contains (lower (get it "name")) (lower name_or_id)
+                        set found 0 it
+    -- Also check custom items (AI-generated)
+    if (at found 0) == nil
+        custom: find_custom_item name_or_id
+        if custom != nil
+            set found 0 custom
     at found 0
 
 --! Buys an item from the trader in the current room.
@@ -227,25 +471,82 @@ fn sell_item pack item_name
                 gold: adjust_gold preis
                 "Du verkaufst " ++ (get def "id") ++ " für " ++ (to_str preis) ++ " Gold. (Kasse: " ++ (to_str gold) ++ ")"
 
---! Uses an item from the inventory. Heiltrank heals; others give flavor text.
+--! Checks if a pack item is usable (consumable or use_text tool).
+fn item_usable def
+    if def == nil
+        false
+    else
+        typ: get def "type"
+        if typ == "konsum"
+            true
+        else
+            (get def "use_text") == true
+
+--! Uses an item from the inventory (data-driven via pack).
 fn use_item item_name
     if !inventory_has item_name
         "Das trägst du nicht bei dir."
     else
-        if item_name == "heiltrank"
-            inventory_remove item_name
-            p: (get_player 0)
-            neu: (get p "hp") + 4
-            set_player_hp neu
-            "Du trinkst den Heiltrank. Wärme breitet sich aus. (HP: " ++ (to_str neu) ++ ")"
+        pack: get_pack 0
+        def: nil
+        if pack != nil
+            def: find_pack_item pack item_name
+        if def == nil
+            "Das lässt sich gerade nicht gebrauchen."
         else
-            if item_name == "fackel"
-                "Die Fackel flackert auf und wirft tanzendes Licht in die Dunkelheit."
-            else
-                if item_name == "laterne"
-                    "Du öffnest die Laterne -- ein ruhiger, goldener Lichtschein."
+            eff: get def "use_effect"
+            if eff == nil || eff == "none" || eff == ""
+                if (get def "use_text") == true
+                    desc: or_default_str (get def "desc")
+                    name: or_default_str (get def "name")
+                    if desc == ""
+                        desc: name
+                    "Du benutzt " ++ name ++ ". " ++ desc
                 else
-                    "Das lässt sich gerade nicht gebrauchen."
+                    itype: or_default_str (get def "type")
+                    if itype == "waffe"
+                        name: or_default_str (get def "name")
+                        "Der " ++ name ++ " ist eine Waffe. Greife ein Untier damit an, statt ihn zu benutzen."
+                    else
+                        "Das lässt sich gerade nicht gebrauchen."
+            else
+                inventory_remove item_name
+                name: or_default_str (get def "name")
+                if eff == "heal"
+                    heal_val: 4
+                    uv: get def "use_value"
+                    if uv != nil
+                        heal_val: uv
+                    mechanics_raw: get_meta "mechanics"
+                    if mechanics_raw != ""
+                        mechanics: parse_json mechanics_raw
+                        if get mechanics "heiltrank_heilung" != nil
+                            heal_val: get mechanics "heiltrank_heilung"
+                    p: (get_player 0)
+                    neu: (get p "hp") + heal_val
+                    set_player_hp neu
+                    "Du benutzt " ++ name ++ ". Wärme breitet sich aus. (HP: " ++ (to_str neu) ++ ")"
+                else
+                    if eff == "buff"
+                        stat: or_default_str (get def "buff_stat")
+                        bv: 3
+                        br: 3
+                        bv_raw: get def "buff_value"
+                        if bv_raw != nil
+                            bv: bv_raw
+                        br_raw: get def "buff_rounds"
+                        if br_raw != nil
+                            br: br_raw
+                        apply_buff stat bv br
+                        "Du benutzt " ++ name ++ ". (+" ++ (to_str bv) ++ " " ++ stat ++ " für " ++ (to_str br) ++ " Runden)"
+                    else
+                        if eff == "clear_buff"
+                            stat: or_default_str (get def "clear_stat")
+                            clear_buff stat
+                            "Du benutzt " ++ name ++ ". Der Effekt nachlässt."
+                        else
+                            inventory_add item_name
+                            "Das lässt sich gerade nicht gebrauchen."
 
 -- ---- Quest log & inventory display ----
 
@@ -267,7 +568,13 @@ fn show_quests _
 fn show_inventory _
     p: (get_player 0)
     inv: parse_json (get p "inventory")
-    kopf: "Gold: " ++ (to_str (get p "gold")) ++ " | HP: " ++ (to_str (get p "hp"))
+    kopf: "Gold: " ++ (to_str (get p "gold")) ++ " | HP: " ++ (to_str (get p "hp")) ++ " | Mana: " ++ (to_str (get p "mana")) ++ "/" ++ (to_str (get p "max_mana"))
+    buffs: all_buffs 0
+    if len buffs > 0
+        buff_texte: []
+        for b in buffs
+            push buff_texte ((get b "art") ++ " (+" ++ (to_str (get b "wert")) ++ ", " ++ (to_str (get b "runden")) ++ " Runden)")
+        kopf: kopf ++ "\nBuffs: " ++ (join_list buff_texte ", ")
     if len inv > 0
         kopf ++ "\nDu trägst bei dir: " ++ (join_list inv ", ")
     else
@@ -296,7 +603,11 @@ fn talk_to npc_id last_message
         else
             mem: alt
         persona: get_npc_persona_text npc_id
-        reply: ask ("Du bist " ++ persona ++ "\n\nBisherige Erinnerung an dieses Gespräch:\n" ++ mem ++ "\nDer Abenteurer sagt: \"" ++ last_message ++ "\"\n\nAntworte in Charakter, 1-3 Sätze.")
+        lore_ctx: lore_context last_message
+        kontext: ""
+        if lore_ctx != ""
+            kontext: "\n\nRelevantes Weltwissen:\n" ++ lore_ctx
+        reply: ask ("Du bist " ++ persona ++ "\n\nBisherige Erinnerung an dieses Gespräch:\n" ++ mem ++ kontext ++ "\nDer Abenteurer sagt: \"" ++ last_message ++ "\"\n\nAntworte in Charakter, 1-3 Sätze.")
         set_npc_memory npc_id (summarize ("Gespräch mit dem Abenteurer. " ++ mem ++ "\nSpieler: " ++ last_message ++ "\nAntwort: " ++ reply))
         npc_row: get_npc npc_id
         name: npc_id
@@ -336,6 +647,14 @@ fn rest_words cmd
         i: i + 1
     join_list out " "
 
+--! Returns the second word of a command (index 2) or empty string.
+fn second_word cmd
+    w: split cmd " "
+    if len w > 2
+        at w 2
+    else
+        ""
+
 --! Handles common commands locally (no AI): returns {handled, text}.
 fn fast_command cmd pack
     t: lower (trim cmd)
@@ -353,31 +672,46 @@ fn fast_command cmd pack
                 if erstes == "westen" || erstes == "w" || (erstes == "geh" && contains t "westen")
                     {handled: true, out: move_to "westen"}
                 else
-                    if erstes == "nimm" && len w > 1
-                        {handled: true, out: take_item (rest_words t)}
+                    if erstes == "oben" || erstes == "rauf" || (erstes == "geh" && contains t "oben")
+                        {handled: true, out: move_to "oben"}
                     else
-                        if (erstes == "kauf" || erstes == "kaufe") && len w > 1
-                            {handled: true, out: buy_item pack (rest_words t)}
+                        if erstes == "unten" || erstes == "runter" || (erstes == "geh" && contains t "unten")
+                            {handled: true, out: move_to "unten"}
                         else
-                            if (erstes == "verkauf" || erstes == "verkaufe") && len w > 1
-                                {handled: true, out: sell_item pack (rest_words t)}
+                            if erstes == "nimm" && len w > 1
+                                {handled: true, out: take_item (rest_words t)}
                             else
-                                if (erstes == "benutze" || erstes == "trinke") && len w > 1
-                                    {handled: true, out: use_item (rest_words t)}
+                                if (erstes == "kauf" || erstes == "kaufe") && len w > 1
+                                    {handled: true, out: buy_item pack (rest_words t)}
                                 else
-                                    if erstes == "inventar" || erstes == "inv" || erstes == "i"
-                                        {handled: true, out: show_inventory 0}
+                                    if (erstes == "verkauf" || erstes == "verkaufe") && len w > 1
+                                        {handled: true, out: sell_item pack (rest_words t)}
                                     else
-                                        if erstes == "quests" || erstes == "aufgaben" || erstes == "log"
-                                            {handled: true, out: show_quests 0}
+                                        if (erstes == "benutze" || erstes == "trinke") && len w > 1
+                                            {handled: true, out: use_item (rest_words t)}
                                         else
-                                            if (erstes == "schau" || erstes == "umschauen" || erstes == "look")
-                                                {handled: true, out: look 0}
+                                            if erstes == "inventar" || erstes == "inv" || erstes == "i"
+                                                {handled: true, out: show_inventory 0}
                                             else
-                                                if (erstes == "greife" || erstes == "angriff" || erstes == "kämpfe") && len w > 1
-                                                    {handled: true, out: attack_enemy (first_word (rest_words t))}
+                                                if erstes == "quests" || erstes == "aufgaben" || erstes == "log"
+                                                    {handled: true, out: show_quests 0}
                                                 else
-                                                    {handled: false, out: ""}
+                                                    if (erstes == "schau" || erstes == "umschauen" || erstes == "look")
+                                                        {handled: true, out: look 0}
+                                                    else
+                                                        if (erstes == "greife" || erstes == "angriff" || erstes == "kämpfe") && len w > 1
+                                                            {handled: true, out: attack_enemy (first_word (rest_words t))}
+                                                        else
+                                                            if (erstes == "zauber" || erstes == "zaubere") && len w > 1
+                                                                {handled: true, out: cast_spell (first_word (rest_words t)) (second_word t)}
+                                                            else
+                                                                if erstes == "magie" || erstes == "zauberliste"
+                                                                    {handled: true, out: show_spells 0}
+                                                                else
+                                                                    if (erstes == "wehre" && contains t "dich") || erstes == "verteidige"
+                                                                        {handled: true, out: defend 0}
+                                                                    else
+                                                                        {handled: false, out: ""}
 
 -- ---- Tool registration for ai_with_tools ----
 
@@ -400,3 +734,6 @@ fn sell_item_ai item_name
 
 ai_tool "buy_item" "Kaufe einen Gegenstand beim Händler im Raum" {item_name: "Name des Gegenstands"} buy_item_ai
 ai_tool "sell_item" "Verkaufe einen Gegenstand an den Händler im Raum" {item_name: "Name des Gegenstands"} sell_item_ai
+ai_tool "cast_spell" "Wirke einen Zauber auf ein Ziel" {spell_name: "Name oder ID des Zaubers", target: "Ziel des Zaubers (Monstername)"} cast_spell
+ai_tool "show_spells" "Zeige alle gelernten Zauber und dein Mana" {} show_spells
+ai_tool "defend" "Verteidige dich gegen einen Angriff (reduziert incoming Schaden)" {} defend

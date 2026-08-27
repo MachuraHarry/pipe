@@ -1,0 +1,37 @@
+--! log.pipe — structured logging for Worldcraft
+--! Writes timestamped entries to stdout (journal) and appends to worldcraft.log.
+--! Usage: (import 'log.pipe')
+--!        log "BOOT" "worker gestartet"
+--!        log_err "GEN" "KI-Antwort leer"
+
+LOG_FILE: "worldcraft.log"
+
+--! Format timestamp as "[2026-08-26 14:30:05]"
+fn log_ts _
+    format_time (now) "2006-01-02 15:04:05"
+
+--! Core log: writes to stdout + appends to file.
+fn log section msg
+    ts: log_ts 0
+    line: ts ++ " [" ++ section ++ "] " ++ msg
+    print line
+    try
+        append_file LOG_FILE (line ++ "\n")
+    catch e
+        print ("  [LOG] file write failed: " ++ (to_str e))
+
+--! Log with ERROR prefix.
+fn log_err section msg
+    log section ("ERROR " ++ msg)
+
+--! Log an exception / catch value.
+fn log_exception section label err
+    log_err section (label ++ ": " ++ (to_str err))
+
+--! Start a session block — logs a separator for easy scanning.
+fn log_block section title
+    log section ("=== " ++ title ++ " ===")
+
+--! Log a key=value pair for structured data.
+fn log_kv section key val
+    log section (key ++ "=" ++ (to_str val))

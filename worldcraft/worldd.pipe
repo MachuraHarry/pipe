@@ -10,6 +10,7 @@ import "lore.pipe"
 import "gen_world.pipe"
 import "turns.pipe"
 import "api.pipe"
+import "log.pipe"
 
 SID: ["?"]
 PORT: ["0"]
@@ -45,48 +46,64 @@ fn restore_session_if_any _
 
 --! Loads an existing world or generates a new one from the session config.
 fn boot_task _
+    log "BOOT" "Starte fuer Session " ++ (at SID 0)
     try
+        log "BOOT" "Lade Pack pack_core.json"
         pack: load_pack "pack_core.json"
         set_pack pack
         init_db 0
+        log "BOOT" "DB initialisiert, lese Config"
         config_path: ".sessions/" ++ (at SID 0) ++ ".config.json"
         cfg: parse_json (read_file config_path)
         weltname: get cfg "world"
         if weltname == nil || weltname == ""
             weltname: (at SID 0)
+        log "BOOT" "Weltname=" ++ weltname
         vorhanden: load_world_doc weltname
         if vorhanden != nil
+            log "BOOT" "Bestehende Welt gefunden, lade sie"
+            seed_pack_extras pack
             set_meta "world_file" weltname
         else
-            -- Neue Welt: Briefing (+ optional Profil) aus der Config generieren.
+            log "BOOT" "Keine bestehende Welt — generiere neue"
             ai_provider "opencode"
             model: pick_free_model FREE_MODELS
-            print ("[worldd " ++ (at SID 0) ++ "] Modell: " ++ model)
+            log "BOOT" "Modell=" ++ model
             wunsch: get cfg "briefing"
             if wunsch == nil || wunsch == ""
+                log "BOOT" "Kein Briefing — Fallback-Welt"
                 doc: fallback_world pack
                 apply_profile doc {stil: "normal", schwierigkeit: "normal"} pack
                 save_world_doc weltname doc
                 seed_full doc
             else
+                log "BOOT" "Briefing vorhanden, starte gen_design"
                 profil: get cfg "profil"
                 if profil == nil
                     profil: {stil: "normal", schwierigkeit: "normal"}
+                log "BOOT" "Profil=" ++ (to_str profil)
+                ai_timeout 300
                 erg: gen_design wunsch pack profil 3
                 doc2: nil
                 if len (get erg "errors") > 0
+                    log_err "BOOT" "Design fehlgeschlagen: " ++ (join_list (get erg "errors") "; ")
                     doc2: fallback_world pack
                 else
+                    log "BOOT" "Design OK, starte gen_map"
                     design: get erg "design"
+                    ai_timeout 300
                     karte: gen_map design pack 3
                     if len (get karte "errors") > 0
+                        log_err "BOOT" "Karte fehlgeschlagen: " ++ (join_list (get karte "errors") "; ")
                         doc2: fallback_world pack
                     else
+                        log "BOOT" "Karte OK, starte enrich_lore"
                         doc2: get karte "doc"
                         try
                             enrich_lore doc2 (get design "thema") (get design "ton")
-                        catch
-                            print "[worldd] Atmosphäre übersprungen"
+                            log "BOOT" "Lore-Anreicherung abgeschlossen"
+                        catch e
+                            log_err "BOOT" "Lore-Anreicherung uebersprungen: " ++ e
                 apply_profile doc2 profil pack
                 set_meta "world_file" weltname
                 save_world_doc weltname doc2
@@ -94,12 +111,16 @@ fn boot_task _
         restored: restore_session_if_any 0
         if !restored
             new_game 0
+            log "BOOT" "Neues Spiel gestartet"
+        else
+            log "BOOT" "Vorheriges Spiel wiederhergestellt"
         lore_index_build_quiet 0
+        log "BOOT" "Lore-Index gebaut"
         set READY 0 true
-        print ("[worldd " ++ (at SID 0) ++ "] bereit auf :" ++ (at PORT 0))
+        log "BOOT" "BEREIT auf :" ++ (at PORT 0)
     catch e
         set BOOT_ERROR 0 e
-        print ("[worldd " ++ (at SID 0) ++ "] Boot-Fehler: " ++ e)
+        log_err "BOOT" e
 
 --! Builds the lore index without failing hard when embeddings are down.
 fn lore_index_build_quiet _
@@ -124,19 +145,24 @@ fn create_job kind payload
 
 --! Background worker for one job.
 fn run_job_task jid kind payload
+    log "JOB" "Starte Job " ++ jid ++ " kind=" ++ kind
     erg: nil
     err: ""
     try
         if kind == "expand"
+            log "JOB" "Erweitere Welt: " ++ (to_str (get payload "wunsch"))
             erg: expand_world_ai (get payload "wunsch")
         else
             if kind == "new_adventure"
+                log "JOB" "Neues Abenteuer"
                 erg: neues_abenteuer_ai 0
             else
+                log "JOB" "Turn: " ++ (to_str (get payload "input"))
                 erg2: api_turn (get payload "input")
                 erg: erg2
     catch e
         err: e
+        log_err "JOB" jid ++ ": " ++ e
         erg: ""
     persist_session 0
     job: get JOBS jid
@@ -148,6 +174,7 @@ fn run_job_task jid kind payload
             set job "result" {narration: erg, dialog: nil, state: (api_state 0), options: (build_options 0)}
         set job "error" err
     set ACTIVE 0 nil
+    log "JOB" "Job " ++ jid ++ " fertig"
 
 --! Job status/result map or nil.
 fn get_job jid
@@ -237,6 +264,7 @@ if len args >= 3
     set IDLE_MS 0 (to_num (at args 2))
 
 print ("[worldd " ++ (at SID 0) ++ "] starte auf :" ++ (at PORT 0))
+log "BOOT" "Worldd-Prozess gestartet"
 ai_provider "opencode"
 srv: http_server ("0.0.0.0:" ++ (at PORT 0)) handle_root
 
@@ -247,6 +275,7 @@ while !(at SHUTDOWN 0)
     sleep 300
     if ((time_ms) - (at LAST_SEEN 0)) > (at IDLE_MS 0)
         print "[worldd] idle-timeout — speichere und beende."
+        log "BOOT" "Idle-Timeout, beende"
         persist_session 0
         set SHUTDOWN 0 true
 

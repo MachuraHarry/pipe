@@ -20,10 +20,24 @@ SHUTDOWN: [false]
 LAST_SEEN: [0]
 IDLE_MS: [600000]
 
+--! Live boot progress, updated by boot_task as phases complete.
+--! Map with keys: phase, detail, progress (0-100), started_ms.
+BOOT_STATE: [nil]
+
 ACTIVE: [nil]
 JOBS: {}
 
 JOB_COUNTER: [0]
+
+--! Records a boot progress update (callback for gen_design/gen_map etc.).
+fn boot_progress phase detail progress
+    st: at BOOT_STATE 0
+    if st == nil
+        st: {}
+    set st "phase" phase
+    set st "detail" detail
+    set st "progress" progress
+    set BOOT_STATE 0 st
 
 -- ---- Session persistence (reuses tested save_game/load_game blobs) ----
 
@@ -47,11 +61,13 @@ fn restore_session_if_any _
 --! Loads an existing world or generates a new one from the session config.
 fn boot_task _
     log "BOOT" "Starte fuer Session " ++ (at SID 0)
+    boot_progress "start" "Initialisiere…" 2
     try
         log "BOOT" "Lade Pack pack_core.json"
         pack: load_pack "pack_core.json"
         set_pack pack
         init_db 0
+        boot_progress "start" "Initialisiere Datenbank…" 5
         log "BOOT" "DB initialisiert, lese Config"
         config_path: ".sessions/" ++ (at SID 0) ++ ".config.json"
         cfg: parse_json (read_file config_path)
@@ -72,6 +88,7 @@ fn boot_task _
             wunsch: get cfg "briefing"
             if wunsch == nil || wunsch == ""
                 log "BOOT" "Kein Briefing — Fallback-Welt"
+                boot_progress "seed" "Erstelle Standardwelt…" 60
                 doc: fallback_world pack
                 apply_profile doc {stil: "normal", schwierigkeit: "normal"} pack
                 save_world_doc weltname doc
@@ -83,7 +100,8 @@ fn boot_task _
                     profil: {stil: "normal", schwierigkeit: "normal"}
                 log "BOOT" "Profil=" ++ (to_str profil)
                 ai_timeout 300
-                erg: gen_design wunsch pack profil 3
+                boot_progress "design" "Entwerfe das Spielkonzept…" 15
+                erg: gen_design wunsch pack profil 3 boot_progress
                 doc2: nil
                 if len (get erg "errors") > 0
                     log_err "BOOT" "Design fehlgeschlagen: " ++ (join_list (get erg "errors") "; ")
@@ -92,13 +110,15 @@ fn boot_task _
                     log "BOOT" "Design OK, starte gen_map"
                     design: get erg "design"
                     ai_timeout 300
-                    karte: gen_map design pack 3
+                    boot_progress "map" "Baue die Karte auf…" 55
+                    karte: gen_map design pack 3 boot_progress
                     if len (get karte "errors") > 0
                         log_err "BOOT" "Karte fehlgeschlagen: " ++ (join_list (get karte "errors") "; ")
                         doc2: fallback_world pack
                     else
                         log "BOOT" "Karte OK, starte enrich_lore"
                         doc2: get karte "doc"
+                        boot_progress "atmos" "Verleihe der Welt Atmosphäre…" 82
                         try
                             enrich_lore doc2 (get design "thema") (get design "ton")
                             log "BOOT" "Lore-Anreicherung abgeschlossen"
@@ -107,7 +127,9 @@ fn boot_task _
                 apply_profile doc2 profil pack
                 set_meta "world_file" weltname
                 save_world_doc weltname doc2
+                boot_progress "seed" "Setze die Welt zusammen…" 92
                 seed_full doc2
+        boot_progress "seed" "Schliesse die Welt ab…" 95
         restored: restore_session_if_any 0
         if !restored
             new_game 0
@@ -117,10 +139,12 @@ fn boot_task _
         lore_index_build_quiet 0
         log "BOOT" "Lore-Index gebaut"
         set READY 0 true
+        boot_progress "done" "Bereit!" 100
         log "BOOT" "BEREIT auf :" ++ (at PORT 0)
     catch e
         set BOOT_ERROR 0 e
         log_err "BOOT" e
+        boot_progress "error" ("Fehler: " ++ e) 100
 
 --! Builds the lore index without failing hard when embeddings are down.
 fn lore_index_build_quiet _
@@ -190,45 +214,60 @@ fn handle_root req
         body: {status: "ok", session: (at SID 0), ready: (at READY 0), error: (at BOOT_ERROR 0)}
         json_res 200 body
     else
-        if !(at READY 0)
-            booterr: at BOOT_ERROR 0
-            if booterr != ""
-                json_err 500 "boot_failed" booterr
-            else
-                json_err 503 "booting" "Welt wird vorbereitet — bitte pollen"
+        if path == "/boot" && method == "GET"
+            st: at BOOT_STATE 0
+            bphase: "start"
+            bdetail: ""
+            bprogress: 0
+            if st != nil
+                bphase: get st "phase"
+                bdetail: get st "detail"
+                bprogress: get st "progress"
+            if (at READY 0)
+                bphase: "done"
+                bdetail: "Bereit!"
+                bprogress: 100
+            json_res 200 {session: (at SID 0), ready: (at READY 0), progress: bprogress, phase: bphase, detail: bdetail, error: (at BOOT_ERROR 0)}
         else
-            if method == "OPTIONS"
-                json_res 200 {}
-            else
-                if path == "/state" && method == "GET"
-                    json_res 200 (api_intro 0)
+            if !(at READY 0)
+                booterr: at BOOT_ERROR 0
+                if booterr != ""
+                    json_err 500 "boot_failed" booterr
                 else
-                    if path == "/command" && method == "POST"
-                        route_job req "command"
+                    json_err 503 "booting" "Welt wird vorbereitet — bitte pollen"
+            else
+                if method == "OPTIONS"
+                    json_res 200 {}
+                else
+                    if path == "/state" && method == "GET"
+                        json_res 200 (api_intro 0)
                     else
-                        if path == "/expand" && method == "POST"
-                            route_job req "expand"
+                        if path == "/command" && method == "POST"
+                            route_job req "command"
                         else
-                            if path == "/new-adventure" && method == "POST"
-                                route_job req "new_adventure"
+                            if path == "/expand" && method == "POST"
+                                route_job req "expand"
                             else
-                                if path == "/shutdown" && method == "POST"
-                                    persist_session 0
-                                    set SHUTDOWN 0 true
-                                    json_res 200 {status: "bye"}
+                                if path == "/new-adventure" && method == "POST"
+                                    route_job req "new_adventure"
                                 else
-                                    if starts_with_jobs path && method == "GET"
-                                        jid: job_id_of path
-                                        job: get_job jid
-                                        if job == nil
-                                            json_err 404 "unknown_job" ("Kein Job: " ++ jid)
-                                        else
-                                            if (get job "status") == "done" && (get job "error") != ""
-                                                json_res 200 {job_id: jid, status: "done", error: (get job "error")}
-                                            else
-                                                json_res 200 job
+                                    if path == "/shutdown" && method == "POST"
+                                        persist_session 0
+                                        set SHUTDOWN 0 true
+                                        json_res 200 {status: "bye"}
                                     else
-                                        json_err 404 "not_found" ("Unbekannter Pfad: " ++ path)
+                                        if starts_with_jobs path && method == "GET"
+                                            jid: job_id_of path
+                                            job: get_job jid
+                                            if job == nil
+                                                json_err 404 "unknown_job" ("Kein Job: " ++ jid)
+                                            else
+                                                if (get job "status") == "done" && (get job "error") != ""
+                                                    json_res 200 {job_id: jid, status: "done", error: (get job "error")}
+                                                else
+                                                    json_res 200 job
+                                        else
+                                            json_err 404 "not_found" ("Unbekannter Pfad: " ++ path)
 
 --! POST /command | /expand | /new-adventure → 202 + job_id (oder 409 wenn busy).
 fn route_job req kind

@@ -393,7 +393,7 @@ fn apply_profile doc profil pack
 
 --! Asks the LLM for a world design (which pack entries to use). Rotates
 --! models per attempt; parses JSON out of possibly chatty raw responses.
-fn gen_design prompt pack profil max_tries
+fn gen_design prompt pack profil max_tries on_status
     log_block "GEN-DESIGN" "Starte Design-Generierung"
     katalog: pack_catalog pack
     p: validate_profil profil
@@ -403,6 +403,8 @@ fn gen_design prompt pack profil max_tries
     while versuch < max_tries && len fehler > 0
         modell: (at GEN_MODELS (versuch % (len GEN_MODELS)))
         log "GEN-DESIGN" "Versuch " ++ (to_str (versuch + 1)) ++ "/" ++ (to_str max_tries) ++ " Modell=" ++ modell
+        if on_status != nil
+            on_status "design" ("Versuch " ++ (to_str (versuch + 1)) ++ "/" ++ (to_str max_tries)) (10 + (versuch * 8))
         ai_model modell
         nachricht: "Wunsch des Spielers:\n" ++ prompt ++ "\n\nSpieler-Profil: Stil=" ++ (get p "stil") ++ ", Schwierigkeit=" ++ (get p "schwierigkeit") ++ " (waehle Monster/Items passend zum Stil; bei schwer eher starke Monster, bei leicht schwache)\n\nVerfügbares Ressourcen-Paket:\n" ++ katalog ++ "\nErstelle ein Design. Antworte als JSON:\n{thema: str, ton: str, raumzahl: zahl, items: [pack-item-ids], custom_items: [{id: str (kurz, z.B. \"feueramulett\"), name: str, type: \"waffe|konsum|quest|werkzeug|schmuck\", value: zahl, tags: [str], desc: str (1 Satz), damage_bonus: zahl ODER 0, ranged: false ODER true, use_effect: \"none|heal|buff|clear_buff\", use_value: zahl ODER 0, buff_stat: str ODER \"\", buff_value: 0, buff_rounds: 0, clear_stat: str ODER \"\"}], npcs: [{id: str (kurz, z.B. \"siegfried\"), template: \"haendler|waechter|weiser|heiler|bettler\", name: str (zum Thema passender Name), temperament: str, persona: str (2-3 Saetze)}], monsters: [pack-monster-ids], quests: [pack-quest-ids], siegesbedingung: {kind: \"give|kill|explore\", target: id, npc: npc-id_nur_bei_give}}\n\nWICHTIG: npc-ids muessen in der siegesbedingung und in der karte referenziert werden können. Waehle 3-6 NPCs passend zum Thema. Erstelle individuelle Namen und Persoenlichkeiten, die zur Welt passen.\nErstelle 3-6 custom_items, die zur Welt passen (z.B. eine spezielle Waffe, einen einzigartigen Trank, ein artefaktisches Quest-Item). Nutzepack_item-ids NICHT für custom_items -- diese sind eigene Kreationen."
         try
@@ -423,7 +425,7 @@ fn gen_design prompt pack profil max_tries
     {design: design, errors: fehler}
 
 --! Asks the LLM for the concrete map using ONLY validated design ids.
-fn gen_map design pack max_tries
+fn gen_map design pack max_tries on_status
     log_block "GEN-MAP" "Starte Karten-Generierung"
     mech: get pack "mechanics"
     minr: get mech "min_rooms"
@@ -452,6 +454,8 @@ fn gen_map design pack max_tries
     while versuch < max_tries && len fehler > 0
         modell: (at GEN_MODELS (versuch % (len GEN_MODELS)))
         log "GEN-MAP" "Versuch " ++ (to_str (versuch + 1)) ++ "/" ++ (to_str max_tries) ++ " Modell=" ++ modell
+        if on_status != nil
+            on_status "map" ("Versuch " ++ (to_str (versuch + 1)) ++ "/" ++ (to_str max_tries)) (45 + (versuch * 12))
         ai_model modell
         try
             roh: ai_chat MAP_SYSTEM nachricht 6000

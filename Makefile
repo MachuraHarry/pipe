@@ -1,4 +1,4 @@
-.PHONY: build run test test-parity test-integration clean repl api lsp vsix fmt stats stats-check docs-dashboard
+.PHONY: build run test test-parity test-integration clean repl api lsp vsix fmt stats stats-check docs-dashboard worldcraft-version
 
 # Regenerate stats.json + sync README/website numbers (commit the result so CI can check for drift).
 stats:
@@ -54,3 +54,9 @@ clean:
 
 fmt:
 	go fmt ./...
+
+# Regenerate the Worldcraft web cache-busting version (index.html + sw.js)
+# based on a content hash of the frontend files. Run after editing web/*
+# so clients fetch the new assets without manually clearing the cache.
+worldcraft-version:
+	python3 worldcraft/versionize.py

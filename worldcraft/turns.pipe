@@ -66,6 +66,15 @@ fn is_talk_input t
     w: split t " "
     (at w 0) == "rede" || (at w 0) == "frag" || (at w 0) == "gib"
 
+--! Removes a leading greeting word so "Hallo gib X Y" still resolves locally.
+fn strip_greeting t
+    w: split t " "
+    greetings: ["hallo", "hi", "hey", "servus", "moin", "tach", "guten", "grüß", "gruss", "guten tag"]
+    if contains greetings (at w 0)
+        words_from w 1
+    else
+        t
+
 --! Joins words [from, len) of a split command into one lowercase string.
 fn words_from ws from
     out: []
@@ -147,19 +156,31 @@ fn process_turn inp
                 log "TURN" "Typ: talk"
                 set result "narration" (process_talk inp)
             else
-                fc: fast_command inp (get_pack 0)
-                if (get fc "handled") == true
-                    set result "type" "fast"
-                    log "TURN" "Typ: fast"
-                    set result "narration" (get fc "out")
+                gc: strip_greeting t
+                if gc != t && is_talk_input gc
+                    set result "type" "narrator"
+                    log "TURN" "Typ: talk (gegruesst)"
+                    set result "narration" (process_talk gc)
                 else
-                    log "TURN" "Typ: narrator"
-                    text: narrator_reply inp
-                    if text == ""
-                        set result "error" "alle Modelle nicht erreichbar"
-                        log_err "TURN" "Alle Modelle nicht erreichbar"
+                    if t == "geh weiter" || t == "weiter"
+                        set result "type" "fast"
+                        log "TURN" "Typ: fast (weiter)"
+                        set result "narration" (look 0)
                     else
-                        set result "narration" text
+                        fc: fast_command inp (get_pack 0)
+                        if (get fc "handled") == true
+                            set result "type" "fast"
+                            log "TURN" "Typ: fast"
+                            set result "narration" (get fc "out")
+                        else
+                            log "TURN" "Typ: narrator"
+                            text: narrator_reply inp
+                            if text == ""
+                                set result "error" "alle Modelle nicht erreichbar"
+                                log_err "TURN" "Alle Modelle nicht erreichbar"
+                                set result "narration" "Der Erzähler antwortet gerade nicht — versuch einen klaren Befehl wie „geh nach norden“, „nimm X“, „rede mit X“ oder „schau“."
+                            else
+                                set result "narration" text
     set result "won" (get (get_player 0) "won")
     tick_buffs 0
     log "TURN" "Fertig: won=" ++ (to_str (get result "won"))

@@ -333,6 +333,35 @@ test "npc fallback reply is deterministic and never silent"
     expect_contains antwort2 "Sei gegrüßt" "greeting detected"
     expect_contains antwort2 "Hilda" "names trader"
 
+test "strip_greeting drops a leading greeting word"
+    expect_eq (strip_greeting "hallo gib erik etwas") "gib erik etwas" "hallo stripped"
+    expect_eq (strip_greeting "hi rede mit elara") "rede mit elara" "hi stripped"
+    expect_eq (strip_greeting "geh nach norden") "geh nach norden" "no greeting -> unchanged"
+
+test "geh weiter is resolved deterministically without AI"
+    fresh_example 0
+    move_to "norden"
+    result: process_turn "geh weiter"
+    expect_eq (get result "type") "fast" "geh weiter stays fast"
+    expect_eq (get result "error") "" "no AI error set"
+    expect_truthy (len (get result "narration") > 0) "geh weiter has narration"
+
+test "greeting-prefixed give command resolves locally without AI"
+    fresh_example 0
+    inventory_add "goldmuenze"
+    move_to "norden"
+    result: process_turn "Hallo gib weiser_aldric goldmuenze"
+    expect_eq (get result "type") "narrator" "stays narrator"
+    expect_eq (get result "error") "" "no AI error set"
+    expect_eq (get (get_player 0) "won") 1 "giving objective wins"
+
+test "missing item via dialog give returns plain feedback, not silent"
+    fresh_example 0
+    move_to "norden"
+    result: process_turn "gib weiser_aldric elfenbein"
+    expect_truthy (len (get result "narration") > 0) "non-empty feedback"
+    expect_eq (get result "error") "" "no AI error set"
+
 --- === Save / Load === ===
 
 test "game save and load roundtrip"

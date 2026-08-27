@@ -39,13 +39,23 @@ test "pack loads with all sections"
     expect_gt (len (get pack "rooms")) 5 "enough room templates"
 
 test "valid design passes validation"
-    design: {thema: "Test", ton: "düster", raumzahl: 6, items: ["fackel", "goldmuenze"], npcs: ["kraemerin_hilda"], monsters: ["kammerling"], quests: ["q_ungewuerm"], siegesbedingung: {kind: "give", target: "goldmuenze", npc: "weiser_aldric"}}
+    design: {thema: "Test", ton: "düster", raumzahl: 6, items: ["fackel", "goldmuenze"], npcs: [{id: "hilda", template: "haendler", name: "Hilda die Händlerin"}], monsters: ["kammerling"], quests: ["q_ungewuerm"], siegesbedingung: {kind: "give", target: "goldmuenze", npc: "hilda"}}
     expect_eq (len (validate_design design pack)) 0 "no errors"
 
 test "unknown ids fail validation"
-    design: {thema: "Test", ton: "düster", raumzahl: 99, items: ["nichts"], npcs: [], monsters: [], quests: []}
+    design: {thema: "Test", ton: "düster", raumzahl: 99, items: ["nichts"], npcs: [{id: "x", template: "haendler", name: "X"}], monsters: [], quests: []}
     fehler: validate_design design pack
     expect_gt (len fehler) 1 "raumzahl and item flagged"
+
+test "unknown npc template fails validation"
+    design: {thema: "Test", ton: "düster", raumzahl: 6, items: ["fackel"], npcs: [{id: "x", template: "unbekannt", name: "X"}], monsters: [], quests: []}
+    fehler: validate_design design pack
+    expect_gt (len fehler) 0 "unknown template flagged"
+
+test "duplicate npc ids fail validation"
+    design: {thema: "Test", ton: "düster", raumzahl: 6, items: ["fackel"], npcs: [{id: "a", template: "haendler", name: "A"}, {id: "a", template: "waechter", name: "A2"}], monsters: [], quests: []}
+    fehler: validate_design design pack
+    expect_gt (len fehler) 0 "duplicate npc id flagged"
 
 --- === Map validation & BFS === ===
 
@@ -82,6 +92,17 @@ test "normalize fills monster stats from pack"
     expect_eq (get m "hp") 6 "hp from pack"
     expect_eq (get m "name") "Rostiges Skelett" "name from pack"
     expect_eq (get m "loot") "axt" "loot from pack"
+
+test "normalize applies template-based npc from design"
+    raw: {name: "X", start_room: "tpl_eingang", rooms: {}, npcs: [{id: "siegfried", room: "tpl_halle"}], monsters: [], objectives: []}
+    design: {npcs: [{id: "siegfried", template: "waechter", name: "Siegfried Eisenhand", temperament: "streng", persona: "Ein alter Krieger."}], quests: []}
+    doc: normalize_map raw pack design
+    npc: at (get doc "npcs") 0
+    expect_eq (get npc "name") "Siegfried Eisenhand" "custom name from design"
+    expect_eq (get npc "role") "waechter" "role from pack template"
+    expect_eq (get npc "temperament") "streng" "custom temperament"
+    expect_eq (get npc "room") "tpl_halle" "room from raw map"
+    expect_eq (get npc "buys_pct") 0 "buys_pct from pack template"
 
 --- === Seeding & Movement === ===
 

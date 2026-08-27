@@ -72,13 +72,18 @@ fn find_room_template pack id
     at found 0
 
 --! Builds a compact catalog string (id | name | tags only) to save tokens.
+--! NPC section lists available roles/templates instead of fixed characters.
 fn pack_catalog pack
     out: "== ITEMS ==\n"
     for it in (get pack "items")
         out: out ++ (get it "id") ++ ": " ++ (get it "type") ++ " [" ++ (join_list (get it "tags") ",") ++ "]\n"
-    out: out ++ "== NPCS ==\n"
+    out: out ++ "== NPC-ROLLEN (als Vorlagen) ==\n"
+    role_seen: []
     for n in (get pack "npcs")
-        out: out ++ (get n "id") ++ " (" ++ (get n "role") ++ ") [" ++ (join_list (get n "tags") ",") ++ "] " ++ (get n "temperament") ++ "\n"
+        role: get n "role"
+        if !contains role_seen role
+            push role_seen role
+            out: out ++ role ++ ": buys_pct=" ++ (to_str (get n "buys_pct")) ++ " sells_pct=" ++ (to_str (get n "sells_pct")) ++ " [" ++ (join_list (get n "tags") ",") ++ "]\n"
     out: out ++ "== MONSTER ==\n"
     for m in (get pack "monsters")
         out: out ++ (get m "id") ++ " hp=" ++ (to_str (get m "hp")) ++ " [" ++ (join_list (get m "tags") ",") ++ "]\n"
@@ -101,7 +106,8 @@ fn validate_design design pack
     rz: get design "raumzahl"
     if rz < minr || rz > maxr
         push fehler ("raumzahl muss zwischen " ++ (to_str minr) ++ " und " ++ (to_str maxr) ++ " liegen")
-    for key in ["items", "npcs", "monsters", "quests"]
+    -- Items, monsters, quests: must be valid pack ids
+    for key in ["items", "monsters", "quests"]
         chosen: get design key
         if chosen == nil
             push fehler ("Feld '" ++ key ++ "' fehlt")
@@ -109,11 +115,45 @@ fn validate_design design pack
             for id in chosen
                 if !pack_has_id pack key id
                     push fehler ("Unbekannte ID in " ++ key ++ ": " ++ id)
+    -- NPCs: support new format (array of objects with template) and legacy (array of ids)
+    npcs: get design "npcs"
+    if npcs == nil
+        push fehler "Feld 'npcs' fehlt"
+    else
+        if len npcs > 0
+            erstes: at npcs 0
+            if is_map erstes
+                -- New format: [{id, template, name, ...}]
+                npc_rollen: pack_npc_roles pack
+                npc_ids_gesehen: []
+                for npc in npcs
+                    if get npc "id" == nil || get npc "template" == nil || get npc "name" == nil
+                        push fehler "NPC benoetigt id, template und name"
+                    else
+                        if contains npc_ids_gesehen (get npc "id")
+                            push fehler ("Doppelte NPC-ID: " ++ (get npc "id"))
+                        push npc_ids_gesehen (get npc "id")
+                        if !contains npc_rollen (get npc "template")
+                            push fehler ("Unbekannte NPC-Rolle: " ++ (get npc "template"))
+            else
+                -- Legacy format: ["id1", "id2"]
+                for id in npcs
+                    if !pack_has_id pack "npcs" id
+                        push fehler ("Unbekannte NPC-ID: " ++ id)
     sieg: get design "siegesbedingung"
     if sieg != nil
         if !contains ["give", "kill", "explore"] (get sieg "kind")
             push fehler "siegesbedingung.kind muss give, kill oder explore sein"
     fehler
+
+--! Returns list of unique NPC roles in the pack.
+fn pack_npc_roles pack
+    rollen: []
+    for n in (get pack "npcs")
+        r: get n "role"
+        if !contains rollen r
+            push rollen r
+    rollen
 
 --! True when the pack section contains an entry with the given id.
 --! Also checks custom items in DB for the "items" section.
@@ -181,8 +221,6 @@ fn validate_map doc pack
         for npc in npcs
             if get rooms (get npc "room") == nil
                 push fehler ("NPC steht in unbekanntem Raum: " ++ (get npc "id"))
-            if !pack_has_id pack "npcs" (get npc "id")
-                push fehler ("Unbekannter NPC: " ++ (get npc "id"))
     mons: get doc "monsters"
     if mons != nil
         for mon in mons
@@ -254,6 +292,15 @@ fn find_npc_def pack id
                 set found 0 m
     at found 0
 
+--! Finds first npc definition row matching a role (nil if unknown).
+fn find_npc_def_by_role pack role
+    found: [nil]
+    for m in (get pack "npcs")
+        if (at found 0) == nil
+            if (get m "role") == role
+                set found 0 m
+    at found 0
+
 --! Finds a quest definition row by id (nil if unknown).
 fn find_quest_def pack id
     found: [nil]
@@ -304,7 +351,9 @@ fn apply_profile doc profil pack
         licht: find_item_by_tag pack "licht"
         if licht != ""
             push start_items licht
+        lore: or_default (get doc "lore") []
         push lore ("Profil-Hinweis: Der Held dieser Welt jagt Geschichten und Geheimnisse mehr als Gold.")
+        set doc "lore" lore
     if stil == "haendlerin" || (get p "schwierigkeit") == "leicht"
         set m "start_gold" ((get m "start_gold") + 15)
     if (get p "schwierigkeit") == "schwer"
@@ -332,7 +381,7 @@ fn gen_design prompt pack profil max_tries
         modell: (at GEN_MODELS (versuch % (len GEN_MODELS)))
         log "GEN-DESIGN" "Versuch " ++ (to_str (versuch + 1)) ++ "/" ++ (to_str max_tries) ++ " Modell=" ++ modell
         ai_model modell
-        nachricht: "Wunsch des Spielers:\n" ++ prompt ++ "\n\nSpieler-Profil: Stil=" ++ (get p "stil") ++ ", Schwierigkeit=" ++ (get p "schwierigkeit") ++ " (waehle Monster/Items passend zum Stil; bei schwer eher starke Monster, bei leicht schwache)\n\nVerfügbares Ressourcen-Paket:\n" ++ katalog ++ "\nErstelle ein Design. Antworte als JSON:\n{thema: str, ton: str, raumzahl: zahl, items: [ids], npcs: [ids], monsters: [ids], quests: [ids], siegesbedingung: {kind: \"give|kill|explore\", target: id, npc: id_nur_bei_give}, npc_personas: {\"<npc-id>\": \"2-3 Saetze Persoenlichkeit, aus dem Spielerwunsch abgeleitet\"}}"
+        nachricht: "Wunsch des Spielers:\n" ++ prompt ++ "\n\nSpieler-Profil: Stil=" ++ (get p "stil") ++ ", Schwierigkeit=" ++ (get p "schwierigkeit") ++ " (waehle Monster/Items passend zum Stil; bei schwer eher starke Monster, bei leicht schwache)\n\nVerfügbares Ressourcen-Paket:\n" ++ katalog ++ "\nErstelle ein Design. Antworte als JSON:\n{thema: str, ton: str, raumzahl: zahl, items: [pack-item-ids], npcs: [{id: str (kurz, z.B. \"siegfried\"), template: \"haendler|waechter|weiser|heiler|bettler\", name: str (zum Thema passender Name), temperament: str, persona: str (2-3 Saetze)}], monsters: [pack-monster-ids], quests: [pack-quest-ids], siegesbedingung: {kind: \"give|kill|explore\", target: id, npc: npc-id_nur_bei_give}}\n\nWICHTIG: npc-ids muessen in der siegesbedingung und in der karte referenziert werden können. Waehle 3-6 NPCs passend zum Thema. Erstelle individuelle Namen und Persoenlichkeiten, die zur Welt passen."
         try
             roh: ai_chat DESIGN_SYSTEM nachricht 4000
             log "GEN-DESIGN" "AI-Antwort erhalten (" ++ (to_str (len roh)) ++ " Zeichen)"
@@ -359,7 +408,16 @@ fn gen_map design pack max_tries
     nutzbare_raeume: []
     for r in (get pack "rooms")
         push nutzbare_raeume ((get r "id") ++ "(" ++ (get r "kind") ++ ")")
-    nachricht: "Thema: " ++ (get design "thema") ++ "\nTon: " ++ (get design "ton") ++ "\nRaumzahl: exakt " ++ (to_str (get design "raumzahl")) ++ "\nErlaubte Items: " ++ (join_list (get design "items") ", ") ++ "\nErlaubte NPCs: " ++ (join_list (get design "npcs") ", ") ++ "\nErlaubte Monster: " ++ (join_list (get design "monsters") ", ") ++ "\nSiegesbedingung: " ++ (to_json (get design "siegesbedingung")) ++ "\nRaum-Templates zur Auswahl (NUR diese ids nutzen, jede höchstens einmal): " ++ (join_list nutzbare_raeume ", ") ++ "\n\nBaue die Karte. Antworte als JSON:\n{name: str, start_room: id, rooms: {\"<template-id>\": {description: str (2 Saetze, zum Thema passend), items: [item-ids ODER []], exits: {\"norden|sueden|osten|westen\": template-id}}}, npcs: [{id: str, room: template-id}], monsters: [{id: str, room: template-id}], objectives: [{id: str, kind: \"" ++ (to_json (get design "siegesbedingung")) ++ "\"-passend, target: item-oder-monster-id, npc: npc-id-oder-\"\", state: \"offen\"}]}\nAlle Räume müssen vom start_room aus erreichbar sein."
+    -- Build NPC list for the map prompt (ids + names from design)
+    npc_ids: []
+    npcs_design: get design "npcs"
+    if npcs_design != nil
+        for npc in npcs_design
+            if is_map npc
+                push npc_ids ((get npc "id") ++ " (" ++ (get npc "name") ++ ")")
+            else
+                push npc_ids (to_str npc)
+    nachricht: "Thema: " ++ (get design "thema") ++ "\nTon: " ++ (get design "ton") ++ "\nRaumzahl: exakt " ++ (to_str (get design "raumzahl")) ++ "\nErlaubte Items: " ++ (join_list (get design "items") ", ") ++ "\nPlatzierte NPCs (nur Raum zuweisen): " ++ (join_list npc_ids ", ") ++ "\nErlaubte Monster: " ++ (join_list (get design "monsters") ", ") ++ "\nSiegesbedingung: " ++ (to_json (get design "siegesbedingung")) ++ "\nRaum-Templates zur Auswahl (NUR diese ids nutzen, jede höchstens einmal): " ++ (join_list nutzbare_raeume ", ") ++ "\n\nBaue die Karte. Antworte als JSON:\n{name: str, start_room: id, rooms: {\"<template-id>\": {description: str (2 Saetze, zum Thema passend), items: [item-ids ODER []], exits: {\"norden|sueden|osten|westen\": template-id}}}, npcs: [{id: npc-id, room: template-id}], monsters: [{id: pack-monster-id, room: template-id}], objectives: [{id: str, kind: \"" ++ (to_json (get design "siegesbedingung")) ++ "\"-passend, target: item-oder-monster-id, npc: npc-id-oder-\"\", state: \"offen\"}]}\nNPC-IDs muessen exakt mit den oben angegebenen übereinstimmen. Alle Räume müssen vom start_room aus erreichbar sein."
     doc: nil
     fehler: ["noch nicht versucht"]
     versuch: 0
@@ -405,28 +463,60 @@ fn normalize_map raw pack design
             exits: (frische_map 0)
         set rooms id {description: desc, items: items, exits: exits}
     npcs: []
-    for npc in (or_default (get raw "npcs") KEIN_LISTE)
-        def: find_npc_def pack (get npc "id")
-        persona: ""
-        temperament: ""
-        role: ""
-        buys: 0
-        sells: 0
-        name: get npc "id"
-        if def != nil
-            persona: get def "persona"
-            temperament: get def "temperament"
-            role: get def "role"
-            buys: get def "buys_pct"
-            sells: get def "sells_pct"
-            name: get def "name"
-        -- Wunsch-Personas überschreiben nur den Text, nie die Mechanik.
-        personas: get design "npc_personas"
-        if personas != nil
-            wunsch_persona: get personas (get npc "id")
-            if wunsch_persona != nil && wunsch_persona != ""
-                persona: wunsch_persona
-        push npcs {id: (get npc "id"), name: name, role: role, temperament: temperament, buys_pct: buys, sells_pct: sells, persona: persona, room: (get npc "room")}
+    -- New format: design.npcs is array of objects [{id, template, name, ...}]
+    -- Legacy format: raw.npcs has full objects with pack ids
+    design_npcs: get design "npcs"
+    npc_room_map: {}
+    -- Build room map from raw map npcs (both formats put room assignments there)
+    for raw_npc in (or_default (get raw "npcs") KEIN_LISTE)
+        set npc_room_map (get raw_npc "id") (get raw_npc "room")
+    if design_npcs != nil && len design_npcs > 0 && is_map (at design_npcs 0)
+        -- New template-based format
+        for npc in design_npcs
+            template_id: get npc "template"
+            def: find_npc_def_by_role pack template_id
+            persona: or_default (get npc "persona") ""
+            temperament: or_default (get npc "temperament") ""
+            role: ""
+            buys: 0
+            sells: 0
+            if def != nil
+                role: get def "role"
+                buys: get def "buys_pct"
+                sells: get def "sells_pct"
+                -- Defaults from template if not overridden
+                if temperament == ""
+                    temperament: get def "temperament"
+                if persona == ""
+                    persona: get def "persona"
+            npc_id: get npc "id"
+            npc_name: or_default (get npc "name") npc_id
+            npc_room: or_default (get npc_room_map npc_id) ""
+            push npcs {id: npc_id, name: npc_name, role: role, temperament: temperament, buys_pct: buys, sells_pct: sells, persona: persona, room: npc_room}
+    else
+        -- Legacy format: raw map has full NPC objects with pack ids
+        for npc in (or_default (get raw "npcs") KEIN_LISTE)
+            def: find_npc_def pack (get npc "id")
+            persona: ""
+            temperament: ""
+            role: ""
+            buys: 0
+            sells: 0
+            name: get npc "id"
+            if def != nil
+                persona: get def "persona"
+                temperament: get def "temperament"
+                role: get def "role"
+                buys: get def "buys_pct"
+                sells: get def "sells_pct"
+                name: get def "name"
+            -- Legacy npc_personas override
+            personas: get design "npc_personas"
+            if personas != nil
+                wunsch_persona: get personas (get npc "id")
+                if wunsch_persona != nil && wunsch_persona != ""
+                    persona: wunsch_persona
+            push npcs {id: (get npc "id"), name: name, role: role, temperament: temperament, buys_pct: buys, sells_pct: sells, persona: persona, room: (get npc "room")}
     monsters: []
     for mon in (or_default (get raw "monsters") KEIN_LISTE)
         def: find_pack_monster pack (get mon "id")
@@ -449,7 +539,7 @@ fn normalize_map raw pack design
     for obj in objectives
         set obj "state" "offen"
     mech: get pack "mechanics"
-    {name: (or_default (get raw "name") (get design "thema")), start_room: (get raw "start_room"), rooms: rooms, npcs: npcs, monsters: monsters, quests: quests, objectives: objectives, factions: (get pack "factions"), mechanics: {start_hp: (get mech "start_hp"), start_gold: (get mech "start_gold"), respawn_hp: (get mech "respawn_hp")}, lore: KEIN_LISTE, thema: (or_default (get design "thema") ""), ton: (or_default (get design "ton") "")}
+    {name: (or_default (get raw "name") (get design "thema")), start_room: (get raw "start_room"), rooms: rooms, npcs: npcs, monsters: monsters, quests: quests, objectives: objectives, factions: (get pack "factions"), mechanics: {start_hp: (get mech "start_hp"), start_gold: (get mech "start_gold"), respawn_hp: (get mech "respawn_hp")}, lore: (frische_liste 0), thema: (or_default (get design "thema") ""), ton: (or_default (get design "ton") "")}
 
 -- ---- Lore enrichment & orchestration ----
 
@@ -486,7 +576,7 @@ fn enrich_lore doc thema ton
             set flavors (at ids i) t
         i: i + 1
     set doc "flavors" flavors
-    lore: KEIN_LISTE
+    lore: frische_liste 0
     push lore ("Welt: " ++ (get doc "name") ++ ". Thema: " ++ thema ++ ". Ton: " ++ ton ++ ".")
     npc_prompts: []
     npc_names: []
@@ -652,10 +742,6 @@ fn gen_expansion doc wunsch pack max_tries
     for tpl in (get pack "rooms")
         if get (get doc "rooms") (get tpl "id") == nil
             push freie_tpl (get tpl "id")
-    freie_npc: []
-    for n in (get pack "npcs")
-        if !contains (placed_ids doc "npcs") (get n "id")
-            push freie_npc ((get n "id") ++ "(" ++ (get n "role") ++ ")")
     freie_mon: []
     for m in (get pack "monsters")
         if !contains (placed_ids doc "monsters") (get m "id")
@@ -669,7 +755,8 @@ fn gen_expansion doc wunsch pack max_tries
         if !contains (quest_ids_in_doc doc) (get q "id")
             push freie_quests ((get q "id") ++ " ziel=" ++ (get q "goal_type") ++ " ziel_tags=[" ++ (join_list (get q "target_tags") ",") ++ "]")
     rest: (room_cap pack) - len (keys (get doc "rooms"))
-    nachricht: "Bestehende Räume: " ++ (join_list (keys (get doc "rooms")) ", ") ++ "\nFreie Raum-Templates (bevorzugt nutzen): " ++ (join_list freie_tpl ", ") ++ "\nNoch nicht platzierte NPCs: " ++ (join_list freie_npc ", ") ++ "\nNoch nicht platzierte Monster: " ++ (join_list freie_mon ", ") ++ "\nNoch nicht platzierte Items: " ++ (join_list freie_items ", ") ++ "\nNoch unbenutzte Quest-Vorlagen: " ++ (join_list freie_quests ", ") ++ "\nMaximal noch " ++ (to_str rest) ++ " neue Räume insgesamt; jetzt 1-3.\nWunsch des Spielers: " ++ wunsch ++ "\n\nErweitere die Karte passend zum Wunsch. Neue Räume dürfen intern Ausgänge untereinander haben (exits zeigen NUR auf andere NEUE Räume). Die Anbindung an die alte Karte läuft ausschließlich über links (anchor MUSS ein bestehender Raum sein und dir eine dort FREIE Richtung). Optional darfst du bis zu 2 neue Aufgaben mitbringen, die die neuen Gebiete nutzen.\nAntworte als JSON:\n{rooms: {\"<template-id>\": {description: str (2 Saetze), items: [item-ids ODER []]}}, links: [{anchor: bestehende-raum-id, dir: \"norden|sueden|osten|westen\", room: neue-raum-id}], npcs: [{id: str, room: neue-raum-id}], monsters: [{id: str, room: neue-raum-id}], quests: [vorlagen-ids ODER []], objectives: [{id: \"obj_<name>\", kind: \"give|kill|explore\", target: item-oder-monster-oder-raum-id, npc: npc-id-oder-\"\", quest_id: neue-quest-id-oder-\"\"}]}"
+    npc_rollen: pack_npc_roles pack
+    nachricht: "Bestehende Räume: " ++ (join_list (keys (get doc "rooms")) ", ") ++ "\nFreie Raum-Templates (bevorzugt nutzen): " ++ (join_list freie_tpl ", ") ++ "\nVerfügbare NPC-Rollen: " ++ (join_list npc_rollen ", ") ++ "\nNoch nicht platzierte Monster: " ++ (join_list freie_mon ", ") ++ "\nNoch nicht platzierte Items: " ++ (join_list freie_items ", ") ++ "\nNoch unbenutzte Quest-Vorlagen: " ++ (join_list freie_quests ", ") ++ "\nMaximal noch " ++ (to_str rest) ++ " neue Räume insgesamt; jetzt 1-3.\nWunsch des Spielers: " ++ wunsch ++ "\n\nErweitere die Karte passend zum Wunsch. Neue Räume dürfen intern Ausgänge untereinander haben (exits zeigen NUR auf andere NEUE Räume). Die Anbindung an die alte Karte läuft ausschließlich über links (anchor MUSS ein bestehender Raum sein und dir eine dort FREIE Richtung). Optional darfst du bis zu 2 neue NPCs mitbringen (mit individuellen Namen, die zum Thema passen) und bis zu 2 neue Aufgaben, die die neuen Gebiete nutzen.\nAntworte als JSON:\n{rooms: {\"<template-id>\": {description: str (2 Saetze), items: [item-ids ODER []]}}, links: [{anchor: bestehende-raum-id, dir: \"norden|sueden|osten|westen\", room: neue-raum-id}], npcs: [{id: str (kurz), template: \"rolle\", name: str (zum Thema passend), temperament: str, persona: str, room: neue-raum-id}], monsters: [{id: str, room: neue-raum-id}], quests: [vorlagen-ids ODER []], objectives: [{id: \"obj_<name>\", kind: \"give|kill|explore\", target: item-oder-monster-oder-raum-id, npc: npc-id-oder-\"\", quest_id: neue-quest-id-oder-\"\"}]}"
     exp: nil
     fehler: ["noch nicht versucht"]
     versuch: 0
@@ -738,17 +825,24 @@ fn validate_expansion exp doc pack
                     if alt_alt == nil
                         push fehler ("Anker ist weder bestehend noch neu: " ++ anchor)
                     else
-                        belegt2: get (or_default (get alt_alt "exits") {}) (get l "dir")
+                        belegt2: get (or_default (get alt_alt "exits") KEIN_MAP) (get l "dir")
                         if belegt2 != nil
                             push fehler ("Richtung am Anker bereits belegt: " ++ anchor ++ "/" ++ (get l "dir"))
                 if get neu_raeume (get l "room") == nil
                     push fehler ("Link zeigt auf keinen neuen Raum: " ++ (to_str (get l "room")))
         npc_ids: placed_ids doc "npcs"
+        npc_rollen: pack_npc_roles pack
         for npc in (or_default (get exp "npcs") KEIN_LISTE)
             if contains npc_ids (get npc "id")
                 push fehler ("NPC steht bereits in der Welt: " ++ (get npc "id"))
-            if !pack_has_id pack "npcs" (get npc "id")
-                push fehler ("Unbekannter NPC: " ++ (get npc "id"))
+            -- Validate template (new format) or pack id (legacy)
+            template: get npc "template"
+            if template != nil
+                if !contains npc_rollen template
+                    push fehler ("Unbekannte NPC-Rolle: " ++ template)
+            else
+                if !pack_has_id pack "npcs" (get npc "id")
+                    push fehler ("Unbekannter NPC: " ++ (get npc "id"))
             if get neu_raeume (get npc "room") == nil
                 push fehler ("NPC in keinem neuen Raum: " ++ (get npc "id"))
         mon_ids: placed_ids doc "monsters"
@@ -815,10 +909,30 @@ fn merge_expansion exp doc pack
         if (get (get neu_map "exits") rueck) == nil
             set (get neu_map "exits") rueck (get l "anchor")
             db_exec (open_db 0) ("UPDATE rooms SET exits = '" ++ (sql_escape (to_json (get neu_map "exits"))) ++ "' WHERE id = '" ++ (sql_escape (get l "room")) ++ "'")
-    -- 3) NPCs with pack stats (+ wish persona stays untouched here)
+    -- 3) NPCs with pack stats (supports template-based and legacy format)
+    npc_rollen: pack_npc_roles pack
     for npc in (or_default (get exp "npcs") KEIN_LISTE)
-        def: find_npc_def pack (get npc "id")
-        row: {id: (get npc "id"), name: (get def "name"), role: (get def "role"), temperament: (get def "temperament"), buys_pct: (get def "buys_pct"), sells_pct: (get def "sells_pct"), persona: (get def "persona"), room: (get npc "room")}
+        template: get npc "template"
+        def: nil
+        if template != nil && contains npc_rollen template
+            def: find_npc_def_by_role pack template
+        else
+            def: find_npc_def pack (get npc "id")
+        persona: or_default (get npc "persona") ""
+        temperament: or_default (get npc "temperament") ""
+        npc_name: or_default (get npc "name") (get npc "id")
+        role: ""
+        buys: 0
+        sells: 0
+        if def != nil
+            role: get def "role"
+            buys: get def "buys_pct"
+            sells: get def "sells_pct"
+            if temperament == ""
+                temperament: get def "temperament"
+            if persona == ""
+                persona: get def "persona"
+        row: {id: (get npc "id"), name: npc_name, role: role, temperament: temperament, buys_pct: buys, sells_pct: sells, persona: persona, room: (get npc "room")}
         push (get doc "npcs") row
         seed_npc_row row
     -- 4) Monsters with pack stats

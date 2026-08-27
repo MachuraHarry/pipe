@@ -96,16 +96,16 @@ fn seed_npc_row npc
 --! Seeds one monster row (stats expected final, e.g. from pack normalization).
 fn seed_monster_row mon
     h: (open_db 0)
-    db_exec h ("INSERT INTO monsters VALUES ('" ++ (sql_escape (get mon "id")) ++ "', '" ++ (sql_escape (get mon "name")) ++ "', '" ++ (sql_escape (get mon "room")) ++ "', " ++ (to_str (get mon "hp")) ++ ", " ++ (to_str (get mon "max_hp")) ++ ", " ++ (to_str (get mon "defense")) ++ ", '" ++ (get mon "loot") ++ "', 0)")
+    db_exec h ("INSERT INTO monsters VALUES ('" ++ (sql_escape (get mon "id")) ++ "', '" ++ (sql_escape (get mon "name")) ++ "', '" ++ (sql_escape (get mon "room")) ++ "', " ++ (to_str (get mon "hp")) ++ ", " ++ (to_str (get mon "max_hp")) ++ ", " ++ (to_str (get mon "defense")) ++ ", '" ++ (sql_escape (get mon "loot")) ++ "', 0)")
 
 --! Seeds one quest row.
 fn seed_quest_row qst
-    db_exec (open_db 0) ("INSERT INTO quests VALUES ('" ++ (sql_escape (get qst "id")) ++ "', '" ++ (sql_escape (get qst "name")) ++ "', '" ++ (sql_escape (get qst "description")) ++ "', '" ++ (get qst "state") ++ "')")
+    db_exec (open_db 0) ("INSERT INTO quests VALUES ('" ++ (sql_escape (get qst "id")) ++ "', '" ++ (sql_escape (get qst "name")) ++ "', '" ++ (sql_escape (get qst "description")) ++ "', '" ++ (sql_escape (get qst "state")) ++ "')")
 
 --! Seeds one objective row (quest coupling optional for old worlds).
 fn seed_objective_row obj
     quest: or_default_str (get obj "quest")
-    db_exec (open_db 0) ("INSERT INTO objectives VALUES ('" ++ (sql_escape (get obj "id")) ++ "', '" ++ (get obj "kind") ++ "', '" ++ (sql_escape (get obj "target")) ++ "', '" ++ (sql_escape (get obj "npc")) ++ "', '" ++ (get obj "state") ++ "', '" ++ (sql_escape quest) ++ "')")
+    db_exec (open_db 0) ("INSERT INTO objectives VALUES ('" ++ (sql_escape (get obj "id")) ++ "', '" ++ (sql_escape (get obj "kind")) ++ "', '" ++ (sql_escape (get obj "target")) ++ "', '" ++ (sql_escape (get obj "npc")) ++ "', '" ++ (sql_escape (get obj "state")) ++ "', '" ++ (sql_escape quest) ++ "')")
 
 --! Returns v, or an empty string when nil.
 fn or_default_str v
@@ -452,7 +452,7 @@ fn get_quest quest_id
 
 --! Sets the state of a quest (offen/aktiv/erledigt).
 fn quest_set quest_id state
-    db_exec (open_db 0) ("UPDATE quests SET state = '" ++ state ++ "' WHERE id = '" ++ (sql_escape quest_id) ++ "'")
+    db_exec (open_db 0) ("UPDATE quests SET state = '" ++ (sql_escape state) ++ "' WHERE id = '" ++ (sql_escape quest_id) ++ "'")
 
 --! Closes every quest whose id appears as objective target of given kinds.
 fn quest_set_by_id quest_id state
@@ -520,28 +520,40 @@ fn monsters_in_room room_id
 fn monster_hit monster_id dmg
     h: (open_db 0)
     rows: db_query h ("SELECT hp FROM monsters WHERE id = '" ++ (sql_escape monster_id) ++ "'")
-    hp: (get (at rows 0) "hp") - dmg
-    if hp < 0
-        hp: 0
-    db_exec h ("UPDATE monsters SET hp = " ++ (to_str hp) ++ " WHERE id = '" ++ (sql_escape monster_id) ++ "'")
-    hp
+    if len rows == 0
+        -1
+    else
+        hp: (get (at rows 0) "hp") - dmg
+        if hp < 0
+            hp: 0
+        db_exec h ("UPDATE monsters SET hp = " ++ (to_str hp) ++ " WHERE id = '" ++ (sql_escape monster_id) ++ "'")
+        hp
 
 --! Marks a monster defeated and drops its loot into its room.
 fn monster_defeat monster_id
     h: (open_db 0)
     rows: db_query h ("SELECT room, loot FROM monsters WHERE id = '" ++ (sql_escape monster_id) ++ "'")
-    m: at rows 0
-    db_exec h ("UPDATE monsters SET defeated = 1 WHERE id = '" ++ (sql_escape monster_id) ++ "'")
-    loot: get m "loot"
-    if loot != ""
-        room_add_item (get m "room") loot
-    rep_add "doerfer" 1
-    check_kill_objective monster_id loot
+    if len rows == 0
+        nil
+    else
+        m: at rows 0
+        db_exec h ("UPDATE monsters SET defeated = 1 WHERE id = '" ++ (sql_escape monster_id) ++ "'")
+        loot: get m "loot"
+        if loot != ""
+            room_add_item (get m "room") loot
+        rep_add "doerfer" 1
+        check_kill_objective monster_id loot
 
 -- ---- Player vitals & gold ----
 
---! Updates the player's hp.
+--! Updates the player's hp (capped at max_hp).
 fn set_player_hp hp
+    p: (get_player 0)
+    mh: get p "max_hp"
+    if mh != nil && hp > mh
+        hp: mh
+    if hp < 0
+        hp: 0
     db_exec (open_db 0) ("UPDATE player SET hp = " ++ (to_str hp) ++ " WHERE id = 1")
 
 --! Adjusts the player's gold by delta (never below zero); returns new amount.

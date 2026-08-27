@@ -525,7 +525,8 @@ fn use_item item_name
                     p: (get_player 0)
                     neu: (get p "hp") + heal_val
                     set_player_hp neu
-                    "Du benutzt " ++ name ++ ". Wärme breitet sich aus. (HP: " ++ (to_str neu) ++ ")"
+                    pn: (get_player 0)
+                    "Du benutzt " ++ name ++ ". Wärme breitet sich aus. (HP: " ++ (to_str (get pn "hp")) ++ ")"
                 else
                     if eff == "buff"
                         stat: or_default_str (get def "buff_stat")
@@ -663,8 +664,8 @@ fn fast_command cmd pack
     if erstes == "norden" || erstes == "n" || (erstes == "geh" && contains t "norden")
         {handled: true, out: move_to "norden"}
     else
-        if erstes == "sueden" || erstes == "süden" || erstes == "s" || (erstes == "geh" && contains t "sueden")
-            {handled: true, out: move_to "sueden"}
+        if erstes == "sueden" || erstes == "süden" || erstes == "s" || (erstes == "geh" && (contains t "sueden" || contains t "süden"))
+            {handled: true, out: move_to "süden"}
         else
             if erstes == "osten" || erstes == "o" || (erstes == "geh" && contains t "osten")
                 {handled: true, out: move_to "osten"}

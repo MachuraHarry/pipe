@@ -99,11 +99,11 @@ fn new_session_id _
 
 --! Registers a session and persists its metadata so /resume can revive it
 --! even after a supervisor restart.
-fn register_session sid world port handle secret
+fn register_session sid world port handle secret idle_ms
     set SESSIONS sid {id: sid, world: world, port: port, proc: handle, secret: secret}
     if !file_exists ".sessions"
         make_dir ".sessions"
-    write_file (".sessions/" ++ sid ++ ".meta.json") (to_json {secret: secret, port: (to_str port), world: world})
+    write_file (".sessions/" ++ sid ++ ".meta.json") (to_json {secret: secret, port: (to_str port), world: world, idle_ms: (to_str idle_ms)})
 
 fn get_session sid
     get SESSIONS sid
@@ -207,7 +207,7 @@ fn create_session body_raw
             handle: proc_start cmd
             if wait_healthy port
                 secret: make_secret 0
-                register_session sid weltname port handle secret
+                register_session sid weltname port handle secret idle_ms
                 bereit: false
                 holder: [nil, nil]
                 try
@@ -259,9 +259,13 @@ fn ensure_worker_alive sid
             meta: parse_json (read_file meta_path)
             port: to_str (get meta "port")
             weltname: get meta "world"
-            handle: proc_start ("../bin/pipe worldd.pipe " ++ sid ++ " " ++ port)
+            idle_ms_raw: get meta "idle_ms"
+            idle_ms: "600000"
+            if idle_ms_raw != nil
+                idle_ms: idle_ms_raw
+            handle: proc_start ("../bin/pipe worldd.pipe " ++ sid ++ " " ++ port ++ " " ++ idle_ms)
             if wait_healthy port
-                register_session sid weltname port handle (get meta "secret")
+                register_session sid weltname port handle (get meta "secret") idle_ms
                 ok: true
             else
                 set resp 0 (jerr 502 "worker_start_failed" ("Worker auf Port " ++ port ++ " nicht gesund geworden"))
@@ -324,22 +328,25 @@ fn serve_static req
         path: get req "path"
         if path == "/"
             path: "/index.html"
-        disk: "web" ++ path
-        if file_exists disk
-            ext: ""
-            teile: split disk "."
-            if len teile > 1
-                ext: "." ++ (at teile ((len teile) - 1))
-            ct: get MIMES ext
-            if ct == nil || ct == ""
-                ct: "application/octet-stream"
-            sh: {}
-            set sh "Content-Type" ct
-            set sh "Access-Control-Allow-Origin" "*"
-            set sh "Cache-Control" "public, max-age=3600"
-            {status: 200, headers: sh, body: read_file disk}
-        else
+        if contains path ".."
             nil
+        else
+            disk: "web" ++ path
+            if file_exists disk
+                ext: ""
+                teile: split disk "."
+                if len teile > 1
+                    ext: "." ++ (at teile ((len teile) - 1))
+                ct: get MIMES ext
+                if ct == nil || ct == ""
+                    ct: "application/octet-stream"
+                sh: {}
+                set sh "Content-Type" ct
+                set sh "Access-Control-Allow-Origin" "*"
+                set sh "Cache-Control" "public, max-age=3600"
+                {status: 200, headers: sh, body: read_file disk}
+            else
+                nil
 
 -- ---- Routing ----
 

@@ -5,6 +5,7 @@ import "pipe-test"
 import "state.pipe"
 import "tools.pipe"
 import "gen_world.pipe"
+import "turns.pipe"
 
 pack: load_pack "pack_core.json"
 set_pack pack
@@ -297,6 +298,40 @@ test "fast path directions and trade verbs"
     expect_contains (get r3 "out") "Gold" "inventory shows gold"
     r4: fast_command "irgendein freier text" pack
     expect_falsy (get r4 "handled") "free text passes through"
+
+--- === NPC talk === ===
+
+test "is_talk_input recognizes talk/give commands"
+    expect_truthy (is_talk_input "rede mit elara") "rede mit recognized"
+    expect_truthy (is_talk_input "frag elara nach hinweisen") "frag recognized"
+    expect_truthy (is_talk_input "gib elara etwas") "gib recognized"
+    expect_falsy (is_talk_input "geh nach norden") "movement not talk"
+
+test "talk to absent NPC returns a plain message without AI"
+    fresh_example 0
+    move_to "norden"
+    result: process_turn "rede mit niemand"
+    expect_eq (get result "type") "narrator" "talk keeps narrator type"
+    expect_eq (get result "error") "" "no AI error set"
+    expect_contains (get result "narration") "niemand" "absent npc message"
+
+test "give command routes to give_item without AI"
+    fresh_example 0
+    inventory_add "goldmuenze"
+    move_to "norden"
+    result: process_turn "gib weiser_aldric goldmuenze"
+    expect_eq (get result "type") "narrator" "give stays narrator"
+    expect_eq (get result "error") "" "no AI error set"
+    expect_eq (get (get_player 0) "won") 1 "giving objective wins"
+
+test "npc fallback reply is deterministic and never silent"
+    fresh_example 0
+    antwort: fallback_npc_reply "Weiser Aldric" "weise" "rede mit weiser_aldric"
+    expect_truthy (len antwort > 0) "fallback produces text"
+    expect_contains antwort "Weiser Aldric" "fallback names the npc"
+    antwort2: fallback_npc_reply "Hilda" "haendler" "hallo"
+    expect_contains antwort2 "Sei gegrüßt" "greeting detected"
+    expect_contains antwort2 "Hilda" "names trader"
 
 --- === Save / Load === ===
 

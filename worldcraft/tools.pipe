@@ -612,23 +612,46 @@ fn talk_to npc_id last_message
     else
         alt: get_npc_memory npc_id
         turns: npc_turns npc_id
+        mem: alt
         if (turns % 3) == 2
-            mem: summarize (alt ++ "\nSpieler: " ++ last_message)
-        else
-            mem: alt
+            try
+                mem: summarize (alt ++ "\nSpieler: " ++ last_message)
+            catch
+                mem: alt
         persona: get_npc_persona_text npc_id
         lore_ctx: lore_context last_message
         kontext: ""
         if lore_ctx != ""
             kontext: "\n\nRelevantes Weltwissen:\n" ++ lore_ctx
-        reply: ask ("Du bist " ++ persona ++ "\n\nBisherige Erinnerung an dieses Gespräch:\n" ++ mem ++ kontext ++ "\nDer Abenteurer sagt: \"" ++ last_message ++ "\"\n\nAntworte in Charakter, 1-3 Sätze.")
-        set_npc_memory npc_id (summarize ("Gespräch mit dem Abenteurer. " ++ mem ++ "\nSpieler: " ++ last_message ++ "\nAntwort: " ++ reply))
         npc_row: get_npc npc_id
         name: npc_id
+        rolle: "Bewohner"
         if npc_row != nil
-            name: get npc_row "name"
+            if (get npc_row "name") != nil && (get npc_row "name") != ""
+                name: get npc_row "name"
+            if (get npc_row "role") != nil && (get npc_row "role") != ""
+                rolle: get npc_row "role"
+        reply: ""
+        try
+            reply: ask ("Du bist " ++ persona ++ "\n\nBisherige Erinnerung an dieses Gespräch:\n" ++ mem ++ kontext ++ "\nDer Abenteurer sagt: \"" ++ last_message ++ "\"\n\nAntworte in Charakter, 1-3 Sätze.")
+        catch
+            reply: (fallback_npc_reply name rolle last_message)
+        neumem: ("Gespräch mit dem Abenteurer. " ++ mem ++ "\nSpieler: " ++ last_message ++ "\nAntwort: " ++ reply)
+        try
+            set_npc_memory npc_id (summarize neumem)
+        catch
+            set_npc_memory npc_id neumem
         set LAST_DIALOG 0 {npc: npc_id, name: name, player: last_message, reply: reply}
         reply
+
+--! Deterministic NPC reply used when the LLM is unavailable, so dialogue never
+--! produces a silent/no-answer turn.
+fn fallback_npc_reply name rolle last_message
+    gruss: "Grüße, Abenteurer."
+    greeted: lower last_message
+    if contains greeted "hallo" || contains greeted "grüß" || contains greeted "guten tag" || contains greeted "gruezi"
+        gruss: "Sei gegrüßt."
+    gruss ++ " Ich bin " ++ name ++ ", der " ++ rolle ++ " hier in dieser Welt. Dein Anliegen \"" ++ last_message ++ "\" nehme ich zur Kenntnis. (Der Erzähler antwortet gerade nicht — versuch es gleich noch einmal.)"
 
 --! Builds the persona prompt for an NPC from its DB row.
 fn get_npc_persona_text npc_id

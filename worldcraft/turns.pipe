@@ -60,6 +60,70 @@ fn expand_wunsch_of inp
         i: i + 1
     join_list out " "
 
+--! True when the input is a structured NPC talk/give command that should be
+--! resolved locally (deterministically) instead of going through the AI narrator.
+fn is_talk_input t
+    w: split t " "
+    (at w 0) == "rede" || (at w 0) == "frag" || (at w 0) == "gib"
+
+--! Joins words [from, len) of a split command into one lowercase string.
+fn words_from ws from
+    out: []
+    i: from
+    while i < len ws
+        push out (at ws i)
+        i: i + 1
+    join_list out " "
+
+--! Extracts {npc, msg} from an NPC talk command.
+--!   "rede mit <npc> [msg]"  -> npc, msg
+--!   "frag <npc> [nach msg]"  -> npc, msg
+fn talk_args inp
+    w: split (lower (trim inp)) " "
+    npc: ""
+    msg: ""
+    if (at w 0) == "rede" && (at w 1) == "mit"
+        if len w > 2
+            npc: at w 2
+            if len w > 3
+                msg: words_from w 3
+    else
+        if (at w 0) == "frag"
+            if len w > 1
+                npc: at w 1
+                if len w > 2
+                    msg: words_from w 2
+    {npc: npc, msg: msg}
+
+--! Resolves an NPC talk/give command locally (no AI narrator needed).
+--! Returns the player-facing text:
+--!   * success      -> "" so the dialog bubble (set by talk_to) is rendered
+--!   * rejection    -> the plain message (narrated) because no dialog was set
+fn process_talk inp
+    t: lower (trim inp)
+    w: split t " "
+    if (at w 0) == "gib"
+        if len w >= 3
+            give_item (at w 2) (at w 1)
+        else
+            "Gib was wem?"
+    else
+        args: talk_args inp
+        npc: get args "npc"
+        msg: get args "msg"
+        if npc == ""
+            "Mit wem möchtest du sprechen?"
+        else
+            if msg == ""
+                msg: "Hallo"
+            vorher: at LAST_DIALOG 0
+            reply: talk_to npc msg
+            nachher: at LAST_DIALOG 0
+            if vorher == nachher
+                reply
+            else
+                ""
+
 --! Full synchronous turn for headless frontends (HTTP server).
 --! Returns {type, narration, error, won}:
 --!   type: "fast" | "narrator" | "expand" | "new_adventure"
@@ -78,19 +142,24 @@ fn process_turn inp
             log "TURN" "Typ: expand"
             set result "narration" (expand_world_ai (expand_wunsch_of inp))
         else
-            fc: fast_command inp (get_pack 0)
-            if (get fc "handled") == true
-                set result "type" "fast"
-                log "TURN" "Typ: fast"
-                set result "narration" (get fc "out")
+            if is_talk_input t
+                set result "type" "narrator"
+                log "TURN" "Typ: talk"
+                set result "narration" (process_talk inp)
             else
-                log "TURN" "Typ: narrator"
-                text: narrator_reply inp
-                if text == ""
-                    set result "error" "alle Modelle nicht erreichbar"
-                    log_err "TURN" "Alle Modelle nicht erreichbar"
+                fc: fast_command inp (get_pack 0)
+                if (get fc "handled") == true
+                    set result "type" "fast"
+                    log "TURN" "Typ: fast"
+                    set result "narration" (get fc "out")
                 else
-                    set result "narration" text
+                    log "TURN" "Typ: narrator"
+                    text: narrator_reply inp
+                    if text == ""
+                        set result "error" "alle Modelle nicht erreichbar"
+                        log_err "TURN" "Alle Modelle nicht erreichbar"
+                    else
+                        set result "narration" text
     set result "won" (get (get_player 0) "won")
     tick_buffs 0
     log "TURN" "Fertig: won=" ++ (to_str (get result "won"))

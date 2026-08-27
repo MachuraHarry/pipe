@@ -988,3 +988,46 @@ test "narrator_system falls back to fantasy"
     result: narrator_system 0
     expect_contains result "Fantasy" "default theme"
     expect_contains result "düster" "default ton"
+
+--- === Regression: critical bug fixes === ===
+
+test "restore_save re-inserts all persisted tables without PK crash"
+    fresh_example 0
+    learn_spell "feuerball"
+    save_game "wc_resume"
+    data: parse_json (read_file "saves/wc_resume.json")
+    -- A second restore in the same session (the /resume path) used to crash on
+    -- monster_abilities / player_spells PKs because they were re-inserted
+    -- without being cleared first.
+    restore_save data
+    restore_save data
+    expect_eq (len (db_query (open_db 0) "SELECT * FROM player_spells")) 1 "player_spells restored"
+    expect_gt (len (db_query (open_db 0) "SELECT * FROM npcs")) 0 "npcs restored"
+    expect_eq (len (db_query (open_db 0) "SELECT * FROM custom_items")) (len (get data "custom_items")) "custom_items count matches"
+    expect_eq (len (db_query (open_db 0) "SELECT * FROM monster_abilities")) (len (get data "monster_abilities")) "monster_abilities count matches"
+
+test "pack-tuned start_mana is honored after seed_world"
+    init_db 0
+    reset_state 0
+    doc: {name: "t", start_room: "r", rooms: {}, npcs: [], monsters: [], quests: [], objectives: [], factions: [], mechanics: {start_hp: 10, start_gold: 20, respawn_hp: 10, start_mana: 42, max_mana: 99}}
+    seed_world doc
+    new_game 0
+    p: (get_player 0)
+    expect_eq (get p "mana") 42 "start_mana from mechanics"
+    expect_eq (get p "max_mana") 99 "max_mana from mechanics"
+
+test "design with fetch siegesbedingung passes validation"
+    design: {thema: "T", ton: "d", raumzahl: 6, items: ["fackel"], npcs: [{id: "h", template: "haendler", name: "H"}], monsters: ["kammerling"], quests: [], siegesbedingung: {kind: "fetch", target: "goldmuenze", npc: ""}}
+    expect_eq (len (validate_design design pack)) 0 "fetch design ok"
+
+test "map with fetch objective passes validation"
+    doc: parse_json (read_file "worlds/beispielwelt.json")
+    set doc "objectives" (push (get doc "objectives") {id: "obj_fetch", kind: "fetch", target: "goldmuenze", npc: "", state: "offen"})
+    expect_eq (len (validate_map doc pack)) 0 "fetch objective valid in map"
+
+test "rep_add upserts for unseeded faction"
+    fresh_example 0
+    rep_add "neue_fraktion" 5
+    expect_eq (rep_get "neue_fraktion") 5 "rep created"
+    rep_add "neue_fraktion" (-10)
+    expect_eq (rep_get "neue_fraktion") 0 "rep clamped at 0"

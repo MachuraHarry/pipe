@@ -13,9 +13,10 @@
 --!   POST   /api/v1/sessions                        [admin token]
 --!   POST   /api/v1/sessions/{id}/resume            [session secret]
 --!   GET    /api/v1/sessions/{id}/state|jobs/{jid}  [session secret]
---!   POST   /api/v1/sessions/{id}/command|expand|
---!          new-adventure|shutdown                  [session secret]
---!   DELETE /api/v1/sessions/{id}                   [session secret]
+--!   POST   /api/v1/sessions/{id}/command|expand|new-adventure  [session secret]
+--!   GET    /api/v1/sessions/{id}                  (= worker /health)
+--!   DELETE /api/v1/sessions/{id} beendet + löscht Stand; ein explizites
+--!          POST /shutdown ist NICHT vorgesehen (-> 403 forbidden)
 
 import "state.pipe"
 import "log.pipe"

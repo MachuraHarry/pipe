@@ -155,8 +155,8 @@ fn validate_design design pack
                         push fehler ("Unbekannte NPC-ID: " ++ id)
     sieg: get design "siegesbedingung"
     if sieg != nil
-        if !contains ["give", "kill", "explore"] (get sieg "kind")
-            push fehler "siegesbedingung.kind muss give, kill oder explore sein"
+        if !contains ["give", "kill", "explore", "fetch"] (get sieg "kind")
+            push fehler "siegesbedingung.kind muss give, kill, explore oder fetch sein"
     fehler
 
 --! Returns list of unique NPC roles in the pack.
@@ -406,7 +406,7 @@ fn gen_design prompt pack profil max_tries on_status
         if on_status != nil
             on_status "design" ("Versuch " ++ (to_str (versuch + 1)) ++ "/" ++ (to_str max_tries)) (10 + (versuch * 8))
         ai_model modell
-        nachricht: "Wunsch des Spielers:\n" ++ prompt ++ "\n\nSpieler-Profil: Stil=" ++ (get p "stil") ++ ", Schwierigkeit=" ++ (get p "schwierigkeit") ++ " (waehle Monster/Items passend zum Stil; bei schwer eher starke Monster, bei leicht schwache)\n\nVerfügbares Ressourcen-Paket:\n" ++ katalog ++ "\nErstelle ein Design. Antworte als JSON:\n{thema: str, ton: str, raumzahl: zahl, items: [pack-item-ids], custom_items: [{id: str (kurz, z.B. \"feueramulett\"), name: str, type: \"waffe|konsum|quest|werkzeug|schmuck\", value: zahl, tags: [str], desc: str (1 Satz), damage_bonus: zahl ODER 0, ranged: false ODER true, use_effect: \"none|heal|buff|clear_buff\", use_value: zahl ODER 0, buff_stat: str ODER \"\", buff_value: 0, buff_rounds: 0, clear_stat: str ODER \"\"}], npcs: [{id: str (kurz, z.B. \"siegfried\"), template: \"haendler|waechter|weiser|heiler|bettler\", name: str (zum Thema passender Name), temperament: str, persona: str (2-3 Saetze)}], monsters: [pack-monster-ids], quests: [pack-quest-ids], siegesbedingung: {kind: \"give|kill|explore\", target: id, npc: npc-id_nur_bei_give}}\n\nWICHTIG: npc-ids muessen in der siegesbedingung und in der karte referenziert werden können. Waehle 3-6 NPCs passend zum Thema. Erstelle individuelle Namen und Persoenlichkeiten, die zur Welt passen.\nErstelle 3-6 custom_items, die zur Welt passen (z.B. eine spezielle Waffe, einen einzigartigen Trank, ein artefaktisches Quest-Item). Nutzepack_item-ids NICHT für custom_items -- diese sind eigene Kreationen."
+        nachricht: "Wunsch des Spielers:\n" ++ prompt ++ "\n\nSpieler-Profil: Stil=" ++ (get p "stil") ++ ", Schwierigkeit=" ++ (get p "schwierigkeit") ++ " (waehle Monster/Items passend zum Stil; bei schwer eher starke Monster, bei leicht schwache)\n\nVerfügbares Ressourcen-Paket:\n" ++ katalog ++ "\nErstelle ein Design. Antworte als JSON:\n{thema: str, ton: str, raumzahl: zahl, items: [pack-item-ids], custom_items: [{id: str (kurz, z.B. \"feueramulett\"), name: str, type: \"waffe|konsum|quest|werkzeug|schmuck\", value: zahl, tags: [str], desc: str (1 Satz), damage_bonus: zahl ODER 0, ranged: false ODER true, use_effect: \"none|heal|buff|clear_buff\", use_value: zahl ODER 0, buff_stat: str ODER \"\", buff_value: 0, buff_rounds: 0, clear_stat: str ODER \"\"}], npcs: [{id: str (kurz, z.B. \"siegfried\"), template: \"haendler|waechter|weiser|heiler|bettler\", name: str (zum Thema passender Name), temperament: str, persona: str (2-3 Saetze)}], monsters: [pack-monster-ids], quests: [pack-quest-ids], siegesbedingung: {kind: \"give|kill|explore|fetch\", target: id, npc: npc-id_nur_bei_give}}\n\nWICHTIG: npc-ids muessen in der siegesbedingung und in der karte referenziert werden können. Waehle 3-6 NPCs passend zum Thema. Erstelle individuelle Namen und Persoenlichkeiten, die zur Welt passen.\nErstelle 3-6 custom_items, die zur Welt passen (z.B. eine spezielle Waffe, einen einzigartigen Trank, ein artefaktisches Quest-Item). Nutzepack_item-ids NICHT für custom_items -- diese sind eigene Kreationen."
         try
             roh: ai_chat DESIGN_SYSTEM nachricht 4000
             log "GEN-DESIGN" "AI-Antwort erhalten (" ++ (to_str (len roh)) ++ " Zeichen)"
@@ -746,8 +746,8 @@ fn monster_loots_in_doc doc pack
 --! Validates one objective against allowed resources; returns error or "".
 fn validate_single_ziel obj erlaubte_npc erlaubte_mon erlaubte_loots erlaubte_raeume neue_quests doc pack
     kind: get obj "kind"
-    if !contains ["give", "kill", "explore"] kind
-        "objective.kind muss give, kill oder explore sein"
+    if !contains ["give", "kill", "explore", "fetch"] kind
+        "objective.kind muss give, kill, explore oder fetch sein"
     else
         if kind == "give"
             if !pack_has_id pack "items" (get obj "target")
@@ -770,11 +770,17 @@ fn validate_single_ziel obj erlaubte_npc erlaubte_mon erlaubte_loots erlaubte_ra
                 if !contains erlaubte_raeume (get obj "target")
                     ("explore-Ziel ist kein Raum der Welt: " ++ (to_str (get obj "target")))
                 else
-                    qid: or_default_str (get obj "quest_id")
-                    if qid != "" && !contains neue_quests qid
-                        ("quest_id zeigt nicht auf eine neue Quest: " ++ qid)
+                    if kind == "fetch"
+                        if !pack_has_id pack "items" (get obj "target")
+                            ("fetch-Ziel ist kein Pack-Item: " ++ (to_str (get obj "target")))
+                        else
+                            ""
                     else
-                        ""
+                        qid: or_default_str (get obj "quest_id")
+                        if qid != "" && !contains neue_quests qid
+                            ("quest_id zeigt nicht auf eine neue Quest: " ++ qid)
+                        else
+                            ""
 
 --! Asks the LLM for a world expansion (1-3 new rooms + inhabitants).
 fn gen_expansion doc wunsch pack max_tries
@@ -797,7 +803,7 @@ fn gen_expansion doc wunsch pack max_tries
             push freie_quests ((get q "id") ++ " ziel=" ++ (get q "goal_type") ++ " ziel_tags=[" ++ (join_list (get q "target_tags") ",") ++ "]")
     rest: (room_cap pack) - len (keys (get doc "rooms"))
     npc_rollen: pack_npc_roles pack
-    nachricht: "Bestehende Räume: " ++ (join_list (keys (get doc "rooms")) ", ") ++ "\nFreie Raum-Templates (bevorzugt nutzen): " ++ (join_list freie_tpl ", ") ++ "\nVerfügbare NPC-Rollen: " ++ (join_list npc_rollen ", ") ++ "\nNoch nicht platzierte Monster: " ++ (join_list freie_mon ", ") ++ "\nNoch nicht platzierte Items: " ++ (join_list freie_items ", ") ++ "\nNoch unbenutzte Quest-Vorlagen: " ++ (join_list freie_quests ", ") ++ "\nMaximal noch " ++ (to_str rest) ++ " neue Räume insgesamt; jetzt 1-3.\nWunsch des Spielers: " ++ wunsch ++ "\n\nErweitere die Karte passend zum Wunsch. Neue Räume dürfen intern Ausgänge untereinander haben (exits zeigen NUR auf andere NEUE Räume). Die Anbindung an die alte Karte läuft ausschließlich über links (anchor MUSS ein bestehender Raum sein und dir eine dort FREIE Richtung). Optional darfst du bis zu 2 neue NPCs mitbringen (mit individuellen Namen, die zum Thema passen) und bis zu 2 neue Aufgaben, die die neuen Gebiete nutzen.\nAntworte als JSON:\n{rooms: {\"<template-id>\": {name: str (4-8 Wörter, atmosphärischer Raumname), description: str (2 Saetze), items: [item-ids ODER []]}}, links: [{anchor: bestehende-raum-id, dir: \"norden|sueden|osten|westen\", room: neue-raum-id}], npcs: [{id: str (kurz), template: \"rolle\", name: str (zum Thema passend), temperament: str, persona: str, room: neue-raum-id}], monsters: [{id: str, room: neue-raum-id}], quests: [vorlagen-ids ODER []], objectives: [{id: \"obj_<name>\", kind: \"give|kill|explore\", target: item-oder-monster-oder-raum-id, npc: npc-id-oder-\"\", quest_id: neue-quest-id-oder-\"\"}]}"
+    nachricht: "Bestehende Räume: " ++ (join_list (keys (get doc "rooms")) ", ") ++ "\nFreie Raum-Templates (bevorzugt nutzen): " ++ (join_list freie_tpl ", ") ++ "\nVerfügbare NPC-Rollen: " ++ (join_list npc_rollen ", ") ++ "\nNoch nicht platzierte Monster: " ++ (join_list freie_mon ", ") ++ "\nNoch nicht platzierte Items: " ++ (join_list freie_items ", ") ++ "\nNoch unbenutzte Quest-Vorlagen: " ++ (join_list freie_quests ", ") ++ "\nMaximal noch " ++ (to_str rest) ++ " neue Räume insgesamt; jetzt 1-3.\nWunsch des Spielers: " ++ wunsch ++ "\n\nErweitere die Karte passend zum Wunsch. Neue Räume dürfen intern Ausgänge untereinander haben (exits zeigen NUR auf andere NEUE Räume). Die Anbindung an die alte Karte läuft ausschließlich über links (anchor MUSS ein bestehender Raum sein und dir eine dort FREIE Richtung). Optional darfst du bis zu 2 neue NPCs mitbringen (mit individuellen Namen, die zum Thema passen) und bis zu 2 neue Aufgaben, die die neuen Gebiete nutzen.\nAntworte als JSON:\n{rooms: {\"<template-id>\": {name: str (4-8 Wörter, atmosphärischer Raumname), description: str (2 Saetze), items: [item-ids ODER []]}}, links: [{anchor: bestehende-raum-id, dir: \"norden|sueden|osten|westen\", room: neue-raum-id}], npcs: [{id: str (kurz), template: \"rolle\", name: str (zum Thema passend), temperament: str, persona: str, room: neue-raum-id}], monsters: [{id: str, room: neue-raum-id}], quests: [vorlagen-ids ODER []], objectives: [{id: \"obj_<name>\", kind: \"give|kill|explore|fetch\", target: item-oder-monster-oder-raum-id, npc: npc-id-oder-\"\", quest_id: neue-quest-id-oder-\"\"}]}"
     exp: nil
     fehler: ["noch nicht versucht"]
     versuch: 0
@@ -1060,7 +1066,7 @@ fn gen_neue_objektive doc pack max_tries
             push platzierte_mon ((get m "id") ++ "/loot:" ++ (get def "loot"))
         else
             push platzierte_mon (get m "id")
-    nachricht: "Welt: " ++ (get doc "name") ++ "\nRäume: " ++ (join_list (keys (get doc "rooms")) ", ") ++ "\nPlatzierte NPCs: " ++ (join_list platzierte_npc ", ") ++ "\nPlatzierte Monster (inkl. Loot): " ++ (join_list platzierte_mon ", ") ++ "\nNoch unbenutzte Quest-Vorlagen: " ++ (join_list freie_quests ", ") ++ "\n\nSchaffe EINE neue, erreichbare Siegesbedingung aus diesen Ressourcen. Antworte als JSON:\n{quests: [0-1 vorlagen-ids ODER []], objectives: [{id: \"obj_<name>\", kind: \"give|kill|explore\", target: passende-id, npc: npc-id-oder-\"\", quest_id: neue-quest-id-oder-\"\"}]}"
+    nachricht: "Welt: " ++ (get doc "name") ++ "\nRäume: " ++ (join_list (keys (get doc "rooms")) ", ") ++ "\nPlatzierte NPCs: " ++ (join_list platzierte_npc ", ") ++ "\nPlatzierte Monster (inkl. Loot): " ++ (join_list platzierte_mon ", ") ++ "\nNoch unbenutzte Quest-Vorlagen: " ++ (join_list freie_quests ", ") ++ "\n\nSchaffe EINE neue, erreichbare Siegesbedingung aus diesen Ressourcen. Antworte als JSON:\n{quests: [0-1 vorlagen-ids ODER []], objectives: [{id: \"obj_<name>\", kind: \"give|kill|explore|fetch\", target: passende-id, npc: npc-id-oder-\"\", quest_id: neue-quest-id-oder-\"\"}]}"
     erg: nil
     fehler: ["noch nicht versucht"]
     versuch: 0

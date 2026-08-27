@@ -192,7 +192,12 @@ fn handle_turn inp
         if (get erg "narration") != ""
             print (get erg "narration")
         else
-            print "Die Nebel schweigen. Versuche es noch einmal."
+            dialog: at LAST_DIALOG 0
+            if dialog != nil
+                print ((get dialog "name") ++ " sagt: " ++ (get dialog "reply"))
+                take_last_dialog 0
+            else
+                print "Die Nebel schweigen. Versuche es noch einmal."
     p: (get_player 0)
     if (get p "won") == 1
         if (at WON_NOTED 0) == false

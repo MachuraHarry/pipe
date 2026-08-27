@@ -202,19 +202,12 @@ test "kill objective completes on defeat"
     new_game 0
     move_to "norden"
     move_to "osten"
+    db_exec (open_db 0) "UPDATE monsters SET hp = 1, max_hp = 1 WHERE id = 'kammerling'"
     set_player_hp 100
     attack_enemy "kammerling"
-    attack_enemy "kammerling"
-    attack_enemy "kammerling"
-    attack_enemy "kammerling"
-    attack_enemy "kammerling"
-    attack_enemy "kammerling"
-    mons_da: len (monsters_in_room "tpl_schatzkammer")
-    expect_truthy (mons_da == 0 || true) "combat ran"
     obj: db_query (open_db 0) "SELECT state FROM objectives WHERE id = 'obj_kill'"
-    if len obj > 0
-        state_now: get (at obj 0) "state"
-        expect_truthy (state_now == "erledigt" || state_now == "offen") "objective handled deterministically"
+    expect_eq (get (at obj 0) "state") "erledigt" "kill objective completed"
+    expect_eq (get (get_player 0) "xp") 30 "kill and objective xp are both awarded"
 
 --- === Trade === ===
 
@@ -837,6 +830,15 @@ test "xp system works"
     expect_eq (get_xp 0) 25 "25 xp after add"
     add_xp 10
     expect_eq (get_xp 0) 35 "35 xp after second add"
+
+test "leveling increases player stats"
+    fresh_example 0
+    add_xp 50
+    p: get_player 0
+    expect_eq (player_level 0) 2 "level two after 50 xp"
+    expect_eq (get p "max_hp") 15 "level grants hp"
+    expect_eq (get p "hp") 15 "level heals with hp gain"
+    expect_eq (get p "max_mana") 17 "level grants mana"
 
 test "monster abilities seeded from pack"
     fresh_example 0

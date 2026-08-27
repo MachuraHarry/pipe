@@ -381,7 +381,12 @@ fn attack_enemy target
                                                     bericht: bericht ++ " Die Haut wird fester."
                                                 else
                                                     -- Direct damage ability (e.g. wurfdolch)
-                                                    bericht: bericht ++ " trifft dich für " ++ (to_str wert) ++ " Schaden!"
+                                                    php: (get (get_player 0) "hp") - wert
+                                                    set_player_hp php
+                                                    bericht: bericht ++ " trifft dich für " ++ (to_str wert) ++ " Schaden! (HP: " ++ (to_str php) ++ ")"
+                                                    if php <= 0
+                                                        respawn_player 0
+                                                        bericht: bericht ++ "\nSchwarz wird es vor deinen Augen. Du erwachst am Anfang."
                 --! Monster retaliates (if not paralyzed and no eis_schild)
                 eis_schild: get_buff "eis_schild"
                 if !ability_angewendet || eis_schild > 0
@@ -582,7 +587,7 @@ fn show_quests _
 fn show_inventory _
     p: (get_player 0)
     inv: parse_json (get p "inventory")
-    kopf: "Gold: " ++ (to_str (get p "gold")) ++ " | HP: " ++ (to_str (get p "hp")) ++ " | Mana: " ++ (to_str (get p "mana")) ++ "/" ++ (to_str (get p "max_mana"))
+    kopf: "Stufe: " ++ (to_str (player_level 0)) ++ " | Gold: " ++ (to_str (get p "gold")) ++ " | HP: " ++ (to_str (get p "hp")) ++ "/" ++ (to_str (get p "max_hp")) ++ " | Mana: " ++ (to_str (get p "mana")) ++ "/" ++ (to_str (get p "max_mana")) ++ " | XP: " ++ (to_str (get p "xp")) ++ "/50"
     buffs: all_buffs 0
     if len buffs > 0
         buff_texte: []

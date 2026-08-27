@@ -1,4 +1,4 @@
-# Worldcraft Server — API-Spezifikation (v1.2)
+# Worldcraft Server — API-Spezifikation (v1.1)
 
 HTTP/JSON-Backend für Worldcraft. Jede Spiel-Session läuft in einem **isolierten
 OS-Prozess** mit eigener In-Memory-Welt — mehrere Spieler/Session stören sich nie.
@@ -71,12 +71,9 @@ Antwort `201`:
   "options": ["geh nach norden", "nimm fackel", "..."]
 }
 ```
-`ready: false` → Welt generiert noch; solange pollen, bis das State-Objekt
-gefüllt ist. Fortschritt (0–100 %) liefert `GET /sessions/{id}/boot`:
-```json
-{"ready": false, "progress": 55, "phase": "map", "detail": "Baue die Karte auf…", "error": ""}
-```
-**Das `secret` muss die App speichern** — es ist der einzige Schlüssel zu dieser Session.
+`ready: false` → Welt generiert noch; solange `GET /sessions/{id}/state` pollen,
+bis das State-Objekt gefüllt ist. **Das `secret` muss die App speichern** —
+es ist der einzige Schlüssel zu dieser Session.
 
 ### `POST /api/v1/sessions/{id}/resume`
 Belebt eine Session wieder — etwa nachdem die App gekillt wurde, das Handy
@@ -97,17 +94,13 @@ Voller Zustand + Intro-Narration:
   "state": {
     "world": "Die Musterwelt",
     "room": "tpl_eingang",
-    "room_name": "tpl_eingang",
     "room_description": "== tpl_eingang == ...",
     "exits": ["norden"],
-    "items": [{"id": "fackel", "name": "fackel", "desc": "Eine teergefüllte Fackel, wirft flackerndes Licht."}],
+    "items": ["fackel"],
     "npcs": [{"id": "weiser_aldric", "name": "Weiser Aldric", "role": "weiser"}],
     "monsters": [{"id": "kammerling", "name": "Kammerling", "hp": 5, "max_hp": 5}],
-    "hp": 10, "max_hp": 10, "gold": 20, "mana": 8, "max_mana": 15, "xp": 0,
-    "inventory": [],
+    "hp": 10, "gold": 20, "inventory": [],
     "quests": [{"id": "q_ungewuerm", "name": "Das Ungewürm", "state": "aktiv"}],
-    "spells": [{"id": "feuerball", "name": "Feuerball", "typ": "angriff", "manakosten": 3, "schaden": 5}],
-    "buffs": [],
     "won": false
   },
   "options": ["geh nach norden", "nimm fackel", "inventar", "quests"]
@@ -143,7 +136,6 @@ Ergebnis nach Polling:
 | `type` | `fast` (ohne KI, <10 ms) · `narrator` (KI-Erzähler) · `expand` · `new_adventure` |
 | `dialog` | Nur gesetzt, wenn der Zug ein NPC-Gespräch war. `choices` = 3 KI-Vorschläge für nächste Befehle — ideal als Buttons in der App |
 | `options` | Deterministische Aktionsvorschläge aus dem Zustand (Exits, Items, NPCs, Handel, Kampf) |
-| `error` | Opt., nur bei KI-Fehlschlag: `{code: "ai_unavailable", message: str}`. `narration` liefert dann einen Hinweis auf klare Befehle ohne KI |
 
 Polling-Pfad: `GET /api/v1/sessions/{id}/jobs/{job_id}` → `{status:"running"|"done", result?, error?}`
 
@@ -155,25 +147,9 @@ unverändert — einfach wiederholen.
 ### `POST /api/v1/sessions/{id}/new-adventure`
 Neue Siegesbedingung nach einem Sieg (`won: true`). → `202 {job_id}`.
 
-### `GET /api/v1/sessions/{id}`
-Health-Check der Session (proxied zum Worker-`/health`):
-```json
-{"status": "ok", "session": "s1787730632_1", "ready": true, "error": ""}
-```
-
 ### `DELETE /api/v1/sessions/{id}`
 Beendet den Worker **und löscht Spielstand + Metadaten** (bewusstes Beenden =
 Neuanfang möglich). Nur der Idle-Timeout/Resume erhält den Stand.
-Antwort `200`:
-```json
-{"status": "terminated", "session_id": "s1787730632_1"}
-```
-
-> **`shutdown`-Hinweis:** Ein explizites `POST /sessions/{id}/shutdown` existiert
-> **nicht** und antwortet mit `403 forbidden`. Beenden läuft immer über
-> `DELETE` der Session — dadurch wird auch der Spielstand gelöscht. Zum
-> *sanften* Beenden ohne Löschen genügt es, die Session idle laufen zu lassen
-> (Idle-Timeout persistiert und `/resume` belebt sie wieder).
 
 ---
 
@@ -182,19 +158,15 @@ Antwort `200`:
 | Feld | Typ | Inhalt |
 |---|---|---|
 | `world` | str | Anzeigename der Welt |
-| `room`, `room_name` | str | aktueller Raum (ID) + Anzeigename |
-| `room_description` | str | atmosphärischer Raumtext |
+| `room`, `room_description` | str | aktueller Raum (+ atmosphärischer Text) |
 | `exits` | list | mögliche Richtungen |
-| `items` | list of obj | `{id, name, desc}` — Items am Boden |
+| `items` | list | Items am Boden |
 | `npcs` | list of obj | `{id, name, role}` |
 | `monsters` | list of obj | `{id, name, hp, max_hp}` |
-| `hp`, `max_hp`, `gold` | num | Vitalwerte |
-| `mana`, `max_mana` | num | Mana-Punkte |
-| `xp` | num | Erfahrungspunkte |
-| `inventory` | list | getragene Item-IDs |
+| `hp`, `gold` | num | Vitalwerte |
+| `level`, `xp` | num | Stufe und Erfahrungspunkte; alle 50 XP steigt die Stufe |
+| `inventory` | list | getragene Items (IDs) |
 | `quests` | list of obj | `{id, name, state}` (`aktiv`/`erledigt`) |
-| `spells` | list of obj | `{id, name, typ, manakosten, schaden}` |
-| `buffs` | list of obj | `{art, wert, runden}` |
 | `won` | bool | Hauptziel erfüllt |
 
 ## Fehlercodes
@@ -203,16 +175,10 @@ Antwort `200`:
 |---|---|---|
 | `unauthorized` | 401 | Token falsch/fehlt |
 | `missing_world` | 400 | Weder `world` noch `briefing` |
-| `bad_json` | 400 | Body ist kein gültiges JSON |
-| `bad_request` | 400 | Unvollständiger/unbekannter Pfad |
-| `forbidden` | 403 | `POST /shutdown` — Beenden nur via `DELETE` |
 | `busy` | 409 | Session hat schon einen laufenden Job |
 | `booting` | 503 | Welt generiert noch (state pollen) |
 | `boot_failed` / `worker_start_failed` / `worker_unreachable` | 500/502 | Prozessproblem — Session löschen und neu anlegen |
-| `unknown_session` / `unknown_job` / `not_found` | 404 | — |
-| `no_player` | — | (State) Noch kein Spiel gestartet — Session neu anlegen |
-| `ai_unavailable` | — | (im Command-Result `error`) KI-Erzähler nicht erreichbar |
-| `internal` | 500 | Unerwarteter Supervisor-Fehler (Catch-all) |
+| `unknown_session` / `unknown_job` / `not_found` | 404 | —
 
 ## Architektur-Notizen
 

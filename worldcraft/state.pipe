@@ -24,7 +24,7 @@ fn init_db _
     h: (open_db 0)
     db_exec h "CREATE TABLE IF NOT EXISTS meta (mkey TEXT PRIMARY KEY, mval TEXT)"
     db_exec h "CREATE TABLE IF NOT EXISTS player (id INTEGER PRIMARY KEY, room TEXT, hp INTEGER, max_hp INTEGER, gold INTEGER, mana INTEGER, max_mana INTEGER, xp INTEGER, inventory TEXT, won INTEGER)"
-    db_exec h "CREATE TABLE IF NOT EXISTS rooms (id TEXT PRIMARY KEY, description TEXT, items TEXT, exits TEXT)"
+    db_exec h "CREATE TABLE IF NOT EXISTS rooms (id TEXT PRIMARY KEY, description TEXT, items TEXT, exits TEXT, name TEXT)"
     db_exec h "CREATE TABLE IF NOT EXISTS npcs (id TEXT PRIMARY KEY, name TEXT, role TEXT, temperament TEXT, buys_pct INTEGER, sells_pct INTEGER, persona TEXT)"
     db_exec h "CREATE TABLE IF NOT EXISTS npc_placement (npc TEXT PRIMARY KEY, room TEXT)"
     db_exec h "CREATE TABLE IF NOT EXISTS npc_memory (npc TEXT PRIMARY KEY, summary TEXT, turns INTEGER)"
@@ -38,6 +38,11 @@ fn init_db _
     db_exec h "CREATE TABLE IF NOT EXISTS player_spells (spieler INTEGER, spell_id TEXT)"
     db_exec h "CREATE TABLE IF NOT EXISTS monster_abilities (monster TEXT, ability TEXT, effekt TEXT, wert INTEGER, runden INTEGER, chance INTEGER)"
     db_exec h "CREATE TABLE IF NOT EXISTS custom_items (id TEXT PRIMARY KEY, name TEXT, type TEXT, value INTEGER, tags TEXT, desc TEXT, damage_bonus INTEGER, ranged INTEGER, use_effect TEXT, use_value INTEGER, buff_stat TEXT, buff_value INTEGER, buff_rounds INTEGER, clear_stat TEXT, use_text INTEGER)"
+    -- Migration: add 'name' column to rooms if missing
+    try
+        db_exec h "ALTER TABLE rooms ADD COLUMN name TEXT"
+    catch
+        nil
 
 --! Deletes all rows (fresh game / test isolation).
 fn reset_state _
@@ -82,9 +87,10 @@ fn safe_name name
 fn seed_room_row id r
     h: (open_db 0)
     n: db_query h ("SELECT id FROM rooms WHERE id = '" ++ (sql_escape id) ++ "'")
-    sql: "INSERT INTO rooms VALUES ('" ++ (sql_escape id) ++ "', '" ++ (sql_escape (get r "description")) ++ "', '" ++ (sql_escape (to_json (get r "items"))) ++ "', '" ++ (sql_escape (to_json (get r "exits"))) ++ "')"
+    rname: or_default_str (get r "name")
+    sql: "INSERT INTO rooms VALUES ('" ++ (sql_escape id) ++ "', '" ++ (sql_escape (get r "description")) ++ "', '" ++ (sql_escape (to_json (get r "items"))) ++ "', '" ++ (sql_escape (to_json (get r "exits"))) ++ "', '" ++ (sql_escape rname) ++ "')"
     if len n > 0
-        sql: "UPDATE rooms SET description = '" ++ (sql_escape (get r "description")) ++ "', items = '" ++ (sql_escape (to_json (get r "items"))) ++ "', exits = '" ++ (sql_escape (to_json (get r "exits"))) ++ "' WHERE id = '" ++ (sql_escape id) ++ "'"
+        sql: "UPDATE rooms SET description = '" ++ (sql_escape (get r "description")) ++ "', items = '" ++ (sql_escape (to_json (get r "items"))) ++ "', exits = '" ++ (sql_escape (to_json (get r "exits"))) ++ "', name = '" ++ (sql_escape rname) ++ "' WHERE id = '" ++ (sql_escape id) ++ "'"
     db_exec h sql
 
 --! Seeds one npc row (map incl. room placement).

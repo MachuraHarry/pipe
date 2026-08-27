@@ -115,6 +115,19 @@ fn validate_design design pack
             for id in chosen
                 if !pack_has_id pack key id
                     push fehler ("Unbekannte ID in " ++ key ++ ": " ++ id)
+    -- Custom items: optional, but if present, validate structure
+    custom_items: get design "custom_items"
+    if custom_items != nil && len custom_items > 0
+        ci_ids: []
+        for ci in custom_items
+            if get ci "id" == nil || get ci "name" == nil || get ci "type" == nil
+                push fehler "Custom Item benoetigt id, name und type"
+            else
+                if contains ci_ids (get ci "id")
+                    push fehler ("Doppelte Custom-Item-ID: " ++ (get ci "id"))
+                push ci_ids (get ci "id")
+                if !contains ["waffe", "konsum", "quest", "werkzeug", "schmuck", "material"] (get ci "type")
+                    push fehler ("Custom-Item-Typ muss waffe, konsum, quest, werkzeug, schmuck oder material sein: " ++ (get ci "type"))
     -- NPCs: support new format (array of objects with template) and legacy (array of ids)
     npcs: get design "npcs"
     if npcs == nil
@@ -209,8 +222,13 @@ fn validate_map doc pack
                         push fehler ("Exit zeigt auf unbekannten Raum: " ++ id ++ " -> " ++ ziel)
             items: get room "items"
             if items != nil
+                ci_ids: []
+                cis: get doc "custom_items"
+                if cis != nil
+                    for ci in cis
+                        push ci_ids (get ci "id")
                 for it in items
-                    if !pack_has_id pack "items" it
+                    if !pack_has_id pack "items" it && !contains ci_ids it
                         push fehler ("Unbekanntes Item im Raum " ++ id ++ ": " ++ it)
         if get rooms start != nil
             errichtbare: reachable_rooms rooms start
@@ -233,7 +251,12 @@ fn validate_map doc pack
         for obj in objs
             kind: get obj "kind"
             if kind == "give"
-                if !pack_has_id pack "items" (get obj "target")
+                ci_ids: []
+                cis: get doc "custom_items"
+                if cis != nil
+                    for ci in cis
+                        push ci_ids (get ci "id")
+                if !pack_has_id pack "items" (get obj "target") && !contains ci_ids (get obj "target")
                     push fehler ("Objective-Ziel ist kein Item: " ++ (get obj "target"))
                 npc_ok: false
                 if npcs != nil
@@ -381,7 +404,7 @@ fn gen_design prompt pack profil max_tries
         modell: (at GEN_MODELS (versuch % (len GEN_MODELS)))
         log "GEN-DESIGN" "Versuch " ++ (to_str (versuch + 1)) ++ "/" ++ (to_str max_tries) ++ " Modell=" ++ modell
         ai_model modell
-        nachricht: "Wunsch des Spielers:\n" ++ prompt ++ "\n\nSpieler-Profil: Stil=" ++ (get p "stil") ++ ", Schwierigkeit=" ++ (get p "schwierigkeit") ++ " (waehle Monster/Items passend zum Stil; bei schwer eher starke Monster, bei leicht schwache)\n\nVerfügbares Ressourcen-Paket:\n" ++ katalog ++ "\nErstelle ein Design. Antworte als JSON:\n{thema: str, ton: str, raumzahl: zahl, items: [pack-item-ids], npcs: [{id: str (kurz, z.B. \"siegfried\"), template: \"haendler|waechter|weiser|heiler|bettler\", name: str (zum Thema passender Name), temperament: str, persona: str (2-3 Saetze)}], monsters: [pack-monster-ids], quests: [pack-quest-ids], siegesbedingung: {kind: \"give|kill|explore\", target: id, npc: npc-id_nur_bei_give}}\n\nWICHTIG: npc-ids muessen in der siegesbedingung und in der karte referenziert werden können. Waehle 3-6 NPCs passend zum Thema. Erstelle individuelle Namen und Persoenlichkeiten, die zur Welt passen."
+        nachricht: "Wunsch des Spielers:\n" ++ prompt ++ "\n\nSpieler-Profil: Stil=" ++ (get p "stil") ++ ", Schwierigkeit=" ++ (get p "schwierigkeit") ++ " (waehle Monster/Items passend zum Stil; bei schwer eher starke Monster, bei leicht schwache)\n\nVerfügbares Ressourcen-Paket:\n" ++ katalog ++ "\nErstelle ein Design. Antworte als JSON:\n{thema: str, ton: str, raumzahl: zahl, items: [pack-item-ids], custom_items: [{id: str (kurz, z.B. \"feueramulett\"), name: str, type: \"waffe|konsum|quest|werkzeug|schmuck\", value: zahl, tags: [str], desc: str (1 Satz), damage_bonus: zahl ODER 0, ranged: false ODER true, use_effect: \"none|heal|buff|clear_buff\", use_value: zahl ODER 0, buff_stat: str ODER \"\", buff_value: 0, buff_rounds: 0, clear_stat: str ODER \"\"}], npcs: [{id: str (kurz, z.B. \"siegfried\"), template: \"haendler|waechter|weiser|heiler|bettler\", name: str (zum Thema passender Name), temperament: str, persona: str (2-3 Saetze)}], monsters: [pack-monster-ids], quests: [pack-quest-ids], siegesbedingung: {kind: \"give|kill|explore\", target: id, npc: npc-id_nur_bei_give}}\n\nWICHTIG: npc-ids muessen in der siegesbedingung und in der karte referenziert werden können. Waehle 3-6 NPCs passend zum Thema. Erstelle individuelle Namen und Persoenlichkeiten, die zur Welt passen.\nErstelle 3-6 custom_items, die zur Welt passen (z.B. eine spezielle Waffe, einen einzigartigen Trank, ein artefaktisches Quest-Item). Nutzepack_item-ids NICHT für custom_items -- diese sind eigene Kreationen."
         try
             roh: ai_chat DESIGN_SYSTEM nachricht 4000
             log "GEN-DESIGN" "AI-Antwort erhalten (" ++ (to_str (len roh)) ++ " Zeichen)"
@@ -417,7 +440,12 @@ fn gen_map design pack max_tries
                 push npc_ids ((get npc "id") ++ " (" ++ (get npc "name") ++ ")")
             else
                 push npc_ids (to_str npc)
-    nachricht: "Thema: " ++ (get design "thema") ++ "\nTon: " ++ (get design "ton") ++ "\nRaumzahl: exakt " ++ (to_str (get design "raumzahl")) ++ "\nErlaubte Items: " ++ (join_list (get design "items") ", ") ++ "\nPlatzierte NPCs (nur Raum zuweisen): " ++ (join_list npc_ids ", ") ++ "\nErlaubte Monster: " ++ (join_list (get design "monsters") ", ") ++ "\nSiegesbedingung: " ++ (to_json (get design "siegesbedingung")) ++ "\nRaum-Templates zur Auswahl (NUR diese ids nutzen, jede höchstens einmal): " ++ (join_list nutzbare_raeume ", ") ++ "\n\nBaue die Karte. Antworte als JSON:\n{name: str, start_room: id, rooms: {\"<template-id>\": {description: str (2 Saetze, zum Thema passend), items: [item-ids ODER []], exits: {\"norden|sueden|osten|westen\": template-id}}}, npcs: [{id: npc-id, room: template-id}], monsters: [{id: pack-monster-id, room: template-id}], objectives: [{id: str, kind: \"" ++ (to_json (get design "siegesbedingung")) ++ "\"-passend, target: item-oder-monster-id, npc: npc-id-oder-\"\", state: \"offen\"}]}\nNPC-IDs muessen exakt mit den oben angegebenen übereinstimmen. Alle Räume müssen vom start_room aus erreichbar sein."
+    custom_ids: []
+    custom_items_design: get design "custom_items"
+    if custom_items_design != nil && len custom_items_design > 0
+        for ci in custom_items_design
+            push custom_ids (get ci "id")
+    nachricht: "Thema: " ++ (get design "thema") ++ "\nTon: " ++ (get design "ton") ++ "\nRaumzahl: exakt " ++ (to_str (get design "raumzahl")) ++ "\nErlaubte Items: " ++ (join_list (get design "items") ", ") ++ "\nCustom Items (auch in Räumen platzieren): " ++ (join_list custom_ids ", ") ++ "\nPlatzierte NPCs (nur Raum zuweisen): " ++ (join_list npc_ids ", ") ++ "\nErlaubte Monster: " ++ (join_list (get design "monsters") ", ") ++ "\nSiegesbedingung: " ++ (to_json (get design "siegesbedingung")) ++ "\nRaum-Templates zur Auswahl (NUR diese ids nutzen, jede höchstens einmal): " ++ (join_list nutzbare_raeume ", ") ++ "\n\nBaue die Karte. Antworte als JSON:\n{name: str, start_room: id, rooms: {\"<template-id>\": {name: str (4-8 Wörter, atmosphärischer Raumname zum Thema passend), description: str (2 Saetze, zum Thema passend), items: [item-ids ODER []], exits: {\"norden|sueden|osten|westen\": template-id}}}, npcs: [{id: npc-id, room: template-id}], monsters: [{id: pack-monster-id, room: template-id}], objectives: [{id: str, kind: \"" ++ (to_json (get design "siegesbedingung")) ++ "\"-passend, target: item-oder-monster-id, npc: npc-id-oder-\"\", state: \"offen\"}]}\nNPC-IDs muessen exakt mit den oben angegebenen übereinstimmen. Alle Räume müssen vom start_room aus erreichbar sein."
     doc: nil
     fehler: ["noch nicht versucht"]
     versuch: 0
@@ -455,13 +483,20 @@ fn normalize_map raw pack design
             tpl: find_room_template pack id
             if tpl != nil
                 desc: get tpl "description"
+        rname: get r "name"
+        if rname == "" || rname == nil
+            tpl: find_room_template pack id
+            if tpl != nil
+                rname: get tpl "kind"
+            else
+                rname: id
         items: get r "items"
         if items == nil
             items: []
         exits: get r "exits"
         if exits == nil
             exits: (frische_map 0)
-        set rooms id {description: desc, items: items, exits: exits}
+        set rooms id {description: desc, name: rname, items: items, exits: exits}
     npcs: []
     -- New format: design.npcs is array of objects [{id, template, name, ...}]
     -- Legacy format: raw.npcs has full objects with pack ids
@@ -539,7 +574,9 @@ fn normalize_map raw pack design
     for obj in objectives
         set obj "state" "offen"
     mech: get pack "mechanics"
-    {name: (or_default (get raw "name") (get design "thema")), start_room: (get raw "start_room"), rooms: rooms, npcs: npcs, monsters: monsters, quests: quests, objectives: objectives, factions: (get pack "factions"), mechanics: {start_hp: (get mech "start_hp"), start_gold: (get mech "start_gold"), respawn_hp: (get mech "respawn_hp")}, lore: (frische_liste 0), thema: (or_default (get design "thema") ""), ton: (or_default (get design "ton") "")}
+    -- Custom items from design (AI-generated thematic items)
+    custom_items_list: or_default (get design "custom_items") KEIN_LISTE
+    {name: (or_default (get raw "name") (get design "thema")), start_room: (get raw "start_room"), rooms: rooms, npcs: npcs, monsters: monsters, quests: quests, objectives: objectives, factions: (get pack "factions"), mechanics: {start_hp: (get mech "start_hp"), start_gold: (get mech "start_gold"), respawn_hp: (get mech "respawn_hp")}, lore: (frische_liste 0), thema: (or_default (get design "thema") ""), ton: (or_default (get design "ton") ""), custom_items: custom_items_list}
 
 -- ---- Lore enrichment & orchestration ----
 
@@ -617,7 +654,7 @@ fn fallback_world pack
         if i > 0
             zurueck: get gegenteil (at richtungen (i - 1))
             set exits zurueck (at kette (i - 1))
-        set rooms id {description: (get tpl "description"), items: items, exits: exits}
+        set rooms id {description: (get tpl "description"), name: (get tpl "kind"), items: items, exits: exits}
         i: i + 1
     hilda_def: find_npc_def pack "kraemerin_hilda"
     aldric_def: find_npc_def pack "weiser_aldric"
@@ -756,7 +793,7 @@ fn gen_expansion doc wunsch pack max_tries
             push freie_quests ((get q "id") ++ " ziel=" ++ (get q "goal_type") ++ " ziel_tags=[" ++ (join_list (get q "target_tags") ",") ++ "]")
     rest: (room_cap pack) - len (keys (get doc "rooms"))
     npc_rollen: pack_npc_roles pack
-    nachricht: "Bestehende Räume: " ++ (join_list (keys (get doc "rooms")) ", ") ++ "\nFreie Raum-Templates (bevorzugt nutzen): " ++ (join_list freie_tpl ", ") ++ "\nVerfügbare NPC-Rollen: " ++ (join_list npc_rollen ", ") ++ "\nNoch nicht platzierte Monster: " ++ (join_list freie_mon ", ") ++ "\nNoch nicht platzierte Items: " ++ (join_list freie_items ", ") ++ "\nNoch unbenutzte Quest-Vorlagen: " ++ (join_list freie_quests ", ") ++ "\nMaximal noch " ++ (to_str rest) ++ " neue Räume insgesamt; jetzt 1-3.\nWunsch des Spielers: " ++ wunsch ++ "\n\nErweitere die Karte passend zum Wunsch. Neue Räume dürfen intern Ausgänge untereinander haben (exits zeigen NUR auf andere NEUE Räume). Die Anbindung an die alte Karte läuft ausschließlich über links (anchor MUSS ein bestehender Raum sein und dir eine dort FREIE Richtung). Optional darfst du bis zu 2 neue NPCs mitbringen (mit individuellen Namen, die zum Thema passen) und bis zu 2 neue Aufgaben, die die neuen Gebiete nutzen.\nAntworte als JSON:\n{rooms: {\"<template-id>\": {description: str (2 Saetze), items: [item-ids ODER []]}}, links: [{anchor: bestehende-raum-id, dir: \"norden|sueden|osten|westen\", room: neue-raum-id}], npcs: [{id: str (kurz), template: \"rolle\", name: str (zum Thema passend), temperament: str, persona: str, room: neue-raum-id}], monsters: [{id: str, room: neue-raum-id}], quests: [vorlagen-ids ODER []], objectives: [{id: \"obj_<name>\", kind: \"give|kill|explore\", target: item-oder-monster-oder-raum-id, npc: npc-id-oder-\"\", quest_id: neue-quest-id-oder-\"\"}]}"
+    nachricht: "Bestehende Räume: " ++ (join_list (keys (get doc "rooms")) ", ") ++ "\nFreie Raum-Templates (bevorzugt nutzen): " ++ (join_list freie_tpl ", ") ++ "\nVerfügbare NPC-Rollen: " ++ (join_list npc_rollen ", ") ++ "\nNoch nicht platzierte Monster: " ++ (join_list freie_mon ", ") ++ "\nNoch nicht platzierte Items: " ++ (join_list freie_items ", ") ++ "\nNoch unbenutzte Quest-Vorlagen: " ++ (join_list freie_quests ", ") ++ "\nMaximal noch " ++ (to_str rest) ++ " neue Räume insgesamt; jetzt 1-3.\nWunsch des Spielers: " ++ wunsch ++ "\n\nErweitere die Karte passend zum Wunsch. Neue Räume dürfen intern Ausgänge untereinander haben (exits zeigen NUR auf andere NEUE Räume). Die Anbindung an die alte Karte läuft ausschließlich über links (anchor MUSS ein bestehender Raum sein und dir eine dort FREIE Richtung). Optional darfst du bis zu 2 neue NPCs mitbringen (mit individuellen Namen, die zum Thema passen) und bis zu 2 neue Aufgaben, die die neuen Gebiete nutzen.\nAntworte als JSON:\n{rooms: {\"<template-id>\": {name: str (4-8 Wörter, atmosphärischer Raumname), description: str (2 Saetze), items: [item-ids ODER []]}}, links: [{anchor: bestehende-raum-id, dir: \"norden|sueden|osten|westen\", room: neue-raum-id}], npcs: [{id: str (kurz), template: \"rolle\", name: str (zum Thema passend), temperament: str, persona: str, room: neue-raum-id}], monsters: [{id: str, room: neue-raum-id}], quests: [vorlagen-ids ODER []], objectives: [{id: \"obj_<name>\", kind: \"give|kill|explore\", target: item-oder-monster-oder-raum-id, npc: npc-id-oder-\"\", quest_id: neue-quest-id-oder-\"\"}]}"
     exp: nil
     fehler: ["noch nicht versucht"]
     versuch: 0
@@ -896,7 +933,14 @@ fn merge_expansion exp doc pack
         if desc == nil || desc == ""
             tpl: find_room_template pack (base_template_id pack id)
             desc: get tpl "description"
-        r: {description: desc, items: (or_default (get roh_r "items") KEIN_LISTE), exits: (frische_map 0)}
+        rname: get roh_r "name"
+        if rname == nil || rname == ""
+            tpl: find_room_template pack (base_template_id pack id)
+            if tpl != nil
+                rname: get tpl "kind"
+            else
+                rname: id
+        r: {description: desc, name: rname, items: (or_default (get roh_r "items") KEIN_LISTE), exits: (frische_map 0)}
         set (get doc "rooms") id r
         seed_room_row id r
     -- 2) Links: free direction on the anchor + automatic backlink

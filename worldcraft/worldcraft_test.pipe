@@ -57,6 +57,29 @@ test "duplicate npc ids fail validation"
     fehler: validate_design design pack
     expect_gt (len fehler) 0 "duplicate npc id flagged"
 
+test "valid custom items pass validation"
+    design: {thema: "Test", ton: "düster", raumzahl: 6, items: ["fackel"], custom_items: [{id: "feueramulett", name: "Feueramulett", type: "schmuck", value: 50, tags: ["feuer", "magie"], desc: "Ein leuchtendes Amulett."}], npcs: [{id: "a", template: "haendler", name: "A"}], monsters: [], quests: []}
+    fehler: validate_design design pack
+    expect_eq (len fehler) 0 "custom items valid"
+
+test "bad custom item type fails validation"
+    design: {thema: "Test", ton: "düster", raumzahl: 6, items: ["fackel"], custom_items: [{id: "x", name: "X", type: "fliege"}], npcs: [{id: "a", template: "haendler", name: "A"}], monsters: [], quests: []}
+    fehler: validate_design design pack
+    expect_gt (len fehler) 0 "bad custom item type flagged"
+
+test "duplicate custom item ids fail validation"
+    design: {thema: "Test", ton: "düster", raumzahl: 6, items: ["fackel"], custom_items: [{id: "x", name: "X1", type: "waffe"}, {id: "x", name: "X2", type: "konsum"}], npcs: [{id: "a", template: "haendler", name: "A"}], monsters: [], quests: []}
+    fehler: validate_design design pack
+    expect_gt (len fehler) 0 "duplicate custom item id flagged"
+
+test "normalize passes custom items to doc"
+    raw: {name: "X", start_room: "tpl_eingang", rooms: {}, npcs: [], monsters: [], objectives: []}
+    design: {quests: [], custom_items: [{id: "test_item", name: "Test Item", type: "quest"}]}
+    doc: normalize_map raw pack design
+    ci: get doc "custom_items"
+    expect_eq (len ci) 1 "one custom item"
+    expect_eq (get (at ci 0) "id") "test_item" "custom item id preserved"
+
 --- === Map validation & BFS === ===
 
 test "reachable rooms follows exits"

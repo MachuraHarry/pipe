@@ -40,7 +40,10 @@ fn look _
         basis: get room "description"
         if fl != ""
             basis: fl
-        beschr: "== " ++ rid ++ " ==\n" ++ basis
+        rname: get room "name"
+        if rname == nil || rname == ""
+            rname: rid
+        beschr: "== " ++ rname ++ " ==\n" ++ basis
         npcs: npcs_in_room rid
         if len npcs > 0
             namen: []
@@ -79,8 +82,18 @@ fn move_to exit_name
         "Dein Ort ist unbekannt. (Fehler)"
     else
         exits: parse_json (get room "exits")
-        if contains (keys exits) exit_name
-            ziel: get exits exit_name
+        -- Normalize: try direct match first, then ue→ü and ü→ue variants
+        norm: exit_name
+        if contains (keys exits) norm
+            nil
+        else
+            if contains norm "ü"
+                norm: replace norm "ü" "ue"
+            else
+                if contains norm "ue"
+                    norm: replace norm "ue" "ü"
+        if contains (keys exits) norm
+            ziel: get exits norm
             set_player_room ziel
             check_explore_objective ziel
             look 0
@@ -700,9 +713,19 @@ fn fast_command cmd pack
                                                     if (erstes == "schau" || erstes == "umschauen" || erstes == "look")
                                                         {handled: true, out: look 0}
                                                     else
-                                                        if (erstes == "greife" || erstes == "angriff" || erstes == "kämpfe") && len w > 1
+                                                    if (erstes == "greife" || erstes == "angriff" || erstes == "kämpfe")
+                                                        if len w > 1
                                                             {handled: true, out: attack_enemy (first_word (rest_words t))}
                                                         else
+                                                            -- Attack first monster in room if no target specified
+                                                            p: (get_player 0)
+                                                            room: get_room (get p "room")
+                                                            mons: parse_json (get room "monsters")
+                                                            if mons != nil && len mons > 0
+                                                                {handled: true, out: attack_enemy (get (at mons 0) "id")}
+                                                            else
+                                                                {handled: true, out: "Hier ist kein Monster."}
+                                                    else
                                                             if (erstes == "zauber" || erstes == "zaubere") && len w > 1
                                                                 {handled: true, out: cast_spell (first_word (rest_words t)) (second_word t)}
                                                             else

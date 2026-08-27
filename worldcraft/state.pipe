@@ -31,7 +31,7 @@ fn init_db _
     db_exec h "CREATE TABLE IF NOT EXISTS flavor (room TEXT PRIMARY KEY, body TEXT)"
     db_exec h "CREATE TABLE IF NOT EXISTS monsters (id TEXT PRIMARY KEY, name TEXT, room TEXT, hp INTEGER, max_hp INTEGER, defense INTEGER, loot TEXT, defeated INTEGER)"
     db_exec h "CREATE TABLE IF NOT EXISTS quests (id TEXT PRIMARY KEY, name TEXT, description TEXT, state TEXT)"
-    db_exec h "CREATE TABLE IF NOT EXISTS objectives (id TEXT PRIMARY KEY, kind TEXT, target TEXT, npc TEXT, state TEXT, quest TEXT)"
+    db_exec h "CREATE TABLE IF NOT EXISTS objectives (id TEXT PRIMARY KEY, kind TEXT, target TEXT, npc TEXT, state TEXT, quest TEXT, main INTEGER)"
     db_exec h "CREATE TABLE IF NOT EXISTS reputation (fraktion TEXT PRIMARY KEY, punkte INTEGER)"
     db_exec h "CREATE TABLE IF NOT EXISTS buffs (spieler INTEGER, art TEXT, wert INTEGER, runden INTEGER)"
     db_exec h "CREATE TABLE IF NOT EXISTS spells (id TEXT PRIMARY KEY, name TEXT, typ TEXT, manakosten INTEGER, schaden INTEGER, effekt TEXT, beschreibung TEXT)"
@@ -111,7 +111,10 @@ fn seed_quest_row qst
 --! Seeds one objective row (quest coupling optional for old worlds).
 fn seed_objective_row obj
     quest: or_default_str (get obj "quest")
-    db_exec (open_db 0) ("INSERT INTO objectives VALUES ('" ++ (sql_escape (get obj "id")) ++ "', '" ++ (sql_escape (get obj "kind")) ++ "', '" ++ (sql_escape (get obj "target")) ++ "', '" ++ (sql_escape (get obj "npc")) ++ "', '" ++ (sql_escape (get obj "state")) ++ "', '" ++ (sql_escape quest) ++ "')")
+    main: 1
+    if (get obj "main") == 0
+        main: 0
+    db_exec (open_db 0) ("INSERT INTO objectives VALUES ('" ++ (sql_escape (get obj "id")) ++ "', '" ++ (sql_escape (get obj "kind")) ++ "', '" ++ (sql_escape (get obj "target")) ++ "', '" ++ (sql_escape (get obj "npc")) ++ "', '" ++ (sql_escape (get obj "state")) ++ "', '" ++ (sql_escape quest) ++ "', " ++ (to_str main) ++ ")")
 
 --! Returns v, or an empty string when nil.
 fn or_default_str v
@@ -389,7 +392,8 @@ fn set_won _
     db_exec (open_db 0) "UPDATE player SET won = 1 WHERE id = 1"
 
 --! Marks one objective as done; closes its coupled quest and, when all
---! objectives are done, wins the game.
+--! main objectives are done, wins the game. Side objectives (main=0) never
+--! block the win -- they only close their own quest.
 fn objective_complete obj_id
     h: (open_db 0)
     rows: db_query h ("SELECT quest FROM objectives WHERE id = '" ++ (sql_escape obj_id) ++ "'")
@@ -398,8 +402,8 @@ fn objective_complete obj_id
         if qid != "" && qid != nil
             quest_set qid "erledigt"
     db_exec h ("UPDATE objectives SET state = 'erledigt' WHERE id = '" ++ (sql_escape obj_id) ++ "'")
-    open: db_query h "SELECT COUNT(*) AS n FROM objectives WHERE state != 'erledigt'"
-    alle: (get (at open 0) "n") == 0
+    offen: db_query h "SELECT COUNT(*) AS n FROM objectives WHERE state != 'erledigt' AND main = 1"
+    alle: (get (at offen 0) "n") == 0
     if alle
         set_won 0
     alle
@@ -779,7 +783,10 @@ fn restore_save data
     for row in (get data "quests")
         db_exec h ("INSERT INTO quests VALUES ('" ++ (sql_escape (get row "id")) ++ "', '" ++ (sql_escape (get row "name")) ++ "', '" ++ (sql_escape (get row "description")) ++ "', '" ++ (sql_escape (get row "state")) ++ "')")
     for row in (get data "objectives")
-        db_exec h ("INSERT INTO objectives VALUES ('" ++ (sql_escape (get row "id")) ++ "', '" ++ (sql_escape (get row "kind")) ++ "', '" ++ (sql_escape (get row "target")) ++ "', '" ++ (sql_escape (get row "npc")) ++ "', '" ++ (sql_escape (get row "state")) ++ "', '" ++ (sql_escape (or_default_str (get row "quest"))) ++ "')")
+        main_val: 1
+        if (get row "main") == 0
+            main_val: 0
+        db_exec h ("INSERT INTO objectives VALUES ('" ++ (sql_escape (get row "id")) ++ "', '" ++ (sql_escape (get row "kind")) ++ "', '" ++ (sql_escape (get row "target")) ++ "', '" ++ (sql_escape (get row "npc")) ++ "', '" ++ (sql_escape (get row "state")) ++ "', '" ++ (sql_escape (or_default_str (get row "quest"))) ++ "', " ++ (to_str main_val) ++ ")")
     for row in (get data "reputation")
         db_exec h ("INSERT INTO reputation VALUES ('" ++ (sql_escape (get row "fraktion")) ++ "', " ++ (to_str (get row "punkte")) ++ ")")
     for row in (get data "player")

@@ -474,6 +474,43 @@ fn gen_map design pack max_tries on_status
         log "GEN-MAP" "Karte gueltig: " ++ (to_str (len (keys (get doc "rooms")))) ++ " Raeume"
     {doc: doc, errors: fehler}
 
+--! Appends deterministic main objectives to a fresh world's objective list so
+--! a generated world always has a coherent, multi-step main arc rather than a
+--! single winnable task. Derived purely from already-placed content (pack-driven,
+--! no AI): untargeted placed monsters -> kill, distant rooms -> explore,
+--! placed quest items -> fetch. Returns the extended objective list.
+fn erweitere_ziele objectives monsters rooms pack
+    objs: or_default objectives KEIN_LISTE
+    genutzte_monster: []
+    genutzte_raeume: []
+    for o in objs
+        if (get o "kind") == "kill"
+            push genutzte_monster (get o "target")
+        if (get o "kind") == "explore"
+            push genutzte_raeume (get o "target")
+    anzahl: len objs
+    zaehler: len objs
+    while anzahl < 2
+        hinzu: false
+        for m in (or_default monsters KEIN_LISTE)
+            if !hinzu && anzahl < 2 && !contains genutzte_monster (get m "id")
+                zaehler: zaehler + 1
+                push objs {id: ("obj_k_" ++ (to_str zaehler)), kind: "kill", target: (get m "id"), npc: "", state: "offen", main: 1}
+                push genutzte_monster (get m "id")
+                anzahl: anzahl + 1
+                hinzu: true
+        if !hinzu && anzahl < 2
+            for id in (keys rooms)
+                if !hinzu && anzahl < 2 && !contains genutzte_raeume id
+                    zaehler: zaehler + 1
+                    push objs {id: ("obj_e_" ++ (to_str zaehler)), kind: "explore", target: id, npc: "", state: "offen", main: 1}
+                    push genutzte_raeume id
+                    anzahl: anzahl + 1
+                    hinzu: true
+        if !hinzu
+            break
+    objs
+
 --! Fills missing fields of the raw LLM map with deterministic defaults:
 --! monster stats come from the pack, NPC persona/role from the pack,
 --! quest entries are derived from the chosen quest templates.
@@ -577,6 +614,9 @@ fn normalize_map raw pack design
     objectives: or_default (get raw "objectives") KEIN_LISTE
     for obj in objectives
         set obj "state" "offen"
+        --! Initial-world objectives form the main story arc.
+        set obj "main" 1
+    objectives: erweitere_ziele objectives monsters rooms pack
     mech: get pack "mechanics"
     -- Custom items from design (AI-generated thematic items)
     custom_items_list: or_default (get design "custom_items") KEIN_LISTE
@@ -667,7 +707,7 @@ fn fallback_world pack
     monsters: [{id: "kammerling", name: (get kammer_def "name"), room: "tpl_schatzkammer", hp: (get kammer_def "hp"), max_hp: (get kammer_def "hp"), defense: (get kammer_def "defense"), loot: (get kammer_def "loot")}]
     quests: [{id: "q_gabe_des_erbes", name: "Die Gabe des Erbes", description: "Bringe ein Stück des unberührten Erbes freiwillig zum Bewacher des Ortes.", state: "aktiv"}, {id: "q_ungewuerm", name: "Das Ungewürm", description: "Vertreibe das Untier aus dem Schatzraum.", state: "aktiv"}]
     mech: get pack "mechanics"
-    {name: "Die Musterwelt", start_room: start, rooms: rooms, npcs: npcs, monsters: monsters, quests: quests, objectives: [{id: "obj_gabe", kind: "give", target: "goldmuenze", npc: "weiser_aldric", state: "offen"}], factions: (get pack "factions"), mechanics: {start_hp: (get mech "start_hp"), start_gold: (get mech "start_gold"), respawn_hp: (get mech "respawn_hp")}, lore: ["Die Musterwelt ist ein ruhiger Übungsort der Alten Ordnung."]}
+    {name: "Die Musterwelt", start_room: start, rooms: rooms, npcs: npcs, monsters: monsters, quests: quests, objectives: [{id: "obj_gabe", kind: "give", target: "goldmuenze", npc: "weiser_aldric", state: "offen", main: 1}, {id: "obj_ungewuerm", kind: "kill", target: "kammerling", npc: "", state: "offen", main: 1}], factions: (get pack "factions"), mechanics: {start_hp: (get mech "start_hp"), start_gold: (get mech "start_gold"), respawn_hp: (get mech "respawn_hp")}, lore: ["Die Musterwelt ist ein ruhiger Übungsort der Alten Ordnung."]}
 
 -- ---- Welt-Wachstum: Erweiterung zur Laufzeit ----
 
@@ -1007,7 +1047,7 @@ fn merge_expansion exp doc pack
         oid: or_default_str (get obj "id")
         if oid == ""
             oid: "obj_erw_" ++ (to_str ziel_zaehler)
-        orow: {id: oid, kind: (get obj "kind"), target: (get obj "target"), npc: or_default_str (get obj "npc"), state: "offen", quest: or_default_str (get obj "quest_id")}
+        orow: {id: oid, kind: (get obj "kind"), target: (get obj "target"), npc: or_default_str (get obj "npc"), state: "offen", quest: or_default_str (get obj "quest_id"), main: 0}
         push (get doc "objectives") orow
         seed_objective_row orow
     -- 5) Bookkeeping
@@ -1133,7 +1173,7 @@ fn merge_neue_objektive erg doc pack
         oid: or_default_str (get obj "id")
         if oid == ""
             oid: "obj_ab_" ++ (to_str ziel_zaehler)
-        orow: {id: oid, kind: (get obj "kind"), target: (get obj "target"), npc: or_default_str (get obj "npc"), state: "offen", quest: or_default_str (get obj "quest_id")}
+        orow: {id: oid, kind: (get obj "kind"), target: (get obj "target"), npc: or_default_str (get obj "npc"), state: "offen", quest: or_default_str (get obj "quest_id"), main: 0}
         push (get doc "objectives") orow
         seed_objective_row orow
         anzahl_o: anzahl_o + 1

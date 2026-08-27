@@ -1493,3 +1493,1242 @@
 2026-08-26 16:20:24 [NEW-ADV] ERROR Keine Welt geladen
 2026-08-26 16:20:24 [JOB] Job j25 fertig
 2026-08-26 16:30:24 [BOOT] Idle-Timeout, beende
+2026-08-27 11:45:40 [TURN] Eingabe: rede mit niemand
+2026-08-27 11:45:40 [TURN] Typ: talk
+2026-08-27 11:45:40 [TURN] Fertig: won=0
+2026-08-27 11:45:41 [TURN] Eingabe: gib weiser_aldric goldmuenze
+2026-08-27 11:45:41 [TURN] Typ: talk
+2026-08-27 11:45:41 [TURN] Fertig: won=1
+2026-08-27 11:45:43 [TURN] Eingabe: frag weiser_aldric nach hinweisen
+2026-08-27 11:45:43 [TURN] Typ: talk
+2026-08-27 11:45:43 [TURN] Fertig: won=0
+2026-08-27 11:45:46 [TURN] Eingabe: nach hinweisen frag weiser_aldric nach hinweisen
+2026-08-27 11:45:46 [TURN] Typ: talk (embedded)
+2026-08-27 11:45:46 [TURN] Fertig: won=0
+2026-08-27 11:45:47 [TURN] Eingabe: nach hinweisen geh weiter
+2026-08-27 11:45:47 [TURN] Typ: fast (weiter)
+2026-08-27 11:45:47 [TURN] Fertig: won=0
+2026-08-27 11:45:48 [TURN] Eingabe: geh weiter
+2026-08-27 11:45:48 [TURN] Typ: fast (weiter)
+2026-08-27 11:45:48 [TURN] Fertig: won=0
+2026-08-27 11:45:49 [TURN] Eingabe: Hallo gib weiser_aldric goldmuenze
+2026-08-27 11:45:49 [TURN] Typ: talk (embedded)
+2026-08-27 11:45:49 [TURN] Fertig: won=1
+2026-08-27 11:45:50 [TURN] Eingabe: gib weiser_aldric elfenbein
+2026-08-27 11:45:50 [TURN] Typ: talk
+2026-08-27 11:45:50 [TURN] Fertig: won=0
+2026-08-27 11:47:56 [TURN] Eingabe: rede mit niemand
+2026-08-27 11:47:56 [TURN] Typ: talk
+2026-08-27 11:47:56 [TURN] Fertig: won=0
+2026-08-27 11:47:57 [TURN] Eingabe: gib weiser_aldric goldmuenze
+2026-08-27 11:47:57 [TURN] Typ: talk
+2026-08-27 11:47:57 [TURN] Fertig: won=1
+2026-08-27 11:47:59 [TURN] Eingabe: frag weiser_aldric nach hinweisen
+2026-08-27 11:47:59 [TURN] Typ: talk
+2026-08-27 11:47:59 [TURN] Fertig: won=0
+2026-08-27 11:48:03 [TURN] Eingabe: nach hinweisen frag weiser_aldric nach hinweisen
+2026-08-27 11:48:03 [TURN] Typ: talk (embedded)
+2026-08-27 11:48:03 [TURN] Fertig: won=0
+2026-08-27 11:48:04 [TURN] Eingabe: nach hinweisen geh weiter
+2026-08-27 11:48:04 [TURN] Typ: fast (weiter)
+2026-08-27 11:48:04 [TURN] Fertig: won=0
+2026-08-27 11:48:04 [TURN] Eingabe: geh weiter
+2026-08-27 11:48:04 [TURN] Typ: fast (weiter)
+2026-08-27 11:48:04 [TURN] Fertig: won=0
+2026-08-27 11:48:05 [TURN] Eingabe: Hallo gib weiser_aldric goldmuenze
+2026-08-27 11:48:05 [TURN] Typ: talk (embedded)
+2026-08-27 11:48:05 [TURN] Fertig: won=1
+2026-08-27 11:48:06 [TURN] Eingabe: gib weiser_aldric elfenbein
+2026-08-27 11:48:06 [TURN] Typ: talk
+2026-08-27 11:48:06 [TURN] Fertig: won=0
+2026-08-27 11:49:41 [TURN] Eingabe: rede mit niemand
+2026-08-27 11:49:41 [TURN] Typ: talk
+2026-08-27 11:49:41 [TURN] Fertig: won=0
+2026-08-27 11:49:42 [TURN] Eingabe: gib weiser_aldric goldmuenze
+2026-08-27 11:49:42 [TURN] Typ: talk
+2026-08-27 11:49:42 [TURN] Fertig: won=1
+2026-08-27 11:49:44 [TURN] Eingabe: frag weiser_aldric nach hinweisen
+2026-08-27 11:49:44 [TURN] Typ: talk
+2026-08-27 11:49:44 [TURN] Fertig: won=0
+2026-08-27 11:49:47 [TURN] Eingabe: nach hinweisen frag weiser_aldric nach hinweisen
+2026-08-27 11:49:47 [TURN] Typ: talk (embedded)
+2026-08-27 11:49:47 [TURN] Fertig: won=0
+2026-08-27 11:49:48 [TURN] Eingabe: nach hinweisen geh weiter
+2026-08-27 11:49:48 [TURN] Typ: fast (weiter)
+2026-08-27 11:49:48 [TURN] Fertig: won=0
+2026-08-27 11:49:49 [TURN] Eingabe: geh weiter
+2026-08-27 11:49:49 [TURN] Typ: fast (weiter)
+2026-08-27 11:49:49 [TURN] Fertig: won=0
+2026-08-27 11:49:50 [TURN] Eingabe: Hallo gib weiser_aldric goldmuenze
+2026-08-27 11:49:50 [TURN] Typ: talk (embedded)
+2026-08-27 11:49:50 [TURN] Fertig: won=1
+2026-08-27 11:49:51 [TURN] Eingabe: gib weiser_aldric elfenbein
+2026-08-27 11:49:51 [TURN] Typ: talk
+2026-08-27 11:49:51 [TURN] Fertig: won=0
+2026-08-27 11:51:08 [TURN] Eingabe: rede mit niemand
+2026-08-27 11:51:08 [TURN] Typ: talk
+2026-08-27 11:51:08 [TURN] Fertig: won=0
+2026-08-27 11:51:08 [TURN] Eingabe: gib weiser_aldric goldmuenze
+2026-08-27 11:51:08 [TURN] Typ: talk
+2026-08-27 11:51:09 [TURN] Fertig: won=1
+2026-08-27 11:51:11 [TURN] Eingabe: frag weiser_aldric nach hinweisen
+2026-08-27 11:51:11 [TURN] Typ: talk
+2026-08-27 11:51:11 [TURN] Fertig: won=0
+2026-08-27 11:51:15 [TURN] Eingabe: nach hinweisen frag weiser_aldric nach hinweisen
+2026-08-27 11:51:15 [TURN] Typ: talk (embedded)
+2026-08-27 11:51:15 [TURN] Fertig: won=0
+2026-08-27 11:51:16 [TURN] Eingabe: nach hinweisen geh weiter
+2026-08-27 11:51:16 [TURN] Typ: fast (weiter)
+2026-08-27 11:51:16 [TURN] Fertig: won=0
+2026-08-27 11:51:17 [TURN] Eingabe: geh weiter
+2026-08-27 11:51:17 [TURN] Typ: fast (weiter)
+2026-08-27 11:51:17 [TURN] Fertig: won=0
+2026-08-27 11:51:18 [TURN] Eingabe: Hallo gib weiser_aldric goldmuenze
+2026-08-27 11:51:18 [TURN] Typ: talk (embedded)
+2026-08-27 11:51:18 [TURN] Fertig: won=1
+2026-08-27 11:51:19 [TURN] Eingabe: gib weiser_aldric elfenbein
+2026-08-27 11:51:19 [TURN] Typ: talk
+2026-08-27 11:51:19 [TURN] Fertig: won=0
+2026-08-27 11:56:08 [TURN] Eingabe: rede mit niemand
+2026-08-27 11:56:08 [TURN] Typ: talk
+2026-08-27 11:56:08 [TURN] Fertig: won=0
+2026-08-27 11:56:10 [TURN] Eingabe: gib weiser_aldric goldmuenze
+2026-08-27 11:56:10 [TURN] Typ: talk
+2026-08-27 11:56:10 [TURN] Fertig: won=1
+2026-08-27 11:56:12 [TURN] Eingabe: frag weiser_aldric nach hinweisen
+2026-08-27 11:56:12 [TURN] Typ: talk
+2026-08-27 11:56:13 [TURN] Fertig: won=0
+2026-08-27 11:56:18 [TURN] Eingabe: nach hinweisen frag weiser_aldric nach hinweisen
+2026-08-27 11:56:18 [TURN] Typ: talk (embedded)
+2026-08-27 11:56:18 [TURN] Fertig: won=0
+2026-08-27 11:56:19 [TURN] Eingabe: nach hinweisen geh weiter
+2026-08-27 11:56:19 [TURN] Typ: fast (weiter)
+2026-08-27 11:56:19 [TURN] Fertig: won=0
+2026-08-27 11:56:20 [TURN] Eingabe: geh weiter
+2026-08-27 11:56:20 [TURN] Typ: fast (weiter)
+2026-08-27 11:56:20 [TURN] Fertig: won=0
+2026-08-27 11:56:21 [TURN] Eingabe: Hallo gib weiser_aldric goldmuenze
+2026-08-27 11:56:21 [TURN] Typ: talk (embedded)
+2026-08-27 11:56:21 [TURN] Fertig: won=1
+2026-08-27 11:56:23 [TURN] Eingabe: gib weiser_aldric elfenbein
+2026-08-27 11:56:23 [TURN] Typ: talk
+2026-08-27 11:56:23 [TURN] Fertig: won=0
+2026-08-27 11:57:37 [TURN] Eingabe: rede mit niemand
+2026-08-27 11:57:37 [TURN] Typ: talk
+2026-08-27 11:57:37 [TURN] Fertig: won=0
+2026-08-27 11:57:38 [TURN] Eingabe: gib weiser_aldric goldmuenze
+2026-08-27 11:57:38 [TURN] Typ: talk
+2026-08-27 11:57:38 [TURN] Fertig: won=1
+2026-08-27 11:57:40 [TURN] Eingabe: frag weiser_aldric nach hinweisen
+2026-08-27 11:57:40 [TURN] Typ: talk
+2026-08-27 11:57:40 [TURN] Fertig: won=0
+2026-08-27 11:57:44 [TURN] Eingabe: nach hinweisen frag weiser_aldric nach hinweisen
+2026-08-27 11:57:44 [TURN] Typ: talk (embedded)
+2026-08-27 11:57:44 [TURN] Fertig: won=0
+2026-08-27 11:57:45 [TURN] Eingabe: nach hinweisen geh weiter
+2026-08-27 11:57:45 [TURN] Typ: fast (weiter)
+2026-08-27 11:57:45 [TURN] Fertig: won=0
+2026-08-27 11:57:46 [TURN] Eingabe: geh weiter
+2026-08-27 11:57:46 [TURN] Typ: fast (weiter)
+2026-08-27 11:57:46 [TURN] Fertig: won=0
+2026-08-27 11:57:47 [TURN] Eingabe: Hallo gib weiser_aldric goldmuenze
+2026-08-27 11:57:47 [TURN] Typ: talk (embedded)
+2026-08-27 11:57:47 [TURN] Fertig: won=1
+2026-08-27 11:57:48 [TURN] Eingabe: gib weiser_aldric elfenbein
+2026-08-27 11:57:48 [TURN] Typ: talk
+2026-08-27 11:57:48 [TURN] Fertig: won=0
+2026-08-27 11:59:06 [TURN] Eingabe: rede mit niemand
+2026-08-27 11:59:06 [TURN] Typ: talk
+2026-08-27 11:59:06 [TURN] Fertig: won=0
+2026-08-27 11:59:08 [TURN] Eingabe: gib weiser_aldric goldmuenze
+2026-08-27 11:59:08 [TURN] Typ: talk
+2026-08-27 11:59:08 [TURN] Fertig: won=1
+2026-08-27 11:59:10 [TURN] Eingabe: frag weiser_aldric nach hinweisen
+2026-08-27 11:59:10 [TURN] Typ: talk
+2026-08-27 11:59:10 [TURN] Fertig: won=0
+2026-08-27 11:59:16 [TURN] Eingabe: nach hinweisen frag weiser_aldric nach hinweisen
+2026-08-27 11:59:16 [TURN] Typ: talk (embedded)
+2026-08-27 11:59:16 [TURN] Fertig: won=0
+2026-08-27 11:59:17 [TURN] Eingabe: nach hinweisen geh weiter
+2026-08-27 11:59:17 [TURN] Typ: fast (weiter)
+2026-08-27 11:59:17 [TURN] Fertig: won=0
+2026-08-27 11:59:18 [TURN] Eingabe: geh weiter
+2026-08-27 11:59:18 [TURN] Typ: fast (weiter)
+2026-08-27 11:59:18 [TURN] Fertig: won=0
+2026-08-27 11:59:19 [TURN] Eingabe: Hallo gib weiser_aldric goldmuenze
+2026-08-27 11:59:19 [TURN] Typ: talk (embedded)
+2026-08-27 11:59:19 [TURN] Fertig: won=1
+2026-08-27 11:59:20 [TURN] Eingabe: gib weiser_aldric elfenbein
+2026-08-27 11:59:20 [TURN] Typ: talk
+2026-08-27 11:59:20 [TURN] Fertig: won=0
+2026-08-27 12:01:19 [TURN] Eingabe: rede mit niemand
+2026-08-27 12:01:19 [TURN] Typ: talk
+2026-08-27 12:01:19 [TURN] Fertig: won=0
+2026-08-27 12:01:20 [TURN] Eingabe: gib weiser_aldric goldmuenze
+2026-08-27 12:01:20 [TURN] Typ: talk
+2026-08-27 12:01:20 [TURN] Fertig: won=1
+2026-08-27 12:01:22 [TURN] Eingabe: frag weiser_aldric nach hinweisen
+2026-08-27 12:01:22 [TURN] Typ: talk
+2026-08-27 12:01:22 [TURN] Fertig: won=0
+2026-08-27 12:01:25 [TURN] Eingabe: nach hinweisen frag weiser_aldric nach hinweisen
+2026-08-27 12:01:25 [TURN] Typ: talk (embedded)
+2026-08-27 12:01:25 [TURN] Fertig: won=0
+2026-08-27 12:01:25 [TURN] Eingabe: nach hinweisen geh weiter
+2026-08-27 12:01:25 [TURN] Typ: fast (weiter)
+2026-08-27 12:01:25 [TURN] Fertig: won=0
+2026-08-27 12:01:26 [TURN] Eingabe: geh weiter
+2026-08-27 12:01:26 [TURN] Typ: fast (weiter)
+2026-08-27 12:01:26 [TURN] Fertig: won=0
+2026-08-27 12:01:27 [TURN] Eingabe: Hallo gib weiser_aldric goldmuenze
+2026-08-27 12:01:27 [TURN] Typ: talk (embedded)
+2026-08-27 12:01:27 [TURN] Fertig: won=1
+2026-08-27 12:01:28 [TURN] Eingabe: gib weiser_aldric elfenbein
+2026-08-27 12:01:28 [TURN] Typ: talk
+2026-08-27 12:01:28 [TURN] Fertig: won=0
+2026-08-27 12:02:17 [TURN] Eingabe: rede mit niemand
+2026-08-27 12:02:17 [TURN] Typ: talk
+2026-08-27 12:02:17 [TURN] Fertig: won=0
+2026-08-27 12:02:18 [TURN] Eingabe: gib weiser_aldric goldmuenze
+2026-08-27 12:02:18 [TURN] Typ: talk
+2026-08-27 12:02:18 [TURN] Fertig: won=1
+2026-08-27 12:02:20 [TURN] Eingabe: frag weiser_aldric nach hinweisen
+2026-08-27 12:02:20 [TURN] Typ: talk
+2026-08-27 12:02:20 [TURN] Fertig: won=0
+2026-08-27 12:02:23 [TURN] Eingabe: nach hinweisen frag weiser_aldric nach hinweisen
+2026-08-27 12:02:23 [TURN] Typ: talk (embedded)
+2026-08-27 12:02:23 [TURN] Fertig: won=0
+2026-08-27 12:02:23 [TURN] Eingabe: nach hinweisen geh weiter
+2026-08-27 12:02:23 [TURN] Typ: fast (weiter)
+2026-08-27 12:02:23 [TURN] Fertig: won=0
+2026-08-27 12:02:24 [TURN] Eingabe: geh weiter
+2026-08-27 12:02:24 [TURN] Typ: fast (weiter)
+2026-08-27 12:02:24 [TURN] Fertig: won=0
+2026-08-27 12:02:25 [TURN] Eingabe: Hallo gib weiser_aldric goldmuenze
+2026-08-27 12:02:25 [TURN] Typ: talk (embedded)
+2026-08-27 12:02:25 [TURN] Fertig: won=1
+2026-08-27 12:02:26 [TURN] Eingabe: gib weiser_aldric elfenbein
+2026-08-27 12:02:26 [TURN] Typ: talk
+2026-08-27 12:02:26 [TURN] Fertig: won=0
+2026-08-27 12:03:12 [TURN] Eingabe: rede mit niemand
+2026-08-27 12:03:12 [TURN] Typ: talk
+2026-08-27 12:03:12 [TURN] Fertig: won=0
+2026-08-27 12:03:12 [TURN] Eingabe: gib weiser_aldric goldmuenze
+2026-08-27 12:03:12 [TURN] Typ: talk
+2026-08-27 12:03:12 [TURN] Fertig: won=1
+2026-08-27 12:03:14 [TURN] Eingabe: frag weiser_aldric nach hinweisen
+2026-08-27 12:03:14 [TURN] Typ: talk
+2026-08-27 12:03:14 [TURN] Fertig: won=0
+2026-08-27 12:03:17 [TURN] Eingabe: nach hinweisen frag weiser_aldric nach hinweisen
+2026-08-27 12:03:17 [TURN] Typ: talk (embedded)
+2026-08-27 12:03:17 [TURN] Fertig: won=0
+2026-08-27 12:03:17 [TURN] Eingabe: nach hinweisen geh weiter
+2026-08-27 12:03:17 [TURN] Typ: fast (weiter)
+2026-08-27 12:03:17 [TURN] Fertig: won=0
+2026-08-27 12:03:18 [TURN] Eingabe: geh weiter
+2026-08-27 12:03:18 [TURN] Typ: fast (weiter)
+2026-08-27 12:03:18 [TURN] Fertig: won=0
+2026-08-27 12:03:19 [TURN] Eingabe: Hallo gib weiser_aldric goldmuenze
+2026-08-27 12:03:19 [TURN] Typ: talk (embedded)
+2026-08-27 12:03:19 [TURN] Fertig: won=1
+2026-08-27 12:03:20 [TURN] Eingabe: gib weiser_aldric elfenbein
+2026-08-27 12:03:20 [TURN] Typ: talk
+2026-08-27 12:03:20 [TURN] Fertig: won=0
+2026-08-27 12:27:12 [TURN] Eingabe: rede mit niemand
+2026-08-27 12:27:12 [TURN] Typ: talk
+2026-08-27 12:27:12 [TURN] Fertig: won=0
+2026-08-27 12:27:13 [TURN] Eingabe: gib weiser_aldric goldmuenze
+2026-08-27 12:27:13 [TURN] Typ: talk
+2026-08-27 12:27:13 [TURN] Fertig: won=1
+2026-08-27 12:27:14 [TURN] Eingabe: frag weiser_aldric nach hinweisen
+2026-08-27 12:27:14 [TURN] Typ: talk
+2026-08-27 12:27:14 [TURN] Fertig: won=0
+2026-08-27 12:27:17 [TURN] Eingabe: nach hinweisen frag weiser_aldric nach hinweisen
+2026-08-27 12:27:17 [TURN] Typ: talk (embedded)
+2026-08-27 12:27:17 [TURN] Fertig: won=0
+2026-08-27 12:27:18 [TURN] Eingabe: nach hinweisen geh weiter
+2026-08-27 12:27:18 [TURN] Typ: fast (weiter)
+2026-08-27 12:27:18 [TURN] Fertig: won=0
+2026-08-27 12:27:18 [TURN] Eingabe: geh weiter
+2026-08-27 12:27:18 [TURN] Typ: fast (weiter)
+2026-08-27 12:27:18 [TURN] Fertig: won=0
+2026-08-27 12:27:19 [TURN] Eingabe: Hallo gib weiser_aldric goldmuenze
+2026-08-27 12:27:19 [TURN] Typ: talk (embedded)
+2026-08-27 12:27:19 [TURN] Fertig: won=1
+2026-08-27 12:27:20 [TURN] Eingabe: gib weiser_aldric elfenbein
+2026-08-27 12:27:20 [TURN] Typ: talk
+2026-08-27 12:27:20 [TURN] Fertig: won=0
+2026-08-27 12:33:55 [TURN] Eingabe: rede mit niemand
+2026-08-27 12:33:55 [TURN] Typ: talk
+2026-08-27 12:33:55 [TURN] Fertig: won=0
+2026-08-27 12:33:56 [TURN] Eingabe: gib weiser_aldric goldmuenze
+2026-08-27 12:33:56 [TURN] Typ: talk
+2026-08-27 12:33:56 [TURN] Fertig: won=1
+2026-08-27 12:33:57 [TURN] Eingabe: frag weiser_aldric nach hinweisen
+2026-08-27 12:33:57 [TURN] Typ: talk
+2026-08-27 12:33:57 [TURN] Fertig: won=0
+2026-08-27 12:33:59 [TURN] Eingabe: nach hinweisen frag weiser_aldric nach hinweisen
+2026-08-27 12:33:59 [TURN] Typ: talk (embedded)
+2026-08-27 12:33:59 [TURN] Fertig: won=0
+2026-08-27 12:33:59 [TURN] Eingabe: nach hinweisen geh weiter
+2026-08-27 12:33:59 [TURN] Typ: fast (weiter)
+2026-08-27 12:33:59 [TURN] Fertig: won=0
+2026-08-27 12:34:00 [TURN] Eingabe: geh weiter
+2026-08-27 12:34:00 [TURN] Typ: fast (weiter)
+2026-08-27 12:34:00 [TURN] Fertig: won=0
+2026-08-27 12:34:01 [TURN] Eingabe: Hallo gib weiser_aldric goldmuenze
+2026-08-27 12:34:01 [TURN] Typ: talk (embedded)
+2026-08-27 12:34:01 [TURN] Fertig: won=1
+2026-08-27 12:34:01 [TURN] Eingabe: gib weiser_aldric elfenbein
+2026-08-27 12:34:01 [TURN] Typ: talk
+2026-08-27 12:34:01 [TURN] Fertig: won=0
+2026-08-27 12:42:50 [TURN] Eingabe: rede mit niemand
+2026-08-27 12:42:50 [TURN] Typ: talk
+2026-08-27 12:42:50 [TURN] Fertig: won=0
+2026-08-27 12:42:50 [TURN] Eingabe: gib weiser_aldric goldmuenze
+2026-08-27 12:42:50 [TURN] Typ: talk
+2026-08-27 12:42:50 [TURN] Fertig: won=1
+2026-08-27 12:42:51 [TURN] Eingabe: frag weiser_aldric nach hinweisen
+2026-08-27 12:42:51 [TURN] Typ: talk
+2026-08-27 12:42:51 [TURN] Fertig: won=0
+2026-08-27 12:42:54 [TURN] Eingabe: nach hinweisen frag weiser_aldric nach hinweisen
+2026-08-27 12:42:54 [TURN] Typ: talk (embedded)
+2026-08-27 12:42:54 [TURN] Fertig: won=0
+2026-08-27 12:42:54 [TURN] Eingabe: nach hinweisen geh weiter
+2026-08-27 12:42:54 [TURN] Typ: fast (weiter)
+2026-08-27 12:42:54 [TURN] Fertig: won=0
+2026-08-27 12:42:55 [TURN] Eingabe: geh weiter
+2026-08-27 12:42:55 [TURN] Typ: fast (weiter)
+2026-08-27 12:42:55 [TURN] Fertig: won=0
+2026-08-27 12:42:55 [TURN] Eingabe: Hallo gib weiser_aldric goldmuenze
+2026-08-27 12:42:55 [TURN] Typ: talk (embedded)
+2026-08-27 12:42:55 [TURN] Fertig: won=1
+2026-08-27 12:42:56 [TURN] Eingabe: gib weiser_aldric elfenbein
+2026-08-27 12:42:56 [TURN] Typ: talk
+2026-08-27 12:42:56 [TURN] Fertig: won=0
+2026-08-27 12:46:26 [SRV] Neue Session-Anfrage
+2026-08-27 12:46:26 [SRV] Session s1787834786_1 Port=8101 Welt=beispielwelt
+2026-08-27 12:46:26 [SRV] Starte Worker: ../bin/pipe worldd.pipe s1787834786_1 8101 600000
+2026-08-27 12:46:26 [BOOT] Worldd-Prozess gestartet
+2026-08-27 12:46:26 [BOOT] Starte fuer Session s1787834786_1
+2026-08-27 12:46:26 [BOOT] Lade Pack pack_core.json
+2026-08-27 12:46:26 [BOOT] DB initialisiert, lese Config
+2026-08-27 12:46:26 [BOOT] Weltname=beispielwelt
+2026-08-27 12:46:26 [SRV] Session s1787834786_1 bereit=false
+2026-08-27 12:46:26 [BOOT] Bestehende Welt gefunden, lade sie
+2026-08-27 12:46:27 [BOOT] Neues Spiel gestartet
+2026-08-27 12:46:27 [BOOT] Lore-Index gebaut
+2026-08-27 12:46:27 [BOOT] BEREIT auf :8101
+2026-08-27 12:49:09 [JOB] Starte Job j1 kind=command
+2026-08-27 12:49:09 [JOB] Turn: nimm fackel
+2026-08-27 12:49:09 [TURN] Eingabe: nimm fackel
+2026-08-27 12:49:09 [TURN] Typ: fast
+2026-08-27 12:49:09 [TURN] Fertig: won=0
+2026-08-27 12:49:09 [JOB] Job j1 fertig
+2026-08-27 12:49:10 [JOB] Starte Job j2 kind=command
+2026-08-27 12:49:10 [JOB] Turn: geh nach norden
+2026-08-27 12:49:10 [TURN] Eingabe: geh nach norden
+2026-08-27 12:49:10 [TURN] Typ: fast
+2026-08-27 12:49:10 [TURN] Fertig: won=0
+2026-08-27 12:49:10 [JOB] Job j2 fertig
+2026-08-27 12:49:46 [JOB] Starte Job j3 kind=command
+2026-08-27 12:49:46 [JOB] Turn: geh nach westen
+2026-08-27 12:49:46 [TURN] Eingabe: geh nach westen
+2026-08-27 12:49:46 [TURN] Typ: fast
+2026-08-27 12:49:46 [TURN] Fertig: won=0
+2026-08-27 12:49:47 [JOB] Job j3 fertig
+2026-08-27 12:49:48 [JOB] Starte Job j4 kind=command
+2026-08-27 12:49:48 [JOB] Turn: geh nach osten
+2026-08-27 12:49:48 [TURN] Eingabe: geh nach osten
+2026-08-27 12:49:48 [TURN] Typ: fast
+2026-08-27 12:49:48 [TURN] Fertig: won=0
+2026-08-27 12:49:48 [JOB] Job j4 fertig
+2026-08-27 12:49:49 [JOB] Starte Job j5 kind=command
+2026-08-27 12:49:49 [JOB] Turn: geh nach norden
+2026-08-27 12:49:49 [TURN] Eingabe: geh nach norden
+2026-08-27 12:49:49 [TURN] Typ: fast
+2026-08-27 12:49:49 [TURN] Fertig: won=0
+2026-08-27 12:49:49 [JOB] Job j5 fertig
+2026-08-27 12:49:50 [JOB] Starte Job j6 kind=command
+2026-08-27 12:49:50 [JOB] Turn: geh nach osten
+2026-08-27 12:49:50 [TURN] Eingabe: geh nach osten
+2026-08-27 12:49:50 [TURN] Typ: fast
+2026-08-27 12:49:50 [TURN] Fertig: won=0
+2026-08-27 12:49:50 [JOB] Job j6 fertig
+2026-08-27 12:49:51 [JOB] Starte Job j7 kind=command
+2026-08-27 12:49:51 [JOB] Turn: nimm altes_amulett
+2026-08-27 12:49:51 [TURN] Eingabe: nimm altes_amulett
+2026-08-27 12:49:51 [TURN] Typ: fast
+2026-08-27 12:49:51 [TURN] Fertig: won=0
+2026-08-27 12:49:51 [JOB] Job j7 fertig
+2026-08-27 12:49:52 [JOB] Starte Job j8 kind=command
+2026-08-27 12:49:52 [JOB] Turn: geh nach westen
+2026-08-27 12:49:52 [TURN] Eingabe: geh nach westen
+2026-08-27 12:49:52 [TURN] Typ: fast
+2026-08-27 12:49:52 [TURN] Fertig: won=0
+2026-08-27 12:49:52 [JOB] Job j8 fertig
+2026-08-27 12:49:53 [JOB] Starte Job j9 kind=command
+2026-08-27 12:49:53 [JOB] Turn: geh nach sueden
+2026-08-27 12:49:53 [TURN] Eingabe: geh nach sueden
+2026-08-27 12:49:53 [TURN] Typ: fast
+2026-08-27 12:49:53 [TURN] Fertig: won=0
+2026-08-27 12:49:53 [JOB] Job j9 fertig
+2026-08-27 12:49:54 [JOB] Starte Job j10 kind=command
+2026-08-27 12:49:54 [JOB] Turn: geh nach osten
+2026-08-27 12:49:54 [TURN] Eingabe: geh nach osten
+2026-08-27 12:49:54 [TURN] Typ: fast
+2026-08-27 12:49:54 [TURN] Fertig: won=0
+2026-08-27 12:49:55 [JOB] Job j10 fertig
+2026-08-27 12:49:56 [JOB] Starte Job j11 kind=command
+2026-08-27 12:49:56 [JOB] Turn: greif kammerling an
+2026-08-27 12:49:56 [TURN] Eingabe: greif kammerling an
+2026-08-27 12:49:56 [TURN] Typ: narrator
+2026-08-27 12:49:56 [NARRATOR] Starte Narrator-Antwort
+2026-08-27 12:49:56 [NARRATOR] Teste Modell big-pickle
+2026-08-27 12:49:56 [NARRATOR] Modell big-pickle fehlgeschlagen: worldd.pipe: ai_with_tools: tool chat round 0: chat: API error 503: {"error":{"type":"server_error","message":"Error from provider (Console): Upstream request failed: Endpoint is unavailable."}}
+  in fn(sleep)
+  in fn(api_turn)
+  in fn(process_turn)
+  in fn(sleep)
+  in fn(api_turn)
+  in fn(sleep)
+2026-08-27 12:49:56 [NARRATOR] ERROR Alle Modelle fehlgeschlagen
+2026-08-27 12:49:56 [TURN] ERROR Alle Modelle nicht erreichbar
+2026-08-27 12:49:56 [TURN] Fertig: won=0
+2026-08-27 12:49:56 [JOB] Job j11 fertig
+2026-08-27 12:49:57 [JOB] Starte Job j12 kind=command
+2026-08-27 12:49:57 [JOB] Turn: greif kammerling an
+2026-08-27 12:49:57 [TURN] Eingabe: greif kammerling an
+2026-08-27 12:49:57 [TURN] Typ: narrator
+2026-08-27 12:49:57 [NARRATOR] Starte Narrator-Antwort
+2026-08-27 12:49:57 [NARRATOR] Teste Modell big-pickle
+2026-08-27 12:49:57 [NARRATOR] Modell big-pickle fehlgeschlagen: worldd.pipe: ai_with_tools: tool chat round 0: chat: API error 503: {"error":{"type":"server_error","message":"Error from provider (Console): Upstream request failed: Endpoint is unavailable."}}
+  in fn(sleep)
+  in fn(sleep)
+  in fn(api_turn)
+  in fn(process_turn)
+  in fn(narrator_reply)
+  in fn(narrator_system)
+  in fn(sleep)
+2026-08-27 12:49:57 [NARRATOR] ERROR Alle Modelle fehlgeschlagen
+2026-08-27 12:49:57 [TURN] ERROR Alle Modelle nicht erreichbar
+2026-08-27 12:49:57 [TURN] Fertig: won=0
+2026-08-27 12:49:57 [JOB] Job j12 fertig
+2026-08-27 12:49:58 [JOB] Starte Job j13 kind=command
+2026-08-27 12:49:58 [JOB] Turn: greif kammerling an
+2026-08-27 12:49:58 [TURN] Eingabe: greif kammerling an
+2026-08-27 12:49:58 [TURN] Typ: narrator
+2026-08-27 12:49:58 [NARRATOR] Starte Narrator-Antwort
+2026-08-27 12:49:58 [NARRATOR] Teste Modell big-pickle
+2026-08-27 12:49:58 [NARRATOR] Modell big-pickle fehlgeschlagen: worldd.pipe: ai_with_tools: tool chat round 0: chat: API error 503: {"error":{"type":"server_error","message":"Error from provider (Console): Upstream request failed: Endpoint is unavailable."}}
+  in fn(sleep)
+  in fn(sleep)
+  in fn(sleep)
+  in fn(api_turn)
+  in fn(process_turn)
+  in fn(narrator_reply)
+  in fn(narrator_system)
+  in fn(get_meta)
+  in fn(db_query)
+  in fn(sleep)
+2026-08-27 12:49:58 [NARRATOR] ERROR Alle Modelle fehlgeschlagen
+2026-08-27 12:49:58 [TURN] ERROR Alle Modelle nicht erreichbar
+2026-08-27 12:49:58 [TURN] Fertig: won=0
+2026-08-27 12:49:58 [JOB] Job j13 fertig
+2026-08-27 12:49:59 [JOB] Starte Job j14 kind=command
+2026-08-27 12:49:59 [JOB] Turn: greif kammerling an
+2026-08-27 12:49:59 [TURN] Eingabe: greif kammerling an
+2026-08-27 12:49:59 [TURN] Typ: narrator
+2026-08-27 12:49:59 [NARRATOR] Starte Narrator-Antwort
+2026-08-27 12:49:59 [NARRATOR] Teste Modell big-pickle
+2026-08-27 12:49:59 [NARRATOR] Modell big-pickle fehlgeschlagen: worldd.pipe: ai_with_tools: tool chat round 0: chat: API error 503: {"error":{"type":"server_error","message":"Error from provider (Console): Upstream request failed: Endpoint is unavailable."}}
+  in fn(sleep)
+  in fn(sleep)
+  in fn(sleep)
+  in fn(api_turn)
+  in fn(process_turn)
+  in fn(sleep)
+  in fn(api_turn)
+  in fn(process_turn)
+  in fn(narrator_reply)
+  in fn(sleep)
+2026-08-27 12:49:59 [NARRATOR] ERROR Alle Modelle fehlgeschlagen
+2026-08-27 12:49:59 [TURN] ERROR Alle Modelle nicht erreichbar
+2026-08-27 12:49:59 [TURN] Fertig: won=0
+2026-08-27 12:49:59 [JOB] Job j14 fertig
+2026-08-27 12:50:00 [JOB] Starte Job j15 kind=command
+2026-08-27 12:50:00 [JOB] Turn: greif kammerling an
+2026-08-27 12:50:00 [TURN] Eingabe: greif kammerling an
+2026-08-27 12:50:00 [TURN] Typ: narrator
+2026-08-27 12:50:00 [NARRATOR] Starte Narrator-Antwort
+2026-08-27 12:50:00 [NARRATOR] Teste Modell big-pickle
+2026-08-27 12:50:23 [NARRATOR] Modell big-pickle fehlgeschlagen: worldd.pipe: ai_with_tools: tool chat round 1: chat: API error 503: {"error":{"type":"server_error","message":"Error from provider (Console): Upstream request failed: Endpoint is unavailable."}}
+  in fn(sleep)
+  in fn(sleep)
+  in fn(sleep)
+  in fn(api_turn)
+  in fn(process_turn)
+  in fn(sleep)
+  in fn(api_turn)
+  in fn(process_turn)
+  in fn(narrator_reply)
+  in fn(sleep)
+2026-08-27 12:50:23 [NARRATOR] ERROR Alle Modelle fehlgeschlagen
+2026-08-27 12:50:23 [TURN] ERROR Alle Modelle nicht erreichbar
+2026-08-27 12:50:23 [TURN] Fertig: won=0
+2026-08-27 12:50:23 [JOB] Job j15 fertig
+2026-08-27 12:50:25 [JOB] Starte Job j16 kind=command
+2026-08-27 12:50:25 [JOB] Turn: greif kammerling an
+2026-08-27 12:50:25 [TURN] Eingabe: greif kammerling an
+2026-08-27 12:50:25 [TURN] Typ: narrator
+2026-08-27 12:50:25 [NARRATOR] Starte Narrator-Antwort
+2026-08-27 12:50:25 [NARRATOR] Teste Modell big-pickle
+2026-08-27 12:50:25 [NARRATOR] Modell big-pickle fehlgeschlagen: worldd.pipe: ai_with_tools: tool chat round 0: chat: API error 503: {"error":{"type":"server_error","message":"Error from provider (Console): Upstream request failed: Endpoint is unavailable."}}
+  in fn(sleep)
+  in fn(sleep)
+  in fn(sleep)
+  in fn(api_turn)
+  in fn(process_turn)
+  in fn(sleep)
+  in fn(api_turn)
+  in fn(process_turn)
+  in fn(narrator_reply)
+  in fn(narrator_system)
+  in fn(sleep)
+2026-08-27 12:50:25 [NARRATOR] ERROR Alle Modelle fehlgeschlagen
+2026-08-27 12:50:25 [TURN] ERROR Alle Modelle nicht erreichbar
+2026-08-27 12:50:25 [TURN] Fertig: won=0
+2026-08-27 12:50:25 [JOB] Job j16 fertig
+2026-08-27 12:50:26 [JOB] Starte Job j17 kind=command
+2026-08-27 12:50:26 [JOB] Turn: greif kammerling an
+2026-08-27 12:50:26 [TURN] Eingabe: greif kammerling an
+2026-08-27 12:50:26 [TURN] Typ: narrator
+2026-08-27 12:50:26 [NARRATOR] Starte Narrator-Antwort
+2026-08-27 12:50:26 [NARRATOR] Teste Modell big-pickle
+2026-08-27 12:50:26 [NARRATOR] Modell big-pickle fehlgeschlagen: worldd.pipe: ai_with_tools: tool chat round 0: chat: API error 503: {"error":{"type":"server_error","message":"Error from provider (Console): Upstream request failed: Endpoint is unavailable."}}
+  in fn(sleep)
+  in fn(sleep)
+  in fn(sleep)
+  in fn(api_turn)
+  in fn(process_turn)
+  in fn(sleep)
+  in fn(sleep)
+  in fn(api_turn)
+  in fn(process_turn)
+  in fn(sleep)
+2026-08-27 12:50:26 [NARRATOR] ERROR Alle Modelle fehlgeschlagen
+2026-08-27 12:50:26 [TURN] ERROR Alle Modelle nicht erreichbar
+2026-08-27 12:50:26 [TURN] Fertig: won=0
+2026-08-27 12:50:26 [JOB] Job j17 fertig
+2026-08-27 12:50:27 [JOB] Starte Job j18 kind=command
+2026-08-27 12:50:27 [JOB] Turn: greif kammerling an
+2026-08-27 12:50:27 [TURN] Eingabe: greif kammerling an
+2026-08-27 12:50:27 [TURN] Typ: narrator
+2026-08-27 12:50:27 [NARRATOR] Starte Narrator-Antwort
+2026-08-27 12:50:27 [NARRATOR] Teste Modell big-pickle
+2026-08-27 12:50:27 [NARRATOR] Modell big-pickle fehlgeschlagen: worldd.pipe: ai_with_tools: tool chat round 0: chat: API error 503: {"error":{"type":"server_error","message":"Error from provider (Console): Upstream request failed: Endpoint is unavailable."}}
+  in fn(sleep)
+  in fn(sleep)
+  in fn(sleep)
+  in fn(api_turn)
+  in fn(process_turn)
+  in fn(sleep)
+  in fn(api_turn)
+  in fn(process_turn)
+  in fn(sleep)
+2026-08-27 12:50:27 [NARRATOR] ERROR Alle Modelle fehlgeschlagen
+2026-08-27 12:50:27 [TURN] ERROR Alle Modelle nicht erreichbar
+2026-08-27 12:50:27 [TURN] Fertig: won=0
+2026-08-27 12:50:27 [JOB] Job j18 fertig
+2026-08-27 12:50:28 [JOB] Starte Job j19 kind=command
+2026-08-27 12:50:28 [JOB] Turn: greif kammerling an
+2026-08-27 12:50:28 [TURN] Eingabe: greif kammerling an
+2026-08-27 12:50:28 [TURN] Typ: narrator
+2026-08-27 12:50:28 [NARRATOR] Starte Narrator-Antwort
+2026-08-27 12:50:28 [NARRATOR] Teste Modell big-pickle
+2026-08-27 12:50:28 [NARRATOR] Modell big-pickle fehlgeschlagen: worldd.pipe: ai_with_tools: tool chat round 0: chat: API error 503: {"error":{"type":"server_error","message":"Error from provider (Console): Upstream request failed: Endpoint is unavailable."}}
+  in fn(sleep)
+  in fn(sleep)
+  in fn(sleep)
+  in fn(api_turn)
+  in fn(sleep)
+  in fn(sleep)
+2026-08-27 12:50:28 [NARRATOR] ERROR Alle Modelle fehlgeschlagen
+2026-08-27 12:50:28 [TURN] ERROR Alle Modelle nicht erreichbar
+2026-08-27 12:50:28 [TURN] Fertig: won=0
+2026-08-27 12:50:29 [JOB] Job j19 fertig
+2026-08-27 12:50:29 [JOB] Starte Job j20 kind=command
+2026-08-27 12:50:29 [JOB] Turn: greif kammerling an
+2026-08-27 12:50:29 [TURN] Eingabe: greif kammerling an
+2026-08-27 12:50:29 [TURN] Typ: narrator
+2026-08-27 12:50:29 [NARRATOR] Starte Narrator-Antwort
+2026-08-27 12:50:29 [NARRATOR] Teste Modell big-pickle
+2026-08-27 12:50:30 [NARRATOR] Modell big-pickle fehlgeschlagen: worldd.pipe: ai_with_tools: tool chat round 0: chat: API error 503: {"error":{"type":"server_error","message":"Error from provider (Console): Upstream request failed: Endpoint is unavailable."}}
+  in fn(sleep)
+  in fn(sleep)
+  in fn(api_turn)
+  in fn(process_turn)
+  in fn(narrator_reply)
+  in fn(sleep)
+2026-08-27 12:50:30 [NARRATOR] ERROR Alle Modelle fehlgeschlagen
+2026-08-27 12:50:30 [TURN] ERROR Alle Modelle nicht erreichbar
+2026-08-27 12:50:30 [TURN] Fertig: won=0
+2026-08-27 12:50:30 [JOB] Job j20 fertig
+2026-08-27 12:50:30 [JOB] Starte Job j21 kind=command
+2026-08-27 12:50:30 [JOB] Turn: greif kammerling an
+2026-08-27 12:50:30 [TURN] Eingabe: greif kammerling an
+2026-08-27 12:50:30 [TURN] Typ: narrator
+2026-08-27 12:50:30 [NARRATOR] Starte Narrator-Antwort
+2026-08-27 12:50:30 [NARRATOR] Teste Modell big-pickle
+2026-08-27 12:50:32 [NARRATOR] Modell big-pickle fehlgeschlagen: worldd.pipe: ai_with_tools: tool chat round 0: chat: API error 503: {"error":{"type":"server_error","message":"Error from provider (Console): Upstream request failed: Endpoint is unavailable."}}
+  in fn(sleep)
+  in fn(sleep)
+  in fn(api_turn)
+  in fn(process_turn)
+  in fn(narrator_reply)
+  in fn(sleep)
+2026-08-27 12:50:32 [NARRATOR] ERROR Alle Modelle fehlgeschlagen
+2026-08-27 12:50:32 [TURN] ERROR Alle Modelle nicht erreichbar
+2026-08-27 12:50:32 [TURN] Fertig: won=0
+2026-08-27 12:50:32 [JOB] Job j21 fertig
+2026-08-27 12:50:33 [JOB] Starte Job j22 kind=command
+2026-08-27 12:50:33 [JOB] Turn: greif kammerling an
+2026-08-27 12:50:33 [TURN] Eingabe: greif kammerling an
+2026-08-27 12:50:33 [TURN] Typ: narrator
+2026-08-27 12:50:33 [NARRATOR] Starte Narrator-Antwort
+2026-08-27 12:50:33 [NARRATOR] Teste Modell big-pickle
+2026-08-27 12:50:33 [NARRATOR] Modell big-pickle fehlgeschlagen: worldd.pipe: ai_with_tools: tool chat round 0: chat: API error 503: {"error":{"type":"server_error","message":"Error from provider (Console): Upstream request failed: Endpoint is unavailable."}}
+  in fn(sleep)
+  in fn(sleep)
+  in fn(api_turn)
+  in fn(process_turn)
+  in fn(narrator_reply)
+  in fn(sleep)
+2026-08-27 12:50:33 [NARRATOR] ERROR Alle Modelle fehlgeschlagen
+2026-08-27 12:50:33 [TURN] ERROR Alle Modelle nicht erreichbar
+2026-08-27 12:50:33 [TURN] Fertig: won=0
+2026-08-27 12:50:33 [JOB] Job j22 fertig
+2026-08-27 12:50:34 [JOB] Starte Job j23 kind=command
+2026-08-27 12:50:34 [JOB] Turn: greif kammerling an
+2026-08-27 12:50:34 [TURN] Eingabe: greif kammerling an
+2026-08-27 12:50:34 [TURN] Typ: narrator
+2026-08-27 12:50:34 [NARRATOR] Starte Narrator-Antwort
+2026-08-27 12:50:34 [NARRATOR] Teste Modell big-pickle
+2026-08-27 12:50:34 [NARRATOR] Modell big-pickle fehlgeschlagen: worldd.pipe: ai_with_tools: tool chat round 0: chat: API error 503: {"error":{"type":"server_error","message":"Error from provider (Console): Upstream request failed: Endpoint is unavailable."}}
+  in fn(sleep)
+  in fn(sleep)
+  in fn(api_turn)
+  in fn(process_turn)
+  in fn(narrator_reply)
+  in fn(sleep)
+2026-08-27 12:50:34 [NARRATOR] ERROR Alle Modelle fehlgeschlagen
+2026-08-27 12:50:34 [TURN] ERROR Alle Modelle nicht erreichbar
+2026-08-27 12:50:34 [TURN] Fertig: won=0
+2026-08-27 12:50:34 [JOB] Job j23 fertig
+2026-08-27 12:50:35 [JOB] Starte Job j24 kind=command
+2026-08-27 12:50:35 [JOB] Turn: greif kammerling an
+2026-08-27 12:50:35 [TURN] Eingabe: greif kammerling an
+2026-08-27 12:50:35 [TURN] Typ: narrator
+2026-08-27 12:50:35 [NARRATOR] Starte Narrator-Antwort
+2026-08-27 12:50:35 [NARRATOR] Teste Modell big-pickle
+2026-08-27 12:50:35 [NARRATOR] Modell big-pickle fehlgeschlagen: worldd.pipe: ai_with_tools: tool chat round 0: chat: API error 503: {"error":{"type":"server_error","message":"Error from provider (Console): Upstream request failed: Endpoint is unavailable."}}
+  in fn(sleep)
+  in fn(api_turn)
+  in fn(process_turn)
+  in fn(narrator_reply)
+  in fn(narrator_system)
+  in fn(sleep)
+2026-08-27 12:50:35 [NARRATOR] ERROR Alle Modelle fehlgeschlagen
+2026-08-27 12:50:35 [TURN] ERROR Alle Modelle nicht erreichbar
+2026-08-27 12:50:35 [TURN] Fertig: won=0
+2026-08-27 12:50:35 [JOB] Job j24 fertig
+2026-08-27 12:50:36 [JOB] Starte Job j25 kind=command
+2026-08-27 12:50:36 [JOB] Turn: greif kammerling an
+2026-08-27 12:50:36 [TURN] Eingabe: greif kammerling an
+2026-08-27 12:50:36 [TURN] Typ: narrator
+2026-08-27 12:50:36 [NARRATOR] Starte Narrator-Antwort
+2026-08-27 12:50:36 [NARRATOR] Teste Modell big-pickle
+2026-08-27 12:50:36 [NARRATOR] Modell big-pickle fehlgeschlagen: worldd.pipe: ai_with_tools: tool chat round 0: chat: API error 503: {"error":{"type":"server_error","message":"Error from provider (Console): Upstream request failed: Endpoint is unavailable."}}
+  in fn(sleep)
+  in fn(api_turn)
+  in fn(process_turn)
+  in fn(narrator_reply)
+  in fn(sleep)
+2026-08-27 12:50:36 [NARRATOR] ERROR Alle Modelle fehlgeschlagen
+2026-08-27 12:50:36 [TURN] ERROR Alle Modelle nicht erreichbar
+2026-08-27 12:50:36 [TURN] Fertig: won=0
+2026-08-27 12:50:36 [JOB] Job j25 fertig
+2026-08-27 12:50:37 [JOB] Starte Job j26 kind=command
+2026-08-27 12:50:37 [JOB] Turn: greif kammerling an
+2026-08-27 12:50:37 [TURN] Eingabe: greif kammerling an
+2026-08-27 12:50:37 [TURN] Typ: narrator
+2026-08-27 12:50:37 [NARRATOR] Starte Narrator-Antwort
+2026-08-27 12:50:37 [NARRATOR] Teste Modell big-pickle
+2026-08-27 12:50:38 [NARRATOR] Modell big-pickle fehlgeschlagen: worldd.pipe: ai_with_tools: tool chat round 0: chat: API error 503: {"error":{"type":"server_error","message":"Error from provider (Console): Upstream request failed: Endpoint is unavailable."}}
+  in fn(sleep)
+  in fn(api_turn)
+  in fn(process_turn)
+  in fn(narrator_reply)
+  in fn(sleep)
+2026-08-27 12:50:38 [NARRATOR] ERROR Alle Modelle fehlgeschlagen
+2026-08-27 12:50:38 [TURN] ERROR Alle Modelle nicht erreichbar
+2026-08-27 12:50:38 [TURN] Fertig: won=0
+2026-08-27 12:50:38 [JOB] Job j26 fertig
+2026-08-27 12:50:38 [JOB] Starte Job j27 kind=command
+2026-08-27 12:50:38 [JOB] Turn: greif kammerling an
+2026-08-27 12:50:38 [TURN] Eingabe: greif kammerling an
+2026-08-27 12:50:38 [TURN] Typ: narrator
+2026-08-27 12:50:38 [NARRATOR] Starte Narrator-Antwort
+2026-08-27 12:50:38 [NARRATOR] Teste Modell big-pickle
+2026-08-27 12:50:39 [NARRATOR] Modell big-pickle fehlgeschlagen: worldd.pipe: ai_with_tools: tool chat round 0: chat: API error 503: {"error":{"type":"server_error","message":"Error from provider (Console): Upstream request failed: Endpoint is unavailable."}}
+  in fn(sleep)
+  in fn(api_turn)
+  in fn(process_turn)
+  in fn(narrator_reply)
+  in fn(narrator_system)
+  in fn(get_meta)
+  in fn(db_query)
+  in fn(parse_sql)
+  in fn(sleep)
+2026-08-27 12:50:39 [NARRATOR] ERROR Alle Modelle fehlgeschlagen
+2026-08-27 12:50:39 [TURN] ERROR Alle Modelle nicht erreichbar
+2026-08-27 12:50:39 [TURN] Fertig: won=0
+2026-08-27 12:50:39 [JOB] Job j27 fertig
+2026-08-27 12:50:39 [JOB] Starte Job j28 kind=command
+2026-08-27 12:50:39 [JOB] Turn: greif kammerling an
+2026-08-27 12:50:39 [TURN] Eingabe: greif kammerling an
+2026-08-27 12:50:39 [TURN] Typ: narrator
+2026-08-27 12:50:39 [NARRATOR] Starte Narrator-Antwort
+2026-08-27 12:50:39 [NARRATOR] Teste Modell big-pickle
+2026-08-27 12:50:40 [NARRATOR] Modell big-pickle fehlgeschlagen: worldd.pipe: ai_with_tools: tool chat round 0: chat: API error 503: {"error":{"type":"server_error","message":"Error from provider (Console): Upstream request failed: Endpoint is unavailable."}}
+  in fn(sleep)
+  in fn(api_turn)
+  in fn(process_turn)
+  in fn(narrator_reply)
+  in fn(sleep)
+  in fn(api_turn)
+  in fn(process_turn)
+  in fn(narrator_reply)
+  in fn(sleep)
+2026-08-27 12:50:40 [NARRATOR] ERROR Alle Modelle fehlgeschlagen
+2026-08-27 12:50:40 [TURN] ERROR Alle Modelle nicht erreichbar
+2026-08-27 12:50:40 [TURN] Fertig: won=0
+2026-08-27 12:50:40 [JOB] Job j28 fertig
+2026-08-27 12:50:41 [JOB] Starte Job j29 kind=command
+2026-08-27 12:50:41 [JOB] Turn: greif kammerling an
+2026-08-27 12:50:41 [TURN] Eingabe: greif kammerling an
+2026-08-27 12:50:41 [TURN] Typ: narrator
+2026-08-27 12:50:41 [NARRATOR] Starte Narrator-Antwort
+2026-08-27 12:50:41 [NARRATOR] Teste Modell big-pickle
+2026-08-27 12:50:41 [NARRATOR] Modell big-pickle fehlgeschlagen: worldd.pipe: ai_with_tools: tool chat round 0: chat: API error 503: {"error":{"type":"server_error","message":"Error from provider (Console): Upstream request failed: Endpoint is unavailable."}}
+  in fn(sleep)
+  in fn(api_turn)
+  in fn(process_turn)
+  in fn(sleep)
+  in fn(api_turn)
+  in fn(process_turn)
+  in fn(narrator_reply)
+  in fn(sleep)
+2026-08-27 12:50:41 [NARRATOR] ERROR Alle Modelle fehlgeschlagen
+2026-08-27 12:50:41 [TURN] ERROR Alle Modelle nicht erreichbar
+2026-08-27 12:50:41 [TURN] Fertig: won=0
+2026-08-27 12:50:41 [JOB] Job j29 fertig
+2026-08-27 12:50:42 [JOB] Starte Job j30 kind=command
+2026-08-27 12:50:42 [JOB] Turn: greif kammerling an
+2026-08-27 12:50:42 [TURN] Eingabe: greif kammerling an
+2026-08-27 12:50:42 [TURN] Typ: narrator
+2026-08-27 12:50:42 [NARRATOR] Starte Narrator-Antwort
+2026-08-27 12:50:42 [NARRATOR] Teste Modell big-pickle
+2026-08-27 12:50:42 [NARRATOR] Modell big-pickle fehlgeschlagen: worldd.pipe: ai_with_tools: tool chat round 0: chat: API error 503: {"error":{"type":"server_error","message":"Error from provider (Console): Upstream request failed: Endpoint is unavailable."}}
+  in fn(sleep)
+  in fn(api_turn)
+  in fn(process_turn)
+  in fn(api_turn)
+  in fn(process_turn)
+  in fn(narrator_reply)
+  in fn(sleep)
+2026-08-27 12:50:42 [NARRATOR] ERROR Alle Modelle fehlgeschlagen
+2026-08-27 12:50:42 [TURN] ERROR Alle Modelle nicht erreichbar
+2026-08-27 12:50:42 [TURN] Fertig: won=0
+2026-08-27 12:50:42 [JOB] Job j30 fertig
+2026-08-27 12:50:43 [JOB] Starte Job j31 kind=command
+2026-08-27 12:50:43 [JOB] Turn: greif kammerling an
+2026-08-27 12:50:43 [TURN] Eingabe: greif kammerling an
+2026-08-27 12:50:43 [TURN] Typ: narrator
+2026-08-27 12:50:43 [NARRATOR] Starte Narrator-Antwort
+2026-08-27 12:50:43 [NARRATOR] Teste Modell big-pickle
+2026-08-27 12:50:43 [NARRATOR] Modell big-pickle fehlgeschlagen: worldd.pipe: ai_with_tools: tool chat round 0: chat: API error 503: {"error":{"type":"server_error","message":"Error from provider (Console): Upstream request failed: Endpoint is unavailable."}}
+  in fn(sleep)
+  in fn(api_turn)
+  in fn(sleep)
+  in fn(api_turn)
+  in fn(process_turn)
+  in fn(narrator_reply)
+  in fn(sleep)
+2026-08-27 12:50:43 [NARRATOR] ERROR Alle Modelle fehlgeschlagen
+2026-08-27 12:50:43 [TURN] ERROR Alle Modelle nicht erreichbar
+2026-08-27 12:50:43 [TURN] Fertig: won=0
+2026-08-27 12:50:43 [JOB] Job j31 fertig
+2026-08-27 12:50:44 [JOB] Starte Job j32 kind=command
+2026-08-27 12:50:44 [JOB] Turn: greif kammerling an
+2026-08-27 12:50:44 [TURN] Eingabe: greif kammerling an
+2026-08-27 12:50:44 [TURN] Typ: narrator
+2026-08-27 12:50:44 [NARRATOR] Starte Narrator-Antwort
+2026-08-27 12:50:44 [NARRATOR] Teste Modell big-pickle
+2026-08-27 12:50:44 [NARRATOR] Modell big-pickle fehlgeschlagen: worldd.pipe: ai_with_tools: tool chat round 0: chat: API error 503: {"error":{"type":"server_error","message":"Error from provider (Console): Upstream request failed: Endpoint is unavailable."}}
+  in fn(sleep)
+  in fn(api_turn)
+  in fn(sleep)
+  in fn(api_turn)
+  in fn(process_turn)
+  in fn(sleep)
+2026-08-27 12:50:44 [NARRATOR] ERROR Alle Modelle fehlgeschlagen
+2026-08-27 12:50:44 [TURN] ERROR Alle Modelle nicht erreichbar
+2026-08-27 12:50:44 [TURN] Fertig: won=0
+2026-08-27 12:50:45 [JOB] Job j32 fertig
+2026-08-27 12:50:45 [JOB] Starte Job j33 kind=command
+2026-08-27 12:50:45 [JOB] Turn: greif kammerling an
+2026-08-27 12:50:45 [TURN] Eingabe: greif kammerling an
+2026-08-27 12:50:45 [TURN] Typ: narrator
+2026-08-27 12:50:45 [NARRATOR] Starte Narrator-Antwort
+2026-08-27 12:50:45 [NARRATOR] Teste Modell big-pickle
+2026-08-27 12:50:46 [NARRATOR] Modell big-pickle fehlgeschlagen: worldd.pipe: ai_with_tools: tool chat round 0: chat: API error 503: {"error":{"type":"server_error","message":"Error from provider (Console): Upstream request failed: Endpoint is unavailable."}}
+  in fn(sleep)
+  in fn(sleep)
+  in fn(api_turn)
+  in fn(process_turn)
+  in fn(narrator_reply)
+  in fn(sleep)
+2026-08-27 12:50:46 [NARRATOR] ERROR Alle Modelle fehlgeschlagen
+2026-08-27 12:50:46 [TURN] ERROR Alle Modelle nicht erreichbar
+2026-08-27 12:50:46 [TURN] Fertig: won=0
+2026-08-27 12:50:46 [JOB] Job j33 fertig
+2026-08-27 12:50:46 [JOB] Starte Job j34 kind=command
+2026-08-27 12:50:46 [JOB] Turn: greif kammerling an
+2026-08-27 12:50:46 [TURN] Eingabe: greif kammerling an
+2026-08-27 12:50:46 [TURN] Typ: narrator
+2026-08-27 12:50:46 [NARRATOR] Starte Narrator-Antwort
+2026-08-27 12:50:46 [NARRATOR] Teste Modell big-pickle
+2026-08-27 12:50:47 [NARRATOR] Modell big-pickle fehlgeschlagen: worldd.pipe: ai_with_tools: tool chat round 0: chat: API error 503: {"error":{"type":"server_error","message":"Error from provider (Console): Upstream request failed: Endpoint is unavailable."}}
+  in fn(sleep)
+  in fn(sleep)
+  in fn(api_turn)
+  in fn(process_turn)
+  in fn(sleep)
+2026-08-27 12:50:47 [NARRATOR] ERROR Alle Modelle fehlgeschlagen
+2026-08-27 12:50:47 [TURN] ERROR Alle Modelle nicht erreichbar
+2026-08-27 12:50:47 [TURN] Fertig: won=0
+2026-08-27 12:50:47 [JOB] Job j34 fertig
+2026-08-27 12:50:47 [JOB] Starte Job j35 kind=command
+2026-08-27 12:50:47 [JOB] Turn: greif kammerling an
+2026-08-27 12:50:47 [TURN] Eingabe: greif kammerling an
+2026-08-27 12:50:47 [TURN] Typ: narrator
+2026-08-27 12:50:47 [NARRATOR] Starte Narrator-Antwort
+2026-08-27 12:50:47 [NARRATOR] Teste Modell big-pickle
+2026-08-27 12:50:48 [NARRATOR] Modell big-pickle fehlgeschlagen: worldd.pipe: ai_with_tools: tool chat round 0: chat: API error 503: {"error":{"type":"server_error","message":"Error from provider (Console): Upstream request failed: Endpoint is unavailable."}}
+  in fn(sleep)
+  in fn(api_turn)
+  in fn(process_turn)
+  in fn(narrator_reply)
+  in fn(sleep)
+2026-08-27 12:50:48 [NARRATOR] ERROR Alle Modelle fehlgeschlagen
+2026-08-27 12:50:48 [TURN] ERROR Alle Modelle nicht erreichbar
+2026-08-27 12:50:48 [TURN] Fertig: won=0
+2026-08-27 12:50:48 [JOB] Job j35 fertig
+2026-08-27 12:50:49 [JOB] Starte Job j36 kind=command
+2026-08-27 12:50:49 [JOB] Turn: greif kammerling an
+2026-08-27 12:50:49 [TURN] Eingabe: greif kammerling an
+2026-08-27 12:50:49 [TURN] Typ: narrator
+2026-08-27 12:50:49 [NARRATOR] Starte Narrator-Antwort
+2026-08-27 12:50:49 [NARRATOR] Teste Modell big-pickle
+2026-08-27 12:50:49 [NARRATOR] Modell big-pickle fehlgeschlagen: worldd.pipe: ai_with_tools: tool chat round 0: chat: API error 503: {"error":{"type":"server_error","message":"Error from provider (Console): Upstream request failed: Endpoint is unavailable."}}
+  in fn(sleep)
+  in fn(api_turn)
+  in fn(process_turn)
+  in fn(narrator_reply)
+  in fn(sleep)
+2026-08-27 12:50:49 [NARRATOR] ERROR Alle Modelle fehlgeschlagen
+2026-08-27 12:50:49 [TURN] ERROR Alle Modelle nicht erreichbar
+2026-08-27 12:50:49 [TURN] Fertig: won=0
+2026-08-27 12:50:49 [JOB] Job j36 fertig
+2026-08-27 12:50:50 [JOB] Starte Job j37 kind=command
+2026-08-27 12:50:50 [JOB] Turn: greif kammerling an
+2026-08-27 12:50:50 [TURN] Eingabe: greif kammerling an
+2026-08-27 12:50:50 [TURN] Typ: narrator
+2026-08-27 12:50:50 [NARRATOR] Starte Narrator-Antwort
+2026-08-27 12:50:50 [NARRATOR] Teste Modell big-pickle
+2026-08-27 12:50:50 [NARRATOR] Modell big-pickle fehlgeschlagen: worldd.pipe: ai_with_tools: tool chat round 0: chat: API error 503: {"error":{"type":"server_error","message":"Error from provider (Console): Upstream request failed: Endpoint is unavailable."}}
+  in fn(sleep)
+  in fn(api_turn)
+  in fn(process_turn)
+  in fn(narrator_reply)
+  in fn(narrator_system)
+  in fn(get_meta)
+  in fn(sleep)
+2026-08-27 12:50:50 [NARRATOR] ERROR Alle Modelle fehlgeschlagen
+2026-08-27 12:50:50 [TURN] ERROR Alle Modelle nicht erreichbar
+2026-08-27 12:50:50 [TURN] Fertig: won=0
+2026-08-27 12:50:50 [JOB] Job j37 fertig
+2026-08-27 12:50:51 [JOB] Starte Job j38 kind=command
+2026-08-27 12:50:51 [JOB] Turn: greif kammerling an
+2026-08-27 12:50:51 [TURN] Eingabe: greif kammerling an
+2026-08-27 12:50:51 [TURN] Typ: narrator
+2026-08-27 12:50:51 [NARRATOR] Starte Narrator-Antwort
+2026-08-27 12:50:51 [NARRATOR] Teste Modell big-pickle
+2026-08-27 12:50:51 [NARRATOR] Modell big-pickle fehlgeschlagen: worldd.pipe: ai_with_tools: tool chat round 0: chat: API error 503: {"error":{"type":"server_error","message":"Error from provider (Console): Upstream request failed: Endpoint is unavailable."}}
+  in fn(sleep)
+  in fn(api_turn)
+  in fn(sleep)
+  in fn(api_turn)
+  in fn(process_turn)
+  in fn(narrator_reply)
+  in fn(sleep)
+2026-08-27 12:50:51 [NARRATOR] ERROR Alle Modelle fehlgeschlagen
+2026-08-27 12:50:51 [TURN] ERROR Alle Modelle nicht erreichbar
+2026-08-27 12:50:51 [TURN] Fertig: won=0
+2026-08-27 12:50:52 [JOB] Job j38 fertig
+2026-08-27 12:50:52 [JOB] Starte Job j39 kind=command
+2026-08-27 12:50:52 [JOB] Turn: greif kammerling an
+2026-08-27 12:50:52 [TURN] Eingabe: greif kammerling an
+2026-08-27 12:50:52 [TURN] Typ: narrator
+2026-08-27 12:50:52 [NARRATOR] Starte Narrator-Antwort
+2026-08-27 12:50:52 [NARRATOR] Teste Modell big-pickle
+2026-08-27 12:50:52 [NARRATOR] Modell big-pickle fehlgeschlagen: worldd.pipe: ai_with_tools: tool chat round 0: chat: API error 503: {"error":{"type":"server_error","message":"Error from provider (Console): Upstream request failed: Endpoint is unavailable."}}
+  in fn(sleep)
+  in fn(api_turn)
+  in fn(sleep)
+  in fn(api_turn)
+  in fn(process_turn)
+  in fn(narrator_reply)
+  in fn(narrator_system)
+  in fn(get_meta)
+  in fn(db_query)
+  in fn(sleep)
+2026-08-27 12:50:52 [NARRATOR] ERROR Alle Modelle fehlgeschlagen
+2026-08-27 12:50:52 [TURN] ERROR Alle Modelle nicht erreichbar
+2026-08-27 12:50:52 [TURN] Fertig: won=0
+2026-08-27 12:50:53 [JOB] Job j39 fertig
+2026-08-27 12:50:53 [JOB] Starte Job j40 kind=command
+2026-08-27 12:50:53 [JOB] Turn: greif kammerling an
+2026-08-27 12:50:53 [TURN] Eingabe: greif kammerling an
+2026-08-27 12:50:53 [TURN] Typ: narrator
+2026-08-27 12:50:53 [NARRATOR] Starte Narrator-Antwort
+2026-08-27 12:50:53 [NARRATOR] Teste Modell big-pickle
+2026-08-27 12:50:54 [NARRATOR] Modell big-pickle fehlgeschlagen: worldd.pipe: ai_with_tools: tool chat round 0: chat: API error 503: {"error":{"type":"server_error","message":"Error from provider (Console): Upstream request failed: Endpoint is unavailable."}}
+  in fn(sleep)
+  in fn(api_turn)
+  in fn(sleep)
+  in fn(api_turn)
+  in fn(process_turn)
+  in fn(sleep)
+  in fn(api_turn)
+  in fn(process_turn)
+  in fn(narrator_reply)
+  in fn(sleep)
+2026-08-27 12:50:54 [NARRATOR] ERROR Alle Modelle fehlgeschlagen
+2026-08-27 12:50:54 [TURN] ERROR Alle Modelle nicht erreichbar
+2026-08-27 12:50:54 [TURN] Fertig: won=0
+2026-08-27 12:50:54 [JOB] Job j40 fertig
+2026-08-27 12:50:54 [JOB] Starte Job j41 kind=command
+2026-08-27 12:50:54 [JOB] Turn: greif kammerling an
+2026-08-27 12:50:54 [TURN] Eingabe: greif kammerling an
+2026-08-27 12:50:54 [TURN] Typ: narrator
+2026-08-27 12:50:54 [NARRATOR] Starte Narrator-Antwort
+2026-08-27 12:50:54 [NARRATOR] Teste Modell big-pickle
+2026-08-27 12:50:55 [NARRATOR] Modell big-pickle fehlgeschlagen: worldd.pipe: ai_with_tools: tool chat round 0: chat: API error 503: {"error":{"type":"server_error","message":"Error from provider (Console): Upstream request failed: Endpoint is unavailable."}}
+  in fn(sleep)
+  in fn(api_turn)
+  in fn(sleep)
+  in fn(api_turn)
+  in fn(process_turn)
+  in fn(sleep)
+  in fn(api_turn)
+  in fn(process_turn)
+  in fn(narrator_reply)
+  in fn(narrator_system)
+  in fn(sleep)
+2026-08-27 12:50:55 [NARRATOR] ERROR Alle Modelle fehlgeschlagen
+2026-08-27 12:50:55 [TURN] ERROR Alle Modelle nicht erreichbar
+2026-08-27 12:50:55 [TURN] Fertig: won=0
+2026-08-27 12:50:55 [JOB] Job j41 fertig
+2026-08-27 12:50:56 [JOB] Starte Job j42 kind=command
+2026-08-27 12:50:56 [JOB] Turn: greif kammerling an
+2026-08-27 12:50:56 [TURN] Eingabe: greif kammerling an
+2026-08-27 12:50:56 [TURN] Typ: narrator
+2026-08-27 12:50:56 [NARRATOR] Starte Narrator-Antwort
+2026-08-27 12:50:56 [NARRATOR] Teste Modell big-pickle
+2026-08-27 12:50:56 [NARRATOR] Modell big-pickle fehlgeschlagen: worldd.pipe: ai_with_tools: tool chat round 0: chat: API error 503: {"error":{"type":"server_error","message":"Error from provider (Console): Upstream request failed: Endpoint is unavailable."}}
+  in fn(sleep)
+  in fn(api_turn)
+  in fn(sleep)
+  in fn(api_turn)
+  in fn(process_turn)
+  in fn(sleep)
+  in fn(sleep)
+  in fn(handle_root)
+  in fn(api_turn)
+  in fn(process_turn)
+  in fn(sleep)
+2026-08-27 12:50:56 [NARRATOR] ERROR Alle Modelle fehlgeschlagen
+2026-08-27 12:50:56 [TURN] ERROR Alle Modelle nicht erreichbar
+2026-08-27 12:50:56 [TURN] Fertig: won=0
+2026-08-27 12:50:56 [JOB] Job j42 fertig
+2026-08-27 12:50:57 [JOB] Starte Job j43 kind=command
+2026-08-27 12:50:57 [JOB] Turn: greif kammerling an
+2026-08-27 12:50:57 [TURN] Eingabe: greif kammerling an
+2026-08-27 12:50:57 [TURN] Typ: narrator
+2026-08-27 12:50:57 [NARRATOR] Starte Narrator-Antwort
+2026-08-27 12:50:57 [NARRATOR] Teste Modell big-pickle
+2026-08-27 12:50:57 [NARRATOR] Modell big-pickle fehlgeschlagen: worldd.pipe: ai_with_tools: tool chat round 0: chat: API error 503: {"error":{"type":"server_error","message":"Error from provider (Console): Upstream request failed: Endpoint is unavailable."}}
+  in fn(sleep)
+  in fn(api_turn)
+  in fn(sleep)
+  in fn(api_turn)
+  in fn(process_turn)
+  in fn(sleep)
+  in fn(sleep)
+  in fn(api_turn)
+  in fn(process_turn)
+  in fn(narrator_reply)
+  in fn(sleep)
+2026-08-27 12:50:57 [NARRATOR] ERROR Alle Modelle fehlgeschlagen
+2026-08-27 12:50:57 [TURN] ERROR Alle Modelle nicht erreichbar
+2026-08-27 12:50:57 [TURN] Fertig: won=0
+2026-08-27 12:50:57 [JOB] Job j43 fertig
+2026-08-27 12:50:58 [JOB] Starte Job j44 kind=command
+2026-08-27 12:50:58 [JOB] Turn: greif kammerling an
+2026-08-27 12:50:58 [TURN] Eingabe: greif kammerling an
+2026-08-27 12:50:58 [TURN] Typ: narrator
+2026-08-27 12:50:58 [NARRATOR] Starte Narrator-Antwort
+2026-08-27 12:50:58 [NARRATOR] Teste Modell big-pickle
+2026-08-27 12:50:58 [NARRATOR] Modell big-pickle fehlgeschlagen: worldd.pipe: ai_with_tools: tool chat round 0: chat: API error 503: {"error":{"type":"server_error","message":"Error from provider (Console): Upstream request failed: Endpoint is unavailable."}}
+  in fn(sleep)
+  in fn(api_turn)
+  in fn(sleep)
+  in fn(api_turn)
+  in fn(process_turn)
+  in fn(sleep)
+  in fn(sleep)
+  in fn(api_turn)
+  in fn(process_turn)
+  in fn(narrator_reply)
+  in fn(narrator_system)
+  in fn(get_meta)
+  in fn(db_query)
+  in fn(sleep)
+2026-08-27 12:50:58 [NARRATOR] ERROR Alle Modelle fehlgeschlagen
+2026-08-27 12:50:58 [TURN] ERROR Alle Modelle nicht erreichbar
+2026-08-27 12:50:58 [TURN] Fertig: won=0
+2026-08-27 12:50:58 [JOB] Job j44 fertig
+2026-08-27 12:50:59 [JOB] Starte Job j45 kind=command
+2026-08-27 12:50:59 [JOB] Turn: greif kammerling an
+2026-08-27 12:50:59 [TURN] Eingabe: greif kammerling an
+2026-08-27 12:50:59 [TURN] Typ: narrator
+2026-08-27 12:50:59 [NARRATOR] Starte Narrator-Antwort
+2026-08-27 12:50:59 [NARRATOR] Teste Modell big-pickle
+2026-08-27 12:50:59 [NARRATOR] Modell big-pickle fehlgeschlagen: worldd.pipe: ai_with_tools: tool chat round 0: chat: API error 503: {"error":{"type":"server_error","message":"Error from provider (Console): Upstream request failed: Endpoint is unavailable."}}
+  in fn(sleep)
+  in fn(api_turn)
+  in fn(sleep)
+  in fn(api_turn)
+  in fn(process_turn)
+  in fn(sleep)
+  in fn(sleep)
+  in fn(api_turn)
+  in fn(process_turn)
+  in fn(sleep)
+  in fn(api_turn)
+  in fn(process_turn)
+  in fn(sleep)
+2026-08-27 12:50:59 [NARRATOR] ERROR Alle Modelle fehlgeschlagen
+2026-08-27 12:50:59 [TURN] ERROR Alle Modelle nicht erreichbar
+2026-08-27 12:50:59 [TURN] Fertig: won=0
+2026-08-27 12:51:00 [JOB] Job j45 fertig
+2026-08-27 12:51:00 [JOB] Starte Job j46 kind=command
+2026-08-27 12:51:00 [JOB] Turn: greif kammerling an
+2026-08-27 12:51:00 [TURN] Eingabe: greif kammerling an
+2026-08-27 12:51:00 [TURN] Typ: narrator
+2026-08-27 12:51:00 [NARRATOR] Starte Narrator-Antwort
+2026-08-27 12:51:00 [NARRATOR] Teste Modell big-pickle
+2026-08-27 12:51:03 [NARRATOR] Modell big-pickle hat geantwortet (338 Zeichen)
+2026-08-27 12:51:03 [TURN] Fertig: won=0
+2026-08-27 12:51:03 [JOB] Job j46 fertig
+2026-08-27 12:51:03 [JOB] Starte Job j47 kind=command
+2026-08-27 12:51:03 [JOB] Turn: greif kammerling an
+2026-08-27 12:51:03 [TURN] Eingabe: greif kammerling an
+2026-08-27 12:51:03 [TURN] Typ: narrator
+2026-08-27 12:51:03 [NARRATOR] Starte Narrator-Antwort
+2026-08-27 12:51:03 [NARRATOR] Teste Modell big-pickle
+2026-08-27 12:51:06 [NARRATOR] Modell big-pickle hat geantwortet (258 Zeichen)
+2026-08-27 12:51:06 [TURN] Fertig: won=0
+2026-08-27 12:51:06 [JOB] Job j47 fertig
+2026-08-27 12:51:07 [JOB] Starte Job j48 kind=command
+2026-08-27 12:51:07 [JOB] Turn: nimm schwert
+2026-08-27 12:51:07 [TURN] Eingabe: nimm schwert
+2026-08-27 12:51:07 [TURN] Typ: fast
+2026-08-27 12:51:07 [TURN] Fertig: won=0
+2026-08-27 12:51:07 [JOB] Job j48 fertig
+2026-08-27 12:51:08 [JOB] Starte Job j49 kind=command
+2026-08-27 12:51:08 [JOB] Turn: nimm goldmuenze
+2026-08-27 12:51:08 [TURN] Eingabe: nimm goldmuenze
+2026-08-27 12:51:08 [TURN] Typ: fast
+2026-08-27 12:51:08 [TURN] Fertig: won=0
+2026-08-27 12:51:08 [JOB] Job j49 fertig
+2026-08-27 12:51:09 [JOB] Starte Job j50 kind=command
+2026-08-27 12:51:09 [JOB] Turn: geh nach westen
+2026-08-27 12:51:09 [TURN] Eingabe: geh nach westen
+2026-08-27 12:51:09 [TURN] Typ: fast
+2026-08-27 12:51:09 [TURN] Fertig: won=0
+2026-08-27 12:51:09 [JOB] Job j50 fertig
+2026-08-27 12:51:10 [JOB] Starte Job j51 kind=command
+2026-08-27 12:51:10 [JOB] Turn: geh nach sueden
+2026-08-27 12:51:10 [TURN] Eingabe: geh nach sueden
+2026-08-27 12:51:10 [TURN] Typ: fast
+2026-08-27 12:51:10 [TURN] Fertig: won=0
+2026-08-27 12:51:10 [JOB] Job j51 fertig
+2026-08-27 12:51:11 [JOB] Starte Job j52 kind=command
+2026-08-27 12:51:11 [JOB] Turn: geh nach norden
+2026-08-27 12:51:11 [TURN] Eingabe: geh nach norden
+2026-08-27 12:51:11 [TURN] Typ: fast
+2026-08-27 12:51:11 [TURN] Fertig: won=0
+2026-08-27 12:51:11 [JOB] Job j52 fertig
+2026-08-27 12:51:12 [JOB] Starte Job j53 kind=command
+2026-08-27 12:51:12 [JOB] Turn: geh nach osten
+2026-08-27 12:51:12 [TURN] Eingabe: geh nach osten
+2026-08-27 12:51:12 [TURN] Typ: fast
+2026-08-27 12:51:12 [TURN] Fertig: won=0
+2026-08-27 12:51:13 [JOB] Job j53 fertig
+2026-08-27 12:51:14 [JOB] Starte Job j54 kind=command
+2026-08-27 12:51:14 [JOB] Turn: geh nach westen
+2026-08-27 12:51:14 [TURN] Eingabe: geh nach westen
+2026-08-27 12:51:14 [TURN] Typ: fast
+2026-08-27 12:51:14 [TURN] Fertig: won=0
+2026-08-27 12:51:14 [JOB] Job j54 fertig
+2026-08-27 12:51:15 [JOB] Starte Job j55 kind=command
+2026-08-27 12:51:15 [JOB] Turn: geh nach norden
+2026-08-27 12:51:15 [TURN] Eingabe: geh nach norden
+2026-08-27 12:51:15 [TURN] Typ: fast
+2026-08-27 12:51:15 [TURN] Fertig: won=0
+2026-08-27 12:51:15 [JOB] Job j55 fertig
+2026-08-27 12:51:16 [JOB] Starte Job j56 kind=command
+2026-08-27 12:51:16 [JOB] Turn: geh nach osten
+2026-08-27 12:51:16 [TURN] Eingabe: geh nach osten
+2026-08-27 12:51:16 [TURN] Typ: fast
+2026-08-27 12:51:16 [TURN] Fertig: won=0
+2026-08-27 12:51:16 [JOB] Job j56 fertig
+2026-08-27 12:51:17 [JOB] Starte Job j57 kind=command
+2026-08-27 12:51:17 [JOB] Turn: geh nach westen
+2026-08-27 12:51:17 [TURN] Eingabe: geh nach westen
+2026-08-27 12:51:17 [TURN] Typ: fast
+2026-08-27 12:51:17 [TURN] Fertig: won=0
+2026-08-27 12:51:17 [JOB] Job j57 fertig
+2026-08-27 12:51:18 [JOB] Starte Job j58 kind=command
+2026-08-27 12:51:18 [JOB] Turn: geh nach sueden
+2026-08-27 12:51:18 [TURN] Eingabe: geh nach sueden
+2026-08-27 12:51:18 [TURN] Typ: fast
+2026-08-27 12:51:18 [TURN] Fertig: won=0
+2026-08-27 12:51:18 [JOB] Job j58 fertig
+2026-08-27 12:51:19 [JOB] Starte Job j59 kind=command
+2026-08-27 12:51:19 [JOB] Turn: geh nach osten
+2026-08-27 12:51:19 [TURN] Eingabe: geh nach osten
+2026-08-27 12:51:19 [TURN] Typ: fast
+2026-08-27 12:51:19 [TURN] Fertig: won=0
+2026-08-27 12:51:20 [JOB] Job j59 fertig
+2026-08-27 12:51:21 [JOB] Starte Job j60 kind=command
+2026-08-27 12:51:21 [JOB] Turn: geh nach westen
+2026-08-27 12:51:21 [TURN] Eingabe: geh nach westen
+2026-08-27 12:51:21 [TURN] Typ: fast
+2026-08-27 12:51:21 [TURN] Fertig: won=0
+2026-08-27 12:51:21 [JOB] Job j60 fertig
+2026-08-27 12:51:22 [JOB] Starte Job j61 kind=command
+2026-08-27 12:51:22 [JOB] Turn: geh nach norden
+2026-08-27 12:51:22 [TURN] Eingabe: geh nach norden
+2026-08-27 12:51:22 [TURN] Typ: fast
+2026-08-27 12:51:22 [TURN] Fertig: won=0
+2026-08-27 12:51:22 [JOB] Job j61 fertig
+2026-08-27 12:51:23 [JOB] Starte Job j62 kind=command
+2026-08-27 12:51:23 [JOB] Turn: geh nach osten
+2026-08-27 12:51:23 [TURN] Eingabe: geh nach osten
+2026-08-27 12:51:23 [TURN] Typ: fast
+2026-08-27 12:51:23 [TURN] Fertig: won=0
+2026-08-27 12:51:23 [JOB] Job j62 fertig
+2026-08-27 12:52:09 [JOB] Starte Job j63 kind=command
+2026-08-27 12:52:09 [JOB] Turn: geh nach westen
+2026-08-27 12:52:09 [TURN] Eingabe: geh nach westen
+2026-08-27 12:52:09 [TURN] Typ: fast
+2026-08-27 12:52:09 [TURN] Fertig: won=0
+2026-08-27 12:52:09 [JOB] Job j63 fertig
+2026-08-27 12:52:23 [JOB] Starte Job j64 kind=command
+2026-08-27 12:52:23 [JOB] Turn: geh nach osten
+2026-08-27 12:52:23 [TURN] Eingabe: geh nach osten
+2026-08-27 12:52:23 [TURN] Typ: fast
+2026-08-27 12:52:23 [TURN] Fertig: won=0
+2026-08-27 12:52:23 [JOB] Job j64 fertig
+2026-08-27 12:52:41 [JOB] Starte Job j65 kind=command
+2026-08-27 12:52:41 [JOB] Turn: geh nach westen
+2026-08-27 12:52:41 [TURN] Eingabe: geh nach westen
+2026-08-27 12:52:41 [TURN] Typ: fast
+2026-08-27 12:52:41 [TURN] Fertig: won=0
+2026-08-27 12:52:41 [JOB] Job j65 fertig
+2026-08-27 12:52:53 [JOB] Starte Job j66 kind=command
+2026-08-27 12:52:53 [JOB] Turn: geh nach sueden
+2026-08-27 12:52:53 [TURN] Eingabe: geh nach sueden
+2026-08-27 12:52:54 [TURN] Typ: fast
+2026-08-27 12:52:54 [TURN] Fertig: won=0
+2026-08-27 12:52:54 [JOB] Job j66 fertig
+2026-08-27 12:53:09 [JOB] Starte Job j67 kind=command
+2026-08-27 12:53:09 [JOB] Turn: rede mit weiser_aldric ueber das erbe
+2026-08-27 12:53:09 [TURN] Eingabe: rede mit weiser_aldric ueber das erbe
+2026-08-27 12:53:09 [TURN] Typ: talk
+2026-08-27 12:53:10 [TURN] Fertig: won=0
+2026-08-27 12:53:10 [JOB] Job j67 fertig
+2026-08-27 12:53:22 [JOB] Starte Job j68 kind=command
+2026-08-27 12:53:22 [JOB] Turn: frag weiser_aldric nach hinweisen
+2026-08-27 12:53:22 [TURN] Eingabe: frag weiser_aldric nach hinweisen
+2026-08-27 12:53:22 [TURN] Typ: talk
+2026-08-27 12:53:23 [TURN] Fertig: won=0
+2026-08-27 12:53:23 [JOB] Job j68 fertig
+2026-08-27 12:53:35 [JOB] Starte Job j69 kind=command
+2026-08-27 12:53:35 [JOB] Turn: gib weiser_aldric goldmuenze
+2026-08-27 12:53:35 [TURN] Eingabe: gib weiser_aldric goldmuenze
+2026-08-27 12:53:35 [TURN] Typ: talk
+2026-08-27 12:53:36 [TURN] Fertig: won=1
+2026-08-27 12:53:36 [JOB] Job j69 fertig
+2026-08-27 12:55:44 [SRV] Neue Session-Anfrage
+2026-08-27 12:55:44 [SRV] Session s1787835344_2 Port=8102 Welt=nebelinsel
+2026-08-27 12:55:44 [SRV] Starte Worker: ../bin/pipe worldd.pipe s1787835344_2 8102 900000
+2026-08-27 12:55:44 [BOOT] Worldd-Prozess gestartet
+2026-08-27 12:55:44 [BOOT] Starte fuer Session s1787835344_2
+2026-08-27 12:55:44 [BOOT] Lade Pack pack_core.json
+2026-08-27 12:55:44 [SRV] Session s1787835344_2 bereit=false
+2026-08-27 12:55:45 [BOOT] DB initialisiert, lese Config
+2026-08-27 12:55:45 [BOOT] Weltname=nebelinsel
+2026-08-27 12:55:45 [BOOT] Keine bestehende Welt — generiere neue
+2026-08-27 12:55:45 [BOOT] Modell=x-preview-f-free
+2026-08-27 12:55:45 [BOOT] Briefing vorhanden, starte gen_design
+2026-08-27 12:55:45 [BOOT] Profil={schwierigkeit: normal, stil: kaempfer}
+2026-08-27 12:55:45 [GEN-DESIGN] === Starte Design-Generierung ===
+2026-08-27 12:55:45 [GEN-DESIGN] Versuch 1/3 Modell=big-pickle
+2026-08-27 12:55:46 [GEN-DESIGN] ERROR AI-Call fehlgeschlagen: worldd.pipe: ai_chat: API error 503: {"error":{"type":"server_error","message":"Error from provider (Console): Upstream request failed: Endpoint is unavailable."}}
+  in fn(sleep)
+  in fn(db_exec)
+  in fn(parse_sql)
+  in fn(gen_design)
+  in fn(sleep)
+2026-08-27 12:55:46 [GEN-DESIGN] Versuch 2/3 Modell=big-pickle
+2026-08-27 12:55:46 [GEN-DESIGN] ERROR AI-Call fehlgeschlagen: worldd.pipe: ai_chat: API error 503: {"error":{"type":"server_error","message":"Error from provider (Console): Upstream request failed: Endpoint is unavailable."}}
+  in fn(sleep)
+  in fn(db_exec)
+  in fn(parse_sql)
+  in fn(gen_design)
+  in fn(sleep)
+2026-08-27 12:55:46 [GEN-DESIGN] Versuch 3/3 Modell=big-pickle
+2026-08-27 12:55:46 [GEN-DESIGN] ERROR AI-Call fehlgeschlagen: worldd.pipe: ai_chat: API error 503: {"error":{"type":"server_error","message":"Error from provider (Console): Upstream request failed: Endpoint is unavailable."}}
+  in fn(sleep)
+  in fn(db_exec)
+  in fn(parse_sql)
+  in fn(gen_design)
+  in fn(sleep)
+2026-08-27 12:55:46 [BOOT] ERROR Design fehlgeschlagen: api
+2026-08-27 12:55:47 [BOOT] Neues Spiel gestartet
+2026-08-27 12:55:47 [BOOT] Lore-Index gebaut
+2026-08-27 12:55:47 [BOOT] BEREIT auf :8102

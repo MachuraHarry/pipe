@@ -1031,3 +1031,78 @@ test "rep_add upserts for unseeded faction"
     expect_eq (rep_get "neue_fraktion") 5 "rep created"
     rep_add "neue_fraktion" (-10)
     expect_eq (rep_get "neue_fraktion") 0 "rep clamped at 0"
+
+--- === Main vs. Side objectives (build) === ===
+
+test "side objective alone does not win; main objective wins"
+    init_db 0
+    reset_state 0
+    doc: parse_json (read_file "worlds/beispielwelt.json")
+    neue_objs: []
+    push neue_objs {id: "obj_main", kind: "give", target: "goldmuenze", npc: "weiser_aldric", state: "offen", main: 1}
+    push neue_objs {id: "obj_side", kind: "kill", target: "kammerling", npc: "", state: "offen", main: 0}
+    set doc "objectives" neue_objs
+    seed_world_full doc
+    new_game 0
+    objective_complete "obj_side"
+    expect_eq (get (get_player 0) "won") 0 "side objective does not trigger win"
+    objective_complete "obj_main"
+    expect_eq (get (get_player 0) "won") 1 "main objective triggers win"
+
+test "missing main flag defaults to main for old objectives"
+    init_db 0
+    reset_state 0
+    doc: parse_json (read_file "worlds/beispielwelt.json")
+    ziele: []
+    push ziele {id: "obj_alt", kind: "give", target: "goldmuenze", npc: "weiser_aldric", state: "offen"}
+    set doc "objectives" ziele
+    seed_world_full doc
+    new_game 0
+    objective_complete "obj_alt"
+    expect_eq (get (get_player 0) "won") 1 "legacy objective treated as main"
+
+test "erweitere_ziele guarantees at least 2 main objectives"
+    bestand: []
+    push bestand {id: "o1", kind: "give", target: "goldmuenze", npc: "weiser_aldric", state: "offen", main: 1}
+    mon: []
+    push mon {id: "kammerling"}
+    raeume: ["tpl_eingang", "tpl_schatzkammer"]
+    ziele: erweitere_ziele bestand mon raeume pack
+    expect_truthy (len ziele >= 2) "at least two objectives"
+    anzahl_main: 0
+    for z in ziele
+        if (get z "main") == 1
+            anzahl_main: anzahl_main + 1
+    expect_truthy (anzahl_main >= 2) "all generated objectives are main"
+    kind_kill: false
+    for z in ziele
+        if (get z "kind") == "kill"
+            kind_kill: true
+    expect_truthy kind_kill "derives a kill objective from placed monster"
+
+test "merge_expansion marks new objectives as side (main=0)"
+    init_db 0
+    reset_state 0
+    doc: parse_json (read_file "worlds/beispielwelt.json")
+    seed_world_full doc
+    exp: {rooms: {tpl_dungeon_2: {description: "Neu.", items: []}}, links: [{anchor: "tpl_eingang", dir: "osten", room: "tpl_dungeon_2"}], npcs: [], monsters: [{id: "goblin", room: "tpl_dungeon_2"}], quests: ["q_heilmittel"], objectives: [{id: "obj_erw_x", kind: "kill", target: "goblin", npc: "", quest_id: "q_heilmittel"}]}
+    merge_expansion exp doc pack
+    o: db_query (open_db 0) "SELECT main FROM objectives WHERE id = 'obj_erw_x'"
+    expect_eq (get (at o 0) "main") 0 "expansion objective is a side quest"
+
+test "restore_save preserves main flag"
+    init_db 0
+    reset_state 0
+    doc: parse_json (read_file "worlds/beispielwelt.json")
+    ziele: []
+    push ziele {id: "obj_main", kind: "give", target: "goldmuenze", npc: "weiser_aldric", state: "offen", main: 1}
+    push ziele {id: "obj_side", kind: "kill", target: "kammerling", npc: "", state: "offen", main: 0}
+    set doc "objectives" ziele
+    seed_world_full doc
+    save_game "wc_main"
+    data: parse_json (read_file "saves/wc_main.json")
+    restore_save data
+    m: db_query (open_db 0) "SELECT main FROM objectives WHERE id = 'obj_side'"
+    expect_eq (get (at m 0) "main") 0 "side flag survives save/load"
+    m2: db_query (open_db 0) "SELECT main FROM objectives WHERE id = 'obj_main'"
+    expect_eq (get (at m2 0) "main") 1 "main flag survives save/load"

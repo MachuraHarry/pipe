@@ -157,6 +157,17 @@ test "normalize re-homes npc from unknown room to start room"
     mon: at (get doc "monsters") 0
     expect_eq (get mon "room") "tpl_eingang" "monster re-homed to start"
 
+test "sql_escape replaces every apostrophe, not just the first"
+    esc: sql_escape "O'Malley's Truhe 'neue' Waren"
+    expect_eq esc "O’Malley’s Truhe ’neue’ Waren" "all apostrophes become typographic quotes"
+
+test "npc memory with apostrophes roundtrips through sql"
+    init_db 0
+    set_npc_memory "greta" "Greta's Hut, O'Neil's Siegel und der Graf's Ring"
+    mem: get_npc_memory "greta"
+    expect_eq mem "Greta’s Hut, O’Neil’s Siegel und der Graf’s Ring" "memory survives with typographic quotes"
+    expect_eq (npc_turns "greta") 1 "turn counter bumped"
+
 --- === Seeding & Movement === ===
 
 test "example world seeds and player starts correctly"

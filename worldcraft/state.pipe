@@ -24,9 +24,9 @@ fn open_db _
     at DBH 0
 
 --! Makes a string safe for Pipes mini-SQL parser: the tokenizer does not
---! support ''-escaping, so apostrophes become typographic quotes.
+--! support ''-escaping, so EVERY apostrophe becomes a typographic quote.
 fn sql_escape s
-    replace s "'" "’"
+    replace_all s "'" "’"
 
 --! Creates all tables if they do not exist.
 fn init_db _

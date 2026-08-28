@@ -11,10 +11,18 @@ import "api.pipe"
 pack: load_pack "pack_core.json"
 set_pack pack
 
+--! Loads the example fixture from testdata/ (decoupled from the worlds/
+--! directory, which only holds playable worlds) and seeds the DB.
+fn load_example_world _
+    doc: parse_json (read_file "testdata/beispielwelt.json")
+    set_meta "world_file" "beispielwelt"
+    seed_world doc
+    doc
+
 fn fresh_example _
     init_db 0
     reset_state 0
-    load_world_doc "beispielwelt"
+    load_example_world 0
     seed_pack_extras pack
     new_game 0
 
@@ -43,6 +51,17 @@ test "pack loads with all sections"
 test "valid design passes validation"
     design: {thema: "Test", ton: "düster", raumzahl: 6, items: ["fackel", "goldmuenze"], npcs: [{id: "hilda", template: "haendler", name: "Hilda die Händlerin"}], monsters: ["kammerling"], quests: ["q_ungewuerm"], siegesbedingung: {kind: "give", target: "goldmuenze", npc: "hilda"}}
     expect_eq (len (validate_design design pack)) 0 "no errors"
+
+test "normalize_design drops invented ids and clamps raumzahl"
+    design: {thema: "Test", ton: "düster", raumzahl: 99, items: ["fackel", "erfundenes_item"], monsters: ["kammerling", "würgeenge"], quests: ["q_ungewuerm", "falscher_quest"], npcs: [{id: "hilda", template: "haendler", name: "Hilda die Händlerin"}], siegesbedingung: {kind: "give", target: "goldmuenze", npc: "hilda"}}
+    norm: normalize_design design pack
+    expect_falsy (contains (get norm "items") "erfundenes_item") "invented item dropped"
+    expect_falsy (contains (get norm "monsters") "würgeenge") "invented monster dropped"
+    expect_falsy (contains (get norm "quests") "falscher_quest") "invented quest dropped"
+    expect_truthy (contains (get norm "items") "fackel") "real item kept"
+    expect_truthy (contains (get norm "monsters") "kammerling") "real monster kept"
+    expect_eq (get norm "raumzahl") 12 "raumzahl clamped to max"
+    expect_eq (len (validate_design norm pack)) 0 "normalized design is valid"
 
 test "unknown ids fail validation"
     design: {thema: "Test", ton: "düster", raumzahl: 99, items: ["nichts"], npcs: [{id: "x", template: "haendler", name: "X"}], monsters: [], quests: []}
@@ -91,11 +110,11 @@ test "reachable rooms follows exits"
     expect_falsy (contains errichtbare "d") "d unreachable"
 
 test "valid example map passes validation"
-    doc: parse_json (read_file "worlds/beispielwelt.json")
+    doc: parse_json (read_file "testdata/beispielwelt.json")
     expect_eq (len (validate_map doc pack)) 0 "example map is consistent"
 
 test "broken map fails validation"
-    kaputt: parse_json (read_file "worlds/beispielwelt.json")
+    kaputt: parse_json (read_file "testdata/beispielwelt.json")
     set kaputt "start_room" "nirgendwo"
     expect_gt (len (validate_map kaputt pack)) 0 "bad start detected"
     set kaputt "start_room" "tpl_eingang"
@@ -119,7 +138,7 @@ test "normalize fills monster stats from pack"
     expect_eq (get m "loot") "axt" "loot from pack"
 
 test "normalize applies template-based npc from design"
-    raw: {name: "X", start_room: "tpl_eingang", rooms: {}, npcs: [{id: "siegfried", room: "tpl_halle"}], monsters: [], objectives: []}
+    raw: {name: "X", start_room: "tpl_eingang", rooms: {tpl_eingang: {name: "Eingang", description: "Der Eingang", items: [], exits: {}}, tpl_halle: {name: "Halle", description: "Die Halle", items: [], exits: {}}}, npcs: [{id: "siegfried", room: "tpl_halle"}], monsters: [], objectives: []}
     design: {npcs: [{id: "siegfried", template: "waechter", name: "Siegfried Eisenhand", temperament: "streng", persona: "Ein alter Krieger."}], quests: []}
     doc: normalize_map raw pack design
     npc: at (get doc "npcs") 0
@@ -128,6 +147,15 @@ test "normalize applies template-based npc from design"
     expect_eq (get npc "temperament") "streng" "custom temperament"
     expect_eq (get npc "room") "tpl_halle" "room from raw map"
     expect_eq (get npc "buys_pct") 0 "buys_pct from pack template"
+
+test "normalize re-homes npc from unknown room to start room"
+    raw: {name: "X", start_room: "tpl_eingang", rooms: {tpl_eingang: {name: "Eingang", description: "Der Eingang", items: [], exits: {}}}, npcs: [{id: "siegfried", room: "nirgendwo_xyz"}], monsters: [{id: "kammerling", room: "auch_nicht_da"}], objectives: []}
+    design: {npcs: [{id: "siegfried", template: "waechter", name: "Siegfried Eisenhand"}], quests: []}
+    doc: normalize_map raw pack design
+    npc: at (get doc "npcs") 0
+    expect_eq (get npc "room") "tpl_eingang" "npc re-homed to start"
+    mon: at (get doc "monsters") 0
+    expect_eq (get mon "room") "tpl_eingang" "monster re-homed to start"
 
 --- === Seeding & Movement === ===
 
@@ -180,7 +208,7 @@ test "wrong gift does not win"
 test "explore objective fires on arrival"
     init_db 0
     reset_state 0
-    doc: parse_json (read_file "worlds/beispielwelt.json")
+    doc: parse_json (read_file "testdata/beispielwelt.json")
     neue_obj: [{id: "obj_turm", kind: "explore", target: "tpl_turm", npc: "", state: "offen"}]
     set doc "objectives" neue_obj
     seed_world_full doc
@@ -195,7 +223,7 @@ test "explore objective fires on arrival"
 test "kill objective completes on defeat"
     init_db 0
     reset_state 0
-    doc2: parse_json (read_file "worlds/beispielwelt.json")
+    doc2: parse_json (read_file "testdata/beispielwelt.json")
     kill_obj: [{id: "obj_kill", kind: "kill", target: "kammerling", npc: "", state: "offen"}]
     set doc2 "objectives" kill_obj
     seed_world_full doc2
@@ -416,7 +444,7 @@ test "game save and load roundtrip"
     expect_contains saved "gespeichert" "save ok"
     init_db 0
     reset_state 0
-    load_world_doc "beispielwelt"
+    load_example_world 0
     seed_pack_extras pack
     loaded: load_game "wc_teststand"
     expect_contains loaded "geladen" "load ok"
@@ -425,7 +453,7 @@ test "game save and load roundtrip"
 test "world document roundtrip stays reusable"
     init_db 0
     reset_state 0
-    doc: parse_json (read_file "worlds/beispielwelt.json")
+    doc: parse_json (read_file "testdata/beispielwelt.json")
     set_meta "x" "1"
     gespeichert: save_world_doc "wc_rundreise" doc
     expect_contains gespeichert "gespeichert" "world saved"
@@ -435,6 +463,8 @@ test "world document roundtrip stays reusable"
     expect_eq (get_meta "world_name") "Die Musterwelt" "seeded from reloaded world"
     new_game 0
     expect_eq (get (get_player 0) "room") "tpl_eingang" "playable after reload"
+    -- Clean up the roundtrip artifact so worlds/ only ever holds playable worlds.
+    file_delete "worlds/wc_rundreise.json"
 
 --- === Profil (F1) === ===
 
@@ -448,7 +478,7 @@ test "profil validation falls back to normal"
 test "kaempfer profile grants start sword"
     init_db 0
     reset_state 0
-    doc: parse_json (read_file "worlds/beispielwelt.json")
+    doc: parse_json (read_file "testdata/beispielwelt.json")
     apply_profile doc {stil: "kaempfer", schwierigkeit: "normal"} pack
     seed_world_full doc
     new_game 0
@@ -457,14 +487,14 @@ test "kaempfer profile grants start sword"
 test "haendlerin profile adds gold, schwer reduces it"
     init_db 0
     reset_state 0
-    doc2: parse_json (read_file "worlds/beispielwelt.json")
+    doc2: parse_json (read_file "testdata/beispielwelt.json")
     apply_profile doc2 {stil: "haendlerin", schwierigkeit: "normal"} pack
     seed_world_full doc2
     new_game 0
     expect_eq (get (get_player 0) "gold") 35 "20 + 15 gold"
     init_db 0
     reset_state 0
-    doc3: parse_json (read_file "worlds/beispielwelt.json")
+    doc3: parse_json (read_file "testdata/beispielwelt.json")
     apply_profile doc3 {stil: "normal", schwierigkeit: "schwer"} pack
     seed_world_full doc3
     new_game 0
@@ -473,7 +503,7 @@ test "haendlerin profile adds gold, schwer reduces it"
 test "erkunderin profile grants torch and rope"
     init_db 0
     reset_state 0
-    doc4: parse_json (read_file "worlds/beispielwelt.json")
+    doc4: parse_json (read_file "testdata/beispielwelt.json")
     apply_profile doc4 {stil: "erkunderin", schwierigkeit: "leicht"} pack
     seed_world_full doc4
     new_game 0
@@ -494,7 +524,7 @@ test "design personas override pack persona text only"
 --- === Welt-Wachstum (F4) === ===
 
 fn beispiel_doc _
-    parse_json (read_file "worlds/beispielwelt.json")
+    parse_json (read_file "testdata/beispielwelt.json")
 
 test "template clone ids are recognized"
     expect_truthy (is_template_id pack "tpl_dungeon_2") "clone recognized"
@@ -555,7 +585,7 @@ test "old worlds without profile fields keep working"
 test "objective closes its coupled quest"
     init_db 0
     reset_state 0
-    doc10: parse_json (read_file "worlds/beispielwelt.json")
+    doc10: parse_json (read_file "testdata/beispielwelt.json")
     neue_q: [{id: "q_gabe_des_erbes", name: "Die Gabe des Erbes", description: "Bringe das Erbe.", state: "aktiv"}]
     set doc10 "quests" neue_q
     obj_mit_quest: [{id: "obj_gabe", kind: "give", target: "goldmuenze", npc: "weiser_aldric", state: "offen", quest: "q_gabe_des_erbes"}]
@@ -571,7 +601,7 @@ test "objective closes its coupled quest"
 test "old objectives without quest field keep working"
     init_db 0
     reset_state 0
-    doc11: parse_json (read_file "worlds/beispielwelt.json")
+    doc11: parse_json (read_file "testdata/beispielwelt.json")
     seed_world_full doc11
     new_game 0
     rows: db_query (open_db 0) "SELECT quest FROM objectives WHERE id = 'obj_gabe'"
@@ -580,7 +610,7 @@ test "old objectives without quest field keep working"
 test "reset_won clears the flag"
     init_db 0
     reset_state 0
-    load_world_doc "beispielwelt"
+    load_example_world 0
     seed_pack_extras pack
     new_game 0
     set_won 0
@@ -641,7 +671,7 @@ test "merge_expansion seeds quests and coupled objectives"
 test "neues abenteuer objective validation"
     init_db 0
     reset_state 0
-    doc15: parse_json (read_file "worlds/beispielwelt.json")
+    doc15: parse_json (read_file "testdata/beispielwelt.json")
     seed_world_full doc15
     gut: {quests: [], objectives: [{id: "obj_neu1", kind: "explore", target: "tpl_turm", npc: "", quest_id: ""}]}
     expect_eq (len (validate_neue_objektive gut doc15 pack)) 0 "explore existing room ok"
@@ -699,7 +729,7 @@ test "fetch objective completes when picking up item"
 test "use krafttrank applies attack buff"
     init_db 0
     reset_state 0
-    load_world_doc "beispielwelt"
+    load_example_world 0
     seed_pack_extras pack
     new_game 0
     inventory_add "krafttrank"
@@ -711,7 +741,7 @@ test "use krafttrank applies attack buff"
 test "use gegengift clears gift buff"
     init_db 0
     reset_state 0
-    load_world_doc "beispielwelt"
+    load_example_world 0
     seed_pack_extras pack
     new_game 0
     apply_buff "gift" 2 3
@@ -723,7 +753,7 @@ test "use gegengift clears gift buff"
 test "use bow gives weapon hint"
     init_db 0
     reset_state 0
-    load_world_doc "beispielwelt"
+    load_example_world 0
     seed_pack_extras pack
     new_game 0
     inventory_add "bogen"
@@ -735,7 +765,7 @@ test "use bow gives weapon hint"
 test "attack reads waffen_bonus from pack mechanics"
     init_db 0
     reset_state 0
-    load_world_doc "beispielwelt"
+    load_example_world 0
     seed_pack_extras pack
     new_game 0
     -- Set mechanics
@@ -764,7 +794,7 @@ test "look includes item descriptions from pack"
     init_db 0
     reset_state 0
     set_pack pack
-    load_world_doc "beispielwelt"
+    load_example_world 0
     seed_pack_extras pack
     new_game 0
     p: (get_player 0)
@@ -863,7 +893,7 @@ test "cast spell on monster"
     init_db 0
     reset_state 0
     set_pack pack
-    load_world_doc "beispielwelt"
+    load_example_world 0
     seed_pack_extras pack
     new_game 0
     learn_spell "feuerball"
@@ -899,7 +929,7 @@ test "save and load preserves mana and spells"
     save_game "test_phase2"
     init_db 0
     reset_state 0
-    load_world_doc "beispielwelt"
+    load_example_world 0
     seed_pack_extras pack
     loaded: load_game "test_phase2"
     p2: (get_player 0)
@@ -910,7 +940,7 @@ test "attack_enemy applies debuffs to damage"
     init_db 0
     reset_state 0
     set_pack pack
-    load_world_doc "beispielwelt"
+    load_example_world 0
     seed_pack_extras pack
     new_game 0
     p: (get_player 0)
@@ -946,7 +976,7 @@ test "find_pack_item also finds custom items"
 test "data-driven use_item with custom consumable"
     init_db 0
     reset_state 0
-    load_world_doc "beispielwelt"
+    load_example_world 0
     seed_pack_extras pack
     new_game 0
     custom3: [{id: "superheiltrank", name: "Superheiltrank", type: "konsum", value: 50, tags: ["heilung"], desc: "Ein leuchtend blauer Trank.", damage_bonus: 0, ranged: false, use_effect: "heal", use_value: 8, buff_stat: "", buff_value: 0, buff_rounds: 0, clear_stat: "", use_text: false}]
@@ -960,7 +990,7 @@ test "data-driven use_item with custom consumable"
 test "apply_profile uses tag-based item lookup"
     init_db 0
     reset_state 0
-    doc: parse_json (read_file "worlds/beispielwelt.json")
+    doc: parse_json (read_file "testdata/beispielwelt.json")
     -- Add a custom weapon to the pack items in the doc
     custom4: [{id: "energiesabel", name: "Energiesäbel", type: "waffe", value: 60, tags: ["energie", "kampf"], desc: "Ein leuchtender Säbel.", damage_bonus: 4, ranged: false, use_effect: "none", use_value: 0, buff_stat: "", buff_value: 0, buff_rounds: 0, clear_stat: "", use_text: false}]
     set doc "custom_items" custom4
@@ -1023,7 +1053,7 @@ test "design with fetch siegesbedingung passes validation"
     expect_eq (len (validate_design design pack)) 0 "fetch design ok"
 
 test "map with fetch objective passes validation"
-    doc: parse_json (read_file "worlds/beispielwelt.json")
+    doc: parse_json (read_file "testdata/beispielwelt.json")
     set doc "objectives" (push (get doc "objectives") {id: "obj_fetch", kind: "fetch", target: "goldmuenze", npc: "", state: "offen"})
     expect_eq (len (validate_map doc pack)) 0 "fetch objective valid in map"
 
@@ -1039,7 +1069,7 @@ test "rep_add upserts for unseeded faction"
 test "side objective alone does not win; main objective wins"
     init_db 0
     reset_state 0
-    doc: parse_json (read_file "worlds/beispielwelt.json")
+    doc: parse_json (read_file "testdata/beispielwelt.json")
     neue_objs: []
     push neue_objs {id: "obj_main", kind: "give", target: "goldmuenze", npc: "weiser_aldric", state: "offen", main: 1}
     push neue_objs {id: "obj_side", kind: "kill", target: "kammerling", npc: "", state: "offen", main: 0}
@@ -1054,7 +1084,7 @@ test "side objective alone does not win; main objective wins"
 test "missing main flag defaults to main for old objectives"
     init_db 0
     reset_state 0
-    doc: parse_json (read_file "worlds/beispielwelt.json")
+    doc: parse_json (read_file "testdata/beispielwelt.json")
     ziele: []
     push ziele {id: "obj_alt", kind: "give", target: "goldmuenze", npc: "weiser_aldric", state: "offen"}
     set doc "objectives" ziele
@@ -1085,7 +1115,7 @@ test "erweitere_ziele guarantees at least 2 main objectives"
 test "merge_expansion marks new objectives as side (main=0)"
     init_db 0
     reset_state 0
-    doc: parse_json (read_file "worlds/beispielwelt.json")
+    doc: parse_json (read_file "testdata/beispielwelt.json")
     seed_world_full doc
     exp: {rooms: {tpl_dungeon_2: {description: "Neu.", items: []}}, links: [{anchor: "tpl_eingang", dir: "osten", room: "tpl_dungeon_2"}], npcs: [], monsters: [{id: "goblin", room: "tpl_dungeon_2"}], quests: ["q_heilmittel"], objectives: [{id: "obj_erw_x", kind: "kill", target: "goblin", npc: "", quest_id: "q_heilmittel"}]}
     merge_expansion exp doc pack
@@ -1095,7 +1125,7 @@ test "merge_expansion marks new objectives as side (main=0)"
 test "restore_save preserves main flag"
     init_db 0
     reset_state 0
-    doc: parse_json (read_file "worlds/beispielwelt.json")
+    doc: parse_json (read_file "testdata/beispielwelt.json")
     ziele: []
     push ziele {id: "obj_main", kind: "give", target: "goldmuenze", npc: "weiser_aldric", state: "offen", main: 1}
     push ziele {id: "obj_side", kind: "kill", target: "kammerling", npc: "", state: "offen", main: 0}

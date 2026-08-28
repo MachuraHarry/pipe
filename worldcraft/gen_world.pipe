@@ -38,6 +38,16 @@ fn fehler_feedback base prev fehler
             kurz: (slice kurz 0 1200) ++ "\n…(gekürzt)"
         base ++ "\n\nDein voriger Versuch war ungültig und wurde abgelehnt. Letzter Versuch:\n" ++ kurz ++ "\n\nZu korrigierende Fehler:\n- " ++ (join_list fehler "\n- ") ++ "\n\nAntworte erneut AUSSCHLIESSLICH als korrektes JSON."
 
+--! Structured JSON call: native ai_chat_json first (responds with clean JSON
+--! and parses it in the runtime), falling back to raw ai_chat + fence-tolerant
+--! extraction for reasoning models that still emit prose or code fences.
+fn ai_json system nachricht max_tokens
+    try
+        ai_chat_json system nachricht max_tokens
+    catch e
+        roh: ai_chat system nachricht max_tokens
+        parse_json (extract_json roh)
+
 --! Models tried in order during world generation (rotation per attempt).
 GEN_MODELS: ["deepseek-v4-pro"]
 
@@ -169,6 +179,32 @@ fn validate_design design pack
         if !contains ["give", "kill", "explore", "fetch"] (get sieg "kind")
             push fehler "siegesbedingung.kind muss give, kill, explore oder fetch sein"
     fehler
+
+--! Drops invented item/monster/quest ids from a design (keeps only exact pack
+--! ids) and clamps raumzahl to the pack range. This mirrors the map-side
+--! leniency so a single hallucinated id no longer invalidates the whole design.
+fn normalize_design design pack
+    if design == nil
+        design
+    else
+        for key in ["items", "monsters", "quests"]
+            chosen: get design key
+            if chosen != nil
+                gefiltert: []
+                for id in chosen
+                    if pack_has_id pack key id
+                        push gefiltert id
+                set design key gefiltert
+        mech: get pack "mechanics"
+        minr: get mech "min_rooms"
+        maxr: get mech "max_rooms"
+        rz: get design "raumzahl"
+        if rz != nil
+            if rz < minr
+                set design "raumzahl" minr
+            if rz > maxr
+                set design "raumzahl" maxr
+        design
 
 --! Returns list of unique NPC roles in the pack.
 fn pack_npc_roles pack
@@ -538,7 +574,11 @@ fn gen_design prompt pack profil max_tries on_status
     design: nil
     fehler: ["noch nicht versucht"]
     versuch: 0
+    mech: get pack "mechanics"
+    minr: get mech "min_rooms"
+    maxr: get mech "max_rooms"
     basis: "Wunsch des Spielers:\n" ++ prompt ++ "\n\nSpieler-Profil: Stil=" ++ (get p "stil") ++ ", Schwierigkeit=" ++ (get p "schwierigkeit") ++ " (waehle Monster/Items passend zum Stil; bei schwer eher starke Monster, bei leicht schwache)\n\nVerfügbares Ressourcen-Paket:\n" ++ katalog ++ "\nErstelle ein Design. Antworte als JSON:\n{thema: str, ton: str, raumzahl: zahl, items: [pack-item-ids], custom_items: [{id: str (kurz, z.B. \"feueramulett\"), name: str, type: \"waffe|konsum|quest|werkzeug|schmuck\", value: zahl, tags: [str], desc: str (1 Satz), damage_bonus: zahl ODER 0, ranged: false ODER true, use_effect: \"none|heal|buff|clear_buff\", use_value: zahl ODER 0, buff_stat: str ODER \"\", buff_value: 0, buff_rounds: 0, clear_stat: str ODER \"\"}], npcs: [{id: str (kurz, z.B. \"siegfried\"), template: \"haendler|waechter|weiser|heiler|bettler\", name: str (zum Thema passender Name), temperament: str, persona: str (2-3 Saetze)}], monsters: [pack-monster-ids], quests: [pack-quest-ids], siegesbedingung: {kind: \"give|kill|explore|fetch\", target: id, npc: npc-id_nur_bei_give}}\n\nWICHTIG: npc-ids muessen in der siegesbedingung und in der karte referenziert werden können. Waehle 3-6 NPCs passend zum Thema. Erstelle individuelle Namen und Persoenlichkeiten, die zur Welt passen.\nErstelle 3-6 custom_items, die zur Welt passen (z.B. eine spezielle Waffe, einen einzigartigen Trank, ein artefaktisches Quest-Item). Nutzepack_item-ids NICHT für custom_items -- diese sind eigene Kreationen."
+    basis: basis ++ "\nWICHTIG raumzahl: MUSS zwischen " ++ (to_str minr) ++ " und " ++ (to_str maxr) ++ " liegen."
     while versuch < max_tries && len fehler > 0
         modell: (at GEN_MODELS (versuch % (len GEN_MODELS)))
         log "GEN-DESIGN" "Versuch " ++ (to_str (versuch + 1)) ++ "/" ++ (to_str max_tries) ++ " Modell=" ++ modell
@@ -547,11 +587,11 @@ fn gen_design prompt pack profil max_tries on_status
         ai_model modell
         nachricht: fehler_feedback basis design fehler
         try
-            roh: ai_chat DESIGN_SYSTEM nachricht 4000
-            log "GEN-DESIGN" "AI-Antwort erhalten (" ++ (to_str (len roh)) ++ " Zeichen)"
-            design: parse_json (extract_json roh)
+            design: ai_json DESIGN_SYSTEM nachricht 4000
+            log "GEN-DESIGN" "AI-Antwort erhalten"
             if design == nil
                 log_err "GEN-DESIGN" "JSON-Parsing fehlgeschlagen"
+            design: normalize_design design pack
             fehler: validate_design design pack
             if len fehler > 0
                 log "GEN-DESIGN" "Validierung fehlgeschlagen: " ++ (join_list fehler "; ")
@@ -601,9 +641,8 @@ fn gen_map design pack max_tries on_status wunsch
             on_status "map" ("Versuch " ++ (to_str (versuch + 1)) ++ "/" ++ (to_str max_tries)) (45 + (versuch * 12))
         ai_model modell
         try
-            roh: ai_chat MAP_SYSTEM (fehler_feedback nachricht roh_obj fehler) 6000
-            log "GEN-MAP" "AI-Antwort erhalten (" ++ (to_str (len roh)) ++ " Zeichen)"
-            roh_obj: parse_json (extract_json roh)
+            roh_obj: ai_json MAP_SYSTEM (fehler_feedback nachricht roh_obj fehler) 6000
+            log "GEN-MAP" "AI-Antwort erhalten"
             roh_obj: sanitize_room_ids roh_obj
             doc: normalize_map roh_obj pack design
             if doc == nil
@@ -767,6 +806,15 @@ fn normalize_map raw pack design
         --! Initial-world objectives form the main story arc.
         set obj "main" 1
     objectives: erweitere_ziele objectives monsters rooms pack
+    -- Leniency: re-home NPCs/monsters that the model placed in a nonexistent
+    -- (or missing) room to the start room instead of failing the whole map.
+    start: get raw "start_room"
+    for npc in npcs
+        if get rooms (get npc "room") == nil
+            set npc "room" start
+    for mon in monsters
+        if get rooms (get mon "room") == nil
+            set mon "room" start
     mech: get pack "mechanics"
     {name: (or_default (get raw "name") (get design "thema")), start_room: (get raw "start_room"), rooms: rooms, npcs: npcs, monsters: monsters, quests: quests, objectives: objectives, factions: (get pack "factions"), mechanics: {start_hp: (get mech "start_hp"), start_gold: (get mech "start_gold"), respawn_hp: (get mech "respawn_hp")}, lore: (frische_liste 0), thema: (or_default (get design "thema") ""), ton: (or_default (get design "ton") ""), custom_items: custom_items_list}
 
@@ -1001,9 +1049,8 @@ fn gen_expansion doc wunsch pack max_tries
         log "GEN-EXP" "Versuch " ++ (to_str (versuch + 1)) ++ "/" ++ (to_str max_tries) ++ " Modell=" ++ modell
         ai_model modell
         try
-            roh: ai_chat EXP_SYSTEM (fehler_feedback nachricht exp fehler) 4000
-            log "GEN-EXP" "AI-Antwort erhalten (" ++ (to_str (len roh)) ++ " Zeichen)"
-            exp: parse_json (extract_json roh)
+            exp: ai_json EXP_SYSTEM (fehler_feedback nachricht exp fehler) 4000
+            log "GEN-EXP" "AI-Antwort erhalten"
             exp: sanitize_expansion_ids exp
             fehler: validate_expansion exp doc pack
             if len fehler > 0
@@ -1268,9 +1315,8 @@ fn gen_neue_objektive doc pack max_tries
         log "GEN-NEW" "Versuch " ++ (to_str (versuch + 1)) ++ "/" ++ (to_str max_tries) ++ " Modell=" ++ modell
         ai_model modell
         try
-            roh: ai_chat EXP_SYSTEM (fehler_feedback nachricht erg fehler) 2000
-            log "GEN-NEW" "AI-Antwort erhalten (" ++ (to_str (len roh)) ++ " Zeichen)"
-            erg: parse_json (extract_json roh)
+            erg: ai_json EXP_SYSTEM (fehler_feedback nachricht erg fehler) 2000
+            log "GEN-NEW" "AI-Antwort erhalten"
             fehler: validate_neue_objektive erg doc pack
             if len fehler > 0
                 log "GEN-NEW" "Validierung fehlgeschlagen: " ++ (join_list fehler "; ")

@@ -387,13 +387,12 @@ test "hint carries item in inventory already gives concrete give command"
     reply: get (at LAST_DIALOG 0) "reply"
     expect_contains reply "gib weiser_aldric goldmuenze" "exact give command suggested"
 
-test "dialog choices become objective-driven without AI"
+test "dialog choices are grounded in state and objective"
     fresh_example 0
-    c: gen_dialog_choices "weiser_aldric" ""
+    c: dialog_choices "weiser_aldric"
     expect_contains c "frag weiser_aldric nach hinweisen" "hint choice present"
-    expect_contains c "geh weiter" "continue choice present"
     inventory_add "goldmuenze"
-    c2: gen_dialog_choices "weiser_aldric" ""
+    c2: dialog_choices "weiser_aldric"
     expect_contains c2 "gib weiser_aldric goldmuenze" "give choice surfaced after pickup"
 
 test "find_talk_cmd extracts talk/give commands from garbage-prefixed input"

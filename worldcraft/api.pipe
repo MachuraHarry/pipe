@@ -74,12 +74,7 @@ fn build_options _
             for it in (parse_json (get room "items"))
                 push opts ("nimm " ++ it)
             for nid in (npcs_in_room rid)
-                npc_row: get_npc nid
-                rolle: get npc_row "role"
                 push opts ("rede mit " ++ nid)
-                if rolle == "haendler"
-                    push opts ("kauf ...")
-                    push opts ("verkauf ...")
             for m in (monsters_in_room rid)
                 push opts ("greife " ++ (get m "id") ++ " an")
                 --! Add spell options for monsters
@@ -107,40 +102,59 @@ fn build_options _
 
 -- ---- Dialog choices ----
 
---! Objective-aware deterministic dialog choices used when AI is unavailable.
---! Surfaces the concrete next step of the open quest instead of a static trio.
-fn dialog_choice_fallback npc_id
+--! Grounded, deterministic follow-up choices after an NPC exchange. Every
+--! choice is a real, executable command derived from the live game state
+--! (exits, items, NPCs, current objective) — never a hallucinated location.
+fn dialog_choices npc_id
+    p: (get_player 0)
     opts: []
-    obj: next_open_objective 0
-    if obj != nil
-        ziel: get obj "target"
-        wem: get obj "npc"
-        if (get obj "kind") == "give"
-            if wem == npc_id
-                if player_carries ziel
-                    push opts ("gib " ++ wem ++ " " ++ ziel)
-            else
-                push opts ("rede mit " ++ wem)
-        if (get obj "kind") == "kill" || (get obj "kind") == "fetch"
-            push opts ("inventar")
-    push opts ("frag " ++ npc_id ++ " nach hinweisen")
-    push opts ("quests")
-    push opts ("geh weiter")
-    opts
-
---! Asks the model for 3 short follow-up commands after an NPC exchange.
---! Falls back to objective-driven choices when AI is unavailable.
-fn gen_dialog_choices npc_id reply
-    fallback: (dialog_choice_fallback npc_id)
-    try
-        roh: ai_chat_json "Du assistierst einem Textadventure-Spieler. Antworte nur als JSON." ("NPC-Antwort war: \"" ++ reply ++ "\"\nSchlage 3 kurze nächste Spieler-Befehle auf Deutsch an (je 2-4 Wörter, imperative Kurzform wie im Spiel). JSON: {choices: [str, str, str]}") 300
-        choices: or_default_list (get roh "choices")
-        if len choices >= 1
-            choices
-        else
-            fallback
-    catch
-        fallback
+    if p != nil
+        rid: get p "room"
+        room: get_room rid
+        -- 1. keep the conversation going
+        push opts ("frag " ++ npc_id ++ " nach hinweisen")
+        -- 2. concrete next objective step
+        obj: next_open_objective 0
+        if obj != nil
+            kind: get obj "kind"
+            ziel: get obj "target"
+            wem: get obj "npc"
+            if kind == "give"
+                if wem != nil && wem != ""
+                    if wem == npc_id
+                        if player_carries ziel
+                            push opts ("gib " ++ wem ++ " " ++ ziel)
+                    else
+                        push opts ("rede mit " ++ wem)
+            if kind == "explore"
+                push opts ("geh weiter")
+            if kind == "kill" || kind == "fetch"
+                push opts ("quests")
+        -- 3. movement (exits)
+        if room != nil
+            for k in keys (parse_json (get room "exits"))
+                push opts ("geh nach " ++ k)
+        -- 4. items lying around
+        if room != nil
+            for it in (parse_json (get room "items"))
+                push opts ("nimm " ++ it)
+        -- 5. other NPCs in the room
+        for nid in (npcs_in_room rid)
+            if nid != npc_id
+                push opts ("rede mit " ++ nid)
+        -- 6. always useful
+        push opts ("inventar")
+        push opts ("quests")
+    dedup: []
+    for o in opts
+        if !contains dedup o
+            push dedup o
+    erg: []
+    i: 0
+    while i < len dedup && i < 4
+        push erg (at dedup i)
+        i: i + 1
+    erg
 
 --! Builds a dialog envelope from the last captured exchange (nil if none).
 fn api_dialog _
@@ -148,7 +162,7 @@ fn api_dialog _
     if d == nil
         nil
     else
-        {speaker: (get d "name"), npc: (get d "npc"), player_line: (get d "player"), reply: (get d "reply"), choices: (gen_dialog_choices (get d "npc") (get d "reply"))}
+        {speaker: (get d "name"), npc: (get d "npc"), player_line: (get d "player"), reply: (get d "reply"), choices: (dialog_choices (get d "npc"))}
 
 -- ---- Turn envelope ----
 

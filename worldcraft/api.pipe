@@ -55,7 +55,7 @@ fn api_state _
             if rname_raw != nil && rname_raw != ""
                 rname: rname_raw
             else
-                rname: rid
+                rname: pretty_room_name rid
         {world: (get_meta "world_name"), room: rid, room_name: rname, room_description: (look 0), exits: exits, items: items, npcs: npcs, monsters: monsters, hp: (get p "hp"), max_hp: (get p "max_hp"), gold: (get p "gold"), mana: (get p "mana"), max_mana: (get p "max_mana"), xp: xp_val, level: (player_level 0), inventory: parse_json (get p "inventory"), quests: quests, spells: spells_list, buffs: buffs_list, won: won_flag}
 
 -- ---- Option generation ----

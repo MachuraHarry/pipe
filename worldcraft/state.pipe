@@ -97,11 +97,27 @@ fn join_list lst sep
 fn safe_name name
     join_list (split (replace name " " "_") "/") "_"
 
+--! Converts a raw room id into a human-readable display name (fallback when
+--! a world has no room name, e.g. legacy worlds): strips "tpl_" and
+--! underscore separators, capitalizes each word.
+fn pretty_room_name id
+    t: id
+    if contains t "tpl_"
+        t: replace t "tpl_" ""
+    worte: split t "_"
+    res: []
+    for w in worte
+        if w != ""
+            push res ((upper (slice w 0 1)) ++ (slice w 1 (len w)))
+    join res " "
+
 --! Seeds one room row from a room map {description, items, exits}.
 fn seed_room_row id r
     h: (open_db 0)
     n: db_query h ("SELECT id FROM rooms WHERE id = '" ++ (sql_escape id) ++ "'")
     rname: or_default_str (get r "name")
+    if rname == ""
+        rname: pretty_room_name id
     sql: "INSERT INTO rooms VALUES ('" ++ (sql_escape id) ++ "', '" ++ (sql_escape (get r "description")) ++ "', '" ++ (sql_escape (to_json (get r "items"))) ++ "', '" ++ (sql_escape (to_json (get r "exits"))) ++ "', '" ++ (sql_escape rname) ++ "')"
     if len n > 0
         sql: "UPDATE rooms SET description = '" ++ (sql_escape (get r "description")) ++ "', items = '" ++ (sql_escape (to_json (get r "items"))) ++ "', exits = '" ++ (sql_escape (to_json (get r "exits"))) ++ "', name = '" ++ (sql_escape rname) ++ "' WHERE id = '" ++ (sql_escape id) ++ "'"

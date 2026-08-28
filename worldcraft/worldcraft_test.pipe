@@ -1126,3 +1126,32 @@ test "cost baseline persists through save/restore"
     expect_eq (to_num (get mg2 "cost_usd")) (to_num 0.0042) "usd survives save/load"
     expect_eq (get mg2 "calls") 3 "calls survive save/load"
     expect_eq (get mg2 "tokens") 500 "tokens survive save/load"
+
+test "pretty_room_name turns template ids into readable names"
+    expect_eq (pretty_room_name "tpl_eingang") "Eingang" "prefix stripped and capitalized"
+    expect_eq (pretty_room_name "tpl_schatzkammer") "Schatzkammer" "long id readable"
+    expect_eq (pretty_room_name "ertrunkene_taverne") "Ertrunkene Taverne" "custom id with underscore"
+
+test "expansion accepts custom themed room ids with name and description"
+    doc: beispiel_doc 0
+    exp_custom: {rooms: {ertrunkene_taverne: {name: "Die ertrunkene Taverne", description: "Salzwasser steht knöcheltief zwischen umgestürzten Stühlen.", items: ["heiltrank"]}}, links: [{anchor: "tpl_eingang", dir: "osten", room: "ertrunkene_taverne"}], npcs: [], monsters: []}
+    expect_eq (len (validate_expansion exp_custom doc pack)) 0 "custom room id valid"
+
+test "expansion rejects custom themed room ids without name or description"
+    doc: beispiel_doc 0
+    exp_ohne_name: {rooms: {ertrunkene_taverne: {description: "Salzwasser steht knöcheltief.", items: []}}, links: [{anchor: "tpl_eingang", dir: "osten", room: "ertrunkene_taverne"}], npcs: [], monsters: []}
+    expect_gt (len (validate_expansion exp_ohne_name doc pack)) 0 "missing name rejected"
+    exp_ohne_desc: {rooms: {ertrunkene_taverne: {name: "Die ertrunkene Taverne", items: []}}, links: [{anchor: "tpl_eingang", dir: "osten", room: "ertrunkene_taverne"}], npcs: [], monsters: []}
+    expect_gt (len (validate_expansion exp_ohne_desc doc pack)) 0 "missing description rejected"
+
+test "fehler_feedback is empty for first attempt and appends on retry"
+    keine: []
+    expect_eq (fehler_feedback "basis" nil keine) "basis" "nil prev returns base"
+    fehler2: []
+    push fehler2 "Fehler 1"
+    push fehler2 "Fehler 2"
+    fb: fehler_feedback "basis" "voriger" fehler2
+    expect_contains fb "Letzter Versuch" "mentions previous attempt"
+    expect_contains fb "Fehler 1" "lists first error"
+    expect_contains fb "Fehler 2" "lists second error"
+

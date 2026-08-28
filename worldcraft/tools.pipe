@@ -42,7 +42,7 @@ fn look _
             basis: fl
         rname: get room "name"
         if rname == nil || rname == ""
-            rname: rid
+            rname: pretty_room_name rid
         beschr: "== " ++ rname ++ " ==\n" ++ basis
         npcs: npcs_in_room rid
         if len npcs > 0

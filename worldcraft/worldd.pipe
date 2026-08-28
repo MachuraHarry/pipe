@@ -78,11 +78,12 @@ fn boot_task _
         vorhanden: load_world_doc weltname
         if vorhanden != nil
             log "BOOT" "Bestehende Welt gefunden, lade sie"
+            set_doc vorhanden
             seed_pack_extras pack
             set_meta "world_file" weltname
         else
             log "BOOT" "Keine bestehende Welt — generiere neue"
-            ai_provider "opencode"
+            setup_ai_provider 0
             model: pick_free_model FREE_MODELS
             log "BOOT" "Modell=" ++ model
             wunsch: get cfg "briefing"
@@ -92,6 +93,7 @@ fn boot_task _
                 doc: fallback_world pack
                 apply_profile doc {stil: "normal", schwierigkeit: "normal"} pack
                 save_world_doc weltname doc
+                set_doc doc
                 seed_full doc
             else
                 log "BOOT" "Briefing vorhanden, starte gen_design"
@@ -127,6 +129,7 @@ fn boot_task _
                 apply_profile doc2 profil pack
                 set_meta "world_file" weltname
                 save_world_doc weltname doc2
+                set_doc doc2
                 boot_progress "seed" "Setze die Welt zusammen…" 92
                 seed_full doc2
         boot_progress "seed" "Schliesse die Welt ab…" 95
@@ -214,60 +217,63 @@ fn handle_root req
         body: {status: "ok", session: (at SID 0), ready: (at READY 0), error: (at BOOT_ERROR 0)}
         json_res 200 body
     else
-        if path == "/boot" && method == "GET"
-            st: at BOOT_STATE 0
-            bphase: "start"
-            bdetail: ""
-            bprogress: 0
-            if st != nil
-                bphase: get st "phase"
-                bdetail: get st "detail"
-                bprogress: get st "progress"
-            if (at READY 0)
-                bphase: "done"
-                bdetail: "Bereit!"
-                bprogress: 100
-            json_res 200 {session: (at SID 0), ready: (at READY 0), progress: bprogress, phase: bphase, detail: bdetail, error: (at BOOT_ERROR 0)}
+        if path == "/cost" && method == "GET"
+            json_res 200 (live_cost_state 0)
         else
-            if !(at READY 0)
-                booterr: at BOOT_ERROR 0
-                if booterr != ""
-                    json_err 500 "boot_failed" booterr
-                else
-                    json_err 503 "booting" "Welt wird vorbereitet — bitte pollen"
+            if path == "/boot" && method == "GET"
+                st: at BOOT_STATE 0
+                bphase: "start"
+                bdetail: ""
+                bprogress: 0
+                if st != nil
+                    bphase: get st "phase"
+                    bdetail: get st "detail"
+                    bprogress: get st "progress"
+                if (at READY 0)
+                    bphase: "done"
+                    bdetail: "Bereit!"
+                    bprogress: 100
+                json_res 200 {session: (at SID 0), ready: (at READY 0), progress: bprogress, phase: bphase, detail: bdetail, error: (at BOOT_ERROR 0)}
             else
-                if method == "OPTIONS"
-                    json_res 200 {}
-                else
-                    if path == "/state" && method == "GET"
-                        json_res 200 (api_intro 0)
+                if !(at READY 0)
+                    booterr: at BOOT_ERROR 0
+                    if booterr != ""
+                        json_err 500 "boot_failed" booterr
                     else
-                        if path == "/command" && method == "POST"
-                            route_job req "command"
+                        json_err 503 "booting" "Welt wird vorbereitet — bitte pollen"
+                else
+                    if method == "OPTIONS"
+                        json_res 200 {}
+                    else
+                        if path == "/state" && method == "GET"
+                            json_res 200 (api_intro 0)
                         else
-                            if path == "/expand" && method == "POST"
-                                route_job req "expand"
+                            if path == "/command" && method == "POST"
+                                route_job req "command"
                             else
-                                if path == "/new-adventure" && method == "POST"
-                                    route_job req "new_adventure"
+                                if path == "/expand" && method == "POST"
+                                    route_job req "expand"
                                 else
-                                    if path == "/shutdown" && method == "POST"
-                                        persist_session 0
-                                        set SHUTDOWN 0 true
-                                        json_res 200 {status: "bye"}
+                                    if path == "/new-adventure" && method == "POST"
+                                        route_job req "new_adventure"
                                     else
-                                        if starts_with_jobs path && method == "GET"
-                                            jid: job_id_of path
-                                            job: get_job jid
-                                            if job == nil
-                                                json_err 404 "unknown_job" ("Kein Job: " ++ jid)
-                                            else
-                                                if (get job "status") == "done" && (get job "error") != ""
-                                                    json_res 200 {job_id: jid, status: "done", error: (get job "error")}
-                                                else
-                                                    json_res 200 job
+                                        if path == "/shutdown" && method == "POST"
+                                            persist_session 0
+                                            set SHUTDOWN 0 true
+                                            json_res 200 {status: "bye"}
                                         else
-                                            json_err 404 "not_found" ("Unbekannter Pfad: " ++ path)
+                                            if starts_with_jobs path && method == "GET"
+                                                jid: job_id_of path
+                                                job: get_job jid
+                                                if job == nil
+                                                    json_err 404 "unknown_job" ("Kein Job: " ++ jid)
+                                                else
+                                                    if (get job "status") == "done" && (get job "error") != ""
+                                                        json_res 200 {job_id: jid, status: "done", error: (get job "error")}
+                                                    else
+                                                        json_res 200 job
+                                            else
+                                                json_err 404 "not_found" ("Unbekannter Pfad: " ++ path)
 
 --! POST /command | /expand | /new-adventure → 202 + job_id (oder 409 wenn busy).
 fn route_job req kind
@@ -304,7 +310,7 @@ if len args >= 3
 
 print ("[worldd " ++ (at SID 0) ++ "] starte auf :" ++ (at PORT 0))
 log "BOOT" "Worldd-Prozess gestartet"
-ai_provider "opencode"
+setup_ai_provider 0
 srv: http_server ("0.0.0.0:" ++ (at PORT 0)) handle_root
 
 spawn boot_task 0

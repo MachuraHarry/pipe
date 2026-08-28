@@ -10,8 +10,8 @@ import "lore.pipe"
 import "gen_world.pipe"
 import "turns.pipe"
 
--- ---- Provider: OpenCode Zen, keyless free tier ($0) ----
-ai_provider "opencode"
+-- ---- Provider: DeepSeek (deepseek-v4-flash) ----
+setup_ai_provider 0
 
 --! Builds the lore index without failing hard when embeddings are down.
 fn lore_index_build_safe _
@@ -90,7 +90,7 @@ else
     if trim wunsch == ""
         doc: fallback_world pack
     else
-        ai_provider "opencode"
+        setup_ai_provider 0
         model: pick_free_model FREE_MODELS
         print ("Modell: " ++ model)
         ai_timeout AI_TIMEOUT_TURN
@@ -136,9 +136,9 @@ set_doc (at DOC 0)
 new_game 0
 lore_index_build_safe 0
 
--- ---- Sandbox: no shell, AI only via opencode.ai; file writes only by our
+-- ---- Sandbox: no shell, AI only via api.deepseek.com; file writes only by our
 -- ---- own game functions (world persistence), no fs tools exposed to the LLM.
-sandbox_profile "game" {fs: "full", network: true, network_whitelist: ["opencode.ai"], exec: false, ai: true}
+sandbox_profile "game" {fs: "full", network: true, network_whitelist: ["deepseek.com"], exec: false, ai: true}
 set_sandbox "game"
 
 FERTIG: [false]

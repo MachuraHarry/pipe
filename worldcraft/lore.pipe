@@ -1,8 +1,8 @@
 --! lore.pipe — RAG layer for world consistency in "Worldcraft"
 --! Builds a vector index over the generated world's lore documents once
 --! after loading/generating a world and serves small context snippets for
---! talk_to. With the opencode provider embed falls back to the local hash
---! embedder — no API cost.
+--! talk_to. When the provider has no embeddings (deepseek/opencode) embed
+--! falls back to the local hash embedder — no API cost.
 
 LORE_DOCS: [nil]
 LORE_INDEX: [nil]

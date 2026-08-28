@@ -1108,3 +1108,21 @@ test "restore_save preserves main flag"
     expect_eq (get (at m 0) "main") 0 "side flag survives save/load"
     m2: db_query (open_db 0) "SELECT main FROM objectives WHERE id = 'obj_main'"
     expect_eq (get (at m2 0) "main") 1 "main flag survives save/load"
+
+test "cost baseline persists through save/restore"
+    init_db 0
+    reset_state 0
+    restore_cost_baseline {cost: {cost_usd: 0.0042, calls: 3, tokens: 500, cache_hits: 1, cache_misses: 2}}
+    mg: live_cost_state 0
+    expect_eq (to_num (get mg "cost_usd")) (to_num 0.0042) "usd baseline"
+    expect_eq (get mg "calls") 3 "calls baseline"
+    expect_eq (get mg "tokens") 500 "tokens baseline"
+    save_game "wc_cost"
+    data: parse_json (read_file "saves/wc_cost.json")
+    restore_cost_baseline {cost: {}}
+    expect_eq (to_num (get (live_cost_state 0) "cost_usd")) 0 "reset to zero"
+    restore_save data
+    mg2: live_cost_state 0
+    expect_eq (to_num (get mg2 "cost_usd")) (to_num 0.0042) "usd survives save/load"
+    expect_eq (get mg2 "calls") 3 "calls survive save/load"
+    expect_eq (get mg2 "tokens") 500 "tokens survive save/load"

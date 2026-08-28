@@ -2,7 +2,8 @@
 
 KI-gesteuertes Textadventure mit **generierbaren, wiederverwendbaren und
 wachsenden Welten** — komplett gebaut in [Pipe](https://github.com/MachuraHarry/pipe).
-Läuft kostenlos und ohne API-Key über den OpenCode-Zen-Provider (Free-Tier).
+Läuft über den DeepSeek-Provider (`deepseek-v4-flash`; API-Key in `DEEPSEEK_API_KEY`
+oder `worldcraft/.deepseek_key` — gebrauchsfertig ohne Extra-Setup).
 
 Anders als das Referenzspiel `../adventure/` (feste Welt „Aldenmoor") beschreibst
 du hier beim Start deine eigene Welt — Orte, Stimmung, Bewohner, Geschichte —
@@ -129,11 +130,13 @@ aufruft, welche die sqlite-DB mutieren. Siegesbedingungen sind datengetriebene
 
 ## Technik-Notizen
 
-- **Provider**: `ai_provider "opencode"` — Free-Tier; Modell-Rotation bei 503/
-  429/500 (`FREE_MODELS` im Game Loop, `GEN_MODELS` in der Generierung).
-- **JSON-Robustheit**: Free-Modelle „denken laut" — Generierung nutzt deshalb
+- **Provider**: DeepSeek (`ai_provider "deepseek"`, Modell `deepseek-v4-flash`);
+  Key aus `DEEPSEEK_API_KEY` oder der git-ignorierten Datei `.deepseek_key`
+  (`setup_ai_provider` in `turns.pipe`). Modell-Listen: `FREE_MODELS` im Game
+  Loop, `GEN_MODELS` in der Generierung.
+- **JSON-Robustheit**: Modelle „denken laut" — Generierung nutzt deshalb
   `ai_chat` + `extract_json` (schneidet Prosa um das JSON heraus) statt `ai_chat_json`.
-- **Sandbox**: `{fs: "full", network_whitelist: ["opencode.ai"], exec: false,
+- **Sandbox**: `{fs: "full", network_whitelist: ["deepseek.com"], exec: false,
   ai: true}` — volles FS nötig, damit Erweiterungen die Welt-Datei persistent
   aktualisieren können; Datei-Builtins sind dem LLM nie als Tools exponiert.
 - **SQL-Fallstrick**: Pipes Mini-SQL-Parser kennt kein `''`-Escaping —

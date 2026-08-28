@@ -8,9 +8,29 @@ import "tools.pipe"
 import "gen_world.pipe"
 import "log.pipe"
 
-FREE_MODELS: ["big-pickle"]
+FREE_MODELS: ["deepseek-v4-flash"]
 
 AI_TIMEOUT_TURN: 120
+
+--! Configures the DeepSeek provider: sets provider, API key and default model.
+--! Key source: env DEEPSEEK_API_KEY, else the git-ignored .deepseek_key file.
+--! DeepSeek V4 is a reasoning model: with thinking enabled it often answers with
+--! an empty content field (the text lands in reasoning_content), which broke
+--! world generation/expansion. We disable thinking so content is always filled.
+fn setup_ai_provider _
+    ai_provider "deepseek" {thinking: false}
+    key: env "DEEPSEEK_API_KEY"
+    if key == nil || key == ""
+        try
+            if file_exists ".deepseek_key"
+                k: read_file ".deepseek_key"
+                if k != nil
+                    key: trim k
+        catch
+            nil
+    if key != nil && key != ""
+        ai_set_key "deepseek" key
+    ai_model "deepseek-v4-flash"
 
 --! Probes the free models and returns the first that answers.
 fn pick_free_model models
@@ -21,7 +41,7 @@ fn pick_free_model models
             return m
         catch
             print ("  (Modell " ++ m ++ " nicht erreichbar, teste nächstes)")
-    "x-preview-f-free"
+    "deepseek-v4-flash"
 
 --! One narrator call with model rotation. Returns the narration text,
 --! or "" when every model failed.
@@ -207,6 +227,6 @@ fn process_turn inp
 --! Provider boot: select provider + first working model. Safe to call in a
 --! background task; prints progress like the terminal version does.
 fn ai_boot _
-    ai_provider "opencode"
+    setup_ai_provider 0
     pick_free_model FREE_MODELS
     ai_timeout AI_TIMEOUT_TURN

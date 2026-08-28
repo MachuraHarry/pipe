@@ -28,7 +28,7 @@ fn frische_liste _
     []
 
 --! Models tried in order during world generation (rotation per attempt).
-GEN_MODELS: ["big-pickle"]
+GEN_MODELS: ["deepseek-v4-flash"]
 
 --! Extracts the outermost JSON object from a raw LLM response
 --! (strips chain-of-thought prose). Returns nil when no object found.

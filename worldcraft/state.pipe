@@ -8,6 +8,15 @@ import "sqlite"
 -- Mutable module state wrapped in a list (lists are mutable via set).
 DBH: [nil]
 
+-- Cumulative AI-cost baseline, persisted with the game save so it survives
+-- session resumes. The worker's in-process counters (ai_cost) are added on
+-- top of this baseline at save/query time.
+COST_BASE: [0.0]
+COST_BASE_CALLS: [0]
+COST_BASE_TOKENS: [0]
+COST_BASE_HITS: [0]
+COST_BASE_MISSES: [0]
+
 --! Opens an in-memory database once and returns the handle.
 fn open_db _
     if (at DBH 0) == nil
@@ -31,7 +40,7 @@ fn init_db _
     db_exec h "CREATE TABLE IF NOT EXISTS flavor (room TEXT PRIMARY KEY, body TEXT)"
     db_exec h "CREATE TABLE IF NOT EXISTS monsters (id TEXT PRIMARY KEY, name TEXT, room TEXT, hp INTEGER, max_hp INTEGER, defense INTEGER, loot TEXT, defeated INTEGER)"
     db_exec h "CREATE TABLE IF NOT EXISTS quests (id TEXT PRIMARY KEY, name TEXT, description TEXT, state TEXT)"
-    db_exec h "CREATE TABLE IF NOT EXISTS objectives (id TEXT PRIMARY KEY, kind TEXT, target TEXT, npc TEXT, state TEXT, quest TEXT)"
+    db_exec h "CREATE TABLE IF NOT EXISTS objectives (id TEXT PRIMARY KEY, kind TEXT, target TEXT, npc TEXT, state TEXT, quest TEXT, main INTEGER DEFAULT 1)"
     db_exec h "CREATE TABLE IF NOT EXISTS reputation (fraktion TEXT PRIMARY KEY, punkte INTEGER)"
     db_exec h "CREATE TABLE IF NOT EXISTS buffs (spieler INTEGER, art TEXT, wert INTEGER, runden INTEGER)"
     db_exec h "CREATE TABLE IF NOT EXISTS spells (id TEXT PRIMARY KEY, name TEXT, typ TEXT, manakosten INTEGER, schaden INTEGER, effekt TEXT, beschreibung TEXT)"
@@ -41,6 +50,11 @@ fn init_db _
     -- Migration: add 'name' column to rooms if missing
     try
         db_exec h "ALTER TABLE rooms ADD COLUMN name TEXT"
+    catch
+        nil
+    -- Migration: add 'main' flag to objectives if missing (1 = main quest)
+    try
+        db_exec h "ALTER TABLE objectives ADD COLUMN main INTEGER DEFAULT 1"
     catch
         nil
 
@@ -110,8 +124,12 @@ fn seed_quest_row qst
 
 --! Seeds one objective row (quest coupling optional for old worlds).
 fn seed_objective_row obj
+    h: (open_db 0)
     quest: or_default_str (get obj "quest")
-    db_exec (open_db 0) ("INSERT INTO objectives VALUES ('" ++ (sql_escape (get obj "id")) ++ "', '" ++ (sql_escape (get obj "kind")) ++ "', '" ++ (sql_escape (get obj "target")) ++ "', '" ++ (sql_escape (get obj "npc")) ++ "', '" ++ (sql_escape (get obj "state")) ++ "', '" ++ (sql_escape quest) ++ "')")
+    main: get obj "main"
+    if main == nil
+        main: 1
+    db_exec h ("INSERT INTO objectives (id, kind, target, npc, state, quest, main) VALUES ('" ++ (sql_escape (get obj "id")) ++ "', '" ++ (sql_escape (get obj "kind")) ++ "', '" ++ (sql_escape (get obj "target")) ++ "', '" ++ (sql_escape (get obj "npc")) ++ "', '" ++ (sql_escape (get obj "state")) ++ "', '" ++ (sql_escape quest) ++ "', " ++ (to_str main) ++ ")")
 
 --! Returns v, or an empty string when nil.
 fn or_default_str v
@@ -146,6 +164,7 @@ fn seed_world doc
     set_meta "start_gold" (to_str (get m "start_gold"))
     set_meta "respawn_hp" (to_str (get m "respawn_hp"))
     set_meta "start_items" (to_json (or_default_list (get m "start_items")))
+    set_meta "mechanics" (to_json m)
     profil: get doc "profil"
     if profil == nil
         profil: {stil: "normal", schwierigkeit: "normal"}
@@ -491,6 +510,11 @@ fn rep_add fraktion delta
         if neu < 0
             neu: 0
         db_exec h ("UPDATE reputation SET punkte = " ++ (to_str neu) ++ " WHERE fraktion = '" ++ (sql_escape fraktion) ++ "'")
+    else
+        neu: delta
+        if neu < 0
+            neu: 0
+        db_exec h ("INSERT INTO reputation VALUES ('" ++ (sql_escape fraktion) ++ "', " ++ (to_str neu) ++ ")")
 
 --! Returns the reputation score of a faction (0 if unknown).
 fn rep_get fraktion
@@ -757,11 +781,26 @@ fn set_flavor room_id raw
 
 -- ---- Save / Load (game state) ----
 
+--! Merges the persisted cost baseline with the worker's in-process counters.
+fn live_cost_state _
+    {cost_usd: ((at COST_BASE 0)) + ((get (ai_cost 0) "cost_usd")), calls: (at COST_BASE_CALLS 0) + (get (ai_cost 0) "calls"), tokens: (at COST_BASE_TOKENS 0) + (ai_tokens 0), cache_hits: (at COST_BASE_HITS 0) + (ai_cache_hits 0), cache_misses: (at COST_BASE_MISSES 0) + (ai_cache_misses 0)}
+
+--! Restores the cost baseline from a save document (missing keys = 0).
+fn restore_cost_baseline data
+    cost_data: get data "cost"
+    if cost_data == nil
+        cost_data: {}
+    set COST_BASE 0 (to_num (or_default_val (get cost_data "cost_usd") 0.0))
+    set COST_BASE_CALLS 0 (to_num (or_default_val (get cost_data "calls") 0))
+    set COST_BASE_TOKENS 0 (to_num (or_default_val (get cost_data "tokens") 0))
+    set COST_BASE_HITS 0 (to_num (or_default_val (get cost_data "cache_hits") 0))
+    set COST_BASE_MISSES 0 (to_num (or_default_val (get cost_data "cache_misses") 0))
+
 --! Saves all mutable tables as JSON under saves/.
 fn save_game name
     safe: join_list (split (replace name " " "_") "/") "_"
     h: (open_db 0)
-    data: {player: db_query h "SELECT * FROM player", rooms: db_query h "SELECT * FROM rooms", monsters: db_query h "SELECT * FROM monsters", quests: db_query h "SELECT * FROM quests", objectives: db_query h "SELECT * FROM objectives", reputation: db_query h "SELECT * FROM reputation", npc_memory: db_query h "SELECT * FROM npc_memory", flavor: db_query h "SELECT * FROM flavor", buffs: db_query h "SELECT * FROM buffs", player_spells: db_query h "SELECT * FROM player_spells", monster_abilities: db_query h "SELECT * FROM monster_abilities"}
+    data: {player: db_query h "SELECT * FROM player", rooms: db_query h "SELECT * FROM rooms", monsters: db_query h "SELECT * FROM monsters", quests: db_query h "SELECT * FROM quests", objectives: db_query h "SELECT * FROM objectives", reputation: db_query h "SELECT * FROM reputation", npc_memory: db_query h "SELECT * FROM npc_memory", flavor: db_query h "SELECT * FROM flavor", buffs: db_query h "SELECT * FROM buffs", player_spells: db_query h "SELECT * FROM player_spells", monster_abilities: db_query h "SELECT * FROM monster_abilities", custom_items: db_query h "SELECT * FROM custom_items", cost: (live_cost_state 0)}
     if !file_exists "saves"
         make_dir "saves"
     write_file ("saves/" ++ safe ++ ".json") (to_json data)
@@ -790,12 +829,16 @@ fn restore_save data
     db_exec h "DELETE FROM flavor"
     db_exec h "DELETE FROM npc_memory"
     db_exec h "DELETE FROM buffs"
+    db_exec h "DELETE FROM player_spells"
+    db_exec h "DELETE FROM monster_abilities"
+    db_exec h "DELETE FROM custom_items"
     for row in (get data "monsters")
         db_exec h ("INSERT INTO monsters VALUES ('" ++ (sql_escape (get row "id")) ++ "', '" ++ (sql_escape (get row "name")) ++ "', '" ++ (sql_escape (get row "room")) ++ "', " ++ (to_str (get row "hp")) ++ ", " ++ (to_str (get row "max_hp")) ++ ", " ++ (to_str (get row "defense")) ++ ", '" ++ (sql_escape (get row "loot")) ++ "', " ++ (to_str (get row "defeated")) ++ ")")
     for row in (get data "quests")
         db_exec h ("INSERT INTO quests VALUES ('" ++ (sql_escape (get row "id")) ++ "', '" ++ (sql_escape (get row "name")) ++ "', '" ++ (sql_escape (get row "description")) ++ "', '" ++ (sql_escape (get row "state")) ++ "')")
     for row in (get data "objectives")
-        db_exec h ("INSERT INTO objectives VALUES ('" ++ (sql_escape (get row "id")) ++ "', '" ++ (sql_escape (get row "kind")) ++ "', '" ++ (sql_escape (get row "target")) ++ "', '" ++ (sql_escape (get row "npc")) ++ "', '" ++ (sql_escape (get row "state")) ++ "', '" ++ (sql_escape (or_default_str (get row "quest"))) ++ "')")
+        main_val: or_default_val (get row "main") 1
+        db_exec h ("INSERT INTO objectives (id, kind, target, npc, state, quest, main) VALUES ('" ++ (sql_escape (get row "id")) ++ "', '" ++ (sql_escape (get row "kind")) ++ "', '" ++ (sql_escape (get row "target")) ++ "', '" ++ (sql_escape (get row "npc")) ++ "', '" ++ (sql_escape (get row "state")) ++ "', '" ++ (sql_escape (or_default_str (get row "quest"))) ++ "', " ++ (to_str main_val) ++ ")")
     for row in (get data "reputation")
         db_exec h ("INSERT INTO reputation VALUES ('" ++ (sql_escape (get row "fraktion")) ++ "', " ++ (to_str (get row "punkte")) ++ ")")
     for row in (get data "player")
@@ -833,6 +876,26 @@ fn restore_save data
     ma_data: or_default_list (get data "monster_abilities")
     for row in ma_data
         db_exec h ("INSERT INTO monster_abilities VALUES ('" ++ (sql_escape (get row "monster")) ++ "', '" ++ (sql_escape (get row "ability")) ++ "', '" ++ (sql_escape (get row "effekt")) ++ "', " ++ (to_str (get row "wert")) ++ ", " ++ (to_str (get row "runden")) ++ ", " ++ (to_str (get row "chance")) ++ ")")
+    --! Restore custom items if saved (backwards compatible); reused via
+    --! seed_custom_items so the column mapping stays in one place.
+    ci_maps: []
+    ci_data: or_default_list (get data "custom_items")
+    for row in ci_data
+        tags_list: []
+        tags_raw: or_default_str (get row "tags")
+        if tags_raw != ""
+            try
+                tags_list: parse_json tags_raw
+            catch
+                tags_list: []
+        it_map: {id: (get row "id"), name: (get row "name"), type: (get row "type"), value: (get row "value"), tags: tags_list, desc: (get row "desc"), damage_bonus: (get row "damage_bonus"), ranged: false, use_effect: (get row "use_effect"), use_value: (get row "use_value"), buff_stat: (get row "buff_stat"), buff_value: (get row "buff_value"), buff_rounds: (get row "buff_rounds"), clear_stat: (get row "clear_stat"), use_text: false}
+        if (get row "ranged") == 1
+            set it_map "ranged" true
+        if (get row "use_text") == 1
+            set it_map "use_text" true
+        push ci_maps it_map
+    seed_custom_items ci_maps
+    restore_cost_baseline data
 
 --! Saves the full world document (as produced by gen_world / loaded from disk)
 --! plus current state snapshot under worlds/. A saved world stays reusable:

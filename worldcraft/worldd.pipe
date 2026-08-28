@@ -113,7 +113,7 @@ fn boot_task _
                     design: get erg "design"
                     ai_timeout 300
                     boot_progress "map" "Baue die Karte auf…" 55
-                    karte: gen_map design pack 3 boot_progress
+                    karte: gen_map design pack 4 boot_progress wunsch
                     if len (get karte "errors") > 0
                         log_err "BOOT" "Karte fehlgeschlagen: " ++ (join_list (get karte "errors") "; ")
                         doc2: fallback_world pack
@@ -122,7 +122,7 @@ fn boot_task _
                         doc2: get karte "doc"
                         boot_progress "atmos" "Verleihe der Welt Atmosphäre…" 82
                         try
-                            enrich_lore doc2 (get design "thema") (get design "ton")
+                            enrich_lore doc2 (get design "thema") (get design "ton") wunsch
                             log "BOOT" "Lore-Anreicherung abgeschlossen"
                         catch e
                             log_err "BOOT" "Lore-Anreicherung uebersprungen: " ++ e

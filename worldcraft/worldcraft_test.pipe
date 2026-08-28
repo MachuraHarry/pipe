@@ -1155,3 +1155,78 @@ test "fehler_feedback is empty for first attempt and appends on retry"
     expect_contains fb "Fehler 1" "lists first error"
     expect_contains fb "Fehler 2" "lists second error"
 
+--- === Themen-getreue Basis-Karte (freie Raum-IDs) === ===
+
+test "validate_raw_rooms accepts custom room ids with name and description"
+    raw_ok: {rooms: {thronsaal: {name: "Der große Thronsaal", description: "Eisige Schwerter ragen aus dem Thron.", items: [], exits: {}}}, name: "X", start_room: "thronsaal", npcs: [], monsters: [], objectives: []}
+    expect_eq (len (validate_raw_rooms raw_ok pack)) 0 "custom room valid"
+
+test "validate_raw_rooms rejects custom room ids without name"
+    raw_noname: {rooms: {thronsaal: {description: "Düster.", items: [], exits: {}}}, name: "X", start_room: "thronsaal", npcs: [], monsters: [], objectives: []}
+    expect_gt (len (validate_raw_rooms raw_noname pack)) 0 "missing name flagged"
+
+test "validate_raw_rooms rejects custom room ids without description"
+    raw_nodesc: {rooms: {thronsaal: {name: "Der große Thronsaal", items: [], exits: {}}}, name: "X", start_room: "thronsaal", npcs: [], monsters: [], objectives: []}
+    expect_gt (len (validate_raw_rooms raw_nodesc pack)) 0 "missing description flagged"
+
+test "validate_raw_rooms rejects template rooms with kind-copied name"
+    kind: get (find_room_template pack "tpl_eingang") "kind"
+    raw_kind: {rooms: {tpl_eingang: {name: kind, description: "Ein Eingang.", items: [], exits: {}}}, name: "X", start_room: "tpl_eingang", npcs: [], monsters: [], objectives: []}
+    expect_gt (len (validate_raw_rooms raw_kind pack)) 0 "kind-copy name flagged"
+
+test "norm_id transliterates umlauts to clean ascii"
+    expect_eq (norm_id "thronsaal") "thronsaal" "plain ascii stays"
+    expect_eq (norm_id "gänge_unter_der_burg") "gaenge_unter_der_burg" "a-umlaut -> ae"
+    expect_eq (norm_id "Schatzkammer_öst") "schatzkammer_oest" "o-umlaut -> oe + lowercase"
+    expect_eq (norm_id "tiefe_höhlung") "tiefe_hoehlung" "u-umlaut -> ue"
+
+test "sanitize_room_ids repairs umlaut ids and every reference"
+    rooms_u: frische_map 0
+    set rooms_u "gänge_unter_der_burg" {name: "Gänge", description: "Dunkel.", items: [], exits: {norden: "keller_des_ödens"}}
+    set rooms_u "keller_des_ödens" {name: "Keller", description: "Feucht.", items: [], exits: {sueden: "gänge_unter_der_burg"}}
+    raw_u: {name: "X", start_room: "gänge_unter_der_burg", rooms: rooms_u, npcs: [{id: "n1", room: "keller_des_ödens"}], monsters: [{id: "kammerling", room: "gänge_unter_der_burg"}], objectives: [{id: "o1", kind: "explore", target: "gänge_unter_der_burg"}]}
+    raw_s: sanitize_room_ids raw_u
+    rooms_s: get raw_s "rooms"
+    expect_truthy (get (or_default rooms_s KEIN_MAP) "gaenge_unter_der_burg" != nil) "room key sanitized"
+    expect_eq (get raw_s "start_room") "gaenge_unter_der_burg" "start room repaired"
+    edu: get (get raw_s "rooms") "gaenge_unter_der_burg"
+    expect_eq (get (get edu "exits") "norden") "keller_des_oedens" "exit repaired"
+    expect_eq (get (at (or_default (get raw_s "npcs") KEIN_LISTE) 0) "room") "keller_des_oedens" "npc room repaired"
+    expect_eq (get (at (or_default (get raw_s "monsters") KEIN_LISTE) 0) "room") "gaenge_unter_der_burg" "monster room repaired"
+    expect_eq (get (at (or_default (get raw_s "objectives") KEIN_LISTE) 0) "target") "gaenge_unter_der_burg" "explore target repaired"
+
+test "sanitize_expansion_ids repairs umlaut ids and links"
+    rooms_e: frische_map 0
+    set rooms_e "schatzkammer_des_östens" {name: "Schatzkammer", description: "Gold.", items: []}
+    exp_u: {rooms: rooms_e, links: [{anchor: "tpl_eingang", dir: "osten", room: "schatzkammer_des_östens"}], npcs: [], monsters: []}
+    exp_s: sanitize_expansion_ids exp_u
+    rooms_es: get exp_s "rooms"
+    expect_truthy (get (or_default rooms_es KEIN_MAP) "schatzkammer_des_oestens" != nil) "expansion room sanitized"
+    expect_eq (get (at (or_default (get exp_s "links") KEIN_LISTE) 0) "room") "schatzkammer_des_oestens" "link repaired"
+    expect_eq (get (at (or_default (get exp_s "links") KEIN_LISTE) 0) "anchor") "tpl_eingang" "existing anchor untouched"
+
+test "normalize_map keeps custom room ids and pretty-falls back without name"
+    raw_p: {name: "X", start_room: "thronsaal", rooms: {thronsaal: {name: "Der große Thronsaal", description: "Düster.", items: []}, schmiedegasse: {description: "Heiß und laut.", items: []}}, npcs: [], monsters: [], objectives: []}
+    design_p: {quests: []}
+    doc_p: normalize_map raw_p pack design_p
+    expect_eq (get (get (get doc_p "rooms") "thronsaal") "name") "Der große Thronsaal" "custom name kept"
+    expect_eq (get (get (get doc_p "rooms") "schmiedegasse") "name") (pretty_room_name "schmiedegasse") "pretty fallback for custom id"
+
+test "custom thematic map passes full validation"
+    design_g: {thema: "Eiserner Thron", ton: "düster", raumzahl: 3, items: ["fackel", "goldmuenze"], npcs: [{id: "lord_eddard", template: "weiser", name: "Lord Eddard"}], monsters: ["kammerling"], quests: [], siegesbedingung: {kind: "give", target: "goldmuenze", npc: "lord_eddard"}}
+    raw_g: {name: "Der Eiserne Thron", start_room: "thronsaal", rooms: {thronsaal: {name: "Der große Thronsaal", description: "Eisige Schwerter ragen aus dem Thron.", items: ["fackel"], exits: {osten: "hof_der_roten_burg"}}, hof_der_roten_burg: {name: "Der Hof der Roten Burg", description: "Steinerne Mauern türmen sich.", items: [], exits: {westen: "thronsaal", norden: "drachengruft"}}, drachengruft: {name: "Die dunkle Drachengruft", description: "Knochen riesiger Bestien.", items: ["goldmuenze"], exits: {sueden: "hof_der_roten_burg"}}}, npcs: [{id: "lord_eddard", room: "thronsaal"}], monsters: [{id: "kammerling", room: "drachengruft"}], objectives: [{id: "obj_thron", kind: "give", target: "goldmuenze", npc: "lord_eddard", state: "offen"}]}
+    expect_eq (len (validate_raw_rooms raw_g pack)) 0 "custom raw map valid"
+    doc_g: normalize_map raw_g pack design_g
+    expect_eq (len (validate_map doc_g pack)) 0 "custom map valid"
+
+test "normalize_map drops invented items and monsters instead of failing"
+    design_h: {thema: "Eiserner Thron", ton: "düster", raumzahl: 1, items: ["fackel"], npcs: [], monsters: ["kammerling"], quests: [], custom_items: [{id: "drachenei", name: "Drachenei", type: "quest", value: 1, tags: ["quest"], desc: "Ein glühendes Ei."}], siegesbedingung: {kind: "give", target: "goldmuenze", npc: ""}}
+    raw_h: {name: "Der Eiserne Thron", start_room: "thronsaal", rooms: {thronsaal: {name: "Der große Thronsaal", description: "Eisig.", items: ["heilkraeuter", "drachenei", "mana_trank"], exits: {}}}, npcs: [], monsters: [{id: "kammerling", room: "thronsaal"}, {id: "eiskreatur", room: "thronsaal"}], objectives: []}
+    doc_h: normalize_map raw_h pack design_h
+    raum_items: get (get (get doc_h "rooms") "thronsaal") "items"
+    expect_falsy (contains raum_items "heilkraeuter") "invented item dropped"
+    expect_falsy (contains raum_items "mana_trank") "invented item dropped 2"
+    expect_truthy (contains raum_items "drachenei") "custom item kept"
+    expect_eq (len (get doc_h "monsters")) 1 "invented monster dropped"
+    expect_eq (get (at (get doc_h "monsters") 0) "id") "kammerling" "real monster kept"
+

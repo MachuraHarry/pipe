@@ -105,7 +105,7 @@ else
             else
                 design: get erg "design"
                 print "Baue Karte ..."
-                karte: gen_map design pack 3
+                karte: gen_map design pack 4 nil wunsch
                 if len (get karte "errors") > 0
                     print "  (Karte fehlgeschlagen -- nutze Musterwelt als Fundament)"
                     doc: fallback_world pack
@@ -113,7 +113,7 @@ else
                     doc: get karte "doc"
                     print "Erzeuge Atmosphäre (parallel) ..."
                     try
-                        enrich_lore doc (get design "thema") (get design "ton")
+                        enrich_lore doc (get design "thema") (get design "ton") wunsch
                     catch
                         print "  (Atmosphären-Generierung übersprungen)"
         catch e

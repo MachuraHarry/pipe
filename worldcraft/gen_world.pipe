@@ -299,6 +299,133 @@ fn validate_map doc pack
         push fehler "Keine Objectives definiert"
     fehler
 
+--! Validates the raw LLM map (before normalization) against the free-form
+--! room-id rules: custom rooms must carry name AND description, and a room
+--! that reuses a template id must not just copy the template kind as name.
+fn validate_raw_rooms roh pack
+    fehler: []
+    if roh == nil
+        push fehler "Keine Karte erhalten"
+    else
+        rooms_raw: get roh "rooms"
+        if rooms_raw == nil || len (keys rooms_raw) == 0
+            push fehler "Keine Räume vorhanden"
+        else
+            for id in keys rooms_raw
+                r: get rooms_raw id
+                tpl: find_room_template pack id
+                name: or_default_str (get r "name")
+                desc: or_default_str (get r "description")
+                if tpl == nil
+                    if name == ""
+                        push fehler ("Neuer Raum ohne Namen: " ++ id)
+                    if desc == ""
+                        push fehler ("Neuer Raum ohne Beschreibung: " ++ id)
+                else
+                    kind: get tpl "kind"
+                    if name == kind
+                        push fehler ("Raumname ist nur die Standard-Kind-Bezeichnung des Templates '" ++ id ++ "': " ++ name ++ " — erfinde einen thematischen Namen")
+    fehler
+
+--! Transliterates German umlauts + lowercases to safe ASCII (a-z0-9_) so a
+--! model output like "gaenge" or "gänge_unter_der_burg" always yields a clean id.
+fn norm_id s
+    r: regex_replace "ä" "ae" s
+    r: regex_replace "ö" "oe" r
+    r: regex_replace "ü" "ue" r
+    r: regex_replace "ß" "ss" r
+    r: regex_replace "[^a-zA-Z0-9_]" "_" r
+    lower r
+
+--! Renames every room id of a raw LLM map to safe ASCII and fixes all
+--! references (exits, start_room, npc/monster rooms, explore targets).
+fn sanitize_room_ids raw
+    if raw == nil
+        raw
+    else
+        rooms: get raw "rooms"
+        if rooms == nil
+            raw
+        else
+            id_neu: frische_map 0
+            map_neu: frische_map 0
+            for id in keys rooms
+                neu: norm_id id
+                set id_neu id neu
+                set map_neu neu (get rooms id)
+            for neu in keys map_neu
+                r: get map_neu neu
+                exits: get r "exits"
+                if exits != nil
+                    neu_exits: frische_map 0
+                    for dir in keys exits
+                        ziel: get exits dir
+                        set neu_exits dir (or_default (get id_neu ziel) ziel)
+                    set r "exits" neu_exits
+            set raw "rooms" map_neu
+            start: get raw "start_room"
+            if start != nil
+                set raw "start_room" (or_default (get id_neu start) start)
+            for npc in (or_default (get raw "npcs") KEIN_LISTE)
+                rn: get npc "room"
+                if rn != nil
+                    set npc "room" (or_default (get id_neu rn) rn)
+            for mon in (or_default (get raw "monsters") KEIN_LISTE)
+                rm: get mon "room"
+                if rm != nil
+                    set mon "room" (or_default (get id_neu rm) rm)
+            for obj in (or_default (get raw "objectives") KEIN_LISTE)
+                if (get obj "kind") == "explore"
+                    tg: get obj "target"
+                    if tg != nil
+                        set obj "target" (or_default (get id_neu tg) tg)
+            raw
+
+--! Same repair for an expansion document (new rooms, links, npc/monster rooms,
+--! explore targets). Anchor ids of existing rooms stay untouched.
+fn sanitize_expansion_ids exp
+    if exp == nil
+        exp
+    else
+        neu_raeume: get exp "rooms"
+        if neu_raeume == nil
+            exp
+        else
+            id_neu: frische_map 0
+            map_neu: frische_map 0
+            for id in keys neu_raeume
+                neu: norm_id id
+                set id_neu id neu
+                set map_neu neu (get neu_raeume id)
+            for neu in keys map_neu
+                r: get map_neu neu
+                exits: get r "exits"
+                if exits != nil
+                    neu_exits: frische_map 0
+                    for dir in keys exits
+                        ziel: get exits dir
+                        set neu_exits dir (or_default (get id_neu ziel) ziel)
+                    set r "exits" neu_exits
+            set exp "rooms" map_neu
+            for l in (or_default (get exp "links") KEIN_LISTE)
+                rn: get l "room"
+                if rn != nil
+                    set l "room" (or_default (get id_neu rn) rn)
+            for npc in (or_default (get exp "npcs") KEIN_LISTE)
+                rn2: get npc "room"
+                if rn2 != nil
+                    set npc "room" (or_default (get id_neu rn2) rn2)
+            for mon in (or_default (get exp "monsters") KEIN_LISTE)
+                rm: get mon "room"
+                if rm != nil
+                    set mon "room" (or_default (get id_neu rm) rm)
+            for obj in (or_default (get exp "objectives") KEIN_LISTE)
+                if (get obj "kind") == "explore"
+                    tg: get obj "target"
+                    if tg != nil
+                        set obj "target" (or_default (get id_neu tg) tg)
+            exp
+
 --! Finds a monster definition row by id (nil if unknown).
 fn find_pack_monster pack id
     found: [nil]
@@ -436,8 +563,10 @@ fn gen_design prompt pack profil max_tries on_status
         log "GEN-DESIGN" "Design gueltig: Thema=" ++ (get design "thema") ++ " Ton=" ++ (get design "ton")
     {design: design, errors: fehler}
 
---! Asks the LLM for the concrete map using ONLY validated design ids.
-fn gen_map design pack max_tries on_status
+--! Asks the LLM for the concrete map using validated design ids plus the
+--! player's original wish so the layout matches the briefing, not just
+--! the design's thema/ton paraphrase.
+fn gen_map design pack max_tries on_status wunsch
     log_block "GEN-MAP" "Starte Karten-Generierung"
     mech: get pack "mechanics"
     minr: get mech "min_rooms"
@@ -459,7 +588,8 @@ fn gen_map design pack max_tries on_status
     if custom_items_design != nil && len custom_items_design > 0
         for ci in custom_items_design
             push custom_ids (get ci "id")
-    nachricht: "Thema: " ++ (get design "thema") ++ "\nTon: " ++ (get design "ton") ++ "\nRaumzahl: exakt " ++ (to_str (get design "raumzahl")) ++ "\nErlaubte Items: " ++ (join_list (get design "items") ", ") ++ "\nCustom Items (auch in Räumen platzieren): " ++ (join_list custom_ids ", ") ++ "\nPlatzierte NPCs (nur Raum zuweisen): " ++ (join_list npc_ids ", ") ++ "\nErlaubte Monster: " ++ (join_list (get design "monsters") ", ") ++ "\nSiegesbedingung: " ++ (to_json (get design "siegesbedingung")) ++ "\nRaum-Templates zur Auswahl (NUR diese ids nutzen, jede höchstens einmal): " ++ (join_list nutzbare_raeume ", ") ++ "\n\nBaue die Karte. Antworte als JSON:\n{name: str, start_room: id, rooms: {\"<template-id>\": {name: str (4-8 Wörter, atmosphärischer Raumname zum Thema passend), description: str (2 Saetze, zum Thema passend), items: [item-ids ODER []], exits: {\"norden|sueden|osten|westen\": template-id}}}, npcs: [{id: npc-id, room: template-id}], monsters: [{id: pack-monster-id, room: template-id}], objectives: [{id: str, kind: \"" ++ (to_json (get design "siegesbedingung")) ++ "\"-passend, target: item-oder-monster-id, npc: npc-id-oder-\"\", state: \"offen\"}]}\nNPC-IDs muessen exakt mit den oben angegebenen übereinstimmen. Alle Räume müssen vom start_room aus erreichbar sein."
+    wunsch_text: or_default wunsch ""
+    nachricht: "Spielerwunsch: " ++ wunsch_text ++ "\nThema: " ++ (get design "thema") ++ "\nTon: " ++ (get design "ton") ++ "\nRaumzahl: exakt " ++ (to_str (get design "raumzahl")) ++ "\nErlaubte Items: " ++ (join_list (get design "items") ", ") ++ "\nCustom Items (auch in Räumen platzieren): " ++ (join_list custom_ids ", ") ++ "\nPlatzierte NPCs (nur Raum zuweisen): " ++ (join_list npc_ids ", ") ++ "\nErlaubte Monster: " ++ (join_list (get design "monsters") ", ") ++ "\nSiegesbedingung: " ++ (to_json (get design "siegesbedingung")) ++ "\nRaum-Katalog (NUR als Inspiration für Zweck/Stimmung): " ++ (join_list nutzbare_raeume ", ") ++ "\n\nBaue die Karte. Antworte als JSON:\n{name: str, start_room: id, rooms: {\"<raum-id>\": {name: str (4-8 Wörter, atmosphärischer Raumname zum Thema passend), description: str (2 Saetze, zum Thema passend), items: [item-ids ODER []], exits: {\"norden|sueden|osten|westen\": raum-id}}}, npcs: [{id: npc-id, room: raum-id}], monsters: [{id: pack-monster-id, room: raum-id}], objectives: [{id: str, kind: \"" ++ (to_json (get design "siegesbedingung")) ++ "\"-passend, target: item-oder-monster-id, npc: npc-id-oder-\"\", state: \"offen\"}]}\n\nWICHTIG Raum-IDs: Erfinde fuer JEDEN Raum eine eigene, thematisch passende Raum-id (kleingeschrieben, snake_case, NUR ASCII a-z 0-9 und Unterstrich, KEINE Umlaute/Sonderzeichen, z.B. \"thronsaal_von_koenigsmund\", \"tor_der_roten_burg\", \"drachengruft\"). Die Katalog-ids sind nur als Anregung fuer Zweck und Stimmung gedacht — nutze sie NICHT als Raum-ids, ausser ein Template passt exakt zum Thema.\nWICHTIG Raumnamen: Der name darf NICHT die Standard-Kind-Bezeichnung aus dem Katalog sein (z.B. \"Eingang zur Ruine\", \"Die große Halle\", \"Die schäbige Taverne\"). Erfinde immer einen individuellen, auf das Thema zugeschnittenen Namen. NPC-IDs muessen exakt mit den oben angegebenen übereinstimmen. Alle Räume müssen vom start_room aus erreichbar sein.\nWICHTIG Items und Monster: Du darfst für items UND monsters AUSSCHLIESSLICH exakt die ids aus den obigen Listen verwenden (keine eigenen Schreibweisen, keine erfundenen Namen wie \"heilkraeuter\" oder \"mana_trank\"). Wenn kein gelistetes Item in einen Raum passt, schreibe items: []. Wenn kein gelistetes Monster passt, lasse monsters weg. Nichts erfinden!"
     doc: nil
     roh_obj: nil
     fehler: ["noch nicht versucht"]
@@ -474,10 +604,14 @@ fn gen_map design pack max_tries on_status
             roh: ai_chat MAP_SYSTEM (fehler_feedback nachricht roh_obj fehler) 6000
             log "GEN-MAP" "AI-Antwort erhalten (" ++ (to_str (len roh)) ++ " Zeichen)"
             roh_obj: parse_json (extract_json roh)
+            roh_obj: sanitize_room_ids roh_obj
             doc: normalize_map roh_obj pack design
             if doc == nil
                 log_err "GEN-MAP" "JSON-Parsing fehlgeschlagen"
             fehler: validate_map doc pack
+            roh_fehler: validate_raw_rooms roh_obj pack
+            for f in roh_fehler
+                push fehler f
             if len fehler > 0
                 log "GEN-MAP" "Validierung fehlgeschlagen: " ++ (join_list fehler "; ")
         catch e
@@ -530,6 +664,10 @@ fn erweitere_ziele objectives monsters rooms pack
 --! quest entries are derived from the chosen quest templates.
 fn normalize_map raw pack design
     rooms_raw: get raw "rooms"
+    custom_items_list: or_default (get design "custom_items") KEIN_LISTE
+    ci_ids_erlaubt: []
+    for ci in custom_items_list
+        push ci_ids_erlaubt (get ci "id")
     rooms: {}
     for id in keys rooms_raw
         r: get rooms_raw id
@@ -544,10 +682,16 @@ fn normalize_map raw pack design
             if tpl != nil
                 rname: get tpl "kind"
             else
-                rname: id
+                rname: pretty_room_name id
         items: get r "items"
         if items == nil
             items: []
+        else
+            gefiltert: []
+            for it in items
+                if pack_has_id pack "items" it || contains ci_ids_erlaubt it
+                    push gefiltert it
+            items: gefiltert
         exits: get r "exits"
         if exits == nil
             exits: (frische_map 0)
@@ -610,16 +754,8 @@ fn normalize_map raw pack design
     monsters: []
     for mon in (or_default (get raw "monsters") KEIN_LISTE)
         def: find_pack_monster pack (get mon "id")
-        hp: 5
-        defense: 0
-        loot: ""
-        name: get mon "id"
         if def != nil
-            hp: get def "hp"
-            defense: get def "defense"
-            loot: get def "loot"
-            name: get def "name"
-        push monsters {id: (get mon "id"), name: name, room: (get mon "room"), hp: hp, max_hp: hp, defense: defense, loot: loot}
+            push monsters {id: (get mon "id"), name: (get def "name"), room: (get mon "room"), hp: (get def "hp"), max_hp: (get def "hp"), defense: (get def "defense"), loot: (get def "loot")}
     quests: []
     for qid in (or_default (get design "quests") KEIN_LISTE)
         def: find_quest_def pack qid
@@ -632,8 +768,6 @@ fn normalize_map raw pack design
         set obj "main" 1
     objectives: erweitere_ziele objectives monsters rooms pack
     mech: get pack "mechanics"
-    -- Custom items from design (AI-generated thematic items)
-    custom_items_list: or_default (get design "custom_items") KEIN_LISTE
     {name: (or_default (get raw "name") (get design "thema")), start_room: (get raw "start_room"), rooms: rooms, npcs: npcs, monsters: monsters, quests: quests, objectives: objectives, factions: (get pack "factions"), mechanics: {start_hp: (get mech "start_hp"), start_gold: (get mech "start_gold"), respawn_hp: (get mech "respawn_hp")}, lore: (frische_liste 0), thema: (or_default (get design "thema") ""), ton: (or_default (get design "ton") ""), custom_items: custom_items_list}
 
 -- ---- Lore enrichment & orchestration ----
@@ -654,14 +788,15 @@ fn seed_full doc
 --! Pre-generates atmospheric room descriptions and NPC backstories in
 --! parallel and stores them inside the world document (rooms get a
 --! parallel "flavors" map, NPCs keep persona enriched, lore list filled).
-fn enrich_lore doc thema ton
+fn enrich_lore doc thema ton wunsch
     log "ENRICH" "Starte Lore-Anreicherung fuer Thema=" ++ thema ++ " Ton=" ++ ton
+    wunsch_zusatz: or_default wunsch ""
     ids: []
     prompts: []
     for id in keys (get doc "rooms")
         r: get (get doc "rooms") id
         push ids id
-        push prompts ("Beschreibe diesen Raum atmosphärisch für ein " ++ ton ++ "es " ++ thema ++ "-Abenteuer, genau 2 Sätze, keine Wiederholung des Raumnamens.\nRaum: " ++ id ++ "\n" ++ (get r "description"))
+        push prompts ("Beschreibe diesen Raum atmosphärisch für ein " ++ ton ++ "es " ++ thema ++ "-Abenteuer, genau 2 Sätze, keine Wiederholung des Raumnamens.\nSpielerwunsch: " ++ wunsch_zusatz ++ "\nRaum: " ++ id ++ "\n" ++ (get r "description"))
     texte: ai_batch (narrator_author 0) prompts
     log "ENRICH" "Raum-Beschreibungen generiert: " ++ (to_str (len texte)) ++ " Stueck"
     flavors: {}
@@ -677,7 +812,7 @@ fn enrich_lore doc thema ton
     npc_names: []
     for npc in (get doc "npcs")
         push npc_names (get npc "id")
-        push npc_prompts ("Schreibe eine kurze Hintergrundgeschichte (3-4 Sätze) für diesen NPC: Name " ++ (get npc "name") ++ ", Rolle " ++ (get npc "role") ++ ". Welt-Thema: " ++ thema ++ ".")
+        push npc_prompts ("Schreibe eine kurze Hintergrundgeschichte (3-4 Sätze) für diesen NPC: Name " ++ (get npc "name") ++ ", Rolle " ++ (get npc "role") ++ ". Welt-Thema: " ++ thema ++ ". Spielerwunsch: " ++ wunsch_zusatz ++ ".")
     geschichten: ai_batch (narrator_author 0) npc_prompts
     log "ENRICH" "NPC-Hintergrundgeschichten generiert: " ++ (to_str (len geschichten)) ++ " Stueck"
     j: 0
@@ -857,7 +992,7 @@ fn gen_expansion doc wunsch pack max_tries
             push freie_quests ((get q "id") ++ " ziel=" ++ (get q "goal_type") ++ " ziel_tags=[" ++ (join_list (get q "target_tags") ",") ++ "]")
     rest: (room_cap pack) - len (keys (get doc "rooms"))
     npc_rollen: pack_npc_roles pack
-    nachricht: "Bestehende Räume: " ++ (join_list (keys (get doc "rooms")) ", ") ++ "\nFreie Raum-Templates (optional nutzbar): " ++ (join_list freie_tpl ", ") ++ "\nVerfügbare NPC-Rollen: " ++ (join_list npc_rollen ", ") ++ "\nNoch nicht platzierte Monster: " ++ (join_list freie_mon ", ") ++ "\nNoch nicht platzierte Items: " ++ (join_list freie_items ", ") ++ "\nNoch unbenutzte Quest-Vorlagen: " ++ (join_list freie_quests ", ") ++ "\nMaximal noch " ++ (to_str rest) ++ " neue Räume insgesamt; jetzt 1-3.\nWunsch des Spielers: " ++ wunsch ++ "\n\nErweitere die Karte passend zum Wunsch. Neue Räume dürfen intern Ausgänge untereinander haben (exits zeigen NUR auf andere NEUE Räume). Die Anbindung an die alte Karte läuft ausschließlich über links (anchor MUSS ein bestehender Raum sein und dir eine dort FREIE Richtung). Optional darfst du bis zu 2 neue NPCs mitbringen (mit individuellen Namen, die zum Thema passen) und bis zu 2 neue Aufgaben, die die neuen Gebiete nutzen.\nWICHTIG für neue Räume: Du darfst eigene, thematisch passende Raum-ids erfinden (z.B. \"ertrunkene_taverne\") ODER ein freies Raum-Template aus der Liste nutzen. JEDER neue Raum braucht zwingend ein nicht-leeres name UND description. Nutze für items NUR Pack-Items aus der Liste, für monsters NUR Pack-Monster aus der Liste.\nAntworte als JSON:\n{rooms: {\"<raum-id>\": {name: str (4-8 Wörter, atmosphärischer Raumname zum Thema passend), description: str (2 Saetze, zum Thema passend), items: [pack-item-ids ODER []]}}, links: [{anchor: bestehende-raum-id, dir: \"norden|sueden|osten|westen\", room: neue-raum-id}], npcs: [{id: str (kurz), template: \"rolle\", name: str (zum Thema passend), temperament: str, persona: str, room: neue-raum-id}], monsters: [{id: pack-monster-id, room: neue-raum-id}], quests: [vorlagen-ids ODER []], objectives: [{id: \"obj_<name>\", kind: \"give|kill|explore|fetch\", target: item-oder-monster-oder-raum-id, npc: npc-id-oder-\"\", quest_id: neue-quest-id-oder-\"\"}]}"
+    nachricht: "Bestehende Räume: " ++ (join_list (keys (get doc "rooms")) ", ") ++ "\nFreie Raum-Templates (optional nutzbar): " ++ (join_list freie_tpl ", ") ++ "\nVerfügbare NPC-Rollen: " ++ (join_list npc_rollen ", ") ++ "\nNoch nicht platzierte Monster: " ++ (join_list freie_mon ", ") ++ "\nNoch nicht platzierte Items: " ++ (join_list freie_items ", ") ++ "\nNoch unbenutzte Quest-Vorlagen: " ++ (join_list freie_quests ", ") ++ "\nMaximal noch " ++ (to_str rest) ++ " neue Räume insgesamt; jetzt 1-3.\nWunsch des Spielers: " ++ wunsch ++ "\n\nErweitere die Karte passend zum Wunsch. Neue Räume dürfen intern Ausgänge untereinander haben (exits zeigen NUR auf andere NEUE Räume). Die Anbindung an die alte Karte läuft ausschließlich über links (anchor MUSS ein bestehender Raum sein und dir eine dort FREIE Richtung). Optional darfst du bis zu 2 neue NPCs mitbringen (mit individuellen Namen, die zum Thema passen) und bis zu 2 neue Aufgaben, die die neuen Gebiete nutzen.\nWICHTIG für neue Räume: Du darfst eigene, thematisch passende Raum-ids erfinden (kleingeschrieben, snake_case, NUR ASCII a-z 0-9 und Unterstrich, KEINE Umlaute, z.B. \"ertrunkene_taverne\") ODER ein freies Raum-Template aus der Liste nutzen. JEDER neue Raum braucht zwingend ein nicht-leeres name UND description. Nutze für items NUR Pack-Items aus der Liste, für monsters NUR Pack-Monster aus der Liste.\nAntworte als JSON:\n{rooms: {\"<raum-id>\": {name: str (4-8 Wörter, atmosphärischer Raumname zum Thema passend), description: str (2 Saetze, zum Thema passend), items: [pack-item-ids ODER []]}}, links: [{anchor: bestehende-raum-id, dir: \"norden|sueden|osten|westen\", room: neue-raum-id}], npcs: [{id: str (kurz), template: \"rolle\", name: str (zum Thema passend), temperament: str, persona: str, room: neue-raum-id}], monsters: [{id: pack-monster-id, room: neue-raum-id}], quests: [vorlagen-ids ODER []], objectives: [{id: \"obj_<name>\", kind: \"give|kill|explore|fetch\", target: item-oder-monster-oder-raum-id, npc: npc-id-oder-\"\", quest_id: neue-quest-id-oder-\"\"}]}"
     exp: nil
     fehler: ["noch nicht versucht"]
     versuch: 0
@@ -869,6 +1004,7 @@ fn gen_expansion doc wunsch pack max_tries
             roh: ai_chat EXP_SYSTEM (fehler_feedback nachricht exp fehler) 4000
             log "GEN-EXP" "AI-Antwort erhalten (" ++ (to_str (len roh)) ++ " Zeichen)"
             exp: parse_json (extract_json roh)
+            exp: sanitize_expansion_ids exp
             fehler: validate_expansion exp doc pack
             if len fehler > 0
                 log "GEN-EXP" "Validierung fehlgeschlagen: " ++ (join_list fehler "; ")

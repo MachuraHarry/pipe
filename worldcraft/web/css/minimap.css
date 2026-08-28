@@ -1,0 +1,21 @@
+.minimap-canvas {
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  cursor: crosshair;
+  display: block;
+}
+
+.minimap-tooltip {
+  position: absolute;
+  background: var(--bg-primary);
+  border: 1px solid var(--accent);
+  color: var(--text);
+  padding: 3px 8px;
+  border-radius: 4px;
+  font-size: 0.72rem;
+  pointer-events: none;
+  white-space: nowrap;
+  z-index: 10;
+  display: none;
+}

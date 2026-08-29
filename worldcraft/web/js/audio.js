@@ -33,12 +33,31 @@ class GameAudio {
     if (!this.ctx) return;
     const sounds = ["step", "hit", "pickup", "dialog", "victory"];
     for (const s of sounds) {
-      await this.load(s, "/audio/" + s + ".mp3");
+      await this.load(s, "/audio/" + s + ".wav");
     }
   }
 
+  // Fallback: hörbare Töne auch dann, wenn die geladene Datei fehlt
+  // (erste Sekunden, gescheiterter Fetch, Whitelist fehlt, …).
+  _fallbackTone(name) {
+    const map = {
+      step: [150, 0.08, "sine"],
+      hit: [320, 0.09, "square"],
+      pickup: [660, 0.07, "sine"],
+      dialog: [440, 0.1, "sine"],
+      victory: [523.25, 0.4, "sine"],
+    };
+    const cfg = map[name] || map.step;
+    if (!cfg) return;
+    this.playTone(cfg[0], cfg[1], cfg[2]);
+  }
+
   play(name) {
-    if (!this.enabled || !this.ctx || !this.buffers[name]) return;
+    if (!this.enabled || !this.ctx) return;
+    if (!this.buffers[name]) {
+      this._fallbackTone(name);
+      return;
+    }
     try {
       if (this.ctx.state === "suspended") {
         this.ctx.resume();

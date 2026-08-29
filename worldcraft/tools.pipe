@@ -812,9 +812,7 @@ fn fast_command cmd pack
                                                             {handled: true, out: attack_enemy (first_word (rest_words t))}
                                                         else
                                                             -- Attack first monster in room if no target specified
-                                                            p: (get_player 0)
-                                                            room: get_room (get p "room")
-                                                            mons: parse_json (get room "monsters")
+                                                            mons: monsters_in_room (get (get_player 0) "room")
                                                             if mons != nil && len mons > 0
                                                                 {handled: true, out: attack_enemy (get (at mons 0) "id")}
                                                             else

@@ -122,37 +122,65 @@ class WorldcraftAPI {
     return this._fetch("POST", "/api/v1/sessions/" + this.sessionId + "/new-adventure", null, this._authHeaders());
   }
 
-  async pollJob(jobId, onProgress) {
+  async pollJob(jobId, onProgress, signal) {
     if (!this.hasSession) throw new Error("No session");
     const url = "/api/v1/sessions/" + this.sessionId + "/jobs/" + jobId;
     const start = Date.now();
-    const timeout = 300000;
-    const interval = 500;
+    const timeout = this._pollTimeout || 300000;
+    const interval = this._pollInterval || 500;
 
     return new Promise((resolve, reject) => {
+      const cleanup = signal && typeof signal.removeEventListener === "function"
+        ? () => signal.removeEventListener("abort", onAbort)
+        : () => {};
+      const onAbort = () => {
+        cleanup();
+        const err = new Error(t("job_cancelled"));
+        err.name = "AbortError";
+        reject(err);
+      };
       const poll = async () => {
         try {
           if (Date.now() - start > timeout) {
+            cleanup();
             reject(new Error("Timeout"));
+            return;
+          }
+          if (signal && signal.aborted) {
+            cleanup();
+            onAbort();
             return;
           }
           const data = await this._fetch("GET", url, null, this._authHeaders());
           if (data.status === "done") {
+            cleanup();
             if (data.error) {
               reject(new Error(data.error));
             } else {
               resolve(data.result);
             }
           } else if (data.status === "error") {
+            cleanup();
             reject(new Error(data.error || "Job failed"));
           } else {
             if (onProgress) onProgress(data);
-            setTimeout(poll, interval);
+            setTimeout(() => {
+              if (signal && signal.aborted) {
+                cleanup();
+                onAbort();
+              } else {
+                poll();
+              }
+            }, interval);
           }
         } catch (e) {
+          cleanup();
           reject(e);
         }
       };
+      if (signal && typeof signal.addEventListener === "function") {
+        signal.addEventListener("abort", onAbort);
+      }
       poll();
     });
   }

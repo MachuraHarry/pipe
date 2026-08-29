@@ -15,11 +15,15 @@ const app = {
   cost: null,
   minimap: null,
   visitedRooms: new Set(),
+  roomInfo: {},
   audio: null,
   _fullscreenMap: false,
   _isLoading: false,
+  _apiOptions: null,
   _loadingStartTime: 0,
   _loadingTimer: null,
+  _installPrompt: null,
+  _jobAbort: null,
 
   profiles: [
     { id: "kaempfer", name: null, desc: null },
@@ -31,6 +35,12 @@ const app = {
   async init() {
     window._wcLang = this.lang;
     window._wcSoundEnabled = localStorage.getItem("wc_sound") !== "false";
+
+    // PWA-Install-Prompt vorab abfangen (zeigt später optionaler Button)
+    window.addEventListener("beforeinstallprompt", (e) => {
+      e.preventDefault();
+      this._installPrompt = e;
+    });
 
     this.audio = new GameAudio();
     window._wcAudio = this.audio;
@@ -64,8 +74,20 @@ const app = {
     UI.renderSplash(
       () => this.renderNewGame(),
       () => this.onResume(),
-      () => this.renderSettings()
+      () => this.renderSettings(),
+      () => this.installPrompt()
     );
+  },
+
+  installPrompt() {
+    if (!this._installPrompt) {
+      UI.toast(t("install_not_supported"));
+      return;
+    }
+    const p = this._installPrompt;
+    this._installPrompt = null;
+    p.prompt();
+    p.userChoice.finally(() => {});
   },
 
   _updateProfileNames() {
@@ -237,7 +259,17 @@ const app = {
         this.renderSplash();
       }
     } catch (e) {
-      this.api.clearSession();
+      // Nur löschen, wenn die Session wirklich tot ist (falsches/fehlendes
+      // Secret oder Server kennt sie nicht). Transiente Fehler (Netzwerk,
+      // Worker gerade nicht erreichbar) lassen den Spielstand intakt, so dass
+      // „Fortsetzen" gleich erneut versucht werden kann.
+      if (e.code === "unauthorized" || e.code === "unknown_session") {
+        this.api.clearSession();
+      } else if (e.code === "network_error") {
+        UI.showToast(e.message || t("connection_lost"), "error");
+        this.renderSplash();
+        return;
+      }
       UI.showToast(e.message || t("connection_lost"), "error");
       this.renderSplash();
     }
@@ -258,19 +290,24 @@ const app = {
       {
         onCommand: (cmd) => this.onCommand(cmd),
         onToggleSound: () => this.onToggleSound(),
-        onToggleMinimap: () => this.onToggleMinimap(),
         onSettings: () => this.renderSettings(),
         onFullscreenMap: () => this.onFullscreenMap()
       }
     );
 
     setTimeout(() => {
+      // Merke die Exits pro Raum, sobald wir ihn betreten — der Server liefert
+      // pro State nur die Ausgänge des aktuellen Raums (keine Welt-Karte).
+      if (this.state && this.state.room) {
+        this.roomInfo[this.state.room] = { exits: this.state.exits || [] };
+      }
       const canvas = document.getElementById("minimap-canvas");
       if (canvas) {
         this.minimap = new Minimap(canvas, canvas.width || 160);
         for (const rid of this.visitedRooms) {
           if (!this.minimap.rooms[rid]) {
-            this.minimap.addRoom(rid, this.state ? (this.state.exits || []) : [], null, null);
+            const info = this.roomInfo[rid];
+            this.minimap.addRoom(rid, info ? (info.exits || []) : [], null, null);
           }
         }
         if (this.state && this.state.room) {
@@ -284,8 +321,8 @@ const app = {
   _startLoading(cmd) {
     this._isLoading = true;
     this._loadingStartTime = Date.now();
-    // Update loading indicator in DOM
-    UI.showLoading(cmd);
+    // Update loading indicator in DOM (mit Cancel-Button für lange Jobs)
+    UI.showLoading(cmd, () => this.onCancelJob());
     // Update timer every 100ms
     this._loadingTimer = setInterval(() => {
       UI.updateLoadingTime(Date.now() - this._loadingStartTime);
@@ -314,9 +351,29 @@ const app = {
   addLog(type, text, dialog) {
     const entry = { type, text, dialog: dialog || null, timestamp: Date.now() };
     this.log.push(entry);
+    // Log-Begrenzung: unbegrenzt wachsende Arrays machen den Voll-Rerender bei
+    // langen Sessions spürbar träge. 300 Einträge decken Stunden Spiellaufzeit ab.
+    if (this.log.length > 300) {
+      this.log.splice(0, this.log.length - 300);
+    }
     if (this.screen === "game") {
       UI.appendLog(entry);
     }
+  },
+
+  _expandWunschOf(cmd) {
+    const words = cmd.trim().split(/\s+/);
+    words.shift();
+    return words.join(" ").trim();
+  },
+
+  _isNewAdventureCmd(cmd) {
+    return /^\s*neues\s+abenteuer\s*[.!?]*\s*$/i.test(cmd);
+  },
+
+  _isExpandCmd(cmd) {
+    const first = cmd.trim().split(/\s+/)[0] || "";
+    return first === "erweitere" || first === "erweitern";
   },
 
   async onCommand(input) {
@@ -328,20 +385,22 @@ const app = {
     this._apiOptions = null; // Clear previous options
 
     // Expand
-    if (cmd.toLowerCase().startsWith("erweitere")) {
-      const wunsch = cmd.slice(10).trim();
+    if (this._isExpandCmd(cmd)) {
+      const wunsch = this._expandWunschOf(cmd);
       this._startLoading(cmd);
+      this._jobAbort = new AbortController();
       try {
         const data = await this.api.expandWorld(wunsch);
-        const result = await this.api.pollJob(data.job_id);
+        const result = await this.api.pollJob(data.job_id, null, this._jobAbort.signal);
         if (result && result.narration) {
           this.addLog("narrator", result.narration);
           if (result.state) this.state = result.state;
           this.renderGame();
         }
       } catch (e) {
-        this.addLog("error", e.message);
+        if (!(e && e.name === "AbortError")) this.addLog("error", e.message);
       } finally {
+        this._jobAbort = null;
         this._stopLoading();
         this.renderGame();
       }
@@ -349,11 +408,12 @@ const app = {
     }
 
     // New adventure
-    if (cmd.toLowerCase().includes("neues abenteuer")) {
+    if (this._isNewAdventureCmd(cmd)) {
       this._startLoading(cmd);
+      this._jobAbort = new AbortController();
       try {
         const data = await this.api.newAdventure();
-        const result = await this.api.pollJob(data.job_id);
+        const result = await this.api.pollJob(data.job_id, null, this._jobAbort.signal);
         if (result && result.narration) {
           this.addLog("narrator", result.narration);
           if (result.state) this.state = result.state;
@@ -365,8 +425,9 @@ const app = {
           }
         }
       } catch (e) {
-        this.addLog("error", e.message);
+        if (!(e && e.name === "AbortError")) this.addLog("error", e.message);
       } finally {
+        this._jobAbort = null;
         this._stopLoading();
         this.renderGame();
       }
@@ -375,9 +436,10 @@ const app = {
 
     // Normal command
     this._startLoading(cmd);
+    this._jobAbort = new AbortController();
     try {
       const data = await this.api.sendCommand(cmd);
-      const result = await this.api.pollJob(data.job_id);
+      const result = await this.api.pollJob(data.job_id, null, this._jobAbort.signal);
 
       if (!result) {
         this.addLog("error", t("error_generic"));
@@ -432,15 +494,25 @@ const app = {
       }
 
     } catch (e) {
-      if (e.message && e.message.includes("busy")) {
+      if (e && e.name === "AbortError") {
+        // bereits via onCancelJob geloggt
+      } else if (e.message && e.message.includes("busy")) {
         this.addLog("system", t("error_busy"));
       } else {
         this.addLog("error", e.message || t("error_generic"));
       }
     } finally {
+      this._jobAbort = null;
       this._stopLoading();
       this.renderGame();
     }
+  },
+
+  onCancelJob() {
+    if (!this._jobAbort || this._jobAbort.signal.aborted) return;
+    this._jobAbort.abort();
+    const label = document.getElementById("loading-text");
+    if (label) label.textContent = t("cancelling");
   },
 
   renderGameOver() {
@@ -483,19 +555,6 @@ const app = {
     }
   },
 
-  onToggleMinimap() {
-    const tabBar = document.getElementById("tab-bar");
-    const sidebar = document.getElementById("sidebar");
-    if (tabBar && sidebar) {
-      tabBar.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
-      const mapTab = tabBar.querySelector('[data-tab="map"]');
-      if (mapTab) mapTab.classList.add("active");
-      sidebar.querySelectorAll(".sidebar-tab").forEach(st => st.classList.remove("active"));
-      const mapPanel = sidebar.querySelector('[data-tab="map"]');
-      if (mapPanel) mapPanel.classList.add("active");
-    }
-  },
-
   onFullscreenMap() {
     if (this._fullscreenMap) return;
     this._fullscreenMap = true;
@@ -530,7 +589,8 @@ const app = {
     const bigMap = new Minimap(canvas, size);
     for (const rid of this.visitedRooms) {
       if (!bigMap.rooms[rid]) {
-        bigMap.addRoom(rid, this.state ? (this.state.exits || []) : [], null, null);
+        const info = this.roomInfo[rid];
+        bigMap.addRoom(rid, info ? (info.exits || []) : [], null, null);
       }
     }
     if (this.state && this.state.room) {

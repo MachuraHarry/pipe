@@ -1,22 +1,27 @@
 // Service Worker: "worldcraft" — PWA-Offline-Fallback + sauberes Update-Handling.
 // CACHE_VERSION wird per Build-Script (tools/bump_cache.py) ersetzt.
-const CACHE_VERSION = "585befb554";
+const CACHE_VERSION = "4f27185b65";
 const CACHE_NAME = "worldcraft-v" + CACHE_VERSION;
 
 const STATIC_ASSETS = [
   "/",
   "/index.html",
   "/manifest.json",
-  "/css/style.css",
   "/css/minimap.css",
-  "/js/app.js",
+  "/css/style.css",
   "/js/api.js",
-  "/js/ui.js",
-  "/js/minimap.js",
+  "/js/app.js",
   "/js/audio.js",
   "/js/i18n.js",
+  "/js/minimap.js",
+  "/js/ui.js",
   "/img/icon-192.png",
-  "/img/icon-512.png"
+  "/img/icon-512.png",
+  "/audio/dialog.wav",
+  "/audio/hit.wav",
+  "/audio/pickup.wav",
+  "/audio/step.wav",
+  "/audio/victory.wav",
 ];
 
 const ASSET_URLS = new Set(STATIC_ASSETS.map(a => a.replace(/^\//, "")));

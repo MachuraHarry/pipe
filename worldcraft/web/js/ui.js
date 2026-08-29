@@ -2,7 +2,7 @@ const UI = {
   _audioInited: false,
   _loadingEl: null,
 
-  showLoading(cmd) {
+  showLoading(cmd, onCancel) {
     const existing = document.getElementById("loading-bar");
     if (existing) existing.remove();
     const bar = document.createElement("div");
@@ -10,11 +10,14 @@ const UI = {
     bar.className = "loading-bar";
     bar.innerHTML = `
       <div class="loading-spinner-mini"></div>
-      <span class="loading-text">${t("thinking")}</span>
-      <span class="loading-cmd">${cmd}</span>
+      <span class="loading-text" id="loading-text">${t("thinking")}</span>
+      <span class="loading-cmd">${this.esc(cmd)}</span>
       <span class="loading-time" id="loading-time">0.0s</span>
+      ${onCancel ? `<button class="loading-cancel" id="btn-cancel-loading" type="button" aria-label="${this.esc(t("cancel"))}">✕ ${this.esc(t("cancel"))}</button>` : ""}
     `;
     document.body.appendChild(bar);
+    const cancelBtn = bar.querySelector ? bar.querySelector("#btn-cancel-loading") : null;
+    if (cancelBtn && onCancel) cancelBtn.onclick = onCancel;
   },
 
   updateLoadingTime(ms) {
@@ -45,9 +48,10 @@ const UI = {
     }
   },
 
-  renderSplash(onNewGame, onResume, onSettings) {
+  renderSplash(onNewGame, onResume, onSettings, onInstall) {
     const root = document.getElementById("root");
     const hasSession = window._wcApp && window._wcApp.api.hasSession;
+    const hasInstall = window._wcApp && window._wcApp._installPrompt;
     root.innerHTML = `
       <div class="screen splash-screen">
         <div class="splash-content">
@@ -63,6 +67,7 @@ const UI = {
             ${hasSession ? `<button class="btn btn-primary" id="btn-resume">${t("continue")}</button>` : ""}
             <button class="btn btn-secondary" id="btn-new">${t("new_game")}</button>
             <button class="btn btn-outline" id="btn-settings">${t("settings")}</button>
+            ${hasInstall ? `<button class="btn btn-outline" id="btn-install">${t("install")}</button>` : ""}
           </div>
         </div>
       </div>
@@ -75,6 +80,8 @@ const UI = {
     if (newBtn) newBtn.onclick = onNewGame;
     const settingsBtn = document.getElementById("btn-settings");
     if (settingsBtn) settingsBtn.onclick = onSettings;
+    const installBtn = document.getElementById("btn-install");
+    if (installBtn && onInstall) installBtn.onclick = onInstall;
   },
 
   renderNewGame(worlds, profiles, needsToken, onSelectWorld, onSelectProfile, onTokenChange, onStart, onBack) {
@@ -274,7 +281,7 @@ const UI = {
     const costChip = cost ? `<span class="cost-inline" id="cost-inline" title="${t("ai_cost_title")} ${cost.calls} ${t("ai_cost_calls")} · ${cost.tokens} ${t("ai_cost_tokens")}">≈ $${Number(cost.cost_usd || 0).toFixed(4)}</span>` : "";
 
     root.innerHTML = `
-      <div class="screen game-screen">
+      <div class="screen game-screen" aria-busy="${isLoading ? "true" : "false"}">
         <div class="status-bar" id="status-bar">
           <div class="status-left">
             <span class="hp-inline" title="${hp}/${maxHp} HP">
@@ -304,20 +311,20 @@ const UI = {
             ${buffs.length ? `<span class="buff-count" title="${buffs.length} ${t("buffs")}">⬡${buffs.length}</span>` : ""}
           </div>
           <div class="status-right">
-            <button class="top-btn icon-btn" id="sound-toggle" title="Sound">${soundEnabled ? "\u{1F50A}" : "\u{1F507}"}</button>
-            <button class="top-btn icon-btn" id="btn-minimap-toggle" title="Map">\u{1F5FA}</button>
-            <button class="top-btn icon-btn" id="btn-settings-game" title="${t("settings")}">\u2699</button>
+            <button class="top-btn icon-btn" id="sound-toggle" title="Sound" aria-label="Sound">${soundEnabled ? "\u{1F50A}" : "\u{1F507}"}</button>
+            <button class="top-btn icon-btn" id="btn-minimap-toggle" title="Map" aria-label="Karte">\u{1F5FA}</button>
+            <button class="top-btn icon-btn" id="btn-settings-game" title="${t("settings")}" aria-label="${t("settings")}">\u2699</button>
           </div>
         </div>
 
         <div class="room-name" id="room-name">${this.esc(roomName)}</div>
 
-        <div class="game-log" id="game-log">
-          ${log.map(e => this._logEntryHtml(e)).join("")}
+        <div class="game-log" id="game-log" role="log" aria-live="polite">
+          ${log.map(e => this._logEntryHtml(e, isLoading)).join("")}
         </div>
 
-        <div class="actions-area" id="actions-area">
-          ${this._actionsGridHtml(exits, items, npcs, monsters, inventory, quests, apiOptions, spells)}
+        <div class="actions-area" id="actions-area" data-loading="${isLoading ? "1" : "0"}">
+          ${this._actionsGridHtml(exits, items, npcs, monsters, apiOptions, spells, isLoading)}
         </div>
 
         <div class="tab-bar" id="tab-bar">
@@ -392,7 +399,7 @@ const UI = {
     }
   },
 
-  _logEntryHtml(entry) {
+  _logEntryHtml(entry, isLoading) {
     let cls = "log-" + entry.type;
     let text = entry.text || "";
     let dialogHtml = "";
@@ -408,7 +415,7 @@ const UI = {
               ${d.choices.map((c, ci) => {
                 const cmd = c;
                 const did = "dlg-" + Date.now() + "-" + ci;
-                return `<button class="btn btn-dialog" data-cmd="${this._escAttr(cmd)}" data-dialog="${did}">${this.esc(c)}</button>`;
+                return `<button class="btn btn-dialog" data-cmd="${this._escAttr(cmd)}" data-dialog="${did}" ${isLoading ? "disabled" : ""}>${this.esc(c)}</button>`;
               }).join("")}
             </div>
           ` : ""}
@@ -419,8 +426,9 @@ const UI = {
     return `<div class="${cls}">${text ? `<span class="log-text">${this.esc(text)}</span>` : ""}${dialogHtml}</div>`;
   },
 
-  _actionsGridHtml(exits, items, npcs, monsters, inventory, quests, apiOptions, spells) {
+  _actionsGridHtml(exits, items, npcs, monsters, apiOptions, spells, isLoading) {
     const sections = [];
+    const maybeDisabled = isLoading ? ' disabled="disabled"' : "";
 
     // Movement
     if (exits.length) {
@@ -428,7 +436,7 @@ const UI = {
         <div class="action-category">
           <div class="action-category-label">${t("movement")}</div>
           <div class="action-chips">
-            ${exits.map(e => `<button class="action-chip chip-move" data-cmd="geh nach ${this._escAttr(e)}">${this.esc(e)}</button>`).join("")}
+            ${exits.map(e => `<button ${maybeDisabled} class="action-chip chip-move" data-cmd="geh nach ${this._escAttr(e)}">${this.esc(e)}</button>`).join("")}
           </div>
         </div>
       `);
@@ -443,7 +451,7 @@ const UI = {
             ${items.map(i => {
               const id = i.id || i;
               const name = i.name || i;
-              return `<button class="action-chip chip-item" data-cmd="nimm ${this._escAttr(id)}">${this.esc(name)}</button>`;
+              return `<button ${maybeDisabled} class="action-chip chip-item" data-cmd="nimm ${this._escAttr(id)}">${this.esc(name)}</button>`;
             }).join("")}
           </div>
         </div>
@@ -459,7 +467,7 @@ const UI = {
             ${npcs.map(n => {
               const label = n.name || n.id;
               const role = n.role ? ` <span class="npc-role">${this.esc(n.role)}</span>` : "";
-              return `<button class="action-chip chip-npc" data-cmd="rede mit ${this._escAttr(n.id)}">${this.esc(label)}${role}</button>`;
+              return `<button ${maybeDisabled} class="action-chip chip-npc" data-cmd="rede mit ${this._escAttr(n.id)}">${this.esc(label)}${role}</button>`;
             }).join("")}
           </div>
         </div>
@@ -474,7 +482,7 @@ const UI = {
           <div class="action-chips">
             ${monsters.map(m => {
               const hpPct = m.max_hp ? Math.round((m.hp / m.max_hp) * 100) : 100;
-              return `<button class="action-chip chip-monster" data-cmd="greife ${this._escAttr(m.id)} an">
+              return `<button ${maybeDisabled} class="action-chip chip-monster" data-cmd="greife ${this._escAttr(m.id)} an">
                 ${this.esc(m.name || m.id)}
                 <span class="monster-hp"><span class="monster-hp-fill" style="width:${hpPct}%"></span></span>
               </button>`;
@@ -493,7 +501,7 @@ const UI = {
             <div class="action-category-label">${t("zauber")}</div>
             <div class="action-chips">
               ${attackSpells.map(sp => monsters.map(m =>
-                `<button class="action-chip chip-spell" data-cmd="zauber ${this._escAttr(sp.id)} auf ${this._escAttr(m.id)}">${this.esc(sp.name || sp.id)} ▸ ${this.esc(m.name || m.id)}</button>`
+                `<button ${maybeDisabled} class="action-chip chip-spell" data-cmd="zauber ${this._escAttr(sp.id)} auf ${this._escAttr(m.id)}">${this.esc(sp.name || sp.id)} ▸ ${this.esc(m.name || m.id)}</button>`
               ).join("")).join("")}
             </div>
           </div>
@@ -507,7 +515,7 @@ const UI = {
         <div class="action-category">
           <div class="action-category-label">${t("actions")}</div>
           <div class="action-chips">
-            ${apiOptions.map(o => `<button class="action-chip chip-system" data-cmd="${this._escAttr(o)}">${this.esc(o)}</button>`).join("")}
+            ${apiOptions.map(o => `<button ${maybeDisabled} class="action-chip chip-system" data-cmd="${this._escAttr(o)}">${this.esc(o)}</button>`).join("")}
           </div>
         </div>
       `);
@@ -756,7 +764,7 @@ const UI = {
     document.getElementById("volume-slider").oninput = (e) => {
       const v = parseFloat(e.target.value);
       app.volume = v;
-      localStorage.setItem("wc_volume", v);
+      window._wcAudio.setVolume(v);
       document.getElementById("volume-label").textContent = Math.round(v * 100) + "%";
     };
     document.getElementById("admin-token-input").onchange = (e) => {

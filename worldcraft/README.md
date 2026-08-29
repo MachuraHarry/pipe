@@ -126,7 +126,7 @@ Row-Level-Seeder + Merge ins Doc inkl. gekoppelter Objectives) →
 Prinzip: Das LLM erzählt und konfiguriert nur. **Jede Zustandsänderung läuft
 über ein registriertes `ai_tool`** bzw. den Fastpath, der reine Pipe-Funktionen
 aufruft, welche die sqlite-DB mutieren. Siegesbedingungen sind datengetriebene
-`objectives` (kind: `give` / `kill` / `explore`) — keine Code-Änderungen nötig.
+`objectives` (kind: `give` / `kill` / `explore` / `fetch`) — keine Code-Änderungen nötig.
 
 ## Technik-Notizen
 

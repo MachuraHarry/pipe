@@ -676,6 +676,24 @@ html, body {
   font-size: 0.8rem;
   flex-shrink: 0;
 }
+.loading-cancel {
+  flex-shrink: 0;
+  background: none;
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+  border-radius: 6px;
+  padding: 4px 10px;
+  font-size: 0.78rem;
+  cursor: pointer;
+}
+.loading-cancel:hover {
+  border-color: var(--danger, #c0392b);
+  color: var(--danger, #c0392b);
+}
+.loading-cancel:focus-visible {
+  outline: 2px solid var(--danger, #c0392b);
+  outline-offset: 2px;
+}
 
 /* ===== New Game ===== */
 .newgame-screen {
@@ -1004,4 +1022,58 @@ html, body {
 @keyframes slideRight {
   from { transform: translateX(100%); opacity: 0; }
   to { transform: translateX(0); opacity: 1; }
+}
+
+/* ---- Barrierefreiheit & moderne UX ---- */
+
+/* Sichtbarer Fokus nur via Tastatur (Vermeidung bloßer outline-Entfernung) */
+:focus-visible {
+  outline: 2px solid var(--accent, #c9a84c);
+  outline-offset: 2px;
+}
+
+/* Barrieren während eines laufenden Jobs */
+[data-loading="1"] .action-chip,
+button[disabled] {
+  cursor: default;
+}
+[data-loading="1"] .action-chip {
+  opacity: 0.5;
+}
+[data-loading="1"] .action-chip:hover {
+  transform: none;
+}
+
+/* Nicht-Touch-Geräte: sanfter Hover-Delay (kein versehentliches Auslösen) */
+@media (hover: hover) {
+  button:not([disabled]):focus-visible {
+    outline-offset: 2px;
+  }
+}
+
+/* Bewegung reduzieren (vestibuläre Trigger vermeiden) */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+  .loading-spinner-inline,
+  .loading-spinner-inline::before,
+  .loading-spinner-inline::after,
+  .loading-shimmer {
+    animation: none !important;
+  }
+}
+
+/* Notch/Home-Indicator auf iOS: Inhalte nicht unterlegen */
+@supports (padding: max(0px)) {
+  body {
+    padding-left: env(safe-area-inset-left, 0px);
+    padding-right: env(safe-area-inset-right, 0px);
+  }
+  .input-bar, .tab-bar {
+    padding-bottom: max(8px, env(safe-area-inset-bottom, 0px));
+  }
 }

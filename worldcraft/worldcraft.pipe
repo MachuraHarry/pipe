@@ -91,7 +91,7 @@ else
         doc: fallback_world pack
     else
         setup_ai_provider 0
-        model: pick_free_model FREE_MODELS
+        model: pick_free_model GEN_MODELS
         print ("Modell: " ++ model)
         ai_timeout AI_TIMEOUT_TURN
         print ""

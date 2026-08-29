@@ -46,6 +46,7 @@ set MIMES ".ico"  "image/x-icon"
 set MIMES ".woff2" "font/woff2"
 set MIMES ".mp3"  "audio/mpeg"
 set MIMES ".ogg"  "audio/ogg"
+set MIMES ".wav"  "audio/wav"
 set MIMES ".webmanifest" "application/manifest+json"
 
 -- ---- Helpers ----
@@ -391,7 +392,10 @@ fn route req
                             if rest == "" && method == "DELETE"
                                 sess: get_session sid
                                 if sess != nil
-                                    proxy sess "/shutdown" "POST" ""
+                                    try
+                                        proxy sess "/shutdown" "POST" ""
+                                    catch
+                                        print "Worker beim Session-Löschen nicht erreichbar, räume direkt auf."
                                     drop_session sid
                                 cleanup_session_files sid
                                 jres 200 {status: "terminated", session_id: sid}

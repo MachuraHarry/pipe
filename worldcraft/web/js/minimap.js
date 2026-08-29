@@ -66,27 +66,46 @@ class Minimap {
     }
   }
 
-  _findFreePos(x, y) {
-    let attempts = 0;
-    while (attempts < 20) {
-      let occupied = false;
-      for (const id of this.roomOrder) {
-        const r = this.rooms[id];
-        if (Math.abs(r.x - x) < this.roomW + 4 && Math.abs(r.y - y) < this.roomH + 4) {
-          occupied = true;
-          break;
-        }
+  _isOccupied(x, y) {
+    for (const id of this.roomOrder) {
+      const r = this.rooms[id];
+      if (Math.abs(r.x - x) < this.roomW + 4 && Math.abs(r.y - y) < this.roomH + 4) {
+        return true;
       }
-      if (!occupied) return { x, y };
-      x += (Math.random() - 0.5) * 10;
-      y += (Math.random() - 0.5) * 10;
-      attempts++;
+    }
+    return false;
+  }
+
+  // Deterministische Platzierung: fester Kandidaten-Lauf (kein Zufall), damit
+  // das Layout über Neu-Renderings hinweg stabil bleibt und nicht „springt".
+  _findFreePos(x, y) {
+    const gx = this.roomW + 4;
+    const gy = this.roomH + 4;
+    const attempts = [
+      [0, 0],
+      [gx, 0], [-gx, 0],
+      [0, gy], [0, -gy],
+      [gx, gy], [-gx, gy], [gx, -gy], [-gx, -gy],
+      [2 * gx, 0], [-2 * gx, 0],
+      [0, 2 * gy], [0, -2 * gy],
+      [2 * gx, 2 * gy], [-2 * gx, 2 * gy], [2 * gx, -2 * gy], [-2 * gx, -2 * gy]
+    ];
+    for (const [dx, dy] of attempts) {
+      const cx = x + dx;
+      const cy = y + dy;
+      if (!this._isOccupied(cx, cy)) return { x: cx, y: cy };
     }
     return { x, y };
   }
 
   addRoom(id, exits, fromRoom, direction) {
-    if (this.rooms[id]) return;
+    if (this.rooms[id]) {
+      if (exits && exits.length) {
+        this.rooms[id].exits = exits;
+        this.render();
+      }
+      return;
+    }
     let x, y;
     if (!fromRoom || !this.rooms[fromRoom]) {
       x = this.displaySize / 2;

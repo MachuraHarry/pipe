@@ -94,17 +94,40 @@ Voller Zustand + Intro-Narration:
   "state": {
     "world": "Die Musterwelt",
     "room": "tpl_eingang",
+    "room_name": "Der windige Vorhof",
     "room_description": "== tpl_eingang == ...",
     "exits": ["norden"],
-    "items": ["fackel"],
+    "items": [{"id": "fackel", "name": "fackel", "desc": "Eine Fackel."}],
     "npcs": [{"id": "weiser_aldric", "name": "Weiser Aldric", "role": "weiser"}],
     "monsters": [{"id": "kammerling", "name": "Kammerling", "hp": 5, "max_hp": 5}],
-    "hp": 10, "gold": 20, "inventory": [],
+    "hp": 10, "max_hp": 10, "gold": 20, "mana": 15, "max_mana": 15, "xp": 0, "level": 1,
+    "inventory": [],
     "quests": [{"id": "q_ungewuerm", "name": "Das Ungewürm", "state": "aktiv"}],
+    "spells": [], "buffs": [],
     "won": false
   },
   "options": ["geh nach norden", "nimm fackel", "inventar", "quests"]
 }
+```
+
+### `GET /api/v1/sessions/{id}/boot`
+Fortschritt der Weltvorbereitung (wird vom Frontend während des Bootens gepollt).
+```json
+{
+  "session": "s1787730632_1",
+  "ready": false,
+  "progress": 42,
+  "phase": "lore",
+  "detail": "Flechtet die Geschichte...",
+  "error": null
+}
+```
+`ready: true` + `progress: 100` sobald die Welt spielbar ist.
+
+### `GET /api/v1/sessions/{id}/cost`
+Aktuelle KI-Kosten der Session.
+```json
+{"cost_usd": 0.0034, "calls": 12, "tokens": 8450}
 ```
 
 ### `POST /api/v1/sessions/{id}/command` `{input: string}`
@@ -137,7 +160,20 @@ Ergebnis nach Polling:
 | `dialog` | Nur gesetzt, wenn der Zug ein NPC-Gespräch war. `choices` = 3 KI-Vorschläge für nächste Befehle — ideal als Buttons in der App |
 | `options` | Deterministische Aktionsvorschläge aus dem Zustand (Exits, Items, NPCs, Handel, Kampf) |
 
-Polling-Pfad: `GET /api/v1/sessions/{id}/jobs/{job_id}` → `{status:"running"|"done", result?, error?}`
+Polling-Pfad: `GET /api/v1/sessions/{id}/jobs/{job_id}` → `{status:"running"|"done", result}`.
+Ein `done`-Job liefert **immer** ein `result`-Objekt. Trat beim Verarbeiten ein
+(nicht-fataler) Fehler auf, trägt das Ergebnis zusätzlich ein strukturiertes
+`error`-Feld, ohne die Narration zu verlieren:
+```json
+{
+  "result": {
+    "narration": "Der Erzähler antwortet gerade nicht — versuch ...",
+    "error": {"code": "ai_unavailable", "message": "alle Modelle nicht erreichbar"}
+  }
+}
+```
+Mögliche Codes: `ai_unavailable` (KI-Ausfall, Narration bleibt vom Fallback-Text)
+und `turn_failed` (unerwarteter Fehler während des Zugs).
 
 ### `POST /api/v1/sessions/{id}/expand` `{wunsch: string}`
 Welt wachsen lassen. → `202 {job_id}`, Result-Narration fasst zusammen:
@@ -158,16 +194,23 @@ Neuanfang möglich). Nur der Idle-Timeout/Resume erhält den Stand.
 | Feld | Typ | Inhalt |
 |---|---|---|
 | `world` | str | Anzeigename der Welt |
-| `room`, `room_description` | str | aktueller Raum (+ atmosphärischer Text) |
+| `room`, `room_name`, `room_description` | str | aktueller Raum, sein Anzeigename, atmosphärischer Text |
 | `exits` | list | mögliche Richtungen |
-| `items` | list | Items am Boden |
+| `items` | list of obj | `{id, name, desc}` — Items am Boden (desc aus dem Pack) |
 | `npcs` | list of obj | `{id, name, role}` |
-| `monsters` | list of obj | `{id, name, hp, max_hp}` |
-| `hp`, `gold` | num | Vitalwerte |
+| `monsters` | list of obj | `{id, name, hp, max_hp}` (nur nicht besiegte) |
+| `hp`, `max_hp`, `gold` | num | Vitalwerte |
+| `mana`, `max_mana` | num | Mana + Maximum |
 | `level`, `xp` | num | Stufe und Erfahrungspunkte; alle 50 XP steigt die Stufe |
 | `inventory` | list | getragene Items (IDs) |
 | `quests` | list of obj | `{id, name, state}` (`aktiv`/`erledigt`) |
+| `spells` | list of obj | `{id, name, typ, manakosten, schaden}` — gelernte Zauber |
+| `buffs` | list of obj | `{art, wert, runden}` — aktive Effekte |
 | `won` | bool | Hauptziel erfüllt |
+
+**Objective-Kinds** (Siegesbedingungen sind datengetrieben): `give`, `kill`,
+`explore`, `fetch`. Ziele mit `main=1` bestimmen den Sieg; Ziele mit `quest`
+schließen zusätzlich die verknüpfte Quest ab.
 
 ## Fehlercodes
 

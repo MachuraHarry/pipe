@@ -873,7 +873,10 @@ fn restore_save data
             xp_val: get row "xp"
         db_exec h ("INSERT INTO player VALUES (" ++ (to_str (get row "id")) ++ ", '" ++ (sql_escape (get row "room")) ++ "', " ++ (to_str (get row "hp")) ++ ", " ++ (to_str max_hp_val) ++ ", " ++ (to_str (get row "gold")) ++ ", " ++ (to_str mana_val) ++ ", " ++ (to_str max_mana_val) ++ ", " ++ (to_str xp_val) ++ ", '" ++ (sql_escape (get row "inventory")) ++ "', " ++ (to_str (get row "won")) ++ ")")
     for row in (get data "rooms")
-        db_exec h ("INSERT INTO rooms VALUES ('" ++ (sql_escape (get row "id")) ++ "', '" ++ (sql_escape (get row "description")) ++ "', '" ++ (sql_escape (get row "items")) ++ "', '" ++ (sql_escape (get row "exits")) ++ "')")
+        rname: or_default_str (get row "name")
+        if rname == ""
+            rname: pretty_room_name (get row "id")
+        db_exec h ("INSERT INTO rooms VALUES ('" ++ (sql_escape (get row "id")) ++ "', '" ++ (sql_escape (get row "description")) ++ "', '" ++ (sql_escape (get row "items")) ++ "', '" ++ (sql_escape (get row "exits")) ++ "', '" ++ (sql_escape rname) ++ "')")
     for row in (get data "npc_memory")
         db_exec h ("INSERT INTO npc_memory VALUES ('" ++ (sql_escape (get row "npc")) ++ "', '" ++ (sql_escape (get row "summary")) ++ "', " ++ (to_str (get row "turns")) ++ ")")
     --! Restore flavor if saved (backwards compatible with old saves)

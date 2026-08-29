@@ -10,6 +10,8 @@ Alle Versuche werden im Audit-Log dokumentiert.
 
 ## Reports
 
+- [report7.en.md](report7.en.md) — Runde 7 (EN): `--sandbox`-Flag-Pfad ließ 6 von 8 fs-write-Builtins durch (v.a. `write_file`) — zentraler `checkFSWriteAccess`-Helper, gefixt & live verifiziert
+- [report7.de.md](report7.de.md) — Runde 7 (DE): `--sandbox`-Flag-Pfad ließ 6 von 8 fs-write-Builtins durch (v.a. `write_file`) — zentraler `checkFSWriteAccess`-Helper, gefixt & live verifiziert
 - [report6.en.md](report6.en.md) — Runde 6 (EN): `--sandbox`-Flag-Pfad ließ `http_post`/`tcp_connect`/`tcp_listen` durch — zentraler `checkNetworkAccess`-Helper, gefixt & live verifiziert
 - [report6.de.md](report6.de.md) — Runde 6 (DE): `--sandbox`-Flag-Pfad ließ `http_post`/`tcp_connect`/`tcp_listen` durch — zentraler `checkNetworkAccess`-Helper, gefixt & live verifiziert
 - [report4.en.md](report4.en.md) — Runde 4 (EN): `embed` gated falsche Dimension, `embed_batch` ohne Gate, `import`-SSRF — gefixt, live verifiziert
@@ -20,6 +22,17 @@ Alle Versuche werden im Audit-Log dokumentiert.
 - [report2.de.md](report2.de.md) — Runde 2 (DE): 3 Ratchet-Lücken gefunden & gefixt, danach kein Escape
 - [report.en.md](report.en.md) — Runde 1 (EN), detailed audit report
 - [report.de.md](report.de.md) — Runde 1 (DE), ausführlicher Audit-Report
+
+## Architektur-Härtung (Runde 7)
+
+- Seit Commit `c928178` erzwingt ein **zentraler fs-write-Gate-Helper**
+  `checkFSWriteAccess` in `pkg/object/builtins_sandbox.go` das Schreib-Verbot
+  in **beiden** Pfaden (Profil-`canonicalWrite` **und** CLI-`Sandbox.AllowFS`).
+  Alle acht Schreib-Builtins (`write_file`, `append_file`, `file_delete`,
+  `file_move`, `file_copy`, `make_dir`, `remove_dir`, `file_open`
+  schreibfähige Modi) laufen über ihn. Regressionstests in
+  `pkg/object/fs_write_gate_test.go` decken blockiert **und** erlaubt ab
+  sowie die bewusst ungegatete Lese-Grenze (`file_open` Modus `r`).
 
 ## Architektur-Härtung (Runde 6)
 

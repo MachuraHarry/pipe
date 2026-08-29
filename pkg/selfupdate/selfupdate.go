@@ -189,14 +189,14 @@ func runUpdate(version string, checkOnly bool, exePath string) error {
 		return err
 	}
 
-	if err := download(base+"/"+artifact+".sha256", tarball+".sha256"); err == nil {
-		if err := verifySHA256(tarball, tarball+".sha256"); err != nil {
-			return err
-		}
-		fmt.Println("SHA256 verified")
-	} else {
-		fmt.Println("warning: no SHA256 checksum available, skipping verification")
+	sumFile := tarball + ".sha256"
+	if err := download(base+"/"+artifact+".sha256", sumFile); err != nil {
+		return fmt.Errorf("downloading checksum for %s: %w (refusing to install an unverified binary)", artifact, err)
 	}
+	if err := verifySHA256(tarball, sumFile); err != nil {
+		return err
+	}
+	fmt.Println("SHA256 verified")
 
 	binaryPath, err := extract(tarball, tmp, goos)
 	if err != nil {

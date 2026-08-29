@@ -135,6 +135,51 @@ func TestRunUpdateCheckOnlyReportsWithoutInstalling(t *testing.T) {
 	}
 }
 
+// serveReleaseNoChecksum is like serveRelease but the tarball's .sha256 is
+// never published (404), simulating a flaky mirror or an attacker that can
+// suppress a single request.
+func serveReleaseNoChecksum(t *testing.T, tag, payload string) {
+	t.Helper()
+	tarball := makeTarball(t, payload)
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch {
+		case r.URL.Path == "/releases/latest":
+			fmt.Fprintf(w, `{"tag_name": %q}`, tag)
+		case r.URL.Path == "/download/"+tag+"/"+ArtifactName(runtime.GOOS, runtime.GOARCH):
+			w.Write(tarball)
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	t.Cleanup(srv.Close)
+
+	oldURL, oldBase := latestReleaseURL, downloadBase
+	t.Cleanup(func() { latestReleaseURL, downloadBase = oldURL, oldBase })
+	latestReleaseURL = srv.URL + "/releases/latest"
+	downloadBase = srv.URL + "/download"
+}
+
+func TestRunUpdateRefusesWithoutChecksum(t *testing.T) {
+	dir := t.TempDir()
+	target := writeFakeBinary(t, dir, "OLD")
+	serveReleaseNoChecksum(t, "v9.9.9", "NEW")
+
+	err := runUpdate("v1.0.0", false, target)
+	if err == nil {
+		t.Fatal("expected runUpdate to fail when the checksum cannot be fetched")
+	}
+	if !strings.Contains(err.Error(), "checksum") {
+		t.Fatalf("error should mention the missing checksum, got: %v", err)
+	}
+	if got := readTarget(t, target); got != "OLD" {
+		t.Fatalf("binary was replaced despite missing checksum verification: %q", got)
+	}
+	leftovers, _ := filepath.Glob(filepath.Join(dir, "*.new"))
+	if len(leftovers) != 0 {
+		t.Fatalf("staged files left behind after aborted update: %v", leftovers)
+	}
+}
+
 func TestRunUpdateRefusesEmbeddedBinary(t *testing.T) {
 	os.Unsetenv("PIPE_UPDATE_EMBEDDED")
 

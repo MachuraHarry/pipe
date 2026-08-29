@@ -62,16 +62,20 @@ func bFileOpen(args ...Object) Object {
 	}
 
 	openPath := path.Value
-	if ActiveProfile.Load().Name != "none" {
-		var cerr error
-		if mode.Value == "r" {
+	if mode.Value == "r" {
+		if ActiveProfile.Load().Name != "none" {
+			var cerr error
 			openPath, cerr = ActiveProfile.Load().canonicalRead(path.Value)
-		} else {
-			openPath, cerr = ActiveProfile.Load().canonicalWrite(path.Value)
+			if cerr != nil {
+				return err(cerr.Error())
+			}
 		}
+	} else {
+		resolved, cerr := checkFSWriteAccess("file_open", path.Value)
 		if cerr != nil {
-			return err(cerr.Error())
+			return cerr
 		}
+		openPath = resolved
 	}
 
 	f, e := os.OpenFile(openPath, flags, 0644)

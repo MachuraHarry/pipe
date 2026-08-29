@@ -49,6 +49,28 @@ func checkNetworkAccess(feature string) *Error {
 	return nil
 }
 
+// checkFSWriteAccess resolves path for a filesystem-write builtin and enforces
+// write restrictions: a registered profile jails/canonicalizes the path via
+// canonicalWrite, while the default "none" profile is governed by the CLI
+// --sandbox flag (AllowFS). Every fs-write builtin must route its path
+// through this before touching the filesystem, so a future builtin cannot
+// silently bypass --sandbox the way checkNetworkAccess prevents for network
+// builtins (see the round-6 audit finding this mirrors).
+func checkFSWriteAccess(feature, path string) (string, *Error) {
+	p := ActiveProfile.Load()
+	if p.Name != "none" {
+		resolved, cerr := p.canonicalWrite(path)
+		if cerr != nil {
+			return "", &Error{Message: cerr.Error()}
+		}
+		return resolved, nil
+	}
+	if Sandbox.Enabled && !Sandbox.AllowFS {
+		return "", sandboxBlock(feature + " (filesystem write)")
+	}
+	return path, nil
+}
+
 // ---- Sandbox Profile Builtins ----
 
 func bSandboxProfile(args ...Object) Object {

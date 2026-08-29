@@ -161,13 +161,9 @@ func bWriteFile(args ...Object) Object {
 	if !ok || !ok2 {
 		return err("write_file: path and content must be strings")
 	}
-	path := p.Value
-	if ActiveProfile.Load().Name != "none" {
-		var cerr error
-		path, cerr = ActiveProfile.Load().canonicalWrite(p.Value)
-		if cerr != nil {
-			return err(cerr.Error())
-		}
+	path, cerr := checkFSWriteAccess("write_file", p.Value)
+	if cerr != nil {
+		return cerr
 	}
 	if e := os.WriteFile(path, []byte(c.Value), 0644); e != nil {
 		return err("write_file: " + e.Error())

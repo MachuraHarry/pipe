@@ -789,27 +789,109 @@ func TestToolExecutorMaxCallsEnforced(t *testing.T) {
 
 // ---- exec whitelist ----
 
-func TestExecWhitelistBinaryParsing(t *testing.T) {
+// TestSplitShellWords covers the tokenizer that both CanExecCommand (the
+// whitelist gate) and buildExecCommand (the actual argv-mode invocation) use.
+// It intentionally gives no meaning to shell metacharacters (&&, |, $(...),
+// env-assignment prefixes, cd) — see TestExecWhitelistBlocksShellInjection
+// for why that's the point, not a gap.
+func TestSplitShellWords(t *testing.T) {
 	cases := []struct {
+		cmd  string
+		want []string
+	}{
+		{"git diff", []string{"git", "diff"}},
+		{"git log -1 --format=%H -- file", []string{"git", "log", "-1", "--format=%H", "--", "file"}},
+		{"/usr/bin/git rev-parse --short HEAD", []string{"/usr/bin/git", "rev-parse", "--short", "HEAD"}},
+		{"'git' status", []string{"git", "status"}},
+		{`git -C "D:\a\_temp\fixture" diff --numstat`, []string{"git", "-C", `D:\a\_temp\fixture`, "diff", "--numstat"}},
+		{"echo hi | grep x", []string{"echo", "hi", "|", "grep", "x"}},
+		{"cd repo && git status", []string{"cd", "repo", "&&", "git", "status"}},
+		{"FOO=bar GIT_PAGER= git log", []string{"FOO=bar", "GIT_PAGER=", "git", "log"}},
+		{"", nil},
+	}
+	for _, c := range cases {
+		got, err := splitShellWords(c.cmd)
+		if err != nil {
+			t.Errorf("splitShellWords(%q): unexpected error: %v", c.cmd, err)
+			continue
+		}
+		if len(got) != len(c.want) {
+			t.Errorf("splitShellWords(%q) = %v, want %v", c.cmd, got, c.want)
+			continue
+		}
+		for i := range got {
+			if got[i] != c.want[i] {
+				t.Errorf("splitShellWords(%q) = %v, want %v", c.cmd, got, c.want)
+				break
+			}
+		}
+	}
+
+	if _, err := splitShellWords(`echo "unterminated`); err == nil {
+		t.Error("splitShellWords: expected an error for an unterminated double quote")
+	}
+	if _, err := splitShellWords(`echo 'unterminated`); err == nil {
+		t.Error("splitShellWords: expected an error for an unterminated single quote")
+	}
+}
+
+// TestExecWhitelistBlocksShellInjection is the round-9 audit regression test:
+// exec_whitelist must not be defeatable by appending shell syntax to an
+// otherwise-whitelisted command. Before the fix, "echo" being whitelisted let
+// "echo hi && echo INJECTED" reach a real shell (sh -c) unfiltered, running
+// INJECTED as its own process. After the fix, the whole string is tokenized
+// and run as literal argv to "echo" — no shell — so "&&"/"echo"/"INJECTED"
+// are just three more arguments echo prints back, not shell syntax.
+func TestExecWhitelistBlocksShellInjection(t *testing.T) {
+	p := NewSandboxProfile("exw-inject")
+	p.Exec = true
+	p.ExecWhitelist = []string{"echo"}
+	defer withProfile(p)()
+
+	cases := []struct {
+		name string
 		cmd  string
 		want string
 	}{
-		{"git diff", "git"},
-		{"git log -1 --format=%H -- file", "git"},
-		{"/usr/bin/git rev-parse --short HEAD", "git"},
-		{"./bin/pipe run.x", "pipe"},
-		{"cd repo && git status", "git"},
-		{"FOO=bar GIT_PAGER= git log", "git"},
-		{"'git' status", "git"},
-		{"curl -s http://x", "curl"},
-		{"echo hi | grep x", "echo"},
-		{`git -C "D:\a\_temp\fixture" diff --numstat`, "git"},
-		{"", ""},
+		{"chain operator", "echo hi && echo INJECTED", "hi && echo INJECTED\n"},
+		{"command substitution", "echo $(whoami)", "$(whoami)\n"},
+		{"semicolon", "echo hi; echo INJECTED", "hi; echo INJECTED\n"},
+		{"backtick", "echo `id`", "`id`\n"},
 	}
 	for _, c := range cases {
-		if got := execCommandBinary(c.cmd); got != c.want {
-			t.Errorf("execCommandBinary(%q) = %q, want %q", c.cmd, got, c.want)
-		}
+		t.Run(c.name, func(t *testing.T) {
+			result := bExec(&String{Value: c.cmd})
+			m, ok := result.(*Map)
+			if !ok {
+				t.Fatalf("exec(%q): expected a result map, got %v", c.cmd, result)
+			}
+			out, ok := m.Pairs["output"].(*String)
+			if !ok {
+				t.Fatalf("exec(%q): result map has no string output", c.cmd)
+			}
+			if out.Value != c.want {
+				t.Fatalf("exec(%q) output = %q, want literal %q (no shell interpretation)", c.cmd, out.Value, c.want)
+			}
+		})
+	}
+}
+
+// TestExecWhitelistNoLongerSupportsShellComposition documents an intentional
+// behavior change from the round-9 fix: exec_whitelist no longer recognizes a
+// binary buried after cd/&&/env-assignment prefixes, because doing so
+// required parsing shell syntax that the fix deliberately stops interpreting.
+// A single simple command is exec_whitelist's supported shape now.
+func TestExecWhitelistNoLongerSupportsShellComposition(t *testing.T) {
+	p := NewSandboxProfile("exw-nocomposition")
+	p.Exec = true
+	p.ExecWhitelist = []string{"git"}
+	defer withProfile(p)()
+
+	if err := p.CanExecCommand("cd /tmp && git status"); err == nil {
+		t.Fatal("'cd ... && git ...' must be rejected: argv[0] is 'cd', not 'git'")
+	}
+	if err := p.CanExecCommand("FOO=bar GIT_PAGER= git log"); err == nil {
+		t.Fatal("leading env-assignment prefixes must be rejected: argv[0] is 'FOO=bar', not 'git'")
 	}
 }
 
@@ -835,9 +917,8 @@ func TestExecWhitelistAllowsGitBlocksOthers(t *testing.T) {
 	if err := p.CanExecCommand("git diff --numstat"); err != nil {
 		t.Fatalf("git must be allowed: %v", err)
 	}
-	if err := p.CanExecCommand("cd /tmp && git status"); err != nil {
-		t.Fatalf("git after cd must be allowed: %v", err)
-	}
+	// "cd /tmp && git status" is intentionally no longer allowed — see
+	// TestExecWhitelistNoLongerSupportsShellComposition.
 	if err := p.CanExecCommand("curl http://example.com"); err == nil {
 		t.Fatal("curl must be blocked by exec whitelist")
 	}

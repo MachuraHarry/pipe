@@ -2,11 +2,9 @@ package object
 
 import (
 	"bufio"
-	"context"
 	"fmt"
 	"io"
 	"os"
-	"os/exec"
 	"runtime"
 	"strings"
 	"time"
@@ -274,21 +272,12 @@ func bExec(args ...Object) Object {
 		return sandboxBlock("exec")
 	}
 	profile := ActiveProfile.Load()
-	shell, flag := execShell()
-	var c *exec.Cmd
-	if profile.Name != "none" && profile.Timeout > 0 {
-		ctx, cancel := context.WithTimeout(context.Background(), time.Duration(profile.Timeout)*time.Second)
-		defer cancel()
-		c = exec.CommandContext(ctx, shell, flag, cmd.Value)
-	} else {
-		c = exec.Command(shell, flag, cmd.Value)
+	c, cancel, cerr := buildExecCommand(profile, cmd.Value)
+	if cerr != nil {
+		return cerr
 	}
-	if profile.Name != "none" {
-		env := os.Environ()
-		for k, v := range profile.Env {
-			env = append(env, k+"="+v)
-		}
-		c.Env = env
+	if cancel != nil {
+		defer cancel()
 	}
 	out, e := c.CombinedOutput()
 	if e != nil {

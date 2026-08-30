@@ -2,11 +2,8 @@ package object
 
 import (
 	"bytes"
-	"context"
-	"os"
 	"os/exec"
 	"sync"
-	"time"
 )
 
 // ProcessHandle tracks a running subprocess started by proc_start().
@@ -66,23 +63,12 @@ func bProcStart(args ...Object) Object {
 		return newErr(sandboxBlock("proc_start").Message)
 	}
 
-	shell, flag := execShell()
-	var c *exec.Cmd
-	if profile.Name != "none" && profile.Timeout > 0 {
-		ctx, cancel := context.WithTimeout(context.Background(), time.Duration(profile.Timeout)*time.Second)
-		defer cancel()
-		c = exec.CommandContext(ctx, shell, flag, cmd.Value)
-	} else {
-		c = exec.Command(shell, flag, cmd.Value)
+	c, cancel, cerr := buildExecCommand(profile, cmd.Value)
+	if cerr != nil {
+		return cerr
 	}
-
-	// Security: environment isolation — match exec's env scoping
-	if profile.Name != "none" {
-		env := os.Environ()
-		for k, v := range profile.Env {
-			env = append(env, k+"="+v)
-		}
-		c.Env = env
+	if cancel != nil {
+		defer cancel()
 	}
 
 	var stdout, stderr bytes.Buffer

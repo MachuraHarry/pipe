@@ -1,6 +1,9 @@
 package object
 
 import (
+	"context"
+	"os"
+	"os/exec"
 	"strings"
 	"time"
 )
@@ -47,6 +50,61 @@ func checkNetworkAccess(feature string) *Error {
 		return sandboxBlock(feature)
 	}
 	return nil
+}
+
+// buildExecCommand constructs the *exec.Cmd for exec/proc_start under the
+// given profile, plus a cancel func to defer (nil if no timeout applies).
+// Call only after CanExecCommand has already approved the command.
+//
+// When the profile restricts execution via a non-empty exec_whitelist, the
+// command is tokenized with splitShellWords and run directly as argv — no
+// shell — so shell metacharacters in the command string are inert literal
+// arguments, not syntax. Without an active whitelist (empty ExecWhitelist,
+// or the "none" profile), the command still runs through a real shell for
+// backward-compatible flexibility, since there is no whitelist for a shell
+// to defeat. See CanExecCommand and splitShellWords (pkg/object/sandbox.go)
+// for why this split exists (round-9 audit finding).
+func buildExecCommand(profile *SandboxProfile, command string) (*exec.Cmd, context.CancelFunc, *Error) {
+	whitelisted := profile.Name != "none" && len(profile.ExecWhitelist) > 0
+
+	var argv []string
+	if whitelisted {
+		var splitErr error
+		argv, splitErr = splitShellWords(command)
+		if splitErr != nil {
+			return nil, nil, err("exec: " + splitErr.Error())
+		}
+		if len(argv) == 0 {
+			return nil, nil, err("exec: empty command")
+		}
+	}
+
+	var cancel context.CancelFunc
+	newCmd := func(name string, arg ...string) *exec.Cmd {
+		if profile.Name != "none" && profile.Timeout > 0 {
+			var ctx context.Context
+			ctx, cancel = context.WithTimeout(context.Background(), time.Duration(profile.Timeout)*time.Second)
+			return exec.CommandContext(ctx, name, arg...)
+		}
+		return exec.Command(name, arg...)
+	}
+
+	var c *exec.Cmd
+	if whitelisted {
+		c = newCmd(argv[0], argv[1:]...)
+	} else {
+		shell, flag := execShell()
+		c = newCmd(shell, flag, command)
+	}
+
+	if profile.Name != "none" {
+		env := os.Environ()
+		for k, v := range profile.Env {
+			env = append(env, k+"="+v)
+		}
+		c.Env = env
+	}
+	return c, cancel, nil
 }
 
 // checkFSWriteAccess resolves path for a filesystem-write builtin and enforces

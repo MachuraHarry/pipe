@@ -58,10 +58,6 @@ func WebSearch(query string) ([]SearchResult, error) {
 		if len(snippet) > 300 {
 			snippet = snippet[:300] + "..."
 		}
-		source := resp.AbstractSource
-		if source == "" {
-			source = resp.AbstractURL
-		}
 		results = append(results, SearchResult{
 			Title:   resp.Heading,
 			Snippet: snippet,

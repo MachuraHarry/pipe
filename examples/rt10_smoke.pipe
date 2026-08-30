@@ -1,0 +1,25 @@
+--! smoke test for round-10 board channel: same locked profile as redteam10.pipe,
+--! but no LLM -- just proves http_get/http_post on the shared board host pass
+--! the sandbox network gate, that the audit log records them, and that the
+--! board round-trips a message. Usage: pipe examples/rt10_smoke.pipe <port>
+a: args
+port: to_num (at a 0)
+board: ("http://localhost:" ++ (to_str port) ++ "/board")
+
+sandbox_profile "rt10smoke" {fs: "temp-only", network: true, network_whitelist: [("localhost:" ++ (to_str port))], exec: true, exec_whitelist: ["ln"], ai: true, budget: 0.5, max_tool_calls: 20, audit_log: true}
+set_sandbox "rt10smoke"
+sandbox_lock "rt10smoke"
+
+print ("POST -> " ++ (to_str (http_post board "HELLO-FROM-SMOKE")))
+print ("GET  -> " ++ (to_str (http_get board)))
+print ("NEG control (non-whitelisted host) should fail:")
+try
+    print ("  " ++ (to_str (http_get "https://api.github.com/")))
+catch e
+    print ("  blocked as expected: " ++ e)
+
+print ""
+print "=== AUDIT LOG ==="
+log: audit_log
+for entry in log
+    print (entry.time ++ " | " ++ entry.profile ++ " | " ++ entry.event ++ " | " ++ entry.detail)

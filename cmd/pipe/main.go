@@ -4,10 +4,12 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"os/signal"
 	"path/filepath"
 	"sort"
 	"strconv"
 	"strings"
+	"syscall"
 	"time"
 
 	"github.com/MachuraHarry/pipe/pkg/ai"
@@ -33,6 +35,26 @@ import (
 var version = "v1.1.1"
 
 func main() {
+	// Close any stdio MCP subprocesses (and their process groups — see
+	// object.CloseAllMCPClients) on a normal SIGTERM/SIGINT, e.g. from a
+	// plain `kill` during a restart. Without this, connecting to a stdio MCP
+	// server and then simply exiting (a script ending normally hits the same
+	// gap) left the child — and anything IT forked on its own — running
+	// forever with no cleanup at all; only SIGKILL/crash scenarios still
+	// rely solely on the Pdeathsig fallback (see procattr_unix.go), since no
+	// handler can run for those.
+	sigCh := make(chan os.Signal, 1)
+	signal.Notify(sigCh, syscall.SIGTERM, syscall.SIGINT)
+	go func() {
+		sig := <-sigCh
+		object.CloseAllMCPClients()
+		code := 143 // SIGTERM: conventional 128+15
+		if sig == syscall.SIGINT {
+			code = 130 // SIGINT: conventional 128+2
+		}
+		os.Exit(code)
+	}()
+
 	// Self-update must work for every installation type, including
 	// self-extracting (-build) binaries whose payload bypasses flag parsing.
 	if doUpdate, checkOnly := scanUpdateFlags(os.Args[1:]); doUpdate || checkOnly {

@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
+	"runtime"
 	"strings"
 	"sync"
 	"time"
@@ -48,6 +49,7 @@ type Client struct {
 
 func NewStdioClient(command string, args []string, env map[string]string) (*Client, error) {
 	cmd := exec.Command(command, args...)
+	setPdeathsig(cmd)
 	if len(env) > 0 {
 		cmd.Env = os.Environ()
 		for k, v := range env {
@@ -65,7 +67,19 @@ func NewStdioClient(command string, args []string, env map[string]string) (*Clie
 	stderr := &limitedBuffer{max: stderrMaxBytes}
 	cmd.Stderr = stderr
 
-	if err := cmd.Start(); err != nil {
+	// Pdeathsig (set in setPdeathsig, unix only) is tied to the specific OS
+	// thread that performs the underlying clone/fork syscall inside
+	// Start() — not to the goroutine or the process as a whole. If the Go
+	// runtime were to tear down that thread later, the child could see a
+	// premature "parent died" signal despite the real parent (this process)
+	// still running fine. Locking this goroutine to its OS thread for the
+	// duration of Start() is the documented, officially recommended
+	// workaround; it's a harmless no-op on platforms where setPdeathsig
+	// itself does nothing (Windows/js).
+	runtime.LockOSThread()
+	err = cmd.Start()
+	runtime.UnlockOSThread()
+	if err != nil {
 		return nil, fmt.Errorf("mcp client start: %w", err)
 	}
 
@@ -140,10 +154,12 @@ func (c *Client) Close() error {
 		select {
 		case <-done:
 		case <-time.After(closeWaitTimeout):
-			if cmd.Process != nil {
-				cmd.Process.Kill()
-				<-done
-			}
+			// killProcessGroup (not just cmd.Process.Kill()) so grandchildren
+			// the server forked on its own (e.g. an `npx`/`sh -c` wrapper
+			// spawning the real binary) die too — see setPdeathsig's comment
+			// in procattr_unix.go for why Pdeathsig alone can't reach them.
+			killProcessGroup(cmd)
+			<-done
 		}
 	}
 	return nil

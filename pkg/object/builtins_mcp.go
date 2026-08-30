@@ -537,6 +537,34 @@ type mcpClientEntry struct {
 	prompts   []mcp.Prompt
 }
 
+// CloseAllMCPClients closes every currently-connected MCP client (stdio
+// subprocess servers included). Intended for a graceful-shutdown signal
+// handler (see cmd/pipe/main.go) — without it, a script that connects to
+// stdio MCP servers and then simply exits (including via a normal SIGTERM
+// from `kill`) leaves those subprocesses running with no cleanup at all;
+// mcp.Client.Close() itself falls back to killing the whole process group
+// after a short grace period, which also catches any grandchildren the
+// server forked on its own (see the Pdeathsig/Setpgid comments in
+// pkg/mcp/procattr_unix.go for why that extra step is necessary).
+func CloseAllMCPClients() {
+	// In parallel: mcp.Client.Close() can block up to closeWaitTimeout (5s)
+	// per client before falling back to a process-group kill: sequentially
+	// this would multiply into up to 5s * len(mcpClients) on shutdown (8
+	// servers -> up to 40s) if several happened to be unresponsive at once.
+	var wg sync.WaitGroup
+	for _, e := range mcpClients {
+		if e == nil || e.client == nil {
+			continue
+		}
+		wg.Add(1)
+		go func(cl *mcp.Client) {
+			defer wg.Done()
+			cl.Close()
+		}(e.client)
+	}
+	wg.Wait()
+}
+
 type mcpBridgeInfo struct {
 	remoteName string
 	paramNames []string

@@ -635,3 +635,33 @@ result: proc_wait h
 to_str(result.status != 0)`
 	expectValue(t, input, "true")
 }
+
+// TestCallUserFunctionDispatchesBuiltinIdentifierValue is the round-9 audit
+// regression test: a bare builtin identifier evaluated as a value (not
+// called) — e.g. "read_file" passed straight to ai_tool, the pattern every
+// redteam*.pipe script and several examples use — must be dispatchable by
+// object.CallUserFunction, the same path executeTool uses to invoke a
+// registered ai_tool. Before the CallableBuiltin fix (pkg/object/object.go),
+// this returned "not callable: BUILTIN": CallUserFunction's type switch only
+// recognized *object.BuiltinInfo (what the VM's OpGetBuiltin produces), not
+// this package's own *eval.Builtin wrapper that evalIdentifier returns for a
+// non-zero-arity builtin referenced as a value. The VM was never affected;
+// only the tree-walker's own builtin-as-value path was.
+func TestCallUserFunctionDispatchesBuiltinIdentifierValue(t *testing.T) {
+	fnVal := parseAndEval(t, "upper")
+	if fnVal == nil || fnVal.Type() == object.ERROR {
+		t.Fatalf("evaluating 'upper' as a value: got %v", fnVal)
+	}
+	if _, ok := fnVal.(*Builtin); !ok {
+		t.Fatalf("expected a bare builtin identifier to evaluate to *eval.Builtin, got %T", fnVal)
+	}
+
+	result := object.CallUserFunction(fnVal, &object.String{Value: "hi"})
+	if result == nil || result.Type() == object.ERROR {
+		t.Fatalf("CallUserFunction on a builtin identifier value: got %v", result)
+	}
+	s, ok := result.(*object.String)
+	if !ok || s.Value != "HI" {
+		t.Fatalf(`CallUserFunction(upper, "hi") = %v, want "HI"`, result)
+	}
+}

@@ -253,6 +253,22 @@ type BuiltinInfo struct {
 func (bi *BuiltinInfo) Type() ObjectType { return "BUILTIN" }
 func (bi *BuiltinInfo) Inspect() string  { return "builtin: " + bi.Name }
 
+// CallableBuiltin lets a builtin-function value defined outside this package
+// (namely the tree-walker's own eval.Builtin wrapper, returned when a bare
+// builtin identifier like read_file is evaluated as a value rather than
+// called) be dispatched by CallUserFunction the same way *BuiltinInfo is.
+// pkg/object cannot import pkg/eval (pkg/eval already imports pkg/object),
+// so this interface is the seam: eval.Builtin implements it, and
+// CallUserFunction dispatches through it without knowing the concrete type.
+// See the round-9 audit finding this fixes — ai_tool registered directly
+// with a builtin (ai_tool "read_file" ... read_file, the pattern every
+// redteam*.pipe script and several examples use) silently failed every call
+// with "not callable: BUILTIN" under the tree-walker, because
+// CallUserFunction's type switch only recognized *BuiltinInfo.
+type CallableBuiltin interface {
+	BuiltinFn() func(args ...Object) Object
+}
+
 type CompiledFunction struct {
 	Instructions interface{}
 	Lines        []int // source line per instruction byte; may be nil
@@ -310,6 +326,8 @@ func CallUserFunction(fn Object, args ...Object) Object {
 		return err("function execution not available")
 	case *BuiltinInfo:
 		return f.Fn(args...)
+	case CallableBuiltin:
+		return f.BuiltinFn()(args...)
 	}
 	return err(fmt.Sprintf("not callable: %s", fn.Type()))
 }

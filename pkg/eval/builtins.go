@@ -13,6 +13,11 @@ type Builtin struct {
 func (b *Builtin) Type() object.ObjectType { return "BUILTIN" }
 func (b *Builtin) Inspect() string         { return "builtin function" }
 
+// BuiltinFn implements object.CallableBuiltin, so a Builtin referenced as a
+// first-class value (e.g. passed to ai_tool) can be dispatched by
+// object.CallUserFunction, not just by this package's own applyFn.
+func (b *Builtin) BuiltinFn() func(args ...object.Object) object.Object { return b.Fn }
+
 var builtins = map[string]*Builtin{}
 
 var zeroArityBuiltins = map[string]bool{

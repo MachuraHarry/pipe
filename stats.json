@@ -8,7 +8,7 @@
     "sandbox": 4,
     "stdlib": 176
   },
-  "examples": 98,
+  "examples": 100,
   "go_tests": 719,
   "test_packages": 20,
   "ast_node_types": 43,

@@ -596,6 +596,8 @@ var Builtins = []BuiltinInfo{
 	{"file_copy", bFileCopy},
 	{"file_size", bFileSize},
 	{"file_type", bFileType},
+	{"file_lock", bFileLock},
+	{"file_unlock", bFileUnlock},
 	{"dotenv", bDotenv},
 	{"list_dir", bListDir},
 	{"make_dir", bMakeDir},

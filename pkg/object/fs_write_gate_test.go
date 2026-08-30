@@ -62,6 +62,9 @@ func TestFSWriteBuiltinsBlockedBySandboxFlag(t *testing.T) {
 		{"file_open append mode", func() Object {
 			return bFileOpen(&String{Value: filepath.Join(dir, "fo.txt")}, &String{Value: "a"})
 		}},
+		{"file_lock", func() Object {
+			return bFileLock(&String{Value: filepath.Join(dir, "l.lock")})
+		}},
 	}
 
 	for _, tc := range cases {

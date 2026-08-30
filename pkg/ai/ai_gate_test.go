@@ -40,6 +40,9 @@ func TestEgressGateBlocksAtEntry(t *testing.T) {
 	if _, err := WebSearch("x"); !errors.Is(err, want) {
 		t.Fatalf("WebSearch: got %v, want %v", err, want)
 	}
+	if _, err := WikiSearch("x"); !errors.Is(err, want) {
+		t.Fatalf("WikiSearch: got %v, want %v", err, want)
+	}
 }
 
 // TestEgressGateNoopByDefault ensures a nil gate permits all egress.

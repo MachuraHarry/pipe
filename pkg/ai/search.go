@@ -181,6 +181,10 @@ func WikiSearch(query string) ([]SearchResult, error) {
 	encoded := url.QueryEscape(strings.TrimSpace(query))
 	apiURL := fmt.Sprintf("https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=%s&format=json&origin=*&srlimit=10", encoded)
 
+	if err := gateEgress(EgressSearch, apiURL); err != nil {
+		return nil, err
+	}
+
 	body, err := httpGetString(EgressSearch, apiURL)
 	if err != nil {
 		return nil, fmt.Errorf("wiki_search: %w", err)

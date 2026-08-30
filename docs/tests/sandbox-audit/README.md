@@ -10,6 +10,8 @@ Alle Versuche werden im Audit-Log dokumentiert.
 
 ## Reports
 
+- [report8.en.md](report8.en.md) — Runde 8 (EN): `wiki_search` erreichte den zentralen Egress-Gate nie — echte Netzwerk-Egress unter `--sandbox`, gefixt & live verifiziert
+- [report8.de.md](report8.de.md) — Runde 8 (DE): `wiki_search` erreichte den zentralen Egress-Gate nie — echte Netzwerk-Egress unter `--sandbox`, gefixt & live verifiziert
 - [report7.en.md](report7.en.md) — Runde 7 (EN): `--sandbox`-Flag-Pfad ließ 6 von 8 fs-write-Builtins durch (v.a. `write_file`) — zentraler `checkFSWriteAccess`-Helper, gefixt & live verifiziert
 - [report7.de.md](report7.de.md) — Runde 7 (DE): `--sandbox`-Flag-Pfad ließ 6 von 8 fs-write-Builtins durch (v.a. `write_file`) — zentraler `checkFSWriteAccess`-Helper, gefixt & live verifiziert
 - [report6.en.md](report6.en.md) — Runde 6 (EN): `--sandbox`-Flag-Pfad ließ `http_post`/`tcp_connect`/`tcp_listen` durch — zentraler `checkNetworkAccess`-Helper, gefixt & live verifiziert
@@ -22,6 +24,15 @@ Alle Versuche werden im Audit-Log dokumentiert.
 - [report2.de.md](report2.de.md) — Runde 2 (DE): 3 Ratchet-Lücken gefunden & gefixt, danach kein Escape
 - [report.en.md](report.en.md) — Runde 1 (EN), detailed audit report
 - [report.de.md](report.de.md) — Runde 1 (DE), ausführlicher Audit-Report
+
+## Architektur-Härtung (Runde 8)
+
+- `WikiSearch` (`pkg/ai/search.go`) rief den zentralen Egress-Gate aus
+  Runde 5 nie auf und war damit der einzige AI-/Such-Egress-Pfad ganz ohne
+  Sandbox-Durchsetzung. Fix: fehlender `gateEgress(EgressSearch, apiURL)`-
+  Aufruf ergänzt, analog zu `WebSearch`. `WikiSearch` ist jetzt Teil von
+  `TestEgressGateBlocksAtEntry` (`pkg/ai/ai_gate_test.go`), das die
+  vollständige Egress-Einstiegspunkt-Inventur des zentralen Gates prüft.
 
 ## Architektur-Härtung (Runde 7)
 

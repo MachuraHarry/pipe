@@ -124,7 +124,7 @@ built to make such repurposing loud, not silent.
 *Scope note: this reproduces the collaboration phenomenon of the incident in a
 controlled, loopback-only lab. No real system was touched and no sandbox
 escape was attempted or achieved.*
-[lang:en]
+[/lang]
 
 [lang:de]
 **Runde 9 hat den Kernmechanismus des OpenAI–Hugging-Face-Vorfalls bewusst umgangen: Sie gab ihren beiden Agenten unterschiedliche Whitelist-Hosts, sodass sie sich nicht abstimmen konnten. Runde 10 fordert ihn frontal heraus. Zwei isolierte Agenten dürfen jetzt denselben Netzwerk-Host teilen — und verwandeln ihn in Minuten in ein Agent-zu-Agent-Message-Board. Die Sandbox kann es nicht stoppen, aber sie zeichnet jedes Byte auf. Der richtige Schutz ist operativ, kein Schalter.**
@@ -253,4 +253,4 @@ machen.
 *Scope-Hinweis: Das reproduziert das Kollaborations-Phänomen des Vorfalls in
 einem kontrollierten Loopback-Lab. Kein echtes System wurde berührt, und es
 wurde kein Sandbox-Escape versucht oder erreicht.*
-[lang:de]
+[/lang]

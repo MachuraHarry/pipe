@@ -3,6 +3,7 @@ package ai
 import (
 	"encoding/json"
 	"fmt"
+	"regexp"
 	"strings"
 )
 
@@ -180,6 +181,19 @@ func chatWithToolsRaw(messages []map[string]interface{}, tools []ToolDef) (toolR
 
 	content, _ := msg["content"].(string)
 
+	// Some OpenAI-compatible models (notably DeepSeek) occasionally emit tool
+	// calls as XML-style text markup inside "content" instead of as structured
+	// "tool_calls". Treat those as real tool calls so a swarm / tool chat keeps
+	// executing instead of returning raw markup as the final answer. The
+	// executor still validates each name against the registered tools, so this
+	// never runs an unregistered function; unknown names simply yield an
+	// "unknown tool" result the model can react to.
+	if len(tools) > 0 && content != "" {
+		if calls, ok := parseMarkupToolCalls(content); ok {
+			return toolResponse{IsToolCall: true, ToolCalls: calls, ReasoningContent: reasoningContent}, nil
+		}
+	}
+
 	_ = finishReason
 
 	if content == "" && len(strings.TrimSpace(content)) == 0 {
@@ -187,4 +201,59 @@ func chatWithToolsRaw(messages []map[string]interface{}, tools []ToolDef) (toolR
 	}
 
 	return toolResponse{Content: content, ReasoningContent: reasoningContent}, nil
+}
+
+// invokeBlockRe and paramRe recognize the XML-style tool-call markup that some
+// models emit in "content", e.g.:
+//
+//	<|tool_calls|>
+//	<|invoke name="search_web">
+//	<|parameter name="query">pipe language</parameter>
+//	</invoke>
+//	<|/tool_calls|>
+var (
+	invokeBlockRe = regexp.MustCompile(`(?s)<\|?invoke\s+name=["']([^"']+)["']\s*>?(.*?)</invoke>`)
+	paramRe       = regexp.MustCompile(`(?s)<\|?parameter\s+name=["']([^"']+)["']\s*>?(.*?)</parameter>`)
+)
+
+// parseMarkupToolCalls scans content for XML-style tool-call blocks and returns
+// every recognized call block. ok is false only when no invoke block is found,
+// so ordinary conversational replies are never misinterpreted. It does not
+// validate names against the offered tools — the executor does, returning an
+// "unknown tool" result for anything not registered.
+func parseMarkupToolCalls(content string) ([]ToolCall, bool) {
+	blocks := invokeBlockRe.FindAllStringSubmatch(content, -1)
+	if len(blocks) == 0 {
+		return nil, false
+	}
+
+	seen := make(map[string]int)
+	var calls []ToolCall
+	for _, m := range blocks {
+		name := strings.TrimSpace(m[1])
+		params := make(map[string]interface{})
+		for _, p := range paramRe.FindAllStringSubmatch(m[2], -1) {
+			key := strings.TrimSpace(p[1])
+			val := strings.Trim(p[2], `"`)
+			params[key] = val
+		}
+		argsJSON := "{}"
+		if len(params) > 0 {
+			if b, e := json.Marshal(params); e == nil {
+				argsJSON = string(b)
+			}
+		}
+		if idx, has := seen[name]; has {
+			calls[idx] = ToolCall{ID: markupID(name, idx), Name: name, Arguments: argsJSON}
+		} else {
+			seen[name] = len(calls)
+			calls = append(calls, ToolCall{ID: markupID(name, len(calls)), Name: name, Arguments: argsJSON})
+		}
+	}
+	return calls, true
+}
+
+// markupID builds a stable synthetic id for a markup-emitted tool call.
+func markupID(name string, idx int) string {
+	return fmt.Sprintf("call_markup_%d", idx)
 }

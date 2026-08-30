@@ -1086,6 +1086,40 @@ func executeTool(profile *SandboxProfile, toolName string, args map[string]inter
 	return withActiveProfile(profile, run).Inspect(), nil
 }
 
+// bToolCall invokes one registered tool (local ai_tool or MCP-bridged, both
+// live in the same toolRegistry) directly by name, without an LLM round-trip.
+// It reuses executeTool — the exact dispatch ai_with_tools uses — so a direct
+// call gets identical sandbox gating (CanToolCall/max_tool_calls) and audit
+// logging. This lets deterministic callers (e.g. a hand-written task executor)
+// treat any registered tool, including ones bridged from an external MCP
+// server, as a validated action instead of needing an LLM to decide to call it.
+func bToolCall(args ...Object) Object {
+	if len(args) < 1 {
+		return err("tool_call expects at least 1 argument (name, args_map?)")
+	}
+	name, ok := args[0].(*String)
+	if !ok {
+		return err("tool_call: first argument must be a string (tool name)")
+	}
+
+	argsMap := map[string]interface{}{}
+	if len(args) >= 2 {
+		m, ok := args[1].(*Map)
+		if !ok {
+			return err("tool_call: second argument must be a map (tool arguments)")
+		}
+		if goVal, ok := objectToInterface(m).(map[string]interface{}); ok {
+			argsMap = goVal
+		}
+	}
+
+	result, callErr := executeTool(ActiveProfile.Load(), name.Value, argsMap)
+	if callErr != nil {
+		return err("tool_call: " + callErr.Error())
+	}
+	return &String{Value: result}
+}
+
 // toolParamNames returns the ordered parameter names declared by a tool's
 // schema. Pipe map literals carry their declaration order, so "required"
 // (built by keysToStrings) preserves it. The sorted "properties" fallback

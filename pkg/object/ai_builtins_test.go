@@ -373,3 +373,45 @@ func TestAiToolPreservesParameterOrder(t *testing.T) {
 		t.Fatalf("toolParamNames = %v, want [path content]", names)
 	}
 }
+
+// TestToolCallDirectInvocation covers tool_call, the deterministic counterpart
+// to ai_with_tools: it must invoke a registered tool by name with a plain
+// argument map, with no LLM in the loop, and surface unknown-tool/bad-argument
+// errors the same way other builtins do (an *Error, not a panic).
+func TestToolCallDirectInvocation(t *testing.T) {
+	name := "tool_call_echo_test"
+	schema := NewMap()
+	schema.Set("msg", &String{Value: "message to echo"})
+	fn := &BuiltinInfo{Name: "echo", Fn: func(args ...Object) Object {
+		if len(args) == 0 {
+			return &String{Value: ""}
+		}
+		return &String{Value: "echo: " + args[0].Inspect()}
+	}}
+	if r := bAiTool(&String{Value: name}, &String{Value: "echoes its argument"}, schema, fn); r.Type() == ERROR {
+		t.Fatalf("ai_tool registration failed: %v", r)
+	}
+	defer delete(toolRegistry, name)
+
+	callArgs := NewMap()
+	callArgs.Set("msg", &String{Value: "hallo"})
+	result := bToolCall(&String{Value: name}, callArgs)
+	if result.Type() == ERROR {
+		t.Fatalf("tool_call returned error: %v", result)
+	}
+	s, ok := result.(*String)
+	if !ok {
+		t.Fatalf("tool_call result type = %T, want *String", result)
+	}
+	if s.Value != "echo: hallo" {
+		t.Fatalf("tool_call result = %q, want the tool's echoed argument", s.Value)
+	}
+
+	if r := bToolCall(&String{Value: "does_not_exist"}); r.Type() != ERROR {
+		t.Fatal("tool_call on an unregistered name must return an error")
+	}
+
+	if r := bToolCall(&String{Value: name}, &String{Value: "not a map"}); r.Type() != ERROR {
+		t.Fatal("tool_call with a non-map second argument must return an error")
+	}
+}

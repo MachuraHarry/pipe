@@ -472,6 +472,8 @@ var builtinDocs = []BuiltinDoc{
 		Description: "Registers a tool the AI can call. parameters is a JSON schema map.", Category: CatAITool},
 	{Name: "ai_with_tools", Signature: "ai_with_tools(system_prompt, user_prompt, max_rounds?)", Params: []Param{p("system_prompt", "string"), p("user_prompt", "string"), p("max_rounds", "number")}, ReturnType: "string",
 		Description: "Sends a chat request with tool-calling enabled. max_rounds defaults to 5.", Category: CatAITool},
+	{Name: "tool_call", Signature: "tool_call(name, args?)", Params: []Param{p("name", "string"), p("args", "map")}, ReturnType: "string",
+		Description: "Directly invokes a registered tool (local ai_tool or one bridged from mcp_use_stdio/mcp_use_sse) by name, without an LLM round-trip. Uses the same sandbox gating (max_tool_calls, audit_log) as ai_with_tools, so deterministic callers can treat any tool as a validated action.", Category: CatAITool},
 
 	// ---- AI Agents ----
 	{Name: "agent", Signature: "agent(name, system_prompt)", Params: []Param{p("name", "string"), p("system_prompt", "string")}, ReturnType: "string",

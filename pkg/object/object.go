@@ -807,6 +807,7 @@ var Builtins = []BuiltinInfo{
 	// AI — Tool Calling
 	{"ai_tool", bAiTool},
 	{"ai_with_tools", bAiWithTools},
+	{"tool_call", bToolCall},
 
 	// MCP — Model Context Protocol (Server + Client)
 	{"mcp_server", bMcpServer},

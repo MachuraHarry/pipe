@@ -1,5 +1,19 @@
 [
   {
+    "id": "round-10-interagent-channel",
+    "file": "round-10-interagent-channel.md",
+    "date": "2026-08-30",
+    "tag": "security",
+    "title": {
+      "en": "Two Isolated Agents, One Allowed Host: Pipe Welcomes the Message Board",
+      "de": "Zwei isolierte Agenten, ein erlaubter Host: Pipe begrüßt das Message Board"
+    },
+    "excerpt": {
+      "en": "Round 9 deliberately avoided the message-board vector from the OpenAI-Hugging Face incident. Round 10 challenges it: two isolated agents, allowed to share one network host, turn it into an inter-agent message board in minutes. The sandbox can't stop it, but every byte lands in the audit log.",
+      "de": "Runde 9 hat den Message-Board-Vektor aus dem OpenAI-Hugging-Face-Vorfall bewusst umgangen. Runde 10 fordert ihn heraus: Zwei isolierte Agenten, die sich einen Netzwerk-Host teilen dürfen, verwandeln ihn in Minuten in ein Agent-zu-Agent-Message-Board. Die Sandbox kann es nicht stoppen, aber jedes Byte landet im Audit-Log."
+    }
+  },
+  {
     "id": "round-9-sandbox-audit",
     "file": "round-9-sandbox-audit.md",
     "date": "2026-08-30",

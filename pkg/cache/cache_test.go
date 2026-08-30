@@ -138,3 +138,35 @@ func TestLoadOrCompileInvalidatesOnDependencyChange(t *testing.T) {
 		t.Error("dependency change should invalidate the cache")
 	}
 }
+
+// TestLoadOrCompileInvalidatesOnBuiltinTableChange guards the bug found while
+// adding new builtins mid-table: the compiler bakes each builtin's position in
+// object.Builtins directly into the bytecode as a BuiltinScope index
+// (compiler.resolveBuiltin), so inserting, removing, or reordering a builtin
+// anywhere in that table shifts every later builtin's index. A .pipec cache
+// compiled against the old table layout must not be reused even though the
+// source file and its dependencies never changed, or OpGetBuiltin resolves to
+// the wrong function at runtime.
+func TestLoadOrCompileInvalidatesOnBuiltinTableChange(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "main.pipe")
+	if err := os.WriteFile(path, []byte("42\n"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	if _, _, err := LoadOrCompile(path); err != nil {
+		t.Fatal(err)
+	}
+	if _, cached, _ := LoadOrCompile(path); !cached {
+		t.Fatal("expected cache hit before the builtin table changed")
+	}
+
+	prevBuiltins := object.Builtins
+	inserted := object.BuiltinInfo{Name: "__test_inserted_builtin__", Fn: func(args ...object.Object) object.Object { return nil }}
+	object.Builtins = append([]object.BuiltinInfo{inserted}, object.Builtins...)
+	defer func() { object.Builtins = prevBuiltins }()
+
+	if _, cached, err := LoadOrCompile(path); err != nil {
+		t.Fatalf("after builtin table change: %s", err)
+	} else if cached {
+		t.Error("a changed builtin table should invalidate the cache")
+	}
+}

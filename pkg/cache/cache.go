@@ -126,6 +126,19 @@ func depsHash(filePath string, data []byte) (string, error) {
 		h.Write(contents[p])
 		h.Write([]byte{0})
 	}
+	// The compiler bakes each builtin's position in object.Builtins directly
+	// into the bytecode as its BuiltinScope index (see compiler.resolveBuiltin).
+	// Adding, removing, or reordering a builtin anywhere in that table shifts
+	// every later builtin's index, so a .pipec compiled against an older table
+	// layout would otherwise still look "valid" (same source, same
+	// CacheVersion) while resolving OpGetBuiltin to the wrong function. Mixing
+	// the ordered builtin names into the cache key makes that class of staleness
+	// self-invalidating instead of depending on a developer remembering to bump
+	// CacheVersion for a change that doesn't touch bytecode format at all.
+	for _, b := range object.Builtins {
+		h.Write([]byte(b.Name))
+		h.Write([]byte{0})
+	}
 	return fmt.Sprintf("%x", h.Sum(nil)[:16]), nil
 }
 

@@ -1,5 +1,19 @@
 [
   {
+    "id": "round-11-swarm-escape",
+    "file": "round-11-swarm-escape.md",
+    "date": "2026-08-30",
+    "tag": "security",
+    "title": {
+      "en": "Coordinated AI Can't Break Pipe - But a Single Hard Link Can",
+      "de": "Koordinierte KI kann Pipe nicht brechen - aber ein einzelner Hard Link kann es"
+    },
+    "excerpt": {
+      "en": "Round 11 grills the incident's central premise: can a swarm of coordinated agents escape a Pipe sandbox where a single agent cannot? The answer is no - every member shares the same executor, profile, and budget. But the single-agent baseline found a real escape: a whitelisted exec \"ln\" hardlink planted into the jail, and read_file returns the host inode.",
+      "de": "Runde 11 prüft die zentrale These des Vorfalls: Kann ein Schwarm koordinierter Agenten einer Pipe-Sandbox entkommen, wo ein einzelner nicht kann? Antwort: nein - jedes Mitglied teilt Executor, Profil und Budget. Doch die Single-Agent-Basislinie fand einen echten Escape: ein gewhitelisteter exec \"ln\"-Hardlink im Jail, und read_file gibt den Host-Inode zurück."
+    }
+  },
+  {
     "id": "round-10-interagent-channel",
     "file": "round-10-interagent-channel.md",
     "date": "2026-08-30",

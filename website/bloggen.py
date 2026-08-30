@@ -156,10 +156,10 @@ def render_markdown(t, lang):
             o.append('<hr>')
             i += 1
             continue
-        if ln.startswith('> '):
+        if ln.startswith('&gt; '):
             q = []
-            while i < n and lines[i].startswith('> '):
-                q.append(lines[i][2:])
+            while i < n and lines[i].startswith('&gt; '):
+                q.append(lines[i][5:])
                 i += 1
             o.append('<blockquote>' + inline('\n'.join(q)) + '</blockquote>')
             continue

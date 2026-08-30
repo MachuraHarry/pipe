@@ -1,0 +1,37 @@
+--! Design-Debate Swarm: a facilitator opens a small architecture question and
+--! hands it to designers with different perspectives. Each specialist refines
+--! the proposal, building on the conversation carried over, until the final
+--! agent integrates a recommendation with the full context. No external tools
+--! are used, so the example focuses purely on multi-agent handoff and shared
+--! context.
+--!
+--! Handoff flow (each agent hands to the next; the last agent answers finally):
+--!   facilitator -> designer -> operator -> security
+--! Run:
+--!   DEEPSEEK_API_KEY="sk-..." pipe examples/swarm_debate.pipe
+
+ai_provider "deepseek"
+
+--! Swarm members: one coordinator plus three specialist perspectives. The
+--! first three agents always hand off to the next; only 'security' concludes.
+--! Note: the exact number of agents that participate in a given run can vary
+--! with the model — handoff is a suggestion, and a model may answer early.
+swarm_agent "facilitator" {system: "You are the facilitator of a design debate. Restate the user's problem clearly, then transfer to 'designer' to open the debate. Do not answer the problem yourself.", handoff: ["designer"]}
+swarm_agent "designer" {system: "You are the architect. Prioritize clean structure, separation of concerns and extensibility. Produce a concise design proposal and note its trade-offs, then transfer to 'operator'. Never write the final answer — always hand off.", handoff: ["operator"]}
+swarm_agent "operator" {system: "You are the operations engineer. Prioritize simplicity, maintainability and operational cost. Point out operational concerns in the current proposal and suggest pragmatic improvements, then transfer to 'security'. Never write the final answer — always hand off.", handoff: ["security"]}
+swarm_agent "security" {system: "You are the security reviewer. Assess the current proposal for vulnerabilities and data-protection risks and recommend concrete mitigations. This is the last step: write the final recommendation that integrates the architect's and operator's insights, then answer directly.", tools: []}
+
+print "═══ DESIGN-DEBATE SWARM ═══"
+print ""
+
+task: "We need a small configuration system for a command-line tool. Should we use JSON files, environment variables, or a tiny custom DSL? Recommend one option."
+
+--! Launch the debate and show the handoff path + round count.
+print "─── 1. Debate (trace) ───"
+t1: ai_swarm_trace task "facilitator" 8
+print t1.content
+print ""
+print "handoff path: " ++ (join t1.path " -> ")
+print "rounds: " ++ (to_str t1.rounds)
+print ""
+print "═══ DONE ═══"

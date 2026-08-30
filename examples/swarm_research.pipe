@@ -1,0 +1,62 @@
+--! Deep-Research Swarm: a triage orchestrator delegates a researchable
+--! question to a researcher (who searches the real web + Wikipedia), then an
+--! analyst synthesizes a cited answer. No API key is needed for the search
+--! tools (web_search/wiki_search are free and keyless); only DeepSeek charges.
+--!
+--! Handoff flow (each agent hands to the next; the last agent answers finally):
+--!   triage -> researcher -> analyst
+--! Run:
+--!   DEEPSEEK_API_KEY="sk-..." pipe examples/swarm_research.pipe
+
+ai_provider "deepseek"
+
+--! Real, keyless search tools exposed to the swarm via ai_tool. A compact
+--! result (top few hits) keeps the model from launching endless searches.
+fn search_web q
+    results: web_search q
+    out: ""
+    n: 0
+    for r in results
+        if n < 3
+            out: out ++ "- " ++ (get r "title") ++ "\n" ++ (get r "snippet") ++ "\n  (" ++ (get r "url") ++ ")\n"
+            n: n + 1
+    out
+
+fn search_wiki q
+    results: wiki_search q
+    out: ""
+    n: 0
+    for r in results
+        if n < 3
+            out: out ++ "- " ++ (get r "title") ++ "\n" ++ (get r "snippet") ++ "\n  (" ++ (get r "url") ++ ")\n"
+            n: n + 1
+    out
+
+ai_tool "search_web" "Search the public web. Returns a few titles, snippets and URLs." {query: "Search keywords"} search_web
+ai_tool "search_wiki" "Search Wikipedia. Returns a few article titles, snippets and URLs." {query: "Search keywords"} search_wiki
+
+--! Swarm members: the front desk splits the task, the researcher gathers
+--! evidence, the analyst turns it into a finished, cited answer.
+swarm_agent "triage" {system: "You are the research coordinator. You have NO search tools and you never issue tool calls. Restate the user's question, split it into concrete sub-questions, and transfer using the handoff tool to 'researcher', telling it exactly what to look up.", handoff: ["researcher"]}
+swarm_agent "researcher" {system: "You are a diligent web researcher. Use the search tools to gather facts on the user's question, then transfer to 'analyst'. Do at most 2-3 searches total, then stop and transfer — do not keep searching or issue raw tool-call markup in your reply.", tools: ["search_web", "search_wiki"], handoff: ["analyst"]}
+swarm_agent "analyst" {system: "You are an analyst. Turn the researcher's search material into a clear, structured, well-cited final answer: a short intro, key points with their URLs, and a short conclusion. This is the last step — answer directly, never as tool-call markup.", tools: []}
+
+print "═══ DEEP-RESEARCH SWARM ═══"
+print ""
+
+--! 1. Trace a question to show the handoff path and round count.
+print "─── 1. Research question (trace) ───"
+t1: ai_swarm_trace "Briefly research the Pipe SPR language and summarize what it is." "triage" 10
+print t1.content
+print ""
+print "handoff path: " ++ (join t1.path " -> ")
+print "rounds: " ++ (to_str t1.rounds)
+print ""
+
+--! 2. A second run proves the same swarm can answer a different question;
+--! here we only print the final answer.
+print "─── 2. Second research question (final answer) ───"
+a1: ai_swarm "What are the main advantages of the Go programming language for servers?" "triage" 10
+print a1
+print ""
+print "═══ DONE ═══"

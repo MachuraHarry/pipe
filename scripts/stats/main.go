@@ -38,6 +38,7 @@ var aiNames = map[string]bool{
 	"summarize": true, "translate": true, "embed": true, "embed_batch": true,
 	"web_search": true, "wiki_search": true,
 	"cosine_sim": true, "dot_product": true, "nearest": true, "try_ai_log": true,
+	"swarm_agent": true,
 }
 
 type Stats struct {

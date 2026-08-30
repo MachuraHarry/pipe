@@ -22,7 +22,7 @@ Pipe v1.0.0 is the **production-ready release**, consolidating the entire v0.9.x
 - **docs-pipe** — RAG module for documentation-native search with heading-aware chunking
 - **Test framework** — setup/teardown hooks, `assert_near`/`assert_contains`, VM test blocks
 - **Hardened sandbox** — audit rounds 1-6, deterministic env masking, central egress gate
-- **242 builtins** — 36 AI + 13 MCP + 190 standard, up from 226 in v0.9.3
+- **242 builtins** — 36 AI + 13 MCP + 189 standard, up from 226 in v0.9.3
 - **23 modules** — MQTT, SQLite, pipe-http, pipe-web, pipe-orm, pipe-cli, and more
 
 ## Quick Install
@@ -423,7 +423,7 @@ write_file "/etc/config"    -- E_SANDBOX blocked
 ```
 Source (.pipe) -> Lexer -> Parser -> AST -> [ Tree-Walker | Compiler + VM ]
                                               |
-                                    Builtins (242 total: 36 AI + 13 MCP + 190 standard)
+                                    Builtins (242 total: 36 AI + 13 MCP + 189 standard)
                                               |
                                 MCP Server <-> MCP Clients (stdio + HTTP)
 ```

@@ -175,22 +175,22 @@ func bMcpTools(args ...Object) Object {
 	// Local MCP server tools
 	if currentMCPServer != nil {
 		for _, t := range currentMCPServer.Tools() {
-			elems = append(elems, &Map{Pairs: map[string]Object{
+			elems = append(elems, MapFromGo(map[string]Object{
 				"name":        &String{Value: t.Name},
 				"description": &String{Value: t.Description},
 				"source":      &String{Value: "local"},
-			}})
+			}))
 		}
 	}
 
 	// MCP client tools
 	for _, entry := range mcpClients {
 		for localName, bridge := range entry.tools {
-			elems = append(elems, &Map{Pairs: map[string]Object{
+			elems = append(elems, MapFromGo(map[string]Object{
 				"name":        &String{Value: localName},
 				"description": &String{Value: "remote: " + bridge.remoteName},
 				"source":      &String{Value: entry.prefix},
-			}})
+			}))
 		}
 	}
 
@@ -263,17 +263,17 @@ func bMcpPrompt(args ...Object) Object {
 	}
 
 	arguments := make([]mcp.PromptArgument, 0, len(argsMap.Pairs))
-	for k, v := range argsMap.Pairs {
-		pa := mcp.PromptArgument{Name: k, Required: true}
-		if s, ok := v.(*String); ok {
+	for _, p := range argsMap.Pairs {
+		pa := mcp.PromptArgument{Name: p.Key, Required: true}
+		if s, ok := p.Value.(*String); ok {
 			pa.Description = s.Value
-		} else if m, ok := v.(*Map); ok {
-			if d, ok := m.Pairs["description"]; ok {
+		} else if m, ok := p.Value.(*Map); ok {
+			if d, ok := m.Get("description"); ok {
 				if ds, ok := d.(*String); ok {
 					pa.Description = ds.Value
 				}
 			}
-			if r, ok := m.Pairs["required"]; ok {
+			if r, ok := m.Get("required"); ok {
 				if rb, ok := r.(*Boolean); ok {
 					pa.Required = rb.Value
 				}
@@ -291,7 +291,7 @@ func bMcpPrompt(args ...Object) Object {
 			}
 			toolExecMu.Lock()
 			defer toolExecMu.Unlock()
-			result := callFunctionObject(args[3], &Map{Pairs: pairs})
+			result := callFunctionObject(args[3], MapFromGo(pairs))
 			if e, isErr := result.(*Error); isErr {
 				return e.Message, fmt.Errorf("%s", e.Message)
 			}
@@ -335,44 +335,44 @@ func bMcpResources(args ...Object) Object {
 
 	if currentMCPServer != nil {
 		for _, r := range currentMCPServer.Resources() {
-			elems = append(elems, &Map{Pairs: map[string]Object{
+			elems = append(elems, MapFromGo(map[string]Object{
 				"uri":         &String{Value: r.URI},
 				"name":        &String{Value: r.Name},
 				"mimeType":    &String{Value: r.MIMEType},
 				"description": &String{Value: r.Description},
 				"source":      &String{Value: "local"},
-			}})
+			}))
 		}
 	} else {
 		// No server active: list the local registries directly.
 		for _, r := range resourceRegistry {
-			elems = append(elems, &Map{Pairs: map[string]Object{
+			elems = append(elems, MapFromGo(map[string]Object{
 				"uri":         &String{Value: r.def.URI},
 				"name":        &String{Value: r.def.Name},
 				"mimeType":    &String{Value: r.def.MIMEType},
 				"description": &String{Value: r.def.Description},
 				"source":      &String{Value: "local"},
-			}})
+			}))
 		}
 		for _, t := range templateRegistry {
-			elems = append(elems, &Map{Pairs: map[string]Object{
+			elems = append(elems, MapFromGo(map[string]Object{
 				"uri":         &String{Value: t.def.URITemplate},
 				"name":        &String{Value: t.def.Name},
 				"mimeType":    &String{Value: t.def.MIMEType},
 				"description": &String{Value: t.def.Description},
 				"source":      &String{Value: "local"},
-			}})
+			}))
 		}
 	}
 	for _, entry := range mcpClients {
 		for _, r := range entry.resources {
-			elems = append(elems, &Map{Pairs: map[string]Object{
+			elems = append(elems, MapFromGo(map[string]Object{
 				"uri":         &String{Value: r.URI},
 				"name":        &String{Value: r.Name},
 				"mimeType":    &String{Value: r.MIMEType},
 				"description": &String{Value: r.Description},
 				"source":      &String{Value: entry.prefix},
-			}})
+			}))
 		}
 	}
 
@@ -429,28 +429,28 @@ func bMcpPrompts(args ...Object) Object {
 
 	if currentMCPServer != nil {
 		for _, p := range currentMCPServer.Prompts() {
-			elems = append(elems, &Map{Pairs: map[string]Object{
+			elems = append(elems, MapFromGo(map[string]Object{
 				"name":        &String{Value: p.Name},
 				"description": &String{Value: p.Description},
 				"source":      &String{Value: "local"},
-			}})
+			}))
 		}
 	} else {
 		for _, p := range promptRegistry {
-			elems = append(elems, &Map{Pairs: map[string]Object{
+			elems = append(elems, MapFromGo(map[string]Object{
 				"name":        &String{Value: p.def.Name},
 				"description": &String{Value: p.def.Description},
 				"source":      &String{Value: "local"},
-			}})
+			}))
 		}
 	}
 	for _, entry := range mcpClients {
 		for _, p := range entry.prompts {
-			elems = append(elems, &Map{Pairs: map[string]Object{
+			elems = append(elems, MapFromGo(map[string]Object{
 				"name":        &String{Value: p.Name},
 				"description": &String{Value: p.Description},
 				"source":      &String{Value: entry.prefix},
-			}})
+			}))
 		}
 	}
 
@@ -474,11 +474,11 @@ func bMcpPromptGet(args ...Object) Object {
 	argMap := make(map[string]string)
 	if len(args) >= 2 {
 		if m, ok := args[1].(*Map); ok {
-			for k, v := range m.Pairs {
-				if s, ok := v.(*String); ok {
-					argMap[k] = s.Value
+			for _, p := range m.Pairs {
+				if s, ok := p.Value.(*String); ok {
+					argMap[p.Key] = s.Value
 				} else {
-					argMap[k] = v.Inspect()
+					argMap[p.Key] = p.Value.Inspect()
 				}
 			}
 		}
@@ -567,7 +567,7 @@ func interfaceToObject(v interface{}) Object {
 		for k, ev := range val {
 			pairs[k] = interfaceToObject(ev)
 		}
-		return &Map{Pairs: pairs}
+		return MapFromGo(pairs)
 	default:
 		return &String{Value: fmt.Sprintf("%v", val)}
 	}
@@ -587,8 +587,8 @@ func objectToInterface(obj Object) interface{} {
 		return v.Value
 	case *Map:
 		out := make(map[string]interface{}, len(v.Pairs))
-		for k, val := range v.Pairs {
-			out[k] = objectToInterface(val)
+		for _, p := range v.Pairs {
+			out[p.Key] = objectToInterface(p.Value)
 		}
 		return out
 	case *List:
@@ -620,8 +620,8 @@ func objToJSON(obj Object) interface{} {
 	switch v := obj.(type) {
 	case *Map:
 		out := make(map[string]interface{}, len(v.Pairs))
-		for k, val := range v.Pairs {
-			out[k] = objToJSON(val)
+		for _, p := range v.Pairs {
+			out[p.Key] = objToJSON(p.Value)
 		}
 		return out
 	case *List:
@@ -851,11 +851,11 @@ func bMcpUseStdio(args ...Object) Object {
 			if last >= 2 {
 				if envMap, ok := args[last-1].(*Map); ok {
 					argEnd = last - 1
-					for k, v := range envMap.Pairs {
-						if s, ok := v.(*String); ok {
-							envVars[k] = s.Value
+					for _, p := range envMap.Pairs {
+						if s, ok := p.Value.(*String); ok {
+							envVars[p.Key] = s.Value
 						} else {
-							envVars[k] = v.Inspect()
+							envVars[p.Key] = p.Value.Inspect()
 						}
 					}
 					alias = aliasStr.Value
@@ -864,11 +864,11 @@ func bMcpUseStdio(args ...Object) Object {
 		} else if envMap, ok := args[last].(*Map); ok {
 			// Last arg is env map (no alias)
 			argEnd = last
-			for k, v := range envMap.Pairs {
-				if s, ok := v.(*String); ok {
-					envVars[k] = s.Value
+			for _, p := range envMap.Pairs {
+				if s, ok := p.Value.(*String); ok {
+					envVars[p.Key] = s.Value
 				} else {
-					envVars[k] = v.Inspect()
+					envVars[p.Key] = p.Value.Inspect()
 				}
 			}
 		}

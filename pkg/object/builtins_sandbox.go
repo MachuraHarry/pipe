@@ -151,7 +151,8 @@ func bSandboxProfile(args ...Object) Object {
 
 	profile := NewSandboxProfile(name.Value)
 
-	for key, val := range config.Pairs {
+	for _, entry := range config.Pairs {
+		key, val := entry.Key, entry.Value
 		switch key {
 		case "fs":
 			s, ok := val.(*String)
@@ -209,9 +210,9 @@ func bSandboxProfile(args ...Object) Object {
 			if !ok {
 				return err("sandbox_profile: env must be a map")
 			}
-			for ek, ev := range m.Pairs {
-				if s, ok := ev.(*String); ok {
-					profile.Env[ek] = s.Value
+			for _, p := range m.Pairs {
+				if s, ok := p.Value.(*String); ok {
+					profile.Env[p.Key] = s.Value
 				}
 			}
 
@@ -390,12 +391,12 @@ func bAuditLog(args ...Object) Object {
 	entries := ActiveProfile.Load().GetAuditLog()
 	elems := make([]Object, len(entries))
 	for i, e := range entries {
-		elems[i] = &Map{Pairs: map[string]Object{
+		elems[i] = MapFromGo(map[string]Object{
 			"time":    &String{Value: e.Time.Format(time.RFC3339)},
 			"event":   &String{Value: e.Event},
 			"detail":  &String{Value: e.Detail},
 			"profile": &String{Value: e.Profile},
-		}}
+		})
 	}
 	return &List{Elements: elems}
 }

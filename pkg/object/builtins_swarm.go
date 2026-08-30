@@ -36,7 +36,8 @@ func bSwarmAgent(args ...Object) Object {
 	}
 
 	def := swarmAgentDef{}
-	for key, val := range config.Pairs {
+	for _, entry := range config.Pairs {
+		key, val := entry.Key, entry.Value
 		switch key {
 		case "system":
 			s, ok := val.(*String)
@@ -188,9 +189,9 @@ func bAiSwarmTrace(args ...Object) Object {
 	for i, p := range result.Path {
 		pathElems[i] = &String{Value: p}
 	}
-	return &Map{Pairs: map[string]Object{
+	return MapFromGo(map[string]Object{
 		"content": &String{Value: result.Content},
 		"path":    &List{Elements: pathElems},
 		"rounds":  &Integer{Value: int64(result.Rounds)},
-	}}
+	})
 }

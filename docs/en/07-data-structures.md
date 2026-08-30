@@ -267,7 +267,7 @@ keys m
 values m
 ```
 
-Note that map key ordering is not guaranteed; `keys` may return keys in any order.
+`keys` and `values` follow the map's key order. Map literals keep their declaration order, so `keys m` returns the keys in the order you wrote them. Maps built programmatically (for example HTTP headers or MCP tool arguments) are sorted alphabetically by key for determinism. Here `keys m` returns `["a", "b", "c"]` and `values m` returns `[1, 2, 3]`.
 
 ---
 

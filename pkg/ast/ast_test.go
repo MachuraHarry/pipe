@@ -267,17 +267,26 @@ func TestListLiteral(t *testing.T) {
 
 func TestMapLiteral(t *testing.T) {
 	n := &MapLiteral{
-		Pairs: map[string]Expression{
-			"a": &IntegerLiteral{Value: 1},
-			"b": &IntegerLiteral{Value: 2},
+		Pairs: []MapEntry{
+			{Key: "a", Value: &IntegerLiteral{Value: 1}},
+			{Key: "b", Value: &IntegerLiteral{Value: 2}},
 		},
 	}
 	if n.TokenLiteral() != "{" {
 		t.Errorf("TokenLiteral = %q, want {", n.TokenLiteral())
 	}
 	n.expressionNode()
+	if s := n.String(); s != "{a: 1, b: 2}" {
+		t.Errorf("String = %q, want {a: 1, b: 2}", s)
+	}
+	if v, ok := n.Get("b"); !ok || v.String() != "2" {
+		t.Errorf("Get(b) = %v,%v, want 2,true", v, ok)
+	}
+	if _, ok := n.Get("missing"); ok {
+		t.Errorf("Get(missing) should be absent")
+	}
 
-	empty := &MapLiteral{Pairs: map[string]Expression{}}
+	empty := &MapLiteral{Pairs: []MapEntry{}}
 	if empty.String() != "{}" {
 		t.Errorf("empty map String = %q, want {}", empty.String())
 	}

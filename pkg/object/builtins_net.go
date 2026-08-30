@@ -89,7 +89,7 @@ func bHttpGet(args ...Object) Object {
 	result := make(map[string]Object)
 	result["status"] = &Integer{Value: int64(resp.StatusCode)}
 	result["body"] = &String{Value: string(body)}
-	return &Map{Pairs: result}
+	return MapFromGo(result)
 }
 
 func bHttpPost(args ...Object) Object {
@@ -132,7 +132,7 @@ func bHttpPost(args ...Object) Object {
 	result := make(map[string]Object)
 	result["status"] = &Integer{Value: int64(resp.StatusCode)}
 	result["body"] = &String{Value: string(respBody)}
-	return &Map{Pairs: result}
+	return MapFromGo(result)
 }
 
 func bHttpRequest(args ...Object) Object {
@@ -160,13 +160,13 @@ func bHttpRequest(args ...Object) Object {
 
 	if len(args) >= 3 {
 		if h, ok := args[2].(*Map); ok {
-			for k, v := range h.Pairs {
-				if sv, ok := v.(*String); ok {
-					headers[k] = sv.Value
-				} else if iv, ok := v.(*Integer); ok {
-					headers[k] = strconv.FormatInt(iv.Value, 10)
+			for _, p := range h.Pairs {
+				if sv, ok := p.Value.(*String); ok {
+					headers[p.Key] = sv.Value
+				} else if iv, ok := p.Value.(*Integer); ok {
+					headers[p.Key] = strconv.FormatInt(iv.Value, 10)
 				} else {
-					headers[k] = v.Inspect()
+					headers[p.Key] = p.Value.Inspect()
 				}
 			}
 		}
@@ -215,9 +215,9 @@ func bHttpRequest(args ...Object) Object {
 
 	result := make(map[string]Object)
 	result["status"] = &Integer{Value: int64(resp.StatusCode)}
-	result["headers"] = &Map{Pairs: respHeaders}
+	result["headers"] = MapFromGo(respHeaders)
 	result["body"] = &String{Value: string(respBody)}
-	return &Map{Pairs: result}
+	return MapFromGo(result)
 }
 
 func bHttpGetJSON(args ...Object) Object {
@@ -226,8 +226,8 @@ func bHttpGetJSON(args ...Object) Object {
 		return resp
 	}
 	respMap := resp.(*Map)
-	body := respMap.Pairs["body"].(*String)
-	return jsonToObject(body.Value)
+	body, _ := respMap.Get("body")
+	return jsonToObject(body.(*String).Value)
 }
 
 func bParseJSON(args ...Object) Object {
@@ -267,7 +267,7 @@ func convertJSON(data interface{}) Object {
 		for k, val := range v {
 			pairs[k] = convertJSON(val)
 		}
-		return &Map{Pairs: pairs}
+		return MapFromGo(pairs)
 	case []interface{}:
 		elems := make([]Object, len(v))
 		for i, val := range v {
@@ -293,8 +293,8 @@ func objectToJSON(obj Object) interface{} {
 	switch v := obj.(type) {
 	case *Map:
 		m := make(map[string]interface{})
-		for k, val := range v.Pairs {
-			m[k] = objectToJSON(val)
+		for _, p := range v.Pairs {
+			m[p.Key] = objectToJSON(p.Value)
 		}
 		return m
 	case *List:

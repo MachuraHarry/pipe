@@ -296,13 +296,16 @@ func TestEvalMaps(t *testing.T) {
 	if len(m.Pairs) != 2 {
 		t.Errorf("expected 2 pairs, got %d", len(m.Pairs))
 	}
-	aVal := m.Pairs["a"]
-	bVal := m.Pairs["b"]
+	aVal, _ := m.Get("a")
+	bVal, _ := m.Get("b")
 	if aVal == nil || aVal.Inspect() != "1" {
 		t.Errorf("a: expected 1, got %v", aVal)
 	}
 	if bVal == nil || bVal.Inspect() != "2" {
 		t.Errorf("b: expected 2, got %v", bVal)
+	}
+	if len(m.Pairs) != 2 || m.Pairs[0].Key != "a" || m.Pairs[1].Key != "b" {
+		t.Errorf("map should preserve declaration order, got %v", m.Keys())
 	}
 }
 

@@ -661,17 +661,17 @@ func (c *Compiler) Compile(node ast.Node) error {
 
 	case *ast.MapLiteral:
 		keys := make([]string, 0, len(n.Pairs))
-		for k := range n.Pairs {
-			keys = append(keys, k)
+		for _, p := range n.Pairs {
+			keys = append(keys, p.Key)
 		}
-		for _, k := range keys {
-			if err := c.Compile(n.Pairs[k]); err != nil {
+		for _, p := range n.Pairs {
+			if err := c.Compile(p.Value); err != nil {
 				return err
 			}
 		}
 		c.emit(OpMap, len(n.Pairs))
-		for _, k := range keys {
-			ki := c.addString(k)
+		for _, p := range n.Pairs {
+			ki := c.addString(p.Key)
 			c.emitUint16(uint16(ki))
 		}
 

@@ -34,7 +34,7 @@ func TestAssertNear(t *testing.T) {
 func TestAssertContains(t *testing.T) {
 	hi := &String{Value: "hello world"}
 	lst := &List{Elements: []Object{&Integer{Value: 1}, &String{Value: "two"}}}
-	mp := &Map{Pairs: map[string]Object{"name": &String{Value: "pipe"}}}
+	mp := MapFromGo(map[string]Object{"name": &String{Value: "pipe"}})
 
 	tests := []struct {
 		args    []Object

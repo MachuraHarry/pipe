@@ -688,7 +688,7 @@ func (ctx *EvalContext) evalMatchPattern(pattern ast.Expression, value object.Ob
 			return false, nil
 		}
 		for i, key := range mdp.Keys {
-			val, ok := m.Pairs[key.Value]
+			val, ok := m.Get(key.Value)
 			if !ok {
 				return false, nil
 			}
@@ -952,17 +952,17 @@ func (ctx *EvalContext) evalParallelPipeline(pe *ast.PipelineExpression, left ob
 }
 
 func (ctx *EvalContext) evalMapLiteral(ml *ast.MapLiteral, env *object.Environment) object.Object {
-	pairs := make(map[string]object.Object)
+	m := object.NewMap()
 
-	for key, valExpr := range ml.Pairs {
-		val := ctx.Eval(valExpr, env)
+	for _, p := range ml.Pairs {
+		val := ctx.Eval(p.Value, env)
 		if isError(val) {
 			return val
 		}
-		pairs[key] = val
+		m.Set(p.Key, val)
 	}
 
-	return &object.Map{Pairs: pairs}
+	return m
 }
 
 func (ctx *EvalContext) evalDotExpression(de *ast.DotExpression, env *object.Environment) object.Object {
@@ -984,7 +984,7 @@ func (ctx *EvalContext) evalDotExpression(de *ast.DotExpression, env *object.Env
 		}
 		return ctx.newError("struct %s has no field '%s'", obj.Def.Name, de.Field)
 	case *object.Map:
-		if val, ok := obj.Pairs[de.Field]; ok {
+		if val, ok := obj.Get(de.Field); ok {
 			return val
 		}
 		return ctx.newError("field '%s' not found", de.Field)
@@ -1504,10 +1504,10 @@ func (ctx *EvalContext) evalImportStatement(is *ast.ImportStatement, env *object
 	hasExports := len(ctx.exportedSymbols) > 0
 
 	if is.Alias != "" {
-		nsObj := &object.Map{Pairs: make(map[string]object.Object)}
+		nsObj := object.NewMap()
 		for name, val := range importEnv.Store() {
 			if !hasExports || ctx.exportedSymbols[name] {
-				nsObj.Pairs[name] = val
+				nsObj.Set(name, val)
 			}
 		}
 		env.Set(is.Alias, nsObj)
@@ -1607,7 +1607,7 @@ func evalIndexExpression(ctx *EvalContext, left, right object.Object) object.Obj
 		if !ok {
 			return newErrorSt("map key must be a string")
 		}
-		val, exists := container.Pairs[key.Value]
+		val, exists := container.Get(key.Value)
 		if !exists {
 			return object.NILOBJ
 		}

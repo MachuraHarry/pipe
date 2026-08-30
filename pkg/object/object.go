@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
+	"sort"
 	"strconv"
 	"strings"
 	"sync"
@@ -101,13 +102,117 @@ func (l *List) Inspect() string {
 	return fmt.Sprintf("[%s]", strings.Join(elems, ", "))
 }
 
-type Map struct{ Pairs map[string]Object }
+// MapEntry is a single key/value pair in a runtime map. Maps preserve the
+// insertion order of their keys: source map literals keep declaration order,
+// while programmatically constructed maps (HTTP headers, MCP tool args, ...)
+// use MapFromGo, which sorts keys deterministically.
+type MapEntry struct {
+	Key   string
+	Value Object
+}
+
+type Map struct {
+	Pairs []MapEntry
+	index map[string]int
+}
 
 func (m *Map) Type() ObjectType { return MAP }
+
+// rebuildIndex lazily derives the key->index lookup table.
+func (m *Map) rebuildIndex() {
+	m.index = make(map[string]int, len(m.Pairs))
+	for i, p := range m.Pairs {
+		m.index[p.Key] = i
+	}
+}
+
+// Get returns the value for key and whether it was present. Lookups without a
+// successful preceding index build fall back to a linear scan.
+func (m *Map) Get(key string) (Object, bool) {
+	if m.index != nil {
+		if i, ok := m.index[key]; ok && i < len(m.Pairs) {
+			return m.Pairs[i].Value, true
+		}
+		return nil, false
+	}
+	for _, p := range m.Pairs {
+		if p.Key == key {
+			return p.Value, true
+		}
+	}
+	return nil, false
+}
+
+// Set inserts or replaces key, preserving the first-insertion position
+// ("last wins" on value, position kept). It appends a new key at the end.
+func (m *Map) Set(key string, value Object) *Map {
+	for i := range m.Pairs {
+		if m.Pairs[i].Key == key {
+			m.Pairs[i].Value = value
+			m.rebuildIndex()
+			return m
+		}
+	}
+	m.Pairs = append(m.Pairs, MapEntry{Key: key, Value: value})
+	m.rebuildIndex()
+	return m
+}
+
+// Del removes key if present.
+func (m *Map) Del(key string) bool {
+	for i := range m.Pairs {
+		if m.Pairs[i].Key == key {
+			m.Pairs = append(m.Pairs[:i], m.Pairs[i+1:]...)
+			m.rebuildIndex()
+			return true
+		}
+	}
+	return false
+}
+
+// Keys returns the keys in map order.
+func (m *Map) Keys() []string {
+	keys := make([]string, 0, len(m.Pairs))
+	for _, p := range m.Pairs {
+		keys = append(keys, p.Key)
+	}
+	return keys
+}
+
+// Values returns the values in map order.
+func (m *Map) Values() []Object {
+	vals := make([]Object, 0, len(m.Pairs))
+	for _, p := range m.Pairs {
+		vals = append(vals, p.Value)
+	}
+	return vals
+}
+
+// NewMap returns an empty ordered map.
+func NewMap() *Map {
+	return &Map{Pairs: []MapEntry{}, index: map[string]int{}}
+}
+
+// MapFromGo builds an ordered map from a Go map, sorting the keys
+// deterministically. Use for programmatically constructed maps.
+func MapFromGo(m map[string]Object) *Map {
+	keys := make([]string, 0, len(m))
+	for k := range m {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+	out := &Map{Pairs: make([]MapEntry, 0, len(m)), index: make(map[string]int, len(m))}
+	for i, k := range keys {
+		out.Pairs = append(out.Pairs, MapEntry{Key: k, Value: m[k]})
+		out.index[k] = i
+	}
+	return out
+}
+
 func (m *Map) Inspect() string {
-	pairs := []string{}
-	for k, v := range m.Pairs {
-		pairs = append(pairs, fmt.Sprintf("%s: %s", k, v.Inspect()))
+	pairs := make([]string, 0, len(m.Pairs))
+	for _, p := range m.Pairs {
+		pairs = append(pairs, fmt.Sprintf("%s: %s", p.Key, p.Value.Inspect()))
 	}
 	return fmt.Sprintf("{%s}", strings.Join(pairs, ", "))
 }
@@ -458,9 +563,9 @@ func ValuesEqual(a, b Object) bool {
 		if len(av.Pairs) != len(bv.Pairs) {
 			return false
 		}
-		for k, v := range av.Pairs {
-			bVal, ok := bv.Pairs[k]
-			if !ok || !ValuesEqual(v, bVal) {
+		for _, p := range av.Pairs {
+			bVal, ok := bv.Get(p.Key)
+			if !ok || !ValuesEqual(p.Value, bVal) {
 				return false
 			}
 		}

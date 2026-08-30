@@ -8,17 +8,13 @@ import (
 )
 
 func TestHttpServerBasic(t *testing.T) {
-	handlerResp := &Map{
-		Pairs: map[string]Object{
-			"status": &Integer{Value: 201},
-			"headers": &Map{
-				Pairs: map[string]Object{
-					"X-Custom": &String{Value: "hello"},
-				},
-			},
-			"body": &String{Value: "Hello from Pipe"},
-		},
-	}
+	handlerResp := MapFromGo(map[string]Object{
+		"status": &Integer{Value: 201},
+		"headers": MapFromGo(map[string]Object{
+			"X-Custom": &String{Value: "hello"},
+		}),
+		"body": &String{Value: "Hello from Pipe"},
+	})
 	handler := &BuiltinInfo{
 		Name: "test_handler",
 		Fn: func(args ...Object) Object {
@@ -29,10 +25,12 @@ func TestHttpServerBasic(t *testing.T) {
 			if !ok {
 				return err("expected map")
 			}
-			if req.Pairs["method"].Inspect() != "GET" {
+			method, _ := req.Get("method")
+			path, _ := req.Get("path")
+			if method.Inspect() != "GET" {
 				return err("expected GET")
 			}
-			if req.Pairs["path"].Inspect() != "/api/test" {
+			if path.Inspect() != "/api/test" {
 				return err("expected /api/test")
 			}
 			return handlerResp
@@ -180,12 +178,10 @@ func TestHttpServerMultipleRequests(t *testing.T) {
 		Name: "count_handler",
 		Fn: func(args ...Object) Object {
 			calls++
-			return &Map{
-				Pairs: map[string]Object{
-					"status": &Integer{Value: 200},
-					"body":   &String{Value: fmt.Sprintf("call %d", calls)},
-				},
-			}
+			return MapFromGo(map[string]Object{
+				"status": &Integer{Value: 200},
+				"body":   &String{Value: fmt.Sprintf("call %d", calls)},
+			})
 		},
 	}
 

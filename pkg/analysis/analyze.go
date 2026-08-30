@@ -315,8 +315,8 @@ func (a *Analyzer) walkExpr(expr ast.Expression) {
 			a.walkExpr(el)
 		}
 	case *ast.MapLiteral:
-		for _, v := range e.Pairs {
-			a.walkExpr(v)
+		for _, p := range e.Pairs {
+			a.walkExpr(p.Value)
 		}
 	case *ast.DotExpression:
 		a.walkExpr(e.Left)

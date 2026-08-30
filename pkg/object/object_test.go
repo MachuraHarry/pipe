@@ -104,21 +104,19 @@ func TestListType(t *testing.T) {
 }
 
 func TestMapType(t *testing.T) {
-	obj := &Map{
-		Pairs: map[string]Object{
-			"a": &Integer{Value: 1},
-			"b": &String{Value: "two"},
-		},
-	}
+	obj := MapFromGo(map[string]Object{
+		"a": &Integer{Value: 1},
+		"b": &String{Value: "two"},
+	})
 	if obj.Type() != MAP {
 		t.Errorf("Type = %s, want MAP", obj.Type())
 	}
 	insp := obj.Inspect()
-	if !(insp == `{a: 1, b: two}` || insp == `{b: two, a: 1}`) {
-		t.Errorf("Inspect = %s, want map with a and b", insp)
+	if insp != `{a: 1, b: two}` {
+		t.Errorf("Inspect = %s, want {a: 1, b: two} (deterministic sorted order)", insp)
 	}
 
-	empty := &Map{Pairs: map[string]Object{}}
+	empty := MapFromGo(map[string]Object{})
 	if empty.Inspect() != "{}" {
 		t.Errorf("empty Map Inspect = %s, want {}", empty.Inspect())
 	}
@@ -298,11 +296,9 @@ func TestObjectTypeConstants(t *testing.T) {
 }
 
 func TestTypeOfBuiltin(t *testing.T) {
-	obj := &Map{
-		Pairs: map[string]Object{
-			"name": &String{Value: "test"},
-		},
-	}
+	obj := MapFromGo(map[string]Object{
+		"name": &String{Value: "test"},
+	})
 	result := bTypeOf(obj)
 	s, ok := result.(*String)
 	if !ok || s.Value != "MAP" {
@@ -498,7 +494,7 @@ func TestMathBuiltins(t *testing.T) {
 }
 
 func TestMapBuiltins(t *testing.T) {
-	m := &Map{Pairs: map[string]Object{"a": &Integer{Value: 1}}}
+	m := MapFromGo(map[string]Object{"a": &Integer{Value: 1}})
 
 	// get
 	result := bGet(m, &String{Value: "a"})

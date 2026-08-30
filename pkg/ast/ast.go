@@ -1,6 +1,9 @@
 package ast
 
-import "fmt"
+import (
+	"fmt"
+	"strings"
+)
 
 type Node interface {
 	TokenLiteral() string
@@ -308,23 +311,33 @@ func (ll *ListLiteral) String() string {
 	return fmt.Sprintf("[%s]", elems)
 }
 
+// MapEntry is a single key/value pair in a map literal, preserving the
+// source declaration order.
+type MapEntry struct {
+	Key   string
+	Value Expression
+}
+
 type MapLiteral struct {
-	Pairs map[string]Expression
+	Pairs []MapEntry
 }
 
 func (ml *MapLiteral) expressionNode()      {}
 func (ml *MapLiteral) TokenLiteral() string { return "{" }
-func (ml *MapLiteral) String() string {
-	var pairs string
-	i := 0
-	for k, v := range ml.Pairs {
-		if i > 0 {
-			pairs += ", "
+func (ml *MapLiteral) Get(key string) (Expression, bool) {
+	for _, p := range ml.Pairs {
+		if p.Key == key {
+			return p.Value, true
 		}
-		pairs += fmt.Sprintf("%s: %s", k, v.String())
-		i++
 	}
-	return fmt.Sprintf("{%s}", pairs)
+	return nil, false
+}
+func (ml *MapLiteral) String() string {
+	parts := make([]string, 0, len(ml.Pairs))
+	for _, p := range ml.Pairs {
+		parts = append(parts, fmt.Sprintf("%s: %s", p.Key, p.Value.String()))
+	}
+	return fmt.Sprintf("{%s}", strings.Join(parts, ", "))
 }
 
 type DotExpression struct {

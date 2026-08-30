@@ -142,11 +142,11 @@ func bProcWait(args ...Object) Object {
 		errStr = h.Err.Error()
 	}
 
-	return &Map{Pairs: map[string]Object{
+	return MapFromGo(map[string]Object{
 		"output": &String{Value: output},
 		"error":  &String{Value: errStr},
 		"status": &Integer{Value: int64(status)},
-	}}
+	})
 }
 
 // bProcKill terminates a running process.

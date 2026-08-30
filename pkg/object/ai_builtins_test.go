@@ -19,10 +19,10 @@ func TestAiProviderThinkingConfig(t *testing.T) {
 	ai.SetProvider("deepseek")
 	ai.SetExtraBody(nil)
 
-	result := bAiProvider(&String{Value: "deepseek"}, &Map{Pairs: map[string]Object{
+	result := bAiProvider(&String{Value: "deepseek"}, MapFromGo(map[string]Object{
 		"thinking": &Boolean{Value: true},
 		"effort":   &String{Value: "max"},
-	}})
+	}))
 	if _, ok := result.(*Error); ok {
 		t.Fatalf("thinking/effort config failed: %s", result.Inspect())
 	}
@@ -42,9 +42,9 @@ func TestAiProviderThinkingDisabled(t *testing.T) {
 	ai.SetProvider("deepseek")
 	ai.SetExtraBody(nil)
 
-	bAiProvider(&String{Value: "deepseek"}, &Map{Pairs: map[string]Object{
+	bAiProvider(&String{Value: "deepseek"}, MapFromGo(map[string]Object{
 		"thinking": &Boolean{Value: false},
-	}})
+	}))
 	th, ok := ai.ActiveConfig.ExtraBody["thinking"].(map[string]interface{})
 	if !ok || th["type"] != "disabled" {
 		t.Errorf("thinking = %v, want disabled", ai.ActiveConfig.ExtraBody["thinking"])
@@ -58,9 +58,9 @@ func TestAiProviderEffortNoneDisablesThinking(t *testing.T) {
 	ai.SetProvider("deepseek")
 	ai.SetExtraBody(nil)
 
-	bAiProvider(&String{Value: "deepseek"}, &Map{Pairs: map[string]Object{
+	bAiProvider(&String{Value: "deepseek"}, MapFromGo(map[string]Object{
 		"effort": &String{Value: "none"},
-	}})
+	}))
 	th, ok := ai.ActiveConfig.ExtraBody["thinking"].(map[string]interface{})
 	if !ok || th["type"] != "disabled" {
 		t.Errorf("thinking = %v, want disabled for effort none", ai.ActiveConfig.ExtraBody["thinking"])
@@ -91,9 +91,9 @@ func TestAiProviderThinkingInvalidEffort(t *testing.T) {
 	ai.SetProvider("deepseek")
 	ai.SetExtraBody(nil)
 
-	result := bAiProvider(&String{Value: "deepseek"}, &Map{Pairs: map[string]Object{
+	result := bAiProvider(&String{Value: "deepseek"}, MapFromGo(map[string]Object{
 		"effort": &String{Value: "extreme"},
-	}})
+	}))
 	if _, ok := result.(*Error); !ok {
 		t.Errorf("invalid effort should return error, got %s", result.Inspect())
 	}
@@ -101,16 +101,16 @@ func TestAiProviderThinkingInvalidEffort(t *testing.T) {
 
 func TestAiProviderThinkingTypeCheck(t *testing.T) {
 	ai.SetProvider("deepseek")
-	result := bAiProvider(&String{Value: "deepseek"}, &Map{Pairs: map[string]Object{
+	result := bAiProvider(&String{Value: "deepseek"}, MapFromGo(map[string]Object{
 		"thinking": &String{Value: "yes"},
-	}})
+	}))
 	if _, ok := result.(*Error); !ok {
 		t.Errorf("thinking as string should return error, got %s", result.Inspect())
 	}
 
-	result = bAiProvider(&String{Value: "deepseek"}, &Map{Pairs: map[string]Object{
+	result = bAiProvider(&String{Value: "deepseek"}, MapFromGo(map[string]Object{
 		"effort": &Integer{Value: 3},
-	}})
+	}))
 	if _, ok := result.(*Error); !ok {
 		t.Errorf("effort as integer should return error, got %s", result.Inspect())
 	}
@@ -118,9 +118,9 @@ func TestAiProviderThinkingTypeCheck(t *testing.T) {
 
 func TestAiProviderThinkingNonDeepSeek(t *testing.T) {
 	ai.SetProvider("openai")
-	result := bAiProvider(&String{Value: "openai"}, &Map{Pairs: map[string]Object{
+	result := bAiProvider(&String{Value: "openai"}, MapFromGo(map[string]Object{
 		"thinking": &Boolean{Value: true},
-	}})
+	}))
 	if _, ok := result.(*Error); !ok {
 		t.Errorf("thinking on non-deepseek provider should error, got %s", result.Inspect())
 	}
@@ -295,19 +295,22 @@ func TestConvertJSONNested(t *testing.T) {
 		t.Errorf("expected 3 pairs, got %d", len(m.Pairs))
 	}
 
-	name, ok := m.Pairs["name"].(*String)
+	nameObj, _ := m.Get("name")
+	name, ok := nameObj.(*String)
 	if !ok || name.Value != "Pipe" {
-		t.Errorf("name = %v, want Pipe", m.Pairs["name"].Inspect())
+		t.Errorf("name = %v, want Pipe", nameObj.Inspect())
 	}
 
-	ver, ok := m.Pairs["version"].(*Integer)
+	verObj, _ := m.Get("version")
+	ver, ok := verObj.(*Integer)
 	if !ok || ver.Value != 1 {
-		t.Errorf("version = %v, want 1", m.Pairs["version"].Inspect())
+		t.Errorf("version = %v, want 1", verObj.Inspect())
 	}
 
-	tags, ok := m.Pairs["tags"].(*List)
+	tagsObj, _ := m.Get("tags")
+	tags, ok := tagsObj.(*List)
 	if !ok || len(tags.Elements) != 2 {
-		t.Errorf("tags = %v", m.Pairs["tags"].Inspect())
+		t.Errorf("tags = %v", tagsObj.Inspect())
 	}
 }
 
@@ -338,5 +341,35 @@ func TestClassifyWithString(t *testing.T) {
 	_, isErr := result.(*Error)
 	if isErr {
 		t.Log("classify error (expected without API key)")
+	}
+}
+
+// TestAiToolPreservesParameterOrder guards round 10's fix: ai_tool must bind
+// multi-parameter tools in the user's declaration order, not alphabetically.
+// A schema of {path, content} used to be re-ordered to {content, path}.
+func TestAiToolPreservesParameterOrder(t *testing.T) {
+	name := "write_file_order_test"
+	schema := NewMap()
+	schema.Set("path", &String{Value: "the file path"})
+	schema.Set("content", &String{Value: "the file content"})
+	fn := &BuiltinInfo{Fn: func(args ...Object) Object { return NILOBJ }}
+
+	r := bAiTool(&String{Value: name}, &String{Value: "write a file"}, schema, fn)
+	if r.Type() == ERROR {
+		t.Fatalf("ai_tool returned error: %v", r)
+	}
+
+	entry, ok := toolRegistry[name]
+	if !ok {
+		t.Fatalf("tool %q not registered", name)
+	}
+	required, _ := entry.Def.Parameters["required"].([]interface{})
+	if len(required) != 2 || required[0] != "path" || required[1] != "content" {
+		t.Fatalf("required order = %v, want [path content] (declaration order, not alphabetical)", required)
+	}
+
+	names := toolParamNames(entry)
+	if len(names) != 2 || names[0] != "path" || names[1] != "content" {
+		t.Fatalf("toolParamNames = %v, want [path content]", names)
 	}
 }

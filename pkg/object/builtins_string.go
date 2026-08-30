@@ -82,7 +82,7 @@ func bContains(args ...Object) Object {
 		if !ok {
 			return err("contains: Map key must be a string")
 		}
-		_, exists := c.Pairs[needle.Value]
+		_, exists := c.Get(needle.Value)
 		return NativeBoolToBoolean(exists)
 	}
 	return err("contains expects string, list, or map")
@@ -160,7 +160,7 @@ func bCsvParse(args ...Object) Object {
 		for k, v := range row {
 			pairs[k] = &String{Value: v}
 		}
-		elems[i] = &Map{Pairs: pairs}
+		elems[i] = MapFromGo(pairs)
 	}
 	return &List{Elements: elems}
 }
@@ -188,9 +188,7 @@ func bCsvFormat(args ...Object) Object {
 
 	if len(headers) == 0 && len(list.Elements) > 0 {
 		if first, ok := list.Elements[0].(*Map); ok {
-			for k := range first.Pairs {
-				headers = append(headers, k)
-			}
+			headers = append(headers, first.Keys()...)
 		}
 	}
 
@@ -201,8 +199,8 @@ func bCsvFormat(args ...Object) Object {
 			return err("csv_format: all elements must be maps")
 		}
 		row := make(map[string]string)
-		for k, v := range m.Pairs {
-			row[k] = v.Inspect()
+		for _, p := range m.Pairs {
+			row[p.Key] = p.Value.Inspect()
 		}
 		rows[i] = row
 	}

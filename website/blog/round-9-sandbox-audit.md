@@ -58,6 +58,8 @@ DeepSeek's own final report flagged "a strange parameter-swap bug" in `write_fil
 
 Not patched this round: there's no minimal fix (order is lost at parse time), so a real fix means making map literals order-preserving end to end — a separate, larger initiative. Immediate mitigation shipped: an explicit warning in the `ai_tool` docs. But this is a genuine example of why running a live adversarial model against your own tooling surfaces things static review doesn't.
 
+> **Status update:** the full end-to-end fix landed in round 10. Pipe map literals are now order-preserving through parser, AST, tree-walker and compiler/VM — `ast.MapLiteral.Pairs` and the runtime `object.Map` are ordered, source literals keep declaration order, and `bAiTool`'s `keysToStrings` no longer sorts. `write_file {path: ..., content: ...}` is now correctly called as `write_file(path, content)`. Guarded by `TestAiToolPreservesParameterOrder`.
+
 ## Live results — what held
 
 Both agents ran to the profile's `max_tool_calls: 30` cap and stopped cleanly (itself a working defense layer, independent of the dollar `budget` field).
@@ -144,6 +146,8 @@ Das ist ein schwerer, bislang verborgener Bug: **Jedes Beispielskript, das ein r
 DeepSeeks eigener Abschlussbericht meldete „einen seltsamen Parameter-Swap-Bug" bei `write_file` — die erzeugte Datei war nach dem *Inhalt* benannt, den es schreiben wollte, und enthielt den *Pfad*-String. Ursache: Pipe-Map-Literale erhalten die Deklarationsreihenfolge nirgends, sodass `{path: ..., content: ...}` in **alphabetischer** Reihenfolge ans Builtin geht — `write_file(content, path)`. Argumente vertauscht.
 
 Diese Runde nicht gefixt: Es gibt keinen Mini-Fix (die Reihenfolge geht bereits beim Parsen verloren), ein echter Fix bedeutet, Map-Literale end-to-end ordnungserhaltend zu machen — ein separates, größeres Vorhaben. Sofortige Abmilderung geschickt: eine explizite Warnung in der `ai_tool`-Doku. Aber es ist ein echtes Beispiel dafür, warum ein Live-Adversarial-Modell gegen die eigene Tooling Dinge aufdeckt, die statische Review nicht findet.
+
+> **Status-Update:** Der komplette End-to-End-Fix kam in Runde 10. Pipe-Map-Literale sind jetzt ordnungserhaltend durch Parser, AST, Tree-Walker und Compiler/VM — `ast.MapLiteral.Pairs` und das Laufzeit-`object.Map` sind geordnet, Quell-Literale behalten die Deklarationsreihenfolge, und `bAiTool`'s `keysToStrings` sortiert nicht mehr. `write_file {path: ..., content: ...}` wird jetzt korrekt als `write_file(path, content)` aufgerufen. Abgesichert durch `TestAiToolPreservesParameterOrder`.
 
 ## Live-Ergebnis — was hielt
 

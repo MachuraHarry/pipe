@@ -81,7 +81,8 @@ func TestNetworkBuiltinsAllowedBySandboxFlag(t *testing.T) {
 	if get.Type() == ERROR {
 		t.Fatalf("http_get should be allowed with AllowNet=true, got %v", get)
 	}
-	if status := get.(*Map).Pairs["status"].(*Integer).Value; status != 200 {
+	statusObj, _ := get.(*Map).Get("status")
+	if status := statusObj.(*Integer).Value; status != 200 {
 		t.Fatalf("http_get status = %d, want 200", status)
 	}
 
@@ -89,7 +90,8 @@ func TestNetworkBuiltinsAllowedBySandboxFlag(t *testing.T) {
 	if post.Type() == ERROR {
 		t.Fatalf("http_post should be allowed with AllowNet=true, got %v", post)
 	}
-	if status := post.(*Map).Pairs["status"].(*Integer).Value; status != 200 {
+	statusObj2, _ := post.(*Map).Get("status")
+	if status := statusObj2.(*Integer).Value; status != 200 {
 		t.Fatalf("http_post status = %d, want 200", status)
 	}
 }
@@ -126,7 +128,8 @@ func TestNetworkBuiltinsAllowedByProfile(t *testing.T) {
 	if post.Type() == ERROR {
 		t.Fatalf("http_post should be allowed under network:true profile, got %v", post)
 	}
-	if status := post.(*Map).Pairs["status"].(*Integer).Value; status != 200 {
+	sObj, _ := post.(*Map).Get("status")
+	if status := sObj.(*Integer).Value; status != 200 {
 		t.Fatalf("http_post status = %d, want 200", status)
 	}
 }

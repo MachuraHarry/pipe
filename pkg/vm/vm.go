@@ -462,16 +462,16 @@ func (vm *VM) Run() (err error) {
 			for i := numPairs - 1; i >= 0; i-- {
 				vals[i] = vm.pop()
 			}
-			pairs := make(map[string]object.Object)
+			m := object.NewMap()
 			for i := 0; i < numPairs; i++ {
 				ki := compiler.ReadUint16(ins, frame.ip)
 				frame.ip += 2
 				keyObj := vm.constants[ki]
 				if ks, ok := keyObj.(*object.String); ok {
-					pairs[ks.Value] = vals[i]
+					m.Set(ks.Value, vals[i])
 				}
 			}
-			vm.push(&object.Map{Pairs: pairs})
+			vm.push(m)
 
 		case compiler.OpStruct:
 			numFields := int(compiler.ReadUint16(ins, frame.ip))
@@ -578,7 +578,7 @@ func (vm *VM) Run() (err error) {
 					vm.push(object.NILOBJ)
 				}
 			case *object.Map:
-				if val, ok := m.Pairs[field]; ok {
+				if val, ok := m.Get(field); ok {
 					vm.push(val)
 				} else {
 					vm.push(object.NILOBJ)
@@ -1244,7 +1244,7 @@ func (vm *VM) executeFrame() object.Object {
 					vm.push(object.NILOBJ)
 				}
 			case *object.Map:
-				if val, ok := m.Pairs[field]; ok {
+				if val, ok := m.Get(field); ok {
 					vm.push(val)
 				} else {
 					vm.push(object.NILOBJ)
@@ -1285,16 +1285,16 @@ func (vm *VM) executeFrame() object.Object {
 			for i := numPairs - 1; i >= 0; i-- {
 				vals[i] = vm.pop()
 			}
-			pairs := make(map[string]object.Object)
+			m := object.NewMap()
 			for i := 0; i < numPairs; i++ {
 				ki := compiler.ReadUint16(ins, frame.ip)
 				frame.ip += 2
 				keyObj := vm.constants[ki]
 				if ks, ok := keyObj.(*object.String); ok {
-					pairs[ks.Value] = vals[i]
+					m.Set(ks.Value, vals[i])
 				}
 			}
-			vm.push(&object.Map{Pairs: pairs})
+			vm.push(m)
 
 		case compiler.OpStruct:
 			numFields := int(compiler.ReadUint16(ins, frame.ip))

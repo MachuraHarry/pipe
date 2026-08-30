@@ -506,11 +506,11 @@ func TestSandboxProfileRegistrationRatchet(t *testing.T) {
 	})
 	ActiveProfile.Store(cage)
 
-	permissive := &Map{Pairs: map[string]Object{
+	permissive := MapFromGo(map[string]Object{
 		"network": TRUE,
 		"exec":    TRUE,
 		"ai":      TRUE,
-	}}
+	})
 	res := bSandboxProfile(&String{Value: "reg-escape"}, permissive)
 	if res.Type() != ERROR {
 		t.Fatalf("registering a permissive profile under a restricted one must fail, got: %s", res.Inspect())
@@ -519,12 +519,12 @@ func TestSandboxProfileRegistrationRatchet(t *testing.T) {
 		t.Fatal("permissive profile must not be registered")
 	}
 
-	restricted := &Map{Pairs: map[string]Object{
+	restricted := MapFromGo(map[string]Object{
 		"fs":      &String{Value: "none"},
 		"network": &Boolean{Value: false},
 		"exec":    &Boolean{Value: false},
 		"ai":      &Boolean{Value: false},
-	}}
+	})
 	res = bSandboxProfile(&String{Value: "reg-ok"}, restricted)
 	if res.Type() == ERROR {
 		t.Fatalf("registering a subset profile must be allowed, got: %s", res.Inspect())
@@ -865,12 +865,13 @@ func TestExecWhitelistBlocksShellInjection(t *testing.T) {
 			if !ok {
 				t.Fatalf("exec(%q): expected a result map, got %v", c.cmd, result)
 			}
-			out, ok := m.Pairs["output"].(*String)
+			out, _ := m.Get("output")
+			outStr, ok := out.(*String)
 			if !ok {
 				t.Fatalf("exec(%q): result map has no string output", c.cmd)
 			}
-			if out.Value != c.want {
-				t.Fatalf("exec(%q) output = %q, want literal %q (no shell interpretation)", c.cmd, out.Value, c.want)
+			if outStr.Value != c.want {
+				t.Fatalf("exec(%q) output = %q, want literal %q (no shell interpretation)", c.cmd, outStr.Value, c.want)
 			}
 		})
 	}
@@ -976,13 +977,13 @@ func TestExecWhitelistSubsetRatchet(t *testing.T) {
 func TestExecWhitelistBlocksViaProfileBuiltin(t *testing.T) {
 	// Register the profile through bSandboxProfile and verify a stray exec is
 	// rejected while git is accepted, mirroring the fluentloop use case.
-	config := &Map{Pairs: map[string]Object{
+	config := MapFromGo(map[string]Object{
 		"fs":             &String{Value: "read-only"},
 		"exec":           TRUE,
 		"exec_whitelist": &List{Elements: []Object{&String{Value: "git"}}},
 		"network":        FALSE,
 		"ai":             FALSE,
-	}}
+	})
 	if res := bSandboxProfile(&String{Value: "exw-builtin"}, config); res.Type() == ERROR {
 		t.Fatalf("sandbox_profile rejected: %s", res.Inspect())
 	}

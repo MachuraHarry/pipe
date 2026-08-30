@@ -28,14 +28,14 @@ func TestAiToolMCPBindingOrderDeterministic(t *testing.T) {
 
 	// Six schema keys in deliberately unsorted declaration order: a binding
 	// order chosen at random would match sorted order only ~1/720 of runs.
-	schema := &Map{Pairs: map[string]Object{
+	schema := MapFromGo(map[string]Object{
 		"zulu":   &String{Value: "zulu desc"},
 		"mike":   &String{Value: "mike desc"},
 		"alpha":  &String{Value: "alpha desc"},
 		"xray":   &String{Value: "xray desc"},
 		"bravo":  &String{Value: "bravo desc"},
 		"yankee": &String{Value: "yankee desc"},
-	}}
+	})
 	if r := bAiTool(&String{Value: "probe"}, &String{Value: "probe tool"}, schema, probe); r.Type() == ERROR {
 		t.Fatal("ai_tool failed: " + r.Inspect())
 	}

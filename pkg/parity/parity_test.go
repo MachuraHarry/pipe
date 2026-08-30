@@ -27,7 +27,6 @@ import (
 //   - new_features: writes a module file at runtime and imports it. The TV
 //     resolves imports lazily while the VM does so at compile time, so this
 //     pattern is inherently TV-only.
-//   - hashing_demo: prints a raw map; map iteration order is non-deterministic.
 //   - futures_demo: prints inside concurrently resolving futures, so the
 //     interleaving order of the prints is non-deterministic.
 //   - forin_demo, hash_chain, password_hash, token_gen: random/now output.
@@ -43,6 +42,7 @@ var deterministicOffline = []string{
 	"concurrency_spawn_await",
 	"fib",
 	"fizzbuzz",
+	"hashing_demo",
 	"hello",
 	"lambda_pipeline",
 	"minitest",

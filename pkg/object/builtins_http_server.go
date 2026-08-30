@@ -102,11 +102,11 @@ func (hs *HttpServer) buildRequestMap(r *http.Request) *Map {
 	pairs := map[string]Object{
 		"method":  &String{Value: r.Method},
 		"path":    &String{Value: r.URL.Path},
-		"query":   &Map{Pairs: query},
-		"headers": &Map{Pairs: headers},
+		"query":   MapFromGo(query),
+		"headers": MapFromGo(headers),
 		"body":    &String{Value: string(bodyBytes)},
 	}
-	return &Map{Pairs: pairs}
+	return MapFromGo(pairs)
 }
 
 func (hs *HttpServer) callHandler(req *Map) Object {
@@ -134,22 +134,22 @@ func (hs *HttpServer) writeResponse(w http.ResponseWriter, resp Object) {
 	}
 
 	statusCode := http.StatusOK
-	if s, ok := respMap.Pairs["status"]; ok {
+	if s, ok := respMap.Get("status"); ok {
 		if n, ok := ToInt(s); ok {
 			statusCode = int(n)
 		}
 	}
 
-	if h, ok := respMap.Pairs["headers"]; ok {
+	if h, ok := respMap.Get("headers"); ok {
 		if hm, ok := h.(*Map); ok {
-			for k, v := range hm.Pairs {
-				w.Header().Set(k, v.Inspect())
+			for _, p := range hm.Pairs {
+				w.Header().Set(p.Key, p.Value.Inspect())
 			}
 		}
 	}
 
 	body := []byte{}
-	if b, ok := respMap.Pairs["body"]; ok {
+	if b, ok := respMap.Get("body"); ok {
 		body = []byte(b.Inspect())
 	}
 

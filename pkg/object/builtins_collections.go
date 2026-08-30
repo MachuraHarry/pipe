@@ -359,7 +359,7 @@ func bKeys(args ...Object) Object {
 		return err("keys expects a map")
 	}
 	keys := make([]Object, 0, len(m.Pairs))
-	for k := range m.Pairs {
+	for _, k := range m.Keys() {
 		keys = append(keys, &String{Value: k})
 	}
 	return &List{Elements: keys}
@@ -374,7 +374,7 @@ func bValues(args ...Object) Object {
 		return err("values expects a map")
 	}
 	vals := make([]Object, 0, len(m.Pairs))
-	for _, v := range m.Pairs {
+	for _, v := range m.Values() {
 		vals = append(vals, v)
 	}
 	return &List{Elements: vals}
@@ -390,7 +390,7 @@ func bGet(args ...Object) Object {
 		if !ok {
 			return err("get: Map-Key must be a string")
 		}
-		val, exists := container.Pairs[key.Value]
+		val, exists := container.Get(key.Value)
 		if !exists {
 			return NILOBJ
 		}
@@ -419,9 +419,9 @@ func bSet(args ...Object) Object {
 			return err("set: Map-Key must be a string")
 		}
 		if container.Pairs == nil {
-			container.Pairs = make(map[string]Object)
+			container.Pairs = []MapEntry{}
 		}
-		container.Pairs[key.Value] = args[2]
+		container.Set(key.Value, args[2])
 		return container
 	case *List:
 		idx, ok := ToInt(args[1])
@@ -449,6 +449,6 @@ func bMapDelete(args ...Object) Object {
 	if !ok {
 		return err("map_delete: key must be a string")
 	}
-	delete(m.Pairs, key.Value)
+	m.Del(key.Value)
 	return NILOBJ
 }

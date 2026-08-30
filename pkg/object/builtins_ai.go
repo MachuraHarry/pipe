@@ -24,7 +24,8 @@ func bAiProvider(args ...Object) Object {
 		if !ok {
 			return err("ai_provider: optional second argument must be a block {model: ..., host: ..., timeout: ...}")
 		}
-		for key, val := range config.Pairs {
+		for _, entry := range config.Pairs {
+			key, val := entry.Key, entry.Value
 			switch key {
 			case "model":
 				m, ok := val.(*String)
@@ -203,11 +204,11 @@ func bWebSearch(args ...Object) Object {
 
 	elems := make([]Object, len(results))
 	for i, r := range results {
-		elems[i] = &Map{Pairs: map[string]Object{
+		elems[i] = MapFromGo(map[string]Object{
 			"title":   &String{Value: r.Title},
 			"snippet": &String{Value: r.Snippet},
 			"url":     &String{Value: r.URL},
-		}}
+		})
 	}
 	return &List{Elements: elems}
 }
@@ -235,11 +236,11 @@ func bWikiSearch(args ...Object) Object {
 
 	elems := make([]Object, len(results))
 	for i, r := range results {
-		elems[i] = &Map{Pairs: map[string]Object{
+		elems[i] = MapFromGo(map[string]Object{
 			"title":   &String{Value: r.Title},
 			"snippet": &String{Value: r.Snippet},
 			"url":     &String{Value: r.URL},
-		}}
+		})
 	}
 	return &List{Elements: elems}
 }
@@ -252,12 +253,12 @@ func bAiCost(args ...Object) Object {
 			return &String{Value: "cost metrics reset"}
 		}
 	}
-	return &Map{Pairs: map[string]Object{
+	return MapFromGo(map[string]Object{
 		"cost_usd":     &Float{Value: cost},
 		"calls":        &Integer{Value: int64(calls)},
 		"cache_hits":   &Integer{Value: int64(hits)},
 		"cache_misses": &Integer{Value: int64(misses)},
-	}}
+	})
 }
 
 func bAiTokens(args ...Object) Object {
@@ -947,7 +948,8 @@ func bAiTool(args ...Object) Object {
 	fn := args[3]
 
 	paramSchema := make(map[string]interface{})
-	for k, v := range params.Pairs {
+	for _, p := range params.Pairs {
+		k, v := p.Key, p.Value
 		if s, ok := v.(*String); ok {
 			paramSchema[k] = map[string]interface{}{
 				"type":        "string",
@@ -955,9 +957,9 @@ func bAiTool(args ...Object) Object {
 			}
 		} else if m, ok := v.(*Map); ok {
 			inner := make(map[string]interface{})
-			for ik, iv := range m.Pairs {
-				if is, ok := iv.(*String); ok {
-					inner[ik] = is.Value
+			for _, ip := range m.Pairs {
+				if is, ok := ip.Value.(*String); ok {
+					inner[ip.Key] = is.Value
 				}
 			}
 			paramSchema[k] = inner
@@ -980,19 +982,15 @@ func bAiTool(args ...Object) Object {
 	return NILOBJ
 }
 
-// keysToStrings returns the schema map's keys as a JSON-schema "required"
-// list. The []interface{} element type matches what JSON unmarshalling
-// produces so every consumer can type-assert uniformly; keys are sorted for
-// deterministic positional argument binding.
+// keysToStrings returns the map's keys as a JSON-schema "required" list,
+// preserving the declared map order. The []interface{} element type matches
+// what JSON unmarshalling produces so every consumer can type-assert
+// uniformly. Map literals keep their declaration order, so tool parameters
+// are bound positionally in the order the user declared them.
 func keysToStrings(m *Map) []interface{} {
-	names := make([]string, 0, len(m.Pairs))
-	for k := range m.Pairs {
-		names = append(names, k)
-	}
-	sort.Strings(names)
-	req := make([]interface{}, len(names))
-	for i, n := range names {
-		req[i] = n
+	req := make([]interface{}, len(m.Pairs))
+	for i, p := range m.Pairs {
+		req[i] = p.Key
 	}
 	return req
 }
@@ -1089,7 +1087,9 @@ func executeTool(profile *SandboxProfile, toolName string, args map[string]inter
 }
 
 // toolParamNames returns the ordered parameter names declared by a tool's
-// schema (from "required", falling back to the sorted "properties" keys).
+// schema. Pipe map literals carry their declaration order, so "required"
+// (built by keysToStrings) preserves it. The sorted "properties" fallback
+// only applies to programmatically constructed schemas with no required list.
 func toolParamNames(entry ToolEntry) []string {
 	params := entry.Def.Parameters
 	if params == nil {
@@ -1224,14 +1224,14 @@ func bTryAILog(args ...Object) Object {
 	logs := ai.GetTryAILog()
 	elems := make([]Object, len(logs))
 	for i, entry := range logs {
-		elems[i] = &Map{Pairs: map[string]Object{
+		elems[i] = MapFromGo(map[string]Object{
 			"time":     &Integer{Value: entry.Time},
 			"code":     &String{Value: entry.Code},
 			"original": &String{Value: entry.Original},
 			"fixed":    &String{Value: entry.Fixed},
 			"attempt":  &Integer{Value: int64(entry.Attempt)},
 			"success":  &Boolean{Value: entry.Success},
-		}}
+		})
 	}
 	return &List{Elements: elems}
 }

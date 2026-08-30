@@ -507,13 +507,13 @@ func formatExpr(out *strings.Builder, expr ast.Expression, depth int, prec int) 
 	case *ast.MapLiteral:
 		out.WriteByte('{')
 		i := 0
-		for k, v := range e.Pairs {
+		for _, p := range e.Pairs {
 			if i > 0 {
 				out.WriteString(", ")
 			}
-			out.WriteString(k)
+			out.WriteString(p.Key)
 			out.WriteString(": ")
-			formatExpr(out, v, depth, 0)
+			formatExpr(out, p.Value, depth, 0)
 			i++
 		}
 		out.WriteByte('}')

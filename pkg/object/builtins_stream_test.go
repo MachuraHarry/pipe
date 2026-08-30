@@ -107,7 +107,7 @@ func TestHTTPStream(t *testing.T) {
 	}))
 	defer server.Close()
 
-	headers := &Map{Pairs: map[string]Object{"Authorization": &String{Value: "Bearer test"}}}
+	headers := MapFromGo(map[string]Object{"Authorization": &String{Value: "Bearer test"}})
 	h := bHttpStreamOpen(&String{Value: server.URL}, headers)
 	if h.Type() == ERROR {
 		t.Fatalf("http_stream_open error: %s", h.Inspect())

@@ -129,6 +129,22 @@ alphabetical-order behavior and recommending single-parameter tools, or
 manually verifying alphabetical order, until map literals preserve
 declaration order.
 
+## Finding 3 resolved in round 10
+
+Round 10 implemented the full end-to-end fix this finding called for: Pipe
+map literals are now order-preserving through the entire pipeline. `ast.MapLiteral.Pairs`
+became an ordered `[]ast.MapEntry`; `object.Map.Pairs` became an ordered key
+list with `Get`/`Set`/`Del`/`Keys`/`Values`, source literals keeping
+declaration order (programmatic maps sort deterministically via `MapFromGo`);
+and the compiler/VM emit map operands in deterministic order. With order now
+surviving to the runtime, `bAiTool`'s `keysToStrings` no longer sorts — the
+`required` schema list and `orderedToolArgs` follow the declared parameter
+order, so `write_file {path: ..., content: ...}` is finally called as
+`write_file(path, content)`. The alphabetical workaround remains only as a
+fallback for programmatic schemas with no declared `required` list, and the
+docs/parity notes were updated accordingly. Regression guard:
+`TestAiToolPreservesParameterOrder`.
+
 Practical consequence for round 9 itself: categories 4 (runtime tool
 registration) and 5 (swarm handoff injection) below are **inconclusive**,
 not confirmed-safe — `swarm_agent`'s `config` argument landed in the wrong
@@ -170,7 +186,8 @@ working defense layer, independent of the AI-spend `budget` field.
   (Finding 3, DeepSeek's own observation) — documented with a clear fix
   direction, not patched this round; a genuine example of why running a live
   adversarial model against your own tooling surfaces things static review
-  doesn't.
+  doesn't. **Resolved in round 10** with the full order-preserving map
+  pipeline (see "Finding 3 resolved in round 10" above).
 - Every vector that could actually be tested end-to-end **held**, including
   the two genuinely new ones (symlink-in-jail, `ai_vision` spoofing) and
   live re-verification of Finding 1's fix under two independent adversarial

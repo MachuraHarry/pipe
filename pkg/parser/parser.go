@@ -1055,7 +1055,7 @@ func (p *Parser) parseListLiteral() ast.Expression {
 }
 
 func (p *Parser) parseMapLiteral() ast.Expression {
-	m := &ast.MapLiteral{Pairs: make(map[string]ast.Expression)}
+	m := &ast.MapLiteral{Pairs: []ast.MapEntry{}}
 
 	if p.peekTokenIs(lexer.RBRACE) {
 		p.nextToken()
@@ -1077,7 +1077,17 @@ func (p *Parser) parseMapLiteral() ast.Expression {
 
 		p.nextToken()
 		val := p.parseExpression(PrecedenceLowest)
-		m.Pairs[key] = val
+		replaced := false
+		for i := range m.Pairs {
+			if m.Pairs[i].Key == key {
+				m.Pairs[i].Value = val
+				replaced = true
+				break
+			}
+		}
+		if !replaced {
+			m.Pairs = append(m.Pairs, ast.MapEntry{Key: key, Value: val})
+		}
 
 		if p.peekTokenIs(lexer.COMMA) {
 			p.nextToken()

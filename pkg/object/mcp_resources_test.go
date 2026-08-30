@@ -36,7 +36,9 @@ func TestMCPResourceBuiltins(t *testing.T) {
 		t.Fatalf("mcp_resources = %s, want 1 entry", res.Inspect())
 	}
 	entry := list.Elements[0].(*Map)
-	if entry.Pairs["uri"].Inspect() != "docs://pipe" || entry.Pairs["source"].Inspect() != "local" {
+	uri, _ := entry.Get("uri")
+	src, _ := entry.Get("source")
+	if uri.Inspect() != "docs://pipe" || src.Inspect() != "local" {
 		t.Fatalf("unexpected resource entry: %s", entry.Inspect())
 	}
 
@@ -70,11 +72,12 @@ func TestMCPPromptBuiltins(t *testing.T) {
 	build := &BuiltinInfo{
 		Fn: func(args ...Object) Object {
 			m := args[0].(*Map)
-			return &String{Value: "hello " + m.Pairs["name"].(*String).Value}
+			nameObj, _ := m.Get("name")
+			return &String{Value: "hello " + nameObj.(*String).Value}
 		},
 	}
 	if r := bMcpPrompt(&String{Value: "greet"}, &String{Value: "Greet"},
-		&Map{Pairs: map[string]Object{"name": &String{Value: "The name"}}}, build); r.Type() != NIL {
+		MapFromGo(map[string]Object{"name": &String{Value: "The name"}}), build); r.Type() != NIL {
 		t.Error("mcp_prompt should return nil")
 	}
 
@@ -83,7 +86,7 @@ func TestMCPPromptBuiltins(t *testing.T) {
 		t.Fatalf("mcp_prompts = %s, want 1 entry", prompts.Inspect())
 	}
 
-	got := bMcpPromptGet(&String{Value: "greet"}, &Map{Pairs: map[string]Object{"name": &String{Value: "World"}}})
+	got := bMcpPromptGet(&String{Value: "greet"}, MapFromGo(map[string]Object{"name": &String{Value: "World"}}))
 	if got.Inspect() != "hello World" {
 		t.Errorf("mcp_prompt_get = %s", got.Inspect())
 	}
@@ -98,7 +101,7 @@ func TestMCPPromptRequiredArg(t *testing.T) {
 	resetMCPRegistries()
 
 	bMcpPrompt(&String{Value: "greet"}, &String{Value: "Greet"},
-		&Map{Pairs: map[string]Object{"name": &String{Value: "The name"}}},
+		MapFromGo(map[string]Object{"name": &String{Value: "The name"}}),
 		&BuiltinInfo{Fn: func(args ...Object) Object { return &String{Value: "ok"} }})
 
 	s := bMcpServer(&String{Value: "srv"}, &String{Value: "1.0"})

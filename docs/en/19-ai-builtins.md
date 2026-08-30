@@ -526,19 +526,16 @@ schema: {city: "Name of the city"}
 ai_tool "get_weather" "Get current weather for a city" schema get_weather
 ```
 
-**Multi-parameter ordering (important):** Pipe map literals do not preserve
-declaration order, so a multi-key `parameters_schema` is passed to the
-underlying function in **alphabetical key order**, not the order you wrote
-the keys in. `{path: "...", content: "..."}` calls the function as
-`fn(content, path)`, not `fn(path, content)`, because `"content"` sorts
-before `"path"`. This matters most for **raw builtins** registered directly
+**Multi-parameter ordering:** Pipe map literals preserve declaration order,
+so a multi-key `parameters_schema` is passed to the underlying function in
+the **order you wrote the keys**, not alphabetically. `{path: "...", content:
+"..."}` calls the function as `fn(path, content)`. This matters most for
+**raw builtins** registered directly
 (`ai_tool "write_file" "..." schema write_file`) — a `fn` wrapper you write
-yourself can reorder its own parameters to match, but a builtin's positional
-signature is fixed. Found via a live round-9 red-team run (a model correctly
-noticed `write_file`'s path and content had swapped) — see
-[docs/tests/sandbox-audit/report9.en.md](../../docs/tests/sandbox-audit/report9.en.md).
-Until Pipe's map literals preserve order, name single-parameter tools when
-possible, or double-check alphabetical order for multi-parameter ones.
+yourself controls its own parameter order, but a builtin's positional
+signature is fixed. (A live round-9 red-team run originally exposed an
+alphabetical-reorder bug here, since fixed — see
+[docs/tests/sandbox-audit/report9.en.md](../../docs/tests/sandbox-audit/report9.en.md).)
 
 ### ai_with_tools
 

@@ -452,6 +452,9 @@ func TestMapLiteral(t *testing.T) {
 	if len(m.Pairs) != 2 {
 		t.Errorf("expected 2 pairs, got %d", len(m.Pairs))
 	}
+	if m.Pairs[0].Key != "a" || m.Pairs[1].Key != "b" {
+		t.Errorf("expected declaration order a,b got %q,%q", m.Pairs[0].Key, m.Pairs[1].Key)
+	}
 }
 
 func TestDotExpression(t *testing.T) {

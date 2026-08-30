@@ -244,10 +244,10 @@ func (g *Generator) genList(depth int) ast.Expression {
 
 func (g *Generator) genMap(depth int) ast.Expression {
 	n := randInt(g.rng, 1, 4)
-	pairs := make(map[string]ast.Expression, n)
+	pairs := make([]ast.MapEntry, 0, n)
 	for i := 0; i < n; i++ {
 		key := fmt.Sprintf("key%d", i)
-		pairs[key] = g.genExpr(TypeAny, depth-1)
+		pairs = append(pairs, ast.MapEntry{Key: key, Value: g.genExpr(TypeAny, depth-1)})
 	}
 	return &ast.MapLiteral{Pairs: pairs}
 }

@@ -57,13 +57,13 @@ func bHttpStreamOpen(args ...Object) Object {
 	headers := make(map[string]string)
 	if len(args) >= 2 {
 		if h, ok := args[1].(*Map); ok {
-			for k, v := range h.Pairs {
-				if sv, ok := v.(*String); ok {
-					headers[k] = sv.Value
-				} else if iv, ok := v.(*Integer); ok {
-					headers[k] = strconv.FormatInt(iv.Value, 10)
+			for _, p := range h.Pairs {
+				if sv, ok := p.Value.(*String); ok {
+					headers[p.Key] = sv.Value
+				} else if iv, ok := p.Value.(*Integer); ok {
+					headers[p.Key] = strconv.FormatInt(iv.Value, 10)
 				} else {
-					headers[k] = v.Inspect()
+					headers[p.Key] = p.Value.Inspect()
 				}
 			}
 		} else {

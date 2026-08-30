@@ -75,11 +75,11 @@ func swarmAgentFor(t *testing.T, name, system string, tools, handoff []string) f
 	for i, hn := range handoff {
 		handoffElems[i] = &String{Value: hn}
 	}
-	config := &Map{Pairs: map[string]Object{
+	config := MapFromGo(map[string]Object{
 		"system":  &String{Value: system},
 		"tools":   &List{Elements: toolElems},
 		"handoff": &List{Elements: handoffElems},
-	}}
+	})
 	if res := bSwarmAgent(&String{Value: name}, config); res.Type() == ERROR {
 		t.Fatalf("swarm_agent %q: %s", name, res.Inspect())
 	}
@@ -91,7 +91,7 @@ func swarmAgentFor(t *testing.T, name, system string, tools, handoff []string) f
 }
 
 func TestSwarmAgentRejectsMissingSystem(t *testing.T) {
-	result := bSwarmAgent(&String{Value: "bad"}, &Map{Pairs: map[string]Object{}})
+	result := bSwarmAgent(&String{Value: "bad"}, MapFromGo(map[string]Object{}))
 	if result.Type() != ERROR || !strings.Contains(result.(*Error).Message, "system") {
 		t.Fatalf("expected an error about the missing 'system' key, got %v", result)
 	}

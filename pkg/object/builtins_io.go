@@ -281,17 +281,17 @@ func bExec(args ...Object) Object {
 	}
 	out, e := c.CombinedOutput()
 	if e != nil {
-		return &Map{Pairs: map[string]Object{
+		return MapFromGo(map[string]Object{
 			"output": &String{Value: string(out)},
 			"error":  &String{Value: e.Error()},
 			"status": &Integer{Value: 1},
-		}}
+		})
 	}
-	return &Map{Pairs: map[string]Object{
+	return MapFromGo(map[string]Object{
 		"output": &String{Value: string(out)},
 		"error":  &String{Value: ""},
 		"status": &Integer{Value: 0},
-	}}
+	})
 }
 
 // execShell returns the shell (and its run-command flag) used to execute

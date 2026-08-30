@@ -121,7 +121,7 @@ func bAssertContains(args ...Object) Object {
 		if !ok {
 			return err("assert_contains: map key check requires a string key")
 		}
-		if _, exists := c.Pairs[needle.Value]; !exists {
+		if _, exists := c.Get(needle.Value); !exists {
 			return err(fmt.Sprintf("assertion failed: map does not contain key %s", needle.Inspect()))
 		}
 	default:

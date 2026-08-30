@@ -25,6 +25,9 @@ jobs:
     - name: Format check
       run: test -z "$(gofmt -l .)"
 
+    - name: Vet
+      run: go vet ./...
+
     - name: Install sqlite module (so parity tests do not skip)
       run: |
         go build -o /tmp/pipe-install ./cmd/pipe

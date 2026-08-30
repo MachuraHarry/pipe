@@ -118,8 +118,16 @@ type Tool struct {
 }
 
 type CallToolParams struct {
-	Name      string                 `json:"name"`
-	Arguments map[string]interface{} `json:"arguments,omitempty"`
+	Name string `json:"name"`
+	// No omitempty: some MCP servers (notably ones using the official SDK's
+	// zod-based tool schemas, e.g. mcp-docker-server, time-mcp) call
+	// schema.parse(request.params.arguments) directly and reject a missing
+	// "arguments" key with "expected object, received undefined" — even for
+	// zero-parameter tools where an empty object would validate fine. The
+	// caller (builtins_mcp.go) always builds a non-nil map, so this never
+	// regresses a genuine "no arguments at all" case into an accidental
+	// "arguments: null".
+	Arguments map[string]interface{} `json:"arguments"`
 }
 
 type CallToolResult struct {
@@ -178,8 +186,10 @@ type Prompt struct {
 }
 
 type GetPromptParams struct {
-	Name      string            `json:"name"`
-	Arguments map[string]string `json:"arguments,omitempty"`
+	Name string `json:"name"`
+	// Same "omitempty drops the key entirely, some servers reject a missing
+	// arguments field" issue as CallToolParams above — kept consistent.
+	Arguments map[string]string `json:"arguments"`
 }
 
 type PromptMessage struct {

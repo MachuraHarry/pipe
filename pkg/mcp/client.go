@@ -204,6 +204,9 @@ func (c *Client) ListTools() ([]Tool, error) {
 }
 
 func (c *Client) CallTool(name string, args map[string]interface{}) (*CallToolResult, error) {
+	if args == nil {
+		args = map[string]interface{}{}
+	}
 	params, _ := json.Marshal(CallToolParams{Name: name, Arguments: args})
 	req := JSONRPCRequest{
 		Jsonrpc: "2.0",
@@ -289,6 +292,9 @@ func (c *Client) ListPrompts() ([]Prompt, error) {
 }
 
 func (c *Client) GetPrompt(name string, args map[string]string) (*GetPromptResult, error) {
+	if args == nil {
+		args = map[string]string{}
+	}
 	params, _ := json.Marshal(GetPromptParams{Name: name, Arguments: args})
 	req := JSONRPCRequest{Jsonrpc: "2.0", Method: "prompts/get", Params: params}
 	resp, err := c.sendRequest(req)

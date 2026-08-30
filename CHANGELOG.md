@@ -4,10 +4,26 @@ All notable changes to Pipe are documented here. This file follows [Keep a Chang
 
 ## [Unreleased]
 
+---
+
+## [1.2.0] — 2026-08-30
+
 ### Added
+- **`ai_swarm` / `ai_swarm_trace` / `swarm_agent`** — handoff multi-agent builtin: named agents, each with their own system prompt and tools, transfer a conversation to one another via a reserved tool call while the full message history carries forward (the pattern popularized by OpenAI's original "Swarm"). `ai_swarm` returns the final agent's answer as a plain string; `ai_swarm_trace` also returns `{content, path, rounds}` for observability. Gated exactly like `ai_chat` (profile `ai: false` / CLI `--sandbox` + `--allow-ai`). OpenAI-compatible providers only (same constraint as `ai_with_tools`). See [AI Builtins §19.14](docs/en/19-ai-builtins.md).
+- **`ai_vision`** — image understanding: answers a question about an image (an http(s) URL, a local file path, or raw bytes — JPEG/PNG/GIF/WebP, content-sniffed) via an OpenAI-compatible vision model (e.g. DeepSeek's `deepseek-v4-flash-vision-exp`). Built as a self-contained request path rather than widening the shared `Message` type, so it needed zero changes to the 6 existing provider implementations. See [AI Builtins §19.15](docs/en/19-ai-builtins.md).
 - **AI provider: OpenCode Zen (`opencode`)** — 6th provider, gateway at `https://opencode.ai/zen/v1/chat/completions` with free-tier models (`big-pickle`, `deepseek-v4-flash-free`, `mimo-v2.5-free`, …) usable **without any API key**: pipe sends the public bearer token plus the `x-opencode-*` client headers the Zen API requires (unique per-request session/request IDs). Setting `OPENCODE_API_KEY` (env or `ai_set_key "opencode" <key>`) switches to authenticated requests for paid models and higher limits. Free models estimate to $0 in cost tracking (mirrors OpenRouter `:free`). Reasoning-model quirks are handled: generous default `max_tokens: 2048` and a clear error when a response contains only reasoning tokens without content. Default model is `big-pickle`. Note: free-tier prompts may be used for model training; the keyless mode relies on an unofficial API contract and can break upstream.
 - **Built-in self-updater**: `pipe --update` checks the latest GitHub release and, if newer, downloads `pipe-<os>-<arch>.tar.gz`, verifies its SHA256 checksum and replaces the running binary atomically (Windows-safe rename dance). `pipe --update-check` only reports whether a new release exists; `pipe --version` prints the current version. The updater compares base semvers, so `git describe` dev builds (`v1.1.1-3-gabc1234`, `-dirty`) do not false-positive against their own release tag. Self-extracting binaries (`pipe -build`) refuse to update unless `PIPE_UPDATE_EMBEDDED=1` is set, since updating would discard the embedded program. Local `make build` now injects the version via `git describe --tags --always --dirty`.
 - **Installers** (`install.sh` / `install.ps1`) now print a "Keep current: pipe --update" hint after a successful install.
+- **CI**: `go vet ./...` added as a gate in the test job (format check + vet + tests + build + integration tests).
+
+### Fixed
+- **Sandbox (round 7 audit)**: the CLI `--sandbox` flag (no profile) didn't gate 6 of 8 filesystem-write builtins — `write_file`, `append_file`, `file_move`, `file_copy`, `make_dir`, and `file_open` in write-capable modes let real writes through; only `file_delete`/`remove_dir` were already correctly gated. Fixed via a centralized `checkFSWriteAccess` helper, mirroring the round-6 network-gate fix. Read-only builtins are unaffected by design.
+- **Sandbox (round 8 audit)**: `wiki_search` never reached the central AI egress gate at all (unlike its sibling `web_search`) — under `pipe --sandbox`, a query still reached the real Wikipedia API. Fixed by routing it through the same `gateEgress` call every other AI/search egress path already uses.
+- **`.pipec` bytecode cache**: the compiler bakes each builtin's *position* in `object.Builtins` into the bytecode as an integer index; inserting a builtin anywhere but the end silently shifted every later builtin's index, and a stale on-disk cache compiled against the old table would still look "valid" and resolve a builtin call to the *wrong function*. The cache's dependency hash now also covers the ordered builtin-name table, so any future change to it self-invalidates every `.pipec` on disk automatically — no longer dependent on remembering to bump `compiler.CacheVersion` for a change that isn't a bytecode-format change.
+- **`pipe --update`**: previously failed *open* if the release's `.sha256` checksum file couldn't be downloaded, installing an unverified binary. Now refuses the update and reports an error instead.
+- **Compiler**: a bare `catch` without a bound parameter is now accepted.
+- **`input`**: now reads full lines instead of truncating.
+- Removed a dead, unused `source` variable in `WebSearch` (no behavior change).
 
 ---
 

@@ -1,0 +1,16 @@
+--! Vision demo: ask a vision-capable model about images.
+--! Needs a model that supports image input (e.g. DeepSeek's
+--! deepseek-v4-flash-vision-exp). Run with a real provider key, e.g.:
+--!   DEEPSEEK_API_KEY="sk-..." pipe examples/vision_demo.pipe
+ai_provider "deepseek" {model: "deepseek-v4-flash-vision-exp"}
+
+print "═══ VISION DEMO ═══"
+print ""
+
+print "─── 1. Image from a public URL ───"
+"https://raw.githubusercontent.com/github/explore/main/topics/go/go.png"
+    > ai_vision "What does this logo depict, and what programming language is it associated with?"
+    > print
+print ""
+
+print "═══ DONE ═══"

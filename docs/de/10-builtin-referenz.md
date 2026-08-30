@@ -1962,4 +1962,7 @@ Siehe das Kapitel [SQLite-Modul](26-sqlite-modul.md) für Architektur-Details un
 ### KI — Swarms (3)
 `swarm_agent`, `ai_swarm`, `ai_swarm_trace`
 
-**Gesamt: 232 Builtins**
+### KI — Vision (1)
+`ai_vision`
+
+**Gesamt: 233 Builtins**

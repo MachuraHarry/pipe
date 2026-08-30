@@ -3163,6 +3163,12 @@ mcp_use_sse "http://localhost:9090/" "github"
 | 185 | `ai_swarm` | `ai_swarm(task, entry_agent, max_rounds?)` | `string` |
 | 186 | `ai_swarm_trace` | `ai_swarm_trace(task, entry_agent, max_rounds?)` | `map` |
 
+### AI — Vision (1)
+
+| # | Function | Signature | Returns |
+|---|----------|-----------|---------|
+| 187 | `ai_vision` | `ai_vision(image, prompt, max_tokens?)` | `string` |
+
 ---
 
-**Total: 232 built-in functions**
+**Total: 233 built-in functions**

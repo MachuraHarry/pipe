@@ -712,6 +712,9 @@ var Builtins = []BuiltinInfo{
 	{"ai_swarm", bAiSwarm},
 	{"ai_swarm_trace", bAiSwarmTrace},
 
+	// AI — Vision
+	{"ai_vision", bAiVision},
+
 	// Test Assertions
 	{"assert", bAssert},
 	{"assert_eq", bAssertEq},

@@ -47,6 +47,9 @@ func TestEgressGateBlocksAtEntry(t *testing.T) {
 	if _, err := ChatSwarm("a", swarmAgents, "u", nil, 1); !errors.Is(err, want) {
 		t.Fatalf("ChatSwarm: got %v, want %v", err, want)
 	}
+	if _, err := VisionChat("describe", "https://example.invalid/x.jpg", 0); !errors.Is(err, want) {
+		t.Fatalf("VisionChat: got %v, want %v", err, want)
+	}
 }
 
 // TestEgressGateNoopByDefault ensures a nil gate permits all egress.

@@ -46,6 +46,7 @@ const (
 	CatAITool   = "AI Tool Calling"
 	CatAIAgent  = "AI Agents"
 	CatAISwarm  = "AI Swarms"
+	CatAIVision = "AI Vision"
 	CatAIEmbed  = "AI Embeddings"
 	CatAISearch = "AI Search"
 	CatMCP      = "MCP"
@@ -489,6 +490,10 @@ var builtinDocs = []BuiltinDoc{
 		Description: "Runs a multi-agent conversation starting at entry_agent. Agents hand off control to each other via their declared handoff targets, sharing the full conversation history. Returns the final agent's answer. max_rounds defaults to 5.", Category: CatAISwarm},
 	{Name: "ai_swarm_trace", Signature: "ai_swarm_trace(task, entry_agent, max_rounds?)", Params: []Param{p("task", "string"), p("entry_agent", "string"), p("max_rounds", "number")}, ReturnType: "map",
 		Description: "Like ai_swarm, but returns {content, path, rounds} for observability. path is the ordered list of agent names that handled the conversation.", Category: CatAISwarm},
+
+	// ---- AI Vision ----
+	{Name: "ai_vision", Signature: "ai_vision(image, prompt, max_tokens?)", Params: []Param{p("image", "string|bytes"), p("prompt", "string"), p("max_tokens", "number")}, ReturnType: "string",
+		Description: "Answers a question about an image. image may be a file path, an http(s) URL, or raw bytes (jpeg/png/gif/webp). Needs an OpenAI-compatible vision-capable model (e.g. DeepSeek's deepseek-v4-flash-vision-exp); anthropic is not supported.", Category: CatAIVision},
 
 	// ---- AI Embeddings ----
 	{Name: "embed", Signature: "embed(text)", Params: []Param{p("text", "string")}, ReturnType: "list",

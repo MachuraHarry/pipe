@@ -1,6 +1,6 @@
 # 19. AI Builtins
 
-Pipe provides **39 AI builtins** for working with Large Language Models.
+Pipe provides **40 AI builtins** for working with Large Language Models.
 Communication happens via REST APIs to OpenAI, Anthropic, or DeepSeek.
 
 ---
@@ -125,6 +125,7 @@ training — keep sensitive data away from it.
 | `swarm_agent` | Register swarm member | `swarm_agent name {system, tools, handoff}` |
 | `ai_swarm` | Run a handoff swarm | `ai_swarm task entry_agent` |
 | `ai_swarm_trace` | Run a swarm, with trace | `ai_swarm_trace task entry_agent` |
+| `ai_vision` | Answer a question about an image | `ai_vision image prompt` |
 | `summarize` | Summarize text | `summarize text` |
 | `translate` | Translate text | `translate text target_language` |
 | `classify` | Classify text | `classify text categories` |
@@ -997,3 +998,53 @@ a registered profile, `ai: false` blocks them; under the CLI `--sandbox` flag
 (no profile), `--allow-ai` is required. Tool calls made during a swarm run go
 through the same sandbox enforcement as `ai_with_tools` (`CanToolCall`, audit
 log). See [22. Sandbox Profiles](22-sandbox-profiles.md).
+
+---
+
+## 19.15 AI Vision
+
+`ai_vision` answers a question about an image using a vision-capable model
+(e.g. DeepSeek's `deepseek-v4-flash-vision-exp`).
+
+**Limitation:** needs an OpenAI-compatible model — `openai`, `deepseek`,
+`ollama`, `openrouter`, or `opencode`. `anthropic` uses a different image
+content-block shape and is not supported.
+
+### ai_vision
+
+```
+ai_vision image prompt [max_tokens]
+```
+
+Returns the model's answer as a plain string — pipeline-friendly, just like
+`ask`/`generate`. `image` accepts three forms:
+
+| Form | Example | Notes |
+|------|---------|-------|
+| http(s) URL | `"https://example.com/photo.jpg"` | Sent to the provider as-is — the provider's servers fetch it, not Pipe. |
+| Local file path | `"photo.jpg"` | Read through the same sandbox read-gate as `read_file`. |
+| Raw bytes | `read_file "photo.jpg" "bytes"` | Useful when the bytes come from somewhere other than disk. |
+
+Accepted image formats: JPEG, PNG, GIF, WebP (detected from content, not the
+file extension). Local files and raw bytes are base64-encoded into a `data:`
+URL before being sent.
+
+```pipe
+ai_provider "deepseek" {model: "deepseek-v4-flash-vision-exp"}
+
+"photo.jpg"
+    > ai_vision "What's happening in this image?"
+    > print
+
+"https://example.com/chart.png"
+    > ai_vision "Summarize the trend in this chart."
+    > print
+```
+
+### Sandbox
+
+`ai_vision` is gated exactly like `ai_chat`/`ai_swarm`: under a registered
+profile, `ai: false` blocks it; under the CLI `--sandbox` flag (no profile),
+`--allow-ai` is required. Reading a local image path goes through the same
+read-gate as `read_file` (unaffected by `--sandbox`, which only restricts
+writes). See [22. Sandbox Profiles](22-sandbox-profiles.md).

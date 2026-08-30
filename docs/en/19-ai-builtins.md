@@ -122,6 +122,7 @@ training — keep sensitive data away from it.
 | `nearest` | Top-K nearest | `nearest query docs k` |
 | `ai_tool` | Register tool | `ai_tool name desc schema fn` |
 | `ai_with_tools` | Chat with tools | `ai_with_tools system user` |
+| `tool_call` | Call a tool directly (no LLM) | `tool_call name args` |
 | `swarm_agent` | Register swarm member | `swarm_agent name {system, tools, handoff}` |
 | `ai_swarm` | Run a handoff swarm | `ai_swarm task entry_agent` |
 | `ai_swarm_trace` | Run a swarm, with trace | `ai_swarm_trace task entry_agent` |
@@ -566,6 +567,36 @@ print result
 
 This loop repeats up to 5 rounds until the LLM gives a final answer
 without further tool calls.
+
+### tool_call — direct invocation without an LLM
+
+```
+tool_call(name, args?)
+```
+
+Invokes a registered tool (local via `ai_tool`, or bridged from an external
+MCP server via `mcp_use_stdio`/`mcp_use_sse` — both live in the same tool
+registry) **directly by name**, with no LLM deciding whether or how to call
+it. Internally, `tool_call` uses the same dispatch (`executeTool`) as
+`ai_with_tools`, so sandbox gating (`max_tool_calls`, `audit_log`) and
+argument ordering (see above) are identical.
+
+```pipe
+schema: {city: "Name of the city"}
+ai_tool "get_weather" "Get weather for a city" schema get_weather
+
+-- no LLM call needed — deterministic, immediate:
+print (tool_call "get_weather" {city: "Berlin"})
+```
+
+This makes `tool_call` the building block for **deterministic executors**
+that want to treat tools (especially MCP-bridged ones, e.g. filesystem or
+GitHub) as validated actions inside their own control flow — for example a
+hand-written task executor with a plan library and checkpoints that works
+through steps deterministically instead of spinning up an LLM tool-calling
+loop for every single call. An unknown tool name, or an argument that isn't a
+map, returns a normal error (catchable with `try`/`catch`) instead of
+crashing.
 
 ### Weather Assistant (complete)
 

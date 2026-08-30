@@ -233,6 +233,26 @@ mcp_use_sse "http://localhost:9090/mcp" "postgres"
 
 Der Alias muss ein gültiger Identifier-Fragment sein und darf nicht mit dem Präfix eines anderen Clients kollidieren.
 
+### Deterministischer Aufruf ohne LLM (`tool_call`)
+
+Entdeckte MCP-Tools landen in derselben Tool-Registry wie lokale `ai_tool`-Funktionen
+und lassen sich daher auch **ohne** `ai_with_tools` aufrufen — direkt per Name mit
+`tool_call(name, args?)`. Das ist nützlich, wenn ein eigener, deterministischer
+Kontrollfluss (z. B. ein Task-Executor mit fester Plan-Bibliothek) ein MCP-Werkzeug
+als validierte Aktion braucht, ohne dafür bei jedem Schritt ein LLM zu befragen:
+
+```pipe
+mcp_use_stdio "npx" "-y" "@modelcontextprotocol/server-filesystem" "/tmp" {} "fs"
+
+-- kein LLM-Aufruf, kein ai_with_tools noetig:
+inhalt: tool_call "fs_read_text_file" {path: "/tmp/notiz.txt"}
+print inhalt
+```
+
+`tool_call` unterliegt denselben Sandbox-Gates (`max_tool_calls`, `audit_log`) wie
+`ai_with_tools`, da beide intern über denselben Dispatch laufen. Siehe
+[Kapitel 19.8](19-ki-builtins.md#198-tool-calling-function-calling) für Details.
+
 ---
 
 ## 25.4 Kombiniert: Server + Client

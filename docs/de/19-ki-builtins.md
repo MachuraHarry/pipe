@@ -122,6 +122,7 @@ verwendet werden — sensible Daten gehören dort nicht hinein.
 | `nearest` | Top-K ähnlichste | `nearest query docs k` |
 | `ai_tool` | Tool registrieren | `ai_tool name desc schema fn` |
 | `ai_with_tools` | Chat mit Tools | `ai_with_tools system user` |
+| `tool_call` | Tool direkt aufrufen (kein LLM) | `tool_call name args` |
 | `swarm_agent` | Swarm-Mitglied registrieren | `swarm_agent name {system, tools, handoff}` |
 | `ai_swarm` | Handoff-Swarm ausführen | `ai_swarm task entry_agent` |
 | `ai_swarm_trace` | Swarm ausführen, mit Trace | `ai_swarm_trace task entry_agent` |
@@ -587,6 +588,37 @@ print ergebnis
 
 Dieser Loop wiederholt sich bis zu 5 Runden, bis der LLM eine finale
 Antwort ohne weitere Tool-Calls gibt.
+
+### tool_call — direkter Aufruf ohne LLM
+
+```
+tool_call(name, args?)
+```
+
+Ruft ein registriertes Tool (lokal per `ai_tool`, oder per `mcp_use_stdio`/
+`mcp_use_sse` von einem externen MCP-Server gebrückt — beide liegen in
+derselben Tool-Registry) **direkt anhand seines Namens** auf, ohne dass ein
+LLM entscheidet, ob und wie es aufgerufen wird. Intern nutzt `tool_call`
+denselben Dispatch (`executeTool`) wie `ai_with_tools` — Sandbox-Gating
+(`max_tool_calls`, `audit_log`) und Argument-Reihenfolge (siehe oben) sind
+identisch.
+
+```pipe
+schema: {stadt: "Name der Stadt"}
+ai_tool "get_wetter" "Wetter für eine Stadt abrufen" schema get_wetter
+
+-- kein LLM-Aufruf noetig — deterministisch, sofort:
+print (tool_call "get_wetter" {stadt: "Berlin"})
+```
+
+Das macht `tool_call` zum Baustein für **deterministische Ausführer**, die
+Werkzeuge (insbesondere per MCP angebundene, z. B. Dateisystem oder GitHub)
+als validierte Aktionen in eigenen Kontrollflüssen nutzen wollen — etwa ein
+handgeschriebener Task-Executor mit Plan-Bibliothek und Checkpoints, der
+Schritte deterministisch abarbeitet, statt bei jedem Werkzeugaufruf eine
+KI-Tool-Call-Schleife zu starten. Ein unbekannter Tool-Name oder ein Argument,
+das keine Map ist, liefert einen normalen Fehler (`try`/`catch`-fähig) statt
+abzustürzen.
 
 ### Wetter-Assistent (vollständig)
 

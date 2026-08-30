@@ -546,6 +546,24 @@ schema: {stadt: "Name der Stadt"}
 ai_tool "get_wetter" "Holt das Wetter für eine Stadt" schema get_wetter
 ```
 
+**Reihenfolge bei mehreren Parametern (wichtig):** Pipe-Map-Literale erhalten
+die Deklarationsreihenfolge nicht, daher wird ein `parameters_schema` mit
+mehreren Schlüsseln in **alphabetischer Schlüsselreihenfolge** an die
+zugrunde liegende Funktion übergeben — nicht in der Reihenfolge, in der du
+die Schlüssel geschrieben hast. `{path: "...", content: "..."}` ruft die
+Funktion als `fn(content, path)` auf, nicht als `fn(path, content)`, weil
+`"content"` alphabetisch vor `"path"` steht. Das betrifft vor allem **direkt
+registrierte rohe Builtins** (`ai_tool "write_file" "..." schema
+write_file`) — eine selbst geschriebene `fn`-Hülle kann ihre eigenen
+Parameter passend umsortieren, die positionale Signatur eines Builtins ist
+dagegen fest. Gefunden durch einen Live-Red-Team-Lauf in Runde 9 (ein Modell
+bemerkte korrekt, dass bei `write_file` Pfad und Inhalt vertauscht waren) —
+siehe
+[docs/tests/sandbox-audit/report9.de.md](../../docs/tests/sandbox-audit/report9.de.md).
+Bis Pipes Map-Literale Reihenfolge erhalten, Tools nach Möglichkeit
+einparametrig halten oder bei mehreren Parametern die alphabetische
+Reihenfolge gegenprüfen.
+
 ### ai_with_tools
 
 ```

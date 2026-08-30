@@ -1,15 +1,15 @@
 {
-  "builtins": 241,
+  "builtins": 242,
   "builtin_categories": {
-    "ai_": 20,
-    "ai_all": 38,
+    "ai_": 21,
+    "ai_all": 39,
     "file": 9,
     "mcp_": 13,
     "sandbox": 4,
     "stdlib": 177
   },
-  "examples": 94,
-  "go_tests": 701,
+  "examples": 95,
+  "go_tests": 711,
   "test_packages": 20,
   "ast_node_types": 42,
   "docs_en_chapters": 28,

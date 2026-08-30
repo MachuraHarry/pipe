@@ -1,5 +1,19 @@
 [
   {
+    "id": "round-9-sandbox-audit",
+    "file": "round-9-sandbox-audit.md",
+    "date": "2026-08-30",
+    "tag": "security",
+    "title": {
+      "en": "🕵️ Two AI Agents, One Jail — Round 9 of Pipe's Sandbox Audit",
+      "de": "🕵️ Zwei KI-Agenten, ein Gefängnis — Runde 9 des Pipe-Sandbox-Audits"
+    },
+    "excerpt": {
+      "en": "Two independent LLM agents attack Pipe's sandbox in parallel — DeepSeek in max-effort mode and a keyless free model — inspired by the OpenAI–Hugging Face incident and a real OpenCode config bug. Every tested vector held, and building the harness surfaced two real bugs the attacks never needed to find.",
+      "de": "Zwei unabhängige KI-Agenten greifen Pipes Sandbox parallel an — DeepSeek im Max-Effort-Modus und ein schlüsselloses Gratis-Modell — inspiriert vom OpenAI–Hugging-Face-Vorfall und einem echten OpenCode-Config-Bug. Jeder getestete Vektor hielt, und der Harness-Bau förderte zwei echte Bugs zutage, die der Angriff nie suchen musste."
+    }
+  },
+  {
     "id": "ai-swarm-and-vision",
     "file": "ai-swarm-and-vision.md",
     "date": "2026-08-30",

@@ -3155,6 +3155,14 @@ mcp_use_sse "http://localhost:9090/" "github"
 | 182 | `mcp_use_stdio` | `mcp_use_stdio(command, args...)` | `string` |
 | 183 | `mcp_use_sse` | `mcp_use_sse(url)` | `string` |
 
+### AI — Swarms (3)
+
+| # | Function | Signature | Returns |
+|---|----------|-----------|---------|
+| 184 | `swarm_agent` | `swarm_agent(name, config)` | `bool` |
+| 185 | `ai_swarm` | `ai_swarm(task, entry_agent, max_rounds?)` | `string` |
+| 186 | `ai_swarm_trace` | `ai_swarm_trace(task, entry_agent, max_rounds?)` | `map` |
+
 ---
 
-**Total: 229 built-in functions**
+**Total: 232 built-in functions**

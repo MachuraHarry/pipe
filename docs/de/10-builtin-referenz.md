@@ -1959,4 +1959,7 @@ Siehe das Kapitel [SQLite-Modul](26-sqlite-modul.md) für Architektur-Details un
 `mcp_resource_template`, `mcp_prompt`, `mcp_resources`, `mcp_read_resource`,
 `mcp_prompts`, `mcp_prompt_get`, `mcp_use_stdio`, `mcp_use_sse`
 
-**Gesamt: 229 Builtins**
+### KI — Swarms (3)
+`swarm_agent`, `ai_swarm`, `ai_swarm_trace`
+
+**Gesamt: 232 Builtins**

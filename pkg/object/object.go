@@ -707,6 +707,11 @@ var Builtins = []BuiltinInfo{
 	{"try_ai_log", bTryAILog},
 	{"_try_ai_eval", bTryAIEval},
 
+	// AI — Swarms
+	{"swarm_agent", bSwarmAgent},
+	{"ai_swarm", bAiSwarm},
+	{"ai_swarm_trace", bAiSwarmTrace},
+
 	// Test Assertions
 	{"assert", bAssert},
 	{"assert_eq", bAssertEq},

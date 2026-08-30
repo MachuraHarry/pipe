@@ -45,6 +45,7 @@ const (
 	CatAIPar    = "AI Parallel"
 	CatAITool   = "AI Tool Calling"
 	CatAIAgent  = "AI Agents"
+	CatAISwarm  = "AI Swarms"
 	CatAIEmbed  = "AI Embeddings"
 	CatAISearch = "AI Search"
 	CatMCP      = "MCP"
@@ -480,6 +481,14 @@ var builtinDocs = []BuiltinDoc{
 		Description: "Clears the conversation history of the named agent, keeping the system prompt.", Category: CatAIAgent},
 	{Name: "try_ai_log", Signature: "try_ai_log()", Params: nil, ReturnType: "list",
 		Description: "Returns the log of all try_ai fix attempts as a list of maps (time, code, original, fixed, attempt, success).", Category: CatAIAgent},
+
+	// ---- AI Swarms ----
+	{Name: "swarm_agent", Signature: "swarm_agent(name, config)", Params: []Param{p("name", "string"), p("config", "map")}, ReturnType: "bool",
+		Description: "Registers a swarm member. config: system (string, required), tools (list of ai_tool names, optional), handoff (list of other swarm agent names it may transfer the conversation to, optional).", Category: CatAISwarm},
+	{Name: "ai_swarm", Signature: "ai_swarm(task, entry_agent, max_rounds?)", Params: []Param{p("task", "string"), p("entry_agent", "string"), p("max_rounds", "number")}, ReturnType: "string",
+		Description: "Runs a multi-agent conversation starting at entry_agent. Agents hand off control to each other via their declared handoff targets, sharing the full conversation history. Returns the final agent's answer. max_rounds defaults to 5.", Category: CatAISwarm},
+	{Name: "ai_swarm_trace", Signature: "ai_swarm_trace(task, entry_agent, max_rounds?)", Params: []Param{p("task", "string"), p("entry_agent", "string"), p("max_rounds", "number")}, ReturnType: "map",
+		Description: "Like ai_swarm, but returns {content, path, rounds} for observability. path is the ordered list of agent names that handled the conversation.", Category: CatAISwarm},
 
 	// ---- AI Embeddings ----
 	{Name: "embed", Signature: "embed(text)", Params: []Param{p("text", "string")}, ReturnType: "list",

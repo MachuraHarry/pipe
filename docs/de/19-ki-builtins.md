@@ -1,6 +1,6 @@
 # 19. KI-Builtins
 
-Pipe bietet **36 KI-Builtins** für die Arbeit mit Large Language Models.
+Pipe bietet **39 KI-Builtins** für die Arbeit mit Large Language Models.
 Die Kommunikation läuft über REST-APIs zu OpenAI, Anthropic oder DeepSeek.
 
 ---
@@ -122,6 +122,9 @@ verwendet werden — sensible Daten gehören dort nicht hinein.
 | `nearest` | Top-K ähnlichste | `nearest query docs k` |
 | `ai_tool` | Tool registrieren | `ai_tool name desc schema fn` |
 | `ai_with_tools` | Chat mit Tools | `ai_with_tools system user` |
+| `swarm_agent` | Swarm-Mitglied registrieren | `swarm_agent name {system, tools, handoff}` |
+| `ai_swarm` | Handoff-Swarm ausführen | `ai_swarm task entry_agent` |
+| `ai_swarm_trace` | Swarm ausführen, mit Trace | `ai_swarm_trace task entry_agent` |
 | `summarize` | Text zusammenfassen | `summarize text` |
 | `translate` | Text übersetzen | `translate text zielsprache` |
 | `classify` | Text klassifizieren | `classify text kategorien` |
@@ -885,3 +888,137 @@ catch e
 
 print "\n=== Workflow abgeschlossen ==="
 ```
+
+---
+
+## 19.14 KI-Swarms
+
+Ein **Swarm** ist eine Menge benannter Agenten, jeder mit eigenem System-Prompt
+und eigenen Tools, die sich eine Konversation gegenseitig zuschieben können.
+Immer ein Agent ist "aktiv"; ruft er ein reserviertes Handoff-Tool auf,
+übernimmt der nächste Agent — mit dem **kompletten Gesprächsverlauf**, sodass
+beim Handoff kein Kontext verloren geht. Das ist dasselbe Pattern, das OpenAIs
+ursprüngliche "Swarm"-Bibliothek populär gemacht hat (Poststelle → Spezialist).
+
+Swarms bauen direkt auf `ai_tool`/`ai_with_tools` (Abschnitt 19.8) auf — die
+`tools` eines Swarm-Agenten sind ganz normale, bereits per `ai_tool`
+registrierte Tool-Namen.
+
+**Einschränkung:** wie `ai_with_tools` braucht auch `ai_swarm` eine
+OpenAI-kompatible Tool-Calling-API — `openai`, `deepseek`, `ollama`,
+`openrouter` oder `opencode`. `anthropic` wird für `ai_swarm` nicht
+unterstützt.
+
+### swarm_agent
+
+```
+swarm_agent name config
+```
+
+Registriert ein Swarm-Mitglied. `config` ist ein Block mit:
+
+| Schlüssel | Typ | Pflicht | Beschreibung |
+|-----------|-----|---------|--------------|
+| `system` | string | ja | Der System-Prompt des Agenten. |
+| `tools` | Liste von Strings | nein | Namen bereits per `ai_tool` registrierter Tools. |
+| `handoff` | Liste von Strings | nein | Namen anderer Swarm-Agenten, an die dieser Agent die Konversation weiterreichen darf. |
+
+Die Registrierungsreihenfolge spielt keine Rolle — `tools`- und
+`handoff`-Namen werden erst beim Aufruf von `ai_swarm` aufgelöst, nicht bei
+`swarm_agent`.
+
+```pipe
+swarm_agent "triage"
+    { system: "Leite Rechnungsfragen an 'billing' weiter, technische Fragen an 'tech'. Alles andere beantwortest du selbst.",
+      handoff: ["billing", "tech"] }
+
+swarm_agent "billing"
+    { system: "Du beantwortest Rechnungsfragen präzise und mit Zahlen.",
+      tools: ["get_invoice"],
+      handoff: ["triage"] }
+```
+
+### ai_swarm
+
+```
+ai_swarm task entry_agent [max_rounds]
+```
+
+Führt den Swarm ausgehend von `entry_agent` mit `task` als Nutzer-Nachricht
+aus. Gibt die Antwort des letzten Agenten als reinen String zurück —
+pipeline-freundlich, genau wie `ask`/`generate`/`ai_with_tools`. `max_rounds`
+ist standardmäßig 5 und begrenzt, wie viele Chat-/Tool-Call-Runden der
+gesamte Swarm-Lauf maximal nutzen darf (nicht pro Agent).
+
+```pipe
+ai_provider "deepseek"
+
+"Meine Rechnung diesen Monat stimmt nicht"
+    > ai_swarm "triage"
+    > print
+```
+
+### ai_swarm_trace
+
+```
+ai_swarm_trace task entry_agent [max_rounds]
+```
+
+Wie `ai_swarm`, gibt aber eine Map `{content, path, rounds}` statt eines
+reinen Strings zurück — nützlich, um nachzuvollziehen, welche Agenten eine
+Anfrage tatsächlich bearbeitet haben:
+
+```pipe
+result: ai_swarm_trace "Meine Rechnung diesen Monat stimmt nicht" "triage"
+print result.content
+print result.path
+-- -> ["triage", "billing"]
+print result.rounds
+-- -> 2
+```
+
+### Vollständiges Beispiel: Triage-Swarm
+
+```pipe
+ai_provider "deepseek"
+
+fn get_invoice kunde
+    "Rechnung Nr. 4471, 49.90€, fällig 15.09.2026."
+
+fn restart_service dienst
+    dienst ++ " wurde neu gestartet."
+
+ai_tool "get_invoice" "Aktuelle Rechnung eines Kunden abrufen" {kunde: "Kundenname"} get_invoice
+ai_tool "restart_service" "Einen benannten Dienst neu starten" {dienst: "Dienstname"} restart_service
+
+swarm_agent "triage"
+    { system: "Du bist die Poststelle. Leite Rechnungsfragen an 'billing', technische Probleme an 'tech'. Alles andere beantwortest du selbst.",
+      handoff: ["billing", "tech"] }
+
+swarm_agent "billing"
+    { system: "Du beantwortest Rechnungsfragen mit get_invoice.",
+      tools: ["get_invoice"],
+      handoff: ["triage"] }
+
+swarm_agent "tech"
+    { system: "Du bist technischer Support. Nutze restart_service, wenn um eine Reparatur gebeten wird.",
+      tools: ["restart_service"],
+      handoff: ["triage"] }
+
+"Was steht auf meiner letzten Rechnung?"
+    > ai_swarm "triage"
+    > print
+
+"Der Login-Dienst ist down, bitte neu starten"
+    > ai_swarm "triage"
+    > print
+```
+
+### Sandbox
+
+`ai_swarm`/`ai_swarm_trace` werden genau wie jeder andere KI-Call gegatet:
+Unter einem registrierten Profil blockiert `ai: false`; unter dem CLI-Flag
+`--sandbox` (ohne Profil) ist `--allow-ai` erforderlich. Tool-Aufrufe während
+eines Swarm-Laufs durchlaufen dieselbe Sandbox-Durchsetzung wie
+`ai_with_tools` (`CanToolCall`, Audit-Log). Siehe
+[22. Sandbox-Profile](22-sandbox-profiles.md).

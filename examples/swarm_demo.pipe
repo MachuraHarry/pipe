@@ -1,0 +1,42 @@
+--! Swarm demo: triage agent hands off to specialist agents (billing, tech),
+--! sharing the full conversation. Run with a real provider key, e.g.:
+--!   DEEPSEEK_API_KEY="sk-..." pipe examples/swarm_demo.pipe
+ai_provider "deepseek"
+
+--! Tools the specialist agents can call.
+fn get_invoice customer
+    "Invoice #4471, 49.90 EUR, due 2026-09-15."
+
+fn restart_service service
+    service ++ " has been restarted."
+
+ai_tool "get_invoice" "Look up a customer's latest invoice" {customer: "Customer name"} get_invoice
+ai_tool "restart_service" "Restart a named service" {service: "Service name"} restart_service
+
+--! Swarm members: a front-desk triage agent that hands off to specialists.
+swarm_agent "triage" {system: "You are the front desk. Route billing questions to 'billing', technical issues to 'tech'. Handle anything else yourself, briefly.", handoff: ["billing", "tech"]}
+swarm_agent "billing" {system: "You handle billing questions using get_invoice. Be precise about numbers.", tools: ["get_invoice"], handoff: ["triage"]}
+swarm_agent "tech" {system: "You are technical support. Use restart_service when asked to fix something.", tools: ["restart_service"], handoff: ["triage"]}
+
+print "═══ SWARM DEMO ═══"
+print ""
+
+print "─── 1. Billing question (expect handoff to billing) ───"
+r1: ai_swarm_trace "What's on my latest invoice?" "triage"
+print r1.content
+print "path: " ++ (join r1.path " -> ")
+print ""
+
+print "─── 2. Technical issue (expect handoff to tech) ───"
+r2: ai_swarm_trace "The login service is down, please restart it" "triage"
+print r2.content
+print "path: " ++ (join r2.path " -> ")
+print ""
+
+print "─── 3. Small talk (triage answers directly, no handoff) ───"
+r3: ai_swarm_trace "Hi, just wanted to say thanks!" "triage"
+print r3.content
+print "path: " ++ (join r3.path " -> ")
+print ""
+
+print "═══ DONE ═══"

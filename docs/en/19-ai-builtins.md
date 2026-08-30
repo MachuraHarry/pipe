@@ -1,6 +1,6 @@
 # 19. AI Builtins
 
-Pipe provides **36 AI builtins** for working with Large Language Models.
+Pipe provides **39 AI builtins** for working with Large Language Models.
 Communication happens via REST APIs to OpenAI, Anthropic, or DeepSeek.
 
 ---
@@ -122,6 +122,9 @@ training — keep sensitive data away from it.
 | `nearest` | Top-K nearest | `nearest query docs k` |
 | `ai_tool` | Register tool | `ai_tool name desc schema fn` |
 | `ai_with_tools` | Chat with tools | `ai_with_tools system user` |
+| `swarm_agent` | Register swarm member | `swarm_agent name {system, tools, handoff}` |
+| `ai_swarm` | Run a handoff swarm | `ai_swarm task entry_agent` |
+| `ai_swarm_trace` | Run a swarm, with trace | `ai_swarm_trace task entry_agent` |
 | `summarize` | Summarize text | `summarize text` |
 | `translate` | Translate text | `translate text target_language` |
 | `classify` | Classify text | `classify text categories` |
@@ -866,3 +869,131 @@ catch e
 
 print "\n=== Workflow complete ==="
 ```
+
+---
+
+## 19.14 AI Swarms
+
+A **swarm** is a set of named agents, each with its own system prompt and tool
+set, that can hand a conversation off to one another. One agent is "active" at
+a time; when it calls a reserved handoff tool, the next agent takes over —
+with the **full conversation history** carried forward, so context is never
+lost across a handoff. This is the same pattern popularized by OpenAI's
+original "Swarm" library (triage → specialist).
+
+Swarms build directly on `ai_tool`/`ai_with_tools` (Section 19.8) — a swarm
+agent's `tools` are ordinary tool names already registered with `ai_tool`.
+
+**Limitation:** like `ai_with_tools`, swarms need an OpenAI-compatible
+tool-calling API — `openai`, `deepseek`, `ollama`, `openrouter`, or
+`opencode`. `anthropic` is not supported for `ai_swarm`.
+
+### swarm_agent
+
+```
+swarm_agent name config
+```
+
+Registers one swarm member. `config` is a block with:
+
+| Key | Type | Required | Description |
+|-----|------|----------|--------------|
+| `system` | string | yes | The agent's system prompt. |
+| `tools` | list of strings | no | Names of tools already registered via `ai_tool`. |
+| `handoff` | list of strings | no | Names of other swarm agents this agent may transfer the conversation to. |
+
+Registration order does not matter — `tools` and `handoff` names are resolved
+when `ai_swarm` runs, not when `swarm_agent` is called.
+
+```pipe
+swarm_agent "triage"
+    { system: "Route billing questions to 'billing', technical questions to 'tech'. Answer anything else yourself.",
+      handoff: ["billing", "tech"] }
+
+swarm_agent "billing"
+    { system: "You handle billing questions precisely and with numbers.",
+      tools: ["get_invoice"],
+      handoff: ["triage"] }
+```
+
+### ai_swarm
+
+```
+ai_swarm task entry_agent [max_rounds]
+```
+
+Runs the swarm starting at `entry_agent` with `task` as the user's message.
+Returns the final agent's answer as a plain string — pipeline-friendly, just
+like `ask`/`generate`/`ai_with_tools`. `max_rounds` defaults to 5 and caps how
+many chat/tool-call rounds the whole swarm run may take (not per agent).
+
+```pipe
+ai_provider "deepseek"
+
+"My bill this month looks wrong"
+    > ai_swarm "triage"
+    > print
+```
+
+### ai_swarm_trace
+
+```
+ai_swarm_trace task entry_agent [max_rounds]
+```
+
+Same as `ai_swarm`, but returns a map `{content, path, rounds}` instead of a
+plain string — useful for debugging which agents actually handled a request:
+
+```pipe
+result: ai_swarm_trace "My bill this month looks wrong" "triage"
+print result.content
+print result.path
+-- -> ["triage", "billing"]
+print result.rounds
+-- -> 2
+```
+
+### Complete Example: Triage Swarm
+
+```pipe
+ai_provider "deepseek"
+
+fn get_invoice customer
+    "Invoice #4471, 49.90 EUR, due 2026-09-15."
+
+fn restart_service service
+    service ++ " has been restarted."
+
+ai_tool "get_invoice" "Look up a customer's latest invoice" {customer: "Customer name"} get_invoice
+ai_tool "restart_service" "Restart a named service" {service: "Service name"} restart_service
+
+swarm_agent "triage"
+    { system: "You are the front desk. Route billing questions to 'billing', technical issues to 'tech'. Handle anything else yourself.",
+      handoff: ["billing", "tech"] }
+
+swarm_agent "billing"
+    { system: "You handle billing questions using get_invoice.",
+      tools: ["get_invoice"],
+      handoff: ["triage"] }
+
+swarm_agent "tech"
+    { system: "You are technical support. Use restart_service when asked to fix something.",
+      tools: ["restart_service"],
+      handoff: ["triage"] }
+
+"What's on my latest invoice?"
+    > ai_swarm "triage"
+    > print
+
+"The login service is down, please restart it"
+    > ai_swarm "triage"
+    > print
+```
+
+### Sandbox
+
+`ai_swarm`/`ai_swarm_trace` are gated exactly like every other AI call: under
+a registered profile, `ai: false` blocks them; under the CLI `--sandbox` flag
+(no profile), `--allow-ai` is required. Tool calls made during a swarm run go
+through the same sandbox enforcement as `ai_with_tools` (`CanToolCall`, audit
+log). See [22. Sandbox Profiles](22-sandbox-profiles.md).

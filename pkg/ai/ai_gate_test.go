@@ -43,6 +43,10 @@ func TestEgressGateBlocksAtEntry(t *testing.T) {
 	if _, err := WikiSearch("x"); !errors.Is(err, want) {
 		t.Fatalf("WikiSearch: got %v, want %v", err, want)
 	}
+	swarmAgents := map[string]SwarmAgentSpec{"a": {SystemPrompt: "s"}}
+	if _, err := ChatSwarm("a", swarmAgents, "u", nil, 1); !errors.Is(err, want) {
+		t.Fatalf("ChatSwarm: got %v, want %v", err, want)
+	}
 }
 
 // TestEgressGateNoopByDefault ensures a nil gate permits all egress.

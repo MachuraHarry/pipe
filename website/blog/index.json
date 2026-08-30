@@ -1,5 +1,19 @@
 [
   {
+    "id": "ai-swarm-and-vision",
+    "file": "ai-swarm-and-vision.md",
+    "date": "2026-08-30",
+    "tag": "release",
+    "title": {
+      "en": "🐝👁️ ai_swarm and ai_vision — Handoff Multi-Agent Swarms and Image Understanding in Pure Pipe",
+      "de": "🐝👁️ ai_swarm und ai_vision — Handoff-Multi-Agent-Swarms und Bildverständnis in reinem Pipe"
+    },
+    "excerpt": {
+      "en": "ai_swarm wires named agents together with OpenAI's original handoff pattern — shared conversation, one agent active at a time. ai_vision answers questions about images against DeepSeek's new vision model. Plus the sneaky .pipec bytecode cache bug we found (and fixed for good) while building them.",
+      "de": "ai_swarm verdrahtet benannte Agenten mit OpenAIs ursprünglichem Handoff-Pattern — geteilter Gesprächsverlauf, ein aktiver Agent zur Zeit. ai_vision beantwortet Fragen zu Bildern gegen DeepSeeks neues Vision-Modell. Dazu der hinterhältige .pipec-Bytecode-Cache-Bug, den wir dabei gefunden (und dauerhaft gefixt) haben."
+    }
+  },
+  {
     "id": "worldcraft-showcase",
     "file": "worldcraft-showcase.md",
     "date": "2026-08-24",

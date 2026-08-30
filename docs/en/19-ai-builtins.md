@@ -918,15 +918,14 @@ Registration order does not matter — `tools` and `handoff` names are resolved
 when `ai_swarm` runs, not when `swarm_agent` is called.
 
 ```pipe
-swarm_agent "triage"
-    { system: "Route billing questions to 'billing', technical questions to 'tech'. Answer anything else yourself.",
-      handoff: ["billing", "tech"] }
+swarm_agent "triage" {system: "Route billing questions to 'billing', technical questions to 'tech'. Answer anything else yourself.", handoff: ["billing", "tech"]}
 
-swarm_agent "billing"
-    { system: "You handle billing questions precisely and with numbers.",
-      tools: ["get_invoice"],
-      handoff: ["triage"] }
+swarm_agent "billing" {system: "You handle billing questions precisely and with numbers.", tools: ["get_invoice"], handoff: ["triage"]}
 ```
+
+> **Note:** `config` is a Pipe map literal. Map literals must be **single-line**
+> in Pipe — a `{ … }` spread across multiple lines is not recognized as an
+> argument (the parser ends the call at the newline).
 
 ### ai_swarm
 
@@ -979,19 +978,11 @@ fn restart_service service
 ai_tool "get_invoice" "Look up a customer's latest invoice" {customer: "Customer name"} get_invoice
 ai_tool "restart_service" "Restart a named service" {service: "Service name"} restart_service
 
-swarm_agent "triage"
-    { system: "You are the front desk. Route billing questions to 'billing', technical issues to 'tech'. Handle anything else yourself.",
-      handoff: ["billing", "tech"] }
+swarm_agent "triage" {system: "You are the front desk. Route billing questions to 'billing', technical issues to 'tech'. Handle anything else yourself.", handoff: ["billing", "tech"]}
 
-swarm_agent "billing"
-    { system: "You handle billing questions using get_invoice.",
-      tools: ["get_invoice"],
-      handoff: ["triage"] }
+swarm_agent "billing" {system: "You handle billing questions using get_invoice.", tools: ["get_invoice"], handoff: ["triage"]}
 
-swarm_agent "tech"
-    { system: "You are technical support. Use restart_service when asked to fix something.",
-      tools: ["restart_service"],
-      handoff: ["triage"] }
+swarm_agent "tech" {system: "You are technical support. Use restart_service when asked to fix something.", tools: ["restart_service"], handoff: ["triage"]}
 
 "What's on my latest invoice?"
     > ai_swarm "triage"

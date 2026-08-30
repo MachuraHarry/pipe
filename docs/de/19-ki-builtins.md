@@ -941,15 +941,14 @@ Die Registrierungsreihenfolge spielt keine Rolle — `tools`- und
 `swarm_agent`.
 
 ```pipe
-swarm_agent "triage"
-    { system: "Leite Rechnungsfragen an 'billing' weiter, technische Fragen an 'tech'. Alles andere beantwortest du selbst.",
-      handoff: ["billing", "tech"] }
+swarm_agent "triage" {system: "Leite Rechnungsfragen an 'billing' weiter, technische Fragen an 'tech'. Alles andere beantwortest du selbst.", handoff: ["billing", "tech"]}
 
-swarm_agent "billing"
-    { system: "Du beantwortest Rechnungsfragen präzise und mit Zahlen.",
-      tools: ["get_invoice"],
-      handoff: ["triage"] }
+swarm_agent "billing" {system: "Du beantwortest Rechnungsfragen präzise und mit Zahlen.", tools: ["get_invoice"], handoff: ["triage"]}
 ```
+
+> **Hinweis:** `config` ist ein Pipe-Map-Literal. Map-Literale müssen in Pipe
+> **einzeilig** stehen — ein über mehrere Zeilen verteiltes `{ … }` wird nicht
+> als Argument erkannt (der Parser trennt den Aufruf an der neuen Zeile).
 
 ### ai_swarm
 
@@ -1004,19 +1003,11 @@ fn restart_service dienst
 ai_tool "get_invoice" "Aktuelle Rechnung eines Kunden abrufen" {kunde: "Kundenname"} get_invoice
 ai_tool "restart_service" "Einen benannten Dienst neu starten" {dienst: "Dienstname"} restart_service
 
-swarm_agent "triage"
-    { system: "Du bist die Poststelle. Leite Rechnungsfragen an 'billing', technische Probleme an 'tech'. Alles andere beantwortest du selbst.",
-      handoff: ["billing", "tech"] }
+swarm_agent "triage" {system: "Du bist die Poststelle. Leite Rechnungsfragen an 'billing', technische Probleme an 'tech'. Alles andere beantwortest du selbst.", handoff: ["billing", "tech"]}
 
-swarm_agent "billing"
-    { system: "Du beantwortest Rechnungsfragen mit get_invoice.",
-      tools: ["get_invoice"],
-      handoff: ["triage"] }
+swarm_agent "billing" {system: "Du beantwortest Rechnungsfragen mit get_invoice.", tools: ["get_invoice"], handoff: ["triage"]}
 
-swarm_agent "tech"
-    { system: "Du bist technischer Support. Nutze restart_service, wenn um eine Reparatur gebeten wird.",
-      tools: ["restart_service"],
-      handoff: ["triage"] }
+swarm_agent "tech" {system: "Du bist technischer Support. Nutze restart_service, wenn um eine Reparatur gebeten wird.", tools: ["restart_service"], handoff: ["triage"]}
 
 "Was steht auf meiner letzten Rechnung?"
     > ai_swarm "triage"

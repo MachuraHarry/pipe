@@ -131,6 +131,33 @@ func ChatSwarm(entryAgent string, agents map[string]SwarmAgentSpec, userPrompt s
 		}
 
 		if !resp.IsToolCall || len(resp.ToolCalls) == 0 {
+			// A plain-text reply from an agent that still had a handoff or a
+			// tool of its own on offer THIS round is not a real answer — it
+			// is a non-terminal agent skipping its job (never calling its
+			// actual tool, or never passing the conversation on) and just
+			// narrating instead. Silently accepting that as final ends the
+			// whole swarm right there, discarding whatever chain (e.g. a
+			// finalizing agent's own verification/formatting step) was
+			// supposed to happen next. Live-reproduced: a document
+			// specialist, at the end of a long research handoff, replied
+			// with a nicely-worded prose summary instead of ever calling
+			// its create/write-document tool — no file was ever produced,
+			// and the swarm ended immediately since a text reply always
+			// used to terminate the round loop regardless of which agent
+			// gave it. A terminal agent (no HandoffTo declared, e.g. a
+			// "registrator") is exempt — that is its designed way to end.
+			// An agent that genuinely has nothing left to call this round
+			// (e.g. oscillation-breaking stripped its only handoff and it
+			// has no tools of its own) is also exempt — forcing a retry
+			// there would just be demanding the impossible.
+			if len(spec.HandoffTo) > 0 && len(tools) > 0 {
+				messages = append(messages, map[string]interface{}{"role": "assistant", "content": resp.Content})
+				messages = append(messages, map[string]interface{}{
+					"role":    "user",
+					"content": "[SYSTEM] You did not call a tool. You are not the final agent in this chain — you must either use one of your own tools to make real progress, or use your handoff tool to pass the conversation on. A plain text reply from you is not accepted; try again now.",
+				})
+				continue
+			}
 			if onProgress != nil {
 				onProgress(current, "final", "", "")
 			}

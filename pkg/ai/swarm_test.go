@@ -225,16 +225,27 @@ func TestChatSwarmRejectsDisallowedHandoffTarget(t *testing.T) {
 	round := 0
 	withMockChatServer(t, func(w http.ResponseWriter, r *http.Request) {
 		round++
-		if round == 1 {
+		switch round {
+		case 1:
 			// "tech" is not in triage's HandoffTo — must be rejected without switching agents.
 			writeToolCall(w, "call_1", swarmHandoffTool, `{"to":"tech"}`)
-			return
+		case 2:
+			// Still triage (agent unchanged after the rejection). triage has
+			// a valid handoff target (HandoffTo is non-empty) so — per
+			// TestChatSwarmRejectsTextOnlyReplyFromNonTerminalAgent — it may
+			// not just reply with text here either; it must hand off to the
+			// one legitimate target.
+			system := swarmSystemPrompt(t, r)
+			if !strings.Contains(system, "TRIAGE") {
+				t.Fatalf("agent switched despite disallowed handoff target; system = %q", system)
+			}
+			writeToolCall(w, "call_2", swarmHandoffTool, `{"to":"billing"}`)
+		case 3:
+			// billing has no HandoffTo (terminal) — a direct text reply is legitimate here.
+			writeChatContent(w, "I can only help with billing here.")
+		default:
+			t.Fatalf("unexpected round %d", round)
 		}
-		system := swarmSystemPrompt(t, r)
-		if !strings.Contains(system, "TRIAGE") {
-			t.Fatalf("agent switched despite disallowed handoff target; system = %q", system)
-		}
-		writeChatContent(w, "I can only help with billing here.")
 	})
 
 	agents := map[string]SwarmAgentSpec{
@@ -247,8 +258,8 @@ func TestChatSwarmRejectsDisallowedHandoffTarget(t *testing.T) {
 	if err != nil {
 		t.Fatalf("ChatSwarm: unexpected error: %v", err)
 	}
-	if want := []string{"triage"}; !equalStrSlices(result.Path, want) {
-		t.Errorf("Path = %v, want %v (rejected handoff must not switch agents)", result.Path, want)
+	if want := []string{"triage", "billing"}; !equalStrSlices(result.Path, want) {
+		t.Errorf("Path = %v, want %v (rejected handoff must not switch agents, but a valid one afterward must)", result.Path, want)
 	}
 }
 
@@ -324,6 +335,69 @@ func TestChatSwarmWarnsBeforeRoundsRunOut(t *testing.T) {
 	}
 	if round != maxRounds {
 		t.Errorf("server received %d requests, want %d", round, maxRounds)
+	}
+}
+
+// TestChatSwarmRejectsTextOnlyReplyFromNonTerminalAgent guards against a
+// live-observed failure mode: a non-terminal agent (one with HandoffTo
+// declared, so it is NOT the swarm's designated finalizer) skips using its
+// own tools or its handoff tool entirely and just replies with plain text.
+// Before this fix, ANY text-only reply ended the whole swarm immediately,
+// regardless of which agent gave it — live-reproduced with a document
+// specialist that, after a long research handoff, replied with a
+// nicely-worded prose summary instead of ever calling its
+// create/write-document tool: no file was produced, and the swarm ended
+// right there since nothing forced it to actually act. The fix: reject a
+// text-only reply from a non-terminal agent that still had something
+// offered this round (own tools and/or a handoff), inject a corrective
+// message, and retry the SAME agent instead of silently accepting an
+// unfinished job as done.
+func TestChatSwarmRejectsTextOnlyReplyFromNonTerminalAgent(t *testing.T) {
+	round := 0
+	withMockChatServer(t, func(w http.ResponseWriter, r *http.Request) {
+		round++
+		switch round {
+		case 1:
+			// "worker" has its own tool AND a handoff target, but just
+			// narrates instead of using either.
+			writeChatContent(w, "I've done some work, here's a summary.")
+		case 2:
+			body, err := io.ReadAll(r.Body)
+			if err != nil {
+				t.Fatalf("reading request body: %v", err)
+			}
+			if !strings.Contains(string(body), "You did not call a tool") {
+				t.Fatalf("round 2: expected corrective message in request, got none")
+			}
+			writeToolCall(w, "call_2", swarmHandoffTool, `{"to":"finisher"}`)
+		case 3:
+			// "finisher" has no HandoffTo (the terminal agent) — a plain
+			// text reply from it is legitimate and must be accepted as-is,
+			// not rejected/retried.
+			writeChatContent(w, "Final answer from finisher.")
+		default:
+			t.Fatalf("unexpected round %d", round)
+		}
+	})
+
+	agents := map[string]SwarmAgentSpec{
+		"worker":   {SystemPrompt: "WORKER", Tools: []ToolDef{{Name: "lookup", Description: "look something up"}}, HandoffTo: []string{"finisher"}},
+		"finisher": {SystemPrompt: "FINISHER"},
+	}
+
+	result, err := ChatSwarm("worker", agents, "hi", nil, 10, nil)
+	if err != nil {
+		t.Fatalf("ChatSwarm: unexpected error: %v", err)
+	}
+	if result.Content != "Final answer from finisher." {
+		t.Errorf("Content = %q, want %q", result.Content, "Final answer from finisher.")
+	}
+	wantPath := []string{"worker", "finisher"}
+	if !equalStrSlices(result.Path, wantPath) {
+		t.Errorf("Path = %v, want %v", result.Path, wantPath)
+	}
+	if round != 3 {
+		t.Errorf("server received %d requests, want 3", round)
 	}
 }
 

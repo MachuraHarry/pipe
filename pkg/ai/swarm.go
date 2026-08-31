@@ -27,6 +27,14 @@ type SwarmResult struct {
 // tool list, so Pipe-level code can never register (or collide with) it.
 const swarmHandoffTool = "__handoff__"
 
+// SwarmProgressFunc is an optional observer invoked as ChatSwarm makes progress,
+// so a caller can surface a live status (e.g. editing a chat message) without
+// waiting for the whole run to finish. event is one of "start" (a round begins
+// for agent), "tool" (agent called a real tool named detail), "handoff" (agent
+// handed off to the agent named detail), or "final" (agent produced the answer).
+// Nil is safe to pass — ChatSwarm treats it as "no observer".
+type SwarmProgressFunc func(agent, event, detail string)
+
 // ChatSwarm runs a multi-agent conversation starting at entryAgent. Each round, the
 // active agent's own tools (plus a synthetic handoff tool if it declares any
 // HandoffTo targets) are offered to the model. A normal tool call is dispatched to
@@ -34,7 +42,7 @@ const swarmHandoffTool = "__handoff__"
 // active agent for the next round while the full message history — including every
 // prior agent's turns — is kept, so the new agent picks up with full context.
 func ChatSwarm(entryAgent string, agents map[string]SwarmAgentSpec, userPrompt string,
-	executor ToolExecutor, maxRounds int) (SwarmResult, error) {
+	executor ToolExecutor, maxRounds int, onProgress SwarmProgressFunc) (SwarmResult, error) {
 	if err := gateEgress(EgressChat, ActiveConfig.APIHost); err != nil {
 		return SwarmResult{}, err
 	}
@@ -58,12 +66,19 @@ func ChatSwarm(entryAgent string, agents map[string]SwarmAgentSpec, userPrompt s
 		spec := agents[current]
 		tools := swarmToolsFor(spec)
 
+		if onProgress != nil {
+			onProgress(current, "start", "")
+		}
+
 		resp, err := chatWithToolsRaw(messages, tools)
 		if err != nil {
 			return SwarmResult{}, fmt.Errorf("swarm round %d (%s): %w", round, current, err)
 		}
 
 		if !resp.IsToolCall || len(resp.ToolCalls) == 0 {
+			if onProgress != nil {
+				onProgress(current, "final", "")
+			}
 			return SwarmResult{Content: resp.Content, Path: path, Rounds: round + 1}, nil
 		}
 
@@ -96,8 +111,15 @@ func ChatSwarm(entryAgent string, agents map[string]SwarmAgentSpec, userPrompt s
 
 			var content string
 			if tc.Name == swarmHandoffTool {
+				before := nextAgent
 				content = handleSwarmHandoff(spec, agents, args, &nextAgent, &handoffRequested)
+				if onProgress != nil && nextAgent != before && handoffRequested {
+					onProgress(current, "handoff", nextAgent)
+				}
 			} else {
+				if onProgress != nil {
+					onProgress(current, "tool", tc.Name)
+				}
 				result, execErr := executor(tc.Name, args)
 				if execErr != nil {
 					content = "Error: " + execErr.Error()

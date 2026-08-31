@@ -837,6 +837,7 @@ var Builtins = []BuiltinInfo{
 	{"swarm_agent", bSwarmAgent},
 	{"ai_swarm", bAiSwarm},
 	{"ai_swarm_trace", bAiSwarmTrace},
+	{"ai_swarm_stream", bAiSwarmStream},
 
 	// AI — Vision
 	{"ai_vision", bAiVision},

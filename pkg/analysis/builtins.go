@@ -496,6 +496,8 @@ var builtinDocs = []BuiltinDoc{
 		Description: "Runs a multi-agent conversation starting at entry_agent. Agents hand off control to each other via their declared handoff targets, sharing the full conversation history. Returns the final agent's answer. max_rounds defaults to 5.", Category: CatAISwarm},
 	{Name: "ai_swarm_trace", Signature: "ai_swarm_trace(task, entry_agent, max_rounds?)", Params: []Param{p("task", "string"), p("entry_agent", "string"), p("max_rounds", "number")}, ReturnType: "map",
 		Description: "Like ai_swarm, but returns {content, path, rounds} for observability. path is the ordered list of agent names that handled the conversation.", Category: CatAISwarm},
+	{Name: "ai_swarm_stream", Signature: "ai_swarm_stream(task, entry_agent, max_rounds, on_progress)", Params: []Param{p("task", "string"), p("entry_agent", "string"), p("max_rounds", "number"), p("on_progress", "function")}, ReturnType: "map",
+		Description: "Like ai_swarm_trace, but calls on_progress(agent, event, detail) after every swarm step so the caller can surface live status instead of waiting for the whole run to finish. event is one of \"start\" (a round begins for agent), \"tool\" (agent called the real tool named detail), \"handoff\" (agent handed off to the agent named detail), or \"final\" (agent produced the answer). Returns {content, path, rounds} exactly like ai_swarm_trace.", Category: CatAISwarm},
 
 	// ---- AI Vision ----
 	{Name: "ai_vision", Signature: "ai_vision(image, prompt, max_tokens?)", Params: []Param{p("image", "string|bytes"), p("prompt", "string"), p("max_tokens", "number")}, ReturnType: "string",

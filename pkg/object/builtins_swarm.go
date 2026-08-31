@@ -115,11 +115,12 @@ func buildSwarmAgents() (map[string]ai.SwarmAgentSpec, *Error) {
 }
 
 // runSwarm implements the shared argument parsing, sandbox gate, and ai.ChatSwarm
-// dispatch for both ai_swarm and ai_swarm_trace, which differ only in how they
-// shape the successful result for Pipe code.
+// dispatch for ai_swarm, ai_swarm_trace, and ai_swarm_stream, which differ only
+// in how they shape the successful result for Pipe code (and whether a 4th
+// progress-callback argument is present/required).
 func runSwarm(builtinName string, args ...Object) (ai.SwarmResult, Object) {
 	if len(args) < 2 {
-		return ai.SwarmResult{}, err(builtinName + " expects at least 2 arguments (task, entry_agent, [max_rounds])")
+		return ai.SwarmResult{}, err(builtinName + " expects at least 2 arguments (task, entry_agent, [max_rounds], [on_progress])")
 	}
 	task, ok := args[0].(*String)
 	if !ok {
@@ -137,6 +138,18 @@ func runSwarm(builtinName string, args ...Object) (ai.SwarmResult, Object) {
 			return ai.SwarmResult{}, err(builtinName + ": max_rounds must be a number")
 		}
 		maxRounds = int(n)
+	}
+
+	// A 4th argument, when present, is a Pipe closure invoked as
+	// cb(agent, event, detail) after every swarm step — see SwarmProgressFunc.
+	// Bridging back into Pipe from Go uses CallUserFunction exactly like map/
+	// filter's callback dispatch (builtins_collections.go).
+	var onProgress ai.SwarmProgressFunc
+	if len(args) >= 4 {
+		cb := args[3]
+		onProgress = func(agent, event, detail string) {
+			CallUserFunction(cb, &String{Value: agent}, &String{Value: event}, &String{Value: detail})
+		}
 	}
 
 	// Same two-branch gate as ai_chat: profile.CanAI() under a registered
@@ -165,7 +178,7 @@ func runSwarm(builtinName string, args ...Object) (ai.SwarmResult, Object) {
 		return executeTool(profile, toolName, targs)
 	}
 
-	result, swarmErr := ai.ChatSwarm(entry.Value, agents, task.Value, executor, maxRounds)
+	result, swarmErr := ai.ChatSwarm(entry.Value, agents, task.Value, executor, maxRounds, onProgress)
 	if swarmErr != nil {
 		return ai.SwarmResult{}, err(builtinName + ": " + swarmErr.Error())
 	}
@@ -182,6 +195,29 @@ func bAiSwarm(args ...Object) Object {
 
 func bAiSwarmTrace(args ...Object) Object {
 	result, errObj := runSwarm("ai_swarm_trace", args...)
+	if errObj != nil {
+		return errObj
+	}
+	pathElems := make([]Object, len(result.Path))
+	for i, p := range result.Path {
+		pathElems[i] = &String{Value: p}
+	}
+	return MapFromGo(map[string]Object{
+		"content": &String{Value: result.Content},
+		"path":    &List{Elements: pathElems},
+		"rounds":  &Integer{Value: int64(result.Rounds)},
+	})
+}
+
+// bAiSwarmStream is ai_swarm_trace plus a mandatory 4th argument: a Pipe
+// closure called as cb(agent, event, detail) after every swarm step, so
+// callers can surface live progress (e.g. editing a chat message) instead of
+// waiting for the whole run to finish. Same success shape as ai_swarm_trace.
+func bAiSwarmStream(args ...Object) Object {
+	if len(args) < 4 {
+		return err("ai_swarm_stream expects 4 arguments (task, entry_agent, max_rounds, on_progress)")
+	}
+	result, errObj := runSwarm("ai_swarm_stream", args...)
 	if errObj != nil {
 		return errObj
 	}

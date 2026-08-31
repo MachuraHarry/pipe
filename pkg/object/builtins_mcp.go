@@ -749,10 +749,15 @@ func registerMCPClient(client *mcp.Client, prefix string) error {
 		bi := &BuiltinInfo{
 			Name: localName,
 			Fn: func(args ...Object) Object {
-				// Convert positional args to named map
+				// Convert positional args to named map. orderedToolArgs
+				// (builtins_ai.go) pads every parameter the caller omitted
+				// with NILOBJ rather than compacting it out, so positions
+				// stay aligned with bridge.paramNames — skip those instead
+				// of forwarding a literal null for a parameter the caller
+				// never touched (some MCP servers reject that outright).
 				callArgs := make(map[string]interface{})
 				for i, arg := range args {
-					if i < len(bridge.paramNames) {
+					if i < len(bridge.paramNames) && arg.Type() != NIL {
 						callArgs[bridge.paramNames[i]] = objectToInterface(arg)
 					}
 				}
@@ -780,21 +785,16 @@ func registerMCPClient(client *mcp.Client, prefix string) error {
 	return nil
 }
 
+// extractParamNames must return exactly what toolParamNames (builtins_ai.go)
+// would return for this same schema — see paramOrderFromSchema's doc comment
+// for why: one zips call-site values into a positional slice by this order,
+// the other unzips that slice back into names by this order.
 func extractParamNames(inputSchema interface{}) []string {
 	schema, ok := inputSchema.(map[string]interface{})
 	if !ok {
 		return nil
 	}
-	if required, ok := schema["required"].([]interface{}); ok {
-		names := make([]string, 0, len(required))
-		for _, r := range required {
-			if s, ok := r.(string); ok {
-				names = append(names, s)
-			}
-		}
-		return names
-	}
-	return nil
+	return paramOrderFromSchema(schema)
 }
 
 func schemaToParams(inputSchema interface{}) map[string]interface{} {

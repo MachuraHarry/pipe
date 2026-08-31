@@ -1120,44 +1120,82 @@ func bToolCall(args ...Object) Object {
 	return &String{Value: result}
 }
 
-// toolParamNames returns the ordered parameter names declared by a tool's
-// schema. Pipe map literals carry their declaration order, so "required"
-// (built by keysToStrings) preserves it. The sorted "properties" fallback
-// only applies to programmatically constructed schemas with no required list.
-func toolParamNames(entry ToolEntry) []string {
-	params := entry.Def.Parameters
-	if params == nil {
+// paramOrderFromSchema returns a tool's FULL parameter list in a stable
+// order: the schema's declared "required" names first (in their declared
+// order — for a Pipe ai_tool this is every param, via keysToStrings), then
+// any remaining "properties" names not already listed, sorted.
+//
+// Returning only the required names here used to silently drop every
+// optional-but-provided argument for any MCP-bridged tool whose schema
+// legitimately distinguishes required from optional parameters — e.g.
+// Gmail's send_gmail_message declares only user_google_email as required
+// (to/subject/body all have Python defaults), so a genuine call passing
+// to/subject/body never actually reached the tool: orderedToolArgs (below)
+// only pulled the required name out of the caller's argument map, and the
+// MCP bridge's registration-time paramNames (extractParamNames in
+// builtins_mcp.go, MUST stay in lockstep with this function since one
+// zips values into a positional slice and the other unzips them back to
+// names) was equally short — so subject/body arrived as Go's zero value
+// (empty/None) even though the caller passed real text, and the tool
+// rejected the call as missing required fields. Both functions now share
+// this helper precisely so they can never drift apart like that again.
+func paramOrderFromSchema(schema map[string]interface{}) []string {
+	if schema == nil {
 		return nil
 	}
-	if req, ok := params["required"]; ok {
+	seen := make(map[string]bool)
+	var names []string
+	if req, ok := schema["required"]; ok {
 		switch r := req.(type) {
 		case []string:
-			return r
-		case []interface{}:
-			names := make([]string, 0, len(r))
-			for _, e := range r {
-				if s, ok := e.(string); ok {
+			for _, s := range r {
+				if !seen[s] {
+					seen[s] = true
 					names = append(names, s)
 				}
 			}
-			return names
+		case []interface{}:
+			for _, e := range r {
+				if s, ok := e.(string); ok && !seen[s] {
+					seen[s] = true
+					names = append(names, s)
+				}
+			}
 		}
 	}
-	if props, ok := params["properties"].(map[string]interface{}); ok {
-		names := make([]string, 0, len(props))
+	if props, ok := schema["properties"].(map[string]interface{}); ok {
+		extra := make([]string, 0, len(props))
 		for k := range props {
-			names = append(names, k)
+			if !seen[k] {
+				extra = append(extra, k)
+			}
 		}
-		sort.Strings(names)
-		return names
+		sort.Strings(extra)
+		names = append(names, extra...)
 	}
-	return nil
+	return names
+}
+
+// toolParamNames returns the ordered parameter names declared by a tool's
+// schema — see paramOrderFromSchema.
+func toolParamNames(entry ToolEntry) []string {
+	return paramOrderFromSchema(entry.Def.Parameters)
 }
 
 // orderedToolArgs maps the model's named arguments to a deterministic
 // positional slice, ordered by the tool's declared parameters. Without a
 // declared order it falls back to sorted names, so multi-parameter tools are
 // never passed arguments in map-iteration order.
+//
+// The slice always has exactly len(names) elements — NILOBJ standing in for
+// any name the caller didn't provide — rather than compacting missing ones
+// out. Compacting used to silently shift every later argument left by one
+// position whenever an earlier-in-schema-order optional parameter was
+// omitted (which is the common case: MCP tools routinely declare far more
+// optional parameters than any one call actually uses), scrambling values
+// onto the wrong parameter names on the receiving end instead of just
+// omitting the missing one. See paramOrderFromSchema's doc comment for the
+// concrete Gmail send_gmail_message case this was found from.
 func orderedToolArgs(entry ToolEntry, args map[string]interface{}) []Object {
 	names := toolParamNames(entry)
 	if len(names) == 0 {
@@ -1167,13 +1205,13 @@ func orderedToolArgs(entry ToolEntry, args map[string]interface{}) []Object {
 		}
 		sort.Strings(names)
 	}
-	argObjects := make([]Object, 0, len(names))
-	for _, n := range names {
-		v, ok := args[n]
-		if !ok {
-			continue
+	argObjects := make([]Object, len(names))
+	for i, n := range names {
+		if v, ok := args[n]; ok {
+			argObjects[i] = interfaceToObject(v)
+		} else {
+			argObjects[i] = NILOBJ
 		}
-		argObjects = append(argObjects, interfaceToObject(v))
 	}
 	return argObjects
 }

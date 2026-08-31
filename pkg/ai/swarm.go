@@ -93,7 +93,39 @@ func ChatSwarm(entryAgent string, agents map[string]SwarmAgentSpec, userPrompt s
 			onProgress(current, "start", "", "")
 		}
 
-		resp, err := chatWithToolsRaw(messages, tools)
+		// Without a warning, a swarm that quietly runs out of rounds mid-task
+		// (e.g. a long multi-tool-call research-and-write job) returns NO
+		// answer at all — the hard error below discards everything done so
+		// far. Once fewer than ~10% of rounds remain, append a one-off
+		// reminder to THIS round's request only (never stored in messages,
+		// so it does not compound every remaining round) telling the model
+		// to wrap up now with whatever it already has instead of continuing
+		// to explore. A visibly incomplete-but-real answer beats none.
+		//
+		// Floor of 3, not 1: a handoff itself consumes a round, so wrapping
+		// up can still take several more hops (e.g. critic -> finalizer,
+		// then the finalizer's own round to actually answer). Live-
+		// reproduced with a deliberately tiny max_rounds=8: threshold=1 let
+		// the warning arrive on literally the last round, a "critic" agent
+		// dutifully handed off immediately as asked — and then the loop
+		// ended before the target agent it handed off to ever got a turn,
+		// so max-rounds was exceeded anyway despite the model doing exactly
+		// what the warning asked. 3 gives at least one real hand-off-and-
+		// respond chain room to finish inside the warning window.
+		reqMessages := messages
+		roundsLeft := maxRounds - round
+		warnThreshold := maxRounds / 10
+		if warnThreshold < 3 {
+			warnThreshold = 3
+		}
+		if roundsLeft <= warnThreshold {
+			reqMessages = append(append([]map[string]interface{}{}, messages...), map[string]interface{}{
+				"role": "user",
+				"content": fmt.Sprintf("[SYSTEM] Only %d of %d rounds remain before this conversation is cut off with NO answer delivered at all. Wrap up NOW: stop exploring or gathering more information and use whatever you already have to produce a usable result THIS round — answer directly, or use your handoff tool to hand off immediately if you are not the one who finalizes. A complete-enough answer now is far better than no answer.", roundsLeft, maxRounds),
+			})
+		}
+
+		resp, err := chatWithToolsRaw(reqMessages, tools)
 		if err != nil {
 			return SwarmResult{}, fmt.Errorf("swarm round %d (%s): %w", round, current, err)
 		}

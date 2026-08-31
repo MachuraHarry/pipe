@@ -268,6 +268,65 @@ func TestChatSwarmMaxRoundsExceeded(t *testing.T) {
 	}
 }
 
+// TestChatSwarmWarnsBeforeRoundsRunOut guards against a live-observed
+// failure mode: a long tool-heavy task (deep research, then writing a
+// multi-section document) quietly exhausts maxRounds mid-task, and
+// ChatSwarm's hard "max rounds exceeded" error discards everything done so
+// far — worse than an incomplete answer, the caller gets NO answer at all.
+// Once fewer than ~10% of rounds remain, ChatSwarm should append a one-off
+// reminder to that round's request telling the model to wrap up now; a
+// well-behaved model sees it and answers instead of continuing to explore.
+func TestChatSwarmWarnsBeforeRoundsRunOut(t *testing.T) {
+	// maxRounds=13: warnThreshold is floor(13/10)=1, raised to the 3-round
+	// minimum, so requests 1-10 (roundsLeft > 3) must NOT carry the warning
+	// and requests 11-13 (roundsLeft <= 3) must.
+	const maxRounds = 13
+	round := 0
+	withMockChatServer(t, func(w http.ResponseWriter, r *http.Request) {
+		round++
+		body, err := io.ReadAll(r.Body)
+		if err != nil {
+			t.Fatalf("reading request body: %v", err)
+		}
+		warned := strings.Contains(string(body), "[SYSTEM] Only")
+		switch {
+		case round <= 10:
+			if warned {
+				t.Fatalf("round %d: unexpected round-budget warning this early (maxRounds=%d)", round, maxRounds)
+			}
+			writeToolCall(w, "call_"+string(rune('0'+round)), "lookup", `{"q":"x"}`)
+		case round < maxRounds:
+			if !warned {
+				t.Fatalf("round %d: expected round-budget warning (roundsLeft=%d), got none", round, maxRounds-round+1)
+			}
+			writeToolCall(w, "call_"+string(rune('0'+round)), "lookup", `{"q":"x"}`)
+		default:
+			if !warned {
+				t.Fatalf("round %d (last round): expected round-budget warning in request, got none", round)
+			}
+			writeChatContent(w, "Wrapped up in time.")
+		}
+	})
+
+	agents := map[string]SwarmAgentSpec{
+		"agent": {SystemPrompt: "AGENT", Tools: []ToolDef{{Name: "lookup", Description: "look something up"}}},
+	}
+	executor := func(name string, args map[string]interface{}) (string, error) {
+		return "ok", nil
+	}
+
+	result, err := ChatSwarm("agent", agents, "hi", executor, maxRounds, nil)
+	if err != nil {
+		t.Fatalf("ChatSwarm: unexpected error (the round-budget warning should have let it finish in time): %v", err)
+	}
+	if result.Content != "Wrapped up in time." {
+		t.Errorf("Content = %q, want %q", result.Content, "Wrapped up in time.")
+	}
+	if round != maxRounds {
+		t.Errorf("server received %d requests, want %d", round, maxRounds)
+	}
+}
+
 // TestChatSwarmBreaksOscillationInsteadOfExhaustingRounds guards against a
 // live-observed failure mode distinct from TestChatSwarmMaxRoundsExceeded's
 // deliberate infinite loop: two agents that legitimately keep handing back

@@ -141,14 +141,14 @@ func runSwarm(builtinName string, args ...Object) (ai.SwarmResult, Object) {
 	}
 
 	// A 4th argument, when present, is a Pipe closure invoked as
-	// cb(agent, event, detail) after every swarm step — see SwarmProgressFunc.
-	// Bridging back into Pipe from Go uses CallUserFunction exactly like map/
-	// filter's callback dispatch (builtins_collections.go).
+	// cb(agent, event, detail, args_json) after every swarm step — see
+	// SwarmProgressFunc. Bridging back into Pipe from Go uses CallUserFunction
+	// exactly like map/filter's callback dispatch (builtins_collections.go).
 	var onProgress ai.SwarmProgressFunc
 	if len(args) >= 4 {
 		cb := args[3]
-		onProgress = func(agent, event, detail string) {
-			CallUserFunction(cb, &String{Value: agent}, &String{Value: event}, &String{Value: detail})
+		onProgress = func(agent, event, detail, argsJSON string) {
+			CallUserFunction(cb, &String{Value: agent}, &String{Value: event}, &String{Value: detail}, &String{Value: argsJSON})
 		}
 	}
 

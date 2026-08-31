@@ -32,8 +32,11 @@ const swarmHandoffTool = "__handoff__"
 // waiting for the whole run to finish. event is one of "start" (a round begins
 // for agent), "tool" (agent called a real tool named detail), "handoff" (agent
 // handed off to the agent named detail), or "final" (agent produced the answer).
-// Nil is safe to pass — ChatSwarm treats it as "no observer".
-type SwarmProgressFunc func(agent, event, detail string)
+// argsJSON carries the tool call's raw JSON arguments for a "tool" event (so a
+// caller can show e.g. the actual search query, not just the tool name); it is
+// empty for every other event. Nil is safe to pass — ChatSwarm treats it as "no
+// observer".
+type SwarmProgressFunc func(agent, event, detail, argsJSON string)
 
 // ChatSwarm runs a multi-agent conversation starting at entryAgent. Each round, the
 // active agent's own tools (plus a synthetic handoff tool if it declares any
@@ -67,7 +70,7 @@ func ChatSwarm(entryAgent string, agents map[string]SwarmAgentSpec, userPrompt s
 		tools := swarmToolsFor(spec)
 
 		if onProgress != nil {
-			onProgress(current, "start", "")
+			onProgress(current, "start", "", "")
 		}
 
 		resp, err := chatWithToolsRaw(messages, tools)
@@ -77,7 +80,7 @@ func ChatSwarm(entryAgent string, agents map[string]SwarmAgentSpec, userPrompt s
 
 		if !resp.IsToolCall || len(resp.ToolCalls) == 0 {
 			if onProgress != nil {
-				onProgress(current, "final", "")
+				onProgress(current, "final", "", "")
 			}
 			return SwarmResult{Content: resp.Content, Path: path, Rounds: round + 1}, nil
 		}
@@ -114,11 +117,11 @@ func ChatSwarm(entryAgent string, agents map[string]SwarmAgentSpec, userPrompt s
 				before := nextAgent
 				content = handleSwarmHandoff(spec, agents, args, &nextAgent, &handoffRequested)
 				if onProgress != nil && nextAgent != before && handoffRequested {
-					onProgress(current, "handoff", nextAgent)
+					onProgress(current, "handoff", nextAgent, "")
 				}
 			} else {
 				if onProgress != nil {
-					onProgress(current, "tool", tc.Name)
+					onProgress(current, "tool", tc.Name, tc.Arguments)
 				}
 				result, execErr := executor(tc.Name, args)
 				if execErr != nil {

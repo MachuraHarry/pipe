@@ -189,10 +189,10 @@ func TestChatSwarmInvokesProgressCallback(t *testing.T) {
 		return "invoice #4471", nil
 	}
 
-	type event struct{ agent, kind, detail string }
+	type event struct{ agent, kind, detail, args string }
 	var got []event
-	onProgress := func(agent, kind, detail string) {
-		got = append(got, event{agent, kind, detail})
+	onProgress := func(agent, kind, detail, argsJSON string) {
+		got = append(got, event{agent, kind, detail, argsJSON})
 	}
 
 	result, err := ChatSwarm("triage", agents, "What's on my invoice?", executor, 5, onProgress)
@@ -204,12 +204,12 @@ func TestChatSwarmInvokesProgressCallback(t *testing.T) {
 	}
 
 	want := []event{
-		{"triage", "start", ""},
-		{"triage", "handoff", "billing"},
-		{"billing", "start", ""},
-		{"billing", "tool", "get_invoice"},
-		{"billing", "start", ""},
-		{"billing", "final", ""},
+		{"triage", "start", "", ""},
+		{"triage", "handoff", "billing", ""},
+		{"billing", "start", "", ""},
+		{"billing", "tool", "get_invoice", `{"customer":"acme"}`},
+		{"billing", "start", "", ""},
+		{"billing", "final", "", ""},
 	}
 	if len(got) != len(want) {
 		t.Fatalf("got %d progress events, want %d: %+v", len(got), len(want), got)

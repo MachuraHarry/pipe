@@ -69,6 +69,23 @@ func ChatSwarm(entryAgent string, agents map[string]SwarmAgentSpec, userPrompt s
 		spec := agents[current]
 		tools := swarmToolsFor(spec)
 
+		// Two agents can get stuck bouncing a conversation back and forth
+		// indefinitely — e.g. a "critic" repeatedly sending work back to a
+		// "verifier" that has nothing new to add, and the critic judging it
+		// incomplete again each time — burning every round without ever
+		// reaching a final answer. Detected as an exact A,B,A,B tail in path:
+		// withdraw the handoff tool for this round so the model can only use
+		// its own tools or answer directly, forcing the oscillation to break
+		// instead of exhausting maxRounds with nothing to show for it. A
+		// direct answer from a non-terminal agent is a legitimate/expected
+		// outcome for a caller to handle (Pipe's swarm.pipe already does,
+		// via its own backstop for exactly this "didn't end at the intended
+		// final agent" case) — strictly better than returning no answer at
+		// all.
+		if isOscillating(path) {
+			tools = spec.Tools
+		}
+
 		if onProgress != nil {
 			onProgress(current, "start", "", "")
 		}
@@ -146,6 +163,21 @@ func ChatSwarm(entryAgent string, agents map[string]SwarmAgentSpec, userPrompt s
 	}
 
 	return SwarmResult{}, fmt.Errorf("swarm: max rounds (%d) exceeded without final response", maxRounds)
+}
+
+// isOscillating reports whether the last four entries of path are an exact
+// A,B,A,B alternation between two distinct agents — i.e. two full round
+// trips between the same pair with no other agent entering in between. One
+// back-and-forth (A,B,A) is normal (e.g. a critic sending work back for one
+// more pass); a second full repeat is a strong, cheap signal of a stuck
+// loop rather than genuine progress.
+func isOscillating(path []string) bool {
+	n := len(path)
+	if n < 4 {
+		return false
+	}
+	a, b := path[n-1], path[n-2]
+	return a != b && path[n-3] == a && path[n-4] == b
 }
 
 // swarmToolsFor builds the tool list offered to the model for one round: the

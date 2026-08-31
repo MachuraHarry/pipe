@@ -268,6 +268,62 @@ func TestChatSwarmMaxRoundsExceeded(t *testing.T) {
 	}
 }
 
+// TestChatSwarmBreaksOscillationInsteadOfExhaustingRounds guards against a
+// live-observed failure mode distinct from TestChatSwarmMaxRoundsExceeded's
+// deliberate infinite loop: two agents that legitimately keep handing back
+// to each other because each judges the other's output still incomplete
+// (e.g. a critic sending work back to a fact-checker with nothing new to
+// add, which sends it right back) — a real, valid handoff each time, not a
+// rejected one, so nothing here is a swarm-config bug to fix at the prompt
+// level. Without oscillation detection this burns every remaining round and
+// returns no answer at all (reproduced live with kritiker/faktenwaechter,
+// max_rounds=18, on a plain small-talk message). isOscillating should kick
+// in on the second full A,B,A,B repeat and withdraw the handoff tool for
+// that round, so the swarm returns SOME answer well before max rounds.
+func TestChatSwarmBreaksOscillationInsteadOfExhaustingRounds(t *testing.T) {
+	round := 0
+	withMockChatServer(t, func(w http.ResponseWriter, r *http.Request) {
+		round++
+		if round <= 3 {
+			// Rounds 1-3: kritiker<->faktenwaechter hand off to each other,
+			// same as a real "still incomplete" judgment each time.
+			to := "faktenwaechter"
+			if round%2 == 0 {
+				to = "kritiker"
+			}
+			writeToolCall(w, "call_"+string(rune('0'+round)), swarmHandoffTool, `{"to":"`+to+`"}`)
+			return
+		}
+		// Round 4: the handoff tool should no longer be offered (oscillation
+		// detected), so a well-behaved model just answers directly.
+		system := swarmSystemPrompt(t, r)
+		if !strings.Contains(system, "FAKTENWAECHTER") {
+			t.Fatalf("expected round 4 to still be faktenwaechter's turn (forced to answer, not switched agent); system = %q", system)
+		}
+		writeChatContent(w, "Done despite the loop.")
+	})
+
+	agents := map[string]SwarmAgentSpec{
+		"kritiker":       {SystemPrompt: "KRITIKER", HandoffTo: []string{"faktenwaechter"}},
+		"faktenwaechter": {SystemPrompt: "FAKTENWAECHTER", HandoffTo: []string{"kritiker"}},
+	}
+
+	result, err := ChatSwarm("kritiker", agents, "hi", nil, 18, nil)
+	if err != nil {
+		t.Fatalf("ChatSwarm: unexpected error (oscillation should have broken the loop, not exhausted rounds): %v", err)
+	}
+	if result.Content != "Done despite the loop." {
+		t.Errorf("Content = %q", result.Content)
+	}
+	wantPath := []string{"kritiker", "faktenwaechter", "kritiker", "faktenwaechter"}
+	if !equalStrSlices(result.Path, wantPath) {
+		t.Errorf("Path = %v, want %v", result.Path, wantPath)
+	}
+	if round != 4 {
+		t.Errorf("server received %d requests, want 4 (loop should break well before max_rounds=18)", round)
+	}
+}
+
 func TestChatSwarmUnknownEntryAgent(t *testing.T) {
 	_, err := ChatSwarm("nope", map[string]SwarmAgentSpec{}, "hi", nil, 5, nil)
 	if err == nil {

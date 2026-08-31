@@ -331,6 +331,106 @@ func TestChatSwarmUnknownEntryAgent(t *testing.T) {
 	}
 }
 
+// swarmHandoffEnum pulls the enum of allowed handoff targets from a raw
+// chat-completions request body, or nil if no handoff tool was offered.
+func swarmHandoffEnum(t *testing.T, r *http.Request) []string {
+	t.Helper()
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
+		t.Fatalf("reading request body: %v", err)
+	}
+	var decoded struct {
+		Tools []struct {
+			Function struct {
+				Name       string `json:"name"`
+				Parameters struct {
+					Properties struct {
+						To struct {
+							Enum []string `json:"enum"`
+						} `json:"to"`
+					} `json:"properties"`
+				} `json:"parameters"`
+			} `json:"function"`
+		} `json:"tools"`
+	}
+	if err := json.Unmarshal(body, &decoded); err != nil {
+		t.Fatalf("decoding request body: %v", err)
+	}
+	for _, tool := range decoded.Tools {
+		if tool.Function.Name == swarmHandoffTool {
+			return tool.Function.Parameters.Properties.To.Enum
+		}
+	}
+	return nil
+}
+
+// TestChatSwarmOscillationOnlyWithdrawsThePairedPartner guards against a
+// live-observed failure mode worse than exhausting rounds: a "critic" agent
+// with no tools of its own (only a handoff) oscillating with a
+// "fact-checker" during a genuine multi-round deep-research task (three real
+// handoff round trips, each with the fact-checker doing real new work — not
+// a stuck loop). The old fix for oscillation stripped ALL tools down to the
+// agent's own (empty) set once isOscillating fired, leaving the critic with
+// nothing to call at all — it could not even reach its own finalizing agent,
+// and answered with a hollow non-answer instead of the real result. The
+// critic here can also hand off to "registrator" (a third agent, not the
+// oscillating partner) — that route must stay open so the loop can still
+// resolve productively.
+func TestChatSwarmOscillationOnlyWithdrawsThePairedPartner(t *testing.T) {
+	round := 0
+	withMockChatServer(t, func(w http.ResponseWriter, r *http.Request) {
+		round++
+		switch round {
+		case 1, 3:
+			// faktenwaechter's turn: hand off to kritiker.
+			writeToolCall(w, "call_"+string(rune('0'+round)), swarmHandoffTool, `{"to":"kritiker"}`)
+		case 2:
+			// kritiker's turn, not yet oscillating: hand back to faktenwaechter
+			// for one more pass, same as a real "still incomplete" judgment.
+			writeToolCall(w, "call_"+string(rune('0'+round)), swarmHandoffTool, `{"to":"faktenwaechter"}`)
+		case 4:
+			// kritiker's turn again — now the second A,B,A,B repeat is
+			// complete (faktenwaechter,kritiker,faktenwaechter,kritiker), so
+			// isOscillating fires. The handoff to "faktenwaechter" must be
+			// withdrawn, but "registrator" must still be offered.
+			enum := swarmHandoffEnum(t, r)
+			if len(enum) != 1 || enum[0] != "registrator" {
+				t.Fatalf("round 4 (kritiker, oscillating): handoff enum = %v, want exactly [registrator]", enum)
+			}
+			writeToolCall(w, "call_4", swarmHandoffTool, `{"to":"registrator"}`)
+		case 5:
+			system := swarmSystemPrompt(t, r)
+			if !strings.Contains(system, "REGISTRATOR") {
+				t.Fatalf("expected round 5 to be registrator's turn; system = %q", system)
+			}
+			writeChatContent(w, "Final report content.")
+		default:
+			t.Fatalf("unexpected round %d", round)
+		}
+	})
+
+	agents := map[string]SwarmAgentSpec{
+		"faktenwaechter": {SystemPrompt: "FAKTENWAECHTER", HandoffTo: []string{"kritiker"}},
+		"kritiker":       {SystemPrompt: "KRITIKER", HandoffTo: []string{"faktenwaechter", "registrator"}},
+		"registrator":    {SystemPrompt: "REGISTRATOR"},
+	}
+
+	result, err := ChatSwarm("faktenwaechter", agents, "hi", nil, 18, nil)
+	if err != nil {
+		t.Fatalf("ChatSwarm: unexpected error: %v", err)
+	}
+	if result.Content != "Final report content." {
+		t.Errorf("Content = %q, want %q", result.Content, "Final report content.")
+	}
+	wantPath := []string{"faktenwaechter", "kritiker", "faktenwaechter", "kritiker", "registrator"}
+	if !equalStrSlices(result.Path, wantPath) {
+		t.Errorf("Path = %v, want %v", result.Path, wantPath)
+	}
+	if round != 5 {
+		t.Errorf("server received %d requests, want 5", round)
+	}
+}
+
 func equalStrSlices(a, b []string) bool {
 	if len(a) != len(b) {
 		return false

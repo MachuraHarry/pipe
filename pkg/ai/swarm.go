@@ -74,16 +74,19 @@ func ChatSwarm(entryAgent string, agents map[string]SwarmAgentSpec, userPrompt s
 		// "verifier" that has nothing new to add, and the critic judging it
 		// incomplete again each time — burning every round without ever
 		// reaching a final answer. Detected as an exact A,B,A,B tail in path:
-		// withdraw the handoff tool for this round so the model can only use
-		// its own tools or answer directly, forcing the oscillation to break
-		// instead of exhausting maxRounds with nothing to show for it. A
-		// direct answer from a non-terminal agent is a legitimate/expected
-		// outcome for a caller to handle (Pipe's swarm.pipe already does,
-		// via its own backstop for exactly this "didn't end at the intended
-		// final agent" case) — strictly better than returning no answer at
-		// all.
+		// withdraw the handoff back to that SPECIFIC partner for this round
+		// (see oscillationTools) so the loop with THAT agent breaks, while
+		// every other handoff target — crucially any finalizing agent, or an
+		// unrelated specialist — stays available. Earlier this stripped ALL
+		// tools down to spec.Tools, which for an agent with no tools of its
+		// own (e.g. a pure-handoff "critic") left it with literally nothing
+		// to call: live-reproduced on a genuine multi-round research task
+		// (critic <-> fact-checker legitimately iterating three times to go
+		// deep on a topic, not a stuck loop) — the critic couldn't even reach
+		// its own finalizing agent and answered with a hollow "will pass this
+		// on for review" non-answer instead of the real report.
 		if isOscillating(path) {
-			tools = spec.Tools
+			tools = oscillationTools(spec, path)
 		}
 
 		if onProgress != nil {
@@ -178,6 +181,25 @@ func isOscillating(path []string) bool {
 	}
 	a, b := path[n-1], path[n-2]
 	return a != b && path[n-3] == a && path[n-4] == b
+}
+
+// oscillationTools builds the tool list for a round where isOscillating has
+// fired. Only the handoff to the SPECIFIC partner the agent has been
+// bouncing with is withdrawn — every other handoff target stays available,
+// so a legitimate multi-round back-and-forth can still resolve via a
+// different path (e.g. a critic that can no longer send work back to the
+// fact-checker it was oscillating with can still hand off to a finalizing
+// agent, instead of being left with literally no tool to call).
+func oscillationTools(spec SwarmAgentSpec, path []string) []ToolDef {
+	partner := path[len(path)-2]
+	restricted := spec
+	restricted.HandoffTo = nil
+	for _, h := range spec.HandoffTo {
+		if h != partner {
+			restricted.HandoffTo = append(restricted.HandoffTo, h)
+		}
+	}
+	return swarmToolsFor(restricted)
 }
 
 // swarmToolsFor builds the tool list offered to the model for one round: the

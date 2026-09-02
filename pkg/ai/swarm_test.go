@@ -157,7 +157,7 @@ func TestChatSwarmHandoffSwitchesAgent(t *testing.T) {
 		"billing": {SystemPrompt: "BILLING: answer invoice questions."},
 	}
 
-	result, err := ChatSwarm("triage", agents, "What do I owe?", nil, 5, nil, nil)
+	result, err := ChatSwarm("triage", agents, "What do I owe?", nil, 5, nil, nil, nil)
 	if err != nil {
 		t.Fatalf("ChatSwarm: unexpected error: %v", err)
 	}
@@ -201,7 +201,7 @@ func TestChatSwarmToolCallUsesExecutor(t *testing.T) {
 		},
 	}
 
-	result, err := ChatSwarm("billing", agents, "What's on my invoice?", executor, 5, nil, nil)
+	result, err := ChatSwarm("billing", agents, "What's on my invoice?", executor, 5, nil, nil, nil)
 	if err != nil {
 		t.Fatalf("ChatSwarm: unexpected error: %v", err)
 	}
@@ -216,6 +216,75 @@ func TestChatSwarmToolCallUsesExecutor(t *testing.T) {
 	}
 	if want := []string{"billing"}; !equalStrSlices(result.Path, want) {
 		t.Errorf("Path = %v, want %v (no handoff happened)", result.Path, want)
+	}
+}
+
+// TestChatSwarmAbortCheckStopsEarly covers the /stop-mid-run feature: an
+// abortCheck returning a non-empty reason must stop ChatSwarm immediately,
+// before the round it fired on ever reaches the model, and the result must
+// carry Aborted/AbortReason/Path/Rounds rather than an error.
+func TestChatSwarmAbortCheckStopsEarly(t *testing.T) {
+	round := 0
+	withMockChatServer(t, func(w http.ResponseWriter, r *http.Request) {
+		round++
+		// Always asks for another tool call — if the abort check didn't
+		// work, this would run all the way to maxRounds.
+		writeToolCall(w, "call_x", "get_a", `{}`)
+	})
+
+	executor := func(name string, args map[string]interface{}) (string, error) {
+		return "ok", nil
+	}
+	agents := map[string]SwarmAgentSpec{
+		"agent": {SystemPrompt: "AGENT", Tools: []ToolDef{{Name: "get_a", Description: "a"}}},
+	}
+
+	checks := 0
+	abortCheck := func() (bool, string) {
+		checks++
+		if checks >= 3 {
+			return true, "cancelled by /stop"
+		}
+		return false, ""
+	}
+
+	result, err := ChatSwarm("agent", agents, "do something", executor, 10, nil, nil, abortCheck)
+	if err != nil {
+		t.Fatalf("ChatSwarm: unexpected error (an intentional abort must not be an error): %v", err)
+	}
+	if !result.Aborted {
+		t.Fatal("Aborted = false, want true")
+	}
+	if result.AbortReason != "cancelled by /stop" {
+		t.Errorf("AbortReason = %q, want %q", result.AbortReason, "cancelled by /stop")
+	}
+	if result.Rounds != 2 {
+		t.Errorf("Rounds = %d, want 2 (aborted at the start of round index 2)", result.Rounds)
+	}
+	if round != 2 {
+		t.Errorf("server received %d requests, want 2 — the round the abort fired on must never reach the model", round)
+	}
+}
+
+// TestChatSwarmNilAbortCheckUnchanged guards that a nil abortCheck (the
+// overwhelming common case — every existing call site) behaves exactly as
+// before this feature existed: the swarm runs to a normal completion,
+// Aborted stays false.
+func TestChatSwarmNilAbortCheckUnchanged(t *testing.T) {
+	withMockChatServer(t, func(w http.ResponseWriter, r *http.Request) {
+		writeChatContent(w, "done")
+	})
+	agents := map[string]SwarmAgentSpec{"agent": {SystemPrompt: "AGENT"}}
+
+	result, err := ChatSwarm("agent", agents, "hi", nil, 5, nil, nil, nil)
+	if err != nil {
+		t.Fatalf("ChatSwarm: unexpected error: %v", err)
+	}
+	if result.Aborted {
+		t.Error("Aborted = true, want false with a nil abortCheck")
+	}
+	if result.Content != "done" {
+		t.Errorf("Content = %q, want %q", result.Content, "done")
 	}
 }
 
@@ -263,7 +332,7 @@ func TestChatSwarmUsesBatchExecutorForTwoOrMoreCalls(t *testing.T) {
 		},
 	}
 
-	result, err := ChatSwarm("agent", agents, "do both", executor, 5, nil, batchExecutor)
+	result, err := ChatSwarm("agent", agents, "do both", executor, 5, nil, batchExecutor, nil)
 	if err != nil {
 		t.Fatalf("ChatSwarm: unexpected error: %v", err)
 	}
@@ -310,7 +379,7 @@ func TestChatSwarmDoesNotUseBatchExecutorForSingleCall(t *testing.T) {
 		"agent": {SystemPrompt: "AGENT", Tools: []ToolDef{{Name: "get_a", Description: "a"}}},
 	}
 
-	_, err := ChatSwarm("agent", agents, "do one", executor, 5, nil, batchExecutor)
+	_, err := ChatSwarm("agent", agents, "do one", executor, 5, nil, batchExecutor, nil)
 	if err != nil {
 		t.Fatalf("ChatSwarm: unexpected error: %v", err)
 	}
@@ -353,7 +422,7 @@ func TestChatSwarmInvokesProgressCallback(t *testing.T) {
 		got = append(got, event{agent, kind, detail, argsJSON})
 	}
 
-	result, err := ChatSwarm("triage", agents, "What's on my invoice?", executor, 5, onProgress, nil)
+	result, err := ChatSwarm("triage", agents, "What's on my invoice?", executor, 5, onProgress, nil, nil)
 	if err != nil {
 		t.Fatalf("ChatSwarm: unexpected error: %v", err)
 	}
@@ -412,7 +481,7 @@ func TestChatSwarmRejectsDisallowedHandoffTarget(t *testing.T) {
 		"tech":    {SystemPrompt: "TECH"},
 	}
 
-	result, err := ChatSwarm("triage", agents, "Reboot my router", nil, 5, nil, nil)
+	result, err := ChatSwarm("triage", agents, "Reboot my router", nil, 5, nil, nil, nil)
 	if err != nil {
 		t.Fatalf("ChatSwarm: unexpected error: %v", err)
 	}
@@ -431,7 +500,7 @@ func TestChatSwarmMaxRoundsExceeded(t *testing.T) {
 		"billing": {SystemPrompt: "BILLING", HandoffTo: []string{"triage"}},
 	}
 
-	_, err := ChatSwarm("triage", agents, "loop forever", nil, 2, nil, nil)
+	_, err := ChatSwarm("triage", agents, "loop forever", nil, 2, nil, nil, nil)
 	if err == nil || !strings.Contains(err.Error(), "max rounds") {
 		t.Fatalf("expected a max-rounds error, got %v", err)
 	}
@@ -484,7 +553,7 @@ func TestChatSwarmWarnsBeforeRoundsRunOut(t *testing.T) {
 		return "ok", nil
 	}
 
-	result, err := ChatSwarm("agent", agents, "hi", executor, maxRounds, nil, nil)
+	result, err := ChatSwarm("agent", agents, "hi", executor, maxRounds, nil, nil, nil)
 	if err != nil {
 		t.Fatalf("ChatSwarm: unexpected error (the round-budget warning should have let it finish in time): %v", err)
 	}
@@ -543,7 +612,7 @@ func TestChatSwarmRejectsTextOnlyReplyFromNonTerminalAgent(t *testing.T) {
 		"finisher": {SystemPrompt: "FINISHER"},
 	}
 
-	result, err := ChatSwarm("worker", agents, "hi", nil, 10, nil, nil)
+	result, err := ChatSwarm("worker", agents, "hi", nil, 10, nil, nil, nil)
 	if err != nil {
 		t.Fatalf("ChatSwarm: unexpected error: %v", err)
 	}
@@ -599,7 +668,7 @@ func TestChatSwarmBreaksOscillationInsteadOfExhaustingRounds(t *testing.T) {
 		"faktenwaechter": {SystemPrompt: "FAKTENWAECHTER", HandoffTo: []string{"kritiker"}},
 	}
 
-	result, err := ChatSwarm("kritiker", agents, "hi", nil, 18, nil, nil)
+	result, err := ChatSwarm("kritiker", agents, "hi", nil, 18, nil, nil, nil)
 	if err != nil {
 		t.Fatalf("ChatSwarm: unexpected error (oscillation should have broken the loop, not exhausted rounds): %v", err)
 	}
@@ -616,7 +685,7 @@ func TestChatSwarmBreaksOscillationInsteadOfExhaustingRounds(t *testing.T) {
 }
 
 func TestChatSwarmUnknownEntryAgent(t *testing.T) {
-	_, err := ChatSwarm("nope", map[string]SwarmAgentSpec{}, "hi", nil, 5, nil, nil)
+	_, err := ChatSwarm("nope", map[string]SwarmAgentSpec{}, "hi", nil, 5, nil, nil, nil)
 	if err == nil {
 		t.Fatal("expected an error for an unknown entry agent")
 	}
@@ -706,7 +775,7 @@ func TestChatSwarmOscillationOnlyWithdrawsThePairedPartner(t *testing.T) {
 		"registrator":    {SystemPrompt: "REGISTRATOR"},
 	}
 
-	result, err := ChatSwarm("faktenwaechter", agents, "hi", nil, 18, nil, nil)
+	result, err := ChatSwarm("faktenwaechter", agents, "hi", nil, 18, nil, nil, nil)
 	if err != nil {
 		t.Fatalf("ChatSwarm: unexpected error: %v", err)
 	}

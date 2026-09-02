@@ -152,6 +152,23 @@ func runSwarm(builtinName string, args ...Object) (ai.SwarmResult, Object) {
 		}
 	}
 
+	// A 5th argument, when present, is a Pipe closure invoked with no
+	// arguments at the start of every round — see ai.SwarmAbortCheck. It
+	// returning nil/an empty string means "continue"; a non-empty string
+	// is taken verbatim as the abort reason. Bridging back into Pipe uses
+	// CallUserFunction exactly like onProgress above.
+	var abortCheck ai.SwarmAbortCheck
+	if len(args) >= 5 {
+		cb := args[4]
+		abortCheck = func() (bool, string) {
+			result := CallUserFunction(cb)
+			if s, ok := result.(*String); ok && s.Value != "" {
+				return true, s.Value
+			}
+			return false, ""
+		}
+	}
+
 	// Same two-branch gate as ai_chat: profile.CanAI() under a registered
 	// profile, CLI --sandbox flag otherwise. The authoritative enforcement is
 	// ai.ChatSwarm's own gateEgress call (mirroring ai.ChatWithTools), but this
@@ -181,7 +198,7 @@ func runSwarm(builtinName string, args ...Object) (ai.SwarmResult, Object) {
 		return runToolBatch(profile, calls)
 	}
 
-	result, swarmErr := ai.ChatSwarm(entry.Value, agents, task.Value, executor, maxRounds, onProgress, batchExecutor)
+	result, swarmErr := ai.ChatSwarm(entry.Value, agents, task.Value, executor, maxRounds, onProgress, batchExecutor, abortCheck)
 	if swarmErr != nil {
 		return ai.SwarmResult{}, err(builtinName + ": " + swarmErr.Error())
 	}
@@ -215,7 +232,12 @@ func bAiSwarmTrace(args ...Object) Object {
 // bAiSwarmStream is ai_swarm_trace plus a mandatory 4th argument: a Pipe
 // closure called as cb(agent, event, detail) after every swarm step, so
 // callers can surface live progress (e.g. editing a chat message) instead of
-// waiting for the whole run to finish. Same success shape as ai_swarm_trace.
+// waiting for the whole run to finish. An optional 5th argument is a Pipe
+// closure called with no arguments at the start of every round (see
+// ai.SwarmAbortCheck) — returning a non-empty string stops the run early;
+// the result then has "aborted"=true and "abort_reason" set to that string,
+// with "content" reflecting whatever partial progress was made (often
+// empty). Otherwise identical success shape to ai_swarm_trace.
 func bAiSwarmStream(args ...Object) Object {
 	if len(args) < 4 {
 		return err("ai_swarm_stream expects 4 arguments (task, entry_agent, max_rounds, on_progress)")
@@ -229,8 +251,10 @@ func bAiSwarmStream(args ...Object) Object {
 		pathElems[i] = &String{Value: p}
 	}
 	return MapFromGo(map[string]Object{
-		"content": &String{Value: result.Content},
-		"path":    &List{Elements: pathElems},
-		"rounds":  &Integer{Value: int64(result.Rounds)},
+		"content":      &String{Value: result.Content},
+		"path":         &List{Elements: pathElems},
+		"rounds":       &Integer{Value: int64(result.Rounds)},
+		"aborted":      &Boolean{Value: result.Aborted},
+		"abort_reason": &String{Value: result.AbortReason},
 	})
 }

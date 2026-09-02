@@ -44,7 +44,7 @@ func TestEgressGateBlocksAtEntry(t *testing.T) {
 		t.Fatalf("WikiSearch: got %v, want %v", err, want)
 	}
 	swarmAgents := map[string]SwarmAgentSpec{"a": {SystemPrompt: "s"}}
-	if _, err := ChatSwarm("a", swarmAgents, "u", nil, 1, nil, nil); !errors.Is(err, want) {
+	if _, err := ChatSwarm("a", swarmAgents, "u", nil, 1, nil, nil, nil); !errors.Is(err, want) {
 		t.Fatalf("ChatSwarm: got %v, want %v", err, want)
 	}
 	if _, err := VisionChat("describe", "https://example.invalid/x.jpg", 0); !errors.Is(err, want) {

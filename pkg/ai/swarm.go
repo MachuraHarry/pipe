@@ -20,6 +20,15 @@ type SwarmResult struct {
 	Content string
 	Path    []string
 	Rounds  int
+	// Aborted is true when abortCheck (see ChatSwarm) requested an early
+	// stop. Content/Path/Rounds reflect whatever progress was made before
+	// the abort — Content may be empty if it happened before any agent
+	// produced text. An abort is a deliberate, caller-requested stop, not
+	// a failure: it is reported via this field, never via the error return.
+	Aborted bool
+	// AbortReason is whatever string abortCheck returned when it requested
+	// the stop (e.g. "cancelled by /stop"). Empty unless Aborted is true.
+	AbortReason string
 }
 
 // swarmHandoffTool is a reserved tool name synthesized by ChatSwarm itself for any
@@ -38,6 +47,16 @@ const swarmHandoffTool = "__handoff__"
 // observer".
 type SwarmProgressFunc func(agent, event, detail, argsJSON string)
 
+// SwarmAbortCheck is called at the START of every round, before the LLM is
+// asked for anything. Returning (true, reason) stops ChatSwarm immediately
+// — see SwarmResult.Aborted/AbortReason. A nil abortCheck (the common case)
+// disables this entirely; ChatSwarm then behaves exactly as it always did.
+// This is deliberately the ONLY hook point: it runs synchronously on the
+// same goroutine/VM as the rest of ChatSwarm, no concurrency of any kind is
+// introduced by it (see the design note at its Pipe-level caller,
+// muninn.pipe's make_abort_check, for why that matters here).
+type SwarmAbortCheck func() (bool, string)
+
 // ChatSwarm runs a multi-agent conversation starting at entryAgent. Each round, the
 // active agent's own tools (plus a synthetic handoff tool if it declares any
 // HandoffTo targets) are offered to the model. A normal tool call is dispatched to
@@ -45,7 +64,8 @@ type SwarmProgressFunc func(agent, event, detail, argsJSON string)
 // active agent for the next round while the full message history — including every
 // prior agent's turns — is kept, so the new agent picks up with full context.
 func ChatSwarm(entryAgent string, agents map[string]SwarmAgentSpec, userPrompt string,
-	executor ToolExecutor, maxRounds int, onProgress SwarmProgressFunc, batchExecutor ToolBatchExecutor) (SwarmResult, error) {
+	executor ToolExecutor, maxRounds int, onProgress SwarmProgressFunc, batchExecutor ToolBatchExecutor,
+	abortCheck SwarmAbortCheck) (SwarmResult, error) {
 	if err := gateEgress(EgressChat, ActiveConfig.APIHost); err != nil {
 		return SwarmResult{}, err
 	}
@@ -66,6 +86,11 @@ func ChatSwarm(entryAgent string, agents map[string]SwarmAgentSpec, userPrompt s
 	}
 
 	for round := 0; round < maxRounds; round++ {
+		if abortCheck != nil {
+			if abort, reason := abortCheck(); abort {
+				return SwarmResult{Content: "", Path: path, Rounds: round, Aborted: true, AbortReason: reason}, nil
+			}
+		}
 		spec := agents[current]
 		tools := swarmToolsFor(spec)
 

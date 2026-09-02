@@ -4,6 +4,10 @@ All notable changes to Pipe are documented here. This file follows [Keep a Chang
 
 ## [Unreleased]
 
+### Added
+- **`ai_swarm_stream`: optional round-check callback (5th argument)** — a Pipe closure invoked with no arguments at the start of every swarm round, letting a caller (e.g. a Telegram bot) intervene in an in-flight run without any new concurrency (it runs synchronously, same goroutine/VM, at an existing checkpoint). It may return a map with any of `abort` (bool), `abort_reason` (string), `inject` (string) — every field optional; `nil`/a non-map/an empty map is a fully inert round. A truthy `abort` stops the run immediately (result then has `aborted`=true, `abort_reason` set, `content` reflecting whatever partial progress was made); a non-empty `inject` is appended to the live conversation as a new instruction before the round proceeds, letting a caller steer an in-flight run with a fresh message. Go-level API: `ai.ChatSwarm`'s trailing parameter is now `SwarmRoundCheck func() SwarmRoundAction`.
+- **`ai_swarm_stream`: `"reasoning"` progress event** — the 4th-argument progress callback now also fires with `event="reasoning"` and the model's raw chain-of-thought in `detail`, whenever the provider returns one (e.g. DeepSeek reasoner models) — including on a final, non-tool-calling round, which previously discarded `ReasoningContent` entirely without surfacing it anywhere.
+
 ---
 
 ## [1.2.0] — 2026-08-30

@@ -161,3 +161,70 @@ func TestAiSwarmUnknownEntryAgent(t *testing.T) {
 		t.Fatalf("expected an error for an unregistered entry agent, got %v", result)
 	}
 }
+
+// TestAiSwarmStreamRoundCheckMapBridging exercises the REAL Pipe-facing
+// bridge for ai_swarm_stream's optional 5th argument (runSwarm's roundCheck
+// construction in builtins_swarm.go), not a hand-rolled ai.SwarmRoundCheck —
+// CallUserFunction natively supports a *BuiltinInfo as the callback (same
+// mechanism registerE2ETool above uses to fake a Pipe closure from Go), so
+// this drives bAiSwarmStream exactly like Pipe source calling
+// ai_swarm_stream with a 5th argument would.
+func TestAiSwarmStreamRoundCheckMapBridging(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.Write([]byte(`{"choices":[{"finish_reason":"stop","message":{"content":"done"}}]}`))
+	}))
+	defer srv.Close()
+	openaiAt(t, srv)
+
+	defer swarmAgentFor(t, "bridge_agent", "BRIDGE", nil, nil)()
+
+	noopProgress := &BuiltinInfo{Fn: func(args ...Object) Object { return &Boolean{Value: true} }}
+
+	t.Run("non-map return is a fully inert round", func(t *testing.T) {
+		cb := &BuiltinInfo{Fn: func(args ...Object) Object { return &String{Value: "not a map"} }}
+		result := bAiSwarmStream(&String{Value: "hi"}, &String{Value: "bridge_agent"}, &Integer{Value: 5}, noopProgress, cb)
+		m, ok := result.(*Map)
+		if !ok {
+			t.Fatalf("ai_swarm_stream: expected a map result, got %v", result)
+		}
+		if v, _ := m.Get("aborted"); v.(*Boolean).Value {
+			t.Errorf("aborted = true, want false — a non-map round_check return must be a no-op")
+		}
+		if v, _ := m.Get("content"); v.(*String).Value != "done" {
+			t.Errorf("content = %v, want %q", v, "done")
+		}
+	})
+
+	t.Run("empty map return is a fully inert round", func(t *testing.T) {
+		cb := &BuiltinInfo{Fn: func(args ...Object) Object { return NewMap() }}
+		result := bAiSwarmStream(&String{Value: "hi"}, &String{Value: "bridge_agent"}, &Integer{Value: 5}, noopProgress, cb)
+		m, ok := result.(*Map)
+		if !ok {
+			t.Fatalf("ai_swarm_stream: expected a map result, got %v", result)
+		}
+		if v, _ := m.Get("aborted"); v.(*Boolean).Value {
+			t.Errorf("aborted = true, want false — an empty-map round_check return must be a no-op")
+		}
+	})
+
+	t.Run("abort:true in the map stops the run", func(t *testing.T) {
+		cb := &BuiltinInfo{Fn: func(args ...Object) Object {
+			return MapFromGo(map[string]Object{
+				"abort":        &Boolean{Value: true},
+				"abort_reason": &String{Value: "test abort"},
+			})
+		}}
+		result := bAiSwarmStream(&String{Value: "hi"}, &String{Value: "bridge_agent"}, &Integer{Value: 5}, noopProgress, cb)
+		m, ok := result.(*Map)
+		if !ok {
+			t.Fatalf("ai_swarm_stream: expected a map result, got %v", result)
+		}
+		if v, _ := m.Get("aborted"); !v.(*Boolean).Value {
+			t.Errorf("aborted = false, want true")
+		}
+		if v, _ := m.Get("abort_reason"); v.(*String).Value != "test abort" {
+			t.Errorf("abort_reason = %v, want %q", v, "test abort")
+		}
+	})
+}

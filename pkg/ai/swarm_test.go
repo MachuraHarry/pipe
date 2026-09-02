@@ -219,10 +219,10 @@ func TestChatSwarmToolCallUsesExecutor(t *testing.T) {
 	}
 }
 
-// TestChatSwarmAbortCheckStopsEarly covers the /stop-mid-run feature: an
-// abortCheck returning a non-empty reason must stop ChatSwarm immediately,
-// before the round it fired on ever reaches the model, and the result must
-// carry Aborted/AbortReason/Path/Rounds rather than an error.
+// TestChatSwarmAbortCheckStopsEarly covers the /stop-mid-run feature: a
+// roundCheck returning Abort=true must stop ChatSwarm immediately, before
+// the round it fired on ever reaches the model, and the result must carry
+// Aborted/AbortReason/Path/Rounds rather than an error.
 func TestChatSwarmAbortCheckStopsEarly(t *testing.T) {
 	round := 0
 	withMockChatServer(t, func(w http.ResponseWriter, r *http.Request) {
@@ -240,15 +240,15 @@ func TestChatSwarmAbortCheckStopsEarly(t *testing.T) {
 	}
 
 	checks := 0
-	abortCheck := func() (bool, string) {
+	roundCheck := func() SwarmRoundAction {
 		checks++
 		if checks >= 3 {
-			return true, "cancelled by /stop"
+			return SwarmRoundAction{Abort: true, AbortReason: "cancelled by /stop"}
 		}
-		return false, ""
+		return SwarmRoundAction{}
 	}
 
-	result, err := ChatSwarm("agent", agents, "do something", executor, 10, nil, nil, abortCheck)
+	result, err := ChatSwarm("agent", agents, "do something", executor, 10, nil, nil, roundCheck)
 	if err != nil {
 		t.Fatalf("ChatSwarm: unexpected error (an intentional abort must not be an error): %v", err)
 	}
@@ -266,7 +266,7 @@ func TestChatSwarmAbortCheckStopsEarly(t *testing.T) {
 	}
 }
 
-// TestChatSwarmNilAbortCheckUnchanged guards that a nil abortCheck (the
+// TestChatSwarmNilAbortCheckUnchanged guards that a nil roundCheck (the
 // overwhelming common case — every existing call site) behaves exactly as
 // before this feature existed: the swarm runs to a normal completion,
 // Aborted stays false.
@@ -285,6 +285,141 @@ func TestChatSwarmNilAbortCheckUnchanged(t *testing.T) {
 	}
 	if result.Content != "done" {
 		t.Errorf("Content = %q, want %q", result.Content, "done")
+	}
+}
+
+// TestChatSwarmInjectAppendsUserMessage covers mid-run steering: a
+// roundCheck returning a non-empty Inject must land as a new user-role
+// message ("[User interjection] "+text) in the NEXT round's request, before
+// the model ever sees it — proving injection changes what the model is
+// actually asked, not just cosmetic display state.
+func TestChatSwarmInjectAppendsUserMessage(t *testing.T) {
+	round := 0
+	var round2Messages []map[string]interface{}
+	withMockChatServer(t, func(w http.ResponseWriter, r *http.Request) {
+		round++
+		if round == 1 {
+			writeToolCall(w, "call_1", "get_a", `{}`)
+			return
+		}
+		body, err := io.ReadAll(r.Body)
+		if err != nil {
+			t.Fatalf("reading request body: %v", err)
+		}
+		var decoded struct {
+			Messages []map[string]interface{} `json:"messages"`
+		}
+		if err := json.Unmarshal(body, &decoded); err != nil {
+			t.Fatalf("decoding request body: %v", err)
+		}
+		round2Messages = decoded.Messages
+		writeChatContent(w, "done")
+	})
+
+	executor := func(name string, args map[string]interface{}) (string, error) {
+		return "ok", nil
+	}
+	agents := map[string]SwarmAgentSpec{
+		"agent": {SystemPrompt: "AGENT", Tools: []ToolDef{{Name: "get_a", Description: "a"}}},
+	}
+
+	checks := 0
+	roundCheck := func() SwarmRoundAction {
+		checks++
+		if checks == 2 {
+			return SwarmRoundAction{Inject: "make it shorter"}
+		}
+		return SwarmRoundAction{}
+	}
+
+	var events []string
+	onProgress := func(agent, event, detail, argsJSON string) {
+		if event == "inject" {
+			events = append(events, detail)
+		}
+	}
+
+	result, err := ChatSwarm("agent", agents, "do something", executor, 10, onProgress, nil, roundCheck)
+	if err != nil {
+		t.Fatalf("ChatSwarm: unexpected error: %v", err)
+	}
+	if result.Content != "done" {
+		t.Errorf("Content = %q, want %q", result.Content, "done")
+	}
+	found := false
+	for _, m := range round2Messages {
+		if m["role"] == "user" && m["content"] == "[User interjection] make it shorter" {
+			found = true
+		}
+	}
+	if !found {
+		t.Errorf("round 2 request did not contain the injected user message; messages = %v", round2Messages)
+	}
+	if want := []string{"make it shorter"}; !equalStrSlices(events, want) {
+		t.Errorf("inject onProgress events = %v, want %v", events, want)
+	}
+}
+
+// TestChatSwarmReasoningEventFiresOnlyWhenPresent covers the "watch them
+// think" signal: onProgress must receive a "reasoning" event carrying the
+// model's chain-of-thought whenever the provider returns one — both for a
+// tool-calling round AND a final plain-content round (the latter previously
+// discarded ReasoningContent entirely, never surfacing it anywhere) — and
+// must NOT fire one when the provider returns none.
+func TestChatSwarmReasoningEventFiresOnlyWhenPresent(t *testing.T) {
+	round := 0
+	withMockChatServer(t, func(w http.ResponseWriter, r *http.Request) {
+		round++
+		if round == 1 {
+			json.NewEncoder(w).Encode(map[string]interface{}{
+				"choices": []interface{}{
+					map[string]interface{}{
+						"finish_reason": "tool_calls",
+						"message": map[string]interface{}{
+							"reasoning_content": "thinking about which tool to use",
+							"tool_calls": []interface{}{
+								map[string]interface{}{
+									"id":   "call_1",
+									"type": "function",
+									"function": map[string]interface{}{
+										"name":      "get_a",
+										"arguments": "{}",
+									},
+								},
+							},
+						},
+					},
+				},
+			})
+			return
+		}
+		// Final round: no reasoning_content this time.
+		writeChatContent(w, "done")
+	})
+
+	executor := func(name string, args map[string]interface{}) (string, error) {
+		return "ok", nil
+	}
+	agents := map[string]SwarmAgentSpec{
+		"agent": {SystemPrompt: "AGENT", Tools: []ToolDef{{Name: "get_a", Description: "a"}}},
+	}
+
+	var reasoningEvents []string
+	onProgress := func(agent, event, detail, argsJSON string) {
+		if event == "reasoning" {
+			reasoningEvents = append(reasoningEvents, detail)
+		}
+	}
+
+	result, err := ChatSwarm("agent", agents, "do something", executor, 10, onProgress, nil, nil)
+	if err != nil {
+		t.Fatalf("ChatSwarm: unexpected error: %v", err)
+	}
+	if result.Content != "done" {
+		t.Errorf("Content = %q, want %q", result.Content, "done")
+	}
+	if want := []string{"thinking about which tool to use"}; !equalStrSlices(reasoningEvents, want) {
+		t.Errorf("reasoning events = %v, want %v (exactly one, only from the round that had reasoning_content)", reasoningEvents, want)
 	}
 }
 

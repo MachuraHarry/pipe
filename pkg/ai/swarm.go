@@ -40,22 +40,36 @@ const swarmHandoffTool = "__handoff__"
 // so a caller can surface a live status (e.g. editing a chat message) without
 // waiting for the whole run to finish. event is one of "start" (a round begins
 // for agent), "tool" (agent called a real tool named detail), "handoff" (agent
-// handed off to the agent named detail), or "final" (agent produced the answer).
-// argsJSON carries the tool call's raw JSON arguments for a "tool" event (so a
-// caller can show e.g. the actual search query, not just the tool name); it is
-// empty for every other event. Nil is safe to pass — ChatSwarm treats it as "no
-// observer".
+// handed off to the agent named detail), "final" (agent produced the answer),
+// "reasoning" (the model's chain-of-thought for this round, in detail — only
+// fired when the provider actually returns one), or "inject" (a SwarmRoundCheck
+// steered the run with the interjection text in detail). argsJSON carries the
+// tool call's raw JSON arguments for a "tool" event (so a caller can show e.g.
+// the actual search query, not just the tool name); it is empty for every other
+// event. Nil is safe to pass — ChatSwarm treats it as "no observer".
 type SwarmProgressFunc func(agent, event, detail, argsJSON string)
 
-// SwarmAbortCheck is called at the START of every round, before the LLM is
-// asked for anything. Returning (true, reason) stops ChatSwarm immediately
-// — see SwarmResult.Aborted/AbortReason. A nil abortCheck (the common case)
-// disables this entirely; ChatSwarm then behaves exactly as it always did.
-// This is deliberately the ONLY hook point: it runs synchronously on the
-// same goroutine/VM as the rest of ChatSwarm, no concurrency of any kind is
+// SwarmRoundAction is what a SwarmRoundCheck returns to control the next
+// round. Abort/AbortReason stop ChatSwarm immediately, exactly like the
+// former SwarmAbortCheck. Inject, when non-empty, is appended to the
+// conversation as a new user-role message before the round proceeds — lets
+// a caller steer an in-flight swarm with a fresh instruction without
+// restarting it. A zero-value SwarmRoundAction (the common case) means
+// "nothing to do this round".
+type SwarmRoundAction struct {
+	Abort       bool
+	AbortReason string
+	Inject      string
+}
+
+// SwarmRoundCheck is called at the START of every round, before the LLM is
+// asked for anything. A nil roundCheck (the common case) disables this
+// entirely; ChatSwarm then behaves exactly as it always did. This is
+// deliberately the ONLY hook point: it runs synchronously on the same
+// goroutine/VM as the rest of ChatSwarm, no concurrency of any kind is
 // introduced by it (see the design note at its Pipe-level caller,
-// muninn.pipe's make_abort_check, for why that matters here).
-type SwarmAbortCheck func() (bool, string)
+// muninn.pipe's make_round_check, for why that matters here).
+type SwarmRoundCheck func() SwarmRoundAction
 
 // ChatSwarm runs a multi-agent conversation starting at entryAgent. Each round, the
 // active agent's own tools (plus a synthetic handoff tool if it declares any
@@ -65,7 +79,7 @@ type SwarmAbortCheck func() (bool, string)
 // prior agent's turns — is kept, so the new agent picks up with full context.
 func ChatSwarm(entryAgent string, agents map[string]SwarmAgentSpec, userPrompt string,
 	executor ToolExecutor, maxRounds int, onProgress SwarmProgressFunc, batchExecutor ToolBatchExecutor,
-	abortCheck SwarmAbortCheck) (SwarmResult, error) {
+	roundCheck SwarmRoundCheck) (SwarmResult, error) {
 	if err := gateEgress(EgressChat, ActiveConfig.APIHost); err != nil {
 		return SwarmResult{}, err
 	}
@@ -86,9 +100,19 @@ func ChatSwarm(entryAgent string, agents map[string]SwarmAgentSpec, userPrompt s
 	}
 
 	for round := 0; round < maxRounds; round++ {
-		if abortCheck != nil {
-			if abort, reason := abortCheck(); abort {
-				return SwarmResult{Content: "", Path: path, Rounds: round, Aborted: true, AbortReason: reason}, nil
+		if roundCheck != nil {
+			action := roundCheck()
+			if action.Abort {
+				return SwarmResult{Content: "", Path: path, Rounds: round, Aborted: true, AbortReason: action.AbortReason}, nil
+			}
+			if action.Inject != "" {
+				messages = append(messages, map[string]interface{}{
+					"role":    "user",
+					"content": "[User interjection] " + action.Inject,
+				})
+				if onProgress != nil {
+					onProgress(current, "inject", action.Inject, "")
+				}
 			}
 		}
 		spec := agents[current]
@@ -153,6 +177,10 @@ func ChatSwarm(entryAgent string, agents map[string]SwarmAgentSpec, userPrompt s
 		resp, err := chatWithToolsRaw(reqMessages, tools)
 		if err != nil {
 			return SwarmResult{}, fmt.Errorf("swarm round %d (%s): %w", round, current, err)
+		}
+
+		if onProgress != nil && resp.ReasoningContent != "" {
+			onProgress(current, "reasoning", resp.ReasoningContent, "")
 		}
 
 		if !resp.IsToolCall || len(resp.ToolCalls) == 0 {

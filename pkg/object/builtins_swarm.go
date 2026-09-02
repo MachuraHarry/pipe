@@ -153,19 +153,40 @@ func runSwarm(builtinName string, args ...Object) (ai.SwarmResult, Object) {
 	}
 
 	// A 5th argument, when present, is a Pipe closure invoked with no
-	// arguments at the start of every round — see ai.SwarmAbortCheck. It
-	// returning nil/an empty string means "continue"; a non-empty string
-	// is taken verbatim as the abort reason. Bridging back into Pipe uses
-	// CallUserFunction exactly like onProgress above.
-	var abortCheck ai.SwarmAbortCheck
+	// arguments at the start of every round — see ai.SwarmRoundCheck. It is
+	// expected to return a map with any of "abort" (bool), "abort_reason"
+	// (string), "inject" (string) — every field optional, missing/wrong-typed
+	// fields default to their zero value. Returning nil, a non-map, or an
+	// empty map is a fully inert round (identical to no closure at all).
+	// Bridging back into Pipe uses CallUserFunction exactly like onProgress
+	// above; the *Map-then-.Get-per-key pattern mirrors writeResponse in
+	// builtins_http_server.go.
+	var roundCheck ai.SwarmRoundCheck
 	if len(args) >= 5 {
 		cb := args[4]
-		abortCheck = func() (bool, string) {
+		roundCheck = func() ai.SwarmRoundAction {
 			result := CallUserFunction(cb)
-			if s, ok := result.(*String); ok && s.Value != "" {
-				return true, s.Value
+			m, ok := result.(*Map)
+			if !ok {
+				return ai.SwarmRoundAction{}
 			}
-			return false, ""
+			action := ai.SwarmRoundAction{}
+			if v, ok := m.Get("abort"); ok {
+				if b, ok := v.(*Boolean); ok {
+					action.Abort = b.Value
+				}
+			}
+			if v, ok := m.Get("abort_reason"); ok {
+				if s, ok := v.(*String); ok {
+					action.AbortReason = s.Value
+				}
+			}
+			if v, ok := m.Get("inject"); ok {
+				if s, ok := v.(*String); ok {
+					action.Inject = s.Value
+				}
+			}
+			return action
 		}
 	}
 
@@ -198,7 +219,7 @@ func runSwarm(builtinName string, args ...Object) (ai.SwarmResult, Object) {
 		return runToolBatch(profile, calls)
 	}
 
-	result, swarmErr := ai.ChatSwarm(entry.Value, agents, task.Value, executor, maxRounds, onProgress, batchExecutor, abortCheck)
+	result, swarmErr := ai.ChatSwarm(entry.Value, agents, task.Value, executor, maxRounds, onProgress, batchExecutor, roundCheck)
 	if swarmErr != nil {
 		return ai.SwarmResult{}, err(builtinName + ": " + swarmErr.Error())
 	}
@@ -230,14 +251,19 @@ func bAiSwarmTrace(args ...Object) Object {
 }
 
 // bAiSwarmStream is ai_swarm_trace plus a mandatory 4th argument: a Pipe
-// closure called as cb(agent, event, detail) after every swarm step, so
-// callers can surface live progress (e.g. editing a chat message) instead of
-// waiting for the whole run to finish. An optional 5th argument is a Pipe
-// closure called with no arguments at the start of every round (see
-// ai.SwarmAbortCheck) — returning a non-empty string stops the run early;
-// the result then has "aborted"=true and "abort_reason" set to that string,
-// with "content" reflecting whatever partial progress was made (often
-// empty). Otherwise identical success shape to ai_swarm_trace.
+// closure called as cb(agent, event, detail, args_json) after every swarm
+// step (event is one of "start"/"tool"/"handoff"/"final"/"reasoning"/
+// "inject" — see ai.SwarmProgressFunc), so callers can surface live progress
+// (e.g. editing a chat message) instead of waiting for the whole run to
+// finish. An optional 5th argument is a Pipe closure called with no
+// arguments at the start of every round (see ai.SwarmRoundCheck) — it may
+// return a map with any of "abort" (bool), "abort_reason" (string), "inject"
+// (string), every field optional. A truthy "abort" stops the run early; the
+// result then has "aborted"=true and "abort_reason" set, with "content"
+// reflecting whatever partial progress was made (often empty). A non-empty
+// "inject" is appended to the live conversation as a new instruction before
+// the round proceeds, letting a caller steer an in-flight run. Otherwise
+// identical success shape to ai_swarm_trace.
 func bAiSwarmStream(args ...Object) Object {
 	if len(args) < 4 {
 		return err("ai_swarm_stream expects 4 arguments (task, entry_agent, max_rounds, on_progress)")

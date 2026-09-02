@@ -211,6 +211,12 @@ type Compiler struct {
 	scopes      []CompilationScope
 	scopeIndex  int
 	loopStack   []LoopContext
+	// forInCounter generates unique internal bookkeeping-symbol names for
+	// each `for x in y` loop compiled (see compileForIn) -- MUST be unique
+	// per loop, not per scope: a nested for-loop compiles in the SAME
+	// symbol-table scope as its enclosing loop (for-loops don't open their
+	// own enclosed scope), so two hardcoded names would collide.
+	forInCounter int
 	importCache map[string]*ast.Program
 	// importedExports caches the export bindings of modules already compiled
 	// via unaliased import, so a second `import "m"` re-injects the aliases
@@ -1163,12 +1169,28 @@ func (c *Compiler) compileTryExpression(te *ast.TryExpression) error {
 	if hasCatch {
 		c.emit(OpErrorToString)
 
+		// OpSetGlobal/OpSetLocal already pop the value they store (see their
+		// VM implementations) -- an extra OpPop here (as the bare-`catch`
+		// branch below correctly still needs, since nothing else consumes
+		// its value) would over-pop by one. For OpSetGlobal that extra pop
+		// only ate into unused top-level stack space (globals live in a
+		// separate array, so it was harmless there) -- but for OpSetLocal it
+		// dropped the VM's stack pointer one slot INTO the function's
+		// reserved locals region (the catch parameter's own, highest-
+		// indexed slot), so the very next value pushed while compiling the
+		// catch body (e.g. the `print`/`to_str` builtin reference for a call
+		// immediately using the caught error) silently overwrote it. Live
+		// symptom: `catch e ... print (to_str e)` inside a function printed
+		// "builtin: print" instead of the actual error message -- e's own
+		// slot held whatever builtin got pushed right after it, not the
+		// error string OpSetLocal had just written. Top-level (global) catch
+		// was unaffected, which is what pointed at OpSetLocal specifically
+		// rather than at OpErrorToString or the try/OpCheckError machinery.
 		if catchSym.Scope == GlobalScope {
 			c.emit(OpSetGlobal, catchSym.Index)
 		} else {
 			c.emit(OpSetLocal, catchSym.Index)
 		}
-		c.emit(OpPop)
 	} else {
 		c.emit(OpPop)
 	}
@@ -1180,11 +1202,33 @@ func (c *Compiler) compileTryExpression(te *ast.TryExpression) error {
 	}
 	if len(te.CatchBlock.Statements) > 0 {
 		last := te.CatchBlock.Statements[len(te.CatchBlock.Statements)-1]
-		if es, ok := last.(*ast.ExpressionStatement); ok {
-			if err := c.Compile(es.Expression); err != nil {
+		switch s := last.(type) {
+		case *ast.ExpressionStatement:
+			if err := c.Compile(s.Expression); err != nil {
 				return err
 			}
-		} else {
+		case *ast.VarStatement:
+			// Same fix as compileTryBlockStatement's *ast.VarStatement case:
+			// compileVarStatement(vs, false) (the generic *ast.VarStatement
+			// path in Compile()) is already stack-neutral -- it pushes the
+			// assigned value and then OpSetLocal/OpSetGlobal immediately pops
+			// it back off to store it, net zero. The `default` branch below
+			// assumes a trailing statement leaves exactly one value that
+			// still needs popping, which holds for other statement kinds but
+			// not this one; applying its OpPop here popped one value too
+			// many. For a *local* catch parameter that extra pop dropped the
+			// VM's stack pointer one slot INTO the function's reserved
+			// locals region, corrupting an unrelated local variable's slot
+			// (observed live: a later `for x in <that corrupted local>`
+			// loop hung indefinitely). keepValue=true (OpDup) instead
+			// leaves exactly the assigned value on the stack, matching how a
+			// trailing VarStatement is already treated as the value of an
+			// if-branch or function body (see compileVarStatement's keepValue
+			// comment) -- so no extra OpPop is emitted for this case.
+			if err := c.compileVarStatement(s, true); err != nil {
+				return err
+			}
+		default:
 			if err := c.Compile(last); err != nil {
 				return err
 			}
@@ -1368,9 +1412,26 @@ func (c *Compiler) patchContinues(target int) {
 }
 
 func (c *Compiler) compileForIn(fe *ast.ForExpression) error {
+	// Bug fix: __list__/__idx__ used to be fixed names, so a NESTED for-loop
+	// (compiled in the same symbol-table scope as its enclosing loop -- a
+	// for-loop body doesn't open its own enclosed scope) would Define() the
+	// exact same symbols as the outer loop, per Define()'s "already exists
+	// in this scope -> return the existing slot" rule. The inner loop's own
+	// init/increment code then overwrote the outer loop's __list__/__idx__
+	// values while the outer loop was still mid-iteration; once the inner
+	// loop finished and control returned to the outer loop's own condition
+	// check, it read back the INNER loop's post-loop state (its list, its
+	// final index) instead of its own, so the condition falsely evaluated
+	// false and the outer loop exited after just its first iteration.
+	// Reproduced live: `for o in outer { for i in inner { ... } }` only ever
+	// ran the outer loop's first iteration, no matter how many elements
+	// `outer` had. A unique suffix per compiled for-loop gives every loop
+	// (nested or not) its own slots.
+	c.forInCounter++
+	suffix := strconv.Itoa(c.forInCounter)
 	iterSym := c.symbolTable.Define(fe.Iterator.Value)
-	listSym := c.symbolTable.Define("__list__")
-	idxSym := c.symbolTable.Define("__idx__")
+	listSym := c.symbolTable.Define("__list__" + suffix)
+	idxSym := c.symbolTable.Define("__idx__" + suffix)
 
 	if err := c.Compile(fe.Iterable); err != nil {
 		return err

@@ -49,6 +49,35 @@ type SymbolTable struct {
 	moduleMode bool
 }
 
+// builtinIndexByName is a static, never-mutated lookup from builtin name to
+// its object.Builtins index -- independent of any SymbolTable. It backstops
+// module-mode Resolve() (see below) against a real bug: a bare `import
+// "sqlite"` (or any module exporting a symbol that collides with a builtin
+// name, e.g. sqlite's own `exec(handle, sql)`) flattens its exports directly
+// into the IMPORTER's symbol table via Define(), which -- by design, so a
+// user's own top-level redefinition of a builtin name works -- overwrites
+// that table's store[name] entry in place, permanently losing the original
+// BuiltinScope entry AT THAT TABLE. A later *aliased* import's isolated
+// module scope (moduleMode) walks the importer's ancestor chain looking for
+// a BuiltinScope entry to resolve its own builtin calls (e.g. docker_tools.
+// pipe's own exec() calls, unrelated to sqlite) -- and since the shadowed
+// entry it finds along the way is no longer BuiltinScope, the walk reports
+// the builtin as undefined, even though nothing in the aliased module's own
+// scope ever redefined it. Reproduced live: `import "sqlite"` (bare)
+// followed by `import "modules/docker_tools.pipe" as dt` under `-vm` failed
+// to compile with "undefined variable: exec"; the tree-walker (which
+// evaluates builtins from a persistent, never-mutated registry instead of a
+// mutable scope chain) was unaffected. This fallback is consulted only
+// after the normal ancestor walk fails, so it changes nothing for the
+// common case where no shadowing occurred.
+var builtinIndexByName = func() map[string]int {
+	m := make(map[string]int, len(object.Builtins))
+	for i, b := range object.Builtins {
+		m[b.Name] = i
+	}
+	return m
+}()
+
 func NewSymbolTable() *SymbolTable {
 	return &SymbolTable{store: make(map[string]Symbol)}
 }
@@ -131,6 +160,16 @@ func (s *SymbolTable) Resolve(name string) (Symbol, bool) {
 			if sym, ok := t.store[name]; ok && sym.Scope == BuiltinScope {
 				return sym, true
 			}
+		}
+		// The ancestor walk above found either nothing, or a same-named entry
+		// that an importer's own code (e.g. a bare `import "sqlite"`
+		// flattening its exported `exec`) shadowed a builtin with -- in
+		// either case, fall back to the static builtin registry so this
+		// module's OWN builtin calls still resolve, unaffected by whatever
+		// an unrelated ancestor scope happened to redefine (see
+		// builtinIndexByName).
+		if idx, ok := builtinIndexByName[name]; ok {
+			return Symbol{Name: name, Scope: BuiltinScope, Index: idx}, true
 		}
 		return Symbol{}, false
 	}

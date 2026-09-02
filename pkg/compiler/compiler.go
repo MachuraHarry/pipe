@@ -1145,6 +1145,35 @@ func (c *Compiler) compileTryExpression(te *ast.TryExpression) error {
 			catchJumps = append(catchJumps, c.emit(OpJump, 9999))
 			afterCheck := len(c.currentInstructions())
 			c.patchJump(okPos, afterCheck)
+			// OpCheckError peeks (not pops) the statement's result to check
+			// it for an error, then pushes a bool on top -- so on the "no
+			// error, continue to the next statement" path the statement's
+			// own result value is still sitting on the stack, one below
+			// where the (already-consumed-by-OpJumpNotTruthy) bool was. It's
+			// never read again (only the LAST try-block statement's value
+			// matters, checked by the OpCheckError right after this loop),
+			// so it must be discarded here -- omitting this leaked one
+			// operand-stack slot per non-final try-block statement executed
+			// EVERY time that try/catch ran without erroring. Invisible for
+			// a one-off try/catch, but fatal for one inside a loop: a
+			// `while true` background loop (e.g. Muninn's own main poll
+			// loop) running a multi-statement try block accumulates one
+			// leaked slot per iteration until the operand stack overflows
+			// or, further downstream, vm.frameIndex's call-depth check trips
+			// first depending on what else is running. Reproduced live:
+			//     i: 0
+			//     while i < 2000
+			//         try
+			//             a: 1
+			//             b: 2
+			//             c: a + b
+			//         catch e
+			//             print "err"
+			//         i: i + 1
+			// crashed with "stack overflow: recursion too deep (operand
+			// stack exhausted)" well before reaching i=2000; the tree-walker
+			// runs this fine indefinitely.
+			c.emit(OpPop)
 		}
 	}
 

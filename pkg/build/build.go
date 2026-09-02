@@ -44,14 +44,29 @@ func Build(inputPath, outputPath string) error {
 }
 
 func BuildWithFiles(inputPath, outputPath string, embedFiles []EmbedFile) error {
-	srcData, err := os.ReadFile(inputPath)
-	if err != nil {
-		return fmt.Errorf("reading %s: %w", inputPath, err)
-	}
-
 	pipeBin, err := os.Executable()
 	if err != nil {
 		return fmt.Errorf("finding pipe binary: %w", err)
+	}
+	return BuildWithFilesFrom(pipeBin, inputPath, outputPath, embedFiles)
+}
+
+// BuildWithFilesFrom is BuildWithFiles with an explicit interpreter binary to
+// copy instead of always using the currently-running executable. Needed for
+// -upx builds: UPX repacks the ENTIRE file it's given, and does not preserve
+// arbitrary bytes appended after the point it considers the executable to
+// end -- running it (as a separate step) on the already-fully-assembled
+// self-extracting binary corrupts the appended marker/source/files section
+// beyond recovery (reproduced live: the resulting binary either found no
+// embedded payload at all, or found a marker but extracted garbage bytes in
+// place of the original source, both silently rather than with any clear
+// error). Compressing a copy of JUST the interpreter first, then using THAT
+// as the copy source here, keeps UPX's repacking entirely on the interpreter
+// portion; the payload appended afterward is untouched by it.
+func BuildWithFilesFrom(pipeBin, inputPath, outputPath string, embedFiles []EmbedFile) error {
+	srcData, err := os.ReadFile(inputPath)
+	if err != nil {
+		return fmt.Errorf("reading %s: %w", inputPath, err)
 	}
 
 	out, err := os.Create(outputPath)

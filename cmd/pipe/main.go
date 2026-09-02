@@ -258,38 +258,91 @@ func main() {
 		if outPath == "" {
 			outPath = strings.TrimSuffix(filePath, ".pipe")
 		}
-		if len(embedFiles) > 0 {
-			efs := make([]build.EmbedFile, len(embedFiles))
-			for i, fp := range embedFiles {
-				data, err := os.ReadFile(fp)
-				if err != nil {
-					fmt.Fprintf(os.Stderr, "pipe: embed-file '%s': %s\n", fp, err)
-					os.Exit(1)
-				}
-				efs[i] = build.EmbedFile{Path: fp, Data: data}
-			}
-			if err := build.BuildWithFiles(filePath, outPath, efs); err != nil {
-				fmt.Fprintf(os.Stderr, "pipe build: %s\n", err)
-				os.Exit(1)
-			}
-		} else {
-			if err := build.Build(filePath, outPath); err != nil {
-				fmt.Fprintf(os.Stderr, "pipe build: %s\n", err)
-				os.Exit(1)
-			}
+
+		// The interpreter binary that gets copied into outPath before the
+		// marker/source/files payload is appended after it (see
+		// build.BuildWithFilesFrom). Normally that's just the currently
+		// running executable; for -upx it's a compressed COPY of it instead
+		// -- see the -upx handling below for why compression has to happen
+		// before the payload is appended, not after.
+		pipeBin, err := os.Executable()
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "pipe build: finding pipe binary: %s\n", err)
+			os.Exit(1)
 		}
+
 		if useUPX {
-			if upxPath, err := exec.LookPath("upx"); err == nil {
-				cmd := exec.Command(upxPath, "-q", outPath, "-o", outPath)
-				cmd.Stdout = os.Stdout
-				cmd.Stderr = os.Stderr
-				if err := cmd.Run(); err != nil {
-					fmt.Fprintf(os.Stderr, "UPX failed: %s\n", err)
-				}
-			} else {
+			upxPath, lookErr := exec.LookPath("upx")
+			if lookErr != nil {
 				fmt.Fprintln(os.Stderr, "UPX not found in PATH — install with: apt install upx-ucl")
 				fmt.Fprintln(os.Stderr, "Binary built without compression")
+			} else {
+				// UPX repacks the ENTIRE file it's given and does not
+				// preserve arbitrary bytes appended after what it considers
+				// the executable's end -- running it (as a separate step,
+				// the original approach) on the already-fully-assembled
+				// self-extracting binary corrupted the appended marker/
+				// source/files section beyond recovery: reproduced live,
+				// the resulting binary either found no embedded payload at
+				// all, or found a marker but extracted garbage bytes in
+				// place of the original source -- both silently, no error
+				// from `pipe -build` itself. Compressing a copy of JUST the
+				// interpreter FIRST, then using that as the copy source
+				// instead of the running executable, keeps UPX's repacking
+				// entirely on the interpreter portion; the payload appended
+				// afterward (below) is never touched by it.
+				tmp, tmpErr := os.CreateTemp("", "pipe-upx-*")
+				if tmpErr != nil {
+					fmt.Fprintf(os.Stderr, "pipe build: creating temp file for -upx: %s\n", tmpErr)
+					os.Exit(1)
+				}
+				tmpPath := tmp.Name()
+				defer os.Remove(tmpPath)
+				src, srcErr := os.Open(pipeBin)
+				if srcErr != nil {
+					tmp.Close()
+					fmt.Fprintf(os.Stderr, "pipe build: opening pipe binary: %s\n", srcErr)
+					os.Exit(1)
+				}
+				_, copyErr := io.Copy(tmp, src)
+				src.Close()
+				tmp.Close()
+				if copyErr != nil {
+					fmt.Fprintf(os.Stderr, "pipe build: copying pipe binary: %s\n", copyErr)
+					os.Exit(1)
+				}
+				if chmodErr := os.Chmod(tmpPath, 0755); chmodErr != nil {
+					fmt.Fprintf(os.Stderr, "pipe build: chmod temp interpreter copy: %s\n", chmodErr)
+					os.Exit(1)
+				}
+				// No "-o tmpPath": UPX compresses in place by default when
+				// given a bare file argument, and at least this version
+				// (3.96) rejects "-o" pointing at the same path as the
+				// input with FileAlreadyExistsException.
+				cmd := exec.Command(upxPath, "-q", tmpPath)
+				cmd.Stdout = os.Stdout
+				cmd.Stderr = os.Stderr
+				if runErr := cmd.Run(); runErr != nil {
+					fmt.Fprintf(os.Stderr, "UPX failed: %s\n", runErr)
+					fmt.Fprintln(os.Stderr, "Binary built without compression")
+				} else {
+					pipeBin = tmpPath
+				}
 			}
+		}
+
+		efs := make([]build.EmbedFile, len(embedFiles))
+		for i, fp := range embedFiles {
+			data, err := os.ReadFile(fp)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "pipe: embed-file '%s': %s\n", fp, err)
+				os.Exit(1)
+			}
+			efs[i] = build.EmbedFile{Path: fp, Data: data}
+		}
+		if err := build.BuildWithFilesFrom(pipeBin, filePath, outPath, efs); err != nil {
+			fmt.Fprintf(os.Stderr, "pipe build: %s\n", err)
+			os.Exit(1)
 		}
 		fmt.Printf("Built %s -> %s\n", filePath, outPath)
 		return

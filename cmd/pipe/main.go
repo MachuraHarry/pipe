@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"os/signal"
@@ -35,6 +36,18 @@ import (
 var version = "v1.1.1"
 
 func main() {
+	// Hidden internal mode: "--mcp-watchdog <pgid>" (see
+	// mcp.startMCPWatchdog in pkg/mcp/procattr_unix.go). Blocks reading
+	// stdin until EOF, then SIGKILLs the given process group and exits. The
+	// MCP stdio client spawns one of these per server; the EOF arrives the
+	// moment THIS process dies in any way (crash, SIGKILL, os.Exit(1) on a
+	// runtime error, normal shutdown), because the pipe's write end is held
+	// exclusively by this process. Must run before every other flag branch.
+	if len(os.Args) >= 3 && os.Args[1] == "--mcp-watchdog" {
+		runMCPWatchdog(os.Args[2])
+		return
+	}
+
 	// Close any stdio MCP subprocesses (and their process groups — see
 	// object.CloseAllMCPClients) on a normal SIGTERM/SIGINT, e.g. from a
 	// plain `kill` during a restart. Without this, connecting to a stdio MCP
@@ -572,6 +585,19 @@ func main() {
 	} else {
 		runEval(program, scriptArgs, filePath, string(data))
 	}
+}
+
+// runMCPWatchdog implements the hidden "--mcp-watchdog" mode: consume stdin
+// until EOF (i.e. until the parent pipe process died — the kernel closes the
+// write end on process teardown regardless of the exit mode), then kill the
+// MCP server's whole process group. See pkg/mcp/procattr_unix.go for the
+// full rationale (grandchildren survive Pdeathsig).
+func runMCPWatchdog(pgidArg string) {
+	_, _ = io.Copy(io.Discard, os.Stdin)
+	if pgid, err := strconv.Atoi(pgidArg); err == nil {
+		_ = syscall.Kill(-pgid, syscall.SIGKILL)
+	}
+	os.Exit(0)
 }
 
 func runSearch(term string) {
@@ -1497,9 +1523,26 @@ func runEmbedded(src []byte) {
 		fmt.Fprintf(os.Stderr, "pipe: extracting embedded files: %s\n", err)
 		os.Exit(1)
 	} else if dir != "" {
-		if err := os.Chdir(dir); err != nil {
-			fmt.Fprintf(os.Stderr, "pipe: changing to embedded files dir: %s\n", err)
-			os.Exit(1)
+		// Add the extracted-files directory to the import search path
+		// (PIPE_PATH, see object.ResolveImportFrom) instead of os.Chdir'ing
+		// the whole process into it. A multi-file project (e.g. one embedding
+		// modules/foo.pipe, modules/bar.pipe alongside the main script) needs
+		// those files to resolve via their relative `import "modules/foo.pipe"`
+		// paths -- but the embedded program itself may ALSO read/write its
+		// own real files relative to wherever the user actually invoked the
+		// binary (.env, a database file, output directories, ...). A chdir
+		// satisfies the first need at the expense of the second: the running
+		// program's "." silently becomes a throwaway temp directory instead
+		// of the user's actual working directory, and anything it expects to
+		// find there (or write there for the user to keep) breaks. PIPE_PATH
+		// is only consulted as an import search location (see
+		// ResolveImportFrom), so it satisfies the first need without
+		// disturbing the second at all.
+		sep := string(os.PathListSeparator)
+		if existing := os.Getenv("PIPE_PATH"); existing != "" {
+			os.Setenv("PIPE_PATH", dir+sep+existing)
+		} else {
+			os.Setenv("PIPE_PATH", dir)
 		}
 	}
 

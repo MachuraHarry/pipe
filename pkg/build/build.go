@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 )
 
 const (
@@ -16,6 +17,26 @@ const (
 type EmbedFile struct {
 	Path string
 	Data []byte
+}
+
+// safeEmbedName returns the relative, slash-normalized path to store for an
+// embedded file, preserving subdirectory structure for legitimate project-
+// relative paths (e.g. "modules/telegram.pipe") while refusing to bake in
+// anything that climbs outside the current directory (absolute paths, or a
+// ".." component anywhere) -- those fall back to the bare base name instead,
+// exactly like every embedded file used to be stored before subdirectory
+// support was added.
+func safeEmbedName(path string) string {
+	slashed := filepath.ToSlash(filepath.Clean(path))
+	if filepath.IsAbs(slashed) {
+		return filepath.Base(path)
+	}
+	for _, part := range strings.Split(slashed, "/") {
+		if part == ".." {
+			return filepath.Base(path)
+		}
+	}
+	return slashed
 }
 
 func Build(inputPath, outputPath string) error {
@@ -63,7 +84,23 @@ func BuildWithFiles(inputPath, outputPath string, embedFiles []EmbedFile) error 
 			return err
 		}
 		for _, ef := range embedFiles {
-			name := filepath.Base(ef.Path)
+			// Preserve the path as given (e.g. "modules/telegram.pipe"), not
+			// just its base name -- a project made of multiple .pipe files
+			// that import each other via relative paths (import
+			// "modules/foo.pipe") needs that structure to still exist after
+			// extraction, or those imports fail to resolve. Stored with
+			// forward slashes regardless of OS so the embedded name is a
+			// stable, portable identifier; ExtractFiles below converts it
+			// back to the host's separator when writing to disk.
+			//
+			// A path that climbs out of the current directory (absolute, or
+			// containing a ".." component) is NOT preserved -- falls back to
+			// the pre-existing bare-basename behavior instead, so a stray or
+			// malicious --embed-file argument can never bake a traversal
+			// path into the binary (see TestBuildWithFilesStripsPaths).
+			// Legitimate multi-file projects only ever pass paths relative
+			// to (and underneath) their own project root.
+			name := safeEmbedName(ef.Path)
 			entry := fmt.Sprintf("%s\n%d\n", name, len(ef.Data))
 			if _, err := out.WriteString(entry); err != nil {
 				return err
@@ -206,7 +243,20 @@ func ExtractFiles(path string) (string, error) {
 	}
 
 	for name, data := range files {
-		dst := filepath.Join(dir, filepath.Base(name))
+		// Recreate the embedded relative path (e.g. "modules/telegram.pipe")
+		// under dir instead of flattening to just the base name -- see the
+		// matching comment in BuildWithFiles. filepath.Clean + rejecting any
+		// result that escapes dir guards against a maliciously/accidentally
+		// crafted embedded name (e.g. "../../etc/passwd") writing outside the
+		// temp directory (a "zip slip"-style path traversal).
+		cleaned := filepath.Clean(filepath.FromSlash(name))
+		dst := filepath.Join(dir, cleaned)
+		if dst != dir && !strings.HasPrefix(dst, dir+string(os.PathSeparator)) {
+			return dir, fmt.Errorf("embedded file %q escapes extraction directory", name)
+		}
+		if err := os.MkdirAll(filepath.Dir(dst), 0755); err != nil {
+			return dir, err
+		}
 		if err := os.WriteFile(dst, data, 0644); err != nil {
 			return dir, err
 		}

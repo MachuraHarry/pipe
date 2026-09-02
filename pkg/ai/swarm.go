@@ -45,7 +45,7 @@ type SwarmProgressFunc func(agent, event, detail, argsJSON string)
 // active agent for the next round while the full message history — including every
 // prior agent's turns — is kept, so the new agent picks up with full context.
 func ChatSwarm(entryAgent string, agents map[string]SwarmAgentSpec, userPrompt string,
-	executor ToolExecutor, maxRounds int, onProgress SwarmProgressFunc) (SwarmResult, error) {
+	executor ToolExecutor, maxRounds int, onProgress SwarmProgressFunc, batchExecutor ToolBatchExecutor) (SwarmResult, error) {
 	if err := gateEgress(EgressChat, ActiveConfig.APIHost); err != nil {
 		return SwarmResult{}, err
 	}
@@ -120,7 +120,7 @@ func ChatSwarm(entryAgent string, agents map[string]SwarmAgentSpec, userPrompt s
 		}
 		if roundsLeft <= warnThreshold {
 			reqMessages = append(append([]map[string]interface{}{}, messages...), map[string]interface{}{
-				"role": "user",
+				"role":    "user",
 				"content": fmt.Sprintf("[SYSTEM] Only %d of %d rounds remain before this conversation is cut off with NO answer delivered at all. Wrap up NOW: stop exploring or gathering more information and use whatever you already have to produce a usable result THIS round — answer directly, or use your handoff tool to hand off immediately if you are not the one who finalizes. A complete-enough answer now is far better than no answer.", roundsLeft, maxRounds),
 			})
 		}
@@ -185,36 +185,112 @@ func ChatSwarm(entryAgent string, agents map[string]SwarmAgentSpec, userPrompt s
 		nextAgent := ""
 		handoffRequested := false
 
+		realCount := 0
 		for _, tc := range resp.ToolCalls {
-			var args map[string]interface{}
-			if err := json.Unmarshal([]byte(tc.Arguments), &args); err != nil {
-				args = map[string]interface{}{"raw": tc.Arguments}
+			if tc.Name != swarmHandoffTool {
+				realCount++
+			}
+		}
+
+		if batchExecutor != nil && realCount >= 2 {
+			// Concurrent batch path: run every non-handoff call from this
+			// round together instead of one at a time (only taken when
+			// there are at least 2 — the dominant single-real-call round
+			// always takes the untouched sequential path in the else
+			// branch below, byte-for-byte as before). A handoff call
+			// sharing the round is still processed synchronously right
+			// here — handleSwarmHandoff mutates nextAgent/handoffRequested
+			// via pointers, it's cheap and local, no reason to parallelize
+			// it, and doing so would race those two variables.
+			results := make([]string, len(resp.ToolCalls))
+			callArgs := make([]map[string]interface{}, len(resp.ToolCalls))
+			for i, tc := range resp.ToolCalls {
+				var args map[string]interface{}
+				if err := json.Unmarshal([]byte(tc.Arguments), &args); err != nil {
+					args = map[string]interface{}{"raw": tc.Arguments}
+				}
+				callArgs[i] = args
 			}
 
-			var content string
-			if tc.Name == swarmHandoffTool {
-				before := nextAgent
-				content = handleSwarmHandoff(spec, agents, args, &nextAgent, &handoffRequested)
-				if onProgress != nil && nextAgent != before && handoffRequested {
-					onProgress(current, "handoff", nextAgent, "")
+			var realIdx []int
+			for i, tc := range resp.ToolCalls {
+				if tc.Name != swarmHandoffTool {
+					realIdx = append(realIdx, i)
 				}
-			} else {
+			}
+			batchReqs := make([]ToolCallRequest, len(realIdx))
+			for j, i := range realIdx {
+				tc := resp.ToolCalls[i]
 				if onProgress != nil {
 					onProgress(current, "tool", tc.Name, tc.Arguments)
 				}
-				result, execErr := executor(tc.Name, args)
-				if execErr != nil {
-					content = "Error: " + execErr.Error()
+				batchReqs[j] = ToolCallRequest{Name: tc.Name, Args: callArgs[i]}
+			}
+			batchResults := batchExecutor(batchReqs)
+			for j, i := range realIdx {
+				if j < len(batchResults) {
+					r := batchResults[j]
+					if r.Err != nil {
+						results[i] = "Error: " + r.Err.Error()
+					} else {
+						results[i] = r.Content
+					}
 				} else {
-					content = result
+					results[i] = "Error: batch executor returned fewer results than requested calls"
 				}
 			}
+			for i, tc := range resp.ToolCalls {
+				if tc.Name == swarmHandoffTool {
+					before := nextAgent
+					results[i] = handleSwarmHandoff(spec, agents, callArgs[i], &nextAgent, &handoffRequested)
+					if onProgress != nil && nextAgent != before && handoffRequested {
+						onProgress(current, "handoff", nextAgent, "")
+					}
+				}
+			}
+			// Appended in the model's original tool_calls order — every
+			// tool-role message must line up with its tool_call_id
+			// regardless of which path (batched or synchronous handoff)
+			// produced its content.
+			for i, tc := range resp.ToolCalls {
+				messages = append(messages, map[string]interface{}{
+					"role":         "tool",
+					"tool_call_id": tc.ID,
+					"content":      results[i],
+				})
+			}
+		} else {
+			for _, tc := range resp.ToolCalls {
+				var args map[string]interface{}
+				if err := json.Unmarshal([]byte(tc.Arguments), &args); err != nil {
+					args = map[string]interface{}{"raw": tc.Arguments}
+				}
 
-			messages = append(messages, map[string]interface{}{
-				"role":         "tool",
-				"tool_call_id": tc.ID,
-				"content":      content,
-			})
+				var content string
+				if tc.Name == swarmHandoffTool {
+					before := nextAgent
+					content = handleSwarmHandoff(spec, agents, args, &nextAgent, &handoffRequested)
+					if onProgress != nil && nextAgent != before && handoffRequested {
+						onProgress(current, "handoff", nextAgent, "")
+					}
+				} else {
+					if onProgress != nil {
+						onProgress(current, "tool", tc.Name, tc.Arguments)
+					}
+					result, execErr := executor(tc.Name, args)
+					if execErr != nil {
+						content = "Error: " + execErr.Error()
+					} else {
+						content = result
+					}
+				}
+
+				messages = append(messages, map[string]interface{}{
+					"role":         "tool",
+					"tool_call_id": tc.ID,
+					"content":      content,
+				})
+			}
 		}
 
 		if handoffRequested {

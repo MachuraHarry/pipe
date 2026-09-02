@@ -67,6 +67,61 @@ func writeToolCall(w http.ResponseWriter, callID, toolName, argsJSON string) {
 	})
 }
 
+// toolCallSpec is one call in a writeToolCalls batch (multiple tool_calls
+// returned together in a single mock response, as a real model does when it
+// decides to make several independent calls in one turn).
+type toolCallSpec struct{ id, name, argsJSON string }
+
+func writeToolCalls(w http.ResponseWriter, calls ...toolCallSpec) {
+	var tcs []interface{}
+	for _, c := range calls {
+		tcs = append(tcs, map[string]interface{}{
+			"id":   c.id,
+			"type": "function",
+			"function": map[string]interface{}{
+				"name":      c.name,
+				"arguments": c.argsJSON,
+			},
+		})
+	}
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"choices": []interface{}{
+			map[string]interface{}{
+				"finish_reason": "tool_calls",
+				"message":       map[string]interface{}{"tool_calls": tcs},
+			},
+		},
+	})
+}
+
+// swarmToolMessages pulls every {tool_call_id: content} pair out of a raw
+// chat-completions request body's "tool"-role messages, so a test can check
+// which result landed against which call without reaching into ChatSwarm's
+// unexported message-building internals.
+func swarmToolMessages(t *testing.T, r *http.Request) map[string]string {
+	t.Helper()
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
+		t.Fatalf("reading request body: %v", err)
+	}
+	var decoded struct {
+		Messages []map[string]interface{} `json:"messages"`
+	}
+	if err := json.Unmarshal(body, &decoded); err != nil {
+		t.Fatalf("decoding request body: %v", err)
+	}
+	out := map[string]string{}
+	for _, m := range decoded.Messages {
+		if m["role"] != "tool" {
+			continue
+		}
+		id, _ := m["tool_call_id"].(string)
+		content, _ := m["content"].(string)
+		out[id] = content
+	}
+	return out
+}
+
 func withMockChatServer(t *testing.T, handler http.HandlerFunc) {
 	t.Helper()
 	server := httptest.NewServer(handler)
@@ -102,7 +157,7 @@ func TestChatSwarmHandoffSwitchesAgent(t *testing.T) {
 		"billing": {SystemPrompt: "BILLING: answer invoice questions."},
 	}
 
-	result, err := ChatSwarm("triage", agents, "What do I owe?", nil, 5, nil)
+	result, err := ChatSwarm("triage", agents, "What do I owe?", nil, 5, nil, nil)
 	if err != nil {
 		t.Fatalf("ChatSwarm: unexpected error: %v", err)
 	}
@@ -146,7 +201,7 @@ func TestChatSwarmToolCallUsesExecutor(t *testing.T) {
 		},
 	}
 
-	result, err := ChatSwarm("billing", agents, "What's on my invoice?", executor, 5, nil)
+	result, err := ChatSwarm("billing", agents, "What's on my invoice?", executor, 5, nil, nil)
 	if err != nil {
 		t.Fatalf("ChatSwarm: unexpected error: %v", err)
 	}
@@ -161,6 +216,109 @@ func TestChatSwarmToolCallUsesExecutor(t *testing.T) {
 	}
 	if want := []string{"billing"}; !equalStrSlices(result.Path, want) {
 		t.Errorf("Path = %v, want %v (no handoff happened)", result.Path, want)
+	}
+}
+
+func TestChatSwarmUsesBatchExecutorForTwoOrMoreCalls(t *testing.T) {
+	round := 0
+	var round2Body map[string]string
+	withMockChatServer(t, func(w http.ResponseWriter, r *http.Request) {
+		round++
+		if round == 1 {
+			writeToolCalls(w,
+				toolCallSpec{"call_1", "get_a", `{"x":"a"}`},
+				toolCallSpec{"call_2", "get_b", `{"x":"b"}`},
+			)
+			return
+		}
+		round2Body = swarmToolMessages(t, r)
+		writeChatContent(w, "done")
+	})
+
+	var sequentialCalls []string
+	executor := func(name string, args map[string]interface{}) (string, error) {
+		sequentialCalls = append(sequentialCalls, name)
+		return "sequential:" + name, nil
+	}
+
+	var batchCalled int
+	var batchReqNames []string
+	batchExecutor := func(calls []ToolCallRequest) []ToolCallResult {
+		batchCalled++
+		results := make([]ToolCallResult, len(calls))
+		for i, c := range calls {
+			batchReqNames = append(batchReqNames, c.Name)
+			results[i] = ToolCallResult{Content: "batch:" + c.Name}
+		}
+		return results
+	}
+
+	agents := map[string]SwarmAgentSpec{
+		"agent": {
+			SystemPrompt: "AGENT",
+			Tools: []ToolDef{
+				{Name: "get_a", Description: "a"},
+				{Name: "get_b", Description: "b"},
+			},
+		},
+	}
+
+	result, err := ChatSwarm("agent", agents, "do both", executor, 5, nil, batchExecutor)
+	if err != nil {
+		t.Fatalf("ChatSwarm: unexpected error: %v", err)
+	}
+	if result.Content != "done" {
+		t.Errorf("Content = %q", result.Content)
+	}
+	if batchCalled != 1 {
+		t.Fatalf("batchExecutor called %d times, want 1", batchCalled)
+	}
+	if len(sequentialCalls) != 0 {
+		t.Errorf("sequential executor was called (%v) — the ≥2-call round should have gone through batchExecutor only", sequentialCalls)
+	}
+	if want := []string{"get_a", "get_b"}; !equalStrSlices(batchReqNames, want) {
+		t.Errorf("batch executor received calls %v, want %v (original tool_calls order)", batchReqNames, want)
+	}
+	if round2Body["call_1"] != "batch:get_a" || round2Body["call_2"] != "batch:get_b" {
+		t.Errorf("round 2 tool messages = %v, want call_1->batch:get_a, call_2->batch:get_b (results must map back to the right tool_call_id)", round2Body)
+	}
+}
+
+func TestChatSwarmDoesNotUseBatchExecutorForSingleCall(t *testing.T) {
+	round := 0
+	withMockChatServer(t, func(w http.ResponseWriter, r *http.Request) {
+		round++
+		if round == 1 {
+			writeToolCall(w, "call_1", "get_a", `{"x":"a"}`)
+			return
+		}
+		writeChatContent(w, "done")
+	})
+
+	var sequentialCalls int
+	executor := func(name string, args map[string]interface{}) (string, error) {
+		sequentialCalls++
+		return "ok", nil
+	}
+	batchCalled := 0
+	batchExecutor := func(calls []ToolCallRequest) []ToolCallResult {
+		batchCalled++
+		return make([]ToolCallResult, len(calls))
+	}
+
+	agents := map[string]SwarmAgentSpec{
+		"agent": {SystemPrompt: "AGENT", Tools: []ToolDef{{Name: "get_a", Description: "a"}}},
+	}
+
+	_, err := ChatSwarm("agent", agents, "do one", executor, 5, nil, batchExecutor)
+	if err != nil {
+		t.Fatalf("ChatSwarm: unexpected error: %v", err)
+	}
+	if batchCalled != 0 {
+		t.Errorf("batchExecutor called %d times, want 0 — a single-call round must take the exact old sequential path", batchCalled)
+	}
+	if sequentialCalls != 1 {
+		t.Errorf("sequential executor called %d times, want 1", sequentialCalls)
 	}
 }
 
@@ -195,7 +353,7 @@ func TestChatSwarmInvokesProgressCallback(t *testing.T) {
 		got = append(got, event{agent, kind, detail, argsJSON})
 	}
 
-	result, err := ChatSwarm("triage", agents, "What's on my invoice?", executor, 5, onProgress)
+	result, err := ChatSwarm("triage", agents, "What's on my invoice?", executor, 5, onProgress, nil)
 	if err != nil {
 		t.Fatalf("ChatSwarm: unexpected error: %v", err)
 	}
@@ -254,7 +412,7 @@ func TestChatSwarmRejectsDisallowedHandoffTarget(t *testing.T) {
 		"tech":    {SystemPrompt: "TECH"},
 	}
 
-	result, err := ChatSwarm("triage", agents, "Reboot my router", nil, 5, nil)
+	result, err := ChatSwarm("triage", agents, "Reboot my router", nil, 5, nil, nil)
 	if err != nil {
 		t.Fatalf("ChatSwarm: unexpected error: %v", err)
 	}
@@ -273,7 +431,7 @@ func TestChatSwarmMaxRoundsExceeded(t *testing.T) {
 		"billing": {SystemPrompt: "BILLING", HandoffTo: []string{"triage"}},
 	}
 
-	_, err := ChatSwarm("triage", agents, "loop forever", nil, 2, nil)
+	_, err := ChatSwarm("triage", agents, "loop forever", nil, 2, nil, nil)
 	if err == nil || !strings.Contains(err.Error(), "max rounds") {
 		t.Fatalf("expected a max-rounds error, got %v", err)
 	}
@@ -326,7 +484,7 @@ func TestChatSwarmWarnsBeforeRoundsRunOut(t *testing.T) {
 		return "ok", nil
 	}
 
-	result, err := ChatSwarm("agent", agents, "hi", executor, maxRounds, nil)
+	result, err := ChatSwarm("agent", agents, "hi", executor, maxRounds, nil, nil)
 	if err != nil {
 		t.Fatalf("ChatSwarm: unexpected error (the round-budget warning should have let it finish in time): %v", err)
 	}
@@ -385,7 +543,7 @@ func TestChatSwarmRejectsTextOnlyReplyFromNonTerminalAgent(t *testing.T) {
 		"finisher": {SystemPrompt: "FINISHER"},
 	}
 
-	result, err := ChatSwarm("worker", agents, "hi", nil, 10, nil)
+	result, err := ChatSwarm("worker", agents, "hi", nil, 10, nil, nil)
 	if err != nil {
 		t.Fatalf("ChatSwarm: unexpected error: %v", err)
 	}
@@ -441,7 +599,7 @@ func TestChatSwarmBreaksOscillationInsteadOfExhaustingRounds(t *testing.T) {
 		"faktenwaechter": {SystemPrompt: "FAKTENWAECHTER", HandoffTo: []string{"kritiker"}},
 	}
 
-	result, err := ChatSwarm("kritiker", agents, "hi", nil, 18, nil)
+	result, err := ChatSwarm("kritiker", agents, "hi", nil, 18, nil, nil)
 	if err != nil {
 		t.Fatalf("ChatSwarm: unexpected error (oscillation should have broken the loop, not exhausted rounds): %v", err)
 	}
@@ -458,7 +616,7 @@ func TestChatSwarmBreaksOscillationInsteadOfExhaustingRounds(t *testing.T) {
 }
 
 func TestChatSwarmUnknownEntryAgent(t *testing.T) {
-	_, err := ChatSwarm("nope", map[string]SwarmAgentSpec{}, "hi", nil, 5, nil)
+	_, err := ChatSwarm("nope", map[string]SwarmAgentSpec{}, "hi", nil, 5, nil, nil)
 	if err == nil {
 		t.Fatal("expected an error for an unknown entry agent")
 	}
@@ -548,7 +706,7 @@ func TestChatSwarmOscillationOnlyWithdrawsThePairedPartner(t *testing.T) {
 		"registrator":    {SystemPrompt: "REGISTRATOR"},
 	}
 
-	result, err := ChatSwarm("faktenwaechter", agents, "hi", nil, 18, nil)
+	result, err := ChatSwarm("faktenwaechter", agents, "hi", nil, 18, nil, nil)
 	if err != nil {
 		t.Fatalf("ChatSwarm: unexpected error: %v", err)
 	}

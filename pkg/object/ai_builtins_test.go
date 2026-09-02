@@ -2,7 +2,9 @@ package object
 
 import (
 	"reflect"
+	"sync"
 	"testing"
+	"time"
 
 	"github.com/MachuraHarry/pipe/pkg/ai"
 )
@@ -413,5 +415,141 @@ func TestToolCallDirectInvocation(t *testing.T) {
 
 	if r := bToolCall(&String{Value: name}, &String{Value: "not a map"}); r.Type() != ERROR {
 		t.Fatal("tool_call with a non-map second argument must return an error")
+	}
+}
+
+// fakeClosureTool stands in for a local Pipe `fn` tool (a *Closure) without
+// needing a real VM/compiler to build one — it implements CallableBuiltin
+// (see object.go's CallUserFunction) so CallUserFunction can dispatch to it,
+// but is deliberately NOT a *BuiltinInfo, so runToolBatch must treat it like
+// any other non-MCP local tool: run synchronously in the batch, never in a
+// goroutine.
+type fakeClosureTool struct{ fn func(args ...Object) Object }
+
+func (f *fakeClosureTool) Type() ObjectType                       { return "FAKE_CLOSURE_TOOL" }
+func (f *fakeClosureTool) Inspect() string                        { return "fake closure tool" }
+func (f *fakeClosureTool) BuiltinFn() func(args ...Object) Object { return f.fn }
+
+// TestRunToolBatchParallelizesOnlyBuiltinTools guards Feature 2's core
+// safety boundary: MCP-bridged tools (*BuiltinInfo) run concurrently in a
+// batch, but a local Pipe fn tool (anything else CallUserFunction can
+// dispatch to, modeled here by fakeClosureTool) runs synchronously in
+// place — see runToolBatch's doc comment for why (the pure-Pipe sqlite
+// module's handle registry is an unsynchronized global, so a *Closure tool
+// calling db_query/db_exec from a goroutine would race).
+func TestRunToolBatchParallelizesOnlyBuiltinTools(t *testing.T) {
+	const sleepEach = 60 * time.Millisecond
+
+	register := func(name string, fn Object) {
+		schema := NewMap()
+		if r := bAiTool(&String{Value: name}, &String{Value: name}, schema, fn); r.Type() == ERROR {
+			t.Fatalf("ai_tool registration for %q failed: %v", name, r)
+		}
+		t.Cleanup(func() { delete(toolRegistry, name) })
+	}
+
+	var mu sync.Mutex
+	var order []string
+	record := func(label string) {
+		mu.Lock()
+		order = append(order, label)
+		mu.Unlock()
+	}
+
+	register("batch_builtin_a", &BuiltinInfo{Fn: func(args ...Object) Object {
+		time.Sleep(sleepEach)
+		record("a")
+		return &String{Value: "a-done"}
+	}})
+	register("batch_builtin_b", &BuiltinInfo{Fn: func(args ...Object) Object {
+		time.Sleep(sleepEach)
+		record("b")
+		return &String{Value: "b-done"}
+	}})
+	register("batch_local_fn", &fakeClosureTool{fn: func(args ...Object) Object {
+		record("local")
+		return &String{Value: "local-done"}
+	}})
+
+	calls := []ai.ToolCallRequest{
+		{Name: "batch_builtin_a"},
+		{Name: "batch_local_fn"},
+		{Name: "batch_builtin_b"},
+	}
+
+	start := time.Now()
+	results := runToolBatch(nil, calls)
+	elapsed := time.Since(start)
+
+	if len(results) != 3 {
+		t.Fatalf("got %d results, want 3", len(results))
+	}
+	want := []string{"a-done", "local-done", "b-done"}
+	for i, w := range want {
+		if results[i].Err != nil {
+			t.Errorf("results[%d] error = %v", i, results[i].Err)
+			continue
+		}
+		if results[i].Content != w {
+			t.Errorf("results[%d] = %q, want %q", i, results[i].Content, w)
+		}
+	}
+
+	// Two BuiltinInfo tools sleeping sleepEach each must overlap, not add up
+	// — a generous ceiling well under 2x sleepEach, comfortably above 1x
+	// plus scheduling noise.
+	if elapsed >= 2*sleepEach {
+		t.Errorf("runToolBatch took %v, want well under %v (the two BuiltinInfo calls should run concurrently, not sequentially)", elapsed, 2*sleepEach)
+	}
+
+	mu.Lock()
+	got := append([]string(nil), order...)
+	mu.Unlock()
+	foundLocal := false
+	for _, l := range got {
+		if l == "local" {
+			foundLocal = true
+		}
+	}
+	if !foundLocal {
+		t.Errorf("local fn tool never ran; order = %v", got)
+	}
+}
+
+// TestRunToolBatchUnknownToolAndSandboxLimit covers the two early-exit
+// paths in runToolBatch's per-call gating: an unregistered tool name, and a
+// profile whose MaxToolCalls is already exhausted.
+func TestRunToolBatchUnknownToolAndSandboxLimit(t *testing.T) {
+	schema := NewMap()
+	if r := bAiTool(&String{Value: "batch_gate_test"}, &String{Value: "x"}, schema, &BuiltinInfo{Fn: func(args ...Object) Object {
+		return &String{Value: "ok"}
+	}}); r.Type() == ERROR {
+		t.Fatalf("ai_tool registration failed: %v", r)
+	}
+	t.Cleanup(func() { delete(toolRegistry, "batch_gate_test") })
+
+	results := runToolBatch(nil, []ai.ToolCallRequest{{Name: "does_not_exist"}})
+	if len(results) != 1 || results[0].Err == nil {
+		t.Fatalf("results = %+v, want a single error result for an unknown tool", results)
+	}
+
+	profile := &SandboxProfile{Name: "limited", MaxToolCalls: 1}
+	results = runToolBatch(profile, []ai.ToolCallRequest{
+		{Name: "batch_gate_test"},
+		{Name: "batch_gate_test"},
+	})
+	if len(results) != 2 {
+		t.Fatalf("got %d results, want 2", len(results))
+	}
+	oks, errs := 0, 0
+	for _, r := range results {
+		if r.Err != nil {
+			errs++
+		} else {
+			oks++
+		}
+	}
+	if oks != 1 || errs != 1 {
+		t.Errorf("got %d ok / %d error results, want exactly 1 ok and 1 E_SANDBOX error (MaxToolCalls=1)", oks, errs)
 	}
 }

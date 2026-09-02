@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"sort"
 	"strings"
+	"sync"
 
 	"github.com/MachuraHarry/pipe/pkg/ai"
 )
@@ -1084,6 +1085,91 @@ func executeTool(profile *SandboxProfile, toolName string, args map[string]inter
 		return run().Inspect(), nil
 	}
 	return withActiveProfile(profile, run).Inspect(), nil
+}
+
+// runToolBatch runs 2+ independent tool calls from ONE swarm round
+// concurrently where it is actually safe to do so, and falls back to
+// running the rest synchronously in place. Only *BuiltinInfo entries (MCP-
+// bridged tools, registered in builtins_mcp.go — plain Go closures that
+// call out to a subprocess over stdio/HTTP, never touching the Pipe VM) get
+// a goroutine. Local Pipe `fn` tools (*Closure) run synchronously right
+// here instead: almost all of them read/write the DB via the pure-Pipe
+// "sqlite" module (~/.pipe/modules/sqlite.pipe), whose handle registry is
+// an ordinary, unsynchronized Pipe global List — shared by reference across
+// every VM, including a spawned child VM (spawnClosure's globals snapshot
+// only copies the slice, not what reference-typed elements point to) — so
+// concurrent db_query/db_exec calls from two goroutines would race on it.
+// Widening this to *Closure tools needs synchronizing sqlite.pipe's
+// registry first; that is deliberately out of scope here.
+//
+// Unlike executeTool, which saves/restores ActiveProfile around every
+// individual call via withActiveProfile, this sets it ONCE for the whole
+// batch and restores it ONCE after every goroutine has joined. Sibling
+// calls in one swarm round always share the exact same profile object, so
+// per-call save/restore would only ever interleave harmlessly in this
+// specific use — but withActiveProfile's save-prev/store-new/defer-restore
+// dance is not a safe pattern to run from multiple goroutines in general
+// (two different profiles racing on the same atomic.Pointer could have a
+// finishing goroutine's restore stomp a still-running sibling's profile),
+// so this batch path avoids it entirely rather than relying on that
+// coincidence.
+func runToolBatch(profile *SandboxProfile, calls []ai.ToolCallRequest) []ai.ToolCallResult {
+	results := make([]ai.ToolCallResult, len(calls))
+	concurrent := make([]bool, len(calls))
+	builtins := make([]*BuiltinInfo, len(calls))
+
+	for i, c := range calls {
+		entry, exists := toolRegistry[c.Name]
+		if !exists {
+			results[i] = ai.ToolCallResult{Err: fmt.Errorf("unknown tool: %s", c.Name)}
+			continue
+		}
+		if profile != nil && profile.Name != "none" {
+			if canErr := profile.CanToolCall(); canErr != nil {
+				results[i] = ai.ToolCallResult{Err: fmt.Errorf("E_SANDBOX: %s", canErr.Error())}
+				continue
+			}
+			profile.Audit("tool_call", c.Name)
+		}
+		if bi, isBuiltin := entry.Fn.(*BuiltinInfo); isBuiltin {
+			concurrent[i] = true
+			builtins[i] = bi
+			continue
+		}
+		// Local Pipe fn: not eligible for a goroutine (see doc comment) —
+		// run it synchronously right here, same dispatch executeTool would
+		// use, just without its own per-call ActiveProfile save/restore
+		// (the batch sets it once, below).
+		argObjects := orderedToolArgs(entry, c.Args)
+		results[i] = ai.ToolCallResult{Content: CallUserFunction(entry.Fn, argObjects...).Inspect()}
+	}
+
+	run := func() {
+		var wg sync.WaitGroup
+		for i := range calls {
+			if !concurrent[i] {
+				continue
+			}
+			wg.Add(1)
+			go func(i int) {
+				defer wg.Done()
+				entry := toolRegistry[calls[i].Name]
+				argObjects := orderedToolArgs(entry, calls[i].Args)
+				results[i] = ai.ToolCallResult{Content: builtins[i].Fn(argObjects...).Inspect()}
+			}(i)
+		}
+		wg.Wait()
+	}
+
+	if profile == nil || profile.Name == "none" {
+		run()
+		return results
+	}
+	prev := ActiveProfile.Load()
+	ActiveProfile.Store(profile)
+	run()
+	ActiveProfile.Store(prev)
+	return results
 }
 
 // bToolCall invokes one registered tool (local ai_tool or MCP-bridged, both

@@ -6,6 +6,7 @@ import (
 	"strings"
 	"sync/atomic"
 	"testing"
+	"time"
 )
 
 func withSandboxAIFlags(enabled, allowAI bool) func() {
@@ -94,6 +95,63 @@ func TestSwarmAgentRejectsMissingSystem(t *testing.T) {
 	result := bSwarmAgent(&String{Value: "bad"}, MapFromGo(map[string]Object{}))
 	if result.Type() != ERROR || !strings.Contains(result.(*Error).Message, "system") {
 		t.Fatalf("expected an error about the missing 'system' key, got %v", result)
+	}
+}
+
+// TestAiSwarmParallelizesTwoIndependentToolCalls exercises the REAL,
+// end-to-end wiring Feature 2 added — bAiSwarm -> runSwarm's batchExecutor
+// closure -> ai.ChatSwarm -> runToolBatch -> the real toolRegistry entries
+// registered via ai_tool -- not a hand-rolled fake, unlike the ai/swarm_test.go
+// unit tests which drive ai.ChatSwarm directly. A model response with 2
+// independent tool_calls (simulating two MCP-bridged tools, e.g. two
+// werkzeug_<alias> calls in one round) must be dispatched concurrently, not
+// one at a time.
+func TestAiSwarmParallelizesTwoIndependentToolCalls(t *testing.T) {
+	round := 0
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		round++
+		w.Header().Set("Content-Type", "application/json")
+		if round == 1 {
+			w.Write([]byte(`{"choices":[{"finish_reason":"tool_calls","message":{"tool_calls":[
+				{"id":"call_1","type":"function","function":{"name":"e2e_tool_a","arguments":"{}"}},
+				{"id":"call_2","type":"function","function":{"name":"e2e_tool_b","arguments":"{}"}}
+			]}}]}`))
+			return
+		}
+		w.Write([]byte(`{"choices":[{"finish_reason":"stop","message":{"content":"both done"}}]}`))
+	}))
+	defer srv.Close()
+	openaiAt(t, srv)
+
+	const sleepEach = 60 * time.Millisecond
+	registerE2ETool := func(name string) func() {
+		t.Helper()
+		bi := &BuiltinInfo{Fn: func(args ...Object) Object {
+			time.Sleep(sleepEach)
+			return &String{Value: name + "-ok"}
+		}}
+		if r := bAiTool(&String{Value: name}, &String{Value: name}, NewMap(), bi); r.Type() == ERROR {
+			t.Fatalf("ai_tool %q: %s", name, r.Inspect())
+		}
+		return func() { delete(toolRegistry, name) }
+	}
+	defer registerE2ETool("e2e_tool_a")()
+	defer registerE2ETool("e2e_tool_b")()
+	defer swarmAgentFor(t, "e2e_agent", "E2E", []string{"e2e_tool_a", "e2e_tool_b"}, nil)()
+
+	start := time.Now()
+	result := bAiSwarm(&String{Value: "do both"}, &String{Value: "e2e_agent"})
+	elapsed := time.Since(start)
+
+	if result.Type() == ERROR {
+		t.Fatalf("ai_swarm: %s", result.Inspect())
+	}
+	s, ok := result.(*String)
+	if !ok || s.Value != "both done" {
+		t.Fatalf("ai_swarm result = %v, want %q", result, "both done")
+	}
+	if elapsed >= 2*sleepEach {
+		t.Errorf("ai_swarm took %v end-to-end, want well under %v — the two tool calls should run concurrently through the real runSwarm/runToolBatch wiring, not sequentially", elapsed, 2*sleepEach)
 	}
 }
 

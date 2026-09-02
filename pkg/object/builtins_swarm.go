@@ -177,8 +177,11 @@ func runSwarm(builtinName string, args ...Object) (ai.SwarmResult, Object) {
 	executor := func(toolName string, targs map[string]interface{}) (string, error) {
 		return executeTool(profile, toolName, targs)
 	}
+	batchExecutor := func(calls []ai.ToolCallRequest) []ai.ToolCallResult {
+		return runToolBatch(profile, calls)
+	}
 
-	result, swarmErr := ai.ChatSwarm(entry.Value, agents, task.Value, executor, maxRounds, onProgress)
+	result, swarmErr := ai.ChatSwarm(entry.Value, agents, task.Value, executor, maxRounds, onProgress, batchExecutor)
 	if swarmErr != nil {
 		return ai.SwarmResult{}, err(builtinName + ": " + swarmErr.Error())
 	}

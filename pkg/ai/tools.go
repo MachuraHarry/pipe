@@ -33,6 +33,28 @@ type toolResponse struct {
 
 type ToolExecutor func(toolName string, args map[string]interface{}) (string, error)
 
+// ToolCallRequest is one pending tool call from a swarm round's batch of 2+
+// independent (non-handoff) calls the model returned in a single response.
+type ToolCallRequest struct {
+	Name string
+	Args map[string]interface{}
+}
+
+// ToolCallResult is one batch call's outcome, positionally aligned with the
+// ToolCallRequest it answers.
+type ToolCallResult struct {
+	Content string
+	Err     error
+}
+
+// ToolBatchExecutor optionally runs 2+ independent, non-handoff tool calls
+// from ONE swarm round concurrently instead of one at a time. ChatSwarm only
+// calls it when there are at least 2 such calls in a round; a nil executor,
+// or a round with fewer than 2, always falls back to ToolExecutor called
+// sequentially exactly as before. Implementations MUST return results in
+// the same order as calls (order-preserving, not completion-order).
+type ToolBatchExecutor func(calls []ToolCallRequest) []ToolCallResult
+
 func ChatWithTools(
 	systemPrompt string,
 	userPrompt string,

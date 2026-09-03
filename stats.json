@@ -9,7 +9,7 @@
     "stdlib": 179
   },
   "examples": 101,
-  "go_tests": 743,
+  "go_tests": 744,
   "test_packages": 20,
   "ast_node_types": 43,
   "docs_en_chapters": 28,

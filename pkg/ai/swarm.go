@@ -414,7 +414,7 @@ func swarmToolsFor(spec SwarmAgentSpec) []ToolDef {
 				},
 				"reason": map[string]interface{}{
 					"type":        "string",
-					"description": "Optional short note on what you want the target agent to do (e.g. \"verify the population figure for Berlin\"). Shown to the user in the live run log — be specific about the actual task, not a generic phrase like \"continue\".",
+					"description": "Optional short note on what you want the target agent to do. MUST be a single short clause, max ~8 words (e.g. \"verify the population figure for Berlin\" or \"double-check the sourcing\") — shown to the user in the live run log. NEVER restate the whole task or repeat context the target agent already has; a generic phrase like \"continue\" is also useless — omit the field entirely rather than write either.",
 				},
 			},
 			"required": []string{"to"},

@@ -45,7 +45,11 @@ const swarmHandoffTool = "__handoff__"
 // fired when the provider actually returns one), or "inject" (a SwarmRoundCheck
 // steered the run with the interjection text in detail). argsJSON carries the
 // tool call's raw JSON arguments for a "tool" event (so a caller can show e.g.
-// the actual search query, not just the tool name); it is empty for every other
+// the actual search query, not just the tool name) AND for a "handoff" event
+// (the synthesized handoff tool's arguments, {"to": ..., "reason": ...} — reason
+// is the optional short note the handing-off agent may give on what it wants the
+// target agent to do, see swarmToolsFor; a caller can parse it out to show e.g.
+// "HUGINN -> MIMIR: verify the population figure"); it is empty for every other
 // event. Nil is safe to pass — ChatSwarm treats it as "no observer".
 type SwarmProgressFunc func(agent, event, detail, argsJSON string)
 
@@ -297,7 +301,7 @@ func ChatSwarm(entryAgent string, agents map[string]SwarmAgentSpec, userPrompt s
 					before := nextAgent
 					results[i] = handleSwarmHandoff(spec, agents, callArgs[i], &nextAgent, &handoffRequested)
 					if onProgress != nil && nextAgent != before && handoffRequested {
-						onProgress(current, "handoff", nextAgent, "")
+						onProgress(current, "handoff", nextAgent, tc.Arguments)
 					}
 				}
 			}
@@ -324,7 +328,7 @@ func ChatSwarm(entryAgent string, agents map[string]SwarmAgentSpec, userPrompt s
 					before := nextAgent
 					content = handleSwarmHandoff(spec, agents, args, &nextAgent, &handoffRequested)
 					if onProgress != nil && nextAgent != before && handoffRequested {
-						onProgress(current, "handoff", nextAgent, "")
+						onProgress(current, "handoff", nextAgent, tc.Arguments)
 					}
 				} else {
 					if onProgress != nil {
@@ -407,6 +411,10 @@ func swarmToolsFor(spec SwarmAgentSpec) []ToolDef {
 					"type":        "string",
 					"description": "Name of the agent to transfer to.",
 					"enum":        spec.HandoffTo,
+				},
+				"reason": map[string]interface{}{
+					"type":        "string",
+					"description": "Optional short note on what you want the target agent to do (e.g. \"verify the population figure for Berlin\"). Shown to the user in the live run log — be specific about the actual task, not a generic phrase like \"continue\".",
 				},
 			},
 			"required": []string{"to"},

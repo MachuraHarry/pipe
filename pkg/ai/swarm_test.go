@@ -567,7 +567,7 @@ func TestChatSwarmInvokesProgressCallback(t *testing.T) {
 
 	want := []event{
 		{"triage", "start", "", ""},
-		{"triage", "handoff", "billing", ""},
+		{"triage", "handoff", "billing", `{"to":"billing"}`},
 		{"billing", "start", "", ""},
 		{"billing", "tool", "get_invoice", `{"customer":"acme"}`},
 		{"billing", "start", "", ""},
@@ -580,6 +580,46 @@ func TestChatSwarmInvokesProgressCallback(t *testing.T) {
 		if got[i] != want[i] {
 			t.Errorf("event[%d] = %+v, want %+v", i, got[i], want[i])
 		}
+	}
+}
+
+// TestChatSwarmHandoffReasonReachesProgressCallback covers the new optional
+// "reason" field on the synthesized handoff tool (swarmToolsFor): when the
+// model includes one, it must reach the "handoff" progress event's argsJSON
+// verbatim (as part of the raw tool-call arguments), so a caller (e.g.
+// Muninn's live run log) can show what the handing-off agent actually asked
+// the target to do, not just that a handoff happened.
+func TestChatSwarmHandoffReasonReachesProgressCallback(t *testing.T) {
+	round := 0
+	withMockChatServer(t, func(w http.ResponseWriter, r *http.Request) {
+		round++
+		if round == 1 {
+			writeToolCall(w, "call_1", swarmHandoffTool, `{"to":"billing","reason":"verify the invoice total"}`)
+			return
+		}
+		writeChatContent(w, "done")
+	})
+	agents := map[string]SwarmAgentSpec{
+		"triage":  {SystemPrompt: "TRIAGE", HandoffTo: []string{"billing"}},
+		"billing": {SystemPrompt: "BILLING"},
+	}
+
+	var handoffArgs string
+	onProgress := func(agent, event, detail, argsJSON string) {
+		if event == "handoff" {
+			handoffArgs = argsJSON
+		}
+	}
+
+	result, err := ChatSwarm("triage", agents, "hi", nil, 5, onProgress, nil, nil)
+	if err != nil {
+		t.Fatalf("ChatSwarm: unexpected error: %v", err)
+	}
+	if result.Content != "done" {
+		t.Errorf("Content = %q, want %q", result.Content, "done")
+	}
+	if handoffArgs != `{"to":"billing","reason":"verify the invoice total"}` {
+		t.Errorf("handoff argsJSON = %q, want the reason field preserved verbatim", handoffArgs)
 	}
 }
 

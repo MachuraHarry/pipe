@@ -39,6 +39,7 @@ type Client struct {
 	pendMu       sync.Mutex
 	closed       bool
 	callTimeout  time.Duration
+	watchdogPipe *os.File
 
 	// NetworkGate, when set, is consulted before every HTTP request of this
 	// client (including redirect targets). It is how the sandbox applies its
@@ -94,6 +95,15 @@ func NewStdioClient(command string, args []string, env map[string]string) (*Clie
 		callTimeout: defaultCallTimeout,
 	}
 	c.stdout.Buffer(make([]byte, 0, 1024*1024), 10*1024*1024)
+
+	// Spawn the parent-death watchdog for the whole server process group
+	// (see startMCPWatchdog in procattr_unix.go). Best-effort: if it cannot
+	// start, we keep the previous behavior (Pdeathsig on the direct child
+	// only) instead of failing the connection.
+	if pw, wdErr := startMCPWatchdog(cmd); wdErr == nil {
+		c.watchdogPipe = pw
+	}
+
 	go c.readLoop()
 	return c, nil
 }
@@ -161,6 +171,14 @@ func (c *Client) Close() error {
 			killProcessGroup(cmd)
 			<-done
 		}
+	}
+	// The watchdog (see startMCPWatchdog) triggers on this pipe's EOF. We
+	// close it only AFTER the graceful group cleanup above so the grace
+	// period stays intact — the watchdog then fires as a no-op on the
+	// already-dead group.
+	if c.watchdogPipe != nil {
+		c.watchdogPipe.Close()
+		c.watchdogPipe = nil
 	}
 	return nil
 }
@@ -379,7 +397,17 @@ func (c *Client) sendRequest(req JSONRPCRequest) (*rawResponse, error) {
 
 	var resp rawResponse
 	if err := json.Unmarshal(data, &resp); err != nil {
-		return nil, fmt.Errorf("parse response: %w", err)
+		// data is nil/empty exactly when the pending channel was closed by
+		// readLoop's EOF handler (see readLoop below) rather than delivering
+		// a real response — i.e. the child process exited/crashed before
+		// replying at all. That is the single most diagnostically important
+		// case (a missing required env var, a startup exception, ...) and
+		// the real reason is normally sitting right there in the child's
+		// captured stderr — but until now it was silently discarded here,
+		// leaving both Pipe scripts and their callers (e.g. Muninn's MCP
+		// server proposal flow) with only a useless generic "unexpected end
+		// of JSON input" instead of the actual cause.
+		return nil, fmt.Errorf("parse response: %w%s", err, c.stderrSuffix())
 	}
 
 	if resp.Error != nil {

@@ -429,13 +429,13 @@ var builtinDocs = []BuiltinDoc{
 	{Name: "ai_set_key", Signature: "ai_set_key(provider, key)", Params: []Param{p("provider", "string"), p("key", "string")}, ReturnType: "string",
 		Description: "Sets API key for the given provider ('openai', 'deepseek', 'anthropic', 'openrouter', 'opencode'). Useful when env vars aren't available (browser, CI).", Category: CatAIConf},
 	{Name: "ai_cost", Signature: "ai_cost()", Params: []Param{}, ReturnType: "map",
-		Description: "Returns a map with cost_usd, calls, cache_hits, cache_misses for the current run. Pass 'reset' to zero the metrics.", Category: CatAIConf},
+		Description: "Returns a map with cost_usd, calls, cache_hits, cache_misses for the current run. cache_hits/cache_misses are cumulative prompt-cache token counts reported by the provider itself (e.g. DeepSeek's automatic prompt-prefix caching), not pipe's local ai_cache. Pass 'reset' to zero the metrics.", Category: CatAIConf},
 	{Name: "ai_tokens", Signature: "ai_tokens()", Params: []Param{}, ReturnType: "number",
 		Description: "Returns the total token count used by AI calls in the current run.", Category: CatAIConf},
 	{Name: "ai_cache_hits", Signature: "ai_cache_hits()", Params: []Param{}, ReturnType: "number",
-		Description: "Returns the number of AI response cache hits in the current run.", Category: CatAIConf},
+		Description: "Returns the cumulative number of prompt tokens the provider served from its own server-side cache (e.g. DeepSeek), across all AI calls in the current run. Zero for providers that don't report this.", Category: CatAIConf},
 	{Name: "ai_cache_misses", Signature: "ai_cache_misses()", Params: []Param{}, ReturnType: "number",
-		Description: "Returns the number of AI response cache misses in the current run.", Category: CatAIConf},
+		Description: "Returns the cumulative number of prompt tokens NOT served from the provider's server-side cache, across all AI calls in the current run. Zero for providers that don't report this.", Category: CatAIConf},
 
 	// ---- AI Chat ----
 	{Name: "ai_chat", Signature: "ai_chat(system_prompt, user_prompt, max_tokens?)", Params: []Param{p("system_prompt", "string"), p("user_prompt", "string"), p("max_tokens", "int, optional")}, ReturnType: "string",

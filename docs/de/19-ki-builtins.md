@@ -135,8 +135,8 @@ verwendet werden — sensible Daten gehören dort nicht hinein.
 | `ask` | Frage beantworten | `ask frage` |
 | `ai_cost` | Kosten-Metriken | `ai_cost` |
 | `ai_tokens` | Gesamte Tokens | `ai_tokens` |
-| `ai_cache_hits` | Cache-Treffer | `ai_cache_hits` |
-| `ai_cache_misses` | Cache-Fehltreffer | `ai_cache_misses` |
+| `ai_cache_hits` | Provider-Cache-Treffer-Tokens | `ai_cache_hits` |
+| `ai_cache_misses` | Provider-Cache-Fehltreffer-Tokens | `ai_cache_misses` |
 
 ---
 
@@ -770,14 +770,23 @@ Gibt eine Map mit den kumulierten Metriken des aktuellen Laufs zurück:
 |-----|------|-------------|
 | `cost_usd` | num | Gesamtkosten in USD |
 | `calls` | int | Anzahl der KI-API-Aufrufe |
-| `cache_hits` | int | Antworten aus dem Cache |
-| `cache_misses` | int | Antworten vom Provider geladen |
+| `cache_hits` | int | Prompt-Tokens aus dem serverseitigen Cache des **Providers** |
+| `cache_misses` | int | Prompt-Tokens, die *nicht* aus dem Cache des Providers kamen |
+
+`cache_hits`/`cache_misses` spiegeln das automatische Prompt-Prefix-Caching
+des Providers selbst wider (z.B. DeepSeeks Context Caching, gemeldet über
+`usage.prompt_cache_hit_tokens`/`prompt_cache_miss_tokens`) – kumulierte
+Token-Zahlen über alle Aufrufe, keine Antwort-Zahlen. Provider, die dies
+nicht melden, zeigen immer 0/0. Das ist unabhängig von Pipes eigenem
+lokalen Antwort-Cache (siehe `ai_cache` im [Builtin-Referenz](10-builtin-referenz.md#ai_cache))
+– ein Treffer dort bedeutet, dass die Anfrage den Provider gar nicht erst
+erreicht hat, weshalb dafür auch keine Provider-Cache-Metriken entstehen.
 
 `ai_cost "reset"` setzt alle Metriken zurück.
 
 ```pipe
 print (ai_cost)
--- -> {calls: 1, cost_usd: 0.000045, cache_hits: 0, cache_misses: 1}
+-- -> {calls: 2, cost_usd: 0.000045, cache_hits: 6400, cache_misses: 120}
 ```
 
 ### ai_tokens
@@ -796,18 +805,22 @@ ai_cache_hits
 ai_cache_misses
 ```
 
-Liefern die Zahl der Cache-Treffer bzw. Fehltreffer. Wiederholte identische
-Prompts werden aus dem Antwort-Cache bedient – das spart Geld und Latenz:
+Liefern die kumulierten, vom Provider gemeldeten Cache-Treffer- bzw.
+Fehltreffer-Tokens (dieselben Zahlen wie `cache_hits`/`cache_misses` bei
+`ai_cost`), über alle KI-Aufrufe im aktuellen Lauf:
 
 ```pipe
-ask "Was ist ein Monad?" > print
--- -> Cache-Miss
-ask "Was ist ein Monad?" > print
--- -> Cache-Hit (gleicher Prompt, aus dem Cache)
-
-print (ai_cache_hits)   -- 1
-print (ai_cache_misses) -- 1
+ask "Erklaere denselben langen System-Kontext..." > print
+ask "Erklaere denselben langen System-Kontext..." > print
+-- falls der Provider den wiederholten Prefix serverseitig gecacht hat:
+print (ai_cache_hits)   -- > 0 (aus dem Cache des Providers bediente Tokens)
+print (ai_cache_misses) -- vom Provider frisch verarbeitete Tokens
 ```
+
+Pipes eigenen lokalen In-Process-Antwort-Cache (identische Anfragen werden
+bedient, ohne den Provider ueberhaupt zu kontaktieren) findest du unter
+`ai_cache "stats"` im [Builtin-Referenz](10-builtin-referenz.md#ai_cache) –
+das ist ein separater Mechanismus mit eigenen Zaehlern.
 
 ### Kosten-Trace (CLI)
 

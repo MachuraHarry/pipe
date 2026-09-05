@@ -95,6 +95,15 @@ func extractOpenAIResult(result map[string]interface{}) (ChatResponse, error) {
 		if tt, ok := usage["total_tokens"].(float64); ok {
 			resp.TotalTokens = int(tt)
 		}
+		// DeepSeek-specific fields reporting its automatic server-side
+		// prompt-prefix cache. Absent (and thus zero) for providers that
+		// don't support it.
+		if ht, ok := usage["prompt_cache_hit_tokens"].(float64); ok {
+			resp.PromptCacheHitTokens = int(ht)
+		}
+		if mt, ok := usage["prompt_cache_miss_tokens"].(float64); ok {
+			resp.PromptCacheMissTokens = int(mt)
+		}
 	}
 	return resp, nil
 }

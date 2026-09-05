@@ -1474,11 +1474,17 @@ print (budget_spent)
 ```
 ai_cost()
 ```
-Gibt die kumulierten Kosten-Metriken des aktuellen Laufs als Map zurück. Mit
+Gibt die kumulierten Kosten-Metriken des aktuellen Laufs als Map zurück.
+`cache_hits`/`cache_misses` sind kumulierte Prompt-Token-Zahlen, die der
+**Provider selbst** meldet (z.B. DeepSeeks automatisches serverseitiges
+Prompt-Prefix-Caching, über `usage.prompt_cache_hit_tokens`/
+`prompt_cache_miss_tokens`) — nicht Pipes eigener lokaler Antwort-Cache
+(siehe `ai_cache` weiter oben, ein separater Mechanismus mit eigenen
+`"stats"`-Zählern). Provider, die dies nicht melden, zeigen immer 0/0. Mit
 dem String `"reset"` werden alle Metriken zurückgesetzt.
 ```pipe
 print (ai_cost)
--- -> {cache_hits: 0, calls: 2, cost_usd: 0.00012, cache_misses: 1}
+-- -> {cache_hits: 6400, calls: 2, cost_usd: 0.00012, cache_misses: 120}
 
 ai_cost "reset"   -- alle Metriken zurücksetzen
 ```
@@ -1494,18 +1500,19 @@ verbraucht haben.
 ```
 ai_cache_hits()
 ```
-Gibt zurück, wie viele KI-Antworten aus dem Antwort-Cache bedient wurden.
+Gibt die kumulierte Anzahl an Prompt-Tokens zurück, die der Provider aus
+seinem eigenen serverseitigen Cache bedient hat (dieselbe Zahl wie
+`cache_hits` bei `ai_cost`). 0 bei Providern, die dies nicht melden.
 
 ### ai_cache_misses
 ```
 ai_cache_misses()
 ```
-Gibt zurück, wie viele KI-Antworten vom Provider geladen wurden (Cache-Miss).
+Gibt die kumulierte Anzahl an Prompt-Tokens zurück, die der Provider **nicht**
+aus seinem Cache bedient hat (dieselbe Zahl wie `cache_misses` bei `ai_cost`).
 ```pipe
-ask "Was ist ein Monad?" > print
-ask "Was ist ein Monad?" > print
-print (ai_cache_hits)   -- 1
-print (ai_cache_misses) -- 1
+print (ai_cache_hits)   -- bisherige Cache-Treffer-Tokens des Providers
+print (ai_cache_misses) -- bisherige Cache-Fehltreffer-Tokens des Providers
 ```
 
 ---

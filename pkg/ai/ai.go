@@ -29,6 +29,13 @@ type ChatResponse struct {
 	CompletionTokens int     `json:"completion_tokens,omitempty"`
 	TotalTokens      int     `json:"total_tokens,omitempty"`
 	CostUSD          float64 `json:"cost_usd,omitempty"`
+	// PromptCacheHitTokens/PromptCacheMissTokens report the provider's own
+	// server-side prompt-prefix cache (e.g. DeepSeek's automatic context
+	// caching, surfaced via usage.prompt_cache_hit_tokens/miss_tokens) — NOT
+	// pipe's local exact-duplicate-request cache (see cache.go), which is a
+	// separate, opt-in mechanism tracked by CacheStats().
+	PromptCacheHitTokens  int `json:"prompt_cache_hit_tokens,omitempty"`
+	PromptCacheMissTokens int `json:"prompt_cache_miss_tokens,omitempty"`
 }
 
 type Provider interface {
@@ -176,7 +183,6 @@ func Chat(req ChatRequest) (ChatResponse, error) {
 
 	if cached, ok := cacheGet(key); ok {
 		resp := ChatResponse{Content: cached}
-		recordCostHit()
 		return resp, nil
 	}
 
@@ -203,8 +209,6 @@ func Chat(req ChatRequest) (ChatResponse, error) {
 	if err == nil {
 		cacheSet(key, resp.Content)
 		recordCost(resp)
-	} else {
-		recordCostMiss()
 	}
 
 	return resp, err
@@ -575,6 +579,8 @@ func recordCost(resp ChatResponse) {
 		cost = estimateCost(ActiveConfig.Provider, ActiveConfig.Model, resp.PromptTokens, resp.CompletionTokens)
 	}
 	totalCost += cost
+	costHits += resp.PromptCacheHitTokens
+	costMisses += resp.PromptCacheMissTokens
 
 	entry := CostEntry{
 		Provider:         ActiveConfig.Provider,
@@ -591,18 +597,11 @@ func recordCost(resp ChatResponse) {
 	}
 }
 
-func recordCostHit() {
-	costMu.Lock()
-	defer costMu.Unlock()
-	costHits++
-}
-
-func recordCostMiss() {
-	costMu.Lock()
-	defer costMu.Unlock()
-	costMisses++
-}
-
+// GetCostMetrics returns cumulative cost/token counters. hits/misses are the
+// provider's own reported prompt-cache token counts (e.g. DeepSeek's
+// automatic context caching via usage.prompt_cache_hit_tokens/miss_tokens),
+// summed across all recorded calls — NOT pipe's local dedup-cache stats
+// (see CacheStats in cache.go for that).
 func GetCostMetrics() (totalCostUSD float64, totalTokensUsed int, calls int, hits int, misses int) {
 	costMu.Lock()
 	defer costMu.Unlock()

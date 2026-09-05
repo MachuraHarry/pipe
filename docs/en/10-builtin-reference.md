@@ -2300,11 +2300,11 @@ print (budget_spent)
 
 ### `ai_cost`
 **Signature:** `ai_cost()`
-**Description:** Returns the cumulative cost metrics of the current run as a map. Pass the string `"reset"` to zero out all metrics.
+**Description:** Returns the cumulative cost metrics of the current run as a map. `cache_hits`/`cache_misses` are cumulative prompt-token counts reported by the *provider itself* (e.g. DeepSeek's automatic server-side prompt-prefix caching, via `usage.prompt_cache_hit_tokens`/`prompt_cache_miss_tokens`) — not pipe's own local response cache (see [`ai_cache`](#ai_cache) below, a separate mechanism with its own `"stats"` counters). Providers that don't report prompt-cache usage always show 0/0. Pass the string `"reset"` to zero out all metrics.
 **Returns:** `map` of `{cost_usd, calls, cache_hits, cache_misses}`
 ```pipe
 print (ai_cost)
--- -> {cache_hits: 0, calls: 2, cost_usd: 0.00012, cache_misses: 1}
+-- -> {cache_hits: 6400, calls: 2, cost_usd: 0.00012, cache_misses: 120}
 
 ai_cost "reset"   -- reset all metrics
 ```
@@ -2319,18 +2319,16 @@ print (ai_tokens)
 
 ### `ai_cache_hits`
 **Signature:** `ai_cache_hits()`
-**Description:** Returns how many AI responses were served from the response cache.
+**Description:** Returns the cumulative number of prompt tokens the provider served from its own server-side cache (same number as `ai_cost`'s `cache_hits`). Zero for providers that don't report this.
 **Returns:** `number`
 
 ### `ai_cache_misses`
 **Signature:** `ai_cache_misses()`
-**Description:** Returns how many AI responses were fetched from the provider (cache misses).
+**Description:** Returns the cumulative number of prompt tokens the provider did *not* serve from its own server-side cache (same number as `ai_cost`'s `cache_misses`).
 **Returns:** `number`
 ```pipe
-ask "What is a monad?" > print
-ask "What is a monad?" > print
-print (ai_cache_hits)   -- 1
-print (ai_cache_misses) -- 1
+print (ai_cache_hits)   -- provider prompt-cache hit tokens so far
+print (ai_cache_misses) -- provider prompt-cache miss tokens so far
 ```
 
 ---

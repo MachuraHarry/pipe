@@ -135,8 +135,8 @@ training — keep sensitive data away from it.
 | `ask` | Answer question | `ask question` |
 | `ai_cost` | Cost metrics | `ai_cost` |
 | `ai_tokens` | Total tokens used | `ai_tokens` |
-| `ai_cache_hits` | Cache hits | `ai_cache_hits` |
-| `ai_cache_misses` | Cache misses | `ai_cache_misses` |
+| `ai_cache_hits` | Provider prompt-cache hit tokens | `ai_cache_hits` |
+| `ai_cache_misses` | Provider prompt-cache miss tokens | `ai_cache_misses` |
 
 ---
 
@@ -748,14 +748,23 @@ Returns a map with the cumulative metrics of the current run:
 |-----|------|-------------|
 | `cost_usd` | num | Total cost in USD |
 | `calls` | int | Number of AI API calls made |
-| `cache_hits` | int | Responses served from the cache |
-| `cache_misses` | int | Responses fetched from the provider |
+| `cache_hits` | int | Prompt tokens served from the *provider's* own server-side cache |
+| `cache_misses` | int | Prompt tokens *not* served from the provider's cache |
+
+`cache_hits`/`cache_misses` reflect the provider's own automatic prompt-prefix
+caching (e.g. DeepSeek's context caching, reported via
+`usage.prompt_cache_hit_tokens`/`prompt_cache_miss_tokens`) — token counts,
+summed across every call, not response counts. Providers that don't report
+this always show 0/0. This is unrelated to pipe's own local response cache
+(see `ai_cache` in the [Builtin Reference](10-builtin-reference.md#ai_cache))
+— a hit there means the whole request never reached the provider at all, so
+no provider-side cache metrics are produced for it.
 
 Calling `ai_cost "reset"` zeroes all metrics.
 
 ```pipe
 print (ai_cost)
--- -> {calls: 1, cost_usd: 0.000045, cache_hits: 0, cache_misses: 1}
+-- -> {calls: 2, cost_usd: 0.000045, cache_hits: 6400, cache_misses: 120}
 ```
 
 ### ai_tokens
@@ -773,18 +782,22 @@ ai_cache_hits
 ai_cache_misses
 ```
 
-Return the number of cache hits and misses. Repeated identical prompts are
-served from the response cache — saving both money and latency:
+Return the cumulative provider-reported prompt-cache hit/miss token counts
+(the same numbers as `ai_cost`'s `cache_hits`/`cache_misses`), across all AI
+calls in the current run.
 
 ```pipe
-ask "What is a monad?" > print
--- -> Cache miss
-ask "What is a monad?" > print
--- -> Cache hit (same prompt, served from cache)
-
-print (ai_cache_hits)   -- 1
-print (ai_cache_misses) -- 1
+ask "Explain the same long system context..." > print
+ask "Explain the same long system context..." > print
+-- if the provider cached the repeated prefix server-side:
+print (ai_cache_hits)   -- > 0 (prompt tokens served from the provider's cache)
+print (ai_cache_misses) -- tokens the provider had to process fresh
 ```
+
+For pipe's own local, in-process response cache (exact-duplicate requests
+served without calling the provider at all), see `ai_cache "stats"` in the
+[Builtin Reference](10-builtin-reference.md#ai_cache) — that is a separate
+mechanism with its own hit/miss counters.
 
 ### Cost Trace (CLI)
 

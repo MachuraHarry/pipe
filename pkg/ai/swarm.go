@@ -51,7 +51,13 @@ const swarmHandoffTool = "__handoff__"
 // target agent to do, see swarmToolsFor; a caller can parse it out to show e.g.
 // "HUGINN -> MIMIR: verify the population figure"); it is empty for every other
 // event. Nil is safe to pass — ChatSwarm treats it as "no observer".
-type SwarmProgressFunc func(agent, event, detail, argsJSON string)
+// round (1-based) and maxRounds are the SAME round-budget counters the
+// "[SYSTEM] Only N of M rounds remain" warning below is built from — a real,
+// honest share of the round safety budget consumed so far, NOT a task-
+// completion estimate (maxRounds is a generous ceiling most runs never get
+// close to; a caller wanting a "progress bar" should present it as such,
+// e.g. "budget used", rather than implying the task itself is N% done).
+type SwarmProgressFunc func(agent, event, detail, argsJSON string, round, maxRounds int)
 
 // SwarmRoundAction is what a SwarmRoundCheck returns to control the next
 // round. Abort/AbortReason stop ChatSwarm immediately, exactly like the
@@ -115,7 +121,7 @@ func ChatSwarm(entryAgent string, agents map[string]SwarmAgentSpec, userPrompt s
 					"content": "[User interjection] " + action.Inject,
 				})
 				if onProgress != nil {
-					onProgress(current, "inject", action.Inject, "")
+					onProgress(current, "inject", action.Inject, "", round+1, maxRounds)
 				}
 			}
 		}
@@ -143,7 +149,7 @@ func ChatSwarm(entryAgent string, agents map[string]SwarmAgentSpec, userPrompt s
 		}
 
 		if onProgress != nil {
-			onProgress(current, "start", "", "")
+			onProgress(current, "start", "", "", round+1, maxRounds)
 		}
 
 		// Without a warning, a swarm that quietly runs out of rounds mid-task
@@ -184,7 +190,7 @@ func ChatSwarm(entryAgent string, agents map[string]SwarmAgentSpec, userPrompt s
 		}
 
 		if onProgress != nil && resp.ReasoningContent != "" {
-			onProgress(current, "reasoning", resp.ReasoningContent, "")
+			onProgress(current, "reasoning", resp.ReasoningContent, "", round+1, maxRounds)
 		}
 
 		if !resp.IsToolCall || len(resp.ToolCalls) == 0 {
@@ -216,7 +222,7 @@ func ChatSwarm(entryAgent string, agents map[string]SwarmAgentSpec, userPrompt s
 				continue
 			}
 			if onProgress != nil {
-				onProgress(current, "final", "", "")
+				onProgress(current, "final", "", "", round+1, maxRounds)
 			}
 			return SwarmResult{Content: resp.Content, Path: path, Rounds: round + 1}, nil
 		}
@@ -279,7 +285,7 @@ func ChatSwarm(entryAgent string, agents map[string]SwarmAgentSpec, userPrompt s
 			for j, i := range realIdx {
 				tc := resp.ToolCalls[i]
 				if onProgress != nil {
-					onProgress(current, "tool", tc.Name, tc.Arguments)
+					onProgress(current, "tool", tc.Name, tc.Arguments, round+1, maxRounds)
 				}
 				batchReqs[j] = ToolCallRequest{Name: tc.Name, Args: callArgs[i]}
 			}
@@ -301,7 +307,7 @@ func ChatSwarm(entryAgent string, agents map[string]SwarmAgentSpec, userPrompt s
 					before := nextAgent
 					results[i] = handleSwarmHandoff(spec, agents, callArgs[i], &nextAgent, &handoffRequested)
 					if onProgress != nil && nextAgent != before && handoffRequested {
-						onProgress(current, "handoff", nextAgent, tc.Arguments)
+						onProgress(current, "handoff", nextAgent, tc.Arguments, round+1, maxRounds)
 					}
 				}
 			}
@@ -328,11 +334,11 @@ func ChatSwarm(entryAgent string, agents map[string]SwarmAgentSpec, userPrompt s
 					before := nextAgent
 					content = handleSwarmHandoff(spec, agents, args, &nextAgent, &handoffRequested)
 					if onProgress != nil && nextAgent != before && handoffRequested {
-						onProgress(current, "handoff", nextAgent, tc.Arguments)
+						onProgress(current, "handoff", nextAgent, tc.Arguments, round+1, maxRounds)
 					}
 				} else {
 					if onProgress != nil {
-						onProgress(current, "tool", tc.Name, tc.Arguments)
+						onProgress(current, "tool", tc.Name, tc.Arguments, round+1, maxRounds)
 					}
 					result, execErr := executor(tc.Name, args)
 					if execErr != nil {

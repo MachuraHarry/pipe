@@ -333,7 +333,7 @@ func TestChatSwarmInjectAppendsUserMessage(t *testing.T) {
 	}
 
 	var events []string
-	onProgress := func(agent, event, detail, argsJSON string) {
+	onProgress := func(agent, event, detail, argsJSON string, round, maxRounds int) {
 		if event == "inject" {
 			events = append(events, detail)
 		}
@@ -405,7 +405,7 @@ func TestChatSwarmReasoningEventFiresOnlyWhenPresent(t *testing.T) {
 	}
 
 	var reasoningEvents []string
-	onProgress := func(agent, event, detail, argsJSON string) {
+	onProgress := func(agent, event, detail, argsJSON string, round, maxRounds int) {
 		if event == "reasoning" {
 			reasoningEvents = append(reasoningEvents, detail)
 		}
@@ -553,7 +553,7 @@ func TestChatSwarmInvokesProgressCallback(t *testing.T) {
 
 	type event struct{ agent, kind, detail, args string }
 	var got []event
-	onProgress := func(agent, kind, detail, argsJSON string) {
+	onProgress := func(agent, kind, detail, argsJSON string, round, maxRounds int) {
 		got = append(got, event{agent, kind, detail, argsJSON})
 	}
 
@@ -605,7 +605,7 @@ func TestChatSwarmHandoffReasonReachesProgressCallback(t *testing.T) {
 	}
 
 	var handoffArgs string
-	onProgress := func(agent, event, detail, argsJSON string) {
+	onProgress := func(agent, event, detail, argsJSON string, round, maxRounds int) {
 		if event == "handoff" {
 			handoffArgs = argsJSON
 		}

@@ -81,3 +81,45 @@ func TestFormatWhitespace(t *testing.T) {
 		t.Errorf("expected normalized whitespace, got %q", got)
 	}
 }
+
+// TestFormatPreservesCommentsVerbatim covers a regression where
+// formatProgram, which rebuilds source purely from the AST, silently
+// deleted every "--"/"--!" comment: the AST has no representation of them
+// at all (the lexer discards comment lines as it scans). Real, heavily
+// documented programs lost their entire documentation on a single `pipe
+// -fmt` run with no warning. Until the formatter can actually reproduce
+// comments in their original position, it must leave a commented file
+// completely untouched rather than destroy them.
+func TestFormatPreservesCommentsVerbatim(t *testing.T) {
+	input := "--! doc comment above a function\nfn add a b\n    -- comment inside the body\n    a + b\n"
+	got := FormatSource(input)
+	if got != input {
+		t.Errorf("expected commented source to be returned unchanged, got %q, want %q", got, input)
+	}
+}
+
+// TestFormatPreservesCommentsEvenWithOtherIssues checks that the safety
+// bail-out fires even when the rest of the file also has sloppy
+// whitespace/indentation that a normal (comment-free) input would have had
+// normalized — confirming this is a real "leave everything alone" bail-out,
+// not a check that only happens to pass on already-clean input.
+func TestFormatPreservesCommentsEvenWithOtherIssues(t *testing.T) {
+	input := "x  :   42\n-- a comment\ny:  x  +  8\n"
+	got := FormatSource(input)
+	if got != input {
+		t.Errorf("expected untouched source, got %q, want %q", got, input)
+	}
+}
+
+// TestFormatPreservesImportAlias covers a regression where the formatter
+// printed "import \"x.pipe\"" and silently dropped the "as alias" clause
+// (ast.ImportStatement.Alias was always populated correctly by the parser —
+// formatStatement's *ast.ImportStatement case just never read it). Losing
+// the alias breaks every `alias.thing` reference in the file.
+func TestFormatPreservesImportAlias(t *testing.T) {
+	input := "import \"modules/foo.pipe\" as f\nx: 1\n"
+	got := FormatSource(input)
+	if !strings.Contains(got, "import \"modules/foo.pipe\" as f") {
+		t.Errorf("expected import alias to survive formatting, got %q", got)
+	}
+}

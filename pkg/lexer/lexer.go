@@ -16,6 +16,24 @@ type Lexer struct {
 	parenDepth  int
 	atLineStart bool
 	tokens      []Token // buffered tokens for DEDENT
+
+	// Comments collects every whole-line "--"/"--!" comment seen so far, in
+	// source order. Populated as a side effect of normal scanning (comments
+	// themselves never become tokens) so callers that need them — e.g. the
+	// formatter, to avoid silently dropping them — can read this field after
+	// driving the lexer via NextToken()/the parser. Only whole-line comments
+	// are recorded: a comment trailing code on the same line is reached via
+	// a different code path (scanToken, not handleLineStart) and is not
+	// captured here.
+	Comments []LineComment
+}
+
+// LineComment is one whole-line comment as encountered during lexing. Text
+// includes the leading "--" (or "--!") marker verbatim, so callers can
+// re-emit it unchanged.
+type LineComment struct {
+	Line int
+	Text string
 }
 
 func New(input string) *Lexer {
@@ -93,9 +111,12 @@ func (l *Lexer) handleLineStart() Token {
 
 	// Comment line: skip
 	if l.ch == '-' && l.peekChar() == '-' {
+		start := l.pos
+		line := l.line
 		for l.ch != '\n' && l.ch != 0 {
 			l.readChar()
 		}
+		l.Comments = append(l.Comments, LineComment{Line: line, Text: strings.TrimRight(l.input[start:l.pos], "\r")})
 		if l.ch == '\n' {
 			l.readLine()
 			l.atLineStart = true

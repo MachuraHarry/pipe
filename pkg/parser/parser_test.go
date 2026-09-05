@@ -324,6 +324,54 @@ func TestIfExpression(t *testing.T) {
 	}
 }
 
+// TestElifExpression covers a regression where "elif" was documented and
+// listed as a keyword but never registered in the lexer, so it silently
+// lexed as a plain IDENT: a call-like expression `elif(cond)` parsed
+// without error, but a subsequent bare "else" (belonging to no in-progress
+// if) then failed with "unexpected token 'else'". "elif" must behave
+// exactly like "else if": it needs its own token, its own prefix parse
+// registration, and parseIfExpression must special-case it (a single
+// nextToken(), not the two used for a literal ELSE) so the chain can still
+// end in a trailing plain "else".
+func TestElifExpression(t *testing.T) {
+	input := "if a == 1\n    print \"one\"\nelif a == 2\n    print \"two\"\nelif a == 3\n    print \"three\"\nelse\n    print \"other\"\n"
+	program := parseProgram(t, input)
+
+	outer, ok := program.Statements[0].(*ast.ExpressionStatement).Expression.(*ast.IfExpression)
+	if !ok {
+		t.Fatalf("expected IfExpression, got %T", program.Statements[0])
+	}
+	if outer.Alternative == nil || len(outer.Alternative.Statements) != 1 {
+		t.Fatalf("expected outer elif-chain in Alternative, got %+v", outer.Alternative)
+	}
+	mid, ok := outer.Alternative.Statements[0].(*ast.ExpressionStatement).Expression.(*ast.IfExpression)
+	if !ok {
+		t.Fatalf("expected nested IfExpression for first elif, got %T", outer.Alternative.Statements[0])
+	}
+	if mid.Condition.String() != "(a == 2)" {
+		t.Errorf("first elif condition: got %s", mid.Condition.String())
+	}
+	inner, ok := mid.Alternative.Statements[0].(*ast.ExpressionStatement).Expression.(*ast.IfExpression)
+	if !ok {
+		t.Fatalf("expected nested IfExpression for second elif, got %T", mid.Alternative.Statements[0])
+	}
+	if inner.Condition.String() != "(a == 3)" {
+		t.Errorf("second elif condition: got %s", inner.Condition.String())
+	}
+	if inner.Alternative == nil || len(inner.Alternative.Statements) != 1 {
+		t.Fatal("expected trailing plain else block after the elif chain")
+	}
+}
+
+// TestElifMixedWithElseIf mirrors real-world usage (see modules/mcp.pipe in
+// the muninn repo, which chains ten "else if"s): "elif" and "else if" must
+// be freely interchangeable within the same chain, including a trailing
+// plain "else".
+func TestElifMixedWithElseIf(t *testing.T) {
+	input := "if a == 1\n    print \"one\"\nelif a == 2\n    print \"two\"\nelse if a == 3\n    print \"three\"\nelse\n    print \"other\"\n"
+	parseProgram(t, input)
+}
+
 func TestMatchExpression(t *testing.T) {
 	input := "match x\n    | 0 -> \"null\"\n    | _ -> \"other\"\n"
 	program := parseProgram(t, input)

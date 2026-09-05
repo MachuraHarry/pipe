@@ -84,6 +84,7 @@ func New(l *lexer.Lexer) *Parser {
 		lexer.LBRACKET: p.parseListLiteral,
 		lexer.LBRACE:   p.parseMapLiteral,
 		lexer.IF:       p.parseIfExpression,
+		lexer.ELIF:     p.parseIfExpression,
 		lexer.MATCH_KW: p.parseMatchExpression,
 		lexer.SELECT:   p.parseSelectExpression,
 		lexer.WHILE:    p.parseWhileExpression,
@@ -777,6 +778,18 @@ func (p *Parser) parseIfExpression() ast.Expression {
 
 	if p.peekTokenIs(lexer.ELSE) {
 		p.nextToken()
+		p.nextToken()
+		expr.Alternative = p.parseBlock()
+	} else if p.peekTokenIs(lexer.ELIF) {
+		// "elif cond" is sugar for "else if cond": land curToken ON the
+		// ELIF token itself (a single nextToken(), not two — there is no
+		// separate ELSE token to also skip) and let parseBlock's
+		// single-expression path dispatch it straight back into
+		// parseIfExpression via prefixParseFns[ELIF], exactly like "else
+		// if" does for IF. This recurses correctly to arbitrary chain
+		// depth and composes with a trailing plain "else", because each
+		// nested parseIfExpression call performs this same peek/consume
+		// check again on its own Alternative.
 		p.nextToken()
 		expr.Alternative = p.parseBlock()
 	}

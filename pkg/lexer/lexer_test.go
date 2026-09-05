@@ -95,6 +95,27 @@ func TestComments(t *testing.T) {
 	})
 }
 
+// TestCommentsAreCollected checks that whole-line comments are recorded on
+// Lexer.Comments (line number + verbatim "--"/"--!" text) as a side effect
+// of normal scanning, even though — as TestComments above shows — they
+// never become tokens. Consumers such as the formatter rely on this to
+// detect that a file has comments it must not silently delete.
+func TestCommentsAreCollected(t *testing.T) {
+	input := "-- plain comment\nx: 42\n--! doc comment\ny: 10\n"
+	l := New(input)
+	l.TokenizeAll()
+
+	if len(l.Comments) != 2 {
+		t.Fatalf("expected 2 comments, got %d: %+v", len(l.Comments), l.Comments)
+	}
+	if l.Comments[0].Line != 1 || l.Comments[0].Text != "-- plain comment" {
+		t.Errorf("comment 1: got %+v", l.Comments[0])
+	}
+	if l.Comments[1].Line != 3 || l.Comments[1].Text != "--! doc comment" {
+		t.Errorf("comment 2: got %+v", l.Comments[1])
+	}
+}
+
 func TestMapLiteral(t *testing.T) {
 	input := `{a: 1, b: 2, c: 3}`
 	tokens := New(input).TokenizeAll()

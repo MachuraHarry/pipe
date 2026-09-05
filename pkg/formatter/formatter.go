@@ -60,6 +60,16 @@ func FormatSource(src string) string {
 	if len(p.Errors()) > 0 {
 		return fallbackFormat(src)
 	}
+	// formatProgram rebuilds source purely from the AST, which has no
+	// representation of comments (the lexer discards "--"/"--!" lines as it
+	// scans — see LineComment). Reformatting a commented file would
+	// therefore silently DELETE every comment. Until the formatter can
+	// actually preserve them, leave such a file completely untouched rather
+	// than risk destroying documentation — l.Comments is populated as a
+	// side effect of the parse above, so this check is free.
+	if len(l.Comments) > 0 {
+		return src
+	}
 	return formatProgram(program)
 }
 
@@ -254,6 +264,10 @@ func formatStatement(out *strings.Builder, stmt ast.Statement, depth int) {
 		out.WriteString(indent)
 		out.WriteString("import ")
 		out.WriteString(parser.QuoteString(s.Path))
+		if s.Alias != "" {
+			out.WriteString(" as ")
+			out.WriteString(s.Alias)
+		}
 		out.WriteByte('\n')
 
 	case *ast.ReturnStatement:

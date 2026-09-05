@@ -66,6 +66,7 @@ const (
 	FN       // fn
 	MATCH_KW // match
 	IF       // if
+	ELIF     // elif
 	ELSE     // else
 	WHILE    // while
 	FOR      // for
@@ -91,6 +92,7 @@ var keywords = map[string]TokenType{
 	"fn":       FN,
 	"match":    MATCH_KW,
 	"if":       IF,
+	"elif":     ELIF,
 	"else":     ELSE,
 	"while":    WHILE,
 	"for":      FOR,
@@ -163,6 +165,7 @@ var tokenNames = map[TokenType]string{
 	FN:        "fn",
 	MATCH_KW:  "match",
 	IF:        "if",
+	ELIF:      "elif",
 	ELSE:      "else",
 	WHILE:     "while",
 	FOR:       "for",

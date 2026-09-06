@@ -409,6 +409,11 @@ func main() {
 			isName = true
 		}
 
+		// An explicit `pipe -get` must always fetch fresh — drop any stale
+		// disk cache for this URL (see object.InvalidateModuleCache; the
+		// cache is otherwise never invalidated).
+		object.InvalidateModuleCache(target)
+
 		modDir := object.ModuleCacheDir()
 		_, content, err := object.ResolveImport(target)
 		if err != nil {

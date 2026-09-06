@@ -234,6 +234,18 @@ func fetchURLModule(url string) (string, string, error) {
 	return url, resp, nil
 }
 
+// InvalidateModuleCache removes the disk-cached copy of a module URL, so a
+// subsequent ResolveImport/fetchURLModule re-downloads it. Used by `pipe -get`
+// for an always-fresh explicit fetch — without this, `pipe -get <name>` served
+// a stale module forever (the cache was only ever written, never invalidated,
+// live-observed when a freshly published sqlite v0.8.6 still resolved to the
+// old pre-ALTER copy). Runtime imports deliberately keep the cache to avoid a
+// network hit on every program run.
+func InvalidateModuleCache(url string) {
+	cachePath := filepath.Join(moduleCacheDir, urlToCacheKey(url))
+	os.Remove(cachePath)
+}
+
 func urlToCacheKey(url string) string {
 	// Convert URL to a safe filename: replace special chars
 	url = strings.ReplaceAll(url, "https://", "")

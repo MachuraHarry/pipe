@@ -11,6 +11,13 @@ type ToolDef struct {
 	Name        string                 `json:"name"`
 	Description string                 `json:"description"`
 	Parameters  map[string]interface{} `json:"parameters"`
+	// ParallelSafe marks a Pipe `fn` tool (set via ai_tool's optional 5th
+	// argument) as touching no shared mutable state — no database, no
+	// shared Pipe Map/List — so runToolBatch may run it concurrently with
+	// its siblings from the same swarm round instead of forcing it onto
+	// the synchronous fallback every other Pipe closure gets there.
+	// Irrelevant to the LLM, so excluded from the wire format.
+	ParallelSafe bool `json:"-"`
 }
 
 type ToolCall struct {

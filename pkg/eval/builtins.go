@@ -166,6 +166,44 @@ func bGo(args ...object.Object) object.Object {
 	return object.NILOBJ
 }
 
+// spawnFunction launches a tree-walker *object.Function in the background on
+// its own EvalContext and returns a Future for its result. Shared by bSpawn
+// and EvalContext.SpawnUserFunction (the latter lets Go callers outside this
+// package, e.g. runToolBatch, spawn a Pipe fn the same safe way).
+func spawnFunction(f *object.Function, fnArgs []object.Object) *object.Future {
+	future := object.NewFuture()
+	// Clone the captured environment so the background goroutine reads a
+	// snapshot instead of racing the caller, which keeps writing to it.
+	branchEnv := f.Env.Clone()
+	go func() {
+		extEnv := object.NewEnclosedEnvironment(branchEnv)
+		for i, p := range f.Parameters {
+			if i < len(fnArgs) {
+				extEnv.Set(p.Value, fnArgs[i])
+			}
+		}
+		// A fresh EvalContext keeps the background call stack isolated
+		// from the caller's (the tree-walker is not goroutine-safe).
+		future.Val = NewEvalContext("<spawn>").Eval(f.Body, extEnv)
+		close(future.Done)
+	}()
+	return future
+}
+
+// SpawnUserFunction satisfies object.UserFunctionSpawner: it lets Go code
+// outside this package (runToolBatch, in particular) safely run a Pipe `fn`
+// tool concurrently with its siblings from the same swarm round, instead of
+// being restricted to the synchronous fallback every other Pipe closure
+// gets there. Only tools the script author has explicitly opted in via
+// ai_tool's parallel_safe flag reach this — see runToolBatch's doc comment.
+func (ctx *EvalContext) SpawnUserFunction(fn object.Object, args ...object.Object) *object.Future {
+	f, ok := fn.(*object.Function)
+	if !ok {
+		return nil
+	}
+	return spawnFunction(f, args)
+}
+
 func bSpawn(args ...object.Object) object.Object {
 	if len(args) < 1 {
 		return newErr("spawn expects at least 1 argument (function)")
@@ -175,23 +213,7 @@ func bSpawn(args ...object.Object) object.Object {
 
 	switch f := fn.(type) {
 	case *object.Function:
-		future := object.NewFuture()
-		// Clone the captured environment so the background goroutine reads a
-		// snapshot instead of racing the caller, which keeps writing to it.
-		branchEnv := f.Env.Clone()
-		go func() {
-			extEnv := object.NewEnclosedEnvironment(branchEnv)
-			for i, p := range f.Parameters {
-				if i < len(fnArgs) {
-					extEnv.Set(p.Value, fnArgs[i])
-				}
-			}
-			// A fresh EvalContext keeps the background call stack isolated
-			// from the caller's (the tree-walker is not goroutine-safe).
-			future.Val = NewEvalContext("<spawn>").Eval(f.Body, extEnv)
-			close(future.Done)
-		}()
-		return future
+		return spawnFunction(f, fnArgs)
 	case *Builtin:
 		future := object.NewFuture()
 		go func() {

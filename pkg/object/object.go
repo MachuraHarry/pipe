@@ -470,6 +470,41 @@ func CallUserFunction(fn Object, args ...Object) Object {
 	return err(fmt.Sprintf("not callable: %s", fn.Type()))
 }
 
+// SpawnUserFunction dispatches a user-defined function to run in the
+// background on whichever runtime created it, mirroring CallUserFunction.
+// Returns nil if fn's runtime has no spawner available (the tree-walker
+// always does; the VM only for *Closure), letting callers fall back to a
+// synchronous call.
+func SpawnUserFunction(fn Object, args ...Object) *Future {
+	switch f := fn.(type) {
+	case *Function:
+		if sp, ok := f.EvalCtx.(UserFunctionSpawner); ok {
+			return sp.SpawnUserFunction(f, args...)
+		}
+	case *Closure:
+		if sp, ok := f.Executor.(UserFunctionSpawner); ok {
+			return sp.SpawnUserFunction(f, args...)
+		}
+	}
+	return nil
+}
+
+// CanSpawnUserFunction reports whether SpawnUserFunction would actually
+// launch fn in the background rather than returning nil. Lets a caller
+// (runToolBatch) decide up front whether a call is eligible for its
+// concurrent path, without triggering the spawn itself.
+func CanSpawnUserFunction(fn Object) bool {
+	switch f := fn.(type) {
+	case *Function:
+		_, ok := f.EvalCtx.(UserFunctionSpawner)
+		return ok
+	case *Closure:
+		_, ok := f.Executor.(UserFunctionSpawner)
+		return ok
+	}
+	return false
+}
+
 func (cf *CompiledFunction) Type() ObjectType { return COMPILED_FUNCTION }
 func (cf *CompiledFunction) Inspect() string  { return "compiled function" }
 func (c *Closure) Type() ObjectType           { return CLOSURE }

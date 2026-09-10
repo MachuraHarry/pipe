@@ -931,7 +931,7 @@ var toolRegistry = map[string]ToolEntry{}
 
 func bAiTool(args ...Object) Object {
 	if len(args) < 4 {
-		return err("ai_tool expects 4 arguments (name, description, parameters, function)")
+		return err("ai_tool expects 4 arguments (name, description, parameters, function), plus an optional 5th boolean (parallel_safe)")
 	}
 	name, ok := args[0].(*String)
 	if !ok {
@@ -947,6 +947,19 @@ func bAiTool(args ...Object) Object {
 	}
 
 	fn := args[3]
+
+	// parallel_safe (optional 5th arg): declares this Pipe fn tool touches
+	// no shared mutable state, so runToolBatch may run it concurrently with
+	// its siblings from the same swarm round. Defaults to false — every
+	// existing ai_tool call site keeps its current (synchronous) behavior.
+	parallelSafe := false
+	if len(args) >= 5 {
+		if b, ok := args[4].(*Boolean); ok {
+			parallelSafe = b.Value
+		} else {
+			return err("ai_tool: fifth argument (parallel_safe) must be a boolean")
+		}
+	}
 
 	paramSchema := make(map[string]interface{})
 	for _, p := range params.Pairs {
@@ -976,6 +989,7 @@ func bAiTool(args ...Object) Object {
 				"properties": paramSchema,
 				"required":   keysToStrings(params),
 			},
+			ParallelSafe: parallelSafe,
 		},
 		Fn: fn,
 	}
@@ -1089,18 +1103,22 @@ func executeTool(profile *SandboxProfile, toolName string, args map[string]inter
 
 // runToolBatch runs 2+ independent tool calls from ONE swarm round
 // concurrently where it is actually safe to do so, and falls back to
-// running the rest synchronously in place. Only *BuiltinInfo entries (MCP-
+// running the rest synchronously in place. *BuiltinInfo entries (MCP-
 // bridged tools, registered in builtins_mcp.go — plain Go closures that
-// call out to a subprocess over stdio/HTTP, never touching the Pipe VM) get
-// a goroutine. Local Pipe `fn` tools (*Closure) run synchronously right
-// here instead: almost all of them read/write the DB via the pure-Pipe
-// "sqlite" module (~/.pipe/modules/sqlite.pipe), whose handle registry is
-// an ordinary, unsynchronized Pipe global List — shared by reference across
-// every VM, including a spawned child VM (spawnClosure's globals snapshot
-// only copies the slice, not what reference-typed elements point to) — so
+// call out to a subprocess over stdio/HTTP, never touching the Pipe VM)
+// always get a goroutine. Local Pipe `fn` tools (*Function/*Closure) run
+// synchronously right here instead by default: almost all of them
+// read/write the DB via the pure-Pipe "sqlite" module
+// (~/.pipe/modules/sqlite.pipe), whose handle registry is an ordinary,
+// unsynchronized Pipe global List — shared by reference across every VM,
+// including a spawned child VM (spawnClosure's globals snapshot only
+// copies the slice, not what reference-typed elements point to) — so
 // concurrent db_query/db_exec calls from two goroutines would race on it.
-// Widening this to *Closure tools needs synchronizing sqlite.pipe's
-// registry first; that is deliberately out of scope here.
+// A Pipe fn tool gets a goroutine too, but ONLY when its author explicitly
+// opted in via ai_tool's parallel_safe argument (asserting it touches no
+// such shared state) — dispatched through SpawnUserFunction, which runs it
+// on its own fresh EvalContext/child VM exactly like `spawn` does, never on
+// the same context/VM instance a sibling call might be using concurrently.
 //
 // Unlike executeTool, which saves/restores ActiveProfile around every
 // individual call via withActiveProfile, this sets it ONCE for the whole
@@ -1112,11 +1130,14 @@ func executeTool(profile *SandboxProfile, toolName string, args map[string]inter
 // (two different profiles racing on the same atomic.Pointer could have a
 // finishing goroutine's restore stomp a still-running sibling's profile),
 // so this batch path avoids it entirely rather than relying on that
-// coincidence.
+// coincidence. Concrete work is deferred into `work[i]` closures run only
+// from inside run()'s goroutines — after ActiveProfile.Store(profile) below
+// — so a parallel-safe Pipe fn tool that itself calls http_request never
+// races the profile switch.
 func runToolBatch(profile *SandboxProfile, calls []ai.ToolCallRequest) []ai.ToolCallResult {
 	results := make([]ai.ToolCallResult, len(calls))
 	concurrent := make([]bool, len(calls))
-	builtins := make([]*BuiltinInfo, len(calls))
+	work := make([]func() Object, len(calls))
 
 	for i, c := range calls {
 		entry, exists := toolRegistry[c.Name]
@@ -1131,16 +1152,27 @@ func runToolBatch(profile *SandboxProfile, calls []ai.ToolCallRequest) []ai.Tool
 			}
 			profile.Audit("tool_call", c.Name)
 		}
+		argObjects := orderedToolArgs(entry, c.Args)
 		if bi, isBuiltin := entry.Fn.(*BuiltinInfo); isBuiltin {
 			concurrent[i] = true
-			builtins[i] = bi
+			work[i] = func() Object { return bi.Fn(argObjects...) }
 			continue
 		}
-		// Local Pipe fn: not eligible for a goroutine (see doc comment) —
-		// run it synchronously right here, same dispatch executeTool would
-		// use, just without its own per-call ActiveProfile save/restore
-		// (the batch sets it once, below).
-		argObjects := orderedToolArgs(entry, c.Args)
+		if entry.Def.ParallelSafe && CanSpawnUserFunction(entry.Fn) {
+			fn := entry.Fn
+			concurrent[i] = true
+			work[i] = func() Object {
+				future := SpawnUserFunction(fn, argObjects...)
+				<-future.Done
+				return future.Val
+			}
+			continue
+		}
+		// Local Pipe fn without a spawner, or not opted in: not eligible
+		// for a goroutine (see doc comment) — run it synchronously right
+		// here, same dispatch executeTool would use, just without its own
+		// per-call ActiveProfile save/restore (the batch sets it once,
+		// below).
 		results[i] = ai.ToolCallResult{Content: CallUserFunction(entry.Fn, argObjects...).Inspect()}
 	}
 
@@ -1153,9 +1185,7 @@ func runToolBatch(profile *SandboxProfile, calls []ai.ToolCallRequest) []ai.Tool
 			wg.Add(1)
 			go func(i int) {
 				defer wg.Done()
-				entry := toolRegistry[calls[i].Name]
-				argObjects := orderedToolArgs(entry, calls[i].Args)
-				results[i] = ai.ToolCallResult{Content: builtins[i].Fn(argObjects...).Inspect()}
+				results[i] = ai.ToolCallResult{Content: work[i]().Inspect()}
 			}(i)
 		}
 		wg.Wait()

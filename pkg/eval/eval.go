@@ -743,17 +743,18 @@ func (ctx *EvalContext) evalFnStatement(fn *ast.FnStatement, env *object.Environ
 	return fnObj
 }
 
-// isAwaitBuiltin reports whether fn is the await builtin, which must receive
-// its Future argument unresolved so a timeout can be applied.
-func isAwaitBuiltin(fn object.Object) bool {
+// preservesFutureArgs reports whether fn must receive its Future arguments
+// unresolved rather than having them auto-resolved (which blocks until the
+// Future completes) before dispatch — see object.PreservesFutureArgs.
+func preservesFutureArgs(fn object.Object) bool {
 	if b, ok := fn.(*Builtin); ok {
-		return b.Name == object.AwaitBuiltinName
+		return object.PreservesFutureArgsByName(b.Name)
 	}
-	return object.IsAwaitBuiltin(fn)
+	return object.PreservesFutureArgs(fn)
 }
 
 func (ctx *EvalContext) applyFunction(fn object.Object, args []object.Object) object.Object {
-	if !isAwaitBuiltin(fn) {
+	if !preservesFutureArgs(fn) {
 		for i, arg := range args {
 			args[i] = object.EnsureResolved(arg)
 		}

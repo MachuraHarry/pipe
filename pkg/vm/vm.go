@@ -656,7 +656,7 @@ func (vm *VM) callFunction(numArgs int) {
 		for i := numArgs - 1; i >= 0; i-- {
 			args[i] = vm.pop()
 		}
-		if !object.IsAwaitBuiltin(fn) {
+		if !object.PreservesFutureArgs(fn) {
 			for i := range args {
 				args[i] = object.EnsureResolved(args[i])
 			}

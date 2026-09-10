@@ -401,12 +401,45 @@ type UserFunctionSpawner interface {
 // callable auto-resolves Future arguments before dispatch.
 const AwaitBuiltinName = "await"
 
+// futurePreservingBuiltins are the builtins that must receive a Future
+// argument unresolved rather than have it auto-resolved (blocking) before
+// dispatch. `await` needs the raw Future to apply its optional timeout;
+// `push`/`set` are container-mutation builtins used to collect Futures for
+// a later batch `await` (e.g. `push futures (spawn worker)` inside a loop,
+// then awaiting each one afterwards) — resolving eagerly there would block
+// the collecting loop on each Future in turn, silently serializing work
+// that spawn/await was used specifically to run concurrently.
+var futurePreservingBuiltins = map[string]bool{
+	AwaitBuiltinName: true,
+	"push":           true,
+	"set":            true,
+}
+
 // IsAwaitBuiltin reports whether fn is the await builtin.
 func IsAwaitBuiltin(fn Object) bool {
 	if bi, ok := fn.(*BuiltinInfo); ok {
 		return bi.Name == AwaitBuiltinName
 	}
 	return false
+}
+
+// PreservesFutureArgs reports whether fn must receive its Future arguments
+// unresolved rather than having them auto-resolved (which blocks until the
+// Future completes) before dispatch.
+func PreservesFutureArgs(fn Object) bool {
+	if bi, ok := fn.(*BuiltinInfo); ok {
+		return futurePreservingBuiltins[bi.Name]
+	}
+	return false
+}
+
+// PreservesFutureArgsByName reports whether the builtin named name must
+// receive its Future arguments unresolved. Exported so callers outside this
+// package that wrap object.Builtins in their own callable type (e.g. the
+// tree-walker's eval.Builtin) can reuse the same rule by name instead of by
+// concrete type.
+func PreservesFutureArgsByName(name string) bool {
+	return futurePreservingBuiltins[name]
 }
 
 type Closure struct {

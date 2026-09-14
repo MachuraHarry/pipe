@@ -4,6 +4,12 @@ All notable changes to Pipe are documented here. This file follows [Keep a Chang
 
 ## [Unreleased]
 
+### Fixed
+- **`ai_swarm`/`ai_swarm_trace`/`ai_swarm_stream`: recognize DeepSeek's leaked pipe-wrapped tool-call markup** — some DeepSeek endpoints occasionally emit a handoff/tool call as garbled plain text using fullwidth-pipe-wrapped special tokens (e.g. `<｜｜DSML｜｜ invoke name="...">`) instead of a structured `tool_calls` field. This was live-reproduced and previously went unrecognized by the existing ASCII-only `<|invoke ...>` markup parser, causing an unproductive "you did not call a tool" retry loop that silently exhausted `max_rounds` with no answer. The parser now also matches this pipe-wrapped-marker *shape* generically (not a hardcoded string), covering both the observed form and DeepSeek's documented `tool▁calls▁begin` marker family.
+- **`ai_swarm`/`ai_swarm_trace`/`ai_swarm_stream`: continuous round-budget awareness** — the model now gets a low-key "Round X of Y" note from round 1 onward, escalating through a firmer "start converging" nudge as the last ~10% of rounds approaches, instead of staying completely silent about its round budget until the existing urgent cutoff warning fires in the final stretch. Helps the model converge earlier instead of exploring for too long and running out of rounds.
+
+(Assessed, deferred to a follow-up: a same-agent "stuck" detector — distinct from the existing two-agent oscillation detector — for a single agent that repeatedly produces no recognized tool call. The two fixes above resolve the reproduced failure directly; a hardcoded stall threshold risks prematurely aborting a legitimately slow-to-comply agent.)
+
 ---
 
 ## [1.3.0] — 2026-09-14

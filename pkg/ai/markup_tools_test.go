@@ -1,6 +1,9 @@
 package ai
 
-import "testing"
+import (
+	"encoding/json"
+	"testing"
+)
 
 func TestParseMarkupToolCalls(t *testing.T) {
 	// DeepSeek-style XML markup should be recognized and turned into real calls.
@@ -66,5 +69,42 @@ func TestParseMarkupToolCallsHandoffOnly(t *testing.T) {
 	}
 	if len(calls) != 1 || calls[0].Name != "__handoff__" || calls[0].Arguments != `{"to":"b"}` {
 		t.Fatalf("unexpected handoff parsing: %+v", calls)
+	}
+}
+
+func TestParseMarkupToolCallsRecognizesDSMLLeakedTokens(t *testing.T) {
+	// Reproduces the live-observed DeepSeek failure: a garbled leaked-special-
+	// token dump instead of a structured tool_calls field.
+	markup := "<｜｜DSML｜｜ calls>" +
+		"<｜｜DSML｜｜ invoke name=\"__handoff__\">" +
+		"<｜｜DSML｜｜ parameter name=\"to\" string=\"true\">billing</｜｜DSML｜｜ parameter>" +
+		"<｜｜DSML｜｜ parameter name=\"reason\" string=\"true\">verify the invoice</｜｜DSML｜｜ parameter>" +
+		"</｜｜DSML｜｜ invoke></｜｜DSML｜｜ calls>"
+
+	calls, ok := parseMarkupToolCalls(markup)
+	if !ok {
+		t.Fatalf("expected DSML-style markup to be recognized as tool calls, got ok=false")
+	}
+	if len(calls) != 1 || calls[0].Name != "__handoff__" {
+		t.Fatalf("expected 1 handoff call, got %+v", calls)
+	}
+	var args map[string]string
+	if err := json.Unmarshal([]byte(calls[0].Arguments), &args); err != nil {
+		t.Fatalf("unmarshaling arguments: %v", err)
+	}
+	if args["to"] != "billing" || args["reason"] != "verify the invoice" {
+		t.Errorf("args = %+v, want to=billing reason=\"verify the invoice\"", args)
+	}
+}
+
+func TestParseMarkupToolCallsRecognizesGenericPipeWrappedMarker(t *testing.T) {
+	// A DIFFERENT marker spelling than "DSML" must still be recognized — the
+	// regex matches the pipe-wrapped-marker SHAPE, not a hardcoded string.
+	markup := "<｜tool▁call▁begin｜ invoke name=\"search_web\">" +
+		"<｜tool▁call▁begin｜ parameter name=\"query\">pipe language</｜tool▁call▁begin｜ parameter>" +
+		"</｜tool▁call▁begin｜ invoke>"
+	calls, ok := parseMarkupToolCalls(markup)
+	if !ok || len(calls) != 1 || calls[0].Name != "search_web" {
+		t.Fatalf("expected search_web call recognized regardless of marker spelling, got ok=%v calls=%+v", ok, calls)
 	}
 }

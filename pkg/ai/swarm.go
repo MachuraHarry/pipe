@@ -171,16 +171,34 @@ func ChatSwarm(entryAgent string, agents map[string]SwarmAgentSpec, userPrompt s
 		// so max-rounds was exceeded anyway despite the model doing exactly
 		// what the warning asked. 3 gives at least one real hand-off-and-
 		// respond chain room to finish inside the warning window.
+		//
+		// Below the urgent tier, two lighter "[PROGRESS]" tiers (deliberately
+		// a different prefix than "[SYSTEM]", so the urgent-tier tests keep
+		// passing unmodified) give the model round-budget awareness from
+		// round 1 onward instead of staying silent until the last ~10% —
+		// a model that ignores the late urgent warning still had earlier
+		// chances to start converging on its own.
 		reqMessages := messages
 		roundsLeft := maxRounds - round
 		warnThreshold := maxRounds / 10
 		if warnThreshold < 3 {
 			warnThreshold = 3
 		}
-		if roundsLeft <= warnThreshold {
+		switch {
+		case roundsLeft <= warnThreshold:
 			reqMessages = append(append([]map[string]interface{}{}, messages...), map[string]interface{}{
 				"role":    "user",
 				"content": fmt.Sprintf("[SYSTEM] Only %d of %d rounds remain before this conversation is cut off with NO answer delivered at all. Wrap up NOW: stop exploring or gathering more information and use whatever you already have to produce a usable result THIS round — answer directly, or use your handoff tool to hand off immediately if you are not the one who finalizes. A complete-enough answer now is far better than no answer.", roundsLeft, maxRounds),
+			})
+		case roundsLeft <= warnThreshold*3:
+			reqMessages = append(append([]map[string]interface{}{}, messages...), map[string]interface{}{
+				"role":    "user",
+				"content": fmt.Sprintf("[PROGRESS] Round %d of %d (%d rounds left). Start converging toward a final answer soon — favor a decisive tool call or handoff over further open-ended exploration.", round+1, maxRounds, roundsLeft),
+			})
+		default:
+			reqMessages = append(append([]map[string]interface{}{}, messages...), map[string]interface{}{
+				"role":    "user",
+				"content": fmt.Sprintf("[PROGRESS] Round %d of %d. Plenty of budget remains — no rush, just keep making real progress each round (use a tool, hand off, or answer) rather than only narrating.", round+1, maxRounds),
 			})
 		}
 

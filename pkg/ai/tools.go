@@ -240,9 +240,34 @@ func chatWithToolsRaw(messages []map[string]interface{}, tools []ToolDef) (toolR
 //	<|parameter name="query">pipe language</parameter>
 //	</invoke>
 //	<|/tool_calls|>
+//
+// dsmlWrapFrag matches a leaked special-token wrapper some DeepSeek endpoints emit
+// around invoke/parameter keywords instead of returning a real structured
+// "tool_calls" field, e.g. "｜｜DSML｜｜ " immediately before "invoke" in
+// "<｜｜DSML｜｜ invoke name=\"...\">". The marker text between the pipe runs
+// (DSML above) is deliberately NOT hardcoded — this matches on the fullwidth- or
+// ASCII-pipe-pair SHAPE generically, because different DeepSeek
+// endpoints/tokenizer versions have been observed leaking different marker
+// spellings (including the documented "tool▁calls▁begin" family) for what is
+// structurally the same failed-render event.
+const dsmlWrapFrag = `[｜|]{1,3}[^<>｜|]{0,40}[｜|]{1,3}\s*`
+
 var (
 	invokeBlockRe = regexp.MustCompile(`(?s)<\|?invoke\s+name=["']([^"']+)["']\s*>?(.*?)</invoke>`)
 	paramRe       = regexp.MustCompile(`(?s)<\|?parameter\s+name=["']([^"']+)["']\s*>?(.*?)</parameter>`)
+
+	// dsmlInvokeRe / dsmlParamRe recognize the same invoke/parameter shape as
+	// above but require the leaked pipe-wrapped marker on BOTH the opening
+	// and closing tag (deliberately mandatory here, unlike invokeBlockRe's
+	// optional single "|", so these two never overlap/duplicate matches
+	// already found by invokeBlockRe/paramRe), and tolerate extra attributes
+	// (e.g. "string=\"true\"") between the name attribute and the closing
+	// ">" of the opening tag. Example matched shape:
+	//   <｜｜DSML｜｜ invoke name="__handoff__">
+	//   <｜｜DSML｜｜ parameter name="reason" string="true">verify the invoice</｜｜DSML｜｜ parameter>
+	//   </｜｜DSML｜｜ invoke>
+	dsmlInvokeRe = regexp.MustCompile(`(?is)<` + dsmlWrapFrag + `invoke\s+name=["']([^"']+)["'][^>]*>(.*?)</` + dsmlWrapFrag + `invoke\s*>`)
+	dsmlParamRe  = regexp.MustCompile(`(?is)<` + dsmlWrapFrag + `parameter\s+name=["']([^"']+)["'][^>]*>(.*?)</` + dsmlWrapFrag + `parameter\s*>`)
 )
 
 // parseMarkupToolCalls scans content for XML-style tool-call blocks and returns
@@ -252,6 +277,7 @@ var (
 // "unknown tool" result for anything not registered.
 func parseMarkupToolCalls(content string) ([]ToolCall, bool) {
 	blocks := invokeBlockRe.FindAllStringSubmatch(content, -1)
+	blocks = append(blocks, dsmlInvokeRe.FindAllStringSubmatch(content, -1)...)
 	if len(blocks) == 0 {
 		return nil, false
 	}
@@ -262,6 +288,11 @@ func parseMarkupToolCalls(content string) ([]ToolCall, bool) {
 		name := strings.TrimSpace(m[1])
 		params := make(map[string]interface{})
 		for _, p := range paramRe.FindAllStringSubmatch(m[2], -1) {
+			key := strings.TrimSpace(p[1])
+			val := strings.Trim(p[2], `"`)
+			params[key] = val
+		}
+		for _, p := range dsmlParamRe.FindAllStringSubmatch(m[2], -1) {
 			key := strings.TrimSpace(p[1])
 			val := strings.Trim(p[2], `"`)
 			params[key] = val

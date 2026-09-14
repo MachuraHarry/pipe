@@ -693,6 +693,12 @@ func TestChatSwarmWarnsBeforeRoundsRunOut(t *testing.T) {
 	// maxRounds=13: warnThreshold is floor(13/10)=1, raised to the 3-round
 	// minimum, so requests 1-10 (roundsLeft > 3) must NOT carry the warning
 	// and requests 11-13 (roundsLeft <= 3) must.
+	//
+	// Rounds 1-10 now also carry a lighter "[PROGRESS] Round X of Y" note
+	// (a different prefix, added so the model has round-budget awareness
+	// well before this urgent tier) — that is by design and does not
+	// conflict with this test, which only asserts the absence of the
+	// literal "[SYSTEM] Only" substring, not the absence of any other text.
 	const maxRounds = 13
 	round := 0
 	withMockChatServer(t, func(w http.ResponseWriter, r *http.Request) {
@@ -963,6 +969,80 @@ func TestChatSwarmOscillationOnlyWithdrawsThePairedPartner(t *testing.T) {
 	}
 	if round != 5 {
 		t.Errorf("server received %d requests, want 5", round)
+	}
+}
+
+// TestChatSwarmHandlesDSMLGarbledHandoffResponse guards against a live-
+// observed DeepSeek failure mode: instead of a structured tool_calls field,
+// the model emits its handoff as leaked pipe-wrapped special-token markup in
+// plain "content" (e.g. "<｜｜DSML｜｜ invoke name=\"__handoff__\">..."). Before
+// Fix 1, this text was unrecognized by the ASCII-only markup parser, so the
+// swarm retried unproductively until max_rounds was exhausted with no
+// answer. It should now be parsed as a real handoff.
+func TestChatSwarmHandlesDSMLGarbledHandoffResponse(t *testing.T) {
+	round := 0
+	withMockChatServer(t, func(w http.ResponseWriter, r *http.Request) {
+		round++
+		if round == 1 {
+			writeChatContent(w, "<｜｜DSML｜｜ calls><｜｜DSML｜｜ invoke name=\"__handoff__\">"+
+				"<｜｜DSML｜｜ parameter name=\"to\" string=\"true\">billing</｜｜DSML｜｜ parameter>"+
+				"</｜｜DSML｜｜ invoke></｜｜DSML｜｜ calls>")
+			return
+		}
+		writeChatContent(w, "Handled by billing.")
+	})
+
+	agents := map[string]SwarmAgentSpec{
+		"triage":  {SystemPrompt: "TRIAGE", HandoffTo: []string{"billing"}},
+		"billing": {SystemPrompt: "BILLING"},
+	}
+
+	result, err := ChatSwarm("triage", agents, "hi", nil, 5, nil, nil, nil)
+	if err != nil {
+		t.Fatalf("ChatSwarm: unexpected error: %v", err)
+	}
+	if result.Content != "Handled by billing." {
+		t.Errorf("Content = %q, want %q", result.Content, "Handled by billing.")
+	}
+	wantPath := []string{"triage", "billing"}
+	if !equalStrSlices(result.Path, wantPath) {
+		t.Errorf("Path = %v, want %v", result.Path, wantPath)
+	}
+}
+
+// TestChatSwarmShowsLowKeyRoundAwarenessFromRoundOne guards the new
+// continuous round-awareness tiers: a model should learn its round budget
+// from round 1 onward via a calm "[PROGRESS]" note, not stay uninformed
+// until the urgent "[SYSTEM]" tier fires in the last ~10% of rounds.
+func TestChatSwarmShowsLowKeyRoundAwarenessFromRoundOne(t *testing.T) {
+	const maxRounds = 20
+	round := 0
+	var firstBody string
+	withMockChatServer(t, func(w http.ResponseWriter, r *http.Request) {
+		round++
+		if round == 1 {
+			body, err := io.ReadAll(r.Body)
+			if err != nil {
+				t.Fatalf("reading request body: %v", err)
+			}
+			firstBody = string(body)
+		}
+		writeChatContent(w, "done")
+	})
+	agents := map[string]SwarmAgentSpec{"agent": {SystemPrompt: "AGENT"}}
+
+	_, err := ChatSwarm("agent", agents, "hi", nil, maxRounds, nil, nil, nil)
+	if err != nil {
+		t.Fatalf("ChatSwarm: unexpected error: %v", err)
+	}
+	if !strings.Contains(firstBody, "[PROGRESS] Round 1 of 20") {
+		t.Errorf("round 1 request missing low-key round-awareness message; body = %s", firstBody)
+	}
+	if strings.Contains(firstBody, "[SYSTEM] Only") {
+		t.Errorf("round 1 of a 20-round run should not carry the urgent cutoff warning; body = %s", firstBody)
+	}
+	if strings.Contains(firstBody, "cut off") || strings.Contains(firstBody, "NOW") {
+		t.Errorf("round 1 message reads as alarmist; body = %s", firstBody)
 	}
 }
 

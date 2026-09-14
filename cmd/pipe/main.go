@@ -33,7 +33,7 @@ import (
 	"github.com/peterh/liner"
 )
 
-var version = "v1.1.1"
+var version = "v1.3.0"
 
 func main() {
 	// Hidden internal mode: "--mcp-watchdog <pgid>" (see
@@ -643,19 +643,6 @@ func main() {
 	} else {
 		runEval(program, scriptArgs, filePath, string(data))
 	}
-}
-
-// runMCPWatchdog implements the hidden "--mcp-watchdog" mode: consume stdin
-// until EOF (i.e. until the parent pipe process died — the kernel closes the
-// write end on process teardown regardless of the exit mode), then kill the
-// MCP server's whole process group. See pkg/mcp/procattr_unix.go for the
-// full rationale (grandchildren survive Pdeathsig).
-func runMCPWatchdog(pgidArg string) {
-	_, _ = io.Copy(io.Discard, os.Stdin)
-	if pgid, err := strconv.Atoi(pgidArg); err == nil {
-		_ = syscall.Kill(-pgid, syscall.SIGKILL)
-	}
-	os.Exit(0)
 }
 
 func runSearch(term string) {

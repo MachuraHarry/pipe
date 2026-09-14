@@ -217,7 +217,7 @@ type Compiler struct {
 	// symbol-table scope as its enclosing loop (for-loops don't open their
 	// own enclosed scope), so two hardcoded names would collide.
 	forInCounter int
-	importCache map[string]*ast.Program
+	importCache  map[string]*ast.Program
 	// importedExports caches the export bindings of modules already compiled
 	// via unaliased import, so a second `import "m"` re-injects the aliases
 	// without recompiling the module (matching the tree-walker's shared

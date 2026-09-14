@@ -11,29 +11,38 @@
 /* ---------- Playground layout ---------- */
 .pg-container { max-width: 1280px; margin: 0 auto; padding: 110px 20px 60px; }
 nav a.active { color: var(--fg); }
-.pg-header { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 12px 24px; margin-bottom: 20px; }
-.pg-title h1 { margin: 0; font-size: 26px; letter-spacing: -0.02em; }
-.pg-title p { margin: 4px 0 0; color: #8b8fa3; font-size: 13.5px; }
+.pg-header { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 12px 24px; margin-bottom: 32px; }
+.pg-title h1 { margin: 0; font-size: clamp(1.6rem, 3vw, 1.9rem); letter-spacing: -0.02em; }
+.pg-title h1 .grad { background: linear-gradient(135deg, var(--accent), var(--accent2)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+.pg-title p { margin: 6px 0 0; color: var(--fg2); font-size: 13.5px; max-width: 60ch; }
 .pg-badges { margin-left: auto; display: flex; gap: 8px; align-items: center; }
-.badge { font-size: 11px; padding: 4px 10px; border-radius: 999px; border: 1px solid #2b2d3d; color: #a9acc2; background: #16171f; white-space: nowrap; }
-.badge.ok { color: #34d399; border-color: rgba(52,211,153,.35); }
+.badge { font-size: 11px; padding: 4px 10px; border-radius: 999px; border: 1px solid var(--border); color: var(--fg2); background: var(--bg3); white-space: nowrap; }
+.badge.ok { color: var(--green); border-color: rgba(60,224,150,.35); background: rgba(60,224,150,.1); }
 
 .pg-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; align-items: start; }
 @media (max-width: 1000px) { .pg-grid { grid-template-columns: 1fr; } }
 
 /* ---------- Editor ---------- */
-.card { background: #101117; border: 1px solid #2b2d3d; border-radius: 12px; overflow: hidden; }
-.card-head { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 10px 14px; border-bottom: 1px solid #2b2d3d; background: #14151d; }
-.card-head h3 { margin: 0 8px 0 0; font-size: 13px; letter-spacing: .04em; text-transform: uppercase; color: #8b8fa3; }
-.btn { font: inherit; font-size: 12.5px; padding: 6px 12px; border-radius: 8px; border: 1px solid #2b2d3d; background: #1b1c26; color: #e4e5f1; cursor: pointer; transition: border-color .15s, background .15s, transform .05s; }
-.btn:hover { border-color: #4b4d6b; background: #23242f; }
+/* Named .pg-card (not .card) so this page doesn't silently shadow
+ * style.css's sitewide .card (hover-lift + shadow) with a flatter local
+ * definition — this local one intentionally mirrors .play-card instead. */
+.pg-card { background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow); transition: border-color .3s; }
+.pg-card:hover { border-color: rgba(168,85,247,0.25); }
+.card-head { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 10px 14px; border-bottom: 1px solid var(--border); background: var(--bg2); }
+.card-head h3 { margin: 0 8px 0 0; font-size: 13px; letter-spacing: .04em; text-transform: uppercase; color: var(--fg2); }
+.btn { font: inherit; font-size: 12.5px; padding: 6px 12px; border-radius: 8px; border: 1px solid var(--border); background: var(--bg3); color: var(--fg); cursor: pointer; transition: border-color .15s, background .15s, transform .05s; }
+.btn:hover { border-color: var(--accent); background: #1c1c2c; }
 .btn:active { transform: translateY(1px); }
-.btn.primary { background: #6d5ef2; border-color: #6d5ef2; color: #fff; }
-.btn.primary:hover { background: #7d70f4; }
+.btn.primary { background: linear-gradient(135deg, var(--accent), var(--accent2)); border-color: transparent; color: #fff; }
+.btn.primary:hover { filter: brightness(1.1); }
 .btn.primary:disabled, .btn:disabled { opacity: .5; cursor: not-allowed; }
-.btn.danger:hover { border-color: #f87171; color: #f87171; }
+.btn.danger:hover { border-color: var(--red); color: var(--red); }
+.btn.ghost { background: transparent; color: var(--fg2); }
+.btn.ghost:hover { color: var(--fg); border-color: var(--fg3); background: var(--bg2); }
 .spacer { flex: 1; }
-.toolbar { display: flex; flex-wrap: wrap; gap: 8px; }
+.toolbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.toolbar-secondary { display: flex; flex-wrap: wrap; gap: 6px; padding-right: 10px; margin-right: 4px; border-right: 1px solid var(--border); }
+.toolbar-primary { display: flex; gap: 8px; }
 
 .editor-wrap {
   position: relative;
@@ -43,90 +52,98 @@ nav a.active { color: var(--fg); }
   overscroll-behavior: contain;
 }
 .editor-wrap .cm-editor { height: 100%; }
-.editor-wrap .cm-editor.cm-focused { box-shadow: inset 0 0 0 1px #6d5ef2; }
-#code-area-fallback:focus { box-shadow: inset 0 0 0 1px #6d5ef2; }
+.editor-wrap .cm-editor.cm-focused { box-shadow: inset 0 0 0 1px var(--accent); }
+#code-area-fallback:focus { box-shadow: inset 0 0 0 1px var(--accent); }
 
-.status-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; padding: 8px 14px; border-top: 1px solid #2b2d3d; font-size: 12px; color: #8b8fa3; background: #14151d; }
+.status-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; padding: 8px 14px; border-top: 1px solid var(--border); font-size: 12px; color: var(--fg2); background: var(--bg2); }
 .status-dot { width: 8px; height: 8px; border-radius: 50%; background: #f59e0b; }
-.status-dot.ok { background: #34d399; }
-.status-dot.err { background: #f87171; }
+.status-dot.ok { background: var(--green); }
+.status-dot.err { background: var(--red); }
 #status-text { flex: 1; }
 #status-version { font-variant-numeric: tabular-nums; }
 
-.ai-bar { display: flex; flex-wrap: wrap; gap: 8px; padding: 10px 14px; border-top: 1px solid #2b2d3d; background: #14151d; align-items: center; }
-.ai-bar label { font-size: 12px; color: #8b8fa3; }
-.ai-bar select, .ai-bar input { font: inherit; font-size: 12.5px; padding: 6px 10px; border-radius: 8px; border: 1px solid #2b2d3d; background: #1b1c26; color: #e4e5f1; }
+.ai-settings { border-top: 1px solid var(--border); background: var(--bg2); }
+.ai-settings summary { list-style: none; cursor: pointer; padding: 10px 14px; font-size: 12px; color: var(--fg2); display: flex; align-items: center; gap: 6px; user-select: none; }
+.ai-settings summary::-webkit-details-marker { display: none; }
+.ai-settings summary:hover { color: var(--fg); }
+.ai-settings summary::after { content: '›'; margin-left: auto; transition: transform .2s; font-size: 15px; }
+.ai-settings[open] summary::after { transform: rotate(90deg); }
+.ai-bar { display: flex; flex-wrap: wrap; gap: 8px; padding: 4px 14px 10px; align-items: center; }
+.ai-bar label { font-size: 12px; color: var(--fg2); }
+.ai-bar select, .ai-bar input { font: inherit; font-size: 12.5px; padding: 6px 10px; border-radius: 8px; border: 1px solid var(--border); background: var(--bg3); color: var(--fg); }
 .ai-key-wrap { display: flex; gap: 6px; align-items: center; flex: 1; min-width: 160px; }
 .ai-key-wrap input { flex: 1; min-width: 0; }
 .ai-key-toggle { font-size: 14px; padding: 6px 10px; line-height: 1; }
-.ai-trust { margin: 0; padding: 0 14px 10px; font-size: 11px; color: #64748b; background: #14151d; }
+.ai-trust { margin: 0; padding: 0 14px 12px; font-size: 11px; color: var(--fg3); }
+.ai-ollama-note { flex: 1 1 100%; font-size: 11px; color: var(--fg2); }
+.ai-ollama-note code { background: var(--bg3); padding: 1px 5px; border-radius: 5px; font-size: 10.5px; }
 
 /* ---------- Output / tabs ---------- */
-.tabs { display: flex; gap: 2px; padding: 0 10px; border-bottom: 1px solid #2b2d3d; background: #14151d; }
-.tab-btn { font: inherit; font-size: 12.5px; padding: 10px 14px; background: none; border: 0; border-bottom: 2px solid transparent; color: #8b8fa3; cursor: pointer; }
-.tab-btn.active { color: #e4e5f1; border-bottom-color: #6d5ef2; }
+.tabs { display: flex; gap: 2px; padding: 0 10px; border-bottom: 1px solid var(--border); background: var(--bg2); }
+.tab-btn { font: inherit; font-size: 12.5px; padding: 10px 14px; background: none; border: 0; border-bottom: 2px solid transparent; color: var(--fg2); cursor: pointer; }
+.tab-btn.active { color: var(--fg); border-bottom-color: var(--accent); }
 .tab-panel { display: none; }
 .tab-panel.active { display: block; }
-#output-panel { background: #0c0d12; }
+#output-panel { background: var(--bg); }
 #output {
   margin: 0; padding: 16px;
   min-height: min(30vh, 280px); min-height: min(30dvh, 280px);
   max-height: min(55vh, 480px); max-height: min(55dvh, 480px);
   overflow: auto; overscroll-behavior: contain;
-  font-family: "Cascadia Code", "JetBrains Mono", Menlo, Consolas, monospace; font-size: 13px; line-height: 1.65; white-space: pre-wrap; word-break: break-word; color: #e4e5f1;
+  font-family: "Cascadia Code", "JetBrains Mono", Menlo, Consolas, monospace; font-size: 13px; line-height: 1.65; white-space: pre-wrap; word-break: break-word; color: var(--fg);
 }
-#output .out-ok { color: #34d399; }
-#output .out-err { color: #f87171; }
-#output .out-dim { color: #64748b; }
+#output .out-ok { color: var(--green); }
+#output .out-err { color: var(--red); }
+#output .out-dim { color: var(--fg3); }
 #output p { margin: 0 0 8px; }
-.out-meta { padding: 8px 16px; border-top: 1px solid #2b2d3d; font-size: 12px; color: #8b8fa3; display: flex; gap: 16px; flex-wrap: wrap; }
+.out-meta { padding: 8px 16px; border-top: 1px solid var(--border); font-size: 12px; color: var(--fg2); display: flex; gap: 16px; flex-wrap: wrap; }
 
-#rating-bar { display: none; align-items: center; gap: 10px; padding: 10px 16px; border-top: 1px solid #2b2d3d; font-size: 13px; color: #e4e5f1; background: #14151d; }
+#rating-bar { display: none; align-items: center; gap: 10px; padding: 10px 16px; border-top: 1px solid var(--border); font-size: 13px; color: var(--fg); background: var(--bg2); }
 #rating-bar .stars { display: flex; gap: 2px; }
-#rating-bar .star { font-size: 20px; cursor: pointer; color: #4b4d6b; user-select: none; }
+#rating-bar .star { font-size: 20px; cursor: pointer; color: var(--fg3); user-select: none; }
 #rating-bar .star.active { color: #fbbf24; }
-#rating-bar .avg { font-size: 12px; color: #8b8fa3; }
+#rating-bar .avg { font-size: 12px; color: var(--fg2); }
 
-#graph-panel { background: #0c0d12; }
-.graph-toolbar { display: flex; flex-wrap: wrap; gap: 8px; padding: 8px 12px; border-bottom: 1px solid #2b2d3d; align-items: center; }
-.graph-toolbar label { font-size: 12px; color: #8b8fa3; }
+#graph-panel { background: var(--bg); }
+.graph-toolbar { display: flex; flex-wrap: wrap; gap: 8px; padding: 8px 12px; border-bottom: 1px solid var(--border); align-items: center; }
+.graph-toolbar label { font-size: 12px; color: var(--fg2); }
 #graph-body { overflow: auto; overscroll-behavior: contain; min-height: min(30vh, 280px); min-height: min(30dvh, 280px); }
 #graph-svg { display: block; margin: 0 auto; width: 100%; max-width: 1200px; height: auto; }
-.legend { display: flex; flex-wrap: wrap; gap: 12px; padding: 10px 16px; border-top: 1px solid #2b2d3d; font-size: 12px; color: #8b8fa3; }
+.legend { display: flex; flex-wrap: wrap; gap: 12px; padding: 10px 16px; border-top: 1px solid var(--border); font-size: 12px; color: var(--fg2); }
 .legend .chip { display: inline-flex; align-items: center; gap: 6px; }
 .legend .swatch { width: 10px; height: 10px; border-radius: 3px; display: inline-block; }
-.legend .swatch.edge { background: #7c3aed; }
-.legend .swatch.vnode { background: #6d5ef2; }
-.legend .swatch.const { background: #34d399; }
+.legend .swatch.edge { background: var(--accent2); }
+.legend .swatch.vnode { background: var(--accent); }
+.legend .swatch.const { background: var(--green); }
 .legend .swatch.fn { background: #f97316; }
-.graph-msg { padding: 16px; color: #8b8fa3; font-size: 13px; }
-.graph-msg.err { color: #f87171; }
+.graph-msg { padding: 16px; color: var(--fg2); font-size: 13px; }
+.graph-msg.err { color: var(--red); }
 
 /* ---------- Templates ---------- */
-.select-label { font-size: 12px; color: #8b8fa3; margin-left: 4px; }
-#template-select { font: inherit; font-size: 12.5px; padding: 6px 10px; border-radius: 8px; border: 1px solid #2b2d3d; background: #1b1c26; color: #e4e5f1; }
+.select-label { font-size: 12px; color: var(--fg2); margin-left: 4px; }
+#template-select { font: inherit; font-size: 12.5px; padding: 6px 10px; border-radius: 8px; border: 1px solid var(--border); background: var(--bg3); color: var(--fg); }
 
 /* ---------- Top rated ---------- */
-.top-section { margin-top: 28px; }
+.top-section { margin-top: 40px; }
 .top-section h3 { font-size: 16px; margin: 0 0 4px; }
-.top-sub { color: #8b8fa3; font-size: 13px; margin: 0 0 14px; }
+.top-sub { color: var(--fg2); font-size: 13px; margin: 0 0 14px; }
 .top-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px; }
-.top-item { background: #14151d; border: 1px solid #2b2d3d; border-radius: 10px; padding: 14px; display: flex; flex-direction: column; gap: 8px; }
+.top-item { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 14px; display: flex; flex-direction: column; gap: 8px; transition: border-color .2s; }
+.top-item:hover { border-color: var(--accent); }
 .top-item .t-head { display: flex; align-items: center; gap: 8px; }
 .top-item .t-name { font-weight: 600; font-size: 14px; flex: 1; word-break: break-word; }
 .top-item .t-stars { color: #fbbf24; font-size: 13px; }
-.top-item .t-lines { font-size: 12px; color: #8b8fa3; }
+.top-item .t-lines { font-size: 12px; color: var(--fg2); }
 .top-item .btn { align-self: flex-start; }
-.top-none { color: #8b8fa3; font-size: 13px; }
+.top-none { color: var(--fg2); font-size: 13px; }
 
 /* ---------- Toast ---------- */
-#toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%) translateY(20px); background: #1b1c26; border: 1px solid #4b4d6b; color: #e4e5f1; padding: 10px 18px; border-radius: 10px; font-size: 13px; opacity: 0; pointer-events: none; transition: opacity .2s, transform .2s; z-index: 1000; max-width: 90vw; }
+#toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%) translateY(20px); background: var(--bg3); backdrop-filter: blur(12px); border: 1px solid var(--fg3); color: var(--fg); padding: 10px 18px; border-radius: 10px; font-size: 13px; opacity: 0; pointer-events: none; transition: opacity .2s, transform .2s; z-index: 1000; max-width: 90vw; }
 #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 
 /* ---------- Responsive ---------- */
 @media (max-width: 768px) {
   .pg-container { padding: 96px 14px 40px; }
-  .pg-title h1 { font-size: 22px; }
   .pg-badges { margin-left: 0; }
   .editor-wrap .cm-editor { font-size: 12px; }
   .btn { font-size: 12px; padding: 6px 10px; }
@@ -134,15 +151,17 @@ nav a.active { color: var(--fg); }
 }
 @media (max-width: 480px) {
   .pg-container { padding: 84px 10px 32px; }
-  .pg-header { gap: 8px 12px; }
-  .pg-title h1 { font-size: 20px; }
+  .pg-header { gap: 8px 12px; margin-bottom: 24px; }
   .pg-title p { font-size: 12px; }
   .card-head { gap: 8px; padding: 10px 10px; }
   #template-select { flex: 1; min-width: 0; max-width: 180px; }
   .card-head .spacer { display: none; }
   .card-head .toolbar { flex: 1 1 100%; }
-  .toolbar .btn { flex: 1 1 30%; text-align: center; }
-  .ai-bar { gap: 8px; padding: 8px 10px; display: grid; grid-template-columns: 1fr auto; align-items: center; }
+  .toolbar-secondary { flex: 1 1 100%; border-right: 0; padding-right: 0; margin-right: 0; border-bottom: 1px solid var(--border); padding-bottom: 6px; margin-bottom: 2px; }
+  .toolbar-secondary .btn { flex: 1 1 30%; text-align: center; }
+  .toolbar-primary { flex: 1 1 100%; }
+  .toolbar-primary .btn { flex: 1; text-align: center; }
+  .ai-bar { gap: 8px; padding: 4px 10px 10px; display: grid; grid-template-columns: 1fr auto; align-items: center; }
   .ai-bar label { grid-column: 1 / -1; }
   .ai-bar select { grid-column: 1; min-width: 0; min-height: 40px; }
   #ai-status { grid-column: 2; }
@@ -192,7 +211,7 @@ nav a.active { color: var(--fg); }
 <main class="pg-container">
   <div class="pg-header">
     <div class="pg-title">
-      <h1 data-i18n="pg.title">Pipe Playground</h1>
+      <h1 data-i18n="pg.title">Pipe <span class="grad">Playground</span></h1>
       <p data-i18n="pg.subtitle">Run Pipe in your browser via WebAssembly — no install needed. <code>ai_with_tools</code> and HTTP work here too. MCP over SSE may work; stdio-based MCP servers need the native <code>pipe</code> binary.</p>
     </div>
     <div class="pg-badges">
@@ -204,7 +223,7 @@ nav a.active { color: var(--fg); }
   <div class="pg-grid">
     <!-- Left: editor -->
     <div>
-      <div class="card">
+      <div class="pg-card">
         <div class="card-head">
           <h3 data-i18n="pg.editor">Editor</h3>
           <select id="template-select" class="select-label" aria-label="Template">
@@ -218,13 +237,17 @@ nav a.active { color: var(--fg); }
           </select>
           <div class="spacer"></div>
           <div class="toolbar">
-            <button class="btn" id="btn-clear" data-i18n="pg.clear">Clear</button>
-            <button class="btn" id="btn-copy" data-i18n="pg.copy">Copy</button>
-            <button class="btn" id="btn-download" data-i18n="pg.download">Download</button>
-            <button class="btn" id="btn-share" data-i18n="pg.share">Share</button>
-            <button class="btn" id="btn-random" data-i18n="pg.random">Random Example</button>
-            <button class="btn danger" id="btn-stop" style="display:none" data-i18n="pg.stop">Stop</button>
-            <button class="btn primary" id="btn-run" data-i18n="pg.run">Run</button>
+            <div class="toolbar-secondary">
+              <button class="btn ghost" id="btn-clear" data-i18n="pg.clear">Clear</button>
+              <button class="btn ghost" id="btn-copy" data-i18n="pg.copy">Copy</button>
+              <button class="btn ghost" id="btn-download" data-i18n="pg.download">Download</button>
+              <button class="btn ghost" id="btn-share" data-i18n="pg.share">Share</button>
+              <button class="btn ghost" id="btn-random" data-i18n="pg.random">Random Example</button>
+            </div>
+            <div class="toolbar-primary">
+              <button class="btn danger" id="btn-stop" style="display:none" data-i18n="pg.stop">Stop</button>
+              <button class="btn primary" id="btn-run" data-i18n="pg.run">Run</button>
+            </div>
           </div>
         </div>
         <div class="editor-wrap">
@@ -235,27 +258,31 @@ nav a.active { color: var(--fg); }
           <span id="status-text" data-i18n="pg.status.loading">Loading runtime…</span>
           <span id="status-version"></span>
         </div>
-        <div class="ai-bar">
-          <label for="ai-provider" data-i18n="pg.ai.label">AI provider</label>
-          <select id="ai-provider">
-            <option value="deepseek">DeepSeek</option>
-            <option value="openai">OpenAI</option>
-            <option value="anthropic">Anthropic</option>
-            <option value="ollama">Ollama (local)</option>
-          </select>
-          <div class="ai-key-wrap">
-            <input id="ai-key" type="password" placeholder="API key" autocomplete="off">
-            <button type="button" class="btn ai-key-toggle" id="btn-ai-key-toggle" aria-label="Show/hide key">👁</button>
+        <details class="ai-settings">
+          <summary>⚙ <span data-i18n="pg.ai.settings">AI Settings</span></summary>
+          <div class="ai-bar">
+            <label for="ai-provider" data-i18n="pg.ai.label">AI provider</label>
+            <select id="ai-provider">
+              <option value="deepseek">DeepSeek</option>
+              <option value="openai">OpenAI</option>
+              <option value="anthropic">Anthropic</option>
+              <option value="ollama">Ollama (local)</option>
+            </select>
+            <div class="ai-key-wrap" id="ai-key-wrap">
+              <input id="ai-key" type="password" placeholder="API key" autocomplete="off">
+              <button type="button" class="btn ai-key-toggle" id="btn-ai-key-toggle" aria-label="Show/hide key">👁</button>
+            </div>
+            <span class="ai-ollama-note" id="ai-ollama-note" style="display:none" data-i18n="pg.ai.ollamanote">No key needed — talks to a local Ollama server (default http://localhost:11434). Set a different host/model directly in your code: <code>ai_provider "ollama" {host: "http://...", model: "..."}</code></span>
+            <span id="ai-status" class="badge" style="display:none" data-i18n="pg.ai.saved">Key saved</span>
           </div>
-          <span id="ai-status" class="badge" style="display:none" data-i18n="pg.ai.saved">Key saved</span>
-        </div>
-        <p class="ai-trust" data-i18n="pg.ai.trust">Stored only in your browser, sent directly to the provider — never touches our server.</p>
+          <p class="ai-trust" data-i18n="pg.ai.trust">Stored only in your browser, sent directly to the provider — never touches our server.</p>
+        </details>
       </div>
     </div>
 
     <!-- Right: output / graph -->
     <div>
-      <div class="card">
+      <div class="pg-card">
         <div class="tabs">
           <button class="tab-btn active" data-tab="output" data-i18n="pg.output">Output</button>
           <button class="tab-btn" data-tab="graph" data-i18n="pg.graph">Graph</button>
@@ -360,9 +387,9 @@ nav a.active { color: var(--fg); }
 var I18N = {
   en: {
     "nav.home":"Home","nav.playground":"Playground","nav.modules":"Modules","nav.docs":"Docs","nav.faq":"FAQ","nav.en":"EN","nav.de":"DE",
-    "pg.title":"Pipe Playground","pg.subtitle":"Run Pipe in your browser via WebAssembly — no install needed. <code>ai_with_tools</code> and HTTP work here too. MCP over SSE may work; stdio-based MCP servers need the native <code>pipe</code> binary.",
+    "pg.title":"Pipe <span class=\"grad\">Playground</span>","pg.subtitle":"Run Pipe in your browser via WebAssembly — no install needed. <code>ai_with_tools</code> and HTTP work here too. MCP over SSE may work; stdio-based MCP servers need the native <code>pipe</code> binary.",
     "pg.editor":"Editor","pg.run":"Run","pg.stop":"Stop","pg.clear":"Clear","pg.copy":"Copy","pg.download":"Download","pg.share":"Share","pg.random":"Random Example",
-    "pg.output":"Output","pg.graph":"Graph","pg.status.loading":"Loading runtime…","pg.status.ready":"Ready · v{v}","pg.status.error":"Runtime error: {m}",
+    "pg.output":"Output","pg.graph":"Graph","pg.status.loading":"Loading runtime…","pg.status.ready":"Ready · {v}","pg.status.error":"Runtime error: {m}",
     "pg.status.running":"Executing…","pg.status.running.long":"Still running… AI calls can take up to a minute","pg.status.stopped":"Stopped",
     "pg.status.saved":"Saved","pg.status.cleared":"Cleared","pg.status.copied":"Copied to clipboard","pg.status.downloaded":"Downloaded playground.pipe",
     "pg.status.nofirebase":"Firebase unavailable — sharing is offline","pg.status.shared":"Copied share link to clipboard","pg.status.sharewait":"Sharing…",
@@ -374,6 +401,8 @@ var I18N = {
     "pg.mcp.note":"Note: mcp_use_stdio / mcp_server / mcp_serve_stdio spawn a local process and can't run inside a browser sandbox — install the native pipe binary to use them. mcp_use_sse (remote HTTP/SSE) may still work here.",
     "pg.templates.label":"Templates…","pg.templates.hello":"Hello World","pg.templates.pipeline":"Pipeline","pg.templates.mapfilter":"Map & Filter","pg.templates.fizzbuzz":"FizzBuzz","pg.templates.textstats":"Text Stats","pg.templates.ai":"AI Summarize",
     "pg.ai.label":"AI provider","pg.ai.saved":"Key saved","pg.ai.pending":"key set when ready","pg.ai.trust":"Stored only in your browser, sent directly to the provider — never touches our server.",
+    "pg.ai.ollamanote":"No key needed — talks to a local Ollama server (default http://localhost:11434). Set a different host/model directly in your code: <code>ai_provider \"ollama\" {host: \"http://...\", model: \"...\"}</code>",
+    "pg.ai.settings":"AI Settings",
     "pg.rate":"Rate this snippet","pg.graph.consts":"Constants","pg.graph.fns":"Function nodes","pg.graph.zin":"+","pg.graph.zout":"−",
     "pg.graph.lbuiltin":"Builtin","pg.graph.lfn":"Function","pg.graph.lai":"AI","pg.graph.lsandbox":"Sandbox","pg.graph.lconst":"Value",
     "pg.graph.empty":"Run your code to render the graph.","pg.graph.err":"Could not parse for graph.",
@@ -382,9 +411,9 @@ var I18N = {
   },
   de: {
     "nav.home":"Start","nav.playground":"Playground","nav.modules":"Module","nav.docs":"Doku","nav.faq":"FAQ","nav.en":"EN","nav.de":"DE",
-    "pg.title":"Pipe Playground","pg.subtitle":"Pipe direkt im Browser via WebAssembly ausführen — keine Installation nötig. <code>ai_with_tools</code> und HTTP funktionieren hier ebenfalls. MCP über SSE funktioniert eventuell; stdio-basierte MCP-Server brauchen die native <code>pipe</code>-Binary.",
+    "pg.title":"Pipe <span class=\"grad\">Playground</span>","pg.subtitle":"Pipe direkt im Browser via WebAssembly ausführen — keine Installation nötig. <code>ai_with_tools</code> und HTTP funktionieren hier ebenfalls. MCP über SSE funktioniert eventuell; stdio-basierte MCP-Server brauchen die native <code>pipe</code>-Binary.",
     "pg.editor":"Editor","pg.run":"Ausführen","pg.stop":"Stop","pg.clear":"Leeren","pg.copy":"Kopieren","pg.download":"Download","pg.share":"Teilen","pg.random":"Zufälliges Beispiel",
-    "pg.output":"Ausgabe","pg.graph":"Graph","pg.status.loading":"Lade Runtime…","pg.status.ready":"Bereit · v{v}","pg.status.error":"Runtime-Fehler: {m}",
+    "pg.output":"Ausgabe","pg.graph":"Graph","pg.status.loading":"Lade Runtime…","pg.status.ready":"Bereit · {v}","pg.status.error":"Runtime-Fehler: {m}",
     "pg.status.running":"Führe aus…","pg.status.running.long":"Läuft noch… KI-Aufrufe können bis zu einer Minute dauern","pg.status.stopped":"Gestoppt",
     "pg.status.saved":"Gespeichert","pg.status.cleared":"Gelöscht","pg.status.copied":"In Zwischenablage kopiert","pg.status.downloaded":"playground.pipe heruntergeladen",
     "pg.status.nofirebase":"Firebase nicht verfügbar — Teilen ist offline","pg.status.shared":"Link in Zwischenablage kopiert","pg.status.sharewait":"Teile…",
@@ -396,6 +425,8 @@ var I18N = {
     "pg.mcp.note":"Hinweis: mcp_use_stdio / mcp_server / mcp_serve_stdio starten einen lokalen Prozess und können nicht in einer Browser-Sandbox laufen — installiere die native pipe-Binary dafür. mcp_use_sse (entfernt über HTTP/SSE) funktioniert hier eventuell trotzdem.",
     "pg.templates.label":"Vorlagen…","pg.templates.hello":"Hallo Welt","pg.templates.pipeline":"Pipeline","pg.templates.mapfilter":"Map & Filter","pg.templates.fizzbuzz":"FizzBuzz","pg.templates.textstats":"Text-Statistik","pg.templates.ai":"KI-Zusammenfassung",
     "pg.ai.label":"KI-Anbieter","pg.ai.saved":"Schlüssel gespeichert","pg.ai.pending":"Schlüssel wird gesetzt","pg.ai.trust":"Wird nur im Browser gespeichert, geht direkt an den Provider — nie an unseren Server.",
+    "pg.ai.ollamanote":"Kein Schlüssel nötig — spricht mit einem lokalen Ollama-Server (Standard http://localhost:11434). Anderen Host/Modell direkt im Code setzen: <code>ai_provider \"ollama\" {host: \"http://...\", model: \"...\"}</code>",
+    "pg.ai.settings":"KI-Einstellungen",
     "pg.rate":"Dieses Snippet bewerten","pg.graph.consts":"Konstanten","pg.graph.fns":"Funktionsknoten","pg.graph.zin":"+","pg.graph.zout":"−",
     "pg.graph.lbuiltin":"Builtin","pg.graph.lfn":"Funktion","pg.graph.lai":"KI","pg.graph.lsandbox":"Sandbox","pg.graph.lconst":"Wert",
     "pg.graph.empty":"Führe Code aus, um den Graphen zu rendern.","pg.graph.err":"Für den Graphen nicht analysierbar.",
@@ -1066,11 +1097,18 @@ function setkeyFor(provider, key) {
     setTimeout(function () { badge.style.display = 'none'; }, 2000);
   }
 }
+function updateAiProviderUI() {
+  var isOllama = document.getElementById('ai-provider').value === 'ollama';
+  document.getElementById('ai-key-wrap').style.display = isOllama ? 'none' : '';
+  document.getElementById('ai-ollama-note').style.display = isOllama ? '' : 'none';
+}
 document.getElementById('ai-provider').addEventListener('change', function () {
   localStorage.setItem('pipe-provider', this.value);
+  updateAiProviderUI();
   var key = document.getElementById('ai-key').value;
   if (key) setkeyFor(this.value, key);
 });
+updateAiProviderUI();
 document.getElementById('ai-key').addEventListener('input', function () {
   if (!this.value) return;
   setkeyFor(document.getElementById('ai-provider').value, this.value);
@@ -1343,6 +1381,7 @@ function init() {
     var p = localStorage.getItem('pipe-provider');
     if (p && PROVIDER_ENV[p]) document.getElementById('ai-provider').value = p;
   } catch (e) {}
+  updateAiProviderUI();
 }
 window.addEventListener('cm-ready', init);
 </script>

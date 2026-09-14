@@ -180,6 +180,31 @@ func TestCrossStringConcat(t *testing.T) {
 	assertBothEqual(t, `"a" ++ "b" ++ "c"`, "abc")
 }
 
+// TestCrossBarePipelineStage guards a live-observed mis-parse: a single-line
+// pipeline stage that is just a bare identifier (no further arguments after
+// it, e.g. the trailing `> print` in a chain, or a lone `x > double`) is
+// syntactically identical to a numeric/string ">" comparison, so the parser
+// defaults to a plain comparison (needed for the equally common `if x > y`
+// case) and compiles it to the same greater-than instruction either way.
+// Since no comparison ever succeeds with a callable right-hand side, both
+// engines now fall back to calling the right-hand function with the
+// left-hand value instead of raising a type-mismatch error.
+func TestCrossBarePipelineStage(t *testing.T) {
+	assertBothEqual(t, `"hello" > upper`, "HELLO")
+	assertBothEqual(t, `
+fn double n
+    n * 2
+fn square n
+    n * n
+3 > double > square`, "36")
+
+	// Genuine comparisons (right-hand side is a plain value, not callable)
+	// must be completely unaffected.
+	assertBothEqual(t, "5 > 3", "true")
+	assertBothEqual(t, "3 > 5", "false")
+	assertBothEqual(t, `"abc" > "abd"`, "false")
+}
+
 func TestCrossPrefix(t *testing.T) {
 	assertBothEqual(t, "!true", "false")
 	assertBothEqual(t, "!false", "true")

@@ -41,8 +41,13 @@ func TestExampleRoundtrip(t *testing.T) {
 	}
 }
 
-// TestCallSyntax documents which call forms Pipe accepts. Multi-argument calls
-// use implicit space-separated arguments; f(a, b) and f() do not parse.
+// TestCallSyntax documents which call forms Pipe accepts. Multi-argument
+// calls normally use implicit space-separated arguments (f a b), but a '('
+// directly adjacent to the callee (no space) is also a traditional,
+// hard-bounded call and accepts a comma-separated argument list, including
+// zero args: f(), f(a, b). A '(' separated by a space is instead a single
+// grouped-expression argument to a space-call, so it does NOT accept commas
+// (f (a, b) still fails to parse) — that form's argument is one expression.
 func TestCallSyntax(t *testing.T) {
 	valid := []string{
 		"f a",
@@ -54,10 +59,10 @@ func TestCallSyntax(t *testing.T) {
 		"print (fizzbuzz 1)",
 		"print(\"hi\")",
 		"x: f a b",
-	}
-	invalid := []string{
 		"f()",
 		"f(a, b)",
+	}
+	invalid := []string{
 		"f (a, b)",
 		"f a (b, c)",
 	}

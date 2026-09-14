@@ -423,19 +423,26 @@ print "Hosts: " ++ (to_json config.allowed_hosts)
 is_email: fn s
   regex_match "^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$" s
 
-print is_email "user@example.com"
+print (is_email "user@example.com")
 -- Output: true
-print is_email "not-valid"
+print (is_email "not-valid")
 -- Output: false
 ```
 
+Note the parentheses around each call: `print is_email "user@example.com"` without them passes `is_email` and the string as two separate arguments to `print`, rather than calling `is_email` first — Pipe's space-separated call syntax does not auto-chain a bare function value into a call this way.
+
 ### Phone number masking
+
+`regex_replace` takes `(pattern, replacement, text)` — note replacement comes before the text being searched. Go's regex engine (RE2) does not support lookahead (`(?=...)`), so masking "all but the last 4 digits" combines a plain digit-matching pattern with ordinary string slicing instead:
 
 ```pipe
 mask_phone: fn phone
-  regex_replace "\\d(?=\\d{4})" phone "*"
+  visible: 4
+  head: slice phone 0 (len(phone) - visible)
+  tail: slice phone (len(phone) - visible) (len phone)
+  (regex_replace "[0-9]" "*" head) ++ tail
 
-print mask_phone "1234567890"
+print (mask_phone "1234567890")
 -- Output: ******7890
 ```
 
@@ -443,9 +450,9 @@ print mask_phone "1234567890"
 
 ```pipe
 extract_numbers: fn s
-  regex_replace "[^0-9]" s ""
+  regex_replace "[^0-9]" "" s
 
-print extract_numbers "Price: $42[99] - Code: 1234"
+print (extract_numbers "Price: $42[99] - Code: 1234")
 -- Output: 42991234
 ```
 
@@ -589,17 +596,18 @@ if is_ok r
 
 ### Function factory
 
+The inner closure uses the inline `fn param: expr` form, not a block on its own indented line — a block-style `fn name` with just one identifier after it and nothing else on that line is parsed as a *named*, zero-argument function declaration (`name` becomes the function's name, not its parameter), not an anonymous closure. Each outer call is also wrapped in parentheses: `print hello "Alice"` without them passes `hello` and the string as two separate arguments to `print` instead of calling `hello` first.
+
 ```pipe
 make_greeter: fn greeting
-  fn name
-    greeting ++ ", " ++ name ++ "!"
+  fn name: greeting ++ ", " ++ name ++ "!"
 
 hello: make_greeter "Hello"
 hi:    make_greeter "Hi"
 
-print hello "Alice"
+print (hello "Alice")
 -- Output: Hello, Alice!
-print hi "Bob"
+print (hi "Bob")
 -- Output: Hi, Bob!
 ```
 
@@ -607,35 +615,20 @@ print hi "Bob"
 
 ```pipe
 make_multiplier: fn factor
-  fn x
-    x * factor
+  fn x: x * factor
 
 double: make_multiplier 2
 triple: make_multiplier 3
 
-print double 5
+print (double 5)
 -- Output: 10
-print triple 5
+print (triple 5)
 -- Output: 15
 ```
 
 ### Counter
 
-```text
-make_counter: fn
-    count: 0
-    fn
-        count: count + 1
-        count
-
-counter: make_counter
-print counter
--- Output: 1
-print counter
--- Output: 2
-print counter
--- Output: 3
-```
+A mutable counter closure (each call incrementing and returning shared state) is not shown here — it does not work under either closure-writing form above; there is currently no working way to give a closure private mutable state that survives across calls.
 
 ## 22. Binary Search
 

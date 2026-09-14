@@ -278,8 +278,24 @@ func (vm *VM) Run() (err error) {
 			compiler.OpGte, compiler.OpLte:
 			right := vm.pop()
 			left := vm.pop()
-			result := vm.compareOp(op, left, right)
-			vm.push(result)
+			// A bare `value > fn` pipeline stage with nothing else following
+			// it (e.g. the trailing `> print` in a chain, or a single-stage
+			// `x > double`) is indistinguishable at parse time from a
+			// numeric/string ">" comparison — both are `IDENT > IDENT` — so
+			// the parser defaults to a plain comparison (needed for the
+			// equally common `if x > y` numeric case) and this compiles to
+			// OpGreater either way. No comparison in compareOp ever
+			// succeeds with a callable right-hand side, so treating that
+			// specific combination as a pipeline call here is pure upside:
+			// it only changes what used to be a dead-end type error.
+			if op == compiler.OpGreater && isCallableObject(right) {
+				vm.push(right)
+				vm.push(left)
+				vm.callFunction(1)
+			} else {
+				result := vm.compareOp(op, left, right)
+				vm.push(result)
+			}
 
 		case compiler.OpConcat:
 			vm.concatOp()
@@ -894,6 +910,17 @@ func (vm *VM) concatBytesString(l, r []byte) object.Object {
 	return &object.Bytes{Value: out}
 }
 
+// isCallableObject reports whether o is something vm.callFunction can invoke
+// (a user closure or a builtin). Used to detect a bare `value > fn` pipeline
+// stage compiled to OpGreater — see the OpGreater case in the main loop.
+func isCallableObject(o object.Object) bool {
+	switch o.(type) {
+	case *object.Closure, *object.BuiltinInfo:
+		return true
+	}
+	return false
+}
+
 func (vm *VM) compareOp(op compiler.Opcode, left, right object.Object) object.Object {
 	left = object.EnsureResolved(left)
 	right = object.EnsureResolved(right)
@@ -1090,8 +1117,24 @@ func (vm *VM) executeFrame() object.Object {
 			compiler.OpGte, compiler.OpLte:
 			right := vm.pop()
 			left := vm.pop()
-			result := vm.compareOp(op, left, right)
-			vm.push(result)
+			// A bare `value > fn` pipeline stage with nothing else following
+			// it (e.g. the trailing `> print` in a chain, or a single-stage
+			// `x > double`) is indistinguishable at parse time from a
+			// numeric/string ">" comparison — both are `IDENT > IDENT` — so
+			// the parser defaults to a plain comparison (needed for the
+			// equally common `if x > y` numeric case) and this compiles to
+			// OpGreater either way. No comparison in compareOp ever
+			// succeeds with a callable right-hand side, so treating that
+			// specific combination as a pipeline call here is pure upside:
+			// it only changes what used to be a dead-end type error.
+			if op == compiler.OpGreater && isCallableObject(right) {
+				vm.push(right)
+				vm.push(left)
+				vm.callFunction(1)
+			} else {
+				result := vm.compareOp(op, left, right)
+				vm.push(result)
+			}
 
 		case compiler.OpConcat:
 			vm.concatOp()

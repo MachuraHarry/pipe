@@ -473,9 +473,34 @@ func (ctx *EvalContext) evalInfixExpression(operator string, left, right object.
 		return object.NativeBoolToBoolean(left == right)
 	case operator == "!=":
 		return object.NativeBoolToBoolean(left != right)
+	case operator == ">" && isCallableObject(right):
+		// A bare `value > fn` pipeline stage with nothing else following it
+		// (e.g. the trailing `> print` in a chain, or a single-stage
+		// `x > double`) is indistinguishable at parse time from a
+		// numeric/string ">" comparison — both are `IDENT > IDENT` — so the
+		// parser defaults to a plain comparison (needed for the equally
+		// common `if x > y` numeric case), producing this same generic
+		// Infix(">") either way. No comparison above ever succeeds with a
+		// callable right-hand side, so treating that specific combination
+		// as a pipeline call here is pure upside: it only changes what used
+		// to be a dead-end type error. Mirrors the VM's OpGreater handling.
+		return ctx.applyFunction(right, []object.Object{left})
 	default:
 		return ctx.newErrorCode("E002", "type mismatch: cannot apply '%s' between %s and %s", operator, left.Type(), right.Type())
 	}
+}
+
+// isCallableObject reports whether o is something applyFunction can invoke
+// (a user function, or a builtin in either of this codebase's two builtin
+// representations — this package's own *Builtin, used for identifier
+// lookups like the bare `upper` in `text > upper`, and *object.BuiltinInfo,
+// used elsewhere such as AI tool registration).
+func isCallableObject(o object.Object) bool {
+	switch o.(type) {
+	case *object.Function, *object.BuiltinInfo, *Builtin:
+		return true
+	}
+	return false
 }
 
 func evalIntegerInfix(ctx *EvalContext, operator string, left, right *object.Integer) object.Object {

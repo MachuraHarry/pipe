@@ -487,12 +487,10 @@ Goodbye!
 
 ## enum
 
-`enum` defines a group of named integer constants starting from 0 and incrementing by 1 for each name:
+`enum` defines a group of named integer constants starting from 0 and incrementing by 1 for each name. The names go on one line after the enum's own name, separated by commas:
 
 ```pipe
-Red: 0
-Green: 1
-Blue: 2
+enum Color: Red, Green, Blue
 
 -- 0
 print Red
@@ -502,16 +500,11 @@ print Green
 print Blue
 ```
 
-Multiple `enum` blocks can be defined. Each one starts counting from 0:
+Multiple `enum` declarations can be defined. Each one starts counting from 0:
 
 ```pipe
-Pending: 0
-Active: 1
-Completed: 2
-
-Admin: 3
-Editor: 4
-Viewer: 5
+enum Status: Pending, Active, Completed
+enum Role: Admin, Editor, Viewer
 
 if user.role == Admin
   print "has admin access"
@@ -520,4 +513,4 @@ if task.status == Completed
   print "done"
 ```
 
-Each name in the `enum` block becomes a constant variable in the enclosing scope. The type is `num` (int64).
+Each name in an `enum` declaration becomes a constant variable in the enclosing scope. The type is `num` (int64).

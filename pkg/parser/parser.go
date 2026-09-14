@@ -51,6 +51,7 @@ var precedences = map[lexer.TokenType]int{
 	lexer.CONCAT:   PrecedenceConcat,
 	lexer.DOT:      PrecedenceDot,
 	lexer.LBRACKET: PrecedenceCall,
+	lexer.LPAREN:   PrecedenceCall,
 }
 
 type Parser struct {
@@ -661,6 +662,16 @@ func (p *Parser) parseExpr(precedence int, allowSpaceCalls bool) ast.Expression 
 }
 
 func (p *Parser) peekPrecedence() int {
+	// An LPAREN only counts as a (high-precedence) call-continuation when it
+	// is adjacent to the token just parsed (`f(x)`, no space). A
+	// non-adjacent '(' (`f (x)`, or a second grouped argument like
+	// `count (n - 1) (acc + 1)`) must NOT trigger the general infix loop
+	// here — that would wrongly try to call the just-parsed left-hand value
+	// itself. Non-adjacent '(' is handled entirely by the space-call
+	// machinery in parseExpr / peekStartsCallArg instead.
+	if p.peekToken.Type == lexer.LPAREN && !p.peekAdjacent() {
+		return PrecedenceLowest
+	}
 	if prec, ok := precedences[p.peekToken.Type]; ok {
 		return prec
 	}
@@ -695,9 +706,18 @@ func (p *Parser) peekAdjacent() bool {
 // next space-separated call argument. A '[' qualifies only when whitespace
 // separates it from the current token: an adjacent '[' is an index/slice
 // postfix (`xs[0]`, `xs[1:3]`), while `map [1, 2] f` passes a fresh list
-// literal as the first argument.
+// literal as the first argument. The same rule applies to '(': an adjacent
+// '(' is a traditional, hard-bounded call (`to_str(n)`, `add2(1, 2)`),
+// handled by the infix parseCallExpression via the LPAREN precedence entry
+// below — NOT absorbed as a single space-call argument whose value could
+// otherwise keep consuming trailing higher-precedence operators past the
+// closing ')' (e.g. `to_str(n) ++ "b"` used to mis-parse as
+// `to_str(n ++ "b")`, since a bare "(n)" group argument had no way to stop
+// the enclosing call from swallowing the "++" that followed it). A
+// non-adjacent '(' (`f (x)`) keeps the existing space-call behavior, same
+// as a non-adjacent '['.
 func (p *Parser) peekStartsCallArg() bool {
-	if p.peekTokenIs(lexer.LBRACKET) {
+	if p.peekTokenIs(lexer.LBRACKET) || p.peekTokenIs(lexer.LPAREN) {
 		return !p.peekAdjacent()
 	}
 	return isValueToken(p.peekToken.Type)

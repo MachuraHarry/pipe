@@ -289,8 +289,7 @@ value >> async_op >> next_op  -- parallel pipeline
 return value                 -- early return
 defer print "cleanup"        -- deferred execution
 
-enum Color                   -- enumeration
-  Red Green Blue
+enum Color: Red, Green, Blue  -- enumeration
 
 struct Point                  -- struct (block form)
     x: 0                       -- field with default

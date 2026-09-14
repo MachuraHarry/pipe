@@ -716,3 +716,75 @@ func TestSelectExpression(t *testing.T) {
 		t.Error("expected third case to be default")
 	}
 }
+
+// TestAdjacentParenIsHardBoundedCall guards a fix for a live-observed
+// mis-parse: `to_str(n) ++ "b"` used to parse as `to_str(n ++ "b")`, because
+// a `(` right after an identifier (no space) was previously always treated
+// as a single space-call argument whose value kept absorbing higher-
+// precedence trailing operators past the closing `)`. An adjacent `(` is
+// now a traditional, hard-bounded call instead: it stops at its own matching
+// `)`, and a following operator like `++` applies to the whole call.
+func TestAdjacentParenIsHardBoundedCall(t *testing.T) {
+	program := parseProgram(t, `to_str(n) ++ "b"`)
+	stmt := program.Statements[0].(*ast.ExpressionStatement)
+	infix, ok := stmt.Expression.(*ast.InfixExpression)
+	if !ok {
+		t.Fatalf("expected top-level InfixExpression, got %T (%s)", stmt.Expression, stmt.Expression.String())
+	}
+	if infix.Operator != "++" {
+		t.Fatalf("expected top-level operator '++', got %q", infix.Operator)
+	}
+	call, ok := infix.Left.(*ast.CallExpression)
+	if !ok {
+		t.Fatalf("expected left side to be a CallExpression, got %T", infix.Left)
+	}
+	if len(call.Arguments) != 1 || call.Arguments[0].String() != "n" {
+		t.Fatalf("expected to_str(n), got %s", call.String())
+	}
+}
+
+// TestAdjacentParenSupportsCommaArgs guards the other half of the same fix:
+// a '(' adjacent to the callee now also accepts a traditional, comma-
+// separated argument list (including zero args), which previously failed
+// to parse at all.
+func TestAdjacentParenSupportsCommaArgs(t *testing.T) {
+	for _, tt := range []struct {
+		input    string
+		wantArgs int
+	}{
+		{"f()", 0},
+		{"f(a)", 1},
+		{"f(a, b)", 2},
+		{"f(a, b, c)", 3},
+	} {
+		program := parseProgram(t, tt.input)
+		stmt := program.Statements[0].(*ast.ExpressionStatement)
+		call, ok := stmt.Expression.(*ast.CallExpression)
+		if !ok {
+			t.Fatalf("%s: expected CallExpression, got %T", tt.input, stmt.Expression)
+		}
+		if len(call.Arguments) != tt.wantArgs {
+			t.Errorf("%s: expected %d args, got %d (%s)", tt.input, tt.wantArgs, len(call.Arguments), call.String())
+		}
+	}
+}
+
+// TestSpaceSeparatedParenArgsUnaffected guards that the pre-existing
+// space-call convention for MULTIPLE separately-parenthesized arguments
+// (e.g. the classic accumulator-recursion idiom `count (n - 1) (acc + 1)`)
+// still parses as one call with two arguments, not a chained/curried call —
+// the adjacent-paren fix above must only change behavior when '(' directly
+// abuts the preceding token with no space.
+func TestSpaceSeparatedParenArgsUnaffected(t *testing.T) {
+	program := parseProgram(t, `count (n - 1) (acc + 1)`)
+	stmt := program.Statements[0].(*ast.ExpressionStatement)
+	call, ok := stmt.Expression.(*ast.CallExpression)
+	if !ok {
+		t.Fatalf("expected CallExpression, got %T (%s)", stmt.Expression, stmt.Expression.String())
+	}
+	if len(call.Arguments) != 2 {
+		t.Fatalf("expected 2 args, got %d (%s)", len(call.Arguments), call.String())
+	}
+	testInfixExpression(t, call.Arguments[0], "n", "-", "1")
+	testInfixExpression(t, call.Arguments[1], "acc", "+", "1")
+}

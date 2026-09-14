@@ -2,9 +2,9 @@
 
 This document outlines the past, present, and future of the Pipe language. The roadmap is organized into phases, with completed features marked accordingly.
 
-## Current Version: v1.1.1
+## Current Version: v1.3.0
 
-Pipe is currently at version **v1.1.1**, the **production-ready release**. It consolidates all features from the v0.9.x series: the full **MCP server and client** (stdio + SSE), **sandbox profiles** (declarative runtime security), **AI provider abstraction** (OpenAI, Anthropic, DeepSeek, OpenRouter, Ollama), the **bytecode VM** (up to 55x faster than the tree-walker), **guard clauses** in match expressions, **concurrency primitives** (channels, mutex, counting semaphore), **constant folding**, and the **MQTT 5.0 module**. The module system includes directory imports, relative imports, cycle detection, SemVer resolution, and `pipe -publish`. 232 builtins, 23 modules, 643 tests.
+Pipe is currently at version **v1.3.0**. Since the v1.0.0 **production-ready release** it has added **multi-agent swarms** (`ai_swarm`/`ai_swarm_trace`/`ai_swarm_stream`, with live progress observation and mid-run control), **`ai_vision`** image understanding, a 6th AI provider (**OpenCode Zen**, usable without an API key), a **built-in self-updater** (`pipe --update`), direct **LLM-free tool invocation** (`tool_call`), cross-process **file locking** (`file_lock`/`file_unlock`), the **`elif`** keyword, **`ai_tool`'s `parallel_safe`** flag for concurrent tool batches, real **multi-file `pipe -build`** projects, and several rounds of sandbox hardening (audits 7-11). It still carries forward everything from v1.0: the full **MCP server and client** (stdio + SSE), **sandbox profiles** (declarative runtime security), the **bytecode VM** (up to 55x faster than the tree-walker), **guard clauses** in match expressions, **concurrency primitives** (channels, mutex, counting semaphore), and the **MQTT 5.0 module**. 246 builtins, 23 modules, 752 tests.
 
 ---
 

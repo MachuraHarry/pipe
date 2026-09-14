@@ -228,7 +228,7 @@ d.d_webhook_embed (env "DISCORD_WEBHOOK") {
 ## Features
 
 - **MCP-native** — 13 builtins for MCP Server + Client. Pure Go stdlib. Connect to any stdio MCP server
-- **Ship AI pipelines 10x faster** — 36 AI + 13 MCP builtins: no imports, no SDKs, no API wrappers
+- **Ship AI pipelines 10x faster** — 41 AI + 13 MCP builtins: no imports, no SDKs, no API wrappers
 - **Lock down AI agents in one line** — Declarative sandbox profiles: restrict `exec`, `write_file`, `http_get` with a single block
 - **Deploy in seconds** — One statically-linked ~8 MB binary. No venv, no pip, no Docker. Linux, macOS, Windows, Raspberry Pi, or your browser via WebAssembly
 - **3 LLM calls in 1.5s, not 4s** — `>>` starts any pipeline stage in the background. Futures auto-resolve. `ai_batch` handles hundreds of texts concurrently with built-in rate limiting
@@ -426,13 +426,13 @@ write_file "/etc/config"    -- E_SANDBOX blocked
 ```
 Source (.pipe) -> Lexer -> Parser -> AST -> [ Tree-Walker | Compiler + VM ]
                                               |
-                                    Builtins (246 total: 36 AI + 13 MCP + 192 standard)
+                                    Builtins (246 total: 41 AI + 13 MCP + 192 standard)
                                               |
                                 MCP Server <-> MCP Clients (stdio + HTTP)
 ```
 
-- 67 token types, 36 AST node types, 43 opcodes
-- ~37,000 LoC Go, 643 tests, 87 example programs
+- 67 token types, 43 AST node types, 43 opcodes
+- ~37,000 LoC Go, 752 tests, 101 example programs
 - Zero dependencies — pure Go stdlib
 
 ## Documentation

@@ -1,6 +1,6 @@
 # 19. KI-Builtins
 
-Pipe bietet **40 KI-Builtins** für die Arbeit mit Large Language Models.
+Pipe bietet **41 KI-Builtins** für die Arbeit mit Large Language Models.
 Die Kommunikation läuft über REST-APIs zu OpenAI, Anthropic oder DeepSeek.
 
 ---
@@ -751,7 +751,7 @@ ask "Was ist eine Pipeline?" > print
 - Keine Daten verlassen dein System (DSGVO/Compliance)
 - Funktioniert komplett offline
 - Kostenlos, unbegrenzte Nutzung
-- Alle 36 KI-Builtins funktionieren mit Ollama
+- Alle 41 KI-Builtins funktionieren mit Ollama
 
 **Remote Ollama** (z.B. im Firmennetzwerk):
 ```pipe

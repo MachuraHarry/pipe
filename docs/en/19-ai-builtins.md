@@ -1,6 +1,6 @@
 # 19. AI Builtins
 
-Pipe provides **40 AI builtins** for working with Large Language Models.
+Pipe provides **41 AI builtins** for working with Large Language Models.
 Communication happens via REST APIs to OpenAI, Anthropic, or DeepSeek.
 
 ---
@@ -729,7 +729,7 @@ ask "What is a pipeline?" > print
 - No data leaves your system (GDPR/compliance)
 - Works completely offline
 - Free, unlimited usage
-- All 36 AI builtins work with Ollama
+- All 41 AI builtins work with Ollama
 
 **Remote Ollama** (e.g., on a local network):
 ```pipe

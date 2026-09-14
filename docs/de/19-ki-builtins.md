@@ -528,11 +528,21 @@ ausführen, Daten abfragen.
 ### ai_tool
 
 ```
-ai_tool name description parameters_schema function
+ai_tool name description parameters_schema function [parallel_safe]
 ```
 
 Registriert eine Pipe-Funktion als Tool für das LLM. Das `parameters_schema`
 ist eine Map, die die erwarteten Parameter beschreibt.
+
+**`parallel_safe`** (optionales 5. Argument, boolean, Standard `false`)
+erklärt, dass dieses Pipe-`fn`-Tool keinen gemeinsamen veränderlichen Zustand
+anfasst, sodass eine Charge von Tool-Aufrufen aus derselben Runde (z. B. aus
+`ai_with_tools` oder einer `ai_swarm`-Runde) parallel zu ihren Geschwistern
+laufen darf, statt strikt nacheinander. Builtins mit bekanntermaßen sicherer
+Implementierung laufen bereits automatisch parallel — dieses Flag erweitert
+dieselbe Behandlung auf Pipe-definierte Tools. Jeder bestehende
+`ai_tool`-Aufruf behält sein bisheriges (synchrones) Verhalten, solange man
+nicht explizit opt-in macht.
 
 ```pipe
 -- Wetter-Tool definieren
@@ -1033,6 +1043,67 @@ print result.path
 print result.rounds
 -- -> 2
 ```
+
+### ai_swarm_stream
+
+```
+ai_swarm_stream task entry_agent [max_rounds] [on_progress] [round_check]
+```
+
+Derselbe Lauf wie `ai_swarm`/`ai_swarm_trace`, aber mit zwei optionalen
+Closures für Live-Beobachtung und -Steuerung. Gibt eine Map
+`{content, path, rounds, aborted, abort_reason}` zurück.
+
+**`on_progress`** (4. Argument) wird nach jedem Schritt aufgerufen als
+`on_progress(agent, event, detail, args_json, round, max_rounds)`. `event`
+ist einer von:
+
+| Event | `detail` | `args_json` |
+|-------|----------|-------------|
+| `"start"` | — | — |
+| `"reasoning"` | die rohe Gedankenkette des Modells, sofern der Provider eine liefert (z. B. DeepSeek-Reasoner-Modelle) | — |
+| `"tool"` | der Name des Tools | die rohen Aufruf-Argumente des Tools |
+| `"handoff"` | der Name des Agenten, an den übergeben wird | die vollständigen rohen Argumente des Handoff-Tools — daraus lässt sich `reason` extrahieren, um z. B. `"triage -> billing: Rechnungssumme prüfen"` anzuzeigen |
+| `"final"` | — | — |
+| `"inject"` | der eingefügte Anweisungstext (siehe `round_check` unten) | — |
+
+`round` / `max_rounds` sind die Runden-Sicherheitsbudget-Zähler, keine
+Schätzung des Fortschritts bis zur Fertigstellung.
+
+**`round_check`** (5. Argument) wird ohne Argumente zu Beginn jeder Runde
+aufgerufen und erlaubt es einem Aufrufer (z. B. einem Telegram-Bot, der auf
+einen `/stop`-Befehl pollt), in einen laufenden Durchlauf einzugreifen. Das
+läuft synchron an einem bestehenden Checkpoint — keine neue Nebenläufigkeit.
+Es kann eine Map mit folgenden Feldern zurückgeben:
+
+| Schlüssel | Typ | Effekt |
+|-----------|-----|--------|
+| `abort` | bool | Bricht den Lauf sofort ab. Das Ergebnis hat dann `aborted: true`, `abort_reason` gesetzt und `content` spiegelt den bis dahin erreichten Teilfortschritt. |
+| `abort_reason` | string | Grund, der zusammen mit `abort` festgehalten wird. |
+| `inject` | string | Wird der laufenden Konversation als neue Anweisung angehängt, bevor die Runde fortfährt — erlaubt es, einen laufenden Durchlauf mit einer neuen Nachricht zu steuern. |
+
+`nil`, ein Nicht-Map-Wert oder eine leere Map zurückzugeben ergibt eine völlig
+inerte Runde (identisch dazu, gar keinen `round_check` zu übergeben).
+
+```pipe
+ai_provider "deepseek"
+
+fn on_progress agent event detail args_json round max_rounds
+    print agent ++ " [" ++ event ++ "] " ++ detail ++ " (" ++ round ++ "/" ++ max_rounds ++ ")"
+
+fn on_round_check
+    if should_stop()
+        {abort: true, abort_reason: "vom Operator abgebrochen"}
+    else
+        {}
+
+result: ai_swarm_stream "Meine Rechnung diesen Monat stimmt nicht" "triage" 5 on_progress on_round_check
+print result.content
+```
+
+Unabhängige Tool-Aufrufe innerhalb derselben Runde laufen jetzt parallel, wo
+es sicher ist — statt immer nacheinander —, mit demselben `parallel_safe`-
+Mechanismus, den `ai_tool` nutzt (Abschnitt 19.8).
 
 ### Vollständiges Beispiel: Triage-Swarm
 

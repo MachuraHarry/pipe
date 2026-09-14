@@ -49,14 +49,14 @@
 
 <!-- Hero -->
 <section class="hero">
-  <div class="badge"><strong>SPR</strong> v1.2.0 · Semantic Pipeline Runtime</div>
+  <div class="badge"><strong>SPR</strong> v1.3.0 · Semantic Pipeline Runtime</div>
   <div class="badge" style="color:var(--green)"><span style="color:var(--green)">✓</span> Listed in the <a href="https://registry.modelcontextprotocol.io/?q=MachuraHarry" style="color:inherit">official MCP Registry</a> · <a href="https://github.com/mcp/MachuraHarry/pipe" style="color:inherit">GitHub MCP Registry</a></div>
 
   <h1 id="hero-headline">The first language<br><span class="grad">with built-in MCP</span></h1>
   <p id="hero-sub" class="sub">MCP server and client in one ~8 MB binary. Connect to any stdio MCP server, expose your own tools, and run AI pipelines. 246 builtins. Zero dependencies.</p>
 
   <div class="stats-inline">
-    <div class="stat"><span class="stat-num">40</span><div class="stat-label">AI Builtins</div></div>
+    <div class="stat"><span class="stat-num">41</span><div class="stat-label">AI Builtins</div></div>
     <div class="stat"><span class="stat-num">752</span><div class="stat-label">Tests</div></div>
     <div class="stat"><span class="stat-num">246</span><div class="stat-label">Total Builtins</div></div>
     <div class="stat"><span class="stat-num">6</span><div class="stat-label">Providers</div></div>
@@ -67,8 +67,8 @@
     <a id="download-btn" href="https://github.com/MachuraHarry/pipe/releases/latest" class="cta-download">⬇ Download <span id="dl-os">for Linux</span></a>
     <a href="docs.html" class="cta-secondary">Read the Docs →</a>
   </div>
-  <p class="version-note" data-lang="en" class="active">v1.2.0 · ~8 MB single binary · Linux · macOS · Windows · Raspberry Pi</p>
-  <p class="version-note" data-lang="de">v1.2.0 · ~8 MB einzelne Binary · Linux · macOS · Windows · Raspberry Pi</p>
+  <p class="version-note" data-lang="en" class="active">v1.3.0 · ~8 MB single binary · Linux · macOS · Windows · Raspberry Pi</p>
+  <p class="version-note" data-lang="de">v1.3.0 · ~8 MB einzelne Binary · Linux · macOS · Windows · Raspberry Pi</p>
   <pre class="inline" style="max-width:560px;margin:14px auto 0">curl -fsSL https://pipe-lang.com/install.sh | bash</pre>
 </section>
 
@@ -89,55 +89,55 @@
   </div>
 </section>
 
-<!-- New in v1.2 -->
+<!-- New in v1.3 -->
 <section id="new">
   <div class="container">
     <div class="section-head" style="margin-bottom:28px">
-      <h2 data-lang="en" class="active">New in <span>v1.2</span></h2>
-      <h2 data-lang="de">Neu in <span>v1.2</span></h2>
+      <h2 data-lang="en" class="active">New in <span>v1.3</span></h2>
+      <h2 data-lang="de">Neu in <span>v1.3</span></h2>
     </div>
     <div class="grid-3 reveal">
-      <a class="card" href="blog/ai-swarm-and-vision.html" style="display:block;text-decoration:none;color:inherit">
-        <div style="font-size:0.68rem;color:var(--fg2);font-family:var(--mono);margin-bottom:10px;display:flex;align-items:center;gap:8px"><span style="background:rgba(168,85,247,0.18);border:1px solid var(--accent);color:#c084fc;padding:1px 8px;border-radius:10px;font-size:0.62rem;font-weight:700;font-family:var(--sans)">NEW</span> AI Builtins</div>
-        <h4 data-lang="en" class="active">🐝 ai_swarm — handoff multi-agent swarms</h4>
-        <h4 data-lang="de">🐝 ai_swarm — Handoff-Multi-Agent-Swarms</h4>
-        <p data-lang="en" class="active">Named agents with their own prompt and tools transfer a conversation to one another via a reserved tool call — full shared history, the pattern OpenAI's original "Swarm" popularized.</p>
-        <p data-lang="de">Benannte Agenten mit eigenem Prompt und Tools reichen eine Konversation per reserviertem Tool-Call weiter — geteilter Verlauf, das Pattern von OpenAIs urspr&uuml;nglichem &bdquo;Swarm&ldquo;.</p>
-      </a>
-      <a class="card" href="blog/ai-swarm-and-vision.html" style="display:block;text-decoration:none;color:inherit">
-        <div style="font-size:0.68rem;color:var(--fg2);font-family:var(--mono);margin-bottom:10px;display:flex;align-items:center;gap:8px"><span style="background:rgba(168,85,247,0.18);border:1px solid var(--accent);color:#c084fc;padding:1px 8px;border-radius:10px;font-size:0.62rem;font-weight:700;font-family:var(--sans)">NEW</span> AI Builtins</div>
-        <h4 data-lang="en" class="active">👁️ ai_vision — image understanding</h4>
-        <h4 data-lang="de">👁️ ai_vision — Bildverst&auml;ndnis</h4>
-        <p data-lang="en" class="active">Answer questions about an image — a URL, a local file, or raw bytes — against DeepSeek's vision model. <code>"photo.jpg" &gt; ai_vision "What's in this?"</code></p>
-        <p data-lang="de">Fragen zu einem Bild beantworten — URL, lokale Datei oder rohe Bytes — gegen DeepSeeks Vision-Modell. <code>"foto.jpg" &gt; ai_vision "Was ist zu sehen?"</code></p>
-      </a>
       <a class="card" href="docs.html" style="display:block;text-decoration:none;color:inherit">
-        <div style="font-size:0.68rem;color:var(--fg2);font-family:var(--mono);margin-bottom:10px;display:flex;align-items:center;gap:8px"><span style="background:rgba(168,85,247,0.18);border:1px solid var(--accent);color:#c084fc;padding:1px 8px;border-radius:10px;font-size:0.62rem;font-weight:700;font-family:var(--sans)">NEW</span> CLI</div>
-        <h4 data-lang="en" class="active">🔄 Built-in self-updater</h4>
-        <h4 data-lang="de">🔄 Eingebauter Self-Updater</h4>
-        <p data-lang="en" class="active"><code>pipe --update</code> checks GitHub, verifies the SHA256 checksum, and replaces the running binary atomically. <code>pipe --version</code> / <code>--update-check</code> included.</p>
-        <p data-lang="de"><code>pipe --update</code> pr&uuml;ft GitHub, verifiziert den SHA256-Checksum und ersetzt die laufende Binary atomar. <code>pipe --version</code> / <code>--update-check</code> inklusive.</p>
+        <div style="font-size:0.68rem;color:var(--fg2);font-family:var(--mono);margin-bottom:10px;display:flex;align-items:center;gap:8px"><span style="background:rgba(168,85,247,0.18);border:1px solid var(--accent);color:#c084fc;padding:1px 8px;border-radius:10px;font-size:0.62rem;font-weight:700;font-family:var(--sans)">NEW</span> Language</div>
+        <h4 data-lang="en" class="active">🔀 elif keyword</h4>
+        <h4 data-lang="de">🔀 elif-Schl&uuml;sselwort</h4>
+        <p data-lang="en" class="active">Chain conditions without repeating <code>else if</code> — <code>elif</code> is now first-class syntactic sugar in every <code>if</code> chain.</p>
+        <p data-lang="de">Bedingungen verketten, ohne <code>else if</code> zu wiederholen — <code>elif</code> ist jetzt syntaktischer Zucker in jeder <code>if</code>-Kette.</p>
       </a>
-      <a class="card" href="docs.html" style="display:block;text-decoration:none;color:inherit">
-        <div style="font-size:0.68rem;color:var(--fg2);font-family:var(--mono);margin-bottom:10px;display:flex;align-items:center;gap:8px"><span style="background:rgba(168,85,247,0.18);border:1px solid var(--accent);color:#c084fc;padding:1px 8px;border-radius:10px;font-size:0.62rem;font-weight:700;font-family:var(--sans)">NEW</span> AI Providers</div>
-        <h4 data-lang="en" class="active">🆓 OpenCode Zen — keyless AI provider</h4>
-        <h4 data-lang="de">🆓 OpenCode Zen — schl&uuml;ssellose KI</h4>
-        <p data-lang="en" class="active">The 6th provider runs free-tier models with zero API key at all: <code>ai_provider "opencode"</code> and go.</p>
-        <p data-lang="de">Der 6. Provider l&auml;uft mit Free-Tier-Modellen ganz ohne API-Key: <code>ai_provider "opencode"</code> und los.</p>
+      <a class="card" href="docs.html#19-ai-builtins" style="display:block;text-decoration:none;color:inherit">
+        <div style="font-size:0.68rem;color:var(--fg2);font-family:var(--mono);margin-bottom:10px;display:flex;align-items:center;gap:8px"><span style="background:rgba(168,85,247,0.18);border:1px solid var(--accent);color:#c084fc;padding:1px 8px;border-radius:10px;font-size:0.62rem;font-weight:700;font-family:var(--sans)">NEW</span> AI Builtins</div>
+        <h4 data-lang="en" class="active">📡 ai_swarm_stream — live swarm control</h4>
+        <h4 data-lang="de">📡 ai_swarm_stream — Live-Swarm-Steuerung</h4>
+        <p data-lang="en" class="active">Watch a swarm run tool calls, handoffs and reasoning live, and intervene mid-run — abort or inject a new instruction from a round-check callback.</p>
+        <p data-lang="de">Tool-Calls, Handoffs und Reasoning eines Swarms live beobachten und mittendrin eingreifen — per Round-Check-Callback abbrechen oder eine neue Anweisung einf&uuml;gen.</p>
+      </a>
+      <a class="card" href="docs.html#19-ai-builtins" style="display:block;text-decoration:none;color:inherit">
+        <div style="font-size:0.68rem;color:var(--fg2);font-family:var(--mono);margin-bottom:10px;display:flex;align-items:center;gap:8px"><span style="background:rgba(168,85,247,0.18);border:1px solid var(--accent);color:#c084fc;padding:1px 8px;border-radius:10px;font-size:0.62rem;font-weight:700;font-family:var(--sans)">NEW</span> AI Builtins</div>
+        <h4 data-lang="en" class="active">⚡ tool_call — direct, LLM-free invocation</h4>
+        <h4 data-lang="de">⚡ tool_call — direkter Aufruf ohne LLM</h4>
+        <p data-lang="en" class="active">Call a registered tool by name and skip the model entirely — same tool registry as <code>ai_tool</code>/<code>ai_with_tools</code>.</p>
+        <p data-lang="de">Ein registriertes Tool per Namen aufrufen und das Modell komplett &uuml;berspringen — dieselbe Tool-Registry wie <code>ai_tool</code>/<code>ai_with_tools</code>.</p>
+      </a>
+      <a class="card" href="docs.html#19-ai-builtins" style="display:block;text-decoration:none;color:inherit">
+        <div style="font-size:0.68rem;color:var(--fg2);font-family:var(--mono);margin-bottom:10px;display:flex;align-items:center;gap:8px"><span style="background:rgba(168,85,247,0.18);border:1px solid var(--accent);color:#c084fc;padding:1px 8px;border-radius:10px;font-size:0.62rem;font-weight:700;font-family:var(--sans)">NEW</span> AI Builtins</div>
+        <h4 data-lang="en" class="active">⏩ ai_tool parallel_safe flag</h4>
+        <h4 data-lang="de">⏩ ai_tool parallel_safe-Flag</h4>
+        <p data-lang="en" class="active">Mark a Pipe-defined tool as touching no shared state, and a batch of tool calls from the same round runs it concurrently with its siblings.</p>
+        <p data-lang="de">Ein Pipe-definiertes Tool als zustandsfrei markieren, und eine Charge von Tool-Calls aus derselben Runde l&auml;uft parallel zu ihren Geschwistern.</p>
       </a>
       <a class="card" href="https://github.com/MachuraHarry/pipe/blob/master/CHANGELOG.md" style="display:block;text-decoration:none;color:inherit">
         <div style="font-size:0.68rem;color:var(--fg2);font-family:var(--mono);margin-bottom:10px;display:flex;align-items:center;gap:8px"><span style="background:rgba(168,85,247,0.18);border:1px solid var(--accent);color:#c084fc;padding:1px 8px;border-radius:10px;font-size:0.62rem;font-weight:700;font-family:var(--sans)">NEW</span> Sandbox</div>
-        <h4 data-lang="en" class="active">🛡️ Two more sandbox audit rounds closed</h4>
-        <h4 data-lang="de">🛡️ Zwei weitere Sandbox-Audit-Runden geschlossen</h4>
-        <p data-lang="en" class="active">Round 7 (CLI <code>--sandbox</code> missed 6 fs-write builtins) and round 8 (<code>wiki_search</code> bypassed the AI egress gate entirely) — found, fixed, live-verified.</p>
-        <p data-lang="de">Runde 7 (CLI <code>--sandbox</code> verfehlte 6 Schreib-Builtins) und Runde 8 (<code>wiki_search</code> umging den KI-Egress-Gate komplett) — gefunden, gefixt, live verifiziert.</p>
+        <h4 data-lang="en" class="active">🛡️ Three more sandbox audit rounds closed</h4>
+        <h4 data-lang="de">🛡️ Drei weitere Sandbox-Audit-Runden geschlossen</h4>
+        <p data-lang="en" class="active">Round 9 closed an <code>exec_whitelist</code> shell-injection gap; round 10 confirmed a coordinated swarm adds nothing new; round 11 found and fixed a hard-link escape.</p>
+        <p data-lang="de">Runde 9 schloss eine <code>exec_whitelist</code>-Shell-Injection-L&uuml;cke; Runde 10 best&auml;tigte, dass ein koordinierter Swarm nichts Neues bringt; Runde 11 fand und fixte eine Hardlink-Escape.</p>
       </a>
-      <a class="card" href="https://github.com/MachuraHarry/pipe/blob/master/CHANGELOG.md" style="display:block;text-decoration:none;color:inherit">
-        <div style="font-size:0.68rem;color:var(--fg2);font-family:var(--mono);margin-bottom:10px;display:flex;align-items:center;gap:8px"><span style="background:rgba(168,85,247,0.18);border:1px solid var(--accent);color:#c084fc;padding:1px 8px;border-radius:10px;font-size:0.62rem;font-weight:700;font-family:var(--sans)">FIXED</span> Reliability</div>
-        <h4 data-lang="en" class="active">🐛 .pipec cache correctness bug</h4>
-        <h4 data-lang="de">🐛 .pipec-Cache-Korrektheitsbug</h4>
-        <p data-lang="en" class="active">A stale bytecode cache could resolve a builtin call to the wrong function after the builtin table changed. Now self-invalidating — no known repeat possible.</p>
-        <p data-lang="de">Ein veralteter Bytecode-Cache konnte einen Builtin-Aufruf nach einer &Auml;nderung der Builtin-Tabelle auf die falsche Funktion aufl&ouml;sen. Jetzt selbst-invalidierend — keine Wiederholung mehr m&ouml;glich.</p>
+      <a class="card" href="docs.html" style="display:block;text-decoration:none;color:inherit">
+        <div style="font-size:0.68rem;color:var(--fg2);font-family:var(--mono);margin-bottom:10px;display:flex;align-items:center;gap:8px"><span style="background:rgba(168,85,247,0.18);border:1px solid var(--accent);color:#c084fc;padding:1px 8px;border-radius:10px;font-size:0.62rem;font-weight:700;font-family:var(--sans)">NEW</span> IO</div>
+        <h4 data-lang="en" class="active">🔒 file_lock / file_unlock</h4>
+        <h4 data-lang="de">🔒 file_lock / file_unlock</h4>
+        <p data-lang="en" class="active">Real cross-process advisory file locking — coordinate access to a shared file between separate Pipe processes.</p>
+        <p data-lang="de">Echtes prozess&uuml;bergreifendes Advisory-File-Locking — Zugriff auf eine gemeinsame Datei zwischen separaten Pipe-Prozessen koordinieren.</p>
       </a>
     </div>
   </div>

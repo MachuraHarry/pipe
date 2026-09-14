@@ -508,11 +508,20 @@ responding, the AI can take action — call APIs, run calculations, fetch data.
 ### ai_tool
 
 ```
-ai_tool name description parameters_schema function
+ai_tool name description parameters_schema function [parallel_safe]
 ```
 
 Registers a Pipe function as a tool for the LLM. `parameters_schema` is a map
 describing the expected parameters.
+
+**`parallel_safe`** (optional 5th argument, boolean, defaults to `false`)
+declares that this Pipe `fn` tool touches no shared mutable state, so a batch
+of tool calls returned in the same round (e.g. from `ai_with_tools` or an
+`ai_swarm` round) may run it concurrently with its siblings instead of
+strictly one at a time. Builtins with a known-safe implementation already run
+in parallel automatically — this flag extends the same treatment to
+Pipe-defined tools. Every existing `ai_tool` call site keeps its current
+(synchronous) behavior unless you opt in.
 
 ```pipe
 -- Define a weather tool
@@ -1007,6 +1016,66 @@ print result.path
 print result.rounds
 -- -> 2
 ```
+
+### ai_swarm_stream
+
+```
+ai_swarm_stream task entry_agent [max_rounds] [on_progress] [round_check]
+```
+
+Same underlying run as `ai_swarm`/`ai_swarm_trace`, but with two optional
+closures for live observation and control. Returns a map
+`{content, path, rounds, aborted, abort_reason}`.
+
+**`on_progress`** (4th argument) is called after every step as
+`on_progress(agent, event, detail, args_json, round, max_rounds)`. `event` is
+one of:
+
+| Event | `detail` | `args_json` |
+|-------|----------|-------------|
+| `"start"` | — | — |
+| `"reasoning"` | the model's raw chain-of-thought, when the provider returns one (e.g. DeepSeek reasoner models) | — |
+| `"tool"` | the tool's name | the tool's raw call arguments |
+| `"handoff"` | the name of the agent being handed off to | the handoff tool's full raw arguments — extract `reason` from this to show e.g. `"triage -> billing: verify the invoice total"` |
+| `"final"` | — | — |
+| `"inject"` | the injected instruction text (see `round_check` below) | — |
+
+`round` / `max_rounds` are the round safety-budget counters, not a
+task-completion estimate.
+
+**`round_check`** (5th argument) is called with no arguments at the start of
+every round, letting a caller (e.g. a Telegram bot polling for a `/stop`
+command) intervene in an in-flight run. It runs synchronously at an existing
+checkpoint — no new concurrency. It may return a map with any of:
+
+| Key | Type | Effect |
+|-----|------|--------|
+| `abort` | bool | Stops the run immediately. The result then has `aborted: true`, `abort_reason` set, and `content` reflecting whatever partial progress was made. |
+| `abort_reason` | string | Reason recorded alongside `abort`. |
+| `inject` | string | Appended to the live conversation as a new instruction before the round proceeds — lets a caller steer an in-flight run with a fresh message. |
+
+Returning `nil`, a non-map, or an empty map is a fully inert round (identical
+to passing no `round_check` at all).
+
+```pipe
+ai_provider "deepseek"
+
+fn on_progress agent event detail args_json round max_rounds
+    print agent ++ " [" ++ event ++ "] " ++ detail ++ " (" ++ round ++ "/" ++ max_rounds ++ ")"
+
+fn on_round_check
+    if should_stop()
+        {abort: true, abort_reason: "cancelled by operator"}
+    else
+        {}
+
+result: ai_swarm_stream "My bill this month looks wrong" "triage" 5 on_progress on_round_check
+print result.content
+```
+
+Independent tool calls returned within the same round now run in parallel
+where safe, instead of always sequentially — the same `parallel_safe`
+mechanism `ai_tool` uses (Section 19.8).
 
 ### Complete Example: Triage Swarm
 

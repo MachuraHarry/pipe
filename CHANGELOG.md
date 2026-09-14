@@ -4,10 +4,35 @@ All notable changes to Pipe are documented here. This file follows [Keep a Chang
 
 ## [Unreleased]
 
+---
+
+## [1.3.0] — 2026-09-14
+
 ### Added
+- **`ai_swarm_stream`** — new builtin for live swarm progress observation: a 4th-argument callback fires on tool-call start/end, handoff and round events, and now also carries the tool call's raw arguments and the current `round`/`maxRounds`. `ChatSwarm` warns the model before it runs out of rounds instead of silently truncating.
 - **`ai_swarm_stream`: optional round-check callback (5th argument)** — a Pipe closure invoked with no arguments at the start of every swarm round, letting a caller (e.g. a Telegram bot) intervene in an in-flight run without any new concurrency (it runs synchronously, same goroutine/VM, at an existing checkpoint). It may return a map with any of `abort` (bool), `abort_reason` (string), `inject` (string) — every field optional; `nil`/a non-map/an empty map is a fully inert round. A truthy `abort` stops the run immediately (result then has `aborted`=true, `abort_reason` set, `content` reflecting whatever partial progress was made); a non-empty `inject` is appended to the live conversation as a new instruction before the round proceeds, letting a caller steer an in-flight run with a fresh message. Go-level API: `ai.ChatSwarm`'s trailing parameter is now `SwarmRoundCheck func() SwarmRoundAction`.
 - **`ai_swarm_stream`: `"reasoning"` progress event** — the 4th-argument progress callback now also fires with `event="reasoning"` and the model's raw chain-of-thought in `detail`, whenever the provider returns one (e.g. DeepSeek reasoner models) — including on a final, non-tool-calling round, which previously discarded `ReasoningContent` entirely without surfacing it anywhere.
 - **`ai_swarm`/`ai_swarm_trace`/`ai_swarm_stream`: optional `reason` on handoff** — the synthesized handoff tool now accepts an optional `reason` string alongside `to`, so an agent can leave a short note on what it wants the target agent to do. Not required — existing `{"to": ...}`-only handoff calls are unaffected. The `"handoff"` progress event's `argsJSON` now carries the handoff tool's full raw arguments (previously always `""`), so a caller can extract `reason` and show e.g. "HUGINN -> MIMIR: verify the population figure" instead of just "handed off to MIMIR".
+- **`ai_swarm`: parallel tool calls within a round** — independent tool calls returned in the same swarm round now run in parallel where safe, instead of always sequentially. Oscillation between two agents handing off back and forth is now detected and broken by withdrawing the paired partner, instead of burning through `max_rounds`; a text-only reply from a non-terminal agent is now rejected instead of silently accepted as the final answer.
+- **`tool_call`** — direct, LLM-free invocation of a registered tool by name, bypassing the model entirely. See [AI Builtins §19](docs/en/19-ai-builtins.md) / §25.
+- **`file_lock` / `file_unlock`** — real cross-process advisory file locking.
+- **`elif` keyword** in `if`/`else` chains. The formatter also now preserves import aliases and skips commented-out files.
+- **`pipe -build`: real multi-file projects** — preserves embedded files' relative subdirectory paths instead of flattening to bare filenames, and resolves them via `PIPE_PATH` instead of `os.Chdir`.
+- **`ai_tool`: `parallel_safe` flag** — lets `runToolBatch` spawn Pipe-defined `fn` tools in parallel too, not just builtins.
+- **Sandbox audit rounds 9-11**: closed an `exec_whitelist` shell-injection gap (round 9); confirmed a coordinated two-agent swarm attack adds nothing an isolated agent didn't already have (round 10); found and fixed a hard-link escape (round 11). Reports and harnesses under `docs/tests/sandbox-audit/`.
+- New `ai_swarm` research and debate example programs.
+
+### Fixed
+- **`pipe -build -upx`**: UPX now compresses the interpreter *before* the payload is appended, instead of the already-assembled binary afterward — the old order silently corrupted the embedded payload.
+- **VM**: a multi-statement `try` block leaked one operand-stack slot per non-final statement on every no-error run, exhausting the stack inside a long-running loop.
+- **VM**: a `catch` block's trailing `VarStatement` over-popped locals, and nested `for` loops shared hardcoded bookkeeping symbol names and corrupted each other's iteration state (both found bisecting a full test suite).
+- **Compiler**: a bare-imported module shadowing a builtin (e.g. sqlite's `exec`) broke unrelated builtin calls in later aliased-imported modules under `-vm`.
+- **MCP**: client bridge dropped/scrambled optional tool arguments; client omitted `"arguments"` entirely for empty tool/prompt calls; stdio subprocesses (and their own children) leaked on every restart; the watchdog process was referenced but never implemented; the stdio client discarded captured stderr on crash-before-response.
+- **`ai`**: handle XML-style tool-call markup appearing in tool chat/swarm responses; `ai_tool` now dispatches a bare builtin identifier value correctly under the tree-walker; `ai_cost`'s `cache_hits`/`cache_misses` were always 0 because the provider's real prompt-cache usage was never read.
+- **`eval`**: map literal declaration order is now preserved end-to-end.
+- **Module cache**: `pipe -get` now invalidates the module cache so updated modules are actually re-fetched (#4).
+- **`spawn`/`await`**: `push` and `set` no longer eagerly resolve `Future` arguments.
+- **website**: markdown blockquotes now render as `<blockquote>`.
 
 ---
 

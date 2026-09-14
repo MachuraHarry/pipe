@@ -17,6 +17,19 @@ else
     print "Nicht bestanden"
 ```
 
+**`elif`** ist syntaktischer Zucker für `else if` und lässt sich verketten:
+
+```pipe
+note: if punkte >= 90
+  "A"
+elif punkte >= 75
+  "B"
+elif punkte >= 50
+  "C"
+else
+  "F"
+```
+
 ### if als Ausdruck
 
 Der letzte Wert jedes Zweigs wird zurückgegeben:

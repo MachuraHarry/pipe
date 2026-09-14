@@ -2,7 +2,7 @@
 
 [![CI](https://github.com/MachuraHarry/pipe/actions/workflows/ci.yml/badge.svg)](https://github.com/MachuraHarry/pipe/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-purple.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-v1.1.1-blue.svg)](https://github.com/MachuraHarry/pipe/releases)
+[![Version](https://img.shields.io/badge/version-v1.3.0-blue.svg)](https://github.com/MachuraHarry/pipe/releases)
 [![SPR](https://img.shields.io/badge/SPR-Semantic%20Pipeline%20Runtime-7c5cfc.svg)](#)
 [![MCP](https://img.shields.io/badge/MCP-Server%20%2B%20Client-3ce096.svg)](#model-context-protocol)
 [![GitHub MCP Registry](https://img.shields.io/badge/GitHub_MCP_Registry-Listed-4a90d9.svg)](https://github.com/mcp/MachuraHarry/pipe)
@@ -11,18 +11,21 @@
 > **The first language with built-in MCP — server and client. 246 builtins, single ~8 MB binary. Zero dependencies.**
 > **Officially listed in the [official MCP Registry](https://registry.modelcontextprotocol.io/?q=MachuraHarry)** (v1.1.1, active). One-click install from [GitHub MCP Registry](https://github.com/mcp/MachuraHarry/pipe) for Copilot & VS Code.
 
-## What's New in v1.0
+## What's New in v1.3
 
-Pipe v1.0.0 is the **production-ready release**, consolidating the entire v0.9.x series:
+Pipe v1.3.0 builds on the multi-agent and vision work from v1.2.0:
 
-- **Guard clauses** — `| pattern if cond -> body` in match expressions
-- **Concurrency primitives** — channels (`send`/`recv`/`try_recv`), mutex (`lock`/`unlock`), counting semaphore (`acquire`/`release`)
-- **Bytecode-VM improvements** — constant folding, alias import namespaces, bytecode cache
-- **MQTT 5.0 module** — pure Pipe MQTT client with input validation, CONNACK properties, DISCONNECT handling
-- **docs-pipe** — RAG module for documentation-native search with heading-aware chunking
-- **Test framework** — setup/teardown hooks, `assert_near`/`assert_contains`, VM test blocks
-- **Hardened sandbox** — audit rounds 1-6, deterministic env masking, central egress gate
-- **246 builtins** — 36 AI + 13 MCP + 192 standard, up from 226 in v0.9.3
+- **Multi-agent swarms** — `ai_swarm` / `ai_swarm_trace` / `swarm_agent`: named agents hand a conversation off to one another via a reserved tool call, with the full message history carried forward. `ai_swarm_stream` adds live progress observation (tool calls, handoffs, reasoning, round-check callbacks to intervene mid-run) and now runs independent tool calls within a round in parallel where safe.
+- **`ai_vision`** — ask a question about an image (an http(s) URL, local file, or raw bytes) via an OpenAI-compatible vision model.
+- **OpenCode Zen AI provider** — 6th provider, with free-tier models usable without any API key.
+- **Built-in self-updater** — `pipe --update` / `--update-check` fetch, checksum-verify and swap in the latest GitHub release.
+- **`tool_call`** — direct, LLM-free invocation of a registered tool.
+- **`file_lock` / `file_unlock`** — real cross-process advisory file locking.
+- **`elif` keyword** in `if`/`else` chains.
+- **`ai_tool`: `parallel_safe` flag** — batches of Pipe-defined `fn` tools can now run in parallel too, not just builtins.
+- **`pipe -build`** now supports real multi-file projects, preserving relative subdirectory paths.
+- **Hardened sandbox** — audit rounds 7-11: closed filesystem-write gate gaps, the `wiki_search` egress gap, an `exec_whitelist` shell-injection gap, and a hard-link escape.
+- **246 builtins** — 41 AI + 13 MCP + 192 standard, up from 226 in v0.9.3
 - **23 modules** — MQTT, SQLite, pipe-http, pipe-web, pipe-orm, pipe-cli, and more
 
 ## Quick Install
@@ -342,7 +345,7 @@ index_search idx "language" 3 > each print
 | Tree-Walker | `./bin/pipe script.pipe` | Baseline |
 | Bytecode VM | `./bin/pipe -vm -q script.pipe` | 0.6x-55x (recursion-heavy up to ~55x) |
 
-## 49 AI + MCP Builtins (36 AI + 13 MCP)
+## 54 AI + MCP Builtins (41 AI + 13 MCP)
 
 ### Understanding
 `summarize`, `translate`, `classify`, `extract`, `ask`, `generate`, `generate_json`
@@ -354,7 +357,7 @@ index_search idx "language" 3 > each print
 `web_search`, `wiki_search`, `embed`, `embed_batch`, `cosine_sim`, `dot_product`, `nearest`
 
 ### Agents & Tools
-`agent`, `agent_ask`, `agent_clear`, `ai_tool`, `ai_with_tools`
+`agent`, `agent_ask`, `agent_clear`, `ai_tool`, `ai_with_tools`, `tool_call`, `swarm_agent`, `ai_swarm`, `ai_swarm_trace`, `ai_swarm_stream`, `ai_vision`
 
 ### Config & Cost
 `ai_provider`, `ai_model`, `ai_host`, `ai_set_key`, `ai_timeout`, `ai_cache`, `ai_cost`, `ai_tokens`, `ai_cache_hits`, `ai_cache_misses`

@@ -478,12 +478,12 @@ function closeMenu() { document.getElementById('nav-menu').classList.remove('ope
  * Toast
  * ================================================================ */
 var toastTimer = null;
-function toast(msg) {
+function toast(msg, ms) {
   var el = document.getElementById('toast');
   el.innerHTML = msg;
   el.classList.add('show');
   if (toastTimer) clearTimeout(toastTimer);
-  toastTimer = setTimeout(function () { el.classList.remove('show'); }, 2600);
+  toastTimer = setTimeout(function () { el.classList.remove('show'); }, ms || 2600);
 }
 
 /* ================================================================

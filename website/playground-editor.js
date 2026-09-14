@@ -15,7 +15,7 @@
 // catchable here and falls back to a plain <textarea> instead of leaving
 // the editor card empty.
 
-function mountFallback(mount) {
+function mountFallback(mount, err) {
   var ta = document.createElement('textarea');
   ta.id = 'code-area-fallback';
   ta.spellcheck = false;
@@ -30,7 +30,14 @@ function mountFallback(mount) {
     if (window.saveDraft) window.saveDraft();
     if (window.scheduleRenderGraph) window.scheduleRenderGraph();
   });
-  if (window.toast) window.toast('CodeMirror failed to load — using a plain editor instead.');
+  // Surface the ACTUAL error text (not just a generic message) directly in
+  // the visible toast, so diagnosing a load failure never requires opening
+  // devtools — copy/pasting the toast is enough.
+  var detail = err ? (err.name ? err.name + ': ' : '') + (err.message || String(err)) : 'unknown error';
+  // 20s (vs. the default 2.6s) so there's actually time to read and copy
+  // this before it fades — this message only fires on a real failure, so
+  // it's worth the longer, more intrusive duration.
+  if (window.toast) window.toast('CodeMirror failed to load (' + detail + ') — using a plain editor instead.', 20000);
   window.dispatchEvent(new Event('cm-ready'));
 }
 
@@ -100,6 +107,6 @@ function mountFallback(mount) {
     window.dispatchEvent(new Event('cm-ready'));
   } catch (e) {
     console.error('CodeMirror failed to load, falling back to plain textarea:', e);
-    mountFallback(mount);
+    mountFallback(mount, e);
   }
 })();

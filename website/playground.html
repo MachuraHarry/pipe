@@ -104,10 +104,29 @@ nav a.active { color: var(--fg); }
   overflow: auto; overscroll-behavior: contain;
   font-family: "Cascadia Code", "JetBrains Mono", Menlo, Consolas, monospace; font-size: 13px; line-height: 1.65; white-space: pre-wrap; word-break: break-word; color: var(--fg);
 }
-#output .out-ok { color: var(--green); }
-#output .out-err { color: var(--red); }
+#output .out-ok { color: var(--fg); }
+#output .out-err, #output .out-err * { color: var(--red); }
 #output .out-dim { color: var(--fg3); }
 #output p { margin: 0 0 8px; }
+#output > :last-child { margin-bottom: 0; }
+
+/* Markdown rendering inside the output panel (AI responses, etc.) */
+#output h1, #output h2, #output h3, #output h4 { line-height: 1.3; margin: 18px 0 8px; color: var(--fg); }
+#output > h1:first-child, #output > h2:first-child, #output > h3:first-child, #output > h4:first-child { margin-top: 0; }
+#output h1 { font-size: 1.35em; } #output h2 { font-size: 1.2em; } #output h3 { font-size: 1.08em; } #output h4 { font-size: 1em; }
+#output ul, #output ol { margin: 0 0 10px; padding-left: 1.4em; }
+#output li { margin: 2px 0; }
+#output li > p { margin: 0 0 4px; }
+#output blockquote { margin: 0 0 10px; padding: 2px 14px; border-left: 3px solid var(--accent); color: var(--fg2); }
+#output hr { border: 0; border-top: 1px solid var(--border); margin: 14px 0; }
+#output a { color: var(--accent); }
+#output strong { color: var(--fg); font-weight: 700; }
+#output code { font-family: "Cascadia Code", "JetBrains Mono", Menlo, Consolas, monospace; background: var(--bg3); border: 1px solid var(--border); border-radius: 4px; padding: 1px 5px; font-size: 0.92em; }
+#output pre { background: var(--bg3); border: 1px solid var(--border); border-radius: 8px; padding: 12px 14px; overflow: auto; margin: 0 0 10px; }
+#output pre code { background: none; border: 0; padding: 0; font-size: 0.9em; }
+#output table { border-collapse: collapse; margin: 0 0 10px; font-size: 0.92em; display: block; overflow-x: auto; }
+#output th, #output td { border: 1px solid var(--border); padding: 5px 10px; text-align: left; }
+#output th { background: var(--bg3); }
 .out-meta { padding: 8px 16px; border-top: 1px solid var(--border); font-size: 12px; color: var(--fg2); display: flex; gap: 16px; flex-wrap: wrap; }
 
 #rating-bar { display: none; align-items: center; gap: 10px; padding: 10px 16px; border-top: 1px solid var(--border); font-size: 13px; color: var(--fg); background: var(--bg2); }
@@ -429,6 +448,15 @@ nav a.active { color: var(--fg); }
 <div id="toast"></div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-markup.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-json.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-bash.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-go.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-javascript.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-typescript.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/marked/12.0.2/marked.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.1.6/purify.min.js"></script>
 <script>
 'use strict';
 
@@ -786,18 +814,41 @@ function showTab(name) {
  * ================================================================ */
 var OUTPUT_ANSI = /\x1b\[[0-9;]*m/g;
 function stripAnsi(s) { return String(s || '').replace(OUTPUT_ANSI, ''); }
+// renderOutput renders the run's raw stdout as Markdown (headings, lists,
+// code blocks, tables, bold/italic, ...) so AI responses that come back
+// formatted read the way they were meant to, not as one long escaped block
+// of text. `breaks: true` turns a single newline into a <br> so ordinary,
+// non-Markdown program output (each `print` call on its own line) still
+// renders one line per line, exactly like before, while blank-line-separated
+// Markdown blocks from an AI response still parse as real paragraphs/lists/
+// code fences. Falls back to the previous plain per-line rendering if the
+// Markdown libraries did not load (e.g. offline, CDN blocked) or throw.
 function renderOutput(text) {
   var out = document.getElementById('output');
   var raw = stripAnsi(text);
   var lines = raw.split('\n').filter(function (l) { return l.trim() !== ''; });
   var hasError = /error|panic|fatal|exception/i.test(raw);
-  var html = '';
-  lines.forEach(function (l) {
-    var cls = hasError ? 'out-err' : 'out-ok';
-    html += '<p class="' + cls + '">' + escapeHtml(l) + '</p>';
-  });
+  var cls = hasError ? 'out-err' : 'out-ok';
+  var html = null;
+  if (typeof marked !== 'undefined' && typeof DOMPurify !== 'undefined') {
+    try {
+      var rendered = marked.parse(raw, { gfm: true, breaks: true });
+      html = DOMPurify.sanitize(rendered);
+    } catch (e) { html = null; }
+  }
+  if (html == null) {
+    html = '';
+    lines.forEach(function (l) { html += '<p>' + escapeHtml(l) + '</p>'; });
+  }
   if (!html) html = '<p class="out-dim">·</p>';
-  out.innerHTML = html;
+  var wrap = document.createElement('div');
+  wrap.className = cls;
+  wrap.innerHTML = html;
+  out.innerHTML = '';
+  out.appendChild(wrap);
+  if (typeof Prism !== 'undefined') {
+    try { Prism.highlightAllUnder(wrap); } catch (e) {}
+  }
   var meta = document.getElementById('out-meta');
   meta.style.display = 'flex';
   document.getElementById('out-lines').textContent = tpl('pg.lines', { n: lines.length });
@@ -1126,10 +1177,10 @@ var TEMPLATES = {
   hash_chain: "--! Hash chain and proof-of-work: links chained through sha256, PoW mines a prefix.\n\n--! Builds a chain of length hashes starting from seed.\nfn build_chain seed length\n    chain: [seed]\n    i: 0\n    while i < length\n        prev: at chain i\n        chain: push chain (sha256 (prev ++ (to_str i)))\n        i: i + 1\n    chain\n\n--! Verifies that every chain link matches its predecessor's hash.\nfn verify_chain chain\n    i: 0\n    while i < ((len chain) - 1)\n        prev: at chain i\n        expected: sha256 (prev ++ (to_str i))\n        actual: at chain (i + 1)\n        if expected != actual\n            return false\n        i: i + 1\n    true\n\n--! Mines a nonce so the hash starts with the target prefix.\nfn mine_pow data target\n    nonce: 0\n    found: false\n    while !found\n        candidate: sha256 (data ++ (to_str nonce))\n        if contains candidate target\n            nonce: nonce + 1\n        else\n            found: true\n    nonce\n\n--- === Demo ===\n\nprint \"--- Hash Chain ---\"\n\nchain: build_chain \"genesis\" 4\n\n--- Verify chain through pipeline → if\nverify_chain chain\n    > print\n\n--- Tamper detection\nprint \"\"\nprint \"--- Tamper: Insert fake hash ---\"\nchain: set chain 2 \"hacked\"\n\nverified: verify_chain chain\nif verified\n    print \"VALID (bad)\"\nelse\n    print \"INVALID (expected)\"\n\n--- Proof of Work\nprint \"\"\nprint \"--- Proof of Work ---\"\nt1: now\nnonce: mine_pow \"pipe-pow\" \"00\"\nt2: now\nprint (\"Time:  \" ++ (to_str (t2 - t1)) ++ \" sec\")\nprint (\"Tries: \" ++ (to_str nonce))\n\n\"pipe-pow\" ++ (to_str nonce)\n    > sha256\n    > print",
   regex: "is_email: fn s\n  regex_match \"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\\\.[a-zA-Z]{2,}$\" s\n\nprint (is_email \"user@example.com\")\nprint (is_email \"not-valid\")\n\nextract_numbers: fn s\n  regex_replace \"[^0-9]\" \"\" s\n\nprint (extract_numbers \"Price: $42[99] - Code: 1234\")\n\ncaptures: regex_captures \"(\\\\w+)@(\\\\w+)\\\\.com\" \"contact: alice@example.com\"\nprint captures",
   web_search: "-- No API key needed: web_search / wiki_search route through the same\n-- sandboxed network path as the AI builtins, but need no key at all.\nprint \"═══ WEB SEARCH DEMO ═══\"\nprint \"\"\n\nprint \"─── 1. Web Search (DuckDuckGo) ───\"\nresults: web_search \"Rust programming language\"\nr: at results 0\nprint (get r \"title\")\nprint (get r \"snippet\")\nprint \"\"\n\nprint \"─── 2. Wikipedia Lookup ───\"\nhits: wiki_search \"Ada Lovelace\"\ntop: at hits 0\nprint (get top \"title\")\nprint (get top \"snippet\")\n\nprint \"\"\nprint \"═══ DONE ═══\"",
-  ai_ask: "-- Set your API key in the AI Settings panel below first.\nai_provider \"deepseek\"\n\n\"Explain what a pipeline operator is in one sentence.\"\n    > ask\n    > print\n\ntext: \"Pipe is a scripting language with MCP and AI built in from day one. It ships as a single ~8 MB binary with no external dependencies, runs sandboxed by default, and speaks the Model Context Protocol natively.\"\n\nprint \"─── Summary ───\"\ntext\n    > summarize\n    > print\n\nprint \"─── Translated to German ───\"\ntranslate text \"German\"\n    > print\n\nprint \"─── Classified ───\"\ncategories: [\"marketing\", \"technical documentation\", \"news\"]\nclassify text categories\n    > print",
-  ai_tool: "--! Tool-calling demo: the LLM can call a Pipe function registered via ai_tool.\nai_provider \"deepseek\"\n\nprint \"═══ TOOL-CALLING DEMO ═══\"\nprint \"\"\n\n--! Returns a canned weather report for a city.\nfn get_wetter stadt\n    match stadt\n        | \"Berlin\" -> \"Berlin: 22 Grad, sonnig\"\n        | \"London\" -> \"London: 15 Grad, regnerisch\"\n        | \"Paris\" -> \"Paris: 25 Grad, klar\"\n        | _ -> stadt ++ \": Keine Daten\"\n\n-- 2. Tool beim LLM registrieren\nschema: {stadt: \"Name der Stadt\"}\nai_tool \"get_wetter\" \"Holt das aktuelle Wetter fuer eine Stadt\" schema get_wetter\n\n-- 3. LLM mit Tool-Zugriff fragen\nprint \"Frage: Wie ist das Wetter in Berlin und Paris?\"\nprint \"\"\n\nergebnis: ai_with_tools \"Du bist ein Wetter-Assistent. Nutze get_wetter um die Frage zu beantworten.\" \"Wie ist das Wetter in Berlin und Paris?\"\n\nprint \"Antwort:\"\nprint ergebnis\n\nprint \"\"\nprint \"═══ TOOL-CALLING DONE ═══\"",
+  ai_ask: "-- Set your API key in the AI Settings panel below first.\nai_provider \"deepseek\"\n\nprint \"─── Ask ───\"\n\"Explain what a pipeline operator is, with a short example. Format your answer in Markdown (a code span and a short list are welcome) where it helps.\"\n    > ask\n    > print\n\ntext: \"Pipe is a scripting language with MCP and AI built in from day one. It ships as a single ~8 MB binary with no external dependencies, runs sandboxed by default, and speaks the Model Context Protocol natively.\"\n\nprint \"─── Summary ───\"\ntext\n    > summarize\n    > print\n\nprint \"─── Translated to German ───\"\ntranslate text \"German\"\n    > print\n\nprint \"─── Classified ───\"\ncategories: [\"marketing\", \"technical documentation\", \"news\"]\nclassify text categories\n    > print",
+  ai_tool: "--! Tool-calling demo: the LLM can call a Pipe function registered via ai_tool.\nai_provider \"deepseek\"\n\nprint \"═══ TOOL-CALLING DEMO ═══\"\nprint \"\"\n\n--! Returns a canned weather report for a city.\nfn get_wetter stadt\n    match stadt\n        | \"Berlin\" -> \"Berlin: 22 Grad, sonnig\"\n        | \"London\" -> \"London: 15 Grad, regnerisch\"\n        | \"Paris\" -> \"Paris: 25 Grad, klar\"\n        | _ -> stadt ++ \": Keine Daten\"\n\n-- 2. Tool beim LLM registrieren\nschema: {stadt: \"Name der Stadt\"}\nai_tool \"get_wetter\" \"Holt das aktuelle Wetter fuer eine Stadt\" schema get_wetter\n\n-- 3. LLM mit Tool-Zugriff fragen\nprint \"Frage: Wie ist das Wetter in Berlin und Paris?\"\nprint \"\"\n\nergebnis: ai_with_tools \"Du bist ein Wetter-Assistent. Nutze get_wetter um die Frage zu beantworten. Antworte in Markdown, z.B. mit einer kurzen Liste.\" \"Wie ist das Wetter in Berlin und Paris?\"\n\nprint \"Antwort:\"\nprint ergebnis\n\nprint \"\"\nprint \"═══ TOOL-CALLING DONE ═══\"",
   try_ai: "--! try_ai demo: AI-powered self-healing code that repairs runtime errors.\n--! Zero API cost when no error occurs. Requires DEEPSEEK_API_KEY.\n\nai_provider \"deepseek\"\n\nprint \"═══ TRY_AI DEMO ═══\"\nprint \"\"\n\n-- Example 1: Type mismatch E002\nprint \"─── 1. Type Mismatch (E002) ───\"\nresult1: try_ai\n    \"42\" * 3\ncatch e\n    0\nprint (\"Result: \" ++ (to_str result1))\nprint \"\"\n\n-- Example 2: Division by zero E003\nprint \"─── 2. Division by Zero (E003) ───\"\nresult2: try_ai\n    100 / 0\ncatch e\n    0\nprint (\"Result: \" ++ (to_str result2))\nprint \"\"\n\n-- Example 3: Undefined variable E001\nprint \"─── 3. Undefined Variable (E001) ───\"\nresult3: try_ai\n    undefined + 10\ncatch e\n    0\nprint (\"Result: \" ++ (to_str result3))\nprint \"\"\n\n-- Example 4: Safe pipeline with fallback\nprint \"─── 4. Safe Pipeline ───\"\nfn divide a b\n    a / b\n\nsafe_result: try_ai\n    divide 100 0\ncatch e\n    -1\n\nprint (\"Safe result: \" ++ (to_str safe_result))\nprint \"\"\n\n-- Example 5: Working code costs nothing\nprint \"─── 5. No Error = No API Call ───\"\ngood: try_ai\n    2 + 2\ncatch e\n    0\nprint (\"Result: \" ++ (to_str good))\nprint \"(No AI call was made — code was already valid)\"\nprint \"\"\n\nprint \"═══ DONE ═══\"",
-  vision: "--! Vision demo: ask a vision-capable model about images.\n--! Needs a model that supports image input (e.g. DeepSeek's\n--! deepseek-v4-flash-vision-exp). Run with a real provider key, e.g.:\n--!   DEEPSEEK_API_KEY=\"sk-...\" pipe examples/vision_demo.pipe\nai_provider \"deepseek\" {model: \"deepseek-v4-flash-vision-exp\"}\n\nprint \"═══ VISION DEMO ═══\"\nprint \"\"\n\nprint \"─── 1. Image from a public URL ───\"\n\"https://raw.githubusercontent.com/github/explore/main/topics/go/go.png\"\n    > ai_vision \"What does this logo depict, and what programming language is it associated with?\"\n    > print\nprint \"\"\n\nprint \"═══ DONE ═══\"",
+  vision: "--! Vision demo: ask a vision-capable model about images.\n--! Needs a model that supports image input (e.g. DeepSeek's\n--! deepseek-v4-flash-vision-exp). Run with a real provider key, e.g.:\n--!   DEEPSEEK_API_KEY=\"sk-...\" pipe examples/vision_demo.pipe\nai_provider \"deepseek\" {model: \"deepseek-v4-flash-vision-exp\"}\n\nprint \"═══ VISION DEMO ═══\"\nprint \"\"\n\nprint \"─── 1. Image from a public URL ───\"\n\"https://raw.githubusercontent.com/github/explore/main/topics/go/go.png\"\n    > ai_vision \"What does this logo depict, and what programming language is it associated with? Answer in Markdown, e.g. **bold** for the language name.\"\n    > print\nprint \"\"\n\nprint \"═══ DONE ═══\"",
   embedding: "--! Embeddings and semantic search: embed documents, search by meaning.\nai_provider \"deepseek\"\n\nprint \"═══ EMBEDDINGS & VEKTORSUCHE ═══\"\nprint \"\"\n\n-- Wissensdatenbank (Texte kurz halten für single-line list)\ndokumente: [\"Bytecode-Compiler übersetzt AST in 47 Opcodes.\", \"Pipeline-Syntax: Daten fließen von oben nach unten.\", \"Pipe hat 81 Builtins für IO und HTTP.\", \"Lexer nutzt INDENT/DEDENT-Tokens.\", \"HTTP GET mit http_get, liefert Status und Body.\", \"Die VM führt Bytecode 7x schneller aus als Tree-Walker.\"]\n\nprint \"─── 1. Dokumente einbetten ───\"\nts: now\nprint (\"Embedding \" ++ (to_str (len dokumente)) ++ \" Dokumente...\")\n\nvektoren: embed_batch dokumente\n\nd: (now) - ts\nprint (\"Dauer: \" ++ (to_str d) ++ \"s\")\nprint \"\"\n\n-- Semantische Suche\nprint \"─── 2. Semantische Suche ───\"\nfrage: \"Wie schnell ist die VM?\"\nprint (\"Frage: \" ++ frage)\n\nfrage_vec: embed frage\ntop3: nearest frage_vec vektoren 3\n\nprint \"Top 3 relevante Dokumente:\"\nfor idx in top3\n    print (\"  [\" ++ (to_str idx) ++ \"] \" ++ (at dokumente idx))\nprint \"\"\n\n-- Kosinus-Ähnlichkeit\nprint \"─── 3. Kosinus-Ähnlichkeit ───\"\nv1: embed \"Programmieren macht Spass\"\nv2: embed \"Coding ist kreativ\"\nv3: embed \"Der Kuehlschrank ist leer\"\n\nsim12: cosine_sim v1 v2\nsim13: cosine_sim v1 v3\n\nprint (\"Programmieren vs Coding:   \" ++ (to_str sim12))\nprint (\"Programmieren vs Kuehlschrank: \" ++ (to_str sim13))\nprint \"(Hoeher = aehnlicher. Semantik erkannt!)\"\n\nprint \"\"\nprint \"═══ DONE ═══\""
 };
 

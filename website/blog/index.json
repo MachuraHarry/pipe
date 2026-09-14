@@ -1,5 +1,19 @@
 [
   {
+    "id": "pipe-v1.3",
+    "file": "pipe-v1.3.md",
+    "date": "2026-09-14",
+    "tag": "release",
+    "title": {
+      "en": "Pipe v1.3.0 — Live Swarm Control, and Four Real Bugs Found Shipping a Bot as a Single Binary",
+      "de": "Pipe v1.3.0 — Live-Swarm-Steuerung, und vier echte Bugs beim Shippen eines Bots als Single Binary"
+    },
+    "excerpt": {
+      "en": "ai_swarm_stream adds live progress and mid-run control, plus elif, tool_call, file_lock and parallel_safe tool batches. But most of this release fell out of trying to ship a real Telegram bot as one pipe -build binary — four VM bugs, a UPX corruption bug, and a genuine agent oscillation loop, all fixed.",
+      "de": "ai_swarm_stream bringt Live-Fortschritt und Eingriff mitten im Lauf, dazu elif, tool_call, file_lock und parallele parallel_safe-Tool-Batches. Der Großteil dieses Releases fiel aber dabei ab, einen echten Telegram-Bot als eine pipe -build-Binary zu shippen — vier VM-Bugs, ein UPX-Korruptionsbug und eine echte Agenten-Oszillationsschleife, alle gefixt."
+    }
+  },
+  {
     "id": "round-11-swarm-escape",
     "file": "round-11-swarm-escape.md",
     "date": "2026-08-30",

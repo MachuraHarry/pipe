@@ -97,42 +97,42 @@
       <h2 data-lang="de">Neu in <span>v1.3</span></h2>
     </div>
     <div class="grid-3 reveal">
-      <a class="card" href="docs.html" style="display:block;text-decoration:none;color:inherit">
+      <a class="card" href="blog/pipe-v1.3.html" style="display:block;text-decoration:none;color:inherit">
         <div style="font-size:0.68rem;color:var(--fg2);font-family:var(--mono);margin-bottom:10px;display:flex;align-items:center;gap:8px"><span style="background:rgba(168,85,247,0.18);border:1px solid var(--accent);color:#c084fc;padding:1px 8px;border-radius:10px;font-size:0.62rem;font-weight:700;font-family:var(--sans)">NEW</span> Language</div>
         <h4 data-lang="en" class="active">🔀 elif keyword</h4>
         <h4 data-lang="de">🔀 elif-Schl&uuml;sselwort</h4>
         <p data-lang="en" class="active">Chain conditions without repeating <code>else if</code> — <code>elif</code> is now first-class syntactic sugar in every <code>if</code> chain.</p>
         <p data-lang="de">Bedingungen verketten, ohne <code>else if</code> zu wiederholen — <code>elif</code> ist jetzt syntaktischer Zucker in jeder <code>if</code>-Kette.</p>
       </a>
-      <a class="card" href="docs.html#19-ai-builtins" style="display:block;text-decoration:none;color:inherit">
+      <a class="card" href="blog/pipe-v1.3.html" style="display:block;text-decoration:none;color:inherit">
         <div style="font-size:0.68rem;color:var(--fg2);font-family:var(--mono);margin-bottom:10px;display:flex;align-items:center;gap:8px"><span style="background:rgba(168,85,247,0.18);border:1px solid var(--accent);color:#c084fc;padding:1px 8px;border-radius:10px;font-size:0.62rem;font-weight:700;font-family:var(--sans)">NEW</span> AI Builtins</div>
         <h4 data-lang="en" class="active">📡 ai_swarm_stream — live swarm control</h4>
         <h4 data-lang="de">📡 ai_swarm_stream — Live-Swarm-Steuerung</h4>
         <p data-lang="en" class="active">Watch a swarm run tool calls, handoffs and reasoning live, and intervene mid-run — abort or inject a new instruction from a round-check callback.</p>
         <p data-lang="de">Tool-Calls, Handoffs und Reasoning eines Swarms live beobachten und mittendrin eingreifen — per Round-Check-Callback abbrechen oder eine neue Anweisung einf&uuml;gen.</p>
       </a>
-      <a class="card" href="docs.html#19-ai-builtins" style="display:block;text-decoration:none;color:inherit">
+      <a class="card" href="blog/pipe-v1.3.html" style="display:block;text-decoration:none;color:inherit">
         <div style="font-size:0.68rem;color:var(--fg2);font-family:var(--mono);margin-bottom:10px;display:flex;align-items:center;gap:8px"><span style="background:rgba(168,85,247,0.18);border:1px solid var(--accent);color:#c084fc;padding:1px 8px;border-radius:10px;font-size:0.62rem;font-weight:700;font-family:var(--sans)">NEW</span> AI Builtins</div>
         <h4 data-lang="en" class="active">⚡ tool_call — direct, LLM-free invocation</h4>
         <h4 data-lang="de">⚡ tool_call — direkter Aufruf ohne LLM</h4>
         <p data-lang="en" class="active">Call a registered tool by name and skip the model entirely — same tool registry as <code>ai_tool</code>/<code>ai_with_tools</code>.</p>
         <p data-lang="de">Ein registriertes Tool per Namen aufrufen und das Modell komplett &uuml;berspringen — dieselbe Tool-Registry wie <code>ai_tool</code>/<code>ai_with_tools</code>.</p>
       </a>
-      <a class="card" href="docs.html#19-ai-builtins" style="display:block;text-decoration:none;color:inherit">
+      <a class="card" href="blog/pipe-v1.3.html" style="display:block;text-decoration:none;color:inherit">
         <div style="font-size:0.68rem;color:var(--fg2);font-family:var(--mono);margin-bottom:10px;display:flex;align-items:center;gap:8px"><span style="background:rgba(168,85,247,0.18);border:1px solid var(--accent);color:#c084fc;padding:1px 8px;border-radius:10px;font-size:0.62rem;font-weight:700;font-family:var(--sans)">NEW</span> AI Builtins</div>
         <h4 data-lang="en" class="active">⏩ ai_tool parallel_safe flag</h4>
         <h4 data-lang="de">⏩ ai_tool parallel_safe-Flag</h4>
         <p data-lang="en" class="active">Mark a Pipe-defined tool as touching no shared state, and a batch of tool calls from the same round runs it concurrently with its siblings.</p>
         <p data-lang="de">Ein Pipe-definiertes Tool als zustandsfrei markieren, und eine Charge von Tool-Calls aus derselben Runde l&auml;uft parallel zu ihren Geschwistern.</p>
       </a>
-      <a class="card" href="https://github.com/MachuraHarry/pipe/blob/master/CHANGELOG.md" style="display:block;text-decoration:none;color:inherit">
+      <a class="card" href="blog/pipe-v1.3.html" style="display:block;text-decoration:none;color:inherit">
         <div style="font-size:0.68rem;color:var(--fg2);font-family:var(--mono);margin-bottom:10px;display:flex;align-items:center;gap:8px"><span style="background:rgba(168,85,247,0.18);border:1px solid var(--accent);color:#c084fc;padding:1px 8px;border-radius:10px;font-size:0.62rem;font-weight:700;font-family:var(--sans)">NEW</span> Sandbox</div>
         <h4 data-lang="en" class="active">🛡️ Three more sandbox audit rounds closed</h4>
         <h4 data-lang="de">🛡️ Drei weitere Sandbox-Audit-Runden geschlossen</h4>
         <p data-lang="en" class="active">Round 9 closed an <code>exec_whitelist</code> shell-injection gap; round 10 confirmed a coordinated swarm adds nothing new; round 11 found and fixed a hard-link escape.</p>
         <p data-lang="de">Runde 9 schloss eine <code>exec_whitelist</code>-Shell-Injection-L&uuml;cke; Runde 10 best&auml;tigte, dass ein koordinierter Swarm nichts Neues bringt; Runde 11 fand und fixte eine Hardlink-Escape.</p>
       </a>
-      <a class="card" href="docs.html" style="display:block;text-decoration:none;color:inherit">
+      <a class="card" href="blog/pipe-v1.3.html" style="display:block;text-decoration:none;color:inherit">
         <div style="font-size:0.68rem;color:var(--fg2);font-family:var(--mono);margin-bottom:10px;display:flex;align-items:center;gap:8px"><span style="background:rgba(168,85,247,0.18);border:1px solid var(--accent);color:#c084fc;padding:1px 8px;border-radius:10px;font-size:0.62rem;font-weight:700;font-family:var(--sans)">NEW</span> IO</div>
         <h4 data-lang="en" class="active">🔒 file_lock / file_unlock</h4>
         <h4 data-lang="de">🔒 file_lock / file_unlock</h4>

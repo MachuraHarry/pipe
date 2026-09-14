@@ -7,7 +7,6 @@
 <meta name="description" content="Run Pipe code in your browser via WebAssembly. Try the MCP-first scripting language without installing anything.">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📦</text></svg>">
 <link rel="stylesheet" href="style.css">
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.css">
 <style>
 /* ---------- Playground layout ---------- */
 .pg-container { max-width: 1280px; margin: 0 auto; padding: 110px 20px 60px; }
@@ -36,17 +35,16 @@ nav a.active { color: var(--fg); }
 .spacer { flex: 1; }
 .toolbar { display: flex; flex-wrap: wrap; gap: 8px; }
 
-.editor-wrap { position: relative; height: 420px; }
-#code-area { width: 100%; height: 100%; resize: none; padding: 16px; box-sizing: border-box; border: 0; background: transparent; color: transparent; caret-color: #5ce0fc; font-family: "Cascadia Code", "JetBrains Mono", "Fira Code", Menlo, Consolas, monospace; font-size: 13px; line-height: 1.65; tab-size: 2; white-space: pre; overflow: auto; outline: none; scrollbar-width: thin; }
-#code-overlay { position: absolute; inset: 0; pointer-events: none; padding: 16px; font-family: "Cascadia Code", "JetBrains Mono", "Fira Code", Menlo, Consolas, monospace; font-size: 13px; line-height: 1.65; white-space: pre; overflow: hidden; color: #e4e5f1; }
-.token.pipe-kw { color: #c084fc; }
-.token.pipe-op { color: #f97316; }
-.token.pipe-num { color: #38bdf8; }
-.token.pipe-str { color: #34d399; }
-.token.pipe-fn { color: #60a5fa; }
-.token.pipe-var { color: #e4e5f1; }
-.token.pipe-comment { color: #64748b; }
-#code-area:focus { box-shadow: inset 0 0 0 1px #6d5ef2; }
+.editor-wrap {
+  position: relative;
+  height: min(46vh, 420px);
+  height: min(46dvh, 420px);
+  min-height: 200px;
+  overscroll-behavior: contain;
+}
+.editor-wrap .cm-editor { height: 100%; }
+.editor-wrap .cm-editor.cm-focused { box-shadow: inset 0 0 0 1px #6d5ef2; }
+#code-area-fallback:focus { box-shadow: inset 0 0 0 1px #6d5ef2; }
 
 .status-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; padding: 8px 14px; border-top: 1px solid #2b2d3d; font-size: 12px; color: #8b8fa3; background: #14151d; }
 .status-dot { width: 8px; height: 8px; border-radius: 50%; background: #f59e0b; }
@@ -58,6 +56,10 @@ nav a.active { color: var(--fg); }
 .ai-bar { display: flex; flex-wrap: wrap; gap: 8px; padding: 10px 14px; border-top: 1px solid #2b2d3d; background: #14151d; align-items: center; }
 .ai-bar label { font-size: 12px; color: #8b8fa3; }
 .ai-bar select, .ai-bar input { font: inherit; font-size: 12.5px; padding: 6px 10px; border-radius: 8px; border: 1px solid #2b2d3d; background: #1b1c26; color: #e4e5f1; }
+.ai-key-wrap { display: flex; gap: 6px; align-items: center; flex: 1; min-width: 160px; }
+.ai-key-wrap input { flex: 1; min-width: 0; }
+.ai-key-toggle { font-size: 14px; padding: 6px 10px; line-height: 1; }
+.ai-trust { margin: 0; padding: 0 14px 10px; font-size: 11px; color: #64748b; background: #14151d; }
 
 /* ---------- Output / tabs ---------- */
 .tabs { display: flex; gap: 2px; padding: 0 10px; border-bottom: 1px solid #2b2d3d; background: #14151d; }
@@ -66,7 +68,13 @@ nav a.active { color: var(--fg); }
 .tab-panel { display: none; }
 .tab-panel.active { display: block; }
 #output-panel { background: #0c0d12; }
-#output { margin: 0; padding: 16px; min-height: 280px; max-height: 480px; overflow: auto; font-family: "Cascadia Code", "JetBrains Mono", Menlo, Consolas, monospace; font-size: 13px; line-height: 1.65; white-space: pre-wrap; word-break: break-word; color: #e4e5f1; }
+#output {
+  margin: 0; padding: 16px;
+  min-height: min(30vh, 280px); min-height: min(30dvh, 280px);
+  max-height: min(55vh, 480px); max-height: min(55dvh, 480px);
+  overflow: auto; overscroll-behavior: contain;
+  font-family: "Cascadia Code", "JetBrains Mono", Menlo, Consolas, monospace; font-size: 13px; line-height: 1.65; white-space: pre-wrap; word-break: break-word; color: #e4e5f1;
+}
 #output .out-ok { color: #34d399; }
 #output .out-err { color: #f87171; }
 #output .out-dim { color: #64748b; }
@@ -82,8 +90,8 @@ nav a.active { color: var(--fg); }
 #graph-panel { background: #0c0d12; }
 .graph-toolbar { display: flex; flex-wrap: wrap; gap: 8px; padding: 8px 12px; border-bottom: 1px solid #2b2d3d; align-items: center; }
 .graph-toolbar label { font-size: 12px; color: #8b8fa3; }
-#graph-body { overflow: auto; min-height: 280px; }
-#graph-svg { display: block; margin: 0 auto; }
+#graph-body { overflow: auto; overscroll-behavior: contain; min-height: min(30vh, 280px); min-height: min(30dvh, 280px); }
+#graph-svg { display: block; margin: 0 auto; width: 100%; max-width: 1200px; height: auto; }
 .legend { display: flex; flex-wrap: wrap; gap: 12px; padding: 10px 16px; border-top: 1px solid #2b2d3d; font-size: 12px; color: #8b8fa3; }
 .legend .chip { display: inline-flex; align-items: center; gap: 6px; }
 .legend .swatch { width: 10px; height: 10px; border-radius: 3px; display: inline-block; }
@@ -120,12 +128,9 @@ nav a.active { color: var(--fg); }
   .pg-container { padding: 96px 14px 40px; }
   .pg-title h1 { font-size: 22px; }
   .pg-badges { margin-left: 0; }
-  .editor-wrap { height: 340px; }
-  #code-area, #code-overlay { font-size: 12px; }
-  #output { min-height: 200px; max-height: 360px; }
+  .editor-wrap .cm-editor { font-size: 12px; }
   .btn { font-size: 12px; padding: 6px 10px; }
   .toolbar { gap: 6px; }
-  .ai-bar input { flex: 1; min-width: 130px; }
 }
 @media (max-width: 480px) {
   .pg-container { padding: 84px 10px 32px; }
@@ -137,10 +142,12 @@ nav a.active { color: var(--fg); }
   .card-head .spacer { display: none; }
   .card-head .toolbar { flex: 1 1 100%; }
   .toolbar .btn { flex: 1 1 30%; text-align: center; }
-  .editor-wrap { height: 280px; }
-  .ai-bar { gap: 8px; padding: 8px 10px; }
-  .ai-bar select { flex: 1; min-width: 0; }
-  .ai-bar input { flex: 1 1 100%; width: 100%; }
+  .ai-bar { gap: 8px; padding: 8px 10px; display: grid; grid-template-columns: 1fr auto; align-items: center; }
+  .ai-bar label { grid-column: 1 / -1; }
+  .ai-bar select { grid-column: 1; min-width: 0; min-height: 40px; }
+  #ai-status { grid-column: 2; }
+  .ai-key-wrap { grid-column: 1 / -1; }
+  .ai-key-wrap input, .ai-key-toggle { min-height: 40px; }
   .tabs { overflow-x: auto; }
   .tab-btn { padding: 10px 12px; font-size: 12px; }
   .graph-toolbar { gap: 6px; padding: 8px 8px; }
@@ -151,7 +158,6 @@ nav a.active { color: var(--fg); }
 }
 @media (max-width: 380px) {
   .pg-container { padding: 80px 8px 28px; }
-  .editor-wrap { height: 240px; }
   .toolbar .btn { font-size: 11px; padding: 7px 4px; }
   #btn-run { flex: 1.3; }
   .graph-msg { font-size: 12px; }
@@ -187,7 +193,7 @@ nav a.active { color: var(--fg); }
   <div class="pg-header">
     <div class="pg-title">
       <h1 data-i18n="pg.title">Pipe Playground</h1>
-      <p data-i18n="pg.subtitle">Run Pipe in your browser via WebAssembly — no install needed. <code>ai_with_tools</code>, MCP and HTTP work here too.</p>
+      <p data-i18n="pg.subtitle">Run Pipe in your browser via WebAssembly — no install needed. <code>ai_with_tools</code> and HTTP work here too. MCP over SSE may work; stdio-based MCP servers need the native <code>pipe</code> binary.</p>
     </div>
     <div class="pg-badges">
       <span class="badge" id="badge-wasm">WASM</span>
@@ -216,14 +222,13 @@ nav a.active { color: var(--fg); }
             <button class="btn" id="btn-copy" data-i18n="pg.copy">Copy</button>
             <button class="btn" id="btn-download" data-i18n="pg.download">Download</button>
             <button class="btn" id="btn-share" data-i18n="pg.share">Share</button>
-            <button class="btn" id="btn-generate" data-i18n="pg.generate">Generate</button>
+            <button class="btn" id="btn-random" data-i18n="pg.random">Random Example</button>
             <button class="btn danger" id="btn-stop" style="display:none" data-i18n="pg.stop">Stop</button>
             <button class="btn primary" id="btn-run" data-i18n="pg.run">Run</button>
           </div>
         </div>
         <div class="editor-wrap">
-          <div id="code-overlay" aria-hidden="true"></div>
-          <textarea id="code-area" spellcheck="false" autocapitalize="off" autocomplete="off" aria-label="Pipe code"></textarea>
+          <div id="cm-mount"></div>
         </div>
         <div class="status-bar">
           <span class="status-dot" id="status-dot"></span>
@@ -238,9 +243,13 @@ nav a.active { color: var(--fg); }
             <option value="anthropic">Anthropic</option>
             <option value="ollama">Ollama (local)</option>
           </select>
-          <input id="ai-key" type="password" placeholder="API key" autocomplete="off">
+          <div class="ai-key-wrap">
+            <input id="ai-key" type="password" placeholder="API key" autocomplete="off">
+            <button type="button" class="btn ai-key-toggle" id="btn-ai-key-toggle" aria-label="Show/hide key">👁</button>
+          </div>
           <span id="ai-status" class="badge" style="display:none" data-i18n="pg.ai.saved">Key saved</span>
         </div>
+        <p class="ai-trust" data-i18n="pg.ai.trust">Stored only in your browser, sent directly to the provider — never touches our server.</p>
       </div>
     </div>
 
@@ -351,10 +360,10 @@ nav a.active { color: var(--fg); }
 var I18N = {
   en: {
     "nav.home":"Home","nav.playground":"Playground","nav.modules":"Modules","nav.docs":"Docs","nav.faq":"FAQ","nav.en":"EN","nav.de":"DE",
-    "pg.title":"Pipe Playground","pg.subtitle":"Run Pipe in your browser via WebAssembly — no install needed. <code>ai_with_tools</code>, MCP and HTTP work here too.",
-    "pg.editor":"Editor","pg.run":"Run","pg.stop":"Stop","pg.clear":"Clear","pg.copy":"Copy","pg.download":"Download","pg.share":"Share","pg.generate":"Generate",
+    "pg.title":"Pipe Playground","pg.subtitle":"Run Pipe in your browser via WebAssembly — no install needed. <code>ai_with_tools</code> and HTTP work here too. MCP over SSE may work; stdio-based MCP servers need the native <code>pipe</code> binary.",
+    "pg.editor":"Editor","pg.run":"Run","pg.stop":"Stop","pg.clear":"Clear","pg.copy":"Copy","pg.download":"Download","pg.share":"Share","pg.random":"Random Example",
     "pg.output":"Output","pg.graph":"Graph","pg.status.loading":"Loading runtime…","pg.status.ready":"Ready · v{v}","pg.status.error":"Runtime error: {m}",
-    "pg.status.running":"Executing…","pg.status.stopped":"Stopped","pg.status.generating":"Generating code…","pg.status.generated":"Generated by Pipe",
+    "pg.status.running":"Executing…","pg.status.running.long":"Still running… AI calls can take up to a minute","pg.status.stopped":"Stopped",
     "pg.status.saved":"Saved","pg.status.cleared":"Cleared","pg.status.copied":"Copied to clipboard","pg.status.downloaded":"Downloaded playground.pipe",
     "pg.status.nofirebase":"Firebase unavailable — sharing is offline","pg.status.shared":"Copied share link to clipboard","pg.status.sharewait":"Sharing…",
     "pg.status.prep":"Preparing runtime…","pg.status.snippot":"Loading shared snippet…","pg.status.snip404":"Shared snippet not found.",
@@ -362,8 +371,9 @@ var I18N = {
     "pg.status.done":"Done","pg.status.errors":"Errors in output",
     "pg.run.error":"Error: {m}","pg.time":"{t} ms","pg.lines":"{n} lines of output","pg.gen.badge":"generated",
     "pg.top.lines":"{n} lines",
+    "pg.mcp.note":"Note: mcp_use_stdio / mcp_server / mcp_serve_stdio spawn a local process and can't run inside a browser sandbox — install the native pipe binary to use them. mcp_use_sse (remote HTTP/SSE) may still work here.",
     "pg.templates.label":"Templates…","pg.templates.hello":"Hello World","pg.templates.pipeline":"Pipeline","pg.templates.mapfilter":"Map & Filter","pg.templates.fizzbuzz":"FizzBuzz","pg.templates.textstats":"Text Stats","pg.templates.ai":"AI Summarize",
-    "pg.ai.label":"AI provider","pg.ai.saved":"Key saved","pg.ai.pending":"key set when ready",
+    "pg.ai.label":"AI provider","pg.ai.saved":"Key saved","pg.ai.pending":"key set when ready","pg.ai.trust":"Stored only in your browser, sent directly to the provider — never touches our server.",
     "pg.rate":"Rate this snippet","pg.graph.consts":"Constants","pg.graph.fns":"Function nodes","pg.graph.zin":"+","pg.graph.zout":"−",
     "pg.graph.lbuiltin":"Builtin","pg.graph.lfn":"Function","pg.graph.lai":"AI","pg.graph.lsandbox":"Sandbox","pg.graph.lconst":"Value",
     "pg.graph.empty":"Run your code to render the graph.","pg.graph.err":"Could not parse for graph.",
@@ -372,10 +382,10 @@ var I18N = {
   },
   de: {
     "nav.home":"Start","nav.playground":"Playground","nav.modules":"Module","nav.docs":"Doku","nav.faq":"FAQ","nav.en":"EN","nav.de":"DE",
-    "pg.title":"Pipe Playground","pg.subtitle":"Pipe direkt im Browser via WebAssembly ausführen — keine Installation nötig. <code>ai_with_tools</code>, MCP und HTTP funktionieren hier ebenfalls.",
-    "pg.editor":"Editor","pg.run":"Ausführen","pg.stop":"Stop","pg.clear":"Leeren","pg.copy":"Kopieren","pg.download":"Download","pg.share":"Teilen","pg.generate":"Generieren",
+    "pg.title":"Pipe Playground","pg.subtitle":"Pipe direkt im Browser via WebAssembly ausführen — keine Installation nötig. <code>ai_with_tools</code> und HTTP funktionieren hier ebenfalls. MCP über SSE funktioniert eventuell; stdio-basierte MCP-Server brauchen die native <code>pipe</code>-Binary.",
+    "pg.editor":"Editor","pg.run":"Ausführen","pg.stop":"Stop","pg.clear":"Leeren","pg.copy":"Kopieren","pg.download":"Download","pg.share":"Teilen","pg.random":"Zufälliges Beispiel",
     "pg.output":"Ausgabe","pg.graph":"Graph","pg.status.loading":"Lade Runtime…","pg.status.ready":"Bereit · v{v}","pg.status.error":"Runtime-Fehler: {m}",
-    "pg.status.running":"Führe aus…","pg.status.stopped":"Gestoppt","pg.status.generating":"Generiere Code…","pg.status.generated":"Von Pipe generiert",
+    "pg.status.running":"Führe aus…","pg.status.running.long":"Läuft noch… KI-Aufrufe können bis zu einer Minute dauern","pg.status.stopped":"Gestoppt",
     "pg.status.saved":"Gespeichert","pg.status.cleared":"Gelöscht","pg.status.copied":"In Zwischenablage kopiert","pg.status.downloaded":"playground.pipe heruntergeladen",
     "pg.status.nofirebase":"Firebase nicht verfügbar — Teilen ist offline","pg.status.shared":"Link in Zwischenablage kopiert","pg.status.sharewait":"Teile…",
     "pg.status.prep":"Bereite Runtime vor…","pg.status.snippot":"Lade geteiltes Snippet…","pg.status.snip404":"Geteiltes Snippet nicht gefunden.",
@@ -383,8 +393,9 @@ var I18N = {
     "pg.status.done":"Fertig","pg.status.errors":"Fehler in der Ausgabe",
     "pg.run.error":"Fehler: {m}","pg.time":"{t} ms","pg.lines":"{n} Ausgabezeilen","pg.gen.badge":"generiert",
     "pg.top.lines":"{n} Zeilen",
+    "pg.mcp.note":"Hinweis: mcp_use_stdio / mcp_server / mcp_serve_stdio starten einen lokalen Prozess und können nicht in einer Browser-Sandbox laufen — installiere die native pipe-Binary dafür. mcp_use_sse (entfernt über HTTP/SSE) funktioniert hier eventuell trotzdem.",
     "pg.templates.label":"Vorlagen…","pg.templates.hello":"Hallo Welt","pg.templates.pipeline":"Pipeline","pg.templates.mapfilter":"Map & Filter","pg.templates.fizzbuzz":"FizzBuzz","pg.templates.textstats":"Text-Statistik","pg.templates.ai":"KI-Zusammenfassung",
-    "pg.ai.label":"KI-Anbieter","pg.ai.saved":"Schlüssel gespeichert","pg.ai.pending":"Schlüssel wird gesetzt",
+    "pg.ai.label":"KI-Anbieter","pg.ai.saved":"Schlüssel gespeichert","pg.ai.pending":"Schlüssel wird gesetzt","pg.ai.trust":"Wird nur im Browser gespeichert, geht direkt an den Provider — nie an unseren Server.",
     "pg.rate":"Dieses Snippet bewerten","pg.graph.consts":"Konstanten","pg.graph.fns":"Funktionsknoten","pg.graph.zin":"+","pg.graph.zout":"−",
     "pg.graph.lbuiltin":"Builtin","pg.graph.lfn":"Funktion","pg.graph.lai":"KI","pg.graph.lsandbox":"Sandbox","pg.graph.lconst":"Wert",
     "pg.graph.empty":"Führe Code aus, um den Graphen zu rendern.","pg.graph.err":"Für den Graphen nicht analysierbar.",
@@ -459,7 +470,23 @@ function loadScript(src) {
 function escapeHtml(s) {
   return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
-function getEditor() { return document.getElementById('code-area'); }
+/* Facade over whichever editor widget is actually mounted (CodeMirror 6
+ * normally, a plain <textarea> if the CDN module failed to load — see
+ * playground-editor.js). Every other call site in this file keeps using
+ * getEditor().value / .focus() unchanged regardless of which one is live. */
+function getEditor() {
+  var v = window.__cmView;
+  if (v) {
+    return {
+      get value() { return v.state.doc.toString(); },
+      set value(val) { v.dispatch({ changes: { from: 0, to: v.state.doc.length, insert: val } }); },
+      focus: function () { v.focus(); }
+    };
+  }
+  var ta = window.__cmFallbackTextarea;
+  if (ta) return ta;
+  return { value: '', focus: function () {} };
+}
 
 /* ================================================================
  * Runtime (worker with main-thread fallback)
@@ -605,68 +632,6 @@ MainRuntime.prototype.stop = function () { return Promise.resolve(); };
 var rt = (typeof Worker !== 'undefined') ? new WorkerRuntime() : new MainRuntime();
 
 /* ================================================================
- * Editor highlight
- * ================================================================ */
-var PIPE_KEYWORDS = /\b(if|else|elif|elseif|while|for|in|fn|return|and|or|not|true|false|none|null|pipe|end|from|import|as|sandbox_profile|include|expand|stage|assume|exec|spawn|await|map|out|def|let|var|const|func|fun|λ|lambda)\b/g;
-var PIPE_STR = /"(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'/g;
-var PIPE_NUM = /\b\d+(?:\.\d+)?\b/g;
-var PIPE_COMMENT = /--[^\n]*/g;
-var PIPE_OP = /(->|<-|=>|==|!=|<=|>=|\+|-|\*|\/|%|=|<|>|&&|\|\|)/g;
-
-function highlight(code) {
-  code = code || '';
-  if (window.Prism && Prism.languages && Prism.languages.pipe) {
-    try { return Prism.highlight(code, Prism.languages.pipe, 'pipe'); } catch (e) {}
-  }
-  var out = escapeHtml(code);
-  var pieces = [];
-  var last = 0;
-  var re = new RegExp([
-    '("(?:[^"\\\\]|\\\\.)*"|\'(?:[^\'\\\\]|\\\\.)*\')',
-    '(--[^\\n]*)',
-    '(\\b\\d+(?:\\.\\d+)?\\b)',
-    '(\\b(?:if|else|elif|elseif|while|for|in|fn|return|and|or|not|true|false|none|null|end|from|import|as|pipe)\\b)',
-    '(->|<-|=>|==|!=|<=|>=|\\+|-|\\*|/|%|=|<|>|&&|\\|\\|)'
-  ].join('|'), 'g');
-  var m;
-  var lastIndex = 0;
-  while ((m = re.exec(code)) !== null) {
-    if (m.index > lastIndex) pieces.push(escapeHtml(code.slice(lastIndex, m.index)));
-    var cls = 'pipe-var';
-    if (m[1]) cls = 'pipe-str';
-    else if (m[2]) cls = 'pipe-comment';
-    else if (m[3]) cls = 'pipe-num';
-    else if (m[4]) cls = 'pipe-kw';
-    else if (m[5]) cls = 'pipe-op';
-    pieces.push('<span class="token ' + cls + '">' + escapeHtml(m[0]) + '</span>');
-    lastIndex = m.index + m[0].length;
-  }
-  if (lastIndex < code.length) pieces.push(escapeHtml(code.slice(lastIndex)));
-  return pieces.join('');
-}
-
-var scrollLock = false;
-function updateOverlay() {
-  var ta = getEditor();
-  var ov = document.getElementById('code-overlay');
-  if (scrollLock) return;
-  ov.innerHTML = highlight(ta.value) + '\u200b';
-  ov.scrollTop = ta.scrollTop;
-  ov.scrollLeft = ta.scrollLeft;
-}
-getEditor().addEventListener('scroll', function () {
-  var ov = document.getElementById('code-overlay');
-  ov.scrollTop = this.scrollTop;
-  ov.scrollLeft = this.scrollLeft;
-});
-getEditor().addEventListener('input', function () { updateOverlay(); saveDraft(); scheduleRenderGraph(); });
-document.getElementById('code-overlay').addEventListener('scroll', function () {
-  /* ignore synthetic scrolls caused by content changes */
-});
-
-function highlightNow() { updateOverlay(); }
-
-/* ================================================================
  * Tabs
  * ================================================================ */
 document.querySelectorAll('.tab-btn').forEach(function (btn) {
@@ -772,8 +737,10 @@ function renderGraph(data) {
   var svg = document.createElementNS(ns, 'svg');
   svg.id = 'graph-svg';
   svg.setAttribute('viewBox', '0 0 ' + maxX + ' ' + H);
-  svg.setAttribute('width', Math.max(320, Math.min(1200, body.clientWidth || 600)));
   svg.setAttribute('height', H);
+  /* width is intentionally left to CSS (#graph-svg{width:100%}) so it
+   * scales down to fit any viewport instead of forcing horizontal scroll
+   * on narrow phones — the viewBox above keeps internal coordinates correct. */
   body.appendChild(svg);
 
   var defs = document.createElementNS(ns, 'defs');
@@ -905,9 +872,12 @@ function loadDraft() {
 /* ================================================================
  * Run / Stop / Generate
  * ================================================================ */
-var RUN_TIMEOUT = 15000;
+var RUN_TIMEOUT = 45000;
+var RUN_SOFT_NOTICE = 8000;
 var runTimer = null;
+var runSoftTimer = null;
 var running = false;
+var MCP_STDIO_RE = /\bmcp_(use_stdio|server|serve_stdio)\b/;
 
 function setStatus(type, text) {
   var dot = document.getElementById('status-dot');
@@ -920,7 +890,6 @@ function statusReady() {
   setStatus('ok', tpl('pg.status.ready', { v: rt.version || '?' }));
   document.getElementById('badge-version').textContent = 'Pipe ' + (rt.version || '?');
   document.getElementById('btn-run').disabled = false;
-  document.getElementById('btn-generate').disabled = false;
   applyStoredKey();
   restoreRatingUi();
 }
@@ -928,14 +897,15 @@ function statusReady() {
 function startRunning() {
   running = true;
   document.getElementById('btn-run').disabled = true;
-  document.getElementById('btn-generate').disabled = true;
   document.getElementById('btn-stop').style.display = '';
   setStatus('ok', t('pg.status.running'));
+  runSoftTimer = setTimeout(function () {
+    if (running) setStatus('ok', t('pg.status.running.long'));
+  }, RUN_SOFT_NOTICE);
   runTimer = setTimeout(function () {
     rt.stop().then(statusReady);
     running = false;
     document.getElementById('btn-run').disabled = false;
-    document.getElementById('btn-generate').disabled = false;
     document.getElementById('btn-stop').style.display = 'none';
     document.getElementById('out-meta').style.display = 'flex';
     document.getElementById('out-lines').textContent = '';
@@ -947,9 +917,17 @@ function startRunning() {
 function endRunning() {
   running = false;
   if (runTimer) { clearTimeout(runTimer); runTimer = null; }
+  if (runSoftTimer) { clearTimeout(runSoftTimer); runSoftTimer = null; }
   document.getElementById('btn-run').disabled = false;
-  document.getElementById('btn-generate').disabled = false;
   document.getElementById('btn-stop').style.display = 'none';
+}
+
+function appendOutputNote(msg) {
+  var out = document.getElementById('output');
+  var p = document.createElement('p');
+  p.className = 'out-dim';
+  p.textContent = msg;
+  out.appendChild(p);
 }
 
 function runCode() {
@@ -972,12 +950,14 @@ function runCode() {
     document.getElementById('out-gen').textContent = '';
     document.getElementById('out-meta').style.display = 'flex';
     setStatus(info.hasError ? 'err' : 'ok', info.hasError ? t('pg.status.errors') : t('pg.status.done'));
+    if (info.hasError && MCP_STDIO_RE.test(code)) appendOutputNote(t('pg.mcp.note'));
     scheduleRenderGraph();
   }).catch(function (err) {
     endRunning();
     renderOutput(tpl('pg.run.error', { m: (err && err.message) || err }));
     document.getElementById('out-meta').style.display = 'none';
     setStatus('err', tpl('pg.run.error', { m: (err && err.message) || err }));
+    if (MCP_STDIO_RE.test(code)) appendOutputNote(t('pg.mcp.note'));
   });
 }
 document.getElementById('btn-run').addEventListener('click', runCode);
@@ -992,27 +972,8 @@ document.getElementById('btn-stop').addEventListener('click', function () {
   });
 });
 
-function generateCode() {
-  if (!rt.ready) { toast(t('pg.status.prep')); return; }
-  setStatus('ok', t('pg.status.generating'));
-  document.getElementById('btn-generate').disabled = true;
-  rt.generate().then(function (res) {
-    var code = res.output || '';
-    getEditor().value = code;
-    updateOverlay();
-    saveDraft();
-    scheduleRenderGraph();
-    setStatus('ok', t('pg.status.generated'));
-    document.getElementById('btn-generate').disabled = false;
-  }).catch(function (err) {
-    setStatus('err', tpl('pg.run.error', { m: (err && err.message) || err }));
-    document.getElementById('btn-generate').disabled = false;
-  });
-}
-document.getElementById('btn-generate').addEventListener('click', generateCode);
-
 /* ================================================================
- * Templates / Clear / Copy / Download
+ * Templates / Random Example / Clear / Copy / Download
  * ================================================================ */
 var TEMPLATES = {
   hello: '"hello pipe"\n    > upper\n    > print',
@@ -1022,21 +983,34 @@ var TEMPLATES = {
   textstats: 'text: "The quick brown fox jumps over the lazy dog"\nwords: split text " "\ncount: length words\nprint "words:"\n> print count\n\ndistinct: unique words\nprint "unique:"\n> print (length distinct)',
   ai: '-- Summarize a text with the configured AI provider\n-- Set your API key in the panel below first.\n\n-- text: "Your text goes here"\n-- summary: ai_summarize text\n-- print summary'
 };
-document.getElementById('template-select').addEventListener('change', function () {
-  var id = this.value;
-  if (!id) return;
+
+function applyTemplate(id) {
   var code = TEMPLATES[id];
   if (!code) return;
   getEditor().value = code;
-  updateOverlay();
   saveDraft();
   scheduleRenderGraph();
+}
+var lastTemplateId = null;
+function randomExample() {
+  var keys = Object.keys(TEMPLATES);
+  if (lastTemplateId && keys.length > 1) keys = keys.filter(function (k) { return k !== lastTemplateId; });
+  var id = keys[Math.floor(Math.random() * keys.length)];
+  lastTemplateId = id;
+  applyTemplate(id);
+  toast('→ ' + t('pg.templates.' + id));
+}
+document.getElementById('btn-random').addEventListener('click', randomExample);
+
+document.getElementById('template-select').addEventListener('change', function () {
+  var id = this.value;
+  if (!id) return;
+  applyTemplate(id);
   this.value = '';
 });
 
 document.getElementById('btn-clear').addEventListener('click', function () {
   getEditor().value = '';
-  updateOverlay();
   saveDraft();
   scheduleRenderGraph();
   document.getElementById('output').innerHTML = '';
@@ -1100,6 +1074,11 @@ document.getElementById('ai-provider').addEventListener('change', function () {
 document.getElementById('ai-key').addEventListener('input', function () {
   if (!this.value) return;
   setkeyFor(document.getElementById('ai-provider').value, this.value);
+});
+document.getElementById('btn-ai-key-toggle').addEventListener('click', function () {
+  var inp = document.getElementById('ai-key');
+  inp.type = inp.type === 'password' ? 'text' : 'password';
+  this.textContent = inp.type === 'password' ? '👁' : '🙈';
 });
 
 /* ================================================================
@@ -1204,7 +1183,6 @@ function loadSharedCode(hash) {
       return;
     }
     getEditor().value = v.code;
-    updateOverlay();
     scheduleRenderGraph();
     setupRatingIfShared();
     if (rt.ready) statusReady();
@@ -1319,22 +1297,9 @@ document.addEventListener('keydown', function (e) {
 /* ================================================================
  * Init
  * ================================================================ */
-(function init() {
-  /* Prism pipe grammar */
-  if (window.Prism && Prism.languages && !Prism.languages.pipe) {
-    Prism.languages.pipe = {
-      comment: /--[^\n]*/,
-      string: { pattern: /"(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'/, greedy: true },
-      keyword: /\b(?:if|else|elif|elseif|while|for|in|fn|return|and|or|not|true|false|none|null|end|from|import|as|pipe|sandbox_profile)\b/,
-      number: /\b\d+(?:\.\d+)?\b/,
-      operator: /->|<-|=>|==|!=|<=|>=|\+|-|\*|\/|%|=|<|>|&&|\|\|/,
-      function: /\b[a-zA-Z_][a-zA-Z0-9_]*\s*(?=\()/
-    };
-  }
-
+function init() {
   setLang(lang);
   loadDraft();
-  updateOverlay();
 
   /* URL params: ?code=hash */
   var params = new URLSearchParams(location.search);
@@ -1378,7 +1343,9 @@ document.addEventListener('keydown', function (e) {
     var p = localStorage.getItem('pipe-provider');
     if (p && PROVIDER_ENV[p]) document.getElementById('ai-provider').value = p;
   } catch (e) {}
-})();
+}
+window.addEventListener('cm-ready', init);
 </script>
+<script type="module" src="playground-editor.js"></script>
 </body>
 </html>

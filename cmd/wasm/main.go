@@ -26,8 +26,10 @@ var aiBuiltinNames = map[string]bool{
 	"ai_stream":   true,
 	"ai_parallel": true, "ai_batch": true, "ai_rate_limit": true,
 	"embed": true, "embed_batch": true, "cosine_sim": true, "dot_product": true, "nearest": true,
-	"ai_tool": true, "ai_with_tools": true,
+	"ai_tool": true, "ai_with_tools": true, "tool_call": true,
 	"agent": true, "agent_ask": true, "agent_clear": true, "try_ai_log": true,
+	"ai_swarm": true, "ai_swarm_trace": true, "ai_swarm_stream": true, "swarm_agent": true,
+	"ai_vision": true,
 }
 
 var sandboxNames = map[string]bool{
@@ -41,6 +43,7 @@ var hofNames = map[string]bool{
 var ioBuiltins = map[string]bool{
 	"read_file": true, "write_file": true, "append_file": true, "save": true,
 	"read_lines": true, "http_get": true, "http_post": true, "print": true,
+	"file_lock": true, "file_unlock": true,
 }
 
 func init() {
@@ -369,6 +372,6 @@ func main() {
 	js.Global().Set("pipeGenerate", js.FuncOf(pipeGenerate))
 	js.Global().Set("pipeSetKey", js.FuncOf(pipeSetKey))
 	js.Global().Set("pipeParse", js.FuncOf(pipeParse))
-	js.Global().Set("pipeVersion", js.ValueOf("v0.9.4.0"))
+	js.Global().Set("pipeVersion", js.ValueOf("v1.3.0"))
 	select {}
 }

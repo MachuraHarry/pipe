@@ -37,11 +37,13 @@
       <a href="playground.html" onclick="closeMenu()">Playground</a>
       <a href="blog.html" onclick="closeMenu()">Blog</a>
       <a href="https://github.com/MachuraHarry/pipe" onclick="closeMenu()">GitHub</a>
+      <div class="nav-meta">
       <a href="https://discord.gg/kdjce8hnYw" onclick="closeMenu()" class="nav-social" aria-label="Discord" title="Discord"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M20.317 4.37a19.79 19.79 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028c.462-.63.874-1.295 1.226-1.994a.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128c.126-.094.252-.192.372-.291a.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.3 12.3 0 0 1-1.873.891.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.84 19.84 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z"/></svg></a>
       <a href="https://x.com/pipe_spr" onclick="closeMenu()" class="nav-social" aria-label="X (Twitter)" title="X (Twitter)"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M18.901 1.153h3.68l-8.04 9.19L24 22.846h-7.406l-5.8-7.584-6.638 7.584H.474l8.6-9.83L0 1.154h7.594l5.246 6.932ZM17.61 20.644h2.039L6.486 3.24H4.298Z"/></svg></a>
       <div class="lang-switch">
         <button id="btn-en" class="active" onclick="setLang('en')">EN</button>
         <button id="btn-de" onclick="setLang('de')">DE</button>
+      </div>
       </div>
     </div>
   </div>
@@ -356,7 +358,7 @@ oninput="syncHighlight();scheduleRenderGraph()" onscroll="syncScroll()">"hello w
       <p data-lang="en" class="active">Same job. Less code. Built-in safety.</p>
       <p data-lang="de">Gleicher Job. Weniger Code. Eingebaute Sicherheit.</p>
     </div>
-    <div class="compare-table reveal">
+    <div class="compare-table compare-winner reveal">
       <table>
         <tr><th></th><th>Python + LangChain</th><th>Pipe</th></tr>
         <tr><td><span data-lang="en" class="active">RAG pipeline</span><span data-lang="de">RAG-Pipeline</span></td><td><span data-lang="en" class="active">26 LOC</span><span data-lang="de">26 Zeilen</span></td><td><span data-lang="en" class="active">14 LOC</span><span data-lang="de">14 Zeilen</span></td></tr>
@@ -642,89 +644,29 @@ function setLang(l) {
 }
 (function(){var s=localStorage.getItem('pipe-lang')||(navigator.language.startsWith('de')?'de':'en');setLang(s);})();
 
-// Hero text carousel — 3 core messages
+// Hero headline — one fixed message per language (no auto-rotation:
+// a changing headline undercuts the claim before a visitor finishes reading it)
 var heroTexts = {
-  en: [
-    {h:'<span class="grad">The first language</span><br>with built-in MCP',
-     s:'MCP server and client in one ~8 MB binary. 246 builtins, 23 modules. Zero dependencies.'},
-    {h:'<span class="grad">Sandbox AI agents.</span><br>Declarative. Safe by default.',
-     s:'<code>sandbox_profile</code> restricts exec, write_file, and http_get with one block. Keep LLMs on a leash — essential for <code>ai_with_tools</code>.'},
-    {h:'<span class="grad">One binary. Zero dependencies.</span><br>5 providers. No lock-in.',
-     s:'OpenAI, Anthropic, DeepSeek, Ollama, OpenRouter. Switch with <code>ai_provider</code>. Deploy anywhere: Linux, macOS, Windows, or your browser via WebAssembly.'}
-  ],
-  de: [
-    {h:'<span class="grad">Die erste Sprache mit</span><br>eingebautem MCP',
-     s:'MCP-Server und -Client in einer einzigen ~8 MB Binary. 246 Builtins, 23 Module. Null Abhängigkeiten.'},
-    {h:'<span class="grad">KI-Agenten sandboxen.</span><br>Deklarativ. Standardmäßig sicher.',
-     s:'<code>sandbox_profile</code> beschränkt exec, write_file und http_get mit einem Block. LLMs an die Leine nehmen — essentiell für <code>ai_with_tools</code>.'},
-    {h:'<span class="grad">Eine Binary. Null Abhängigkeiten.</span><br>5 Provider. Kein Lock-in.',
-     s:'OpenAI, Anthropic, DeepSeek, Ollama, OpenRouter. Wechseln mit <code>ai_provider</code>. Überall deployen: Linux, macOS, Windows, oder dein Browser per WebAssembly.'}
-  ]
+  en: {h:'<span class="grad">The first language</span><br>with built-in MCP',
+       s:'MCP server and client in one ~8 MB binary. 246 builtins, 23 modules. Zero dependencies.'},
+  de: {h:'<span class="grad">Die erste Sprache mit</span><br>eingebautem MCP',
+       s:'MCP-Server und -Client in einer einzigen ~8 MB Binary. 246 Builtins, 23 Module. Null Abhängigkeiten.'}
 };
 
-var heroIdx = 0, heroTimer;
-
-function updateHeroText(lang, instant) {
+function updateHeroText(lang) {
   var hl = document.getElementById('hero-headline');
   var sub = document.getElementById('hero-sub');
   if (!hl || !sub) return;
-  var t = heroTexts[lang] || heroTexts['en'];
-  var next = t[heroIdx];
-  if (instant) {
-    hl.style.animation = 'none';
-    sub.style.animation = 'none';
-    hl.style.opacity = '1';
-    hl.style.transform = 'translateY(0)';
-    sub.style.opacity = '1';
-    sub.style.transform = 'translateY(0)';
-    hl.innerHTML = next.h;
-    sub.innerHTML = next.s;
-    return;
-  }
-  hl.style.animation = 'none';
-  sub.style.animation = 'none';
-  hl.style.transition = 'opacity .4s ease, transform .4s ease';
-  sub.style.transition = 'opacity .35s ease, transform .35s ease';
-  hl.style.opacity = '0';
-  hl.style.transform = 'translateY(-16px)';
-  sub.style.opacity = '0';
-  sub.style.transform = 'translateY(-16px)';
-  setTimeout(function() {
-    hl.innerHTML = next.h;
-    sub.innerHTML = next.s;
-    hl.style.transition = 'none';
-    sub.style.transition = 'none';
-    hl.style.transform = 'translateY(12px)';
-    sub.style.transform = 'translateY(12px)';
-    hl.offsetHeight;
-    sub.offsetHeight;
-    hl.style.transition = 'opacity .45s ease, transform .45s ease';
-    sub.style.transition = 'opacity .4s ease, transform .4s ease';
-    hl.style.opacity = '1';
-    hl.style.transform = 'translateY(0)';
-    sub.style.opacity = '1';
-    sub.style.transform = 'translateY(0)';
-  }, 420);
-}
-
-function cycleHero() {
-  var lang = document.documentElement.lang || 'en';
-  var t = heroTexts[lang] || heroTexts['en'];
-  heroIdx = (heroIdx + 1) % t.length;
-  updateHeroText(lang, false);
-  heroTimer = setTimeout(cycleHero, 7000);
+  var next = heroTexts[lang] || heroTexts.en;
+  hl.innerHTML = next.h;
+  sub.innerHTML = next.s;
 }
 
 var origSetLang = setLang;
 setLang = function(l) {
   origSetLang(l);
-  clearTimeout(heroTimer);
-  heroIdx = 0;
-  updateHeroText(l, true);
-  heroTimer = setTimeout(cycleHero, 7000);
+  updateHeroText(l);
 };
-
-setTimeout(cycleHero, 6000);
 
 // Download CTA — detect OS and label the button
 (function(){

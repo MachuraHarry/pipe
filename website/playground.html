@@ -51,9 +51,21 @@ nav a.active { color: var(--fg); }
   min-height: 200px;
   overscroll-behavior: contain;
 }
-.editor-wrap .cm-editor { height: 100%; }
-.editor-wrap .cm-editor.cm-focused { box-shadow: inset 0 0 0 1px var(--accent); }
-#code-area-fallback:focus { box-shadow: inset 0 0 0 1px var(--accent); }
+/* Plain <textarea> + a pointer-events:none <pre> overlay painted with the
+ * same regex-based tokenizer — no CDN, no external editor library, so
+ * there is no network-dependent load path that can silently fail (the
+ * failure mode CodeMirror kept hitting, unreproducible and undiagnosable
+ * without a real browser). Deliberately simple over feature-rich. */
+#code-area { width: 100%; height: 100%; resize: none; padding: 16px; box-sizing: border-box; border: 0; background: transparent; color: transparent; caret-color: var(--accent); font-family: "Cascadia Code", "JetBrains Mono", "Fira Code", Menlo, Consolas, monospace; font-size: 13px; line-height: 1.65; tab-size: 2; white-space: pre-wrap; word-break: break-word; overflow: auto; overscroll-behavior: contain; outline: none; scrollbar-width: thin; }
+#code-overlay { position: absolute; inset: 0; pointer-events: none; padding: 16px; font-family: "Cascadia Code", "JetBrains Mono", "Fira Code", Menlo, Consolas, monospace; font-size: 13px; line-height: 1.65; white-space: pre-wrap; word-break: break-word; overflow: hidden; color: var(--fg); }
+.token.pipe-kw { color: var(--accent); }
+.token.pipe-op { color: #f97316; }
+.token.pipe-num { color: #38bdf8; }
+.token.pipe-str { color: var(--green); }
+.token.pipe-fn { color: #60a5fa; }
+.token.pipe-var { color: var(--fg); }
+.token.pipe-comment { color: var(--fg3); font-style: italic; }
+#code-area:focus { box-shadow: inset 0 0 0 1px var(--accent); }
 
 .status-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; padding: 8px 14px; border-top: 1px solid var(--border); font-size: 12px; color: var(--fg2); background: var(--bg2); }
 .status-dot { width: 8px; height: 8px; border-radius: 50%; background: #f59e0b; }
@@ -145,22 +157,34 @@ nav a.active { color: var(--fg); }
 @media (max-width: 768px) {
   .pg-container { padding: 96px 14px 40px; }
   .pg-badges { margin-left: 0; }
-  .editor-wrap .cm-editor { font-size: 12px; }
+  #code-area, #code-overlay { font-size: 12px; }
   .btn { font-size: 12px; padding: 6px 10px; }
   .toolbar { gap: 6px; }
 }
 @media (max-width: 480px) {
-  .pg-container { padding: 84px 10px 32px; }
+  /* Room at the bottom of the page for the fixed Run/Stop bar below, so
+   * it never covers the last bit of scrollable content (e.g. the top-
+   * rated-snippets list). */
+  .pg-container { padding: 84px 10px calc(80px + max(16px, env(safe-area-inset-bottom))); }
   .pg-header { gap: 8px 12px; margin-bottom: 24px; }
   .pg-title p { font-size: 12px; }
   .card-head { gap: 8px; padding: 10px 10px; }
   #template-select { flex: 1; min-width: 0; max-width: 180px; }
   .card-head .spacer { display: none; }
   .card-head .toolbar { flex: 1 1 100%; }
-  .toolbar-secondary { flex: 1 1 100%; border-right: 0; padding-right: 0; margin-right: 0; border-bottom: 1px solid var(--border); padding-bottom: 6px; margin-bottom: 2px; }
+  .toolbar-secondary { flex: 1 1 100%; border-right: 0; padding-right: 0; margin-right: 0; }
   .toolbar-secondary .btn { flex: 1 1 30%; text-align: center; }
-  .toolbar-primary { flex: 1 1 100%; }
-  .toolbar-primary .btn { flex: 1; text-align: center; }
+  /* Run/Stop become a sticky bottom action bar — always reachable with a
+   * thumb regardless of scroll position, instead of competing for space
+   * with five secondary buttons up in the editor header. */
+  .toolbar-primary {
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 500;
+    display: flex; gap: 10px;
+    padding: 10px 14px; padding-bottom: max(10px, env(safe-area-inset-bottom));
+    background: var(--bg2); border-top: 1px solid var(--border);
+    box-shadow: 0 -8px 24px rgba(0,0,0,0.35);
+  }
+  .toolbar-primary .btn { flex: 1; text-align: center; padding: 13px; font-size: 14px; min-height: 46px; }
   .ai-bar { gap: 8px; padding: 4px 10px 10px; display: grid; grid-template-columns: 1fr auto; align-items: center; }
   .ai-bar label { grid-column: 1 / -1; }
   .ai-bar select { grid-column: 1; min-width: 0; min-height: 40px; }
@@ -251,7 +275,8 @@ nav a.active { color: var(--fg); }
           </div>
         </div>
         <div class="editor-wrap">
-          <div id="cm-mount"></div>
+          <div id="code-overlay" aria-hidden="true"></div>
+          <textarea id="code-area" spellcheck="false" autocapitalize="off" autocomplete="off" aria-label="Pipe code"></textarea>
         </div>
         <div class="status-bar">
           <span class="status-dot" id="status-dot"></span>
@@ -501,23 +526,7 @@ function loadScript(src) {
 function escapeHtml(s) {
   return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
-/* Facade over whichever editor widget is actually mounted (CodeMirror 6
- * normally, a plain <textarea> if the CDN module failed to load — see
- * playground-editor.js). Every other call site in this file keeps using
- * getEditor().value / .focus() unchanged regardless of which one is live. */
-function getEditor() {
-  var v = window.__cmView;
-  if (v) {
-    return {
-      get value() { return v.state.doc.toString(); },
-      set value(val) { v.dispatch({ changes: { from: 0, to: v.state.doc.length, insert: val } }); },
-      focus: function () { v.focus(); }
-    };
-  }
-  var ta = window.__cmFallbackTextarea;
-  if (ta) return ta;
-  return { value: '', focus: function () {} };
-}
+function getEditor() { return document.getElementById('code-area'); }
 
 /* ================================================================
  * Runtime (worker with main-thread fallback)
@@ -661,6 +670,58 @@ MainRuntime.prototype.setkey = function (provider, key) {
 MainRuntime.prototype.stop = function () { return Promise.resolve(); };
 
 var rt = (typeof Worker !== 'undefined') ? new WorkerRuntime() : new MainRuntime();
+
+/* ================================================================
+ * Editor highlight — plain regex tokenizer, no CDN/library dependency
+ * ================================================================ */
+var PIPE_KEYWORDS = /\b(if|else|elif|elseif|while|for|in|fn|return|and|or|not|true|false|none|null|pipe|end|from|import|as|sandbox_profile|include|expand|stage|assume|exec|spawn|await|map|out|def|let|var|const|func|fun|λ|lambda)\b/g;
+var PIPE_STR = /"(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'/g;
+var PIPE_NUM = /\b\d+(?:\.\d+)?\b/g;
+var PIPE_COMMENT = /--[^\n]*/g;
+var PIPE_OP = /(->|<-|=>|==|!=|<=|>=|\+|-|\*|\/|%|=|<|>|&&|\|\|)/g;
+
+function highlight(code) {
+  code = code || '';
+  var pieces = [];
+  var re = new RegExp([
+    '("(?:[^"\\\\]|\\\\.)*"|\'(?:[^\'\\\\]|\\\\.)*\')',
+    '(--[^\\n]*)',
+    '(\\b\\d+(?:\\.\\d+)?\\b)',
+    '(\\b(?:if|else|elif|elseif|while|for|in|fn|return|and|or|not|true|false|none|null|end|from|import|as|pipe)\\b)',
+    '(->|<-|=>|==|!=|<=|>=|\\+|-|\\*|/|%|=|<|>|&&|\\|\\|)'
+  ].join('|'), 'g');
+  var m;
+  var lastIndex = 0;
+  while ((m = re.exec(code)) !== null) {
+    if (m.index > lastIndex) pieces.push(escapeHtml(code.slice(lastIndex, m.index)));
+    var cls = 'pipe-var';
+    if (m[1]) cls = 'pipe-str';
+    else if (m[2]) cls = 'pipe-comment';
+    else if (m[3]) cls = 'pipe-num';
+    else if (m[4]) cls = 'pipe-kw';
+    else if (m[5]) cls = 'pipe-op';
+    pieces.push('<span class="token ' + cls + '">' + escapeHtml(m[0]) + '</span>');
+    lastIndex = m.index + m[0].length;
+  }
+  if (lastIndex < code.length) pieces.push(escapeHtml(code.slice(lastIndex)));
+  return pieces.join('');
+}
+
+var scrollLock = false;
+function updateOverlay() {
+  var ta = getEditor();
+  var ov = document.getElementById('code-overlay');
+  if (scrollLock) return;
+  ov.innerHTML = highlight(ta.value) + '​';
+  ov.scrollTop = ta.scrollTop;
+  ov.scrollLeft = ta.scrollLeft;
+}
+getEditor().addEventListener('scroll', function () {
+  var ov = document.getElementById('code-overlay');
+  ov.scrollTop = this.scrollTop;
+  ov.scrollLeft = this.scrollLeft;
+});
+getEditor().addEventListener('input', function () { updateOverlay(); saveDraft(); scheduleRenderGraph(); });
 
 /* ================================================================
  * Tabs
@@ -1019,6 +1080,7 @@ function applyTemplate(id) {
   var code = TEMPLATES[id];
   if (!code) return;
   getEditor().value = code;
+  updateOverlay();
   saveDraft();
   scheduleRenderGraph();
 }
@@ -1042,6 +1104,7 @@ document.getElementById('template-select').addEventListener('change', function (
 
 document.getElementById('btn-clear').addEventListener('click', function () {
   getEditor().value = '';
+  updateOverlay();
   saveDraft();
   scheduleRenderGraph();
   document.getElementById('output').innerHTML = '';
@@ -1221,6 +1284,7 @@ function loadSharedCode(hash) {
       return;
     }
     getEditor().value = v.code;
+    updateOverlay();
     scheduleRenderGraph();
     setupRatingIfShared();
     if (rt.ready) statusReady();
@@ -1338,6 +1402,7 @@ document.addEventListener('keydown', function (e) {
 function init() {
   setLang(lang);
   loadDraft();
+  updateOverlay();
 
   /* URL params: ?code=hash */
   var params = new URLSearchParams(location.search);
@@ -1383,8 +1448,7 @@ function init() {
   } catch (e) {}
   updateAiProviderUI();
 }
-window.addEventListener('cm-ready', init);
+init();
 </script>
-<script type="module" src="playground-editor.js"></script>
 </body>
 </html>

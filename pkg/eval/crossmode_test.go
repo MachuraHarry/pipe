@@ -582,6 +582,16 @@ func TestCrossCompoundAssignment(t *testing.T) {
 	assertBothEqual(t, "x: 10\nx -= 3\nx", "7")
 }
 
+// TestCrossTrailingCommentEndsStatement guards the lexer fix in
+// pkg/lexer/lexer_test.go's TestTrailingComment at the parser/eval/VM
+// level: `x: 1 -- note` followed by another statement on the next line
+// used to fail to parse at all (the swallowed comment left no statement
+// boundary for the parser to see), so this needs both execution modes to
+// actually run the program, not just agree on a value.
+func TestCrossTrailingCommentEndsStatement(t *testing.T) {
+	assertBothEqual(t, "x: 1 -- note\ny: 2\nx + y", "3")
+}
+
 func TestCrossContinueBreak(t *testing.T) {
 	assertBothEqual(t, "x: 0\nwhile true\n    x: x + 1\n    if x >= 5\n        break\nx", "5")
 }

@@ -95,6 +95,36 @@ func TestComments(t *testing.T) {
 	})
 }
 
+// TestTrailingComment guards a real bug: `code -- comment` used to swallow
+// the newline that ends the commented statement without ever emitting a
+// NEWLINE token for it (unlike a bare `code\n`, which does via the '\n'
+// case in scanToken), so the parser saw no statement boundary and kept
+// parsing whatever followed as a continuation of the commented line's
+// expression -- e.g. `x: 1 -- note` then `y: 2` failed with "unexpected
+// ':'" because `y: 2` was parsed as part of `x`'s value.
+func TestTrailingComment(t *testing.T) {
+	input := "x: 1 -- note\ny: 2"
+	tokens := New(input).TokenizeAll()
+
+	assertTokens(t, tokens, []TokenType{
+		IDENT, COLON, INT, NEWLINE,
+		IDENT, COLON, INT,
+		EOF,
+	})
+}
+
+// TestTrailingCommentAtEOF checks the sibling edge case: a trailing comment
+// on the very last line, with no newline after it at all.
+func TestTrailingCommentAtEOF(t *testing.T) {
+	input := "x: 1 -- note"
+	tokens := New(input).TokenizeAll()
+
+	assertTokens(t, tokens, []TokenType{
+		IDENT, COLON, INT,
+		EOF,
+	})
+}
+
 // TestCommentsAreCollected checks that whole-line comments are recorded on
 // Lexer.Comments (line number + verbatim "--"/"--!" text) as a side effect
 // of normal scanning, even though — as TestComments above shows — they

@@ -203,16 +203,23 @@ func (l *Lexer) scanToken() Token {
 			l.readChar()
 			tok = Token{Type: FAT_ARROW, Literal: "->", Line: l.line, Col: l.col - 1}
 		} else if l.peekChar() == '-' {
+			// A trailing comment (`code -- comment`) must still end its
+			// statement like a bare newline does (case '\n' below emits
+			// NEWLINE before advancing) -- silently swallowing straight to
+			// the next line's tokens left the parser with no statement
+			// boundary, so it kept parsing whatever followed as a
+			// continuation of the commented line's expression, e.g.
+			// `x: 1 -- note` then `y: 2` failed with "unexpected ':'"
+			// because `y: 2` was parsed as part of `x`'s value.
 			for l.ch != '\n' && l.ch != 0 {
 				l.readChar()
 			}
 			if l.ch == '\n' {
+				tok = Token{Type: NEWLINE, Literal: "NEWLINE", Line: l.line, Col: l.col}
 				l.readLine()
+				return tok
 			}
-			if l.ch == 0 {
-				return l.emitPendingDedents()
-			}
-			return l.NextToken()
+			return l.emitPendingDedents()
 		} else if l.peekChar() == '=' {
 			l.readChar()
 			tok = Token{Type: MINUSEQ, Literal: "-=", Line: l.line, Col: l.col - 1}

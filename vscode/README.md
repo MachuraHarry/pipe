@@ -13,6 +13,7 @@ Syntax highlighting and full IntelliSense (LSP) for the **Pipe** scripting langu
 - **Format document** — reformats the whole file (see [Format on Save](#format-on-save) to run it automatically)
 - **Snippets** — `fn`, `fnlit`, `if`, `ifelse`, `match`, `forin`, `while`, `trycatch`, `aitool`, `mcpserver`, `swarmagent`, `sandboxprofile`
 - **Commands** — `Pipe: Run File`, `Pipe: Run File (VM Mode)`, `Pipe: Open REPL` (Command Palette; `Run File` also bound to `Ctrl+Alt+R` / `Cmd+Alt+R`)
+- **Debugger** — breakpoints, step over/into/out, variable and call-stack inspection via `F5` (single-threaded; `spawn`-ed code runs un-paused — see [Known Limitations](#known-limitations))
 - **Auto-completion** — brackets `() [] {}`, quotes `"` and `` ` ``, auto-indent after control keywords, outdent on `else`/`catch`
 - **Code folding** — via `-- region` / `-- endregion` markers
 
@@ -34,6 +35,7 @@ make lsp   # from the Pipe repository, or: go build -o bin/pipe-lsp ./cmd/pipe-l
 | `pipe.lspPath` | `""` | Absolute path to the `pipe-lsp` binary. Empty = auto-detect. |
 | `pipe.lsp.enabled` | `true` | Set to `false` to disable the language server. |
 | `pipe.cliPath` | `""` | Absolute path to the `pipe` CLI binary, used by **Run File**/**Open REPL**. Empty = auto-detect. |
+| `pipe.dapPath` | `""` | Absolute path to the `pipe-dap` debug adapter binary. Empty = auto-detect. |
 
 Auto-detection order for the server binary:
 
@@ -47,6 +49,12 @@ Auto-detection order for the `pipe` CLI binary (used by Run File/Open REPL only 
 1. the `pipe.cliPath` setting
 2. `<workspace>/bin/pipe`
 3. `pipe` on `PATH`
+
+Auto-detection order for the `pipe-dap` debug adapter binary (also not bundled with the extension):
+
+1. the `pipe.dapPath` setting
+2. `<workspace>/bin/pipe-dap`
+3. `pipe-dap` on `PATH`
 
 ### Format on Save
 
@@ -78,6 +86,9 @@ Then run VSCode with `--extensionDevelopmentPath=path/to/pipe/vscode` (F5 in the
 
 - Prebuilt `pipe-lsp` binaries are **linux x64 only**; other platforms must build from source (Go standard library only, no external dependencies).
 - Rename requires a valid identifier (Pipe validation rules apply).
+- The debugger only pauses/steps the single top-level VM a launch creates; `spawn`-ed code runs in its own independent VM and is not debuggable — it runs straight through, un-paused.
+- No conditional breakpoints, logpoints, or watch expressions yet.
+- The debug adapter's DAP protocol layer has automated test coverage (a Go harness drives raw DAP JSON against it), but the actual VS Code `F5` experience has not been manually verified.
 
 ## License
 

@@ -379,6 +379,15 @@ type CompiledFunction struct {
 	Lines        []int // source line per instruction byte; may be nil
 	NumLocals    int
 	NumFree      int
+	// Name is the function's source name ("" for a truly anonymous lambda),
+	// and LocalNames maps each local slot index (params and body-declared
+	// locals share one slot space) back to its source identifier ("" for a
+	// slot with no recoverable name, e.g. an internal for-in bookkeeping
+	// symbol). Both are debug-info only -- never read by the VM's own
+	// execution, only by pkg/vm's debugger introspection API (StackFrames,
+	// Locals) to show real names instead of anonymous slot indices.
+	Name       string
+	LocalNames []string
 }
 
 // UserFunctionExecutor invokes user-defined functions on the engine that

@@ -1,4 +1,4 @@
-.PHONY: build run test test-parity test-integration clean repl api lsp vsix fmt stats stats-check docs-dashboard worldcraft-version
+.PHONY: build run test test-parity test-integration clean repl api lsp dap vsix fmt stats stats-check docs-dashboard worldcraft-version
 
 # Regenerate stats.json + sync README/website numbers (commit the result so CI can check for drift).
 stats:
@@ -24,6 +24,9 @@ api:
 
 lsp:
 	go build -o bin/pipe-lsp ./cmd/pipe-lsp
+
+dap:
+	go build -o bin/pipe-dap ./cmd/pipe-dap
 
 vsix:
 	cd vscode && npx --yes @vscode/vsce package

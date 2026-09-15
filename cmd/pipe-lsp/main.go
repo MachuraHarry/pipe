@@ -3,13 +3,12 @@ package main
 import (
 	"bufio"
 	"encoding/json"
-	"errors"
 	"flag"
 	"fmt"
 	"io"
 	"os"
-	"strconv"
-	"strings"
+
+	"github.com/MachuraHarry/pipe/pkg/rpcframing"
 )
 
 // rpcMessage is the JSON-RPC 2.0 envelope used over the wire.
@@ -63,7 +62,7 @@ func main() {
 	go func() {
 		w := bufio.NewWriter(os.Stdout)
 		for msg := range out {
-			if err := writeMessage(w, msg); err != nil {
+			if err := rpcframing.WriteMessage(w, msg); err != nil {
 				return
 			}
 			w.Flush()
@@ -74,7 +73,7 @@ func main() {
 	shutdownReceived := false
 
 	for {
-		body, err := readMessage(reader)
+		body, err := rpcframing.ReadMessage(reader)
 		if err != nil {
 			if err == io.EOF {
 				return
@@ -183,37 +182,6 @@ func errRPC(err error) *rpcError {
 	return &rpcError{Code: errInternal, Message: err.Error()}
 }
 
-// readMessage reads one Content-Length framed JSON-RPC message from r.
-func readMessage(r *bufio.Reader) ([]byte, error) {
-	contentLength := -1
-	for {
-		line, err := r.ReadString('\n')
-		if err != nil {
-			return nil, err
-		}
-		line = strings.TrimRight(line, "\r\n")
-		if line == "" {
-			break
-		}
-		lower := strings.ToLower(line)
-		if strings.HasPrefix(lower, "content-length:") {
-			n, err := strconv.Atoi(strings.TrimSpace(line[len("Content-Length:"):]))
-			if err != nil {
-				return nil, errors.New("invalid Content-Length")
-			}
-			contentLength = n
-		}
-	}
-	if contentLength < 0 {
-		return nil, errors.New("missing Content-Length header")
-	}
-	body := make([]byte, contentLength)
-	if _, err := io.ReadFull(r, body); err != nil {
-		return nil, err
-	}
-	return body, nil
-}
-
 // marshal builds a valid JSON-RPC response: a response must carry exactly one
 // of "result" or "error". A nil result (e.g. hover/definition with no hit) is
 // still emitted as "result": null so that clients like vscode-jsonrpc do not
@@ -235,13 +203,4 @@ func marshalResponse(resp rpcResponse) []byte {
 		return []byte(`{"jsonrpc":"2.0","id":null,"error":{"code":-32603,"message":"internal marshal error"}}`)
 	}
 	return b
-}
-
-// writeMessage writes one Content-Length framed message to w.
-func writeMessage(w io.Writer, body []byte) error {
-	if _, err := fmt.Fprintf(w, "Content-Length: %d\r\n\r\n", len(body)); err != nil {
-		return err
-	}
-	_, err := w.Write(body)
-	return err
 }

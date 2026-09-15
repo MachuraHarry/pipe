@@ -193,11 +193,12 @@ Pipe is currently at version **v1.3.0**. Since the v1.0.0 **production-ready rel
 - [x] Syntax-highlighted editor with live execution
 
 ### VSCode 2.0 Extension
-- [ ] Debugger support with breakpoints
-- [ ] Variable inspection and watch expressions
-- [ ] REPL terminal integration
-- [ ] Code snippets for common patterns
+- [x] Debugger support with breakpoints (single-threaded; `spawn`-ed code runs un-paused, see below)
+- [x] Variable inspection (locals/globals); watch expressions still open
+- [x] REPL terminal integration
+- [x] Code snippets for common patterns
 - [ ] Project-level configuration (`.vscode/pipe.json`)
+- [ ] Concurrency-aware debugging (pausing/stepping a specific `spawn`ed thread)
 
 ### Language Server Protocol (LSP)
 - [x] Go-to-definition for functions and variables
@@ -284,7 +285,7 @@ Pipe is currently at version **v1.3.0**. Since the v1.0.0 **production-ready rel
 | Sets | 🔮 Future | v0.7+ | Unique collections |
 | Inline Lambdas | ✅ Done | v0.8 | `fn x: expr` in TW + VM |
 | Web Playground | ✅ Done | v0.7 | WASM-based + code sharing |
-| VSCode 2.0 | 🔮 Future | v0.7+ | Debugger, snippets |
+| VSCode 2.0 | 🟡 Partial | v0.7+ | Debugger (single-threaded), snippets, run/REPL commands done; project config + concurrency-aware debugging open |
 | LSP | ✅ Done | v0.7 | Go-to-def, references, hover, completion, diagnostics, rename |
 | Test Framework | ✅ Done | v0.9.4.0+ | test blocks + asserts + CLI, assert_near/assert_contains, setup/teardown hooks, runs in TV and VM |
 | Doc Generator | ✅ Done | v0.9.4.0 | `pipe -doc` + `--builtins`; cross-references open |

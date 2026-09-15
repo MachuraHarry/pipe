@@ -207,10 +207,20 @@ func loadCache(path, deps string) (*compiler.Bytecode, error) {
 				binary.Read(f, binary.BigEndian, &ln)
 				lines[j] = int(ln)
 			}
+			name, nerr := readString(f)
+			if nerr != nil {
+				return nil, nerr
+			}
+			localNames, lnerr := readStringSlice(f)
+			if lnerr != nil {
+				return nil, lnerr
+			}
 			constants[i] = &object.CompiledFunction{
 				Instructions: compiler.Instructions(ins),
 				Lines:        lines,
 				NumLocals:    int(numLocals),
+				Name:         name,
+				LocalNames:   localNames,
 			}
 		}
 	}
@@ -229,11 +239,64 @@ func loadCache(path, deps string) (*compiler.Bytecode, error) {
 		lines[j] = int(ln)
 	}
 
+	globalNames, gnerr := readStringSlice(f)
+	if gnerr != nil {
+		return nil, gnerr
+	}
+
 	return &compiler.Bytecode{
 		Instructions: instructions,
 		Lines:        lines,
 		Constants:    constants,
+		GlobalNames:  globalNames,
 	}, nil
+}
+
+// readString/readStringSlice/writeString/writeStringSlice serialize
+// debug-info string data (function/local/global names) as a uint16 length
+// prefix (single string) or uint32 count of uint16-length-prefixed strings
+// (slice) -- mirrors the existing String constant encoding above.
+func readString(f *os.File) (string, error) {
+	var length uint16
+	if err := binary.Read(f, binary.BigEndian, &length); err != nil {
+		return "", err
+	}
+	buf := make([]byte, length)
+	if length > 0 {
+		if _, err := f.Read(buf); err != nil {
+			return "", err
+		}
+	}
+	return string(buf), nil
+}
+
+func readStringSlice(f *os.File) ([]string, error) {
+	var count uint32
+	if err := binary.Read(f, binary.BigEndian, &count); err != nil {
+		return nil, err
+	}
+	names := make([]string, count)
+	for i := uint32(0); i < count; i++ {
+		s, err := readString(f)
+		if err != nil {
+			return nil, err
+		}
+		names[i] = s
+	}
+	return names, nil
+}
+
+func writeString(f *os.File, s string) {
+	b := []byte(s)
+	binary.Write(f, binary.BigEndian, uint16(len(b)))
+	f.Write(b)
+}
+
+func writeStringSlice(f *os.File, names []string) {
+	binary.Write(f, binary.BigEndian, uint32(len(names)))
+	for _, n := range names {
+		writeString(f, n)
+	}
 }
 
 func writeCache(path, deps string, bc *compiler.Bytecode) error {
@@ -283,6 +346,8 @@ func writeCacheData(f *os.File, deps string, bc *compiler.Bytecode) error {
 			for _, ln := range v.Lines {
 				binary.Write(f, binary.BigEndian, int32(ln))
 			}
+			writeString(f, v.Name)
+			writeStringSlice(f, v.LocalNames)
 		}
 	}
 
@@ -294,6 +359,8 @@ func writeCacheData(f *os.File, deps string, bc *compiler.Bytecode) error {
 	for _, ln := range bc.Lines {
 		binary.Write(f, binary.BigEndian, int32(ln))
 	}
+
+	writeStringSlice(f, bc.GlobalNames)
 
 	return nil
 }

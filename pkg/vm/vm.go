@@ -41,6 +41,7 @@ func New(bc *compiler.Bytecode) *VM {
 
 	mainFn := &object.CompiledFunction{
 		Instructions: bc.Instructions,
+		Name:         "main",
 	}
 	mainClosure := &object.Closure{
 		Fn:   mainFn,
@@ -57,13 +58,14 @@ func New(bc *compiler.Bytecode) *VM {
 	frames[0] = mainFrame
 
 	vm := &VM{
-		constants:  bc.Constants,
-		globals:    globals,
-		stack:      stack,
-		sp:         0,
-		frames:     frames,
-		frameIndex: 0,
-		sourceFile: bc.SourceFile,
+		constants:   bc.Constants,
+		globals:     globals,
+		stack:       stack,
+		sp:          0,
+		frames:      frames,
+		frameIndex:  0,
+		sourceFile:  bc.SourceFile,
+		globalNames: bc.GlobalNames,
 	}
 
 	return vm
@@ -118,10 +120,131 @@ type VM struct {
 	// test runner checks it to fail the file, mirroring the tree-walker's
 	// testFailed flag.
 	TestFailed bool
+	// globalNames is debug info only (see object.CompiledFunction.LocalNames):
+	// slot index -> source identifier, for the Globals() introspection method.
+	globalNames []string
+	// debug is nil for ordinary execution (the hot path checked on every
+	// single instruction, see checkDebugHook -- stays a single, cheap nil
+	// check when no debugger is attached). Set via AttachDebugSession, only
+	// ever by cmd/pipe-dap's launch handler on the single top-level VM it
+	// creates -- spawned child VMs (newSpawnVM) never inherit one, so
+	// `spawn`-ed code always runs un-paused (see DebugSession's doc comment
+	// for why that's a deliberate Stage 1 scope decision, not an oversight).
+	debug *DebugSession
 }
 
 func (vm *VM) currentFrame() *Frame {
 	return vm.frames[vm.frameIndex]
+}
+
+// decodeAndCheck fetches the opcode at frame.ip, updates vm.curLine, and
+// advances frame.ip past it -- the fetch/decode prologue that used to be
+// duplicated verbatim at the top of both Run's and executeFrame's dispatch
+// loops (this project has already been bitten twice by exactly that
+// duplication: OpGetFree/OpSetFree and OpCurrentClosure each needed
+// identical patches in both places). It's also the ONE place, shared by
+// both loops, where a debug session's breakpoint/step check runs -- so a
+// future opcode-level change here, like those past two, only needs to
+// happen once.
+func (vm *VM) decodeAndCheck(frame *Frame, ins compiler.Instructions) compiler.Opcode {
+	op := compiler.Opcode(ins[frame.ip])
+	vm.curLine = frame.lineAt(frame.ip)
+	frame.ip++
+	if vm.debug != nil {
+		vm.debug.check(vm, frame)
+	}
+	return op
+}
+
+// AttachDebugSession associates a debug session with this VM's instruction
+// loop (see decodeAndCheck). Only ever called on the single top-level VM a
+// debug launch creates -- spawned child VMs (newSpawnVM) never get one, so
+// `spawn`-ed code always runs un-paused; see DebugSession's doc comment.
+func (vm *VM) AttachDebugSession(s *DebugSession) {
+	vm.debug = s
+}
+
+// CurrentLine returns the source line of the instruction most recently
+// decoded by decodeAndCheck.
+func (vm *VM) CurrentLine() int {
+	return vm.curLine
+}
+
+// StackFrameInfo is one entry of StackFrames' result: a human-readable
+// snapshot of one call frame for a debugger's call-stack view.
+type StackFrameInfo struct {
+	Index int
+	Name  string
+	Line  int
+}
+
+// StackFrames returns the current call stack, innermost frame first.
+func (vm *VM) StackFrames() []StackFrameInfo {
+	out := make([]StackFrameInfo, 0, vm.frameIndex+1)
+	for i := vm.frameIndex; i >= 0; i-- {
+		f := vm.frames[i]
+		name := "anonymous"
+		if f.closure != nil && f.closure.Fn != nil && f.closure.Fn.Name != "" {
+			name = f.closure.Fn.Name
+		}
+		out = append(out, StackFrameInfo{Index: i, Name: name, Line: f.lineAt(f.ip)})
+	}
+	return out
+}
+
+// Variable is one named value in a debugger's Locals/Globals view.
+type Variable struct {
+	Name  string
+	Value string
+}
+
+// Locals returns the local variables (including parameters, which share
+// the same slot space) of the frame at the given stack index (0 =
+// outermost/main, vm.frameIndex = innermost -- matching StackFrames'
+// Index field), using the compiled function's LocalNames debug info.
+// Unnamed slots (internal bookkeeping symbols with no source name) are
+// omitted.
+func (vm *VM) Locals(frameIdx int) []Variable {
+	if frameIdx < 0 || frameIdx > vm.frameIndex {
+		return nil
+	}
+	f := vm.frames[frameIdx]
+	if f.closure == nil || f.closure.Fn == nil {
+		return nil
+	}
+	names := f.closure.Fn.LocalNames
+	out := make([]Variable, 0, len(names))
+	for i, name := range names {
+		if name == "" {
+			continue
+		}
+		slot := f.basePointer + i
+		if slot < 0 || slot >= len(vm.stack) {
+			continue
+		}
+		out = append(out, Variable{Name: name, Value: inspectOrNil(vm.stack[slot])})
+	}
+	return out
+}
+
+// Globals returns every named global variable currently holding a value,
+// using the compiled program's GlobalNames debug info.
+func (vm *VM) Globals() []Variable {
+	out := make([]Variable, 0, len(vm.globalNames))
+	for i, name := range vm.globalNames {
+		if name == "" || i >= len(vm.globals) || vm.globals[i] == nil {
+			continue
+		}
+		out = append(out, Variable{Name: name, Value: inspectOrNil(vm.globals[i])})
+	}
+	return out
+}
+
+func inspectOrNil(o object.Object) string {
+	if o == nil {
+		return "nil"
+	}
+	return o.Inspect()
 }
 
 // newError builds a positioned runtime error object for a VM failure.
@@ -241,9 +364,7 @@ func (vm *VM) Run() (err error) {
 			break
 		}
 
-		op := compiler.Opcode(ins[frame.ip])
-		vm.curLine = frame.lineAt(frame.ip)
-		frame.ip++
+		op := vm.decodeAndCheck(frame, ins)
 
 		switch op {
 		case compiler.OpConstant:
@@ -1099,9 +1220,7 @@ func (vm *VM) executeFrame() object.Object {
 			break
 		}
 
-		op := compiler.Opcode(ins[frame.ip])
-		vm.curLine = frame.lineAt(frame.ip)
-		frame.ip++
+		op := vm.decodeAndCheck(frame, ins)
 
 		switch op {
 		case compiler.OpConstant:

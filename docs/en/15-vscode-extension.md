@@ -220,6 +220,35 @@ The extension ships an LSP client that connects to the
 
 The extension contributes tab-completable snippets for common Pipe patterns: `fn`, `fnlit`, `if`, `ifelse`, `match`, `forin`, `while`, `trycatch`, `aitool` (register an `ai_tool`), `mcpserver` (`mcp_server` + `mcp_serve_stdio`), `swarmagent` (`swarm_agent` registration), and `sandboxprofile` (a `sandbox_profile` block). Type the prefix in a `.pipe` file and accept the suggestion, or press `Tab` to expand.
 
+## Debugger
+
+The extension registers a `pipe` debug adapter (`cmd/pipe-dap`, standard library only, speaking the Debug Adapter Protocol over stdio) so VS Code's built-in Run-and-Debug view works on `.pipe` files: set breakpoints by clicking the gutter, press `F5`, and use the standard Continue/Step Over/Step Into/Step Out controls. The Variables panel shows locals (including parameters) and globals by name; the Call Stack panel shows frame names and lines.
+
+Debugging always runs the target under the bytecode VM (the same backend `Pipe: Run File (VM Mode)` uses), since only the VM tracks a precise source line for every instruction.
+
+**Stage 1 scope and known limitations:**
+- Only the single top-level VM created by a debug launch is paused/stepped. Code started with `spawn` runs in its own independent VM and is **not** debuggable — it runs straight through, un-paused, even while the main thread is stopped at a breakpoint.
+- No conditional breakpoints, logpoints, or watch expressions yet.
+- No `.vscode/launch.json` is required for the common case — press `F5` on an open `.pipe` file and VS Code offers a default "Run current Pipe file" configuration. To customize (e.g. `stopOnEntry`), add a `pipe` entry to `.vscode/launch.json`:
+
+  ```jsonc
+  {
+    "type": "pipe",
+    "request": "launch",
+    "name": "Run current Pipe file",
+    "program": "${file}",
+    "stopOnEntry": false
+  }
+  ```
+
+Build the debug adapter binary once:
+
+```sh
+make dap          # or: go build -o bin/pipe-dap ./cmd/pipe-dap
+```
+
+The extension resolves it the same way it resolves the `pipe` CLI (it isn't bundled with the extension): the `pipe.dapPath` setting, then `<workspace>/bin/pipe-dap`, then `pipe-dap` on `PATH`.
+
 ## Commands
 
 Available from the Command Palette (`Ctrl+Shift+P` / `Cmd+Shift+P`), category "Pipe":
@@ -256,6 +285,7 @@ The extension looks for the binary in this order:
 | `pipe.lspPath` | `""` | Absolute path to the `pipe-lsp` binary |
 | `pipe.lsp.enabled` | `true` | Set to `false` to disable the language server |
 | `pipe.cliPath` | `""` | Absolute path to the `pipe` CLI binary, used by `Pipe: Run File`/`Pipe: Open REPL`. Empty = auto-detect (`<workspace>/bin/pipe`, then `PATH`) |
+| `pipe.dapPath` | `""` | Absolute path to the `pipe-dap` debug adapter binary. Empty = auto-detect (`<workspace>/bin/pipe-dap`, then `PATH`) |
 
 ## Extension File Structure
 
@@ -265,9 +295,11 @@ vscode/
 │   ├── pipe-icon.png              # Extension and language icon
 │   └── pipe-icon.svg              # Source vector icon
 ├── src/
-│   ├── extension.ts                # Activation entrypoint: LSP client + command registration
+│   ├── extension.ts                # Activation entrypoint: LSP client + command + debug adapter registration
 │   ├── serverPath.ts               # pipe-lsp binary resolution
 │   ├── cliPath.ts                  # pipe CLI binary resolution (Run File/Open REPL)
+│   ├── dapPath.ts                  # pipe-dap binary resolution (debugger)
+│   ├── debugAdapter.ts             # DebugAdapterDescriptorFactory registration
 │   └── commands.ts                 # Run File / Run File (VM) / Open REPL commands
 ├── snippets/
 │   └── pipe.json                   # Tab-completable snippets
@@ -276,6 +308,7 @@ vscode/
 ├── test/
 │   ├── serverPath.test.ts          # vitest: pipe-lsp resolution logic
 │   ├── cliPath.test.ts             # vitest: pipe CLI resolution logic
+│   ├── dapPath.test.ts             # vitest: pipe-dap resolution logic
 │   └── snippets.test.ts            # vitest: snippet JSON shape
 ├── language-configuration.json     # Bracket pairs, auto-indent, folding rules
 ├── package.json                    # Extension manifest
@@ -316,3 +349,5 @@ The extension has been tested with the following VSCode features and confirmed w
 - **Bracket content**: Content inside `()`, `[]`, `{}` is not affected by INDENT/DEDENT logic
 
 Pipe ships a Language Server Protocol (LSP) server (`cmd/pipe-lsp`, standard library only, no external dependencies). The VSCode extension connects to it automatically; see [IntelliSense (Language Server)](#intellisense-language-server) above.
+
+The debug adapter (`cmd/pipe-dap`) has automated protocol coverage — a Go test harness drives raw DAP JSON over an `io.Pipe()` against its request handler, covering breakpoint hits, stack traces, variable inspection, stepping, `stopOnEntry`, and disconnect — but manual testing through VS Code's actual Run-and-Debug UI (`F5`) has not been performed, since this was built in a headless environment without a VS Code instance available. Treat the `F5` experience as untested until someone verifies it manually.

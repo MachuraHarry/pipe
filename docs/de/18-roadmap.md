@@ -60,7 +60,7 @@ Pipe ist aktuell in Version **v1.3.0**. Seit dem **Production-Ready-Release** v1
 | 12 | **Package-Registry 2.0** | `pipe -install`, `pipe -publish`, `pipe.json`-Manifest, `pipe.lock`-Reproduzierbarkeit | ✅ Erledigt |
 | 13 | **Bytecode-Optimierungen** | Constant Folding + Dead Code Elimination erledigt; Peephole verschoben (fragil mit try/catch) |
 | 14 | **Web-Playground** | "Try Pipe in your Browser" via WASM | ✅ Erledigt |
-| 15 | **VSCode-Plugin 2.0** | Auto-Vervollständigung, Go-to-Definition, Debugger-Integration |
+| 15 | **VSCode-Plugin 2.0** | Auto-Vervollständigung, Go-to-Definition, Snippets, Run/REPL-Befehle | 🟡 Debugger (Breakpoints, Stepping, Variableninspektion, einzelner Thread) erledigt; Projekt-Konfiguration und Concurrency-Debugging offen |
 | 16 | **LSP-Server** | Language Server Protocol für Editor-Unterstützung | ✅ Erledigt |
 | 17 | **Standard-Test-Framework** | `assert`, `test`, `assert_eq`, `assert_error`, `assert_lt`, `assert_gt`, `assert_near`, `assert_contains` — Setup/Teardown-Hooks in TV + VM | ✅ Erledigt |
 | 18 | **Dokumentations-Generator** | `pipe -doc` — Markdown aus `--!`-Docstrings, `--builtins` | ✅ Erledigt (Cross-References offen) |

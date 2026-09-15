@@ -68,6 +68,7 @@ type FnStatement struct {
 
 func (fs *FnStatement) statementNode()       {}
 func (fs *FnStatement) TokenLiteral() string { return "fn" }
+func (fs *FnStatement) Pos() Position        { return fs.Name.Pos() }
 
 type VarStatement struct {
 	Name           *Identifier
@@ -77,6 +78,7 @@ type VarStatement struct {
 
 func (vs *VarStatement) statementNode()       {}
 func (vs *VarStatement) TokenLiteral() string { return vs.Name.TokenLiteral() }
+func (vs *VarStatement) Pos() Position        { return vs.Name.Pos() }
 
 type TypeAnnotation struct {
 	Name string // "int", "string", "list", "map", "fn", etc.

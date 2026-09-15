@@ -155,16 +155,18 @@ c1: make_counter 0
 c2: make_counter 100
 
 -- 1
-print (c1)
+print (c1())
 -- 2
-print (c1)
+print (c1())
 -- 101
-print (c2)
+print (c2())
 -- 3
-print (c1)
+print (c1())
 ```
 
 Jeder Zähler hat seinen eigenen internen Zustand.
+
+> Eine Funktion ohne Parameter braucht ein explizites `()`, um aufgerufen zu werden — eine bloße Referenz wie `c1` (oder `print (c1)`) liefert nur den Funktionswert selbst, ohne ihn aufzurufen.
 
 ### Praxis-Beispiel: Konfigurierbare Filter
 

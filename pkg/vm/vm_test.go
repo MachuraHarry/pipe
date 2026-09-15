@@ -250,6 +250,75 @@ func TestRecursiveFunction(t *testing.T) {
 	}
 }
 
+// TestClosureMutableState locks in the make_counter pattern documented in
+// docs/en/05-functions-and-closures.md under the VM: a closure's captured
+// free variable must persist mutation (OpSetFree) across repeated calls to
+// the SAME closure instance, while a second, independently created closure
+// instance keeps its own copy.
+func TestClosureMutableState(t *testing.T) {
+	input := "fn make_counter start\n" +
+		"    fn counter\n" +
+		"        start: start + 1\n" +
+		"        start\n" +
+		"\n" +
+		"counter: make_counter(0)\n" +
+		"counter2: make_counter(100)\n" +
+		"[counter(), counter(), counter(), counter2(), counter2(), counter()]"
+	bc := parseAndCompile(t, input)
+	result := runVM(t, bc)
+	if result != "[1, 2, 3, 101, 102, 4]" {
+		t.Errorf("expected [1, 2, 3, 101, 102, 4], got %s", result)
+	}
+}
+
+// TestNestedFunctionShadowsGlobal is the VM counterpart of the tree-walker's
+// TestEvalNestedFunctionShadowsGlobal: reassigning a name that only exists at
+// global scope from inside a nested function must shadow it with a fresh
+// local (OpSetLocal), never write through to the global (OpSetGlobal).
+func TestNestedFunctionShadowsGlobal(t *testing.T) {
+	input := "x: 100\n\n" +
+		"fn bump\n" +
+		"    y: x\n" +
+		"    x: y + 1\n" +
+		"    x\n\n" +
+		"[bump(), bump(), x]"
+	bc := parseAndCompile(t, input)
+	result := runVM(t, bc)
+	if result != "[101, 101, 100]" {
+		t.Errorf("expected [101, 101, 100], got %s", result)
+	}
+}
+
+// TestSiblingClosuresDoNotShareCapturedState pins a known, accepted VM/eval
+// divergence introduced by the closure mutable-state fix: two closures
+// created from the same enclosing call, both capturing the same variable,
+// each get their own independent copy of it in the VM (object.Closure.Free
+// is captured by value at OpClosure time), so mutating one is invisible to
+// the other -- unlike the tree-walker, where both closures share the same
+// *object.Environment pointer (see TestEvalSiblingClosuresShareCapturedState
+// in pkg/eval). A full fix would need heap-allocated upvalue cells, which is
+// out of scope here; this test exists so that divergence isn't silently
+// "fixed" (or silently broken further) without a deliberate decision.
+func TestSiblingClosuresDoNotShareCapturedState(t *testing.T) {
+	input := "fn make_pair\n" +
+		"    count: 0\n" +
+		"    fn inc\n" +
+		"        count: count + 1\n" +
+		"        count\n" +
+		"    fn get\n" +
+		"        count\n" +
+		"    {inc: inc, get: get}\n\n" +
+		"pair: make_pair()\n" +
+		"pair.inc()\n" +
+		"pair.inc()\n" +
+		"[pair.inc(), pair.get()]"
+	bc := parseAndCompile(t, input)
+	result := runVM(t, bc)
+	if result != "[3, 0]" {
+		t.Errorf("expected [3, 0] (get() does not observe inc()'s mutations in the VM), got %s", result)
+	}
+}
+
 func TestCompileIndexNoDoubleEmission(t *testing.T) {
 	// xs[0] lowers to at(xs, 0). The index operands must be emitted exactly
 	// once: the generic infix path used to pre-compile Left/Right before the

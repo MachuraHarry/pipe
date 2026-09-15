@@ -668,3 +668,171 @@ func TestCallUserFunctionDispatchesBuiltinIdentifierValue(t *testing.T) {
 		t.Fatalf(`CallUserFunction(upper, "hi") = %v, want "HI"`, result)
 	}
 }
+
+// TestEvalClosureMutableState locks in the make_counter pattern documented in
+// docs/en/05-functions-and-closures.md: a closure's captured variable must
+// persist mutation across repeated calls to the SAME closure instance, while
+// a second, independently created closure instance keeps its own state.
+func TestEvalClosureMutableState(t *testing.T) {
+	input := "fn make_counter start\n" +
+		"    fn counter\n" +
+		"        start: start + 1\n" +
+		"        start\n" +
+		"\n" +
+		"counter: make_counter 0\n" +
+		"counter2: make_counter 100\n"
+
+	l := lexer.New(input)
+	p := parser.New(l)
+	program := p.ParseProgram()
+	if errs := p.Errors(); len(errs) > 0 {
+		t.Fatalf("parse errors: %v", errs)
+	}
+	ctx := NewEvalContext("<test>")
+	env := object.NewEnvironment()
+	ctx.Eval(program, env)
+
+	counterObj, ok := env.Get("counter")
+	if !ok {
+		t.Fatal("counter not defined")
+	}
+	counter2Obj, ok := env.Get("counter2")
+	if !ok {
+		t.Fatal("counter2 not defined")
+	}
+
+	call := func(fn object.Object) int64 {
+		t.Helper()
+		result := ctx.applyFunction(fn, nil)
+		i, ok := result.(*object.Integer)
+		if !ok {
+			t.Fatalf("expected Integer, got %T (%v)", result, result)
+		}
+		return i.Value
+	}
+
+	if got := call(counterObj); got != 1 {
+		t.Errorf("counter() call 1: got %d, want 1", got)
+	}
+	if got := call(counterObj); got != 2 {
+		t.Errorf("counter() call 2: got %d, want 2", got)
+	}
+	if got := call(counterObj); got != 3 {
+		t.Errorf("counter() call 3: got %d, want 3", got)
+	}
+	if got := call(counter2Obj); got != 101 {
+		t.Errorf("counter2() call 1: got %d, want 101 (independent instance)", got)
+	}
+	if got := call(counter2Obj); got != 102 {
+		t.Errorf("counter2() call 2: got %d, want 102", got)
+	}
+	if got := call(counterObj); got != 4 {
+		t.Errorf("counter() call 4: got %d, want 4 (unaffected by counter2)", got)
+	}
+}
+
+// TestEvalNestedFunctionShadowsGlobal guards the other side of the closure
+// mutable-state fix: a nested function reassigning a name that only exists
+// at global/module scope must still shadow it with a fresh local, never
+// mutate the global in place. env.Assign stops before the root environment
+// specifically to preserve this.
+func TestEvalNestedFunctionShadowsGlobal(t *testing.T) {
+	input := "x: 100\n\n" +
+		"fn bump\n" +
+		"    y: x\n" +
+		"    x: y + 1\n" +
+		"    x\n"
+
+	l := lexer.New(input)
+	p := parser.New(l)
+	program := p.ParseProgram()
+	if errs := p.Errors(); len(errs) > 0 {
+		t.Fatalf("parse errors: %v", errs)
+	}
+	ctx := NewEvalContext("<test>")
+	env := object.NewEnvironment()
+	ctx.Eval(program, env)
+
+	bumpObj, ok := env.Get("bump")
+	if !ok {
+		t.Fatal("bump not defined")
+	}
+
+	for i := 0; i < 2; i++ {
+		result := ctx.applyFunction(bumpObj, nil)
+		iv, ok := result.(*object.Integer)
+		if !ok || iv.Value != 101 {
+			t.Fatalf("bump() call %d: got %v, want 101 (fresh shadow every call, no persisted state)", i+1, result)
+		}
+	}
+
+	gx, ok := env.Get("x")
+	if !ok {
+		t.Fatal("global x not defined")
+	}
+	gi, ok := gx.(*object.Integer)
+	if !ok || gi.Value != 100 {
+		t.Fatalf("global x: got %v, want 100 (must not be mutated by a nested function)", gx)
+	}
+}
+
+// TestEvalSiblingClosuresShareCapturedState pins a known, accepted asymmetry
+// between the two backends introduced by the closure mutable-state fix: in
+// the tree-walker, two closures created from the same enclosing call and
+// both capturing the same variable DO observe each other's mutations,
+// because they share the same *object.Environment pointer (env.Assign
+// mutates that shared map in place). The VM does not offer this (see
+// TestSiblingClosuresDoNotShareCapturedState in pkg/vm) -- each of its
+// closures gets its own independent copy of a captured free variable. This
+// test exists so the tree-walker's behavior isn't accidentally narrowed to
+// match the VM's weaker guarantee without a deliberate decision.
+func TestEvalSiblingClosuresShareCapturedState(t *testing.T) {
+	input := "fn make_pair\n" +
+		"    count: 0\n" +
+		"    fn inc\n" +
+		"        count: count + 1\n" +
+		"        count\n" +
+		"    fn get\n" +
+		"        count\n" +
+		"    {inc: inc, get: get}\n"
+
+	l := lexer.New(input)
+	p := parser.New(l)
+	program := p.ParseProgram()
+	if errs := p.Errors(); len(errs) > 0 {
+		t.Fatalf("parse errors: %v", errs)
+	}
+	ctx := NewEvalContext("<test>")
+	env := object.NewEnvironment()
+	ctx.Eval(program, env)
+
+	makePairObj, ok := env.Get("make_pair")
+	if !ok {
+		t.Fatal("make_pair not defined")
+	}
+	pairObj := ctx.applyFunction(makePairObj, nil)
+	pairMap, ok := pairObj.(*object.Map)
+	if !ok {
+		t.Fatalf("expected make_pair() to return a Map, got %T (%v)", pairObj, pairObj)
+	}
+	incObj, ok := pairMap.Get("inc")
+	if !ok {
+		t.Fatal("pair.inc not defined")
+	}
+	getObj, ok := pairMap.Get("get")
+	if !ok {
+		t.Fatal("pair.get not defined")
+	}
+
+	ctx.applyFunction(incObj, nil)
+	ctx.applyFunction(incObj, nil)
+	third := ctx.applyFunction(incObj, nil)
+	if iv, ok := third.(*object.Integer); !ok || iv.Value != 3 {
+		t.Fatalf("pair.inc() call 3: got %v, want 3", third)
+	}
+
+	got := ctx.applyFunction(getObj, nil)
+	if iv, ok := got.(*object.Integer); !ok || iv.Value != 3 {
+		t.Fatalf("pair.get(): got %v, want 3 (must observe inc()'s mutations, shared *Environment)", got)
+	}
+}

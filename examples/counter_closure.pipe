@@ -1,0 +1,17 @@
+--! Closures with private mutable state. Each call to make_counter returns
+--! an independent closure whose captured `start` persists across calls.
+
+fn make_counter start
+    fn counter
+        start: start + 1
+        start
+
+counter: make_counter(0)
+print (counter())
+print (counter())
+print (counter())
+
+counter2: make_counter(100)
+print (counter2())
+print (counter2())
+print (counter())

@@ -12,6 +12,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 )
@@ -40,6 +41,7 @@ var deterministicOffline = []string{
 	"concurrency_mutex",
 	"concurrency_semaphore",
 	"concurrency_spawn_await",
+	"counter_closure",
 	"fib",
 	"fizzbuzz",
 	"hashing_demo",
@@ -163,6 +165,36 @@ func TestModuleExamplesParity(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			compare(t, bin, name)
 		})
+	}
+}
+
+// TestNewFeaturesImportTimingDivergence pins the documented, accepted
+// TV/VM divergence for examples/new_features.pipe: it writes a module file
+// at runtime and then imports it. The tree-walker resolves imports lazily
+// at execution time (so the file exists by the time the import statement
+// runs) while the compiler resolves imports at COMPILE time, before the
+// write ever happens -- so the VM can never even start running this
+// program. This is a real, if narrow, capability gap (see
+// docs/en -- deferred/dynamic import compilation would be needed to close
+// it), not a bug to silently fix here; this test turns the exclusion
+// comment on deterministicOffline above into an executable check, so a
+// future change that accidentally "fixes" or further breaks either side is
+// caught.
+func TestNewFeaturesImportTimingDivergence(t *testing.T) {
+	root := repoRoot(t)
+	bin := buildPipe(t, root)
+
+	tvOut, tvCode, tvErr := runPipe(t, bin, "new_features", false)
+	if tvCode != 0 {
+		t.Fatalf("tree-walker: expected new_features.pipe to succeed, got exit=%d\nstdout:\n%s\nstderr:\n%s", tvCode, tvOut, tvErr)
+	}
+
+	_, vmCode, vmErr := runPipe(t, bin, "new_features", true)
+	if vmCode == 0 {
+		t.Fatalf("VM: expected new_features.pipe to fail to compile (import resolved at compile time, before the file is written), but it succeeded")
+	}
+	if !strings.Contains(vmErr, "import not found") {
+		t.Fatalf("VM: expected a compile-time \"import not found\" error, got exit=%d stderr:\n%s", vmCode, vmErr)
 	}
 }
 

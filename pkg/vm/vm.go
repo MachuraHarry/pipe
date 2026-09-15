@@ -366,6 +366,11 @@ func (vm *VM) Run() (err error) {
 			frame.ip += 2
 			vm.push(frame.closure.Free[int(idx)])
 
+		case compiler.OpSetFree:
+			idx := compiler.ReadUint16(ins, frame.ip)
+			frame.ip += 2
+			frame.closure.Free[int(idx)] = vm.pop()
+
 		case compiler.OpCheckError:
 			val := vm.peek()
 			if _, isErr := val.(*object.Error); isErr {
@@ -1189,6 +1194,11 @@ func (vm *VM) executeFrame() object.Object {
 			idx := compiler.ReadUint16(ins, frame.ip)
 			frame.ip += 2
 			vm.push(frame.closure.Free[int(idx)])
+
+		case compiler.OpSetFree:
+			idx := compiler.ReadUint16(ins, frame.ip)
+			frame.ip += 2
+			frame.closure.Free[int(idx)] = vm.pop()
 
 		case compiler.OpCheckError:
 			val := vm.peek()

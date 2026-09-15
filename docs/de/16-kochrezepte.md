@@ -396,6 +396,29 @@ print (verdoppler 10)
 print (verdreifacher 10)
 ```
 
+Eine Closure kann privaten, veränderlichen Zustand über mehrere Aufrufe hinweg behalten: die Neuzuweisung einer erfassten Variable im Closure-Körper verändert die Kopie des einschließenden Aufrufs, statt sie nur lokal zu überdecken.
+
+```pipe
+fn make_counter start
+    fn counter
+        start: start + 1
+        start
+
+zaehler: make_counter(0)
+print (zaehler())
+-- 1
+print (zaehler())
+-- 2
+
+zaehler2: make_counter(100)
+print (zaehler2())
+-- 101
+print (zaehler())
+-- 3   (unabhängig von zaehler2)
+```
+
+Jeder Aufruf von `make_counter` erzeugt eine neue Closure mit ihrer eigenen erfassten `start`-Variable — die Closures sind unabhängig voneinander. Die Neuzuweisung eines Namens, der nur im globalen/Modul-Scope existiert, überdeckt ihn weiterhin nur lokal, statt den globalen Wert zu verändern.
+
 ## 16.22 Binäre Suche
 
 ```pipe

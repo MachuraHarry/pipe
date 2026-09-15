@@ -119,22 +119,24 @@ fn make_counter start
 
 counter: make_counter 0
 -- 1
-print (counter)
+print (counter())
 -- 2
-print (counter)
+print (counter())
 -- 3
-print (counter)
+print (counter())
 
 counter2: make_counter 100
 -- 101
-print (counter2)
+print (counter2())
 -- 102
-print (counter2)
+print (counter2())
 -- 4   (different counter, independent state)
-print (counter)
+print (counter())
 ```
 
 Each call to `make_counter` creates a new closure with its own captured `start` variable. The closures are independent — modifying one does not affect the other.
+
+> A zero-argument function needs an explicit `()` to be called — a bare reference like `counter` (or `print (counter)`) evaluates to the function value itself, without invoking it.
 
 ### make_adder Example
 

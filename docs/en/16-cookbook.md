@@ -628,7 +628,28 @@ print (triple 5)
 
 ### Counter
 
-A mutable counter closure (each call incrementing and returning shared state) is not shown here — it does not work under either closure-writing form above; there is currently no working way to give a closure private mutable state that survives across calls.
+A closure can hold private mutable state that survives across calls: reassigning a captured variable inside the closure body mutates the enclosing call's copy instead of shadowing it locally.
+
+```pipe
+fn make_counter start
+  fn counter
+    start: start + 1
+    start
+
+counter: make_counter(0)
+print (counter())
+-- Output: 1
+print (counter())
+-- Output: 2
+
+counter2: make_counter(100)
+print (counter2())
+-- Output: 101
+print (counter())
+-- Output: 3   (independent from counter2)
+```
+
+Each call to `make_counter` creates a new closure with its own captured `start` — the closures are independent, matching the [Closures](05-functions-and-closures.md) chapter. Reassigning a name that only exists at global/module scope still shadows it with a fresh local rather than mutating the global (see [Functions and Closures](05-functions-and-closures.md)).
 
 ## 22. Binary Search
 

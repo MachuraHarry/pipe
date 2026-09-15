@@ -38,6 +38,25 @@ func (e *Environment) Set(name string, val Object) Object {
 	return val
 }
 
+// Assign implements reassignment semantics for `name: value`: it mutates the
+// nearest enclosing binding of name if one already exists in an intermediate
+// (function-call) scope, so a closure's captured variables persist across
+// calls instead of being shadowed by a fresh local on every call. It never
+// writes into the root scope (outer == nil, i.e. true global/module scope)
+// unless name is already declared in the current scope itself — this keeps
+// "a function shadows a same-named global" behavior unchanged.
+func (e *Environment) Assign(name string, val Object) Object {
+	if e.HasLocal(name) {
+		return e.Set(name, val)
+	}
+	for outer := e.outer; outer != nil && outer.outer != nil; outer = outer.outer {
+		if outer.HasLocal(name) {
+			return outer.Set(name, val)
+		}
+	}
+	return e.Set(name, val)
+}
+
 func (e *Environment) Store() map[string]Object {
 	return e.store
 }

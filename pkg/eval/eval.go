@@ -81,7 +81,7 @@ func (ctx *EvalContext) Eval(node ast.Node, env *object.Environment) object.Obje
 		if isError(val) {
 			return val
 		}
-		env.Set(n.Name.Value, val)
+		env.Assign(n.Name.Value, val)
 		return val
 
 	case *ast.BlockStatement:

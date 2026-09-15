@@ -470,6 +470,39 @@ func TestCrossClosure(t *testing.T) {
 	assertBothEqual(t, "fn make_adder x\n    fn adder y\n        x + y\n\nadd5: make_adder 5\nadd5 10", "15")
 }
 
+// TestCrossClosureMutableState locks in eval/VM parity for the make_counter
+// pattern documented in docs/en/05-functions-and-closures.md: a closure's
+// captured variable persists mutation across repeated calls to the same
+// closure instance, and a second, independently created closure instance
+// keeps its own state -- identically in both execution modes.
+func TestCrossClosureMutableState(t *testing.T) {
+	assertBothEqual(t,
+		"fn make_counter start\n"+
+			"    fn counter\n"+
+			"        start: start + 1\n"+
+			"        start\n"+
+			"\n"+
+			"counter: make_counter(0)\n"+
+			"counter2: make_counter(100)\n"+
+			"[counter(), counter(), counter(), counter2(), counter2(), counter()]",
+		"[1, 2, 3, 101, 102, 4]")
+}
+
+// TestCrossNestedFunctionShadowsGlobal locks in the other side of the fix:
+// reassigning a name that only exists at global scope from inside a nested
+// function must shadow it with a fresh local in both execution modes,
+// never mutate the global.
+func TestCrossNestedFunctionShadowsGlobal(t *testing.T) {
+	assertBothEqual(t,
+		"x: 100\n\n"+
+			"fn bump\n"+
+			"    y: x\n"+
+			"    x: y + 1\n"+
+			"    x\n\n"+
+			"[bump(), bump(), x]",
+		"[101, 101, 100]")
+}
+
 func TestCrossTryCatch(t *testing.T) {
 	assertBothEqual(t, "try\n    1 / 0\ncatch e\n    \"caught\"", "caught")
 }

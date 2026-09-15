@@ -8,7 +8,7 @@
 [![GitHub MCP Registry](https://img.shields.io/badge/GitHub_MCP_Registry-Listed-4a90d9.svg)](https://github.com/mcp/MachuraHarry/pipe)
 [![MCP Registry](https://img.shields.io/badge/MCP_Registry-Listed-4a90d9.svg)](https://registry.modelcontextprotocol.io/?q=MachuraHarry)
 
-> **The first language with built-in MCP — server and client. 246 builtins, single ~8 MB binary. Zero dependencies.**
+> **The first language with built-in MCP — server and client. 249 builtins, single ~8 MB binary. Zero dependencies.**
 > **Officially listed in the [official MCP Registry](https://registry.modelcontextprotocol.io/?q=MachuraHarry)** (v1.1.1, active). One-click install from [GitHub MCP Registry](https://github.com/mcp/MachuraHarry/pipe) for Copilot & VS Code.
 
 ## What's New in v1.3
@@ -25,7 +25,7 @@ Pipe v1.3.0 builds on the multi-agent and vision work from v1.2.0:
 - **`ai_tool`: `parallel_safe` flag** — batches of Pipe-defined `fn` tools can now run in parallel too, not just builtins.
 - **`pipe -build`** now supports real multi-file projects, preserving relative subdirectory paths.
 - **Hardened sandbox** — audit rounds 7-11: closed filesystem-write gate gaps, the `wiki_search` egress gap, an `exec_whitelist` shell-injection gap, and a hard-link escape.
-- **246 builtins** — 41 AI + 13 MCP + 192 standard, up from 226 in v0.9.3
+- **249 builtins** — 41 AI + 13 MCP + 195 standard, up from 226 in v0.9.3
 - **23 modules** — MQTT, SQLite, pipe-http, pipe-web, pipe-orm, pipe-cli, and more
 
 ## Quick Install
@@ -426,7 +426,7 @@ write_file "/etc/config"    -- E_SANDBOX blocked
 ```
 Source (.pipe) -> Lexer -> Parser -> AST -> [ Tree-Walker | Compiler + VM ]
                                               |
-                                    Builtins (246 total: 41 AI + 13 MCP + 192 standard)
+                                    Builtins (249 total: 41 AI + 13 MCP + 195 standard)
                                               |
                                 MCP Server <-> MCP Clients (stdio + HTTP)
 ```

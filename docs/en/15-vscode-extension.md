@@ -137,6 +137,7 @@ Triggered when a line begins with one of these keywords (unless `else` follows o
 Meaning: after typing `if`, `while`, `for`, `fn`, `match`, `try`, `catch`, or `defer` (as the first keyword on a line), the next line will be auto-indented.
 
 Example:
+<!-- doctest:skip -->
 ```pipe
 if x > 0
     print "positive"   <- auto-indented
@@ -150,6 +151,7 @@ Triggered when a line begins with `else`, `else if`, or `catch`:
 ```
 
 Example:
+<!-- doctest:skip -->
 ```pipe
 if x > 0
     print "positive"

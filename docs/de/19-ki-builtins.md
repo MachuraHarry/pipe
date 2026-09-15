@@ -208,8 +208,8 @@ extract text schema
 -- schema beschreibt die gewünschten Felder.
 
 -- Beispiel
-text: "Max Mustermann, geboren am 15.03[1985] in Berlin,
-       arbeitet als Softwareentwickler und verdient 75[000] €."
+text: "Max Mustermann, geboren am 15.03.1985 in Berlin,
+       arbeitet als Softwareentwickler und verdient 75.000 €."
 schema: { name: "str", geburtsjahr: "num", stadt: "str", beruf: "str", gehalt: "num" }
 daten: extract text schema
 -- -> Max Mustermann
@@ -536,7 +536,7 @@ bis 1 (identische Richtung). **Kein API-Call nötig** — pure Mathematik.
 
 ```pipe
 sim: cosine_sim vec1 vec2
--- z.B. 0[87] (sehr ähnlich)
+-- z.B. 0.87 (sehr ähnlich)
 print sim
 ```
 
@@ -980,7 +980,7 @@ print "\n=== 5. Daten extrahieren ==="
 lebenslauf: "
   Anna Schmidt, Senior Developerin bei TechCorp in München.
   Sie hat 12 Jahre Erfahrung mit Python, Go und Rust.
-  Ihre E-Mail ist anna@techcorp.de und sie verdient 95[000] € pro Jahr."
+  Ihre E-Mail ist anna@techcorp.de und sie verdient 95.000 € pro Jahr."
 schema: {name: "str", firma: "str", erfahrung_jahre: "num", sprachen: "list", email: "str", gehalt: "num"}
 daten: extract lebenslauf schema
 print "Name:      " ++ daten.name

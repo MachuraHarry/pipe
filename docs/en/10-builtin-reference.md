@@ -99,7 +99,7 @@ print data   -- "hello\n"
 sleep 1000
 print "Done waiting"
 
--- wait 0[5] seconds
+-- wait 0.5 seconds
 sleep 500
 ```
 
@@ -903,8 +903,8 @@ abs 0
 min 10 20
 -- -5
 min -5 0
--- 3[0]
-min 3[14] 3[0]
+-- 3.0
+min 3.14 3.0
 ```
 
 ### `max`
@@ -916,8 +916,8 @@ min 3[14] 3[0]
 max 10 20
 -- 0
 max -5 0
--- 3[14]
-max 3[14] 3[0]
+-- 3.14
+max 3.14 3.0
 ```
 
 ### `pow`
@@ -928,7 +928,7 @@ max 3[14] 3[0]
 -- 1024
 pow 2 10
 -- 1.414... (square root)
-pow 2 0[5]
+pow 2 0.5
 -- 1000
 pow 10 3
 ```
@@ -952,13 +952,13 @@ sqrt 0
 **Returns:** `number`
 ```pipe
 -- 3
-round 3[14]
+round 3.14
 -- 4
-round 3[5]
+round 3.5
 -- 2 (banker's rounding)
-round 2[5]
+round 2.5
 -- 5
-round 4[7]
+round 4.7
 ```
 
 ### `ceil`
@@ -1154,7 +1154,7 @@ tcp_set_read_timeout conn 0
 **Description:** Writes `data` to a TCP connection.
 **Returns:** `nil`
 ```pipe
-tcp_write conn "HTTP/1[1] 200 OK\r\n\r\nHello"
+tcp_write conn "HTTP/1.1 200 OK\r\n\r\nHello"
 ```
 
 ### `tcp_close`
@@ -1285,7 +1285,7 @@ format_time t "Monday, January 2, 2006"
 **Description:** Returns a random floating-point number in the range `[0.0, 1.0)`.
 **Returns:** `number`
 ```pipe
--- e.g. 0[734291]
+-- e.g. 0.734291
 r: random
 print r
 ```
@@ -1550,7 +1550,7 @@ type_of (P)
 -- true
 is_num 42
 -- true
-is_num 3[14]
+is_num 3.14
 -- false
 is_num "42"
 -- false
@@ -1622,8 +1622,8 @@ is_nil false
 ```pipe
 -- "42"
 to_str 42
--- "3[14]"
-to_str 3[14]
+-- "3.14"
+to_str 3.14
 -- "true"
 to_str true
 -- "nil"
@@ -1639,8 +1639,8 @@ to_str ([1, 2, 3])
 ```pipe
 -- 42
 to_num "42"
--- 3[14]
-to_num "3[14]"
+-- 3.14
+to_num "3.14"
 -- nil
 to_num "hello"
 -- nil (only decimal)

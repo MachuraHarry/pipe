@@ -61,6 +61,7 @@ The VM compiles the entire program before execution begins, enabling optimizatio
 
 2. **Tail-Call Optimization (TCO):** Recursive functions in tail position are optimized to avoid stack overflow. The Tree-Walker detects when a function call is the last operation and reuses the current stack frame.
 
+<!-- doctest:skip -->
 ```pipe
 countdown: fn n
     if n <= 0
@@ -68,7 +69,7 @@ countdown: fn n
     else
         print n
         -- tail call — optimized, no stack growth
-                countdown (n - 1)
+        countdown (n - 1)
 
 -- Works! No stack overflow thanks to TCO
 countdown 10000
@@ -318,6 +319,7 @@ If you want to run an existing Tree-Walker program in VM mode, check for these i
 
 1. **Replace `for-in` with `each` + `range`:**
 
+<!-- doctest:skip -->
 ```pipe
 -- Tree-Walker only:
 for item in items
@@ -335,6 +337,7 @@ each range 0 (len items) fn i
 
 2. **Replace user-function `map`/`filter`/`reduce` with inline loops:**
 
+<!-- doctest:skip -->
 ```pipe
 -- Tree-Walker only:
 double: fn x

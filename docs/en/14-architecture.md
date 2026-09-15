@@ -154,6 +154,7 @@ print "a" "b" "c"
 **Vertical Pipeline**: After parsing an expression, if the parser encounters `NEWLINE INDENT ARROW`, it enters vertical pipeline mode, parsing each `>`-prefixed line as a pipeline stage and wrapping them in chained `PipelineExpression` nodes.
 
 **`_` Placeholder**: In pipeline mode, the `_` identifier in a call argument position is replaced with the piped value:
+<!-- doctest:skip -->
 ```pipe
 -- "_" is replaced with the value 5
 5 > add 1 _

@@ -59,7 +59,7 @@ is_prime: fn n
   else
     result: true
     i: 2
-    while i * i <= n and result
+    while i * i <= n && result
       if n % i == 0
         result: false
       i: i + 1
@@ -125,16 +125,16 @@ print is_palindrome "hello"
 
 ```pipe
 c_to_f: fn c
-  c * 9[0] / 5[0] + 32[0]
+  c * 9.0 / 5.0 + 32.0
 
 f_to_c: fn f
-  (f - 32[0]) * 5[0] / 9[0]
+  (f - 32.0) * 5.0 / 9.0
 
-print "0 C = " ++ (to_str c_to_f 0) ++ " F"
+print "0 C = " ++ (to_str (c_to_f 0)) ++ " F"
 -- Output: 0 C = 32 F
-print "100 C = " ++ (to_str c_to_f 100) ++ " F"
+print "100 C = " ++ (to_str (c_to_f 100)) ++ " F"
 -- Output: 100 C = 212 F
-print "32 F = " ++ (to_str f_to_c 32) ++ " C"
+print "32 F = " ++ (to_str (f_to_c 32)) ++ " C"
 -- Output: 32 F = 0 C
 ```
 
@@ -144,21 +144,29 @@ print "32 F = " ++ (to_str f_to_c 32) ++ " C"
 caesar: fn text shift
   result: ""
   for ch in split text ""
-    code: at ch 0
-    result: result ++ shift_char code shift
+    result: result ++ (shift_char ch shift)
   result
 
 shift_char: fn ch shift
-  if ch >= "A" and ch <= "Z"
-    at "ABCDEFGHIJKLMNOPQRSTUVWXYZ" ((at ch 0) + shift) % 26
-  else if ch >= "a" and ch <= "z"
-    at "abcdefghijklmnopqrstuvwxyz" ((at ch 0) + shift) % 26
+  if ch >= "A" && ch <= "Z"
+    idx: find_char "ABCDEFGHIJKLMNOPQRSTUVWXYZ" ch 0
+    at "ABCDEFGHIJKLMNOPQRSTUVWXYZ" (((idx + shift) % 26 + 26) % 26)
+  else if ch >= "a" && ch <= "z"
+    idx: find_char "abcdefghijklmnopqrstuvwxyz" ch 0
+    at "abcdefghijklmnopqrstuvwxyz" (((idx + shift) % 26 + 26) % 26)
   else
     ch
 
-print caesar "Hello World!" 3
+find_char: fn alphabet ch pos
+  if (at alphabet pos) == ch
+    pos
+  else
+    find_char alphabet ch (pos + 1)
+
+print (caesar "Hello World!" 3)
 -- Output: Khoor Zruog!
-print caesar "Khoor Zruog!" -3
+decrypt_shift: -3
+print (caesar "Khoor Zruog!" decrypt_shift)
 -- Output: Hello World!
 ```
 
@@ -193,7 +201,7 @@ text: "The quick brown fox jumps over the lazy dog"
 
 -- Word count
 words: split text " "
-print "Words: " ++ (to_str len words)
+print "Words: " ++ (to_str (len words))
 
 -- Character count (excluding spaces)
 chars: 0
@@ -214,7 +222,7 @@ for ch in split text ""
     if is_nil count
       set freq ch 1
     else
-      set freq ch count + 1
+      set freq ch (count + 1)
 
 print "Letter frequencies: " ++ (to_json freq)
 ```
@@ -358,7 +366,7 @@ remove_dir "old_data"
 
 ```pipe
 print "Starting echo server on port 9999..."
-ln: tcp_listen "127.0.0[1]" 9999
+ln: tcp_listen "127.0.0.1" 9999
 
 for i in range 5
   conn: tcp_accept ln
@@ -376,7 +384,7 @@ print "Server done"
 ```pipe
 sleep 100
 
-conn: tcp_connect "127.0.0[1]" 9999
+conn: tcp_connect "127.0.0.1" 9999
 tcp_write conn "Hello, Server!"
 response: tcp_read conn
 print response
@@ -396,7 +404,7 @@ config: {
     max_connections: 100,
     timeout_ms: 5000
   },
-  allowed_hosts: ["localhost", "127.0.0[1]"]
+  allowed_hosts: ["localhost", "127.0.0.1"]
 
 json_str: to_json config
 write_file "config.json" json_str
@@ -452,7 +460,7 @@ print (mask_phone "1234567890")
 extract_numbers: fn s
   regex_replace "[^0-9]" "" s
 
-print (extract_numbers "Price: $42[99] - Code: 1234")
+print (extract_numbers "Price: $42.99 - Code: 1234")
 -- Output: 42991234
 ```
 
@@ -557,12 +565,12 @@ safe_div: fn a b
 
 result: safe_div 10 2
 if is_ok result
-  print "Result: " ++ (to_str unwrap result)
+  print "Result: " ++ (to_str (unwrap result))
 else
   print "Error: " ++ result.Err
 
 result2: safe_div 10 0
-print unwrap_or result2 "N/A"
+print (unwrap_or result2 "N/A")
 -- Output: N/A
 ```
 
@@ -579,17 +587,23 @@ catch e
 ### Chaining results
 
 ```pipe
+safe_div: fn a b
+  if b == 0
+    Err "division by zero"
+  else
+    Ok (a / b)
+
 parse_and_divide: fn a_str b_str
   a: to_num a_str
   b: to_num b_str
-  if is_num a and is_num b
+  if is_num a && is_num b
     safe_div a b
   else
     Err "invalid numbers"
 
 r: parse_and_divide "42" "7"
 if is_ok r
-  print "Result: " ++ (to_str unwrap r)
+  print "Result: " ++ (to_str (unwrap r))
 ```
 
 ## 21. Closures
@@ -693,9 +707,9 @@ describe: fn c
     | "Yellow" -> "The color of sunshine"
     | _ -> "Unknown color"
 
-print describe "Red"
+print (describe "Red")
 -- Output: The color of passion
-print describe "Blue"
+print (describe "Blue")
 -- Output: The color of the sky
 ```
 
@@ -715,12 +729,20 @@ handle: fn status
     | "Failed" -> "Error occurred"
     | _ -> "Invalid status"
 
-print handle "Pending"
+print (handle "Pending")
 ```
 
 Pipeline with match:
 
 ```pipe
+handle: fn status
+  match status
+    | "Pending" -> "Waiting..."
+    | "Processing" -> "In progress"
+    | "Complete" -> "Done!"
+    | "Failed" -> "Error occurred"
+    | _ -> "Invalid status"
+
 status: "Pending"
 status
   > handle
@@ -812,16 +834,17 @@ Closing data.txt
 
 ```pipe
 timed: fn
+    defer print "Done."
     print "Working..."
     sleep 500
-    print "Operation completed at: " ++ (format_time (now))
+    print "Operation completed"
 
 print "---"
-timed
-  print "Still working..."
-  sleep 500
-
-timed_fn
+timed()
+-- Output: ---
+--         Working...
+--         Operation completed
+--         Done.
 ```
 
 ### Multiple cleanup operations

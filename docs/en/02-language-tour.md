@@ -35,7 +35,7 @@ Variables are defined using the `name: value` syntax:
 ```pipe
 name: "Pipe"
 count: 42
-pi: 3[14159]
+pi: 3.14159
 active: true
 ```
 

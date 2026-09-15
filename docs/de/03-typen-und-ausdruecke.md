@@ -42,7 +42,7 @@ dargestellt. Pipe konvertiert automatisch:
 -- Integer
 ganzzahl: 42
 -- Float
-kommazahl: 3[14]
+kommazahl: 3.14
 -- Integer
 negativ: -100
 ```
@@ -259,7 +259,7 @@ Pipe bietet eingebaute Funktionen zur Typ-Prüfung:
 -- "INTEGER"
 print (type_of 42)
 -- "FLOAT"
-print (type_of 3[14])
+print (type_of 3.14)
 -- "STRING"
 print (type_of "hallo")
 -- "BOOLEAN"
@@ -298,8 +298,8 @@ print (to_str 42)
 print (to_str true)
 -- 42
 print (to_num "42")
--- 3[14]
-print (to_num "3[14]")
+-- 3.14
+print (to_num "3.14")
 -- 1
 print (to_num true)
 -- 0

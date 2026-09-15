@@ -578,8 +578,8 @@ Absolutwert einer Zahl.
 ```pipe
 -- 5
 print (abs (-5))
--- 3[14]
-print (abs 3[14])
+-- 3.14
+print (abs 3.14)
 ```
 
 ### min
@@ -611,7 +611,7 @@ Berechnet `basis` hoch `exponent`. Gibt einen Float zurück.
 -- 1024
 print (pow 2 10)
 -- 1.414... (Quadratwurzel)
-print (pow 2 0[5])
+print (pow 2 0.5)
 ```
 
 ### sqrt
@@ -633,9 +633,9 @@ round n
 Rundet eine Zahl zur nächsten Ganzzahl.
 ```pipe
 -- 4
-print (round 3[7])
+print (round 3.7)
 -- 3
-print (round 3[2])
+print (round 3.2)
 ```
 
 ---
@@ -751,7 +751,7 @@ tcp_listen host port
 ```
 Erstellt einen TCP-Listener auf dem angegebenen Host und Port.
 ```pipe
-ln: tcp_listen "0.0.0[0]" 9999
+ln: tcp_listen "0.0.0.0" 9999
 ```
 
 ### tcp_connect
@@ -760,7 +760,7 @@ tcp_connect host port
 ```
 Verbindet zu einem TCP-Server.
 ```pipe
-conn: tcp_connect "127.0.0[1]" 9999
+conn: tcp_connect "127.0.0.1" 9999
 ```
 
 ### tcp_connect_tls
@@ -1064,7 +1064,7 @@ Gibt den Typ eines Werts als String zurück. Mögliche Werte: `"INTEGER"`, `"FLO
 -- "INTEGER"
 print (type_of 42)
 -- "FLOAT"
-print (type_of 3[14])
+print (type_of 3.14)
 -- "STRING"
 print (type_of "Hallo")
 -- "BOOLEAN"
@@ -1089,7 +1089,7 @@ Prüft, ob ein Wert eine Zahl ist (Integer oder Float).
 -- true
 print (is_num 42)
 -- true
-print (is_num 3[14])
+print (is_num 3.14)
 -- false
 print (is_num "42")
 ```
@@ -1154,8 +1154,8 @@ Konvertiert einen beliebigen Wert in einen String.
 ```pipe
 -- "42"
 print (to_str 42)
--- "3[14]"
-print (to_str 3[14])
+-- "3.14"
+print (to_str 3.14)
 -- "true"
 print (to_str true)
 -- "[1, 2, 3]"
@@ -1171,8 +1171,8 @@ alles andere zu 0.
 ```pipe
 -- 42
 print (to_num "42")
--- 3[14]
-print (to_num "3[14]")
+-- 3.14
+print (to_num "3.14")
 -- 1
 print (to_num true)
 -- 0

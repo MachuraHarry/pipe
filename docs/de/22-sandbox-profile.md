@@ -95,9 +95,7 @@ sandbox_profile "local-only" {fs: "full", network: false, exec: true, ai: false}
 sandbox_profile "prison" {fs: "none", network: false, exec: false, ai: false}
 
 -- KI-Agent mit $0,10-Budget, eingeschränktem Netzwerk und vollständigem Audit
-sandbox_profile "guarded-agent"
-    {fs: "read-only", network: true, network_whitelist: ["api.github.com", "api.openai.com"],
-     exec: false, ai: true, budget: 0.1, max_tool_calls: 10, audit_log: true}
+sandbox_profile "guarded-agent" {fs: "read-only", network: true, network_whitelist: ["api.github.com", "api.openai.com"], exec: false, ai: true, budget: 0.1, max_tool_calls: 10, audit_log: true}
 
 -- Shell-Zugriff, aber nur auf eine Handvoll vertrauenswürdiger Programme
 sandbox_profile "dev-tools" {fs: "read-only", network: false, exec: true, exec_whitelist: ["git", "go", "make"]}

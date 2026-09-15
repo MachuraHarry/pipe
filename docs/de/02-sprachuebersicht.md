@@ -48,7 +48,7 @@ zaehler: zaehler + 1
 
 name: "Pipe"
 version: 1
-pi: 3[14159]
+pi: 3.14159
 aktiv: true
 nichts: nil
 ```

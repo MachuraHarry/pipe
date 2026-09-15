@@ -62,10 +62,10 @@ Literals: 42, -7, 3.14159, 2.5e3, 0xFF
 -- stored as int64
 age: 42
 -- stored as float64
-pi: 3[14159]
+pi: 3.14159
 -- 255, stored as int64
 hex: 0xFF
--- 1500[0], stored as float64
+-- 1500.0, stored as float64
 sci: 1.5e3
 
 -- integer arithmetic produces integers
@@ -73,14 +73,14 @@ sci: 1.5e3
 a: 10 + 5
 
 -- mixing int and float promotes to float
--- 13[5] (float64)
-b: 10 + 3[5]
+-- 13.5 (float64)
+b: 10 + 3.5
 
 -- division of integers that doesn't divide evenly
 -- 2 (int64, truncates toward zero)
 c: 10 / 4
--- 2[5] (float64)
-d: 10 / 4[0]
+-- 2.5 (float64)
+d: 10 / 4.0
 ```
 
 ### str
@@ -434,7 +434,7 @@ type_of (fn x
     x)
 
 -- true
-is_num 3[14]
+is_num 3.14
 -- false
 is_num "three"
 -- true
@@ -466,8 +466,8 @@ to_str ([1, 2, 3])
 
 -- 42 (int64)
 to_num "42"
--- 3[14] (float64)
-to_num "3[14]"
+-- 3.14 (float64)
+to_num "3.14"
 -- nil (parse failure)
 to_num "abc"
 -- 42 (no change)

@@ -268,11 +268,7 @@ rerank query candidates top_k?
 -- accurate final ordering.
 
 -- Example
-docs: [
-    "The Eiffel Tower is in Paris.",
-    "Python is a programming language.",
-    "The Louvre museum is also in Paris.",
-]
+docs: ["The Eiffel Tower is in Paris.", "Python is a programming language.", "The Louvre museum is also in Paris."]
 top: rerank "landmarks in Paris" docs 2
 each top (fn r: print (r.text ++ " (" ++ (to_str r.score) ++ ")"))
 -- -> The Eiffel Tower is in Paris. (9)

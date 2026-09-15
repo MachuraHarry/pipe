@@ -264,7 +264,7 @@ remove_dir "/tmp/mein_projekt"
 -- Server
 fn run_server
     print "Echo-Server auf :9999..."
-    ln: tcp_listen "0.0.0[0]" 9999
+    ln: tcp_listen "0.0.0.0" 9999
     conn: tcp_accept ln
     msg: tcp_read conn
     print "Empfangen: " ++ msg
@@ -275,7 +275,7 @@ fn run_server
 -- Client
 fn run_client message
     print "Verbinde zu :9999..."
-    conn: tcp_connect "127.0.0[1]" 9999
+    conn: tcp_connect "127.0.0.1" 9999
     tcp_write conn message
     reply: tcp_read conn
     print "Antwort: " ++ reply
@@ -317,7 +317,7 @@ print "Tel maskiert: " ++ (mask_phone "Tel: 0123-456789")
 ## 16.17 Datum und Zeit
 
 ```pipe
-ts: now 0
+ts: now
 print "Unix:    " ++ (to_str ts)
 print "Datum:   " ++ (format_time ts "2006-01-02")
 print "Zeit:    " ++ (format_time ts "15:04:05")
@@ -503,6 +503,7 @@ file_delete "/tmp/test.txt"
 --   Inhalt: Test-Daten
 --   Verarbeitung abgeschlossen
 --   Schließe /tmp/test.txt     <- defer!
+```
 
 ### SQLite-Datenbank
 

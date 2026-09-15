@@ -64,11 +64,7 @@ d.d_webhook_text WEBHOOK_URL "Deploy erfolgreich abgeschlossen"
 Sendet ein Rich-Embed per Webhook:
 
 ```pipe
-d.d_webhook_embed WEBHOOK_URL {
-    title: "Build #42",
-    description: "Alle Tests bestanden",
-    color: 65280
-}
+d.d_webhook_embed WEBHOOK_URL {title: "Build #42", description: "Alle Tests bestanden", color: 65280}
 ```
 
 ---
@@ -96,11 +92,7 @@ d.d_send_text TOKEN CHANNEL_ID "Erinnerung: Meeting in 10 Minuten"
 Sendet ein Rich-Embed als Bot:
 
 ```pipe
-d.d_send_embed TOKEN CHANNEL_ID {
-    title: "Server-Status",
-    description: "Alle Systeme betriebsbereit",
-    color: 255
-}
+d.d_send_embed TOKEN CHANNEL_ID {title: "Server-Status", description: "Alle Systeme betriebsbereit", color: 255}
 ```
 
 ### `d_get_messages` token channel_id [limit] → Ok [message] | Err
@@ -186,11 +178,7 @@ import "discord.pipe" as d
 
 webhook: env "DISCORD_WEBHOOK_URL"
 status: env "BUILD_STATUS"
-d.d_webhook_embed webhook {
-    title: "CI Build",
-    description: "Status: " ++ status,
-    color: 65280
-}
+d.d_webhook_embed webhook {title: "CI Build", description: "Status: " ++ status, color: 65280}
 ```
 
 **Bot liest aktuelle Nachrichten und antwortet:**

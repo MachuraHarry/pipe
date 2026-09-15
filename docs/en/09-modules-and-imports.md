@@ -25,7 +25,7 @@ When you import a file without an alias, all exported symbols become available i
 
 ```pipe
 -- File: math.pipe
-export PI: 3[14159]
+export PI: 3.14159
 
 export fn square x
     x * x
@@ -38,7 +38,7 @@ export fn cube x
 -- File: main.pipe
 import "math.pipe"
 
--- 3[14159]
+-- 3.14159
 print PI
 -- 25
 print (square 5)
@@ -55,7 +55,7 @@ To avoid name collisions and keep code organized, use the `as` keyword to create
 import "math.pipe" as math
 import "strings.pipe" as str
 
--- 3[14159]
+-- 3.14159
 print math.PI
 -- 25
 print (math.square 5)

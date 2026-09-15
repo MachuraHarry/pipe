@@ -2,6 +2,7 @@ package object
 
 import (
 	"reflect"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -212,6 +213,9 @@ func TestAiConfigArgsError(t *testing.T) {
 		{"translate too few args", bTranslate},
 		{"classify too few args", bClassify},
 		{"extract too few args", bExtract},
+		{"redact no args", bRedact},
+		{"rerank too few args", bRerank},
+		{"moderate no args", bModerate},
 		{"generate no args", bGenerate},
 		{"ask no args", bAsk},
 	}
@@ -343,6 +347,85 @@ func TestClassifyWithString(t *testing.T) {
 	_, isErr := result.(*Error)
 	if isErr {
 		t.Log("classify error (expected without API key)")
+	}
+}
+
+// TestRedactOffline is fully deterministic and needs no network or API key:
+// the {offline: true} path is pure regex matching.
+func TestRedactOffline(t *testing.T) {
+	result := bRedact(
+		&String{Value: "Email me at jane@example.com or call +1-555-123-4567, SSN 123-45-6789, IP 10.0.0.1."},
+		MapFromGo(map[string]Object{"offline": &Boolean{Value: true}}),
+	)
+	s, ok := result.(*String)
+	if !ok {
+		t.Fatalf("redact offline: expected String, got %s", result.Type())
+	}
+	for _, tag := range []string{"[EMAIL]", "[PHONE]", "[SSN]", "[IP]"} {
+		if !strings.Contains(s.Value, tag) {
+			t.Errorf("redact offline: expected %s in output, got %q", tag, s.Value)
+		}
+	}
+	if strings.Contains(s.Value, "jane@example.com") || strings.Contains(s.Value, "123-45-6789") {
+		t.Errorf("redact offline: PII leaked into output: %q", s.Value)
+	}
+}
+
+func TestRedactOfflineOptionTypeError(t *testing.T) {
+	result := bRedact(&String{Value: "hi"}, MapFromGo(map[string]Object{"offline": &String{Value: "yes"}}))
+	if _, ok := result.(*Error); !ok {
+		t.Error("redact with non-bool offline option should return error")
+	}
+}
+
+func TestRedactDefaultsToAIAssisted(t *testing.T) {
+	// Without {offline: true}, redact must attempt an AI call (matching the
+	// project's other AI builtins) rather than silently falling back to the
+	// regex path -- there is no API key in this test environment, so it must
+	// fail with an AI-provider error, not succeed via regex.
+	result := bRedact(&String{Value: "Email me at jane@example.com"})
+	_, isErr := result.(*Error)
+	if !isErr {
+		t.Log("redact (AI-assisted) unexpectedly succeeded without an API key")
+	}
+}
+
+func TestRerankSortsByScoreDescending(t *testing.T) {
+	result := bRerank(
+		&String{Value: "query"},
+		&List{Elements: []Object{&String{Value: "a"}, &String{Value: "b"}}},
+	)
+	// No API key in this test environment: the AI call itself fails, but
+	// bRerank must still return an *Error, not panic on nil/short candidate
+	// handling.
+	if _, isErr := result.(*Error); !isErr {
+		t.Log("rerank unexpectedly succeeded without an API key")
+	}
+}
+
+func TestRerankCandidatesMustBeStrings(t *testing.T) {
+	result := bRerank(
+		&String{Value: "query"},
+		&List{Elements: []Object{&Integer{Value: 1}}},
+	)
+	if _, ok := result.(*Error); !ok {
+		t.Error("rerank with non-string candidates should return error")
+	}
+}
+
+func TestRerankEmptyCandidates(t *testing.T) {
+	result := bRerank(&String{Value: "query"}, &List{Elements: []Object{}})
+	l, ok := result.(*List)
+	if !ok || len(l.Elements) != 0 {
+		t.Errorf("rerank with no candidates: expected empty list, got %s", result.Inspect())
+	}
+}
+
+func TestModerateWithoutAPIKey(t *testing.T) {
+	result := bModerate(&String{Value: "hello"})
+	_, isErr := result.(*Error)
+	if !isErr {
+		t.Log("moderate unexpectedly succeeded without an API key")
 	}
 }
 

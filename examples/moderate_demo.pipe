@@ -1,0 +1,23 @@
+--! Moderate demo: content-safety classification against a fixed taxonomy.
+--! Uses OpenAI's native /v1/moderations endpoint when that's the active
+--! provider, otherwise a prompted fallback (exercised here). Requires
+--! DEEPSEEK_API_KEY.
+
+ai_provider "deepseek"
+
+print "╔══════════════════════════════════════╗"
+print "║   MODERATE — Inhalte prüfen         ║"
+print "╚══════════════════════════════════════╝"
+print ""
+
+fn check text
+    print ("Text: " ++ text)
+    try
+        result: moderate text
+        print ("  flagged: " ++ (to_str result.flagged))
+    catch e
+        print ("  Fehler: " ++ e)
+    print ""
+
+check "Ich liebe sonnige Tage am Strand."
+check "Ich werde dich finden und dir wehtun."

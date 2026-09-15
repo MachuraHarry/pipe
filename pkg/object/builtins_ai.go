@@ -3,6 +3,7 @@ package object
 import (
 	"encoding/json"
 	"fmt"
+	"regexp"
 	"sort"
 	"strings"
 	"sync"
@@ -524,6 +525,208 @@ func bExtract(args ...Object) Object {
 		return err("extract: invalid JSON response: " + resp.Content)
 	}
 	return convertJSON(parsed)
+}
+
+var (
+	redactEmailRe = regexp.MustCompile(`[\w.+-]+@[\w-]+\.[\w.-]+`)
+	redactSSNRe   = regexp.MustCompile(`\b\d{3}-\d{2}-\d{4}\b`)
+	redactIPv4Re  = regexp.MustCompile(`\b(?:\d{1,3}\.){3}\d{1,3}\b`)
+	redactCardRe  = regexp.MustCompile(`\b(?:\d[ -]?){13,16}\b`)
+	redactPhoneRe = regexp.MustCompile(`\+?\d[\d\-\s()]{7,}\d`)
+)
+
+// redactOffline replaces common STRUCTURED PII patterns with a bracketed
+// category tag using regex matching only, with no network call -- for
+// callers who need the strictest privacy guarantee (redact's options.offline
+// flag). It catches emails, US SSNs, IPv4 addresses, and credit-card- or
+// phone-shaped digit runs; free-text PII like names or physical addresses
+// needs redact's AI-assisted default path instead.
+func redactOffline(text string) string {
+	text = redactEmailRe.ReplaceAllString(text, "[EMAIL]")
+	text = redactSSNRe.ReplaceAllString(text, "[SSN]")
+	text = redactIPv4Re.ReplaceAllString(text, "[IP]")
+	text = redactCardRe.ReplaceAllString(text, "[CARD]")
+	text = redactPhoneRe.ReplaceAllString(text, "[PHONE]")
+	return text
+}
+
+func bRedact(args ...Object) Object {
+	if ActiveProfile.Load().Name != "none" {
+		if canErr := ActiveProfile.Load().CanAI(); canErr != nil {
+			return err(canErr.Error())
+		}
+	}
+	if len(args) < 1 {
+		return err("redact expects at least 1 argument (text)")
+	}
+	t, ok := args[0].(*String)
+	if !ok {
+		return err("redact: first argument must be a string (text)")
+	}
+
+	offline := false
+	if len(args) >= 2 {
+		opts, ok := args[1].(*Map)
+		if !ok {
+			return err("redact: optional second argument must be a block {offline: bool}")
+		}
+		if v, ok := opts.Get("offline"); ok {
+			b, ok := v.(*Boolean)
+			if !ok {
+				return err("redact: offline must be a bool")
+			}
+			offline = b.Value
+		}
+	}
+
+	if offline {
+		return &String{Value: redactOffline(t.Value)}
+	}
+
+	// Default: AI-assisted redaction. Unlike the offline mode, this sends the
+	// text to whichever provider is configured (same as every other AI
+	// builtin) so it can catch free-text PII (names, addresses) that regex
+	// can't -- pass {offline: true} for a zero-network guarantee instead.
+	sysPrompt := "You are a privacy filter. Find personally identifiable information (PII) in the given text -- names, emails, phone numbers, physical addresses, ID numbers, and similar -- and replace each occurrence with a bracketed tag describing its category, e.g. [NAME], [EMAIL], [PHONE], [ADDRESS], [ID]. Preserve everything else exactly. Respond ONLY with the redacted text, no explanation."
+
+	req := ai.ChatRequest{
+		Messages: []ai.Message{
+			{Role: "system", Content: sysPrompt},
+			{Role: "user", Content: t.Value},
+		},
+	}
+
+	resp, respErr := ai.Chat(req)
+	if respErr != nil {
+		return err("redact: " + respErr.Error())
+	}
+	return &String{Value: resp.Content}
+}
+
+type rerankScore struct {
+	Index int     `json:"index"`
+	Score float64 `json:"score"`
+}
+
+func bRerank(args ...Object) Object {
+	if ActiveProfile.Load().Name != "none" {
+		if canErr := ActiveProfile.Load().CanAI(); canErr != nil {
+			return err(canErr.Error())
+		}
+	}
+	if len(args) < 2 {
+		return err("rerank expects at least 2 arguments (query, candidates)")
+	}
+	q, ok := args[0].(*String)
+	if !ok {
+		return err("rerank: first argument must be a string (query)")
+	}
+	candidates, ok := args[1].(*List)
+	if !ok {
+		return err("rerank: second argument must be a list of strings (candidates)")
+	}
+	texts := make([]string, len(candidates.Elements))
+	for i, e := range candidates.Elements {
+		s, ok := e.(*String)
+		if !ok {
+			return err("rerank: candidates must all be strings")
+		}
+		texts[i] = s.Value
+	}
+	topK := len(texts)
+	if len(args) >= 3 {
+		n, ok := ToInt(args[2])
+		if !ok {
+			return err("rerank: third argument (top_k) must be a number")
+		}
+		topK = int(n)
+	}
+	if len(texts) == 0 {
+		return &List{Elements: []Object{}}
+	}
+
+	var candidateList strings.Builder
+	for i, c := range texts {
+		fmt.Fprintf(&candidateList, "%d: %s\n", i, c)
+	}
+
+	// No configured provider (OpenAI/Anthropic/DeepSeek/Ollama/OpenRouter/
+	// OpenCode Zen) exposes a dedicated reranker endpoint, so this is a
+	// prompted batch relevance-scoring call, scored and sorted locally.
+	sysPrompt := "You are a relevance ranker. Score how relevant each numbered candidate is to the query, from 0 (irrelevant) to 10 (perfectly relevant). Respond ONLY with a valid JSON array: [{\"index\": number, \"score\": number}, ...], one entry per candidate. No markdown, no explanation."
+
+	req := ai.ChatRequest{
+		Messages: []ai.Message{
+			{Role: "system", Content: sysPrompt},
+			{Role: "user", Content: "Query: " + q.Value + "\n\nCandidates:\n" + candidateList.String()},
+		},
+	}
+
+	resp, respErr := ai.Chat(req)
+	if respErr != nil {
+		return err("rerank: " + respErr.Error())
+	}
+
+	var scores []rerankScore
+	if jsonErr := json.Unmarshal([]byte(resp.Content), &scores); jsonErr != nil {
+		return err("rerank: invalid JSON response: " + resp.Content)
+	}
+
+	sort.Slice(scores, func(i, j int) bool { return scores[i].Score > scores[j].Score })
+
+	if topK < 0 {
+		topK = 0
+	}
+	if topK > len(scores) {
+		topK = len(scores)
+	}
+
+	elems := make([]Object, 0, topK)
+	for _, s := range scores[:topK] {
+		if s.Index < 0 || s.Index >= len(texts) {
+			continue
+		}
+		elems = append(elems, MapFromGo(map[string]Object{
+			"text":  &String{Value: texts[s.Index]},
+			"score": &Float{Value: s.Score},
+		}))
+	}
+	return &List{Elements: elems}
+}
+
+func bModerate(args ...Object) Object {
+	if ActiveProfile.Load().Name != "none" {
+		if canErr := ActiveProfile.Load().CanAI(); canErr != nil {
+			return err(canErr.Error())
+		}
+	}
+	if len(args) < 1 {
+		return err("moderate expects 1 argument (text)")
+	}
+	t, ok := args[0].(*String)
+	if !ok {
+		return err("moderate: argument must be a string")
+	}
+
+	result, modErr := ai.Moderate(t.Value)
+	if modErr != nil {
+		return err("moderate: " + modErr.Error())
+	}
+
+	categories := make(map[string]Object, len(result.Categories))
+	for k, v := range result.Categories {
+		categories[k] = &Boolean{Value: v}
+	}
+	scores := make(map[string]Object, len(result.Scores))
+	for k, v := range result.Scores {
+		scores[k] = &Float{Value: v}
+	}
+
+	return MapFromGo(map[string]Object{
+		"flagged":    &Boolean{Value: result.Flagged},
+		"categories": MapFromGo(categories),
+		"scores":     MapFromGo(scores),
+	})
 }
 
 func bGenerate(args ...Object) Object {

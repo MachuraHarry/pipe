@@ -1,0 +1,26 @@
+--! Rerank demo: completes the embed -> nearest -> rerank retrieval
+--! pipeline by scoring and re-sorting candidates for a query. Requires
+--! DEEPSEEK_API_KEY.
+
+ai_provider "deepseek"
+
+print "╔══════════════════════════════════════╗"
+print "║   RERANK — Relevanz sortieren       ║"
+print "╚══════════════════════════════════════╝"
+print ""
+
+query: "Sehenswürdigkeiten in Paris"
+docs: ["Der Eiffelturm steht in Paris und ist 330 Meter hoch.", "Python ist eine beliebte Programmiersprache.", "Der Louvre in Paris beherbergt die Mona Lisa.", "Katzen schlafen im Schnitt 16 Stunden am Tag."]
+
+print ("Anfrage: " ++ query)
+print ""
+print "► Rerank (Top 2 von 4 Kandidaten):"
+
+fn show r
+    print ("  " ++ (to_str r.score) ++ "  " ++ r.text)
+
+try
+    top: rerank query docs 2
+    each top show
+catch e
+    print ("Fehler: " ++ e)

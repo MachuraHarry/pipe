@@ -131,6 +131,9 @@ training — keep sensitive data away from it.
 | `translate` | Translate text | `translate text target_language` |
 | `classify` | Classify text | `classify text categories` |
 | `extract` | Extract data | `extract text schema` |
+| `redact` | Redact PII (AI-assisted by default, `{offline: true}` for regex-only) | `redact text {offline}?` |
+| `rerank` | Score and sort candidates by relevance to a query | `rerank query candidates top_k?` |
+| `moderate` | Content-safety classification (fixed taxonomy) | `moderate text` |
 | `generate` | Generate free text | `generate prompt` |
 | `ask` | Answer question | `ask question` |
 | `ai_cost` | Cost metrics | `ai_cost` |
@@ -219,6 +222,83 @@ print data.city
 print data.job
 -- -> 95000
 print data.salary
+```
+
+### redact
+
+```pipe
+-- Signature
+redact text options?
+
+-- Description
+-- Finds and masks personally identifiable information (PII) in text.
+-- By default this is AI-ASSISTED: the text is sent to the configured
+-- provider (same as every other AI builtin), which can catch free-text PII
+-- like names and physical addresses that regex cannot. Pass
+-- {offline: true} for a strictly offline, zero-network mode instead: it
+-- catches structured PII only (emails, phone numbers, IPv4 addresses, US
+-- SSNs, credit-card-shaped digit runs) via regex matching, with the text
+-- never leaving the machine.
+
+-- Example: AI-assisted (default)
+text: "Contact Jane Doe at jane.doe@example.com, 123 Main St, Springfield."
+print (redact text)
+-- -> Contact [NAME] at [EMAIL], [ADDRESS].
+
+-- Example: offline (regex-only, no network call)
+text: "Email me at jane@example.com or call +1-555-123-4567."
+print (redact text {offline: true})
+-- -> Email me at [EMAIL] or call [PHONE].
+```
+
+> **Privacy note**: the offline mode only recognizes structured patterns (email, phone, IPv4, SSN, credit-card-shaped digits) — it will NOT catch names, physical addresses, or other free-text PII. Use the AI-assisted default (or a purpose-built PII tool) when that matters, understanding that the text is then sent to whichever provider is configured.
+
+### rerank
+
+```pipe
+-- Signature
+rerank query candidates top_k?
+
+-- Description
+-- Scores each candidate's relevance to the query (0-10) and returns them
+-- sorted by score descending, as a list of {text, score} maps. top_k
+-- (default: all candidates) limits how many are returned. Completes the
+-- embed -> nearest -> rerank retrieval pipeline: use nearest for a fast
+-- first-pass vector search, then rerank its top results for a more
+-- accurate final ordering.
+
+-- Example
+docs: [
+    "The Eiffel Tower is in Paris.",
+    "Python is a programming language.",
+    "The Louvre museum is also in Paris.",
+]
+top: rerank "landmarks in Paris" docs 2
+each top (fn r: print (r.text ++ " (" ++ (to_str r.score) ++ ")"))
+-- -> The Eiffel Tower is in Paris. (9)
+-- -> The Louvre museum is also in Paris. (8)
+```
+
+### moderate
+
+```pipe
+-- Signature
+moderate text
+
+-- Description
+-- Classifies text against a fixed content-safety taxonomy (violence,
+-- self-harm, hate, sexual, harassment), distinct from classify's
+-- user-defined categories. Returns {flagged: bool, categories: {...},
+-- scores: {...}}. When the active provider is OpenAI, this calls its
+-- dedicated, free /v1/moderations endpoint directly (OpenAI's own
+-- taxonomy) instead of a prompted chat call — cheaper, faster, and more
+-- reliable. Every other provider falls back to a prompted-JSON chat call
+-- against the general taxonomy above.
+
+-- Example
+result: moderate "I love sunny days at the beach."
+print result.flagged
+-- -> false
 ```
 
 ### generate

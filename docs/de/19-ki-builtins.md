@@ -131,6 +131,9 @@ verwendet werden — sensible Daten gehören dort nicht hinein.
 | `translate` | Text übersetzen | `translate text zielsprache` |
 | `classify` | Text klassifizieren | `classify text kategorien` |
 | `extract` | Daten extrahieren | `extract text schema` |
+| `redact` | PII schwärzen (standardmäßig KI-gestützt, `{offline: true}` für reinen Regex-Modus) | `redact text {offline}?` |
+| `rerank` | Kandidaten nach Relevanz zu einer Anfrage bewerten und sortieren | `rerank query candidates top_k?` |
+| `moderate` | Inhalts-Sicherheitsklassifikation (feste Taxonomie) | `moderate text` |
 | `generate` | Freitext generieren | `generate prompt` |
 | `ask` | Frage beantworten | `ask frage` |
 | `ai_cost` | Kosten-Metriken | `ai_cost` |
@@ -219,6 +222,80 @@ print daten.stadt
 print daten.beruf
 -- -> 75000
 print daten.gehalt
+```
+
+### redact
+
+```pipe
+-- Signatur
+redact text options?
+
+-- Beschreibung
+-- Findet und schwärzt personenbezogene Daten (PII) in Text.
+-- Standardmäßig KI-GESTÜTZT: der Text wird an den konfigurierten Provider
+-- gesendet (wie bei jedem anderen KI-Builtin), der auch Freitext-PII wie
+-- Namen und Adressen erkennen kann, was Regex nicht kann. Mit
+-- {offline: true} steht stattdessen ein rein lokaler Modus ohne
+-- Netzwerkzugriff zur Verfügung: er erkennt nur strukturierte PII
+-- (E-Mails, Telefonnummern, IPv4-Adressen, Sozialversicherungsnummern,
+-- kreditkartenähnliche Ziffernfolgen) per Regex — der Text verlässt dabei
+-- nie die Maschine.
+
+-- Beispiel: KI-gestützt (Standard)
+text: "Kontaktiere Jana Bauer unter jana.bauer@example.com, Musterstraße 1, Berlin."
+print (redact text)
+-- -> Kontaktiere [NAME] unter [EMAIL], [ADDRESS].
+
+-- Beispiel: offline (nur Regex, kein Netzwerkzugriff)
+text: "Schreib mir an jana@example.com oder ruf +49 170 1234567 an."
+print (redact text {offline: true})
+-- -> Schreib mir an [EMAIL] oder ruf [PHONE] an.
+```
+
+> **Datenschutz-Hinweis**: der Offline-Modus erkennt nur strukturierte Muster (E-Mail, Telefon, IPv4, SSN, kreditkartenähnliche Ziffern) — Namen, Adressen oder andere Freitext-PII werden NICHT erkannt. Nutze den KI-gestützten Standardmodus (oder ein dediziertes PII-Tool), wenn das wichtig ist — dabei wird der Text an den konfigurierten Provider gesendet.
+
+### rerank
+
+```pipe
+-- Signatur
+rerank query candidates top_k?
+
+-- Beschreibung
+-- Bewertet die Relevanz jedes Kandidaten zur Anfrage (0-10) und gibt sie
+-- absteigend sortiert als Liste von {text, score}-Maps zurück. top_k
+-- (Standard: alle Kandidaten) begrenzt die Anzahl der Ergebnisse.
+-- Vervollständigt die Retrieval-Pipeline embed -> nearest -> rerank: nutze
+-- nearest für eine schnelle Vektorsuche im ersten Durchgang, dann rerank
+-- für eine genauere finale Sortierung der Top-Ergebnisse.
+
+-- Beispiel
+docs: ["Der Eiffelturm steht in Paris.", "Python ist eine Programmiersprache.", "Der Louvre befindet sich ebenfalls in Paris."]
+top: rerank "Sehenswürdigkeiten in Paris" docs 2
+each top (fn r: print (r.text ++ " (" ++ (to_str r.score) ++ ")"))
+-- -> Der Eiffelturm steht in Paris. (9)
+-- -> Der Louvre befindet sich ebenfalls in Paris. (8)
+```
+
+### moderate
+
+```pipe
+-- Signatur
+moderate text
+
+-- Beschreibung
+-- Klassifiziert Text nach einer festen Sicherheits-Taxonomie (Gewalt,
+-- Selbstverletzung, Hass, sexuelle Inhalte, Belästigung) — im Unterschied
+-- zu classify's frei definierbaren Kategorien. Gibt {flagged: bool,
+-- categories: {...}, scores: {...}} zurück. Wenn der aktive Provider
+-- OpenAI ist, wird dessen dedizierter, kostenloser /v1/moderations-Endpunkt
+-- direkt aufgerufen (OpenAIs eigene Taxonomie) statt eines Chat-Prompts —
+-- günstiger, schneller und zuverlässiger. Jeder andere Provider nutzt
+-- einen Prompt-basierten Fallback gegen die obige allgemeine Taxonomie.
+
+-- Beispiel
+ergebnis: moderate "Ich liebe sonnige Tage am Strand."
+print ergebnis.flagged
+-- -> false
 ```
 
 ### generate

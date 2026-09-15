@@ -1,0 +1,26 @@
+--! Redact demo: shows both redaction modes. offline (regex, zero network)
+--! catches structured PII; the AI-assisted default also catches free-text
+--! PII like names. Requires DEEPSEEK_API_KEY for the AI-assisted part.
+
+ai_provider "deepseek"
+
+print "╔══════════════════════════════════════╗"
+print "║   REDACT — PII schwärzen            ║"
+print "╚══════════════════════════════════════╝"
+print ""
+
+text: "Bitte kontaktiere Jana Bauer unter jana.bauer@example.com oder +49 170 1234567. Ihre Kundennummer (SSN) ist 123-45-6789."
+
+print "Original:"
+print text
+print ""
+
+print "► Offline (Regex, kein Netzwerk):"
+print (redact text {offline: true})
+print ""
+
+print "► KI-gestützt (Standard, erkennt auch Namen):"
+try
+    print (redact text)
+catch e
+    print ("Fehler: " ++ e)

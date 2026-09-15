@@ -826,7 +826,31 @@ func (vm *VM) binaryOp(op compiler.Opcode, left, right object.Object) object.Obj
 	case left.Type() == object.FLOAT && right.Type() == object.INTEGER:
 		return vm.binaryFloatOp(op, left.(*object.Float), &object.Float{Value: float64(right.(*object.Integer).Value)})
 	default:
-		return vm.newError("E002", "type mismatch: cannot apply operator between %s and %s", left.Type(), right.Type())
+		return vm.newError("E002", "type mismatch: cannot apply '%s' between %s and %s", opSymbol(op), left.Type(), right.Type())
+	}
+}
+
+// opSymbol maps an arithmetic opcode back to its source-level operator
+// symbol, matching the tree-walker's E002 message (which quotes the
+// operator straight from the AST node) -- binaryOp's default case used to
+// say only "cannot apply operator between X and Y", omitting which
+// operator, unlike the tree-walker's "cannot apply '+' between X and Y".
+func opSymbol(op compiler.Opcode) string {
+	switch op {
+	case compiler.OpAdd:
+		return "+"
+	case compiler.OpSub:
+		return "-"
+	case compiler.OpMul:
+		return "*"
+	case compiler.OpDiv:
+		return "/"
+	case compiler.OpMod:
+		return "%"
+	case compiler.OpPow:
+		return "**"
+	default:
+		return op.String()
 	}
 }
 

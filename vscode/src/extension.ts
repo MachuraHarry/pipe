@@ -6,10 +6,13 @@ import {
 	TransportKind,
 } from 'vscode-languageclient/node';
 import { isFile, resolveServerPath, which } from './serverPath';
+import { registerCommands } from './commands';
 
 let client: LanguageClient | undefined;
 
 export function activate(context: vscode.ExtensionContext): void {
+	registerCommands(context);
+
 	const config = vscode.workspace.getConfiguration('pipe');
 	if (config.get<boolean>('lsp.enabled', true) === false) {
 		return;

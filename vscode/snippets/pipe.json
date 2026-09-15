@@ -1,0 +1,103 @@
+{
+    "Function": {
+        "prefix": "fn",
+        "body": [
+            "fn ${1:name} ${2:arg}",
+            "    ${0:pass}"
+        ],
+        "description": "Named function"
+    },
+    "Anonymous function (assigned)": {
+        "prefix": "fnlit",
+        "body": [
+            "${1:name}: fn ${2:arg}",
+            "    ${0:pass}"
+        ],
+        "description": "Anonymous function assigned to a variable"
+    },
+    "If": {
+        "prefix": "if",
+        "body": [
+            "if ${1:condition}",
+            "    ${0:pass}"
+        ],
+        "description": "If statement"
+    },
+    "If/else": {
+        "prefix": "ifelse",
+        "body": [
+            "if ${1:condition}",
+            "    ${2:pass}",
+            "else",
+            "    ${0:pass}"
+        ],
+        "description": "If/else statement"
+    },
+    "Match": {
+        "prefix": "match",
+        "body": [
+            "match ${1:expr}",
+            "    | ${2:pattern} -> ${3:result}",
+            "    | _ -> ${0:default}"
+        ],
+        "description": "Match expression with one pattern arm and a wildcard"
+    },
+    "For-in": {
+        "prefix": "forin",
+        "body": [
+            "for ${1:item} in ${2:collection}",
+            "    ${0:pass}"
+        ],
+        "description": "For-in loop"
+    },
+    "While": {
+        "prefix": "while",
+        "body": [
+            "while ${1:condition}",
+            "    ${0:pass}"
+        ],
+        "description": "While loop"
+    },
+    "Try/catch": {
+        "prefix": "trycatch",
+        "body": [
+            "try",
+            "    ${1:pass}",
+            "catch ${2:e}",
+            "    ${0:pass}"
+        ],
+        "description": "Try/catch error handling"
+    },
+    "AI tool registration": {
+        "prefix": "aitool",
+        "body": [
+            "fn ${1:tool_fn} ${2:arg}",
+            "    ${0:pass}",
+            "",
+            "ai_tool \"${3:tool_name}\" \"${4:description}\" {${2:arg}: \"${5:What this argument is}\"} ${1:tool_fn}"
+        ],
+        "description": "Register a function as an LLM-callable tool"
+    },
+    "MCP stdio server": {
+        "prefix": "mcpserver",
+        "body": [
+            "mcp_server \"${1:Server Name}\" \"${2:1.0.0}\"",
+            "mcp_serve_stdio"
+        ],
+        "description": "Minimal stdio MCP server bootstrap"
+    },
+    "Swarm agent": {
+        "prefix": "swarmagent",
+        "body": [
+            "swarm_agent \"${1:agent_name}\" {system: \"${2:System prompt for this agent.}\", tools: [${3:\"tool_name\"}], handoff: [${4:\"other_agent\"}]}"
+        ],
+        "description": "Register a swarm agent"
+    },
+    "Sandbox profile": {
+        "prefix": "sandboxprofile",
+        "body": [
+            "sandbox_profile \"${1:profile_name}\" {fs: \"${2|none,read-only,temp-only,full|}\", network: ${3:false}, exec: ${4:false}, ai: ${5:true}, budget: ${6:1.0}, max_tool_calls: ${7:20}, audit_log: ${8:true}}"
+        ],
+        "description": "Declarative sandbox profile block"
+    }
+}

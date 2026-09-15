@@ -59,6 +59,12 @@
         "path": "./syntaxes/pipe.tmLanguage.json"
       }
     ],
+    "snippets": [
+      {
+        "language": "pipe",
+        "path": "./snippets/pipe.json"
+      }
+    ],
     "configuration": {
       "title": "Pipe",
       "properties": {
@@ -71,9 +77,39 @@
           "type": "boolean",
           "default": true,
           "description": "Whether to start the Pipe language server."
+        },
+        "pipe.cliPath": {
+          "type": "string",
+          "default": "",
+          "description": "Path to the pipe CLI binary (used by \"Run File\"/\"Open REPL\"). Leave empty to auto-detect (<workspace>/bin/pipe, then PATH)."
         }
       }
-    }
+    },
+    "commands": [
+      {
+        "command": "pipe.runFile",
+        "title": "Pipe: Run File",
+        "category": "Pipe"
+      },
+      {
+        "command": "pipe.runFileVM",
+        "title": "Pipe: Run File (VM Mode)",
+        "category": "Pipe"
+      },
+      {
+        "command": "pipe.openRepl",
+        "title": "Pipe: Open REPL",
+        "category": "Pipe"
+      }
+    ],
+    "keybindings": [
+      {
+        "command": "pipe.runFile",
+        "key": "ctrl+alt+r",
+        "mac": "cmd+alt+r",
+        "when": "editorLangId == pipe"
+      }
+    ]
   },
   "scripts": {
     "build:server": "go build -o bin/pipe-lsp ../cmd/pipe-lsp",

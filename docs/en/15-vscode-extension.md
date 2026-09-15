@@ -7,7 +7,7 @@ The Pipe VSCode extension provides syntax highlighting, auto-completion, auto-in
 ### Option 1: Copy to Extensions Directory
 
 ```sh
-cp -r vscode/ ~/.vscode/extensions/pipe-lang.pipe-syntax-0.1.0/
+cp -r vscode/ ~/.vscode/extensions/pipe-lang.pipe-syntax-1.3.0/
 ```
 
 Then restart VSCode or reload the window (`Ctrl+Shift+P` → "Developer: Reload Window").
@@ -20,12 +20,12 @@ Then restart VSCode or reload the window (`Ctrl+Shift+P` → "Developer: Reload 
    make vsix
    ```
 
-2. Press `Ctrl+Shift+P` and run "Extensions: Install from VSIX...", then select `vscode/pipe-syntax-1.0.0.vsix`.
+2. Press `Ctrl+Shift+P` and run "Extensions: Install from VSIX...", then select `vscode/pipe-syntax-1.3.0.vsix`.
 
 ### Option 3: Symlink (for development)
 
 ```sh
-ln -s $(pwd)/vscode ~/.vscode/extensions/pipe-lang.pipe-syntax-0.1.0/
+ln -s $(pwd)/vscode ~/.vscode/extensions/pipe-lang.pipe-syntax-1.3.0/
 ```
 
 This keeps the extension in sync with the repository during development.
@@ -37,7 +37,7 @@ This keeps the extension in sync with the repository during development.
 | **Name** | `pipe-syntax` |
 | **Display Name** | Pipe Language Support |
 | **Publisher** | `pipe-lang` |
-| **Version** | `0.1.0` |
+| **Version** | `1.3.0` |
 | **Engine** | VSCode `>=1.85.0` |
 | **Language ID** | `pipe` |
 | **File Extension** | `.pipe` |
@@ -193,7 +193,7 @@ This means double-clicking on an identifier like `my_var123` selects the entire 
 
 ## IntelliSense (Language Server)
 
-Since version 0.1.0 the extension ships an LSP client that connects to the
+The extension ships an LSP client that connects to the
 `pipe-lsp` server, providing full IntelliSense for `.pipe` files:
 
 - **Auto-completion** — user functions, variables, parameters, all builtins, keywords and snippets
@@ -203,6 +203,34 @@ Since version 0.1.0 the extension ships an LSP client that connects to the
 - **Diagnostics** — parse errors, undefined variables (E001), unused variables (E007)
 - **Semantic highlighting** — tokens classified on top of the TextMate grammar
 - **Format document** — reformats the whole file (`pipe formatter`)
+
+### Format on Save
+
+`pipe-lsp` implements LSP document formatting, so **Format Document** (`Shift+Alt+F`) works without any extra setup. To run it automatically on save, add a language-scoped VS Code setting (this is a built-in editor setting, not a Pipe-specific one):
+
+```json
+{
+  "[pipe]": {
+    "editor.formatOnSave": true
+  }
+}
+```
+
+## Snippets
+
+The extension contributes tab-completable snippets for common Pipe patterns: `fn`, `fnlit`, `if`, `ifelse`, `match`, `forin`, `while`, `trycatch`, `aitool` (register an `ai_tool`), `mcpserver` (`mcp_server` + `mcp_serve_stdio`), `swarmagent` (`swarm_agent` registration), and `sandboxprofile` (a `sandbox_profile` block). Type the prefix in a `.pipe` file and accept the suggestion, or press `Tab` to expand.
+
+## Commands
+
+Available from the Command Palette (`Ctrl+Shift+P` / `Cmd+Shift+P`), category "Pipe":
+
+| Command | Default Keybinding | Description |
+|---------|---------------------|--------------|
+| `Pipe: Run File` | `Ctrl+Alt+R` / `Cmd+Alt+R` | Saves and runs the active `.pipe` file with the tree-walker, in an integrated terminal |
+| `Pipe: Run File (VM Mode)` | — | Same, but with `pipe -vm` (bytecode VM) |
+| `Pipe: Open REPL` | — | Opens an integrated terminal running the `pipe` REPL |
+
+These resolve the `pipe` CLI binary independently of the `pipe-lsp` server — see `pipe.cliPath` below.
 
 ### Building the Server
 
@@ -219,12 +247,15 @@ The extension looks for the binary in this order:
 3. `<workspace>/bin/pipe-lsp`
 4. `pipe-lsp` on `PATH`
 
+`Pipe: Run File`/`Pipe: Open REPL` resolve the `pipe` CLI binary separately (it isn't bundled with the extension): the `pipe.cliPath` setting, then `<workspace>/bin/pipe`, then `pipe` on `PATH`.
+
 ### Configuration
 
 | Setting | Default | Description |
 |---------|---------|-------------|
 | `pipe.lspPath` | `""` | Absolute path to the `pipe-lsp` binary |
 | `pipe.lsp.enabled` | `true` | Set to `false` to disable the language server |
+| `pipe.cliPath` | `""` | Absolute path to the `pipe` CLI binary, used by `Pipe: Run File`/`Pipe: Open REPL`. Empty = auto-detect (`<workspace>/bin/pipe`, then `PATH`) |
 
 ## Extension File Structure
 
@@ -234,9 +265,18 @@ vscode/
 │   ├── pipe-icon.png              # Extension and language icon
 │   └── pipe-icon.svg              # Source vector icon
 ├── src/
-│   └── extension.ts               # LSP client bootstrap
+│   ├── extension.ts                # Activation entrypoint: LSP client + command registration
+│   ├── serverPath.ts               # pipe-lsp binary resolution
+│   ├── cliPath.ts                  # pipe CLI binary resolution (Run File/Open REPL)
+│   └── commands.ts                 # Run File / Run File (VM) / Open REPL commands
+├── snippets/
+│   └── pipe.json                   # Tab-completable snippets
 ├── syntaxes/
 │   └── pipe.tmLanguage.json       # TextMate grammar for syntax highlighting
+├── test/
+│   ├── serverPath.test.ts          # vitest: pipe-lsp resolution logic
+│   ├── cliPath.test.ts             # vitest: pipe CLI resolution logic
+│   └── snippets.test.ts            # vitest: snippet JSON shape
 ├── language-configuration.json     # Bracket pairs, auto-indent, folding rules
 ├── package.json                    # Extension manifest
 ├── tsconfig.json                   # TypeScript compiler config
@@ -244,7 +284,7 @@ vscode/
 ├── README.md                       # Marketplace listing
 ├── LICENSE                         # MIT license
 ├── test-syntax.pipe                # Syntax test file (source)
-└── pipe-syntax-1.0.0.vsix          # Packaged extension (built with `make vsix`)
+└── pipe-syntax-1.3.0.vsix          # Packaged extension (built with `make vsix`)
 ```
 
 ## Building the Extension

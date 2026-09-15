@@ -9,17 +9,17 @@ Syntax-Highlighting und Sprachunterstützung.
 
 ```bash
 # In das VSCode-Erweiterungsverzeichnis kopieren
-cp -r vscode/ ~/.vscode/extensions/pipe-lang.pipe-syntax-0.1.0/
+cp -r vscode/ ~/.vscode/extensions/pipe-lang.pipe-syntax-1.3.0/
 ```
 
 ### Installation als VSIX
 
 ```bash
-make vsix   # paketiert vscode/pipe-syntax-1.0.0.vsix
+make vsix   # paketiert vscode/pipe-syntax-1.3.0.vsix
 ```
 
 Danach in VSCode `Ctrl+Shift+P` → "Extensions: Install from VSIX..." und die
-Datei `vscode/pipe-syntax-1.0.0.vsix` auswählen.
+Datei `vscode/pipe-syntax-1.3.0.vsix` auswählen.
 
 ### Entwicklung
 
@@ -33,7 +33,7 @@ In VSCode:
 |------------|------|
 | Name | `pipe-syntax` |
 | Publisher | `pipe-lang` |
-| Version | 0.1.0 |
+| Version | 1.3.0 |
 | VSCode Engine | ^1.85.0 |
 | Language ID | `pipe` |
 | Dateiendung | `.pipe` |
@@ -96,7 +96,7 @@ Erkennt Pipe-Identifier: `[A-Za-z_][A-Za-z0-9_]*`
 
 ## 15.3 IntelliSense (Language Server)
 
-Seit Version 0.1.0 bringt die Extension einen LSP-Client mit, der sich mit dem
+Die Extension bringt einen LSP-Client mit, der sich mit dem
 `pipe-lsp`-Server verbindet und volle IntelliSense für `.pipe`-Dateien liefert:
 
 - **Auto-Vervollständigung** — eigene Funktionen, Variablen, Parameter, alle Builtins, Keywords und Snippets
@@ -106,6 +106,34 @@ Seit Version 0.1.0 bringt die Extension einen LSP-Client mit, der sich mit dem
 - **Diagnosen** — Parse-Fehler, undefinierte Variablen (E001), ungenutzte Variablen (E007)
 - **Semantische Hervorhebung** — Tokens zusätzlich zur TextMate-Grammatik klassifiziert
 - **Dokument formatieren** — formatiert die gesamte Datei (`pipe formatter`)
+
+### Bei jedem Speichern formatieren
+
+`pipe-lsp` implementiert LSP-Dokumentformatierung, daher funktioniert **Format Document** (`Shift+Alt+F`) ohne weitere Einrichtung. Um das automatisch bei jedem Speichern auszulösen, eine sprachspezifische VSCode-Einstellung ergänzen (eine eingebaute Editor-Einstellung, keine Pipe-spezifische):
+
+```json
+{
+  "[pipe]": {
+    "editor.formatOnSave": true
+  }
+}
+```
+
+## 15.3a Snippets
+
+Die Extension liefert Tab-vervollständigbare Snippets für häufige Pipe-Muster: `fn`, `fnlit`, `if`, `ifelse`, `match`, `forin`, `while`, `trycatch`, `aitool` (registriert ein `ai_tool`), `mcpserver` (`mcp_server` + `mcp_serve_stdio`), `swarmagent` (`swarm_agent`-Registrierung) und `sandboxprofile` (ein `sandbox_profile`-Block). Präfix in einer `.pipe`-Datei eingeben und den Vorschlag annehmen, oder mit `Tab` expandieren.
+
+## 15.3b Befehle
+
+Über die Befehlspalette (`Ctrl+Shift+P` / `Cmd+Shift+P`), Kategorie "Pipe":
+
+| Befehl | Standard-Tastenkürzel | Beschreibung |
+|--------|------------------------|--------------|
+| `Pipe: Run File` | `Ctrl+Alt+R` / `Cmd+Alt+R` | Speichert und führt die aktive `.pipe`-Datei mit dem Tree-Walker in einem integrierten Terminal aus |
+| `Pipe: Run File (VM Mode)` | — | Wie oben, aber mit `pipe -vm` (Bytecode-VM) |
+| `Pipe: Open REPL` | — | Öffnet ein integriertes Terminal mit der `pipe`-REPL |
+
+Diese Befehle lösen das `pipe`-CLI-Binary unabhängig vom `pipe-lsp`-Server auf — siehe `pipe.cliPath` unten.
 
 ### Server bauen
 
@@ -122,12 +150,15 @@ Die Extension sucht das Binary in dieser Reihenfolge:
 3. `<workspace>/bin/pipe-lsp`
 4. `pipe-lsp` auf `PATH`
 
+`Pipe: Run File`/`Pipe: Open REPL` lösen das `pipe`-CLI-Binary separat auf (es wird nicht mit der Extension ausgeliefert): die Einstellung `pipe.cliPath`, dann `<workspace>/bin/pipe`, dann `pipe` auf `PATH`.
+
 ### Konfiguration
 
 | Einstellung | Standard | Beschreibung |
 |-------------|----------|--------------|
 | `pipe.lspPath` | `""` | Absoluter Pfad zum `pipe-lsp`-Binary |
 | `pipe.lsp.enabled` | `true` | Auf `false` setzen, um den Language Server zu deaktivieren |
+| `pipe.cliPath` | `""` | Absoluter Pfad zum `pipe`-CLI-Binary, genutzt von `Pipe: Run File`/`Pipe: Open REPL`. Leer = automatische Erkennung (`<workspace>/bin/pipe`, dann `PATH`) |
 
 ## 15.4 Dateien der Extension
 
@@ -136,9 +167,18 @@ vscode/
 ├── package.json                     -- Extension-Manifest
 ├── language-configuration.json      -- Sprach-Konfiguration
 ├── src/
-│   └── extension.ts                 -- LSP-Client-Bootstrap
+│   ├── extension.ts                 -- Aktivierung: LSP-Client + Befehlsregistrierung
+│   ├── serverPath.ts                -- Auflösung des pipe-lsp-Binaries
+│   ├── cliPath.ts                   -- Auflösung des pipe-CLI-Binaries (Run File/Open REPL)
+│   └── commands.ts                  -- Run File / Run File (VM) / Open REPL
+├── snippets/
+│   └── pipe.json                    -- Tab-vervollständigbare Snippets
 ├── syntaxes/
 │   └── pipe.tmLanguage.json        -- TextMate-Grammatik
+├── test/
+│   ├── serverPath.test.ts           -- vitest: pipe-lsp-Auflösung
+│   ├── cliPath.test.ts              -- vitest: pipe-CLI-Auflösung
+│   └── snippets.test.ts             -- vitest: Snippet-JSON-Form
 ├── icons/
 │   ├── pipe-icon.png               -- Extension- und Sprach-Icon
 │   └── pipe-icon.svg               -- SVG-Quelle
@@ -154,6 +194,6 @@ vscode/
 Die Extension wurde mit einer `test-syntax.pipe` Datei getestet, die alle
 Sprachfeatures abdeckt.
 
-Pipe besitzt seit Version 0.1.0 eine LSP-Implementierung (`cmd/pipe-lsp`,
+Pipe besitzt eine LSP-Implementierung (`cmd/pipe-lsp`,
 reine Standardbibliothek, ohne externe Abhängigkeiten). Die Extension verbindet
 sich automatisch damit; siehe [15.3 IntelliSense (Language Server)](#153-intellisense-language-server).

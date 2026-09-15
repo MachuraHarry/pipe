@@ -503,6 +503,40 @@ func TestCrossNestedFunctionShadowsGlobal(t *testing.T) {
 		"[101, 101, 100]")
 }
 
+// TestCrossSelfReferentialShadowRead is the direct form of the shadow test
+// above (`x: x + 1` reading and shadowing the same name in one statement,
+// without routing through an intermediate `y`) -- this used to crash the
+// VM outright (it read a not-yet-initialized local slot as its own RHS
+// operand, producing a stack-unbalancing type-mismatch error the
+// tree-walker never hit) before compileVarStatement started compiling a
+// non-function RHS before defining the fresh local.
+func TestCrossSelfReferentialShadowRead(t *testing.T) {
+	assertBothEqual(t,
+		"x: 100\n\n"+
+			"fn bump\n"+
+			"    x: x + 1\n"+
+			"    x\n\n"+
+			"[bump(), bump(), x]",
+		"[101, 101, 100]")
+}
+
+// TestCrossLocalSelfRecursiveVarLambda locks in eval/VM parity for a
+// self-recursive function assigned via `name: fn ...` and nested inside
+// another function -- this crashed the VM (nil self-reference captured
+// before the enclosing OpSetLocal ran) before OpCurrentClosure.
+func TestCrossLocalSelfRecursiveVarLambda(t *testing.T) {
+	assertBothEqual(t,
+		"fn outer\n"+
+			"    fact: fn n\n"+
+			"        if n <= 1\n"+
+			"            1\n"+
+			"        else\n"+
+			"            n * fact(n - 1)\n"+
+			"    fact 5\n\n"+
+			"outer()",
+		"120")
+}
+
 func TestCrossTryCatch(t *testing.T) {
 	assertBothEqual(t, "try\n    1 / 0\ncatch e\n    \"caught\"", "caught")
 }

@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/MachuraHarry/pipe/pkg/lexer"
+	"github.com/MachuraHarry/pipe/pkg/object"
 	"github.com/MachuraHarry/pipe/pkg/parser"
 )
 
@@ -48,6 +49,37 @@ func hasOp(t *testing.T, bc *Bytecode, op Opcode) bool {
 			numPairs := int(ReadUint16(ins, i))
 			i += 2
 			i += numPairs * 2 // skip raw key index bytes
+		}
+	}
+	return false
+}
+
+// hasOpRecursive is hasOp extended to also search every
+// *object.CompiledFunction in bc.Constants -- hasOp alone only scans the
+// top-level instruction stream, which can never contain an opcode that only
+// a nested function body emits (e.g. OpCurrentClosure inside a local
+// closure, which lives in that closure's own compiled body, not its
+// enclosing function's). A single non-recursive pass over bc.Constants is
+// enough regardless of nesting depth: every CompiledFunction in the
+// program, at any nesting level, is addConstant'd into the same flat,
+// shared top-level constants pool (confirmed by inspecting a compiled
+// two-levels-deep program), not nested per-function.
+func hasOpRecursive(t *testing.T, bc *Bytecode, op Opcode) bool {
+	t.Helper()
+	if hasOp(t, bc, op) {
+		return true
+	}
+	for _, con := range bc.Constants {
+		cf, ok := con.(*object.CompiledFunction)
+		if !ok {
+			continue
+		}
+		ins, ok := cf.Instructions.(Instructions)
+		if !ok {
+			continue
+		}
+		if hasOp(t, &Bytecode{Instructions: ins}, op) {
+			return true
 		}
 	}
 	return false
@@ -409,7 +441,7 @@ func TestLastInstructionTerminatorIgnoresJumpOperandBytes(t *testing.T) {
 }
 
 func TestCompileWhileLoop(t *testing.T) {
-	input := "while true\n    x: x + 1"
+	input := "x: 0\nwhile true\n    x: x + 1"
 	bc := parseAndCompile(t, input)
 	if !hasOp(t, bc, OpJumpBackward) {
 		t.Error("expected OpJumpBackward for while loop")
@@ -585,5 +617,40 @@ func TestDeadCodeElimination(t *testing.T) {
 	bc2 := parseAndCompile(t, input2)
 	if countOps(t, bc2, OpSetGlobal) > 0 {
 		t.Error("dead code after return value should be eliminated")
+	}
+}
+
+// TestCompileSelfRecursiveVarLambdaUsesCurrentClosure guards the fix for a
+// crash: a self-recursive function assigned via `name: fn ...` (not the
+// `fn name ...` statement form) must resolve its own name to
+// OpCurrentClosure, not a captured free variable -- capturing would read
+// the enclosing slot before the OpSetLocal/OpSetGlobal that stores the
+// finished closure into it ever runs, producing a nil self-reference.
+func TestCompileSelfRecursiveVarLambdaUsesCurrentClosure(t *testing.T) {
+	input := "fn outer\n    fact: fn n\n        fact(n - 1)\n    fact 5"
+	bc := parseAndCompile(t, input)
+	if !hasOpRecursive(t, bc, OpCurrentClosure) {
+		t.Error("expected OpCurrentClosure for a self-recursive var-bound lambda")
+	}
+}
+
+// TestCompileSelfRecursiveFnStatementUsesCurrentClosure is the `fn name ...`
+// statement-form counterpart of the above.
+func TestCompileSelfRecursiveFnStatementUsesCurrentClosure(t *testing.T) {
+	input := "fn outer\n    fn fact n\n        fact(n - 1)\n    fact 5"
+	bc := parseAndCompile(t, input)
+	if !hasOpRecursive(t, bc, OpCurrentClosure) {
+		t.Error("expected OpCurrentClosure for a self-recursive fn statement")
+	}
+}
+
+// TestCompileNonRecursiveLocalLambdaHasNoCurrentClosure guards against
+// over-triggering: a local lambda that never references its own name must
+// compile exactly as before (no OpCurrentClosure emitted).
+func TestCompileNonRecursiveLocalLambdaHasNoCurrentClosure(t *testing.T) {
+	input := "fn outer\n    double: fn n\n        n * 2\n    double 21"
+	bc := parseAndCompile(t, input)
+	if hasOpRecursive(t, bc, OpCurrentClosure) {
+		t.Error("did not expect OpCurrentClosure for a non-recursive lambda")
 	}
 }

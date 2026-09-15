@@ -467,6 +467,9 @@ func (vm *VM) Run() (err error) {
 			}
 			vm.push(closure)
 
+		case compiler.OpCurrentClosure:
+			vm.push(frame.closure)
+
 		case compiler.OpList:
 			numElems := int(compiler.ReadUint16(ins, frame.ip))
 			frame.ip += 2
@@ -1270,6 +1273,9 @@ func (vm *VM) executeFrame() object.Object {
 				Executor: vm,
 			}
 			vm.push(closure)
+
+		case compiler.OpCurrentClosure:
+			vm.push(frame.closure)
 
 		case compiler.OpList:
 			numElems := int(compiler.ReadUint16(ins, frame.ip))

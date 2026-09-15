@@ -250,6 +250,68 @@ func TestRecursiveFunction(t *testing.T) {
 	}
 }
 
+// TestLocalSelfRecursiveVarLambda guards a fix for a real VM crash: a
+// self-recursive function assigned via `name: fn ...` and nested inside
+// another function (so its own name is a LOCAL, not global) used to panic
+// with a nil-pointer dereference the moment it recursed. The closure
+// captured its own not-yet-initialized enclosing slot as a free variable
+// before the OpSetLocal that would store the finished closure into it ever
+// ran, so the captured "self" was nil. Fixed via OpCurrentClosure.
+func TestLocalSelfRecursiveVarLambda(t *testing.T) {
+	input := "fn outer\n" +
+		"    fact: fn n\n" +
+		"        if n <= 1\n" +
+		"            1\n" +
+		"        else\n" +
+		"            n * fact(n - 1)\n" +
+		"    fact 5\n\n" +
+		"outer()"
+	bc := parseAndCompile(t, input)
+	result := runVM(t, bc)
+	if result != "120" {
+		t.Errorf("expected 120, got %s", result)
+	}
+}
+
+// TestLocalSelfRecursiveFnStatement is the `fn name ...` statement-form
+// counterpart of TestLocalSelfRecursiveVarLambda -- it used to crash the
+// same way when nested inside another function.
+func TestLocalSelfRecursiveFnStatement(t *testing.T) {
+	input := "fn outer\n" +
+		"    fn fact n\n" +
+		"        if n <= 1\n" +
+		"            1\n" +
+		"        else\n" +
+		"            n * fact(n - 1)\n" +
+		"    fact 5\n\n" +
+		"outer()"
+	bc := parseAndCompile(t, input)
+	result := runVM(t, bc)
+	if result != "120" {
+		t.Errorf("expected 120, got %s", result)
+	}
+}
+
+// TestGlobalSelfRecursiveVarLambdaStillWorks guards against a regression in
+// the already-working case: a top-level self-recursive `fact: fn n: ...`
+// must keep working exactly as before (it never hit the local-scope crash,
+// since a global self-reference resolves directly via OpGetGlobal rather
+// than being captured as a free variable -- but it's worth pinning that
+// routing it through OpCurrentClosure instead didn't change its result).
+func TestGlobalSelfRecursiveVarLambdaStillWorks(t *testing.T) {
+	input := "fact: fn n\n" +
+		"    if n <= 1\n" +
+		"        1\n" +
+		"    else\n" +
+		"        n * fact(n - 1)\n\n" +
+		"fact 5"
+	bc := parseAndCompile(t, input)
+	result := runVM(t, bc)
+	if result != "120" {
+		t.Errorf("expected 120, got %s", result)
+	}
+}
+
 // TestClosureMutableState locks in the make_counter pattern documented in
 // docs/en/05-functions-and-closures.md under the VM: a closure's captured
 // free variable must persist mutation (OpSetFree) across repeated calls to
